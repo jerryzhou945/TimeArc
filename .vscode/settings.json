@@ -1,0 +1,28 @@
+{
+    // Encoding and line endings
+    "files.encoding": "utf8",
+    "files.eol": "\n",
+    // Indentation settings
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    // File cleanup on save
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
+    "files.insertFinalNewline": true,
+    "[markdown]": {
+        "files.trimTrailingWhitespace": false
+    },
+    // C/C++ linting
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    // Google C++ Style Guide settings
+    "[c]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools"
+    },
+    "C_Cpp.clang_format_style": "file",
+    "C_Cpp.clang_format_fallbackStyle": "Google",
+    "editor.formatOnSave": true
+}
