@@ -9,7 +9,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#0f1117"
+        color: "#f7f1e8"
     }
 
     RowLayout {
@@ -17,9 +17,9 @@ Item {
         spacing: 0
 
         Rectangle {
-            Layout.preferredWidth: 250
+            Layout.preferredWidth: 260
             Layout.fillHeight: true
-            color: "#151a23"
+            color: "#efe4d3"
 
             Column {
                 anchors.fill: parent
@@ -28,26 +28,28 @@ Item {
 
                 Rectangle {
                     width: parent.width
-                    height: 72
-                    radius: 18
-                    color: "#1b2230"
+                    height: 84
+                    radius: 22
+                    color: "#f8efe2"
+                    border.width: 1
+                    border.color: "#e2d2bc"
 
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left
                         anchors.leftMargin: 18
-                        spacing: 4
+                        spacing: 6
 
                         Text {
-                            text: "TimeArc"
-                            color: "white"
+                            text: "时迹 TimeArc"
+                            color: "#5f4631"
                             font.pixelSize: 24
                             font.bold: true
                         }
 
                         Text {
-                            text: "Track your time beautifully"
-                            color: "#8b95a7"
+                            text: "用温柔的方式记录时间"
+                            color: "#9a7d63"
                             font.pixelSize: 13
                         }
                     }
@@ -59,10 +61,10 @@ Item {
 
                     Repeater {
                         model: [
-                            { title: "Dashboard", icon: "◉" },
-                            { title: "Tasks", icon: "≡" },
-                            { title: "Statistics", icon: "▣" },
-                            { title: "Settings", icon: "⚙" }
+                            { title: "仪表盘", icon: "◉" },
+                            { title: "任务", icon: "≡" },
+                            { title: "统计", icon: "▣" },
+                            { title: "设置", icon: "⚙" }
                         ]
 
                         delegate: Rectangle {
@@ -70,11 +72,11 @@ Item {
                             required property var modelData
 
                             width: parent.width
-                            height: 54
-                            radius: 14
-                            color: selectedIndex === index ? "#232c3d" : "transparent"
+                            height: 56
+                            radius: 16
+                            color: selectedIndex === index ? "#e8d7c0" : "transparent"
                             border.width: selectedIndex === index ? 1 : 0
-                            border.color: "#2f3b52"
+                            border.color: "#d6c1a7"
 
                             Row {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -84,13 +86,13 @@ Item {
 
                                 Text {
                                     text: modelData.icon
-                                    color: selectedIndex === index ? "#7cc7ff" : "#9aa4b2"
+                                    color: selectedIndex === index ? "#a66a3f" : "#9f8a76"
                                     font.pixelSize: 18
                                 }
 
                                 Text {
                                     text: modelData.title
-                                    color: selectedIndex === index ? "white" : "#c1c8d4"
+                                    color: selectedIndex === index ? "#5c4330" : "#7d6753"
                                     font.pixelSize: 16
                                     font.weight: Font.Medium
                                 }
@@ -105,38 +107,88 @@ Item {
                         }
                     }
                 }
+
+                Item {
+                    Layout.fillHeight: true
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 120
+                    radius: 20
+                    color: "#f8efe2"
+                    border.width: 1
+                    border.color: "#e2d2bc"
+
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        spacing: 8
+
+                        Text {
+                            text: "今日时光"
+                            color: "#5f4631"
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: "3小时 24分钟"
+                            color: "#b06f42"
+                            font.pixelSize: 24
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: "慢一点，也是在前进。"
+                            color: "#9a7d63"
+                            font.pixelSize: 13
+                        }
+                    }
+                }
             }
         }
 
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: "#0f1117"
+            color: "#f7f1e8"
 
             Column {
                 anchors.centerIn: parent
-                spacing: 16
+                spacing: 18
 
                 Text {
-                    text: "AppShell Loaded"
-                    color: "white"
-                    font.pixelSize: 32
+                    text: "欢迎来到时迹"
+                    color: "#5f4631"
+                    font.pixelSize: 34
                     font.bold: true
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 
                 Text {
-                    text: "Your sidebar is working."
-                    color: "#8b95a7"
-                    font.pixelSize: 16
+                    text: "左侧导航已经可以点击了。"
+                    color: "#8e745d"
+                    font.pixelSize: 17
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 
-                Text {
-                    text: "Selected tab: " + selectedIndex
-                    color: "#7cc7ff"
-                    font.pixelSize: 18
+                Rectangle {
+                    width: 220
+                    height: 56
+                    radius: 18
+                    color: "#f2e5d3"
+                    border.width: 1
+                    border.color: "#dcc7ad"
                     anchors.horizontalCenter: parent.horizontalCenter
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "当前页面：" + ["仪表盘", "任务", "统计", "设置"][selectedIndex]
+                        color: "#7a573d"
+                        font.pixelSize: 16
+                        font.bold: true
+                    }
                 }
             }
         }
