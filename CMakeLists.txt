@@ -16,7 +16,8 @@ qt_add_qml_module(apptime-arc
     URI time-arc
     VERSION 1.0
     QML_FILES
-        qml/main.qml
+        qml/Main.qml
+        qml/AppShell.qml
 )
 
 set_target_properties(apptime-arc PROPERTIES
