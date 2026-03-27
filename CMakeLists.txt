@@ -18,6 +18,7 @@ qt_add_qml_module(apptime-arc
     QML_FILES
         qml/Main.qml
         qml/AppShell.qml
+        qml/pages/HomePage.qml
 )
 
 set_target_properties(apptime-arc PROPERTIES

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import time_arc
 
 Item {
     anchors.fill: parent
@@ -61,8 +62,7 @@ Item {
 
                     Repeater {
                         model: [
-                            { title: "仪表盘", icon: "◉" },
-                            { title: "任务", icon: "≡" },
+                            { title: "首页", icon: "◉" },
                             { title: "统计", icon: "▣" },
                             { title: "设置", icon: "⚙" }
                         ]
@@ -154,40 +154,28 @@ Item {
             Layout.fillHeight: true
             color: "#f7f1e8"
 
-            Column {
-                anchors.centerIn: parent
-                spacing: 18
+            Loader {
+                anchors.fill: parent
+                anchors.margins: 24
+                sourceComponent: selectedIndex === 0 ? homePageComponent : placeholderComponent
+            }
 
-                Text {
-                    text: "欢迎来到时迹"
-                    color: "#5f4631"
-                    font.pixelSize: 34
-                    font.bold: true
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
+            Component {
+                id: homePageComponent
+                HomePage { }
+            }
 
-                Text {
-                    text: "左侧导航已经可以点击了。"
-                    color: "#8e745d"
-                    font.pixelSize: 17
-                    anchors.horizontalCenter: parent.horizontalCenter
-                }
+            Component {
+                id: placeholderComponent
 
                 Rectangle {
-                    width: 220
-                    height: 56
-                    radius: 18
-                    color: "#f2e5d3"
-                    border.width: 1
-                    border.color: "#dcc7ad"
-                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: "#f7f1e8"
 
                     Text {
                         anchors.centerIn: parent
-                        text: "当前页面：" + ["仪表盘", "任务", "统计", "设置"][selectedIndex]
-                        color: "#7a573d"
-                        font.pixelSize: 16
-                        font.bold: true
+                        text: "这个页面还在制作中"
+                        color: "#8e745d"
+                        font.pixelSize: 24
                     }
                 }
             }

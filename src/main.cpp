@@ -5,6 +5,9 @@
 int main(int argc, char* argv[]) {
   QGuiApplication app(argc, argv);
 
+  app.setOrganizationName("TimeArc");
+  app.setApplicationName("TimeArc");
+
   QQmlApplicationEngine engine;
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
