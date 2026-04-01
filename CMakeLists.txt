@@ -19,6 +19,7 @@ qt_add_qml_module(apptime-arc
         qml/Main.qml
         qml/desktop/DesktopAppShell.qml
         qml/desktop/pages/DesktopHomePage.qml
+        qml/desktop/pages/DesktopChatPage.qml
     RESOURCES
         qml/assets/icons/home.svg
         qml/assets/icons/chat.svg

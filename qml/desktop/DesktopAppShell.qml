@@ -239,30 +239,7 @@ Item {
 
             Component {
                 id: chatPageComponent
-
-                Rectangle {
-                    color: "#FBF7F2"
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 12
-
-                        Text {
-                            text: "聊天页"
-                            color: "#6B4D3C"
-                            font.pixelSize: 28
-                            font.bold: true
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-
-                        Text {
-                            text: "这里之后可以放聊天记录、AI 对话和提醒。"
-                            color: "#9C806C"
-                            font.pixelSize: 15
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                    }
-                }
+                DesktopChatPage { }
             }
 
             Component {
