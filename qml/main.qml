@@ -8,7 +8,7 @@ ApplicationWindow {
     title: qsTr("TimeArc")
     color: "#0f1117"
 
-    AppShell {
+    DesktopAppShell {
         anchors.fill: parent
     }
 }

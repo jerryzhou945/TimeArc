@@ -17,8 +17,8 @@ qt_add_qml_module(apptime-arc
     VERSION 1.0
     QML_FILES
         qml/Main.qml
-        qml/AppShell.qml
-        qml/pages/HomePage.qml
+        qml/desktop/DesktopAppShell.qml
+        qml/desktop/pages/DesktopHomePage.qml
 )
 
 set_target_properties(apptime-arc PROPERTIES

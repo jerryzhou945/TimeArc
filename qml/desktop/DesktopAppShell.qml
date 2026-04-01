@@ -42,7 +42,7 @@ Item {
                         spacing: 6
 
                         Text {
-                            text: "时迹 TimeArc"
+                            text: "记忆湖 TimeArc"
                             color: "#5f4631"
                             font.pixelSize: 24
                             font.bold: true
@@ -162,7 +162,7 @@ Item {
 
             Component {
                 id: homePageComponent
-                HomePage { }
+                DesktopHomePage { }
             }
 
             Component {
