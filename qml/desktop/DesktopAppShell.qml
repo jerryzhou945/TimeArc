@@ -6,12 +6,71 @@ import time_arc
 Item {
     anchors.fill: parent
 
+    // =========================
+    // 页面切换状态
+    // =========================
     property int selectedIndex: 0
     property bool sidebarCollapsed: false
     property bool showingTimerPage: false
 
-    property string appBackgroundSource: "file:///F:/TimeArc/time-arc/qml/assets/background.png"
+    // =========================
+    // 主题切换状态
+    // false = 白天
+    // true  = 夜晚
+    // =========================
+    property bool nightMode: false
 
+    // =========================
+    // 背景图路径
+    // 白天 / 夜晚分别一张图
+    // =========================
+    property string dayBackgroundSource: "file:///F:/TimeArc/time-arc/qml/assets/background.png"
+    property string nightBackgroundSource: "file:///F:/TimeArc/time-arc/qml/assets/background_night.png"
+
+    // 当前实际使用的背景图
+    property string appBackgroundSource: nightMode ? nightBackgroundSource : dayBackgroundSource
+
+    // =========================
+    // 全局主题颜色
+    // 白天：米色、奶茶色
+    // 夜晚：淡蓝紫、雾感紫灰
+    // =========================
+
+    // 文字颜色
+    property color appTextPrimary: nightMode ? "#EAE8F8" : "#4E342E"
+    property color appTextSecondary: nightMode ? "#B8B4D4" : "#9C806C"
+
+    // 侧边栏玻璃层与边框
+    property color appSidebarGlass: nightMode ? "#3E435F" : "#FFFDF9"
+    property color appSidebarBorder: nightMode ? "#6D7297" : "#D8C2AC"
+
+    // 主内容区玻璃层与边框
+    property color appPanelGlass: nightMode ? "#454B69" : "#FFFDF9"
+    property color appPanelBorder: nightMode ? "#6D7297" : "#D8C2AC"
+
+    // 当前选中的导航项
+    property color appSelectedItem: nightMode ? "#5B6185" : "#EFE1D0"
+    property color appSelectedItemBorder: nightMode ? "#8188B1" : "#DFCBB5"
+
+    // 收起侧栏按钮
+    property color appCollapseButton: nightMode ? "#525878" : "#F4ECE2"
+    property color appCollapseButtonBorder: nightMode ? "#767DA7" : "#E6D7C7"
+
+    // 强调色（logo 圆点 / 强调按钮）
+    // 白天偏奶茶，夜晚偏柔和蓝紫
+    property color appAccentWarm: nightMode ? "#8E93D8" : "#E8C6A3"
+    property color appAccentWarmText: nightMode ? "#F8F7FF" : "#6A4C3B"
+
+    // 左下角陪伴卡片
+    property color appBottomCardBorder: nightMode ? "#7078A5" : "#ECE2D6"
+    property color appBottomCardGlass: nightMode ? "#4A506F" : "#FFFDF9"
+
+    // 夜晚模式下的小高光文字
+    property color appNightAccentText: "#BFC7FF"
+
+    // =========================
+    // 左侧导航项
+    // =========================
     property var navItems: [
         { title: "首页", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/home.svg" },
         { title: "聊天", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/chat.svg" },
@@ -21,6 +80,11 @@ Item {
         { title: "我的", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/user.svg" }
     ]
 
+    // =========================
+    // 当前 Loader 要加载哪个页面
+    // 这里继续保留你现在已经验证能跑的
+    // Loader.source 路径切页方案
+    // =========================
     property string currentPageSource: {
         if (showingTimerPage)
             return Qt.resolvedUrl("pages/DesktopTimerPage.qml")
@@ -29,10 +93,47 @@ Item {
             return Qt.resolvedUrl("pages/DesktopHomePage.qml")
         if (selectedIndex === 1)
             return Qt.resolvedUrl("pages/DesktopChatPage.qml")
+        if (selectedIndex === 2)
+            return Qt.resolvedUrl("pages/DesktopMemoryLakePage.qml")
+        if (selectedIndex === 5)
+            return Qt.resolvedUrl("pages/DesktopProfilePage.qml")
 
         return ""
     }
 
+    // =========================
+    // 把 AppShell 的主题同步给当前加载的页面
+    // 页面里如果定义了这些属性，就会自动接收到
+    // =========================
+    function applyThemeToLoadedPage() {
+        if (!pageLoader.item)
+            return
+
+        var item = pageLoader.item
+
+        if ("nightMode" in item)
+            item.nightMode = nightMode
+        if ("themeTextPrimary" in item)
+            item.themeTextPrimary = appTextPrimary
+        if ("themeTextSecondary" in item)
+            item.themeTextSecondary = appTextSecondary
+        if ("themePanelColor" in item)
+            item.themePanelColor = appPanelGlass
+        if ("themeBorderColor" in item)
+            item.themeBorderColor = appPanelBorder
+        if ("themeAccentColor" in item)
+            item.themeAccentColor = appAccentWarm
+    }
+
+    onNightModeChanged: {
+        applyThemeToLoadedPage()
+    }
+
+    // =========================
+    // 整体背景层
+    // 这里做白天 / 夜晚背景图切换
+    // 同时叠一层渐变遮罩，让整体更统一
+    // =========================
     Item {
         anchors.fill: parent
 
@@ -40,7 +141,7 @@ Item {
             anchors.fill: parent
             source: appBackgroundSource
             fillMode: Image.PreserveAspectCrop
-            opacity: 0.48
+            opacity: nightMode ? 0.8 : 0.8
             smooth: false
             asynchronous: true
         }
@@ -48,10 +149,16 @@ Item {
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-                GradientStop { position: 0.0; color: "#F6F1EA" }
-                GradientStop { position: 1.0; color: "#F3EEE5" }
+                GradientStop {
+                    position: 0.0
+                    color: nightMode ? "#2D3148" : "#F6F1EA"
+                }
+                GradientStop {
+                    position: 1.0
+                    color: nightMode ? "#3B4160" : "#F3EEE5"
+                }
             }
-            opacity: 0.20
+            opacity: nightMode ? 0.34 : 0.20
         }
     }
 
@@ -60,6 +167,9 @@ Item {
         anchors.margins: 18
         spacing: 18
 
+        // =========================
+        // 左侧侧边栏
+        // =========================
         Rectangle {
             id: sidebar
             width: sidebarCollapsed ? 92 : 240
@@ -68,16 +178,7 @@ Item {
             radius: 30
             color: "transparent"
             border.width: 2
-            border.color: "#D8C2AC"
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: 1
-                radius: 29
-                color: "#FFFDF9"
-                opacity: 0.68
-                z: -1
-            }
+            border.color: appSidebarBorder
 
             Behavior on width {
                 NumberAnimation {
@@ -86,11 +187,21 @@ Item {
                 }
             }
 
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 29
+                color: appSidebarGlass
+                opacity: nightMode ? 0.68 : 0.68
+                z: -1
+            }
+
             Column {
                 anchors.fill: parent
                 anchors.margins: 16
                 spacing: 16
 
+                // 顶部 Logo
                 Row {
                     width: parent.width
                     height: 60
@@ -100,13 +211,13 @@ Item {
                         width: 30
                         height: 30
                         radius: 15
-                        color: "#E8C6A3"
+                        color: appAccentWarm
                         anchors.verticalCenter: parent.verticalCenter
 
                         Text {
                             anchors.centerIn: parent
                             text: "T"
-                            color: "#6A4C3B"
+                            color: appAccentWarmText
                             font.pixelSize: 16
                             font.bold: true
                         }
@@ -115,27 +226,28 @@ Item {
                     Text {
                         visible: !sidebarCollapsed
                         text: "TimeArc"
-                        color: "#4E342E"
+                        color: appTextPrimary
                         font.pixelSize: 24
                         font.bold: true
                         anchors.verticalCenter: parent.verticalCenter
                     }
                 }
 
+                // 收起侧栏按钮
                 Rectangle {
                     width: parent.width
                     height: 48
                     radius: 16
-                    color: "#F4ECE2"
+                    color: appCollapseButton
                     border.width: 1
-                    border.color: "#E6D7C7"
+                    border.color: appCollapseButtonBorder
 
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: 1
                         radius: 15
                         color: "#FFFFFF"
-                        opacity: 0.18
+                        opacity: nightMode ? 0.07 : 0.18
                         z: -1
                     }
 
@@ -145,7 +257,7 @@ Item {
 
                         Text {
                             text: sidebarCollapsed ? "»" : "«"
-                            color: "#8A654C"
+                            color: nightMode ? "#D5DAFF" : "#8A654C"
                             font.pixelSize: 18
                             font.bold: true
                         }
@@ -153,7 +265,7 @@ Item {
                         Text {
                             visible: !sidebarCollapsed
                             text: "收起侧栏"
-                            color: "#6B4D3C"
+                            color: appTextPrimary
                             font.pixelSize: 14
                             font.bold: true
                         }
@@ -166,6 +278,7 @@ Item {
                     }
                 }
 
+                // 导航列表
                 Column {
                     width: parent.width
                     spacing: 10
@@ -180,9 +293,9 @@ Item {
                             width: parent.width
                             height: 58
                             radius: 18
-                            color: selectedIndex === index && !showingTimerPage ? "#EFE1D0" : "transparent"
+                            color: selectedIndex === index && !showingTimerPage ? appSelectedItem : "transparent"
                             border.width: selectedIndex === index && !showingTimerPage ? 1 : 0
-                            border.color: "#DFCBB5"
+                            border.color: appSelectedItemBorder
 
                             Row {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -203,7 +316,9 @@ Item {
                                 Text {
                                     visible: !sidebarCollapsed
                                     text: modelData.title
-                                    color: selectedIndex === index && !showingTimerPage ? "#5E4030" : "#8E7562"
+                                    color: selectedIndex === index && !showingTimerPage
+                                           ? appTextPrimary
+                                           : appTextSecondary
                                     font.pixelSize: 17
                                     font.weight: Font.Medium
                                     anchors.verticalCenter: parent.verticalCenter
@@ -228,21 +343,22 @@ Item {
                     Layout.fillHeight: true
                 }
 
+                // 左下角状态卡片
                 Rectangle {
                     visible: !sidebarCollapsed
                     width: parent.width
                     height: 116
                     radius: 22
-                    color: "#FFFDF9"
+                    color: appBottomCardGlass
                     border.width: 1
-                    border.color: "#ECE2D6"
+                    border.color: appBottomCardBorder
 
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: 1
                         radius: 21
                         color: "#FFFFFF"
-                        opacity: 0.14
+                        opacity: nightMode ? 0.05 : 0.14
                         z: -1
                     }
 
@@ -253,21 +369,21 @@ Item {
 
                         Text {
                             text: "记忆湖陪伴"
-                            color: "#5E4030"
+                            color: appTextPrimary
                             font.pixelSize: 15
                             font.bold: true
                         }
 
                         Text {
-                            text: "第 12 天"
-                            color: "#A96F46"
+                            text: nightMode ? "夜晚模式中" : "白天模式中"
+                            color: nightMode ? appNightAccentText : "#A96F46"
                             font.pixelSize: 24
                             font.bold: true
                         }
 
                         Text {
-                            text: "慢慢积累，也很好。"
-                            color: "#9C806C"
+                            text: nightMode ? "今晚也慢慢积累。" : "慢慢积累，也很好。"
+                            color: appTextSecondary
                             font.pixelSize: 13
                         }
                     }
@@ -275,6 +391,9 @@ Item {
             }
         }
 
+        // =========================
+        // 主内容区域
+        // =========================
         Rectangle {
             id: contentPanel
             Layout.fillWidth: true
@@ -282,14 +401,14 @@ Item {
             radius: 34
             color: "transparent"
             border.width: 2
-            border.color: "#D8C2AC"
+            border.color: appPanelBorder
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
                 radius: 33
-                color: "#FFFDF9"
-                opacity: 0.46
+                color: appPanelGlass
+                opacity: nightMode ? 0.46 : 0.46
                 z: -1
             }
 
@@ -299,18 +418,20 @@ Item {
                 anchors.margins: 22
                 source: currentPageSource
 
-                property var _homeStartProjectConnection: null
-                property var _homeImportConnection: null
-
                 onLoaded: {
                     console.log("Loader loaded:", source)
 
                     if (!item)
                         return
 
+                    // 页面加载后，把当前主题注入进去
+                    applyThemeToLoadedPage()
+
+                    // 计时页不需要再连首页 signal
                     if (showingTimerPage)
                         return
 
+                    // 首页：连接开始计时信号
                     if (selectedIndex === 0 && item.startProject) {
                         item.startProject.connect(function(projectName) {
                             console.log("startProject signal received:", projectName)
@@ -321,10 +442,23 @@ Item {
                         })
                     }
 
+                    // 首页：连接导入软件信号
                     if (selectedIndex === 0 && item.importSoftware) {
                         item.importSoftware.connect(function() {
                             console.log("导入想查看时间的软件")
                         })
+                    }
+
+                    // 我的页：连接夜晚模式开关信号
+                    if (selectedIndex === 5 && item.nightModeToggled) {
+                        item.nightModeToggled.connect(function(enabled) {
+                            nightMode = enabled
+                        })
+                    }
+
+                    // 我的页：把当前 nightMode 同步给 profile page
+                    if (selectedIndex === 5 && "nightMode" in item) {
+                        item.nightMode = nightMode
                     }
                 }
 
@@ -333,6 +467,7 @@ Item {
                 }
             }
 
+            // 暂时还没做成独立页面的内容先放占位
             Item {
                 anchors.fill: parent
                 visible: selectedIndex === 3 && !showingTimerPage
@@ -340,7 +475,7 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     text: "日历页"
-                    color: "#6B4D3C"
+                    color: appTextPrimary
                     font.pixelSize: 28
                     font.bold: true
                 }
@@ -353,20 +488,7 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     text: "统计页"
-                    color: "#6B4D3C"
-                    font.pixelSize: 28
-                    font.bold: true
-                }
-            }
-
-            Item {
-                anchors.fill: parent
-                visible: selectedIndex === 5 && !showingTimerPage
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "我的页"
-                    color: "#6B4D3C"
+                    color: appTextPrimary
                     font.pixelSize: 28
                     font.bold: true
                 }
@@ -374,6 +496,12 @@ Item {
         }
     }
 
+    // =========================
+    // 监听计时结束
+    // 结束后：
+    // 1. 把本次时间累计到项目
+    // 2. 返回首页
+    // =========================
     Connections {
         target: timerManager
 

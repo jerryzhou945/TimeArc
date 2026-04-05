@@ -31,6 +31,7 @@ qt_add_qml_module(apptime-arc
         qml/desktop/pages/DesktopHomePage.qml
         qml/desktop/pages/DesktopChatPage.qml
         qml/desktop/pages/DesktopTimerPage.qml
+        qml/desktop/pages/DesktopProfilePage.qml
 
     RESOURCES
         qml/assets/icons/home.svg

@@ -8,18 +8,38 @@ Item {
     signal importSoftware()
     signal startProject(string projectName)
 
-    property color textPrimary: "#4E342E"
-    property color textSecondary: "#9C806C"
-    property color accentBrown: "#D8B38A"
-    property color accentBrownDeep: "#A96F46"
-    property color accentGreen: "#B9C98A"
-    property color accentOrange: "#E5A85F"
-    property color accentPurple: "#B9A4EF"
+    // =========================
+    // 从 AppShell 传入的主题属性
+    // 如果 AppShell 没传，就先用白天默认值
+    // =========================
+    property bool nightMode: false
+    property color themeTextPrimary: "#4E342E"
+    property color themeTextSecondary: "#9C806C"
+    property color themePanelColor: "#FFFDF9"
+    property color themeBorderColor: "#DDC9B5"
+    property color themeAccentColor: "#E8C6A3"
 
-    property color panelColor: "#FFFDF9"
-    property color cardColor: "#FFFDF9"
-    property color borderColor: "#DDC9B5"
-    property color softBorder: "#E6D6C5"
+    // =========================
+    // 白天 / 夜晚都共用的强调色
+    // 夜晚时把这些颜色调得更柔和一点
+    // =========================
+    property color textPrimary: themeTextPrimary
+    property color textSecondary: themeTextSecondary
+
+    property color accentBrown: themeAccentColor
+    property color accentBrownDeep: nightMode ? "#D9D8FF" : "#A96F46"
+
+    property color accentGreen: nightMode ? "#98C2AE" : "#B9C98A"
+    property color accentOrange: nightMode ? "#CDA0D8" : "#E5A85F"
+    property color accentPurple: nightMode ? "#9EA7F5" : "#B9A4EF"
+
+    property color panelColor: themePanelColor
+    property color cardColor: nightMode ? "#505675" : "#FFFDF9"
+    property color borderColor: themeBorderColor
+    property color softBorder: nightMode ? "#757CA6" : "#E6D6C5"
+
+    property color softInnerHighlight: nightMode ? "#FFFFFF" : "#FFFFFF"
+    property real softInnerOpacity: nightMode ? 0.06 : 0.68
 
     function minutesToDisplay(minutes) {
         var h = Math.floor(minutes / 60)
@@ -27,6 +47,9 @@ Item {
         return h + "h " + m + "m"
     }
 
+    // =========================
+    // 从 C++ ProjectManager 读取统计数据
+    // =========================
     property int studyMinutes: projectManager ? projectManager.studyMinutes : 0
     property int sportMinutes: projectManager ? projectManager.sportMinutes : 0
     property int gameMinutes: projectManager ? projectManager.gameMinutes : 0
@@ -49,6 +72,9 @@ Item {
             width: flickArea.width
             spacing: 18
 
+            // =========================
+            // 顶部标题
+            // =========================
             Column {
                 spacing: 6
 
@@ -60,12 +86,17 @@ Item {
                 }
 
                 Text {
-                    text: "今天也慢慢记录自己的时间轨迹。"
+                    text: nightMode
+                          ? "今晚也慢慢记录自己的时间轨迹。"
+                          : "今天也慢慢记录自己的时间轨迹。"
                     color: textSecondary
                     font.pixelSize: 16
                 }
             }
 
+            // =========================
+            // 项目分布 + 圆环
+            // =========================
             Rectangle {
                 width: parent.width
                 height: 390
@@ -79,7 +110,7 @@ Item {
                     anchors.margins: 1
                     radius: 29
                     color: panelColor
-                    opacity: 0.44
+                    opacity: nightMode ? 0.44 : 0.44
                     z: -1
                 }
 
@@ -107,6 +138,7 @@ Item {
                             width: parent.width
                         }
 
+                        // 学习
                         Rectangle {
                             width: parent.width
                             height: 70
@@ -120,7 +152,7 @@ Item {
                                 anchors.margins: 1
                                 radius: 17
                                 color: cardColor
-                                opacity: 0.68
+                                opacity: nightMode ? 0.68 : 0.68
                                 z: -1
                             }
 
@@ -147,6 +179,7 @@ Item {
                             }
                         }
 
+                        // 运动
                         Rectangle {
                             width: parent.width
                             height: 70
@@ -160,7 +193,7 @@ Item {
                                 anchors.margins: 1
                                 radius: 17
                                 color: cardColor
-                                opacity: 0.68
+                                opacity: nightMode ? 0.68 : 0.68
                                 z: -1
                             }
 
@@ -187,6 +220,7 @@ Item {
                             }
                         }
 
+                        // 游戏
                         Rectangle {
                             width: parent.width
                             height: 70
@@ -200,7 +234,7 @@ Item {
                                 anchors.margins: 1
                                 radius: 17
                                 color: cardColor
-                                opacity: 0.68
+                                opacity: nightMode ? 0.68 : 0.68
                                 z: -1
                             }
 
@@ -261,7 +295,7 @@ Item {
                                 }
 
                                 ctx.beginPath()
-                                ctx.strokeStyle = "#EFE7DD"
+                                ctx.strokeStyle = nightMode ? "#686F98" : "#EFE7DD"
                                 ctx.lineWidth = lineWidth
                                 ctx.arc(cx, cy, radius, 0, Math.PI * 2, false)
                                 ctx.stroke()
@@ -298,8 +332,8 @@ Item {
                                 anchors.fill: parent
                                 anchors.margins: 1
                                 radius: 80
-                                color: "#FFFDF9"
-                                opacity: 0.86
+                                color: nightMode ? "#505675" : "#FFFDF9"
+                                opacity: nightMode ? 0.82 : 0.86
                                 z: -1
                             }
 
@@ -327,11 +361,15 @@ Item {
                 }
             }
 
+            // =========================
+            // 软件使用时长 + 自定义项目
+            // =========================
             Row {
                 width: parent.width
                 height: 420
                 spacing: 18
 
+                // 左侧：软件使用时长
                 Rectangle {
                     width: (parent.width - 18) / 2
                     height: parent.height
@@ -345,7 +383,7 @@ Item {
                         anchors.margins: 1
                         radius: 29
                         color: panelColor
-                        opacity: 0.42
+                        opacity: nightMode ? 0.42 : 0.42
                         z: -1
                     }
 
@@ -383,7 +421,7 @@ Item {
                                     anchors.margins: 1
                                     radius: 19
                                     color: cardColor
-                                    opacity: 0.68
+                                    opacity: nightMode ? 0.68 : 0.68
                                     z: -1
                                 }
 
@@ -434,6 +472,7 @@ Item {
                     }
                 }
 
+                // 右侧：自定义项目
                 Rectangle {
                     width: (parent.width - 18) / 2
                     height: parent.height
@@ -447,7 +486,7 @@ Item {
                         anchors.margins: 1
                         radius: 29
                         color: panelColor
-                        opacity: 0.42
+                        opacity: nightMode ? 0.42 : 0.42
                         z: -1
                     }
 
@@ -485,7 +524,7 @@ Item {
                                     anchors.margins: 1
                                     radius: 19
                                     color: cardColor
-                                    opacity: 0.68
+                                    opacity: nightMode ? 0.68 : 0.68
                                     z: -1
                                 }
 
@@ -537,15 +576,15 @@ Item {
                                         width: 84
                                         height: 40
                                         radius: 16
-                                        color: "#E8C6A3"
+                                        color: nightMode ? "#8E93D8" : "#E8C6A3"
                                         border.width: 1
-                                        border.color: "#DBB18A"
+                                        border.color: nightMode ? "#757ED0" : "#DBB18A"
                                         anchors.verticalCenter: parent.verticalCenter
 
                                         Text {
                                             anchors.centerIn: parent
                                             text: "开始"
-                                            color: "#6A4C3B"
+                                            color: nightMode ? "#F8F7FF" : "#6A4C3B"
                                             font.pixelSize: 14
                                             font.bold: true
                                         }
@@ -563,6 +602,9 @@ Item {
                 }
             }
 
+            // =========================
+            // 更多记录
+            // =========================
             Rectangle {
                 width: parent.width
                 height: 220
@@ -576,7 +618,7 @@ Item {
                     anchors.margins: 1
                     radius: 29
                     color: panelColor
-                    opacity: 0.42
+                    opacity: nightMode ? 0.42 : 0.42
                     z: -1
                 }
 
@@ -602,14 +644,17 @@ Item {
         }
     }
 
+    // =========================
+    // 右下角添加按钮
+    // =========================
     Rectangle {
         id: addButton
         width: 68
         height: 68
         radius: 34
-        color: accentBrown
+        color: nightMode ? "#8E93D8" : accentBrown
         border.width: 1
-        border.color: "#CDA57D"
+        border.color: nightMode ? "#757ED0" : "#CDA57D"
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: 28
@@ -631,6 +676,9 @@ Item {
         }
     }
 
+    // =========================
+    // 右下角菜单
+    // =========================
     Menu {
         id: addMenu
 
@@ -645,6 +693,9 @@ Item {
         }
     }
 
+    // =========================
+    // 添加项目弹窗
+    // =========================
     Dialog {
         id: addProjectDialog
         modal: true
@@ -656,7 +707,7 @@ Item {
 
         background: Rectangle {
             radius: 24
-            color: "#FBF7F2"
+            color: nightMode ? "#4A506F" : "#FBF7F2"
             border.width: 1
             border.color: borderColor
         }

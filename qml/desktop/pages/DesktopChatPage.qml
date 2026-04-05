@@ -7,17 +7,54 @@ import QtCore
 Item {
     anchors.fill: parent
 
-    property color bgTop: "#FBF7F2"
-    property color bgBottom: "#F2E8DE"
-    property color panelColor: "#FFFDF9"
-    property color borderColor: "#DDC9B5"
-    property color softBorder: "#E6D6C5"
-    property color textPrimary: "#4C342C"
-    property color textSecondary: "#9E8471"
-    property color accentBrown: "#DDB892"
-    property color accentBrownDeep: "#A56D46"
-    property color bubbleMine: "#EFD9C1"
-    property color bubbleOther: "#FFF9F2"
+    // =========================
+    // 从 AppShell 传进来的主题参数
+    // 如果没传，就先用白天默认值
+    // =========================
+    property bool nightMode: false
+    property color themeTextPrimary: "#4C342C"
+    property color themeTextSecondary: "#9E8471"
+    property color themePanelColor: "#FFFDF9"
+    property color themeBorderColor: "#DDC9B5"
+    property color themeAccentColor: "#DDB892"
+
+    // =========================
+    // 页面内部颜色
+    // 白天：米色暖棕
+    // 夜晚：淡蓝紫、雾感灰紫
+    // =========================
+    property color bgTop: nightMode ? "#2F344D" : "#FBF7F2"
+    property color bgBottom: nightMode ? "#424865" : "#F2E8DE"
+
+    property color panelColor: themePanelColor
+    property color borderColor: themeBorderColor
+    property color softBorder: nightMode ? "#757CA6" : "#E6D6C5"
+
+    property color textPrimary: themeTextPrimary
+    property color textSecondary: themeTextSecondary
+
+    property color accentBrown: themeAccentColor
+    property color accentBrownDeep: nightMode ? "#D8D9FF" : "#A56D46"
+
+    property color bubbleMine: nightMode ? "#6A72A8" : "#EFD9C1"
+    property color bubbleOther: nightMode ? "#565E86" : "#FFF9F2"
+
+    property color topLightCard: nightMode ? "#59608A" : "#FFF6EC"
+    property color topButtonBg: nightMode ? "#59608A" : "#F3E5D6"
+    property color topButtonBorder: nightMode ? "#7A82B0" : "#DEC9B2"
+
+    property color inputPanelColor: nightMode ? "#4D5478" : "#FFFDF9"
+    property color inputFieldColor: nightMode ? "#525A82" : "#FFFDF9"
+    property color inputFieldBorder: nightMode ? "#757CA6" : "#E8DDD1"
+
+    property color sendButtonColor: nightMode ? "#8E93D8" : "#E7C29D"
+    property color sendButtonBorder: nightMode ? "#757ED0" : "#D5AE86"
+
+    property color pendingImageBar: nightMode ? "#586083" : "#F4E7D8"
+    property color pendingImageBorder: nightMode ? "#7A82B0" : "#E2D0BC"
+
+    property color timeChipColor: nightMode ? "#59608A" : "#F4E9DC"
+    property color timeChipBorder: nightMode ? "#7A82B0" : "#E7D8C7"
 
     property string pendingImagePath: ""
     property string previewImagePath: ""
@@ -121,13 +158,16 @@ Item {
         })
     }
 
+    // =========================
+    // 页面背景
+    // =========================
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
             GradientStop { position: 0.0; color: bgTop }
             GradientStop { position: 1.0; color: bgBottom }
         }
-        opacity: 0.18
+        opacity: nightMode ? 0.24 : 0.18
     }
 
     Rectangle {
@@ -137,7 +177,7 @@ Item {
         x: -90
         y: -60
         color: "#FFFFFF"
-        opacity: 0.10
+        opacity: nightMode ? 0.05 : 0.10
     }
 
     Rectangle {
@@ -146,8 +186,8 @@ Item {
         radius: 110
         x: parent.width - width - 60
         y: 90
-        color: "#F6EBDD"
-        opacity: 0.14
+        color: nightMode ? "#7A80B4" : "#F6EBDD"
+        opacity: nightMode ? 0.08 : 0.14
     }
 
     ColumnLayout {
@@ -155,6 +195,9 @@ Item {
         anchors.margins: 20
         spacing: 14
 
+        // =========================
+        // 顶部标题区域
+        // =========================
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 92
@@ -168,7 +211,7 @@ Item {
                 anchors.margins: 1
                 radius: 29
                 color: panelColor
-                opacity: 0.56
+                opacity: nightMode ? 0.76 : 0.56
                 z: -1
             }
 
@@ -182,8 +225,8 @@ Item {
                     width: parent.width * 0.42
                     height: parent.height
                     radius: 29
-                    color: "#FFF6EC"
-                    opacity: 0.30
+                    color: nightMode ? "#6670A6" : topLightCard
+                    opacity: nightMode ? 0.14 : 0.30
                 }
             }
 
@@ -196,7 +239,7 @@ Item {
                     width: 46
                     height: 46
                     radius: 23
-                    color: "#EED9C4"
+                    color: nightMode ? "#6C75AE" : "#EED9C4"
                     anchors.verticalCenter: parent.verticalCenter
 
                     Rectangle {
@@ -204,7 +247,7 @@ Item {
                         width: 32
                         height: 32
                         radius: 16
-                        color: "#F8EFE5"
+                        color: nightMode ? "#56608A" : "#F8EFE5"
                     }
 
                     Text {
@@ -243,9 +286,9 @@ Item {
                     width: 118
                     height: 42
                     radius: 16
-                    color: "#F3E5D6"
+                    color: topButtonBg
                     border.width: 1
-                    border.color: "#DEC9B2"
+                    border.color: topButtonBorder
                     anchors.verticalCenter: parent.verticalCenter
 
                     Text {
@@ -265,6 +308,9 @@ Item {
             }
         }
 
+        // =========================
+        // 聊天消息区域
+        // =========================
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -278,7 +324,7 @@ Item {
                 anchors.margins: 1
                 radius: 31
                 color: panelColor
-                opacity: 0.48
+                opacity: nightMode ? 0.74 : 0.48
                 z: -1
             }
 
@@ -287,7 +333,7 @@ Item {
                 anchors.margins: 10
                 radius: 26
                 color: "#FFFFFF"
-                opacity: 0.08
+                opacity: nightMode ? 0.04 : 0.08
             }
 
             ListView {
@@ -330,9 +376,9 @@ Item {
                             width: 174
                             height: 28
                             radius: 14
-                            color: "#F4E9DC"
+                            color: timeChipColor
                             border.width: 1
-                            border.color: "#E7D8C7"
+                            border.color: timeChipBorder
                             opacity: 0.84
                             anchors.horizontalCenter: parent.horizontalCenter
 
@@ -355,8 +401,8 @@ Item {
                                 height: textBubble.height
                                 x: textBubble.x
                                 y: textBubble.y + 3
-                                color: "#A67C52"
-                                opacity: 0.04
+                                color: nightMode ? "#000000" : "#A67C52"
+                                opacity: nightMode ? 0.10 : 0.04
 
                                 topLeftRadius: 22
                                 topRightRadius: 22
@@ -375,7 +421,9 @@ Item {
 
                                 color: isMine ? bubbleMine : bubbleOther
                                 border.width: 1
-                                border.color: isMine ? "#D8B99A" : "#E8DDD1"
+                                border.color: isMine
+                                              ? (nightMode ? "#8A92C5" : "#D8B99A")
+                                              : (nightMode ? "#6E76A4" : "#E8DDD1")
 
                                 topLeftRadius: 22
                                 topRightRadius: 22
@@ -429,8 +477,8 @@ Item {
                                 x: imageBubble.x
                                 y: imageBubble.y + 4
                                 radius: imageBubble.radius
-                                color: "#A67C52"
-                                opacity: 0.05
+                                color: nightMode ? "#000000" : "#A67C52"
+                                opacity: nightMode ? 0.12 : 0.05
                             }
 
                             Rectangle {
@@ -441,9 +489,9 @@ Item {
                                 x: isMine ? parent.width - width - 18 : 6
 
                                 radius: 22
-                                color: "#F8F1E8"
+                                color: nightMode ? "#5A628B" : "#F8F1E8"
                                 border.width: 1
-                                border.color: "#E5D4C2"
+                                border.color: nightMode ? "#7A82B0" : "#E5D4C2"
                                 clip: true
 
                                 implicitHeight: height
@@ -489,6 +537,9 @@ Item {
             }
         }
 
+        // =========================
+        // 输入区
+        // =========================
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: pendingImagePath === "" ? inputPanel.implicitHeight + 20
@@ -502,8 +553,8 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 1
                 radius: 29
-                color: "#FFFDF9"
-                opacity: 0.56
+                color: inputPanelColor
+                opacity: nightMode ? 0.76 : 0.56
                 z: -1
             }
 
@@ -520,7 +571,7 @@ Item {
                     height: parent.height * 0.7
                     radius: 26
                     color: "#FFFFFF"
-                    opacity: 0.10
+                    opacity: nightMode ? 0.04 : 0.10
                 }
             }
 
@@ -535,9 +586,9 @@ Item {
                     width: parent.width
                     height: 40
                     radius: 15
-                    color: "#F4E7D8"
+                    color: pendingImageBar
                     border.width: 1
-                    border.color: "#E2D0BC"
+                    border.color: pendingImageBorder
 
                     Row {
                         anchors.fill: parent
@@ -585,9 +636,9 @@ Item {
                         Layout.preferredWidth: 56
                         Layout.preferredHeight: 56
                         radius: 18
-                        color: "#F3E5D6"
+                        color: topButtonBg
                         border.width: 1
-                        border.color: "#DEC9B2"
+                        border.color: topButtonBorder
 
                         MouseArea {
                             anchors.fill: parent
@@ -608,16 +659,16 @@ Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: Math.min(180, Math.max(104, inputField.contentHeight + 24))
                         radius: 24
-                        color: "#FFFDF9"
+                        color: inputFieldColor
                         border.width: 1
-                        border.color: "#E8DDD1"
+                        border.color: inputFieldBorder
 
                         Rectangle {
                             anchors.fill: parent
                             anchors.margins: 1
                             radius: 23
                             color: "#FFFFFF"
-                            opacity: 0.10
+                            opacity: nightMode ? 0.04 : 0.10
                         }
 
                         TextArea {
@@ -626,6 +677,7 @@ Item {
                             anchors.margins: 12
 
                             placeholderText: "写点什么，或者配一张图片..."
+                            placeholderTextColor: textSecondary
                             wrapMode: TextEdit.WrapAnywhere
                             color: textPrimary
                             font.pixelSize: 16
@@ -657,16 +709,16 @@ Item {
                         Layout.preferredWidth: 60
                         Layout.preferredHeight: 60
                         radius: 21
-                        color: "#E7C29D"
+                        color: sendButtonColor
                         border.width: 1
-                        border.color: "#D5AE86"
+                        border.color: sendButtonBorder
 
                         Rectangle {
                             anchors.fill: parent
                             anchors.margins: 1
                             radius: 20
-                            color: "#F0D0AE"
-                            opacity: 0.22
+                            color: "#FFFFFF"
+                            opacity: nightMode ? 0.08 : 0.22
                         }
 
                         MouseArea {
@@ -688,6 +740,9 @@ Item {
         }
     }
 
+    // =========================
+    // 右键菜单
+    // =========================
     Menu {
         id: messageMenu
 
@@ -700,23 +755,27 @@ Item {
         }
     }
 
+    // =========================
+    // 清空聊天弹窗
+    // =========================
     Dialog {
         id: clearAllDialog
         modal: true
-        anchors.centerIn: parent
+        x: Math.round(((parent ? parent.width : 0) - width) / 2)
+        y: Math.round(((parent ? parent.height : 0) - height) / 2)
         width: 360
         height: 180
         padding: 20
 
         background: Rectangle {
             radius: 24
-            color: "#FBF7F2"
+            color: nightMode ? "#4A506F" : "#FBF7F2"
             border.width: 1
             border.color: borderColor
         }
 
-        Column {
-            anchors.fill: parent
+        contentItem: Column {
+            width: clearAllDialog.availableWidth
             spacing: 16
 
             Text {
@@ -756,6 +815,9 @@ Item {
         }
     }
 
+    // =========================
+    // 选图
+    // =========================
     FileDialog {
         id: imagePicker
         title: "选择图片"
@@ -766,6 +828,9 @@ Item {
         }
     }
 
+    // =========================
+    // 图片预览弹窗
+    // =========================
     Popup {
         id: previewPopup
         modal: true
@@ -777,7 +842,7 @@ Item {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         background: Rectangle {
-            color: "#CC000000"
+            color: nightMode ? "#DD111827" : "#CC000000"
             radius: 24
         }
 
