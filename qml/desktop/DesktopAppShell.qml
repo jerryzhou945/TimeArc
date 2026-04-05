@@ -8,18 +8,51 @@ Item {
 
     property int selectedIndex: 0
     property bool sidebarCollapsed: false
+    property bool showingTimerPage: false
+
+    property string appBackgroundSource: "file:///F:/TimeArc/time-arc/qml/assets/background.png"
 
     property var navItems: [
         { title: "首页", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/home.svg" },
         { title: "聊天", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/chat.svg" },
+        { title: "记忆湖", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/home.svg" },
         { title: "日历", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/calendar.svg" },
         { title: "统计", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/stats.svg" },
         { title: "我的", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/user.svg" }
     ]
 
-    Rectangle {
+    property string currentPageSource: {
+        if (showingTimerPage)
+            return Qt.resolvedUrl("pages/DesktopTimerPage.qml")
+
+        if (selectedIndex === 0)
+            return Qt.resolvedUrl("pages/DesktopHomePage.qml")
+        if (selectedIndex === 1)
+            return Qt.resolvedUrl("pages/DesktopChatPage.qml")
+
+        return ""
+    }
+
+    Item {
         anchors.fill: parent
-        color: "#F6F1EA"
+
+        Image {
+            anchors.fill: parent
+            source: appBackgroundSource
+            fillMode: Image.PreserveAspectCrop
+            opacity: 0.48
+            smooth: false
+            asynchronous: true
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#F6F1EA" }
+                GradientStop { position: 1.0; color: "#F3EEE5" }
+            }
+            opacity: 0.20
+        }
     }
 
     RowLayout {
@@ -29,14 +62,24 @@ Item {
 
         Rectangle {
             id: sidebar
-            Layout.preferredWidth: sidebarCollapsed ? 92 : 240
+            width: sidebarCollapsed ? 92 : 240
+            Layout.preferredWidth: width
             Layout.fillHeight: true
             radius: 30
-            color: "#FBF7F2"
-            border.width: 1
-            border.color: "#E8DDD1"
+            color: "transparent"
+            border.width: 2
+            border.color: "#D8C2AC"
 
-            Behavior on Layout.preferredWidth {
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 29
+                color: "#FFFDF9"
+                opacity: 0.68
+                z: -1
+            }
+
+            Behavior on width {
                 NumberAnimation {
                     duration: 220
                     easing.type: Easing.OutCubic
@@ -87,6 +130,15 @@ Item {
                     border.width: 1
                     border.color: "#E6D7C7"
 
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: 15
+                        color: "#FFFFFF"
+                        opacity: 0.18
+                        z: -1
+                    }
+
                     Row {
                         anchors.centerIn: parent
                         spacing: 10
@@ -128,8 +180,8 @@ Item {
                             width: parent.width
                             height: 58
                             radius: 18
-                            color: selectedIndex === index ? "#EFE1D0" : "transparent"
-                            border.width: selectedIndex === index ? 1 : 0
+                            color: selectedIndex === index && !showingTimerPage ? "#EFE1D0" : "transparent"
+                            border.width: selectedIndex === index && !showingTimerPage ? 1 : 0
                             border.color: "#DFCBB5"
 
                             Row {
@@ -145,13 +197,13 @@ Item {
                                     height: 22
                                     fillMode: Image.PreserveAspectFit
                                     anchors.verticalCenter: parent.verticalCenter
-                                    opacity: selectedIndex === index ? 1.0 : 0.72
+                                    opacity: selectedIndex === index && !showingTimerPage ? 1.0 : 0.72
                                 }
 
                                 Text {
                                     visible: !sidebarCollapsed
                                     text: modelData.title
-                                    color: selectedIndex === index ? "#5E4030" : "#8E7562"
+                                    color: selectedIndex === index && !showingTimerPage ? "#5E4030" : "#8E7562"
                                     font.pixelSize: 17
                                     font.weight: Font.Medium
                                     anchors.verticalCenter: parent.verticalCenter
@@ -162,7 +214,10 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: selectedIndex = index
+                                onClicked: {
+                                    showingTimerPage = false
+                                    selectedIndex = index
+                                }
                             }
                         }
                     }
@@ -170,7 +225,7 @@ Item {
 
                 Item {
                     width: 1
-                    height: 1
+                    Layout.fillHeight: true
                 }
 
                 Rectangle {
@@ -181,6 +236,15 @@ Item {
                     color: "#FFFDF9"
                     border.width: 1
                     border.color: "#ECE2D6"
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: 21
+                        color: "#FFFFFF"
+                        opacity: 0.14
+                        z: -1
+                    }
 
                     Column {
                         anchors.fill: parent
@@ -216,115 +280,109 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             radius: 34
-            color: "#FBF7F2"
-            border.width: 1
-            border.color: "#E8DDD1"
+            color: "transparent"
+            border.width: 2
+            border.color: "#D8C2AC"
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 33
+                color: "#FFFDF9"
+                opacity: 0.46
+                z: -1
+            }
 
             Loader {
+                id: pageLoader
                 anchors.fill: parent
                 anchors.margins: 22
-                sourceComponent: {
-                    if (selectedIndex === 0) return homePageComponent
-                    if (selectedIndex === 1) return chatPageComponent
-                    if (selectedIndex === 2) return calendarPageComponent
-                    if (selectedIndex === 3) return statsPageComponent
-                    return profilePageComponent
-                }
-            }
+                source: currentPageSource
 
-            Component {
-                id: homePageComponent
-                DesktopHomePage { }
-            }
+                property var _homeStartProjectConnection: null
+                property var _homeImportConnection: null
 
-            Component {
-                id: chatPageComponent
-                DesktopChatPage { }
-            }
+                onLoaded: {
+                    console.log("Loader loaded:", source)
 
-            Component {
-                id: calendarPageComponent
+                    if (!item)
+                        return
 
-                Rectangle {
-                    color: "#FBF7F2"
+                    if (showingTimerPage)
+                        return
 
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 12
+                    if (selectedIndex === 0 && item.startProject) {
+                        item.startProject.connect(function(projectName) {
+                            console.log("startProject signal received:", projectName)
+                            if (timerManager) {
+                                timerManager.startProject(projectName)
+                                showingTimerPage = true
+                            }
+                        })
+                    }
 
-                        Text {
-                            text: "日历页"
-                            color: "#6B4D3C"
-                            font.pixelSize: 28
-                            font.bold: true
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-
-                        Text {
-                            text: "这里之后可以放每日记录、时间块和回顾。"
-                            color: "#9C806C"
-                            font.pixelSize: 15
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
+                    if (selectedIndex === 0 && item.importSoftware) {
+                        item.importSoftware.connect(function() {
+                            console.log("导入想查看时间的软件")
+                        })
                     }
                 }
-            }
 
-            Component {
-                id: statsPageComponent
-
-                Rectangle {
-                    color: "#FBF7F2"
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 12
-
-                        Text {
-                            text: "统计页"
-                            color: "#6B4D3C"
-                            font.pixelSize: 28
-                            font.bold: true
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-
-                        Text {
-                            text: "这里之后可以放周报、月报和标签统计。"
-                            color: "#9C806C"
-                            font.pixelSize: 15
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                    }
+                onStatusChanged: {
+                    console.log("Loader status:", status, "source:", source)
                 }
             }
 
-            Component {
-                id: profilePageComponent
+            Item {
+                anchors.fill: parent
+                visible: selectedIndex === 3 && !showingTimerPage
 
-                Rectangle {
-                    color: "#FBF7F2"
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 12
-
-                        Text {
-                            text: "我的页"
-                            color: "#6B4D3C"
-                            font.pixelSize: 28
-                            font.bold: true
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-
-                        Text {
-                            text: "这里之后可以放个人资料、偏好设置和成就。"
-                            color: "#9C806C"
-                            font.pixelSize: 15
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                    }
+                Text {
+                    anchors.centerIn: parent
+                    text: "日历页"
+                    color: "#6B4D3C"
+                    font.pixelSize: 28
+                    font.bold: true
                 }
             }
+
+            Item {
+                anchors.fill: parent
+                visible: selectedIndex === 4 && !showingTimerPage
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "统计页"
+                    color: "#6B4D3C"
+                    font.pixelSize: 28
+                    font.bold: true
+                }
+            }
+
+            Item {
+                anchors.fill: parent
+                visible: selectedIndex === 5 && !showingTimerPage
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "我的页"
+                    color: "#6B4D3C"
+                    font.pixelSize: 28
+                    font.bold: true
+                }
+            }
+        }
+    }
+
+    Connections {
+        target: timerManager
+
+        function onTimerStopped(projectName, elapsedSeconds) {
+            if (projectManager)
+                projectManager.addElapsedTime(projectName, elapsedSeconds)
+
+            showingTimerPage = false
+            selectedIndex = 0
         }
     }
 }

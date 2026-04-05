@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtCore
 
 Item {
     anchors.fill: parent
@@ -9,11 +8,6 @@ Item {
     signal importSoftware()
     signal startProject(string projectName)
 
-    property color bgColor: "#FBF7F2"
-    property color panelColor: "#F8F2EB"
-    property color cardColor: "#FFFDF9"
-    property color borderColor: "#E8DDD1"
-    property color softBorder: "#EFE5D8"
     property color textPrimary: "#4E342E"
     property color textSecondary: "#9C806C"
     property color accentBrown: "#D8B38A"
@@ -22,38 +16,10 @@ Item {
     property color accentOrange: "#E5A85F"
     property color accentPurple: "#B9A4EF"
 
-    property int projectItemHeight: 92
-    property int projectCardTopPadding: 74
-    property int projectCardBottomPadding: 24
-    property int projectCardHeight: projectCardTopPadding + projectCardBottomPadding + projectModel.count * projectItemHeight
-
-    property int softwareItemHeight: 86
-    property int softwareCardTopPadding: 74
-    property int softwareCardBottomPadding: 24
-    property int softwareCardHeight: softwareCardTopPadding + softwareCardBottomPadding + softwareModel.count * softwareItemHeight
-
-    property int listRowHeight: Math.max(softwareCardHeight, projectCardHeight)
-
-    Settings {
-        id: appSettings
-        category: "DesktopHomePageData"
-        property string savedProjects: ""
-    }
-
-    function timeStringToMinutes(timeStr) {
-        var h = 0
-        var m = 0
-
-        var hMatch = timeStr.match(/(\d+)\s*小时/)
-        var mMatch = timeStr.match(/(\d+)\s*分钟/)
-
-        if (hMatch)
-            h = parseInt(hMatch[1])
-        if (mMatch)
-            m = parseInt(mMatch[1])
-
-        return h * 60 + m
-    }
+    property color panelColor: "#FFFDF9"
+    property color cardColor: "#FFFDF9"
+    property color borderColor: "#DDC9B5"
+    property color softBorder: "#E6D6C5"
 
     function minutesToDisplay(minutes) {
         var h = Math.floor(minutes / 60)
@@ -61,78 +27,10 @@ Item {
         return h + "h " + m + "m"
     }
 
-    function tagMinutes(tagName) {
-        var total = 0
-        for (var i = 0; i < projectModel.count; i++) {
-            var item = projectModel.get(i)
-            if (item.tag === tagName)
-                total += timeStringToMinutes(item.time)
-        }
-        return total
-    }
-
-    property int studyMinutes: tagMinutes("学习")
-    property int sportMinutes: tagMinutes("运动")
-    property int gameMinutes: tagMinutes("游戏")
-    property int totalProjectMinutes: Math.max(1, studyMinutes + sportMinutes + gameMinutes)
-
-    property real studySpan: 360 * studyMinutes / totalProjectMinutes
-    property real sportSpan: 360 * sportMinutes / totalProjectMinutes
-    property real gameSpan: 360 * gameMinutes / totalProjectMinutes
-
-    function saveProjects() {
-        var arr = []
-        for (var i = 0; i < projectModel.count; i++) {
-            var item = projectModel.get(i)
-            arr.push({
-                name: item.name,
-                time: item.time,
-                tag: item.tag
-            })
-        }
-        appSettings.savedProjects = JSON.stringify(arr)
-    }
-
-    function loadProjects() {
-        if (!appSettings.savedProjects || appSettings.savedProjects === "")
-            return
-
-        try {
-            var arr = JSON.parse(appSettings.savedProjects)
-            if (!arr || arr.length === 0)
-                return
-
-            projectModel.clear()
-            for (var i = 0; i < arr.length; i++) {
-                projectModel.append(arr[i])
-            }
-        } catch (e) {
-            console.log("读取项目失败:", e)
-        }
-    }
-
-    Component.onCompleted: {
-        loadProjects()
-    }
-
-    ListModel {
-        id: softwareModel
-        ListElement { name: "微信"; time: "2小时 15分钟" }
-        ListElement { name: "Chrome"; time: "1小时 42分钟" }
-        ListElement { name: "VSCode"; time: "3小时 08分钟" }
-    }
-
-    ListModel {
-        id: projectModel
-        ListElement { name: "高数复习"; time: "1小时 20分钟"; tag: "学习" }
-        ListElement { name: "健身"; time: "42分钟"; tag: "运动" }
-        ListElement { name: "读书"; time: "35分钟"; tag: "学习" }
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        color: bgColor
-    }
+    property int studyMinutes: projectManager ? projectManager.studyMinutes : 0
+    property int sportMinutes: projectManager ? projectManager.sportMinutes : 0
+    property int gameMinutes: projectManager ? projectManager.gameMinutes : 0
+    property int totalProjectMinutes: projectManager ? Math.max(1, projectManager.totalProjectMinutes) : 1
 
     Flickable {
         id: flickArea
@@ -151,25 +49,20 @@ Item {
             width: flickArea.width
             spacing: 18
 
-            Row {
-                width: parent.width
-                spacing: 20
+            Column {
+                spacing: 6
 
-                Column {
-                    spacing: 6
+                Text {
+                    text: "首页"
+                    color: textPrimary
+                    font.pixelSize: 42
+                    font.bold: true
+                }
 
-                    Text {
-                        text: "首页"
-                        color: textPrimary
-                        font.pixelSize: 42
-                        font.bold: true
-                    }
-
-                    Text {
-                        text: "今天也慢慢记录自己的时间轨迹。"
-                        color: textSecondary
-                        font.pixelSize: 16
-                    }
+                Text {
+                    text: "今天也慢慢记录自己的时间轨迹。"
+                    color: textSecondary
+                    font.pixelSize: 16
                 }
             }
 
@@ -177,9 +70,18 @@ Item {
                 width: parent.width
                 height: 390
                 radius: 30
-                color: panelColor
-                border.width: 1
+                color: "transparent"
+                border.width: 2
                 border.color: borderColor
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    radius: 29
+                    color: panelColor
+                    opacity: 0.44
+                    z: -1
+                }
 
                 Row {
                     anchors.fill: parent
@@ -209,9 +111,18 @@ Item {
                             width: parent.width
                             height: 70
                             radius: 18
-                            color: cardColor
+                            color: "transparent"
                             border.width: 1
                             border.color: softBorder
+
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                radius: 17
+                                color: cardColor
+                                opacity: 0.68
+                                z: -1
+                            }
 
                             Row {
                                 anchors.fill: parent
@@ -240,9 +151,18 @@ Item {
                             width: parent.width
                             height: 70
                             radius: 18
-                            color: cardColor
+                            color: "transparent"
                             border.width: 1
                             border.color: softBorder
+
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                radius: 17
+                                color: cardColor
+                                opacity: 0.68
+                                z: -1
+                            }
 
                             Row {
                                 anchors.fill: parent
@@ -271,9 +191,18 @@ Item {
                             width: parent.width
                             height: 70
                             radius: 18
-                            color: cardColor
+                            color: "transparent"
                             border.width: 1
                             border.color: softBorder
+
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                radius: 17
+                                color: cardColor
+                                opacity: 0.68
+                                z: -1
+                            }
 
                             Row {
                                 anchors.fill: parent
@@ -320,11 +249,11 @@ Item {
                                 var lineWidth = 26
                                 var gap = 0.06
 
-                                function drawArc(startAngle, spanAngle, color) {
+                                function drawArc(startAngle, spanAngle, colorValue) {
                                     if (spanAngle <= 0)
                                         return
                                     ctx.beginPath()
-                                    ctx.strokeStyle = color
+                                    ctx.strokeStyle = colorValue
                                     ctx.lineWidth = lineWidth
                                     ctx.lineCap = "round"
                                     ctx.arc(cx, cy, radius, startAngle, startAngle + spanAngle, false)
@@ -356,19 +285,23 @@ Item {
                                     drawArc(start, Math.max(0, gameAngle - gap), accentOrange)
                                 }
                             }
-
-                            Connections {
-                                target: projectModel
-                                function onCountChanged() { ringCanvas.requestPaint() }
-                            }
                         }
 
                         Rectangle {
                             width: 162
                             height: 162
                             radius: 81
-                            color: cardColor
+                            color: "transparent"
                             anchors.centerIn: ringCanvas
+
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                radius: 80
+                                color: "#FFFDF9"
+                                opacity: 0.86
+                                z: -1
+                            }
 
                             Column {
                                 anchors.centerIn: parent
@@ -396,16 +329,25 @@ Item {
 
             Row {
                 width: parent.width
-                height: listRowHeight
+                height: 420
                 spacing: 18
 
                 Rectangle {
                     width: (parent.width - 18) / 2
-                    height: softwareCardHeight
+                    height: parent.height
                     radius: 30
-                    color: panelColor
-                    border.width: 1
+                    color: "transparent"
+                    border.width: 2
                     border.color: borderColor
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: 29
+                        color: panelColor
+                        opacity: 0.42
+                        z: -1
+                    }
 
                     Column {
                         anchors.fill: parent
@@ -420,15 +362,30 @@ Item {
                         }
 
                         Repeater {
-                            model: softwareModel
+                            model: [
+                                { name: "微信", time: "2小时 15分钟" },
+                                { name: "Chrome", time: "1小时 42分钟" },
+                                { name: "VSCode", time: "3小时 08分钟" }
+                            ]
 
                             delegate: Rectangle {
+                                required property var modelData
+
                                 width: parent.width
                                 height: 72
                                 radius: 20
-                                color: cardColor
+                                color: "transparent"
                                 border.width: 1
                                 border.color: softBorder
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+                                    radius: 19
+                                    color: cardColor
+                                    opacity: 0.68
+                                    z: -1
+                                }
 
                                 Row {
                                     anchors.fill: parent
@@ -449,7 +406,7 @@ Item {
                                         spacing: 4
 
                                         Text {
-                                            text: model.name
+                                            text: modelData.name
                                             color: textPrimary
                                             font.pixelSize: 18
                                             font.bold: true
@@ -462,14 +419,11 @@ Item {
                                         }
                                     }
 
-                                    Item {
-                                        width: 1
-                                        height: 1
-                                    }
+                                    Item { width: 1; height: 1 }
 
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: model.time
+                                        text: modelData.time
                                         color: accentBrownDeep
                                         font.pixelSize: 17
                                         font.bold: true
@@ -482,11 +436,20 @@ Item {
 
                 Rectangle {
                     width: (parent.width - 18) / 2
-                    height: projectCardHeight
+                    height: parent.height
                     radius: 30
-                    color: panelColor
-                    border.width: 1
+                    color: "transparent"
+                    border.width: 2
                     border.color: borderColor
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: 29
+                        color: panelColor
+                        opacity: 0.42
+                        z: -1
+                    }
 
                     Column {
                         anchors.fill: parent
@@ -500,16 +463,31 @@ Item {
                             font.bold: true
                         }
 
-                        Repeater {
-                            model: projectModel
+                        ListView {
+                            width: parent.width
+                            height: parent.height - 60
+                            clip: true
+                            spacing: 14
+                            model: projectManager ? projectManager.projects : []
 
                             delegate: Rectangle {
-                                width: parent.width
+                                required property var modelData
+
+                                width: ListView.view.width
                                 height: 78
                                 radius: 20
-                                color: cardColor
+                                color: "transparent"
                                 border.width: 1
                                 border.color: softBorder
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+                                    radius: 19
+                                    color: cardColor
+                                    opacity: 0.68
+                                    z: -1
+                                }
 
                                 Row {
                                     anchors.fill: parent
@@ -521,8 +499,8 @@ Item {
                                         width: 12
                                         height: 12
                                         radius: 6
-                                        color: model.tag === "学习" ? accentPurple :
-                                               model.tag === "运动" ? accentGreen :
+                                        color: modelData.tag === "学习" ? accentPurple :
+                                               modelData.tag === "运动" ? accentGreen :
                                                accentOrange
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
@@ -532,27 +510,24 @@ Item {
                                         spacing: 4
 
                                         Text {
-                                            text: model.name
+                                            text: modelData.name
                                             color: textPrimary
                                             font.pixelSize: 17
                                             font.bold: true
                                         }
 
                                         Text {
-                                            text: "标签：" + model.tag
+                                            text: "标签: " + modelData.tag
                                             color: textSecondary
                                             font.pixelSize: 13
                                         }
                                     }
 
-                                    Item {
-                                        width: 1
-                                        height: 1
-                                    }
+                                    Item { width: 1; height: 1 }
 
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: model.time
+                                        text: modelData.time
                                         color: accentBrownDeep
                                         font.pixelSize: 16
                                         font.bold: true
@@ -578,7 +553,7 @@ Item {
                                         MouseArea {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: startProject(model.name)
+                                            onClicked: startProject(modelData.name)
                                         }
                                     }
                                 }
@@ -592,9 +567,18 @@ Item {
                 width: parent.width
                 height: 220
                 radius: 30
-                color: panelColor
-                border.width: 1
+                color: "transparent"
+                border.width: 2
                 border.color: borderColor
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    radius: 29
+                    color: panelColor
+                    opacity: 0.42
+                    z: -1
+                }
 
                 Column {
                     anchors.fill: parent
@@ -643,7 +627,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: addMenu.open()
+            onClicked: addMenu.popup(addButton.x, addButton.y - addMenu.height)
         }
     }
 
@@ -664,10 +648,11 @@ Item {
     Dialog {
         id: addProjectDialog
         modal: true
-        anchors.centerIn: parent
         width: 380
         height: 300
         padding: 20
+        x: Math.round(((parent ? parent.width : 0) - width) / 2)
+        y: Math.round(((parent ? parent.height : 0) - height) / 2)
 
         background: Rectangle {
             radius: 24
@@ -676,8 +661,8 @@ Item {
             border.color: borderColor
         }
 
-        Column {
-            anchors.fill: parent
+        contentItem: Column {
+            width: addProjectDialog.availableWidth
             spacing: 16
 
             Text {
@@ -739,16 +724,11 @@ Item {
                     text: "确认添加"
                     onClicked: {
                         var nameText = projectNameField.text.trim()
-                        if (nameText.length > 0) {
-                            projectModel.append({
-                                "name": nameText,
-                                "time": "0分钟",
-                                "tag": tagBox.currentText
-                            })
-                            saveProjects()
-                            ringCanvas.requestPaint()
+                        if (nameText.length > 0 && projectManager) {
+                            projectManager.addProject(nameText, tagBox.currentText)
                             projectNameField.text = ""
                             tagBox.currentIndex = 0
+                            ringCanvas.requestPaint()
                             addProjectDialog.close()
                         }
                     }
@@ -757,11 +737,17 @@ Item {
         }
     }
 
-    onImportSoftware: {
-        console.log("导入想查看时间的软件")
+    Connections {
+        target: projectManager
+
+        function onProjectsChanged() {
+            ringCanvas.requestPaint()
+        }
     }
 
-    onStartProject: function(projectName) {
-        console.log("开始计时项目:", projectName)
+    Component.onCompleted: ringCanvas.requestPaint()
+
+    onImportSoftware: {
+        console.log("导入想查看时间的软件")
     }
 }

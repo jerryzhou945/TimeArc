@@ -7,19 +7,21 @@ import QtCore
 Item {
     anchors.fill: parent
 
-    property color bgTop: "#FCF8F3"
-    property color bgBottom: "#F3ECE4"
+    property color bgTop: "#FBF7F2"
+    property color bgBottom: "#F2E8DE"
     property color panelColor: "#FFFDF9"
-    property color borderColor: "#E8DDD1"
-    property color textPrimary: "#4E342E"
-    property color textSecondary: "#9C806C"
-    property color accentBrown: "#D8B38A"
-    property color accentBrownDeep: "#A96F46"
-    property color bubbleMine: "#EFD8BF"
-    property color bubbleOther: "#FFF8F0"
+    property color borderColor: "#DDC9B5"
+    property color softBorder: "#E6D6C5"
+    property color textPrimary: "#4C342C"
+    property color textSecondary: "#9E8471"
+    property color accentBrown: "#DDB892"
+    property color accentBrownDeep: "#A56D46"
+    property color bubbleMine: "#EFD9C1"
+    property color bubbleOther: "#FFF9F2"
 
     property string pendingImagePath: ""
     property string previewImagePath: ""
+    property int contextMessageIndex: -1
 
     Settings {
         id: chatSettings
@@ -94,35 +96,96 @@ Item {
         inputField.text = ""
         pendingImagePath = ""
         saveChats()
-        chatList.positionViewAtEnd()
+
+        Qt.callLater(function() {
+            chatList.positionViewAtEnd()
+        })
+    }
+
+    function deleteMessageAt(index) {
+        if (index < 0 || index >= chatModel.count)
+            return
+        chatModel.remove(index)
+        saveChats()
+    }
+
+    function clearAllChats() {
+        chatModel.clear()
+        saveChats()
     }
 
     Component.onCompleted: {
         loadChats()
-        chatList.positionViewAtEnd()
+        Qt.callLater(function() {
+            chatList.positionViewAtEnd()
+        })
     }
 
     Rectangle {
         anchors.fill: parent
-
         gradient: Gradient {
             GradientStop { position: 0.0; color: bgTop }
             GradientStop { position: 1.0; color: bgBottom }
         }
+        opacity: 0.18
+    }
+
+    Rectangle {
+        width: 320
+        height: 320
+        radius: 160
+        x: -90
+        y: -60
+        color: "#FFFFFF"
+        opacity: 0.10
+    }
+
+    Rectangle {
+        width: 220
+        height: 220
+        radius: 110
+        x: parent.width - width - 60
+        y: 90
+        color: "#F6EBDD"
+        opacity: 0.14
     }
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 20
-        spacing: 16
+        spacing: 14
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: 84
-            radius: 28
-            color: panelColor
-            border.width: 1
+            Layout.preferredHeight: 92
+            radius: 30
+            color: "transparent"
+            border.width: 2
             border.color: borderColor
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 29
+                color: panelColor
+                opacity: 0.56
+                z: -1
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 29
+                color: "transparent"
+
+                Rectangle {
+                    width: parent.width * 0.42
+                    height: parent.height
+                    radius: 29
+                    color: "#FFF6EC"
+                    opacity: 0.30
+                }
+            }
 
             Row {
                 anchors.fill: parent
@@ -130,17 +193,25 @@ Item {
                 spacing: 14
 
                 Rectangle {
-                    width: 42
-                    height: 42
-                    radius: 21
-                    color: "#E9D4BF"
+                    width: 46
+                    height: 46
+                    radius: 23
+                    color: "#EED9C4"
                     anchors.verticalCenter: parent.verticalCenter
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 32
+                        height: 32
+                        radius: 16
+                        color: "#F8EFE5"
+                    }
 
                     Text {
                         anchors.centerIn: parent
                         text: "✦"
                         color: accentBrownDeep
-                        font.pixelSize: 18
+                        font.pixelSize: 17
                         font.bold: true
                     }
                 }
@@ -150,16 +221,45 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: "聊天页"
+                        text: "记忆聊天"
                         color: textPrimary
                         font.pixelSize: 28
                         font.bold: true
                     }
 
                     Text {
-                        text: "记录想法、图片和每天的片段。"
+                        text: "记录想法、图片和每天的片段"
                         color: textSecondary
                         font.pixelSize: 14
+                    }
+                }
+
+                Item {
+                    width: 1
+                    height: 1
+                }
+
+                Rectangle {
+                    width: 118
+                    height: 42
+                    radius: 16
+                    color: "#F3E5D6"
+                    border.width: 1
+                    border.color: "#DEC9B2"
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "清空聊天记录"
+                        color: accentBrownDeep
+                        font.pixelSize: 13
+                        font.bold: true
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: clearAllDialog.open()
                     }
                 }
             }
@@ -168,142 +268,212 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 30
-            color: panelColor
-            border.width: 1
+            radius: 32
+            color: "transparent"
+            border.width: 2
             border.color: borderColor
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 31
+                color: panelColor
+                opacity: 0.48
+                z: -1
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 10
+                radius: 26
+                color: "#FFFFFF"
+                opacity: 0.08
+            }
 
             ListView {
                 id: chatList
                 anchors.fill: parent
                 anchors.margins: 18
-                spacing: 16
+                spacing: 14
                 clip: true
                 model: chatModel
-                rightMargin: 26
+                rightMargin: 16
+                bottomMargin: 8
 
                 delegate: Item {
-                  width: chatList.width - 26
+                    width: chatList.width - 16
 
-                  property bool isMine: model.sender === "me"
-                  property string messageText: model.message ? model.message : ""
-                  property string imageValue: model.imagePath ? model.imagePath : ""
-                  property string timeValue: model.timeText ? model.timeText : ""
+                    property bool isMine: model.sender === "me"
+                    property string messageText: model.message ? model.message : ""
+                    property string imageValue: model.imagePath ? model.imagePath : ""
+                    property string timeValue: model.timeText ? model.timeText : ""
 
-                  property bool showTime: {
-                      if (index === 0)
-                          return true
-                      var prev = chatModel.get(index - 1)
-                      return prev.timeText !== timeValue
-                  }
+                    property bool showTime: {
+                        if (index === 0)
+                            return true
+                        var prev = chatModel.get(index - 1)
+                        return prev.timeText !== timeValue
+                    }
 
-                  property real bubbleMaxWidth: chatList.width * 0.38
-                  property real bubbleMinWidth: imageValue !== "" ? 260 : 78
+                    property real bubbleMaxWidth: chatList.width * 0.52
+                    property real bubbleMinWidth: imageValue !== "" ? 260 : 84
 
-                  height: messageColumn.implicitHeight + 6
+                    height: messageColumn.implicitHeight + 4
 
-                  Column {
-                      id: messageColumn
-                      width: parent.width
-                      spacing: 6
+                    Column {
+                        id: messageColumn
+                        width: parent.width
+                        spacing: 8
 
-                      Rectangle {
-                          visible: showTime
-                          width: 180
-                          height: 28
-                          radius: 14
-                          color: "#F2E7DA"
-                          border.width: 1
-                          border.color: "#E6D7C7"
-                          anchors.horizontalCenter: parent.horizontalCenter
+                        Rectangle {
+                            visible: showTime
+                            width: 174
+                            height: 28
+                            radius: 14
+                            color: "#F4E9DC"
+                            border.width: 1
+                            border.color: "#E7D8C7"
+                            opacity: 0.84
+                            anchors.horizontalCenter: parent.horizontalCenter
 
-                          Text {
-                              anchors.centerIn: parent
-                              text: timeValue
-                              color: textSecondary
-                              font.pixelSize: 12
-                          }
-                      }
+                            Text {
+                                anchors.centerIn: parent
+                                text: timeValue
+                                color: textSecondary
+                                font.pixelSize: 12
+                            }
+                        }
 
-                      Item {
-                          width: parent.width
-                          height: imageValue !== "" ? imageBubble.implicitHeight : textBubble.implicitHeight
+                        Item {
+                            width: parent.width
+                            height: imageValue !== "" ? imageBubble.implicitHeight : textBubble.implicitHeight
 
-                          Rectangle {
-                              id: textBubble
-                              visible: imageValue === ""
+                            Rectangle {
+                                id: bubbleShadow
+                                visible: imageValue === ""
+                                width: textBubble.width
+                                height: textBubble.height
+                                x: textBubble.x
+                                y: textBubble.y + 3
+                                color: "#A67C52"
+                                opacity: 0.04
 
-                              property real naturalTextWidth: Math.min(textMeasure.implicitWidth, bubbleMaxWidth - 28)
-                              width: Math.max(bubbleMinWidth, naturalTextWidth + 28)
-                              x: isMine ? parent.width - width - 24 : 8
+                                topLeftRadius: 22
+                                topRightRadius: 22
+                                bottomLeftRadius: isMine ? 22 : 6
+                                bottomRightRadius: isMine ? 6 : 22
+                            }
 
-                              radius: 20
-                              color: isMine ? bubbleMine : bubbleOther
-                              border.width: 1
-                              border.color: isMine ? "#D9BEA0" : "#E9DED2"
+                            Rectangle {
+                                id: textBubble
+                                visible: imageValue === ""
 
-                              implicitHeight: visibleText.paintedHeight + 16
+                                property real naturalTextWidth: Math.min(textMeasure.implicitWidth, bubbleMaxWidth - 28)
+                                width: Math.max(bubbleMinWidth, naturalTextWidth + 30)
+                                x: isMine ? parent.width - width - 18 : 6
+                                y: 0
 
-                              Text {
-                                  id: textMeasure
-                                  visible: false
-                                  text: messageText
-                                  font.pixelSize: 17
-                                  wrapMode: Text.NoWrap
-                              }
+                                color: isMine ? bubbleMine : bubbleOther
+                                border.width: 1
+                                border.color: isMine ? "#D8B99A" : "#E8DDD1"
 
-                              Text {
-                                  id: visibleText
-                                  anchors.left: parent.left
-                                  anchors.leftMargin: 14
-                                  anchors.right: parent.right
-                                  anchors.rightMargin: 14
-                                  anchors.top: parent.top
-                                  anchors.topMargin: 8
+                                topLeftRadius: 22
+                                topRightRadius: 22
+                                bottomLeftRadius: isMine ? 22 : 6
+                                bottomRightRadius: isMine ? 6 : 22
 
-                                  text: messageText
-                                  wrapMode: Text.Wrap
-                                  color: textPrimary
-                                  font.pixelSize: 17
-                                  lineHeight: 1.15
-                              }
-                          }
+                                implicitHeight: visibleText.implicitHeight + 18
 
-                          Rectangle {
-                              id: imageBubble
-                              visible: imageValue !== ""
-                              width: 280
-                              height: 210
-                              x: isMine ? parent.width - width - 24 : 8
+                                Text {
+                                    id: textMeasure
+                                    visible: false
+                                    text: messageText
+                                    font.pixelSize: 16
+                                    wrapMode: Text.NoWrap
+                                }
 
-                              radius: 18
-                              color: "#F7EFE6"
-                              border.width: 1
-                              border.color: "#E4D3C1"
-                              clip: true
+                                Text {
+                                    id: visibleText
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 15
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 15
+                                    anchors.top: parent.top
+                                    anchors.topMargin: 9
 
-                              implicitHeight: height
+                                    text: messageText
+                                    wrapMode: Text.WrapAnywhere
+                                    color: textPrimary
+                                    font.pixelSize: 16
+                                    lineHeight: 1.12
+                                }
 
-                              Image {
-                                  anchors.fill: parent
-                                  source: imageValue
-                                  fillMode: Image.PreserveAspectCrop
-                                  smooth: true
-                                  asynchronous: true
-                              }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    acceptedButtons: Qt.RightButton
+                                    cursorShape: Qt.PointingHandCursor
+                                    onPressed: function(mouse) {
+                                        if (mouse.button === Qt.RightButton) {
+                                            contextMessageIndex = index
+                                            messageMenu.popup()
+                                        }
+                                    }
+                                }
+                            }
 
-                              MouseArea {
-                                  anchors.fill: parent
-                                  cursorShape: Qt.PointingHandCursor
-                                  onClicked: {
-                                      previewImagePath = imageValue
-                                      previewPopup.open()
-                                  }
-                              }
-                          }
-                      }
-                  }
-              }
+                            Rectangle {
+                                id: imageShadow
+                                visible: imageValue !== ""
+                                width: imageBubble.width
+                                height: imageBubble.height
+                                x: imageBubble.x
+                                y: imageBubble.y + 4
+                                radius: imageBubble.radius
+                                color: "#A67C52"
+                                opacity: 0.05
+                            }
+
+                            Rectangle {
+                                id: imageBubble
+                                visible: imageValue !== ""
+                                width: 286
+                                height: 214
+                                x: isMine ? parent.width - width - 18 : 6
+
+                                radius: 22
+                                color: "#F8F1E8"
+                                border.width: 1
+                                border.color: "#E5D4C2"
+                                clip: true
+
+                                implicitHeight: height
+
+                                Image {
+                                    anchors.fill: parent
+                                    source: imageValue
+                                    fillMode: Image.PreserveAspectCrop
+                                    smooth: true
+                                    asynchronous: true
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: function(mouse) {
+                                        if (mouse.button === Qt.LeftButton) {
+                                            previewImagePath = imageValue
+                                            previewPopup.open()
+                                        } else if (mouse.button === Qt.RightButton) {
+                                            contextMessageIndex = index
+                                            messageMenu.popup()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 ScrollBar.vertical: ScrollBar {
                     policy: ScrollBar.AsNeeded
@@ -321,17 +491,41 @@ Item {
 
         Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: pendingImagePath === "" ? 124 : 168
-            radius: 28
-            border.width: 1
+            Layout.preferredHeight: pendingImagePath === "" ? inputPanel.implicitHeight + 20
+                                                           : inputPanel.implicitHeight + 68
+            radius: 30
+            color: "transparent"
+            border.width: 2
             border.color: borderColor
 
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#FFFDF9" }
-                GradientStop { position: 1.0; color: "#F8F1E8" }
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 29
+                color: "#FFFDF9"
+                opacity: 0.56
+                z: -1
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 29
+                color: "transparent"
+
+                Rectangle {
+                    x: 12
+                    y: 10
+                    width: parent.width * 0.5
+                    height: parent.height * 0.7
+                    radius: 26
+                    color: "#FFFFFF"
+                    opacity: 0.10
+                }
             }
 
             Column {
+                id: inputPanel
                 anchors.fill: parent
                 anchors.margins: 16
                 spacing: 12
@@ -339,8 +533,8 @@ Item {
                 Rectangle {
                     visible: pendingImagePath !== ""
                     width: parent.width
-                    height: 38
-                    radius: 14
+                    height: 40
+                    radius: 15
                     color: "#F4E7D8"
                     border.width: 1
                     border.color: "#E2D0BC"
@@ -385,14 +579,13 @@ Item {
 
                 RowLayout {
                     width: parent.width
-                    height: 88
                     spacing: 12
 
                     Rectangle {
-                        Layout.preferredWidth: 54
-                        Layout.preferredHeight: 54
+                        Layout.preferredWidth: 56
+                        Layout.preferredHeight: 56
                         radius: 18
-                        color: "#F2E4D4"
+                        color: "#F3E5D6"
                         border.width: 1
                         border.color: "#DEC9B2"
 
@@ -413,21 +606,43 @@ Item {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 88
-                        radius: 22
+                        Layout.preferredHeight: Math.min(180, Math.max(104, inputField.contentHeight + 24))
+                        radius: 24
                         color: "#FFFDF9"
                         border.width: 1
                         border.color: "#E8DDD1"
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 1
+                            radius: 23
+                            color: "#FFFFFF"
+                            opacity: 0.10
+                        }
 
                         TextArea {
                             id: inputField
                             anchors.fill: parent
                             anchors.margins: 12
+
                             placeholderText: "写点什么，或者配一张图片..."
-                            wrapMode: TextEdit.Wrap
+                            wrapMode: TextEdit.WrapAnywhere
                             color: textPrimary
                             font.pixelSize: 16
                             background: null
+                            selectByMouse: true
+                            persistentSelection: true
+                            topPadding: 2
+                            bottomPadding: 2
+                            leftPadding: 0
+                            rightPadding: 0
+                            textMargin: 0
+
+                            onTextChanged: {
+                                Qt.callLater(function() {
+                                    chatList.positionViewAtEnd()
+                                })
+                            }
 
                             Keys.onReturnPressed: function(event) {
                                 if (!(event.modifiers & Qt.ShiftModifier)) {
@@ -439,12 +654,20 @@ Item {
                     }
 
                     Rectangle {
-                        Layout.preferredWidth: 58
-                        Layout.preferredHeight: 58
-                        radius: 20
+                        Layout.preferredWidth: 60
+                        Layout.preferredHeight: 60
+                        radius: 21
                         color: "#E7C29D"
                         border.width: 1
                         border.color: "#D5AE86"
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 1
+                            radius: 20
+                            color: "#F0D0AE"
+                            opacity: 0.22
+                        }
 
                         MouseArea {
                             anchors.fill: parent
@@ -459,6 +682,74 @@ Item {
                             font.pixelSize: 22
                             font.bold: true
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    Menu {
+        id: messageMenu
+
+        MenuItem {
+            text: "删除这条聊天记录"
+            onTriggered: {
+                deleteMessageAt(contextMessageIndex)
+                contextMessageIndex = -1
+            }
+        }
+    }
+
+    Dialog {
+        id: clearAllDialog
+        modal: true
+        anchors.centerIn: parent
+        width: 360
+        height: 180
+        padding: 20
+
+        background: Rectangle {
+            radius: 24
+            color: "#FBF7F2"
+            border.width: 1
+            border.color: borderColor
+        }
+
+        Column {
+            anchors.fill: parent
+            spacing: 16
+
+            Text {
+                text: "确认清空全部聊天记录？"
+                color: textPrimary
+                font.pixelSize: 24
+                font.bold: true
+            }
+
+            Text {
+                text: "清空后无法恢复。"
+                color: textSecondary
+                font.pixelSize: 14
+            }
+
+            Item {
+                width: 1
+                height: 8
+            }
+
+            Row {
+                spacing: 12
+
+                Button {
+                    text: "取消"
+                    onClicked: clearAllDialog.close()
+                }
+
+                Button {
+                    text: "确认清空"
+                    onClicked: {
+                        clearAllChats()
+                        clearAllDialog.close()
                     }
                 }
             }
