@@ -26,22 +26,32 @@ qt_add_qml_module(apptime-arc
     VERSION 1.0
 
     QML_FILES
-        qml/Main.qml
+        qml/main.qml
         qml/desktop/DesktopAppShell.qml
         qml/desktop/pages/DesktopHomePage.qml
         qml/desktop/pages/DesktopChatPage.qml
+        qml/desktop/pages/DesktopMemoryLakePage.qml
         qml/desktop/pages/DesktopTimerPage.qml
         qml/desktop/pages/DesktopProfilePage.qml
 
     RESOURCES
+        qml/assets/background.png
+        qml/assets/background_night.png
         qml/assets/icons/home.svg
         qml/assets/icons/chat.svg
         qml/assets/icons/calendar.svg
         qml/assets/icons/stats.svg
         qml/assets/icons/user.svg
+        qml/assets/memorylake/memory_bg.png
+        qml/assets/memorylake/memory_cat_1.png
+        qml/assets/memorylake/memory_cat_2.png
+        qml/assets/memorylake/memory_pond_rocks.png
+        qml/assets/memorylake/memory_tree.png
 )
 
 set_target_properties(apptime-arc PROPERTIES
+    OUTPUT_NAME "TimeArc"
+    MACOSX_BUNDLE_BUNDLE_NAME "TimeArc"
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE

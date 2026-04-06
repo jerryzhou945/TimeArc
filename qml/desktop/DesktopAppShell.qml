@@ -24,8 +24,8 @@ Item {
     // 背景图路径
     // 白天 / 夜晚分别一张图
     // =========================
-    property string dayBackgroundSource: "file:///F:/TimeArc/time-arc/qml/assets/background.png"
-    property string nightBackgroundSource: "file:///F:/TimeArc/time-arc/qml/assets/background_night.png"
+    property string dayBackgroundSource: Qt.resolvedUrl("../assets/background.png")
+    property string nightBackgroundSource: Qt.resolvedUrl("../assets/background_night.png")
 
     // 当前实际使用的背景图
     property string appBackgroundSource: nightMode ? nightBackgroundSource : dayBackgroundSource
@@ -72,12 +72,12 @@ Item {
     // 左侧导航项
     // =========================
     property var navItems: [
-        { title: "首页", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/home.svg" },
-        { title: "聊天", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/chat.svg" },
-        { title: "记忆湖", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/home.svg" },
-        { title: "日历", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/calendar.svg" },
-        { title: "统计", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/stats.svg" },
-        { title: "我的", icon: "file:///F:/TimeArc/time-arc/qml/assets/icons/user.svg" }
+        { title: "首页", icon: Qt.resolvedUrl("../assets/icons/home.svg") },
+        { title: "聊天", icon: Qt.resolvedUrl("../assets/icons/chat.svg") },
+        { title: "记忆湖", icon: Qt.resolvedUrl("../assets/icons/home.svg") },
+        { title: "日历", icon: Qt.resolvedUrl("../assets/icons/calendar.svg") },
+        { title: "统计", icon: Qt.resolvedUrl("../assets/icons/stats.svg") },
+        { title: "我的", icon: Qt.resolvedUrl("../assets/icons/user.svg") }
     ]
 
     // =========================

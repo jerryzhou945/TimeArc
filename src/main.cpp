@@ -2,6 +2,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QUrl>
 
 #include "services/projectmanager.h"
 #include "services/timermanager.h"
@@ -21,7 +22,7 @@ int main(int argc, char* argv[]) {
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
       []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
 
-  engine.loadFromModule("time_arc", "Main");
+  engine.load(QUrl(QStringLiteral("qrc:/qt/qml/time_arc/qml/main.qml")));
 
   if (engine.rootObjects().isEmpty()) return -1;
 
