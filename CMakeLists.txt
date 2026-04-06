@@ -35,18 +35,18 @@ qt_add_qml_module(time-arc
         qml/desktop/pages/DesktopProfilePage.qml
 
     RESOURCES
-        qml/assets/background.png
-        qml/assets/background_night.png
-        qml/assets/icons/home.svg
-        qml/assets/icons/chat.svg
-        qml/assets/icons/calendar.svg
-        qml/assets/icons/stats.svg
-        qml/assets/icons/user.svg
-        qml/assets/memorylake/memory_bg.png
-        qml/assets/memorylake/memory_cat_1.png
-        qml/assets/memorylake/memory_cat_2.png
-        qml/assets/memorylake/memory_pond_rocks.png
-        qml/assets/memorylake/memory_tree.png
+        resources/background.png
+        resources/background_night.png
+        resources/icons/home.svg
+        resources/icons/chat.svg
+        resources/icons/calendar.svg
+        resources/icons/stats.svg
+        resources/icons/user.svg
+        resources/memorylake/memory_bg.png
+        resources/memorylake/memory_cat_1.png
+        resources/memorylake/memory_cat_2.png
+        resources/memorylake/memory_pond_rocks.png
+        resources/memorylake/memory_tree.png
 )
 
 set_target_properties(time-arc PROPERTIES

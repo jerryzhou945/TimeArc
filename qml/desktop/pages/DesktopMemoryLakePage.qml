@@ -30,7 +30,7 @@ Item {
 
     Image {
         anchors.fill: parent
-        source: Qt.resolvedUrl("../../assets/memorylake/memory_bg.png")
+        source: Qt.resolvedUrl("../../../resources/memorylake/memory_bg.png")
         fillMode: Image.PreserveAspectCrop
         opacity: nightMode ? 0.28 : 0.20
         asynchronous: true
@@ -62,7 +62,7 @@ Item {
             Image {
                 width: 120
                 height: 120
-                source: Qt.resolvedUrl("../../assets/memorylake/memory_cat_1.png")
+                source: Qt.resolvedUrl("../../../resources/memorylake/memory_cat_1.png")
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
             }
@@ -70,7 +70,7 @@ Item {
             Image {
                 width: 120
                 height: 120
-                source: Qt.resolvedUrl("../../assets/memorylake/memory_tree.png")
+                source: Qt.resolvedUrl("../../../resources/memorylake/memory_tree.png")
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
             }
@@ -78,7 +78,7 @@ Item {
             Image {
                 width: 120
                 height: 120
-                source: Qt.resolvedUrl("../../assets/memorylake/memory_pond_rocks.png")
+                source: Qt.resolvedUrl("../../../resources/memorylake/memory_pond_rocks.png")
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
             }

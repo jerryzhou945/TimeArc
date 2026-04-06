@@ -24,8 +24,8 @@ Item {
     // 背景图路径
     // 白天 / 夜晚分别一张图
     // =========================
-    property string dayBackgroundSource: Qt.resolvedUrl("../assets/background.png")
-    property string nightBackgroundSource: Qt.resolvedUrl("../assets/background_night.png")
+    property string dayBackgroundSource: Qt.resolvedUrl("../../resources/background.png")
+    property string nightBackgroundSource: Qt.resolvedUrl("../../resources/background_night.png")
 
     // 当前实际使用的背景图
     property string appBackgroundSource: nightMode ? nightBackgroundSource : dayBackgroundSource
@@ -72,12 +72,30 @@ Item {
     // 左侧导航项
     // =========================
     property var navItems: [
-        { title: "首页", icon: Qt.resolvedUrl("../assets/icons/home.svg") },
-        { title: "聊天", icon: Qt.resolvedUrl("../assets/icons/chat.svg") },
-        { title: "记忆湖", icon: Qt.resolvedUrl("../assets/icons/home.svg") },
-        { title: "日历", icon: Qt.resolvedUrl("../assets/icons/calendar.svg") },
-        { title: "统计", icon: Qt.resolvedUrl("../assets/icons/stats.svg") },
-        { title: "我的", icon: Qt.resolvedUrl("../assets/icons/user.svg") }
+        {
+            title: "首页",
+            icon: Qt.resolvedUrl("../../resources/icons/home.svg")
+        },
+        {
+            title: "聊天",
+            icon: Qt.resolvedUrl("../../resources/icons/chat.svg")
+        },
+        {
+            title: "记忆湖",
+            icon: Qt.resolvedUrl("../../resources/icons/home.svg")
+        },
+        {
+            title: "日历",
+            icon: Qt.resolvedUrl("../../resources/icons/calendar.svg")
+        },
+        {
+            title: "统计",
+            icon: Qt.resolvedUrl("../../resources/icons/stats.svg")
+        },
+        {
+            title: "我的",
+            icon: Qt.resolvedUrl("../../resources/icons/user.svg")
+        }
     ]
 
     // =========================
@@ -87,18 +105,18 @@ Item {
     // =========================
     property string currentPageSource: {
         if (showingTimerPage)
-            return Qt.resolvedUrl("pages/DesktopTimerPage.qml")
+            return Qt.resolvedUrl("pages/DesktopTimerPage.qml");
 
         if (selectedIndex === 0)
-            return Qt.resolvedUrl("pages/DesktopHomePage.qml")
+            return Qt.resolvedUrl("pages/DesktopHomePage.qml");
         if (selectedIndex === 1)
-            return Qt.resolvedUrl("pages/DesktopChatPage.qml")
+            return Qt.resolvedUrl("pages/DesktopChatPage.qml");
         if (selectedIndex === 2)
-            return Qt.resolvedUrl("pages/DesktopMemoryLakePage.qml")
+            return Qt.resolvedUrl("pages/DesktopMemoryLakePage.qml");
         if (selectedIndex === 5)
-            return Qt.resolvedUrl("pages/DesktopProfilePage.qml")
+            return Qt.resolvedUrl("pages/DesktopProfilePage.qml");
 
-        return ""
+        return "";
     }
 
     // =========================
@@ -107,26 +125,25 @@ Item {
     // =========================
     function applyThemeToLoadedPage() {
         if (!pageLoader.item)
-            return
-
-        var item = pageLoader.item
+            return;
+        var item = pageLoader.item;
 
         if ("nightMode" in item)
-            item.nightMode = nightMode
+            item.nightMode = nightMode;
         if ("themeTextPrimary" in item)
-            item.themeTextPrimary = appTextPrimary
+            item.themeTextPrimary = appTextPrimary;
         if ("themeTextSecondary" in item)
-            item.themeTextSecondary = appTextSecondary
+            item.themeTextSecondary = appTextSecondary;
         if ("themePanelColor" in item)
-            item.themePanelColor = appPanelGlass
+            item.themePanelColor = appPanelGlass;
         if ("themeBorderColor" in item)
-            item.themeBorderColor = appPanelBorder
+            item.themeBorderColor = appPanelBorder;
         if ("themeAccentColor" in item)
-            item.themeAccentColor = appAccentWarm
+            item.themeAccentColor = appAccentWarm;
     }
 
     onNightModeChanged: {
-        applyThemeToLoadedPage()
+        applyThemeToLoadedPage();
     }
 
     // =========================
@@ -316,9 +333,7 @@ Item {
                                 Text {
                                     visible: !sidebarCollapsed
                                     text: modelData.title
-                                    color: selectedIndex === index && !showingTimerPage
-                                           ? appTextPrimary
-                                           : appTextSecondary
+                                    color: selectedIndex === index && !showingTimerPage ? appTextPrimary : appTextSecondary
                                     font.pixelSize: 17
                                     font.weight: Font.Medium
                                     anchors.verticalCenter: parent.verticalCenter
@@ -330,8 +345,8 @@ Item {
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    showingTimerPage = false
-                                    selectedIndex = index
+                                    showingTimerPage = false;
+                                    selectedIndex = index;
                                 }
                             }
                         }
@@ -419,51 +434,51 @@ Item {
                 source: currentPageSource
 
                 onLoaded: {
-                    console.log("Loader loaded:", source)
+                    console.log("Loader loaded:", source);
 
                     if (!item)
-                        return
+                        return;
 
                     // 页面加载后，把当前主题注入进去
-                    applyThemeToLoadedPage()
+                    applyThemeToLoadedPage();
 
                     // 计时页不需要再连首页 signal
                     if (showingTimerPage)
-                        return
+                        return;
 
                     // 首页：连接开始计时信号
                     if (selectedIndex === 0 && item.startProject) {
-                        item.startProject.connect(function(projectName) {
-                            console.log("startProject signal received:", projectName)
+                        item.startProject.connect(function (projectName) {
+                            console.log("startProject signal received:", projectName);
                             if (timerManager) {
-                                timerManager.startProject(projectName)
-                                showingTimerPage = true
+                                timerManager.startProject(projectName);
+                                showingTimerPage = true;
                             }
-                        })
+                        });
                     }
 
                     // 首页：连接导入软件信号
                     if (selectedIndex === 0 && item.importSoftware) {
-                        item.importSoftware.connect(function() {
-                            console.log("导入想查看时间的软件")
-                        })
+                        item.importSoftware.connect(function () {
+                            console.log("导入想查看时间的软件");
+                        });
                     }
 
                     // 我的页：连接夜晚模式开关信号
                     if (selectedIndex === 5 && item.nightModeToggled) {
-                        item.nightModeToggled.connect(function(enabled) {
-                            nightMode = enabled
-                        })
+                        item.nightModeToggled.connect(function (enabled) {
+                            nightMode = enabled;
+                        });
                     }
 
                     // 我的页：把当前 nightMode 同步给 profile page
                     if (selectedIndex === 5 && "nightMode" in item) {
-                        item.nightMode = nightMode
+                        item.nightMode = nightMode;
                     }
                 }
 
                 onStatusChanged: {
-                    console.log("Loader status:", status, "source:", source)
+                    console.log("Loader status:", status, "source:", source);
                 }
             }
 
@@ -507,10 +522,10 @@ Item {
 
         function onTimerStopped(projectName, elapsedSeconds) {
             if (projectManager)
-                projectManager.addElapsedTime(projectName, elapsedSeconds)
+                projectManager.addElapsedTime(projectName, elapsedSeconds);
 
-            showingTimerPage = false
-            selectedIndex = 0
+            showingTimerPage = false;
+            selectedIndex = 0;
         }
     }
 }
