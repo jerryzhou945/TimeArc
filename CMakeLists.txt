@@ -10,18 +10,18 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick Svg)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
-qt_add_executable(apptime-arc
+qt_add_executable(time-arc
     src/main.cpp
     src/services/timermanager.cpp
     src/services/projectmanager.cpp
 )
 
-target_include_directories(apptime-arc PRIVATE
+target_include_directories(time-arc PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/services
 )
 
-qt_add_qml_module(apptime-arc
+qt_add_qml_module(time-arc
     URI time_arc
     VERSION 1.0
 
@@ -49,7 +49,7 @@ qt_add_qml_module(apptime-arc
         qml/assets/memorylake/memory_tree.png
 )
 
-set_target_properties(apptime-arc PROPERTIES
+set_target_properties(time-arc PROPERTIES
     OUTPUT_NAME "TimeArc"
     MACOSX_BUNDLE_BUNDLE_NAME "TimeArc"
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -58,7 +58,7 @@ set_target_properties(apptime-arc PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-target_link_libraries(apptime-arc
+target_link_libraries(time-arc
     PRIVATE
         Qt6::Core
         Qt6::Quick
@@ -66,7 +66,7 @@ target_link_libraries(apptime-arc
 )
 
 include(GNUInstallDirs)
-install(TARGETS apptime-arc
+install(TARGETS time-arc
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
