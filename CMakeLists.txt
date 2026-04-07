@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(time-arc VERSION 0.1 LANGUAGES CXX)
+project(time-arc VERSION 0.1 LANGUAGES C CXX)
 
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -10,15 +11,15 @@ find_package(Qt6 REQUIRED COMPONENTS Core Quick Svg)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
-qt_add_executable(time-arc
-    src/main.cpp
-    src/services/timermanager.cpp
-    src/services/projectmanager.cpp
-)
+add_subdirectory(src)
+add_subdirectory(qml)
+add_subdirectory(resources)
+add_subdirectory(thirdparty)
+
+qt_add_executable(time-arc ${TIME_ARC_APP_SOURCES})
 
 target_include_directories(time-arc PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/services
+    ${TIME_ARC_INCLUDE_DIRS}
 )
 
 qt_add_qml_module(time-arc
@@ -26,27 +27,10 @@ qt_add_qml_module(time-arc
     VERSION 1.0
 
     QML_FILES
-        qml/main.qml
-        qml/desktop/DesktopAppShell.qml
-        qml/desktop/pages/DesktopHomePage.qml
-        qml/desktop/pages/DesktopChatPage.qml
-        qml/desktop/pages/DesktopMemoryLakePage.qml
-        qml/desktop/pages/DesktopTimerPage.qml
-        qml/desktop/pages/DesktopProfilePage.qml
+        ${TIME_ARC_QML_FILES}
 
     RESOURCES
-        resources/background.png
-        resources/background_night.png
-        resources/icons/home.svg
-        resources/icons/chat.svg
-        resources/icons/calendar.svg
-        resources/icons/stats.svg
-        resources/icons/user.svg
-        resources/memorylake/memory_bg.png
-        resources/memorylake/memory_cat_1.png
-        resources/memorylake/memory_cat_2.png
-        resources/memorylake/memory_pond_rocks.png
-        resources/memorylake/memory_tree.png
+        ${TIME_ARC_RESOURCE_FILES}
 )
 
 set_target_properties(time-arc PROPERTIES
@@ -63,11 +47,21 @@ target_link_libraries(time-arc
         Qt6::Core
         Qt6::Quick
         Qt6::Svg
+    ${TIME_ARC_THIRDPARTY_LIBS}
+)
+
+target_link_libraries(time-arc-service
+    PRIVATE
+        ${TIME_ARC_THIRDPARTY_LIBS}
 )
 
 include(GNUInstallDirs)
 install(TARGETS time-arc
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(TARGETS time-arc-service
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

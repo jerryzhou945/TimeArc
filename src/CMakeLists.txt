@@ -1,0 +1,15 @@
+set(TIME_ARC_APP_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/timermanager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/projectmanager.cpp
+)
+
+set(TIME_ARC_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/services
+)
+
+add_subdirectory(service)
+
+set(TIME_ARC_APP_SOURCES ${TIME_ARC_APP_SOURCES} PARENT_SCOPE)
+set(TIME_ARC_INCLUDE_DIRS ${TIME_ARC_INCLUDE_DIRS} PARENT_SCOPE)
