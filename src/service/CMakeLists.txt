@@ -1,29 +1,14 @@
-set(TIME_ARC_SERVICE_SHARED_SOURCES
+set(TIME_ARC_SERVICE_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.c
 )
 
-if(WIN32)
-    set(TIME_ARC_SERVICE_PLATFORM_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/windows/main.c
-    )
-elseif(APPLE)
-    set(TIME_ARC_SERVICE_PLATFORM_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/macos/main.c
-    )
-elseif(UNIX)
-    set(TIME_ARC_SERVICE_PLATFORM_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/linux/main.c
-    )
-else()
-    message(FATAL_ERROR "Unsupported operating system for service target")
-endif()
-
 add_executable(time-arc-service
-    ${TIME_ARC_SERVICE_SHARED_SOURCES}
-    ${TIME_ARC_SERVICE_PLATFORM_SOURCES}
+    ${TIME_ARC_SERVICE_SOURCES}
 )
 
 target_include_directories(time-arc-service PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+    ${PROJECT_SOURCE_DIR}/src/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/shared
 )
 

@@ -3,6 +3,10 @@
 #ifndef TIMEARC_SRC_INCLUDE_UTIL_H
 #define TIMEARC_SRC_INCLUDE_UTIL_H
 
+#define _TIMEARC_MAX_PATH_BYTES 4096
+#define _TIMEARC_MAX_TITLE_BYTES 512
+#define _TIMEARC_MAX_NAME_BYTES 256
+
 #ifndef __cplusplus
 #include <stddef.h>
 
