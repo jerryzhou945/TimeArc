@@ -18,7 +18,7 @@ Note: This project is currently in the early stages of development.
     - [Code Style](#code-style)
     - [To-Do List](#to-do-list)
   - [License](#license)
-    - [Third-Party Code](#third-party-code)
+    - [Third-Party Components](#third-party-components)
 
 
 ## Installation
@@ -52,10 +52,11 @@ Not available yet.
   - `main.cpp`: The main entry point of the application.
   - `service/`: Implementation of the TimeArc service.
     - `CMakeLists.txt`: Builds the standalone service binary with platform-specific sources.
-    - `windows/`: Implementation for Windows platform.
-    - `linux/`: Implementation for Linux platform.
-    - `macos/`: Implementation for macOS platform.
+    - `main.c`: The main entry point for the TimeArc service.
     - `shared/`: Shared code for all platforms.
+    - `windows/`: Implementation for Windows platform.
+    - `linux/`: Implementation for Linux platform (it will support both X11 and Wayland).
+    - `macos/`: Implementation for macOS platform.
   - `services/`: Provide user-facing time tracking services. This will later be reimplemented to support SQLite database.
   - Others.
 - `qml/`: Directory containing QML files for the user interface.
@@ -88,9 +89,9 @@ This project follows the Google C++ Style Guide for C/C++ code. Please follow th
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).
 
-### Third-Party Code
+### Third-Party Components
 
-This project incorporates code from other open-source projects, which are distributed under their own terms:
+This project utilizes the following third-party libraries, which are distributed under their own terms:
 
 - **Qt**: LGPLv3.0 (with exceptions).
 - **SQLite**: Public Domain.
