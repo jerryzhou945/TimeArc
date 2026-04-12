@@ -113,6 +113,8 @@ Item {
             return Qt.resolvedUrl("pages/DesktopChatPage.qml");
         if (selectedIndex === 2)
             return Qt.resolvedUrl("pages/DesktopMemoryLakePage.qml");
+        if (selectedIndex === 4)
+            return Qt.resolvedUrl("pages/DesktopStatsPage.qml");
         if (selectedIndex === 5)
             return Qt.resolvedUrl("pages/DesktopProfilePage.qml");
 
@@ -490,19 +492,6 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     text: "日历页"
-                    color: appTextPrimary
-                    font.pixelSize: 28
-                    font.bold: true
-                }
-            }
-
-            Item {
-                anchors.fill: parent
-                visible: selectedIndex === 4 && !showingTimerPage
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "统计页"
                     color: appTextPrimary
                     font.pixelSize: 28
                     font.bold: true

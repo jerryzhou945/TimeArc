@@ -6,6 +6,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/pages/DesktopMemoryLakePage.qml
     qml/desktop/pages/DesktopTimerPage.qml
     qml/desktop/pages/DesktopProfilePage.qml
+    qml/desktop/pages/DesktopStatsPage.qml
 )
 
 set(TIME_ARC_QML_FILES ${TIME_ARC_QML_FILES} PARENT_SCOPE)
