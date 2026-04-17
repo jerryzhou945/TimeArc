@@ -6,17 +6,22 @@
 #include <QQmlContext>
 #include <QUrl>
 
+#include "services/calendarmanager.h"
 #include "services/projectmanager.h"
 #include "services/timermanager.h"
 
 int main(int argc, char* argv[]) {
   QGuiApplication app(argc, argv);
+  QCoreApplication::setOrganizationName("TimeArc");
+  QCoreApplication::setApplicationName("TimeArc");
 
   QQmlApplicationEngine engine;
 
+  CalendarManager calendarManager;
   TimerManager timerManager;
   ProjectManager projectManager;
 
+  engine.rootContext()->setContextProperty("calendarManager", &calendarManager);
   engine.rootContext()->setContextProperty("timerManager", &timerManager);
   engine.rootContext()->setContextProperty("projectManager", &projectManager);
 

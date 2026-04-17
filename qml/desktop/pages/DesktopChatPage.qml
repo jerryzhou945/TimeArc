@@ -203,7 +203,7 @@ Item {
             Layout.preferredHeight: 92
             radius: 30
             color: "transparent"
-            border.width: 2
+            border.width: 1
             border.color: borderColor
 
             Rectangle {
@@ -316,7 +316,7 @@ Item {
             Layout.fillHeight: true
             radius: 32
             color: "transparent"
-            border.width: 2
+            border.width: 1
             border.color: borderColor
 
             Rectangle {
@@ -546,7 +546,7 @@ Item {
                                                            : inputPanel.implicitHeight + 68
             radius: 30
             color: "transparent"
-            border.width: 2
+            border.width: 1
             border.color: borderColor
 
             Rectangle {

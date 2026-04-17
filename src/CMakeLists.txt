@@ -1,5 +1,6 @@
 set(TIME_ARC_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/calendarmanager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/timermanager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/projectmanager.cpp
 )

@@ -12,7 +12,7 @@ Item {
     property color themeTextPrimary: "#4E342E"
     property color themeTextSecondary: "#9C806C"
     property color themePanelColor: "#FFFDF9"
-    property color themeBorderColor: "#DDC9B5"
+    property color themeBorderColor: "#D8C2AC"
     property color themeAccentColor: "#E8C6A3"
 
     // =========================
@@ -20,21 +20,21 @@ Item {
     // 白天：米色暖棕
     // 夜晚：淡蓝紫、雾感灰紫
     // =========================
-    property color timerPanelColor: nightMode ? "#50577A" : "#FFF7EF"
-    property color timerInnerCardColor: nightMode ? "#5A628B" : "#FFFDF9"
+    property color timerPanelColor: nightMode ? "#252C40" : "#FFFFFF"
+    property color timerInnerCardColor: nightMode ? "#303850" : "#FFFFFF"
     property color timerBorderColor: themeBorderColor
 
     property color titleColor: themeTextSecondary
     property color projectColor: themeTextPrimary
-    property color timeColor: nightMode ? "#EEF0FF" : "#6A4C3B"
+    property color timeColor: nightMode ? "#EEF0FF" : "#4E342E"
     property color statusColor: themeTextSecondary
 
-    property color pauseButtonColor: nightMode ? "#6770A8" : "#EBD9C7"
-    property color pauseButtonBorder: nightMode ? "#7C86C8" : "#D8B99A"
-    property color pauseButtonText: nightMode ? "#F8F7FF" : "#6A4C3B"
+    property color pauseButtonColor: nightMode ? "#343C58" : "#F1EDE6"
+    property color pauseButtonBorder: nightMode ? "#525D7D" : "#DDD4C7"
+    property color pauseButtonText: nightMode ? "#F8F7FF" : "#4E342E"
 
-    property color stopButtonColor: nightMode ? "#8E93D8" : "#DDB892"
-    property color stopButtonBorder: nightMode ? "#757ED0" : "#CDA57D"
+    property color stopButtonColor: nightMode ? "#8E93D8" : "#E8C6A3"
+    property color stopButtonBorder: nightMode ? "#757ED0" : "#D5AE86"
     property color stopButtonText: "#FFFDF9"
 
     function formatTime(totalSeconds) {
@@ -63,7 +63,7 @@ Item {
         anchors.fill: parent
         radius: 28
         color: timerPanelColor
-        border.width: 2
+        border.width: 1
         border.color: timerBorderColor
         opacity: nightMode ? 0.72 : 1.0
     }
@@ -102,7 +102,7 @@ Item {
             radius: 26
             color: timerInnerCardColor
             border.width: 1
-            border.color: nightMode ? "#7A82B0" : "#E6D6C5"
+            border.color: nightMode ? "#757CA6" : "#E6D6C5"
             opacity: nightMode ? 0.76 : 0.88
 
             Rectangle {

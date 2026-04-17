@@ -8,14 +8,14 @@ Item {
     property color themeTextPrimary: "#4E342E"
     property color themeTextSecondary: "#9C806C"
     property color themePanelColor: "#FFFDF9"
-    property color themeBorderColor: "#DDC9B5"
+    property color themeBorderColor: "#D8C2AC"
     property color themeAccentColor: "#E8C6A3"
 
     Rectangle {
         anchors.fill: parent
         radius: 30
         color: "transparent"
-        border.width: 2
+        border.width: 1
         border.color: themeBorderColor
 
         Rectangle {
@@ -23,7 +23,7 @@ Item {
             anchors.margins: 1
             radius: 29
             color: themePanelColor
-            opacity: nightMode ? 0.62 : 0.72
+            opacity: nightMode ? 0.66 : 0.58
             z: -1
         }
     }
@@ -90,13 +90,13 @@ Item {
             radius: 16
             color: themeAccentColor
             border.width: 1
-            border.color: nightMode ? "#757ED0" : "#D6B08B"
+            border.color: nightMode ? "#757ED0" : "#D5AE86"
             anchors.horizontalCenter: parent.horizontalCenter
 
             Text {
                 anchors.centerIn: parent
                 text: "功能开发中"
-                color: nightMode ? "#F8F7FF" : "#6A4C3B"
+                color: nightMode ? "#F8F7FF" : "#FFFFFF"
                 font.pixelSize: 16
                 font.bold: true
             }

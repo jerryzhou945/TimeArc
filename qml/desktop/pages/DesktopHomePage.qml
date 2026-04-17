@@ -8,7 +8,7 @@ Item {
     clip: true
 
     signal importSoftware()
-    signal startProject(string projectName)
+    signal startProject(string projectName, string tagName)
 
     // =========================
     // 从 AppShell 传入的主题属性
@@ -17,7 +17,7 @@ Item {
     property color themeTextPrimary: "#4E342E"
     property color themeTextSecondary: "#9C806C"
     property color themePanelColor: "#FFFDF9"
-    property color themeBorderColor: "#DDC9B5"
+    property color themeBorderColor: "#D8C2AC"
     property color themeAccentColor: "#E8C6A3"
 
     // =========================
@@ -27,13 +27,13 @@ Item {
     property color textSecondary: themeTextSecondary
 
     property color accentBrown: themeAccentColor
-    property color accentBrownDeep: nightMode ? "#D9D8FF" : "#A96F46"
+    property color accentBrownDeep: nightMode ? "#D9D8FF" : "#A56D46"
 
-    property color panelGlass: nightMode ? "#505675" : "#FFFDF9"
-    property real panelOpacity: nightMode ? 0.52 : 0.48
+    property color panelGlass: nightMode ? "#2C334A" : "#FFFFFF"
+    property real panelOpacity: nightMode ? 0.68 : 0.62
 
-    property color cardGlass: nightMode ? "#59607F" : "#FFFDF9"
-    property real cardOpacity: nightMode ? 0.48 : 0.42
+    property color cardGlass: nightMode ? "#343C55" : "#FFFFFF"
+    property real cardOpacity: nightMode ? 0.62 : 0.58
 
     property color borderColor: themeBorderColor
     property color softBorder: nightMode ? "#757CA6" : "#E6D6C5"
@@ -45,6 +45,8 @@ Item {
     // 固定标签
     // =========================
     property var fixedTags: ["学习", "工作", "运动", "娱乐", "阅读", "社交", "生活", "其他"]
+    property string selectedTag: fixedTags[0]
+    property int projectRefreshKey: 0
 
     function tagColor(tag) {
         if (tag === "学习") return "#B7A6F0"
@@ -80,6 +82,20 @@ Item {
         return minutesToDisplay(totalMinutes)
     }
 
+    function tagSummariesAll() {
+        projectRefreshKey
+        return projectManager ? projectManager.tagSummariesForRange("all") : []
+    }
+
+    function projectsForSelectedTag() {
+        projectRefreshKey
+        return projectManager ? projectManager.projectsForTag(selectedTag, "all") : []
+    }
+
+    function todaySecondsForTag(tag) {
+        return tagMinutesToday(tag) * 60
+    }
+
     // =========================
     // 今日项目数据
     // =========================
@@ -88,10 +104,10 @@ Item {
     // 右侧列表显示全部项目
     property var allProjects: projectManager ? projectManager.projects : []
 
-    function todaySecondsForProject(projectName) {
+    function todaySecondsForProject(projectName, tagName) {
         var list = todayProjects
         for (var i = 0; i < list.length; i++) {
-            if (list[i].name === projectName)
+            if (list[i].name === projectName && list[i].tag === tagName)
                 return list[i].seconds ? list[i].seconds : 0
         }
         return 0
@@ -196,7 +212,7 @@ Item {
                 height: 390
                 radius: 30
                 color: "transparent"
-                border.width: 2
+                border.width: 1
                 border.color: borderColor
                 clip: true
 
@@ -401,7 +417,7 @@ Item {
                     height: parent.height
                     radius: 30
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: borderColor
                     clip: true
 
@@ -506,7 +522,7 @@ Item {
                     height: parent.height
                     radius: 30
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: borderColor
                     clip: true
 
@@ -524,33 +540,166 @@ Item {
                         anchors.margins: 20
                         spacing: 14
 
-                        Text {
-                            text: "自定义项目"
-                            color: textPrimary
-                            font.pixelSize: 28
-                            font.bold: true
+                        Row {
+                            width: parent.width
+                            spacing: 12
+
+                            Column {
+                                width: parent.width - 106
+                                spacing: 4
+
+                                Text {
+                                    text: "自定义项目"
+                                    color: textPrimary
+                                    font.pixelSize: 28
+                                    font.bold: true
+                                }
+
+                                Text {
+                                    text: "先进入标签，再添加或开始具体项目"
+                                    color: textSecondary
+                                    font.pixelSize: 14
+                                }
+                            }
+
+                            Rectangle {
+                                width: 94
+                                height: 38
+                                radius: 14
+                                color: nightMode ? "#59608A" : "#F3E5D6"
+                                border.width: 1
+                                border.color: softBorder
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: selectedTag
+                                    color: accentBrownDeep
+                                    font.pixelSize: 14
+                                    font.bold: true
+                                }
+                            }
                         }
 
-                        Text {
-                            text: "显示全部项目，今日时长单独标注"
-                            color: textSecondary
-                            font.pixelSize: 14
+                        Grid {
+                            width: parent.width
+                            height: 98
+                            columns: 4
+                            spacing: 10
+
+                            Repeater {
+                                model: tagSummariesAll()
+
+                                delegate: Rectangle {
+                                    required property var modelData
+
+                                    width: (parent.width - 30) / 4
+                                    height: 42
+                                    radius: 16
+                                    color: selectedTag === modelData.tag
+                                           ? (nightMode ? "#656DA2" : "#F0D8BF")
+                                           : (nightMode ? "#343C55" : "#FFF9F2")
+                                    border.width: 1
+                                    border.color: selectedTag === modelData.tag
+                                                  ? (nightMode ? "#C3C8FF" : "#D7AC83")
+                                                  : softBorder
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 12
+                                        anchors.rightMargin: 12
+                                        spacing: 8
+
+                                        Rectangle {
+                                            width: 10
+                                            height: 10
+                                            radius: 5
+                                            color: tagColor(modelData.tag)
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        Text {
+                                            width: parent.width - 30
+                                            text: modelData.tag
+                                            color: textPrimary
+                                            font.pixelSize: 13
+                                            font.bold: true
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            visible: false
+                                            width: 0
+                                            text: modelData.time
+                                            color: accentBrownDeep
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: selectedTag = modelData.tag
+                                    }
+                                }
+                            }
+                        }
+
+                        Row {
+                            width: parent.width
+                            spacing: 10
+
+                            Text {
+                                width: parent.width - 112
+                                text: selectedTag + "里的项目"
+                                color: textPrimary
+                                font.pixelSize: 20
+                                font.bold: true
+                                elide: Text.ElideRight
+                            }
+
+                            Rectangle {
+                                width: 102
+                                height: 36
+                                radius: 14
+                                color: nightMode ? "#8E93D8" : "#E8C6A3"
+                                border.width: 1
+                                border.color: nightMode ? "#757ED0" : "#D5AE86"
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "新建项目"
+                                    color: nightMode ? "#F8F7FF" : "#6A4C3B"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        tagBox.currentIndex = fixedTags.indexOf(selectedTag)
+                                        addProjectDialog.open()
+                                    }
+                                }
+                            }
                         }
 
                         ListView {
                             width: parent.width
-                            height: parent.height - 76
+                            height: parent.height - 238
                             clip: true
-                            spacing: 14
-                            model: allProjects
+                            spacing: 10
+                            model: projectsForSelectedTag()
 
                             delegate: Rectangle {
-                                id: projectCard
                                 required property var modelData
 
                                 width: ListView.view.width
-                                height: 102
-                                radius: 20
+                                height: 68
+                                radius: 18
                                 color: "transparent"
                                 border.width: 1
                                 border.color: softBorder
@@ -559,7 +708,7 @@ Item {
                                 Rectangle {
                                     anchors.fill: parent
                                     anchors.margins: 1
-                                    radius: 19
+                                    radius: 17
                                     color: cardGlass
                                     opacity: cardOpacity
                                     z: -1
@@ -567,108 +716,56 @@ Item {
 
                                 Row {
                                     anchors.fill: parent
-                                    anchors.leftMargin: 16
-                                    anchors.rightMargin: 16
-                                    spacing: 12
-
-                                    Rectangle {
-                                        width: 16
-                                        height: 16
-                                        radius: 8
-                                        color: tagColor(modelData.tag)
-                                        anchors.verticalCenter: parent.verticalCenter
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: tagIcon(modelData.tag)
-                                            color: "#FFF8F2"
-                                            font.pixelSize: 8
-                                            font.bold: true
-                                        }
-                                    }
+                                    anchors.leftMargin: 14
+                                    anchors.rightMargin: 14
+                                    spacing: 10
 
                                     Column {
-                                        width: parent.width - 150
+                                        width: parent.width - 104
                                         anchors.verticalCenter: parent.verticalCenter
                                         spacing: 4
 
                                         Text {
                                             text: modelData.name
                                             color: textPrimary
-                                            font.pixelSize: 17
+                                            font.pixelSize: 16
                                             font.bold: true
-                                            elide: Text.ElideRight
                                             width: parent.width
+                                            elide: Text.ElideRight
                                         }
 
                                         Text {
-                                            text: "标签: " + modelData.tag
-                                            color: textSecondary
-                                            font.pixelSize: 13
-                                        }
-
-                                        Text {
-                                            text: "今日: " + secondsToDisplay(todaySecondsForProject(modelData.name))
-                                                  + "    累计: " + (modelData.time ? modelData.time : "0h 0m")
+                                            text: "今日 " + secondsToDisplay(todaySecondsForProject(modelData.name, modelData.tag))
+                                                  + " / 累计 " + (modelData.time ? modelData.time : "0h 0m")
                                             color: accentBrownDeep
-                                            font.pixelSize: 13
+                                            font.pixelSize: 12
                                             font.bold: true
                                             width: parent.width
                                             elide: Text.ElideRight
                                         }
                                     }
 
-                                    Item { width: 1; height: 1 }
-
                                     Rectangle {
-                                        width: 84
-                                        height: 40
-                                        radius: 16
+                                        width: 82
+                                        height: 36
+                                        radius: 14
                                         color: nightMode ? "#8E93D8" : "#E8C6A3"
-                                        opacity: 0.92
                                         border.width: 1
-                                        border.color: nightMode ? "#757ED0" : "#DBB18A"
+                                        border.color: nightMode ? "#757ED0" : "#D5AE86"
                                         anchors.verticalCenter: parent.verticalCenter
 
                                         Text {
                                             anchors.centerIn: parent
                                             text: "开始"
                                             color: nightMode ? "#F8F7FF" : "#6A4C3B"
-                                            font.pixelSize: 14
+                                            font.pixelSize: 13
                                             font.bold: true
                                         }
 
                                         MouseArea {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: startProject(modelData.name)
-                                        }
-                                    }
-                                }
-
-                                Menu {
-                                    id: projectMenu
-
-                                    MenuItem {
-                                        text: "删除项目"
-                                        onTriggered: {
-                                            deleteTargetProjectName = modelData.name
-                                            deleteProjectDialog.open()
-                                        }
-                                    }
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    acceptedButtons: Qt.RightButton
-                                    propagateComposedEvents: true
-                                    onPressed: function(mouse) {
-                                        if (mouse.button === Qt.RightButton) {
-                                            deleteTargetProjectName = modelData.name
-                                            projectMenu.popup()
-                                            mouse.accepted = true
-                                        } else {
-                                            mouse.accepted = false
+                                            onClicked: startProject(modelData.name, modelData.tag)
                                         }
                                     }
                                 }
@@ -676,14 +773,14 @@ Item {
 
                             footer: Item {
                                 width: ListView.view ? ListView.view.width : 0
-                                height: allProjects.length === 0 ? 120 : 0
+                                height: projectsForSelectedTag().length === 0 ? 80 : 0
 
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: allProjects.length === 0
-                                    text: "还没有自定义项目，点击右下角 + 添加"
+                                    visible: projectsForSelectedTag().length === 0
+                                    text: "这个标签里还没有项目"
                                     color: textSecondary
-                                    font.pixelSize: 15
+                                    font.pixelSize: 14
                                 }
                             }
                         }
@@ -699,7 +796,7 @@ Item {
                 height: 220
                 radius: 30
                 color: "transparent"
-                border.width: 2
+                border.width: 1
                 border.color: borderColor
                 clip: true
 
@@ -809,7 +906,7 @@ Item {
         radius: 34
         color: nightMode ? "#8E93D8" : accentBrown
         border.width: 1
-        border.color: nightMode ? "#757ED0" : "#CDA57D"
+        border.color: nightMode ? "#757ED0" : "#D5AE86"
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.rightMargin: 28
@@ -836,7 +933,10 @@ Item {
 
         MenuItem {
             text: "添加自定义项目"
-            onTriggered: addProjectDialog.open()
+            onTriggered: {
+                tagBox.currentIndex = fixedTags.indexOf(selectedTag)
+                addProjectDialog.open()
+            }
         }
 
         MenuItem {
@@ -926,8 +1026,9 @@ Item {
                         var nameText = projectNameField.text.trim()
                         if (nameText.length > 0 && projectManager) {
                             projectManager.addProject(nameText, tagBox.currentText)
+                            selectedTag = tagBox.currentText
                             projectNameField.text = ""
-                            tagBox.currentIndex = 0
+                            tagBox.currentIndex = fixedTags.indexOf(selectedTag)
                             ringCanvas.requestPaint()
                             addProjectDialog.close()
                         }
@@ -941,6 +1042,7 @@ Item {
         target: projectManager
 
         function onProjectsChanged() {
+            projectRefreshKey += 1
             ringCanvas.requestPaint()
         }
     }

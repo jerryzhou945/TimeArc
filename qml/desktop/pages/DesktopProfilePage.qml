@@ -10,17 +10,17 @@ Item {
     signal nightModeToggled(bool enabled)
 
     property bool nightMode: false
-    property color themeTextPrimary: nightMode ? "#F3E7DA" : "#4E342E"
-    property color themeTextSecondary: nightMode ? "#C8B7AA" : "#9C806C"
-    property color themePanelColor: nightMode ? "#4A3D37" : "#FFFDF9"
-    property color themeBorderColor: nightMode ? "#6B5A51" : "#DDC9B5"
-    property color themeAccentColor: nightMode ? "#C9976B" : "#E8C6A3"
+    property color themeTextPrimary: nightMode ? "#EAE8F8" : "#4E342E"
+    property color themeTextSecondary: nightMode ? "#B8B4D4" : "#9C806C"
+    property color themePanelColor: nightMode ? "#2C334A" : "#FFFDF9"
+    property color themeBorderColor: nightMode ? "#6D7297" : "#D8C2AC"
+    property color themeAccentColor: nightMode ? "#8E93D8" : "#E8C6A3"
 
     property color panelGlass: themePanelColor
-    property real panelOpacity: nightMode ? 0.52 : 0.48
+    property real panelOpacity: nightMode ? 0.68 : 0.62
 
-    property color cardGlass: nightMode ? "#5A4B44" : "#FFFDF9"
-    property real cardOpacity: nightMode ? 0.46 : 0.42
+    property color cardGlass: nightMode ? "#343C55" : "#FFFFFF"
+    property real cardOpacity: nightMode ? 0.62 : 0.58
 
     Flickable {
         anchors.fill: parent
@@ -62,7 +62,7 @@ Item {
                 height: 210
                 radius: 30
                 color: "transparent"
-                border.width: 2
+                border.width: 1
                 border.color: themeBorderColor
                 clip: true
 
@@ -91,7 +91,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             text: "C"
-                            color: nightMode ? "#FFF8F2" : "#6A4C3B"
+                            color: nightMode ? "#FFF8F2" : "#FFFFFF"
                             font.pixelSize: 34
                             font.bold: true
                         }
@@ -180,7 +180,7 @@ Item {
                     height: 138
                     radius: 24
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: themeBorderColor
                     clip: true
 
@@ -224,7 +224,7 @@ Item {
                     height: 138
                     radius: 24
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: themeBorderColor
                     clip: true
 
@@ -268,7 +268,7 @@ Item {
                     height: 138
                     radius: 24
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: themeBorderColor
                     clip: true
 
@@ -318,7 +318,7 @@ Item {
                     height: 220
                     radius: 28
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: themeBorderColor
                     clip: true
 
@@ -378,7 +378,7 @@ Item {
                     height: 220
                     radius: 28
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: themeBorderColor
                     clip: true
 
@@ -432,7 +432,7 @@ Item {
                 height: 200
                 radius: 28
                 color: "transparent"
-                border.width: 2
+                border.width: 1
                 border.color: themeBorderColor
                 clip: true
 

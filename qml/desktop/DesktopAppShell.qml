@@ -12,6 +12,11 @@ Item {
     property int selectedIndex: 0
     property bool sidebarCollapsed: false
     property bool showingTimerPage: false
+    property string pendingProjectTag: ""
+    property string pendingTodoDateKey: ""
+    property string pendingTodoText: ""
+    property string pendingTodoTag: ""
+    property string pendingTodoLinkedProject: ""
 
     // =========================
     // 主题切换状态
@@ -67,6 +72,7 @@ Item {
 
     // 夜晚模式下的小高光文字
     property color appNightAccentText: "#BFC7FF"
+    property color appShadowColor: nightMode ? "#05070D" : "#A67C52"
 
     // =========================
     // 左侧导航项
@@ -113,6 +119,8 @@ Item {
             return Qt.resolvedUrl("pages/DesktopChatPage.qml");
         if (selectedIndex === 2)
             return Qt.resolvedUrl("pages/DesktopMemoryLakePage.qml");
+        if (selectedIndex === 3)
+            return Qt.resolvedUrl("pages/DesktopCalenderPage.qml");
         if (selectedIndex === 4)
             return Qt.resolvedUrl("pages/DesktopStatsPage.qml");
         if (selectedIndex === 5)
@@ -160,8 +168,8 @@ Item {
             anchors.fill: parent
             source: appBackgroundSource
             fillMode: Image.PreserveAspectCrop
-            opacity: nightMode ? 0.8 : 0.8
-            smooth: false
+            opacity: nightMode ? 0.80 : 0.80
+            smooth: true
             asynchronous: true
         }
 
@@ -179,6 +187,16 @@ Item {
             }
             opacity: nightMode ? 0.34 : 0.20
         }
+
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: nightMode ? "#4E5578" : "#FFF9F1" }
+                GradientStop { position: 0.42; color: "transparent" }
+                GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#EBDCCB" }
+            }
+            opacity: nightMode ? 0.28 : 0.22
+        }
     }
 
     RowLayout {
@@ -194,10 +212,21 @@ Item {
             width: sidebarCollapsed ? 92 : 240
             Layout.preferredWidth: width
             Layout.fillHeight: true
-            radius: 30
+            radius: 24
             color: "transparent"
-            border.width: 2
+            border.width: 1
             border.color: appSidebarBorder
+
+            Rectangle {
+                x: 0
+                y: 10
+                width: parent.width
+                height: parent.height
+                radius: parent.radius
+                color: appShadowColor
+                opacity: nightMode ? 0.28 : 0.10
+                z: -2
+            }
 
             Behavior on width {
                 NumberAnimation {
@@ -209,9 +238,9 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 29
+                radius: 23
                 color: appSidebarGlass
-                opacity: nightMode ? 0.68 : 0.68
+                opacity: nightMode ? 0.82 : 0.76
                 z: -1
             }
 
@@ -256,7 +285,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     height: 48
-                    radius: 16
+                    radius: 12
                     color: appCollapseButton
                     border.width: 1
                     border.color: appCollapseButtonBorder
@@ -311,10 +340,16 @@ Item {
 
                             width: parent.width
                             height: 58
-                            radius: 18
-                            color: selectedIndex === index && !showingTimerPage ? appSelectedItem : "transparent"
+                            radius: 12
+                            color: selectedIndex === index && !showingTimerPage ? appSelectedItem
+                                   : navMouse.containsMouse ? (nightMode ? "#525878" : "#F4ECE2")
+                                                            : "transparent"
                             border.width: selectedIndex === index && !showingTimerPage ? 1 : 0
                             border.color: appSelectedItemBorder
+
+                            Behavior on color {
+                                ColorAnimation { duration: 140 }
+                            }
 
                             Row {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -343,6 +378,7 @@ Item {
                             }
 
                             MouseArea {
+                                id: navMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
@@ -365,7 +401,7 @@ Item {
                     visible: !sidebarCollapsed
                     width: parent.width
                     height: 116
-                    radius: 22
+                    radius: 16
                     color: appBottomCardGlass
                     border.width: 1
                     border.color: appBottomCardBorder
@@ -415,17 +451,28 @@ Item {
             id: contentPanel
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 34
+            radius: 26
             color: "transparent"
-            border.width: 2
+            border.width: 1
             border.color: appPanelBorder
+
+            Rectangle {
+                x: 0
+                y: 12
+                width: parent.width
+                height: parent.height
+                radius: parent.radius
+                color: appShadowColor
+                opacity: nightMode ? 0.30 : 0.11
+                z: -2
+            }
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 33
+                radius: 25
                 color: appPanelGlass
-                opacity: nightMode ? 0.46 : 0.46
+                opacity: nightMode ? 0.66 : 0.58
                 z: -1
             }
 
@@ -450,9 +497,14 @@ Item {
 
                     // 首页：连接开始计时信号
                     if (selectedIndex === 0 && item.startProject) {
-                        item.startProject.connect(function (projectName) {
+                        item.startProject.connect(function (projectName, tagName) {
                             console.log("startProject signal received:", projectName);
                             if (timerManager) {
+                                pendingProjectTag = tagName;
+                                pendingTodoDateKey = "";
+                                pendingTodoText = "";
+                                pendingTodoTag = "";
+                                pendingTodoLinkedProject = "";
                                 timerManager.startProject(projectName);
                                 showingTimerPage = true;
                             }
@@ -477,6 +529,20 @@ Item {
                     if (selectedIndex === 5 && "nightMode" in item) {
                         item.nightMode = nightMode;
                     }
+
+                    if (selectedIndex === 3 && item.startTodoProject) {
+                        item.startTodoProject.connect(function (projectName, tagName, dateKey, linkedProjectName) {
+                            if (timerManager) {
+                                pendingProjectTag = "";
+                                pendingTodoDateKey = dateKey;
+                                pendingTodoText = projectName;
+                                pendingTodoTag = tagName;
+                                pendingTodoLinkedProject = linkedProjectName;
+                                timerManager.startProject(projectName);
+                                showingTimerPage = true;
+                            }
+                        });
+                    }
                 }
 
                 onStatusChanged: {
@@ -484,19 +550,6 @@ Item {
                 }
             }
 
-            // 暂时还没做成独立页面的内容先放占位
-            Item {
-                anchors.fill: parent
-                visible: selectedIndex === 3 && !showingTimerPage
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "日历页"
-                    color: appTextPrimary
-                    font.pixelSize: 28
-                    font.bold: true
-                }
-            }
         }
     }
 
@@ -510,8 +563,21 @@ Item {
         target: timerManager
 
         function onTimerStopped(projectName, elapsedSeconds) {
-            if (projectManager)
+            if (projectManager && pendingTodoDateKey !== "")
+                projectManager.addTodoElapsedTimeOnDate(projectName, pendingTodoTag, pendingTodoLinkedProject, elapsedSeconds, pendingTodoDateKey);
+            else if (projectManager && pendingProjectTag !== "")
+                projectManager.addElapsedTimeForTag(projectName, pendingProjectTag, elapsedSeconds);
+            else if (projectManager)
                 projectManager.addElapsedTime(projectName, elapsedSeconds);
+
+            if (calendarManager && elapsedSeconds > 0 && pendingTodoDateKey !== "" && pendingTodoText === projectName)
+                calendarManager.completeTodo(pendingTodoDateKey, pendingTodoText);
+
+            pendingProjectTag = "";
+            pendingTodoDateKey = "";
+            pendingTodoText = "";
+            pendingTodoTag = "";
+            pendingTodoLinkedProject = "";
 
             showingTimerPage = false;
             selectedIndex = 0;

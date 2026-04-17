@@ -12,7 +12,7 @@ Item {
     property color themeTextPrimary: "#4E342E"
     property color themeTextSecondary: "#9C806C"
     property color themePanelColor: "#FFFDF9"
-    property color themeBorderColor: "#DDC9B5"
+    property color themeBorderColor: "#D8C2AC"
     property color themeAccentColor: "#E8C6A3"
 
     property color textPrimary: themeTextPrimary
@@ -21,15 +21,15 @@ Item {
     property color accentColor: themeAccentColor
 
     // 白底/奶茶底，更容易看清
-    property color panelGlass: nightMode ? "#505675" : "#FFFDF9"
-    property real panelOpacity: nightMode ? 0.52 : 0.50
+    property color panelGlass: nightMode ? "#2C334A" : "#FFFFFF"
+    property real panelOpacity: nightMode ? 0.68 : 0.62
 
-    property color cardGlass: nightMode ? "#59607F" : "#FFFDF9"
-    property real cardOpacity: nightMode ? 0.48 : 0.44
+    property color cardGlass: nightMode ? "#343C55" : "#FFFFFF"
+    property real cardOpacity: nightMode ? 0.62 : 0.58
 
     property color softBorder: nightMode ? "#757CA6" : "#E6D6C5"
-    property color progressBg: nightMode ? "#6B7398" : "#E9DED1"
-    property color strongText: nightMode ? "#D9D8FF" : "#A96F46"
+    property color progressBg: nightMode ? "#46516F" : "#E7E2D9"
+    property color strongText: nightMode ? "#D9D8FF" : "#A56D46"
 
     // 0=今日 1=本月 2=本年 3=全部
     property int selectedRange: 3
@@ -193,7 +193,7 @@ Item {
                 height: 112
                 radius: 28
                 color: "transparent"
-                border.width: 2
+                border.width: 1
                 border.color: borderColor
                 clip: true
 
@@ -252,7 +252,7 @@ Item {
                 height: 76
                 radius: 24
                 color: "transparent"
-                border.width: 2
+                border.width: 1
                 border.color: borderColor
                 clip: true
 
@@ -281,18 +281,18 @@ Item {
                             radius: 14
                             color: root.selectedRange === index
                                    ? (nightMode ? "#8E93D8" : "#E8C6A3")
-                                   : (nightMode ? "#5B6185" : "#F4ECE2")
+                                   : (nightMode ? "#343C58" : "#F1EDE6")
                             opacity: root.selectedRange === index ? 0.96 : 0.86
                             border.width: 1
                             border.color: root.selectedRange === index
-                                          ? (nightMode ? "#757ED0" : "#DBB18A")
+                                          ? (nightMode ? "#757ED0" : "#D5AE86")
                                           : "transparent"
 
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData
                                 color: root.selectedRange === index
-                                       ? (nightMode ? "#F8F7FF" : "#6A4C3B")
+                                       ? (nightMode ? "#F8F7FF" : "#FFFFFF")
                                        : textPrimary
                                 font.pixelSize: 14
                                 font.bold: root.selectedRange === index
@@ -318,7 +318,7 @@ Item {
                     height: 132
                     radius: 24
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: borderColor
                     clip: true
 
@@ -362,7 +362,7 @@ Item {
                     height: 132
                     radius: 24
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: borderColor
                     clip: true
 
@@ -406,7 +406,7 @@ Item {
                     height: 132
                     radius: 24
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: borderColor
                     clip: true
 
@@ -457,7 +457,7 @@ Item {
                     height: 490
                     radius: 30
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: borderColor
                     clip: true
 
@@ -574,7 +574,7 @@ Item {
                     height: 540
                     radius: 30
                     color: "transparent"
-                    border.width: 2
+                    border.width: 1
                     border.color: borderColor
                     clip: true
 
