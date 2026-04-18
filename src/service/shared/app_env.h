@@ -8,7 +8,7 @@
 #ifndef TIMEARC_SRC_SERVICE_SHARED_APP_ENV_H
 #define TIMEARC_SRC_SERVICE_SHARED_APP_ENV_H
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -40,10 +40,10 @@ typedef struct AppEnvOps {
 
 struct AppEnv {
   // The title of the currently active window.
-  char window_title[_TIMEARC_MAX_TITLE_BYTES];
+  char window_title[TA_MAX_TITLE_BYTES];
 
   // The name of the currently active application.
-  char app_name[_TIMEARC_MAX_NAME_BYTES];
+  char app_name[TA_MAX_NAME_BYTES];
 
   // The process ID of the currently active application.
   uint32_t current_pid;
@@ -54,7 +54,7 @@ struct AppEnv {
 
 AppEnv* app_env_init();
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

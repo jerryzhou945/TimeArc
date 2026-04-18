@@ -49,14 +49,22 @@ Not available yet.
 - `README.md`: This file, providing an overview of the project.
 - `src/`: Directory containing the source code of the TimeArc app.
   - `CMakeLists.txt`: Source and include definitions for the main app target.
+  - `include/`: Directory for header files.
+    - `util.h`: Utility macros and declarations used across the project.
   - `main.cpp`: The main entry point of the application.
   - `service/`: Implementation of the TimeArc service.
     - `CMakeLists.txt`: Builds the standalone service binary with platform-specific sources.
-    - `main.c`: The main entry point for the TimeArc service.
     - `shared/`: Shared code for all platforms.
+      - `app_env.h`: AppEnv struct.
+      - `app_info.h`: AppInfo struct.
+      - `database.h`: Database interface for time tracking data.
+      - `database.c`: Implementation of the database interface.
     - `windows/`: Implementation for Windows platform.
+      - `main.c`: The main entry point for the Windows service.
     - `linux/`: Implementation for Linux platform (it will support both X11 and Wayland).
+      - `main.c`: The main entry point for the Linux service.
     - `macos/`: Implementation for macOS platform.
+      - `TimeArcService.swift`: The main entry point for the macOS service.
   - `services/`: Provide user-facing time tracking services. This will later be reimplemented to support SQLite database.
   - Others.
 - `qml/`: Directory containing QML files for the user interface.
@@ -72,7 +80,7 @@ Not available yet.
 
 ### Code Style
 
-This project follows the Google C++ Style Guide for C/C++ code. Please follow the existing code style and structure when contributing to the project.
+Please follow the existing code style and structure when contributing to the project.
 
 ### To-Do List
 
