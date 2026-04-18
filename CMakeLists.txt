@@ -3,18 +3,26 @@ cmake_minimum_required(VERSION 3.16)
 project(time-arc VERSION 0.1 LANGUAGES C CXX)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(APPLE)
+    if(POLICY CMP0157)
+        cmake_policy(SET CMP0157 NEW)
+    endif()
+    enable_language(Swift)
+endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Quick Svg)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
+add_subdirectory(thirdparty)
 add_subdirectory(src)
 add_subdirectory(qml)
 add_subdirectory(resources)
-add_subdirectory(thirdparty)
 
 qt_add_executable(time-arc ${TIME_ARC_APP_SOURCES})
 
@@ -50,11 +58,6 @@ target_link_libraries(time-arc
     ${TIME_ARC_THIRDPARTY_LIBS}
 )
 
-target_link_libraries(time-arc-service
-    PRIVATE
-        ${TIME_ARC_THIRDPARTY_LIBS}
-)
-
 include(GNUInstallDirs)
 install(TARGETS time-arc
     BUNDLE DESTINATION .
@@ -62,6 +65,6 @@ install(TARGETS time-arc
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-install(TARGETS time-arc-service
+install(TARGETS time_arc_service
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

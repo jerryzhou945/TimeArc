@@ -8,22 +8,26 @@
 #ifndef TIMEARC_SRC_SERVICE_SHARED_APP_INFO_H
 #define TIMEARC_SRC_SERVICE_SHARED_APP_INFO_H
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
-#include "app_env.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <time.h>
+
+#include "util.h"
 
 typedef struct AppInfo {
-  char exec_path[_TIMEARC_MAX_PATH_BYTES];
-  char window_title[_TIMEARC_MAX_TITLE_BYTES];
-  char app_name[_TIMEARC_MAX_NAME_BYTES];
-  time_t timestamp;       // The Unix timestamp when this window gained focus.
-  uint64_t active_time;   // The total active time in seconds.
-  uint8_t active_status;  // 0 for inactive, 1 for active.
+  char exec_path[TA_MAX_PATH_BYTES];
+  char window_title[TA_MAX_TITLE_BYTES];
+  char app_name[TA_MAX_NAME_BYTES];
+  time_t timestamp;      // The Unix timestamp when this window gained focus.
+  uint64_t active_time;  // The total active time in seconds.
+  bool active_status;    // Whether the keyboard and mouse are active.
 } AppInfo;
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 
