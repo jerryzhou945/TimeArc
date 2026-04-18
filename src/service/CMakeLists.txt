@@ -1,8 +1,11 @@
 set(TIME_ARC_SERVICE_SHARED_COMMON_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/shared/data_bridge.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shared/usage_record.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shared/usage_paths.h
 )
 
 set(TIME_ARC_SERVICE_SHARED_COMMON_C_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/shared/usage_paths.c
 )
 
 set(TIME_ARC_SERVICE_SHARED_WINLINUX_HEADERS
@@ -40,7 +43,15 @@ if(APPLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/AppInfo.swift
     )
 elseif(WIN32)
-    set(TIME_ARC_SERVICE_PLATFORM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/windows/main.c)
+    set(TIME_ARC_SERVICE_PLATFORM_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/main.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker/usage_tracker.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/active_app_win.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/idle_win.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/storage/storage_context.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/storage/usage_storage.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/service/win_service.c
+    )
 elseif(UNIX)
     set(TIME_ARC_SERVICE_PLATFORM_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/linux/main.c)
 else()
@@ -61,12 +72,25 @@ target_include_directories(time_arc_service PRIVATE
     ${PROJECT_SOURCE_DIR}/src/include
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/shared
+    ${CMAKE_CURRENT_SOURCE_DIR}/windows
+    ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker
+    ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform
+    ${CMAKE_CURRENT_SOURCE_DIR}/windows/storage
+    ${CMAKE_CURRENT_SOURCE_DIR}/windows/service
 )
 
 target_link_libraries(time_arc_service
     PRIVATE
         ${TIME_ARC_THIRDPARTY_LIBS}
 )
+
+if(WIN32)
+    target_link_libraries(time_arc_service
+        PRIVATE
+            user32
+            psapi
+    )
+endif()
 
 if(APPLE)
     target_compile_options(time_arc_service PRIVATE

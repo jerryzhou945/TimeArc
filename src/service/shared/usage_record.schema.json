@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://timearc.local/schema/usage_record.schema.json",
+  "title": "TimeArc Usage Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "platform",
+    "app_id",
+    "app_name",
+    "window_title",
+    "path",
+    "start_unix_sec",
+    "duration_sec"
+  ],
+  "properties": {
+    "platform": {
+      "type": "string",
+      "enum": ["windows", "macos"]
+    },
+    "app_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable app identifier. Windows uses full exe path; macOS uses bundle id."
+    },
+    "app_name": {
+      "type": "string",
+      "description": "Short app name."
+    },
+    "window_title": {
+      "type": "string",
+      "description": "Active window title captured for the session."
+    },
+    "path": {
+      "type": "string",
+      "description": "Windows full exe path or macOS app path."
+    },
+    "start_unix_sec": {
+      "type": "integer"
+    },
+    "duration_sec": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

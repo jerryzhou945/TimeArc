@@ -6,6 +6,8 @@
 #ifndef TIMEARC_SRC_SERVICE_SHARED_DATA_BRIDGE_H
 #define TIMEARC_SRC_SERVICE_SHARED_DATA_BRIDGE_H
 
+#include <stdint.h>
+
 #if defined(__has_attribute)
 #if __has_attribute(swift_name)
 // TA_SWIFT_NAME - annotate a C function with a custom name to be used in Swift.
@@ -17,6 +19,18 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+int ta_storage_init(void);
+void ta_storage_shutdown(void);
+
+int ta_write_usage_record(
+    const char* platform,
+    const char* app_id,
+    const char* app_name,
+    const char* window_title,
+    const char* path,
+    int64_t start_unix_sec,
+    uint64_t duration_sec);
 
 #if defined(__cplusplus)
 }

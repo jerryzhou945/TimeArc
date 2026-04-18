@@ -22,6 +22,8 @@ typedef struct AppInfo {
   char exec_path[TA_MAX_PATH_BYTES];
   char window_title[TA_MAX_TITLE_BYTES];
   char app_name[TA_MAX_NAME_BYTES];
+  char display_name[TA_MAX_NAME_BYTES];
+  uint32_t process_id;
   time_t timestamp;      // The Unix timestamp when this window gained focus.
   uint64_t active_time;  // The total active time in seconds.
   bool active_status;    // Whether the keyboard and mouse are active.
