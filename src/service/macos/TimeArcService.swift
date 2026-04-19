@@ -3,8 +3,20 @@
 
 import Foundation
 
-@_cdecl("main")
-func timeArcServiceMain() -> Int32 {
-	// Placeholder service entry point until background service logic is wired.
-	return 0
+final class TimeArcService {
+	func run() -> Int32 {
+		// Keep service process alive until tracker loop is introduced.
+		RunLoop.current.run()
+		return 0
+	}
+}
+
+@main
+struct TimeArcServiceMain {
+	static func main() {
+		autoreleasepool {
+			let exitCode = TimeArcService().run()
+			exit(exitCode)
+		}
+	}
 }

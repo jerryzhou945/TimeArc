@@ -39,6 +39,8 @@ endif()
 if(APPLE)
     set(TIME_ARC_SERVICE_PLATFORM_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/TimeArcService.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/WindowIdentifying.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/BinaryFloatingPoint+ToUInt.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/AppEnv.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/AppInfo.swift
     )
