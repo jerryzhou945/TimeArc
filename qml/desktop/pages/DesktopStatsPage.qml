@@ -112,7 +112,7 @@ Item {
         return list[0].seconds ? list[0].seconds : 1
     }
 
-    // ===== 软件使用时长：先占位，后面接 Windows 自动统计 =====
+    // ===== 软件使用时长：读取 Windows 自动统计 JSONL =====
     property var softwareStatsDay: [
         { name: "微信", minutes: 45, note: "自动记录" },
         { name: "Chrome", minutes: 38, note: "自动记录" },
@@ -144,35 +144,150 @@ Item {
         { name: "Steam", minutes: 1490, note: "自动记录" }
     ]
 
+    property var softwareStats: []
+
+    onSelectedRangeChanged: refreshSoftwareStats()
+
+    Component.onCompleted: refreshSoftwareStats()
+
+    Connections {
+        target: usageStatManager
+
+        function onUsageStatsChanged() {
+            root.softwareStats = usageStatManager ? usageStatManager.activeSoftwareForRange(root.rangeKey()) : []
+        }
+    }
+
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: refreshSoftwareStats()
+    }
+
+    function refreshSoftwareStats() {
+        if (!usageStatManager) {
+            softwareStats = []
+            return
+        }
+
+        usageStatManager.refresh()
+        softwareStats = usageStatManager.activeSoftwareForRange(rangeKey())
+    }
+
     function currentSoftwareStats() {
-        if (selectedRange === 0) return softwareStatsDay
-        if (selectedRange === 1) return softwareStatsMonth
-        if (selectedRange === 2) return softwareStatsYear
-        return softwareStatsAll
+        return softwareStats ? softwareStats : []
     }
 
     function totalSoftwareMinutes() {
-        var list = currentSoftwareStats()
-        var total = 0
-        for (var i = 0; i < list.length; i++)
-            total += list[i].minutes
-        return total
+        return Math.floor(totalSoftwareSeconds() / 60)
     }
 
-    function maxSoftwareMinutes() {
+    function totalSoftwareSeconds() {
+        var list = currentSoftwareStats()
+        var totalSeconds = 0
+        for (var i = 0; i < list.length; i++)
+            totalSeconds += list[i].seconds ? list[i].seconds : 0
+        return totalSeconds
+    }
+
+    function secondsToDisplay(seconds) {
+        var total = Math.max(0, Math.floor(seconds ? seconds : 0))
+        if (total <= 0)
+            return "0m"
+        if (total < 60)
+            return "<1m"
+
+        var h = Math.floor(total / 3600)
+        var m = Math.floor((total % 3600) / 60)
+        if (h > 0)
+            return h + "h " + m + "m"
+        return m + "m"
+    }
+
+    function maxSoftwareSeconds() {
         var list = currentSoftwareStats()
         if (!list || list.length === 0)
             return 1
 
         var sorted = list.slice()
-        sorted.sort(function(a, b) { return b.minutes - a.minutes })
-        return sorted[0].minutes > 0 ? sorted[0].minutes : 1
+        sorted.sort(function(a, b) {
+            return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
+        })
+        return sorted[0].seconds > 0 ? sorted[0].seconds : 1
+    }
+
+    function containsAny(text, words) {
+        for (var i = 0; i < words.length; i++) {
+            if (text.indexOf(words[i]) >= 0)
+                return true
+        }
+        return false
+    }
+
+    function hashedColor(text) {
+        var palette = ["#E8C6A3", "#8E93D8", "#7FB3A1", "#DFA65F", "#A9BFE6", "#D98E9F", "#B4C986", "#C7ADD9", "#78A6C8", "#C58C7B"]
+        var hash = 0
+        for (var i = 0; i < text.length; i++)
+            hash = ((hash * 31) + text.charCodeAt(i)) & 0x7fffffff
+        return palette[hash % palette.length]
+    }
+
+    function appColor(appId, appName, path) {
+        var text = ((appId || "") + " " + (appName || "") + " " + (path || "")).toLowerCase()
+
+        if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"]))
+            return "#D33A31"   // NetEase Cloud Music
+        if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"]))
+            return "#4285F4"   // Chrome
+        if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"]))
+            return "#007ACC"   // VS Code
+        if (containsAny(text, ["discord"]))
+            return "#5865F2"   // Discord
+        if (containsAny(text, ["weixin", "wechat"]))
+            return "#07C160"   // WeChat
+        if (containsAny(text, ["qqmusic", "qqmusic.exe"]))
+            return "#31C27C"   // QQ Music
+        if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"]))
+            return "#1B2838"   // Steam
+        if (containsAny(text, ["msedge", "edge.exe"]))
+            return "#0AA6A6"   // Microsoft Edge
+        if (containsAny(text, ["firefox"]))
+            return "#FF7139"   // Firefox
+        if (containsAny(text, ["photoshop"]))
+            return "#31A8FF"   // Photoshop
+        if (containsAny(text, ["illustrator"]))
+            return "#FF9A00"   // Illustrator
+        if (containsAny(text, ["premiere"]))
+            return "#9999FF"   // Premiere
+        if (containsAny(text, ["obsidian"]))
+            return "#7C3AED"   // Obsidian
+        if (containsAny(text, ["notion"]))
+            return nightMode ? "#EDEDED" : "#111111"
+        if (containsAny(text, ["word.exe", "winword"]))
+            return "#2B579A"   // Word
+        if (containsAny(text, ["excel.exe"]))
+            return "#217346"   // Excel
+        if (containsAny(text, ["powerpnt.exe", "powerpoint"]))
+            return "#D24726"   // PowerPoint
+        if (containsAny(text, ["explorer.exe", "windows\\explorer"]))
+            return "#F2C14E"   // File Explorer
+        if (containsAny(text, ["powershell", "windowsterminal", "cmd.exe"]))
+            return "#4D8BFF"   // Terminal
+        if (containsAny(text, ["telegram"]))
+            return "#2AABEE"   // Telegram
+        if (containsAny(text, ["spotify"]))
+            return "#1DB954"   // Spotify
+        if (containsAny(text, ["zoom.exe"]))
+            return "#2D8CFF"   // Zoom
+
+        return hashedColor(text)
     }
 
     function currentSoftwareStatsSorted() {
         var list = currentSoftwareStats().slice()
         list.sort(function(a, b) {
-            return b.minutes - a.minutes
+            return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
         })
         return list
     }
@@ -343,7 +458,7 @@ Item {
                         }
 
                         Text {
-                            text: minutesToDisplay(totalSoftwareMinutes() + projectMinutesForCurrentRange())
+                            text: secondsToDisplay(totalSoftwareSeconds() + projectMinutesForCurrentRange() * 60)
                             color: textPrimary
                             font.pixelSize: 26
                             font.bold: true
@@ -387,7 +502,7 @@ Item {
                         }
 
                         Text {
-                            text: minutesToDisplay(totalSoftwareMinutes())
+                            text: secondsToDisplay(totalSoftwareSeconds())
                             color: textPrimary
                             font.pixelSize: 26
                             font.bold: true
@@ -499,7 +614,7 @@ Item {
                                 required property var modelData
 
                                 width: ListView.view.width
-                                height: 82
+                                height: 104
                                 radius: 20
                                 color: "transparent"
                                 border.width: 1
@@ -520,31 +635,38 @@ Item {
                                     anchors.margins: 14
                                     spacing: 10
 
-                                    Row {
+                                    Item {
                                         width: parent.width
+                                        height: 24
 
                                         Text {
-                                            text: modelData.name
+                                            text: modelData.name ? modelData.name : (modelData.appName ? modelData.appName : "Unknown app")
                                             color: textPrimary
                                             font.pixelSize: 17
                                             font.bold: true
-                                            width: parent.width * 0.55
+                                            width: parent.width - timeLabel.width - 16
+                                            anchors.left: parent.left
+                                            anchors.verticalCenter: parent.verticalCenter
                                             elide: Text.ElideRight
                                         }
 
                                         Text {
-                                            text: minutesToDisplay(modelData.minutes)
+                                            id: timeLabel
+                                            text: modelData.time ? modelData.time : minutesToDisplay(modelData.minutes)
                                             color: strongText
                                             font.pixelSize: 15
                                             font.bold: true
                                             anchors.right: parent.right
+                                            anchors.verticalCenter: parent.verticalCenter
                                         }
                                     }
 
                                     Text {
-                                        text: modelData.note
+                                        text: modelData.subtitle ? modelData.subtitle : (modelData.appName ? modelData.appName : modelData.note)
                                         color: textSecondary
                                         font.pixelSize: 12
+                                        width: parent.width
+                                        elide: Text.ElideRight
                                     }
 
                                     Rectangle {
@@ -556,10 +678,10 @@ Item {
                                         clip: true
 
                                         Rectangle {
-                                            width: parent.width * modelData.minutes / maxSoftwareMinutes()
+                                            width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxSoftwareSeconds()))
                                             height: parent.height
                                             radius: 4
-                                            color: accentColor
+                                            color: appColor(modelData.appId, modelData.name, modelData.path)
                                         }
                                     }
                                 }

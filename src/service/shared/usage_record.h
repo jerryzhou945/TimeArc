@@ -11,6 +11,9 @@ typedef struct TimeArcUsageRecord {
   // Platform that produced this record: "windows" or "macos".
   char platform[32];
 
+  // Activity source, such as "foreground" or "audio".
+  char source[32];
+
   // Stable app identifier. Windows uses full exe path; macOS uses bundle id.
   char app_id[4096];
 

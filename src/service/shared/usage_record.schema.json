@@ -18,6 +18,12 @@
       "type": "string",
       "enum": ["windows", "macos"]
     },
+    "source": {
+      "type": "string",
+      "enum": ["foreground", "audio"],
+      "default": "foreground",
+      "description": "Optional activity source. Missing source is treated as foreground for backwards compatibility. Foreground means active window usage; audio means an app was producing audio."
+    },
     "app_id": {
       "type": "string",
       "minLength": 1,

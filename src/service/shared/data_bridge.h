@@ -32,6 +32,39 @@ int ta_write_usage_record(
     int64_t start_unix_sec,
     uint64_t duration_sec);
 
+int ta_write_usage_record_with_source(
+    const char* platform,
+    const char* source,
+    const char* app_id,
+    const char* app_name,
+    const char* window_title,
+    const char* path,
+    int64_t start_unix_sec,
+    uint64_t duration_sec);
+
+int ta_write_current_usage(
+    const char* platform,
+    const char* app_id,
+    const char* app_name,
+    const char* window_title,
+    const char* path,
+    int64_t start_unix_sec,
+    uint64_t duration_sec,
+    int64_t updated_unix_sec);
+
+int ta_write_current_usage_with_source(
+    const char* platform,
+    const char* source,
+    const char* app_id,
+    const char* app_name,
+    const char* window_title,
+    const char* path,
+    int64_t start_unix_sec,
+    uint64_t duration_sec,
+    int64_t updated_unix_sec);
+
+void ta_clear_current_usage(void);
+
 #if defined(__cplusplus)
 }
 #endif

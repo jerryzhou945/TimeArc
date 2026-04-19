@@ -48,7 +48,9 @@ elseif(WIN32)
     set(TIME_ARC_SERVICE_PLATFORM_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/main.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker/usage_tracker.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker/audio_tracker.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/active_app_win.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/audio_win.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/idle_win.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/storage/storage_context.h
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/storage/usage_storage.c
@@ -91,6 +93,8 @@ if(WIN32)
         PRIVATE
             user32
             psapi
+            ole32
+            uuid
     )
 endif()
 

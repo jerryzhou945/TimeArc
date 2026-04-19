@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 
+// The Windows service currently uses one process-wide storage context exposed
+// through data_bridge.h.
 static TimeArcStorageContext g_storage;
 
 static void copy_string(char* dst, size_t dst_size, const char* src) {
@@ -87,15 +89,17 @@ static void write_json_field(FILE* file, const char* name, const char* value) {
   write_json_string(file, value);
 }
 
-static int timearc_storage_write_jsonl(TimeArcStorageContext* context,
-                                       const TimeArcUsageRecord* record) {
-  if (context == NULL || record == NULL || context->jsonl_fp == NULL) {
-    return -1;
-  }
-
-  FILE* file = context->jsonl_fp;
+static void write_usage_record_object(FILE* file,
+                                      const TimeArcUsageRecord* record,
+                                      int live,
+                                      int64_t updated_unix_sec) {
+  // Keep JSON emission explicit so the on-disk format mirrors
+  // usage_record.schema.json field-for-field. Live checkpoint metadata is only
+  // added for usage_current.json and is ignored by historical JSONL readers.
   fputc('{', file);
   write_json_field(file, "platform", record->platform);
+  fputc(',', file);
+  write_json_field(file, "source", record->source);
   fputc(',', file);
   write_json_field(file, "app_id", record->app_id);
   fputc(',', file);
@@ -108,10 +112,74 @@ static int timearc_storage_write_jsonl(TimeArcStorageContext* context,
           (long long)record->start_unix_sec);
   fprintf(file, ",\"duration_sec\":%llu",
           (unsigned long long)record->duration_sec);
-  fputs("}\n", file);
+  if (live) {
+    fputs(",\"live\":1", file);
+    fprintf(file, ",\"updated_unix_sec\":%lld", (long long)updated_unix_sec);
+  }
+  fputc('}', file);
+}
+
+static int timearc_storage_write_jsonl(TimeArcStorageContext* context,
+                                       const TimeArcUsageRecord* record) {
+  if (context == NULL || record == NULL || context->jsonl_fp == NULL) {
+    return -1;
+  }
+
+  FILE* file = context->jsonl_fp;
+  write_usage_record_object(file, record, 0, 0);
+  fputc('\n', file);
   fflush(file);
 
   return ferror(file) ? -1 : 0;
+}
+
+int timearc_storage_write_current_record(TimeArcStorageContext* context,
+                                         const TimeArcUsageRecord* record,
+                                         int64_t updated_unix_sec) {
+  if (context == NULL || record == NULL || !context->initialized ||
+      context->current_path[0] == '\0') {
+    return -1;
+  }
+
+  char temp_path[4096];
+  int written = snprintf(temp_path, sizeof(temp_path), "%s.tmp",
+                         context->current_path);
+  if (written < 0 || (size_t)written >= sizeof(temp_path)) {
+    return -1;
+  }
+
+  FILE* file = fopen(temp_path, "wb");
+  if (file == NULL) {
+    return -1;
+  }
+
+  write_usage_record_object(file, record, 1, updated_unix_sec);
+  fputc('\n', file);
+  fflush(file);
+
+  int failed = ferror(file);
+  fclose(file);
+  if (failed) {
+    remove(temp_path);
+    return -1;
+  }
+
+  // C rename does not reliably replace existing files on Windows.
+  remove(context->current_path);
+  if (rename(temp_path, context->current_path) != 0) {
+    remove(temp_path);
+    return -1;
+  }
+
+  return 0;
+}
+
+void timearc_storage_clear_current_record(TimeArcStorageContext* context) {
+  if (context == NULL || context->current_path[0] == '\0') {
+    return;
+  }
+
+  remove(context->current_path);
 }
 
 int timearc_storage_init_sqlite(TimeArcStorageContext* context) {
@@ -136,6 +204,7 @@ int timearc_storage_init(TimeArcStorageContext* context,
   }
 
   memset(context, 0, sizeof(*context));
+  // Normalize backend flags to 0/1 so callers can pass any truthy value.
   context->use_jsonl = use_jsonl ? 1 : 0;
   context->use_sqlite = use_sqlite ? 1 : 0;
   copy_string(context->table_name, sizeof(context->table_name),
@@ -143,6 +212,10 @@ int timearc_storage_init(TimeArcStorageContext* context,
 
   if (timearc_get_usage_jsonl_path(context->jsonl_path,
                                    sizeof(context->jsonl_path)) != 0) {
+    return -1;
+  }
+  if (timearc_get_usage_current_path(context->current_path,
+                                     sizeof(context->current_path)) != 0) {
     return -1;
   }
   if (make_db_path(context->db_path, sizeof(context->db_path)) != 0) {
@@ -186,6 +259,8 @@ int timearc_storage_write_record(TimeArcStorageContext* context,
   }
 
   int wrote = 0;
+  // Treat enabled backends as all-or-nothing: if one write fails, report the
+  // failure instead of silently accepting a partial record.
   if (context->use_jsonl) {
     if (timearc_storage_write_jsonl(context, record) != 0) {
       return -1;
@@ -227,6 +302,28 @@ void ta_storage_shutdown(void) {
   timearc_storage_shutdown_global();
 }
 
+static void fill_usage_record(TimeArcUsageRecord* record,
+                              const char* platform,
+                              const char* source,
+                              const char* app_id,
+                              const char* app_name,
+                              const char* window_title,
+                              const char* path,
+                              int64_t start_unix_sec,
+                              uint64_t duration_sec) {
+  memset(record, 0, sizeof(*record));
+  copy_string(record->platform, sizeof(record->platform), platform);
+  copy_string(record->source, sizeof(record->source),
+              source != NULL && source[0] != '\0' ? source : "foreground");
+  copy_string(record->app_id, sizeof(record->app_id), app_id);
+  copy_string(record->app_name, sizeof(record->app_name), app_name);
+  copy_string(record->window_title, sizeof(record->window_title),
+              window_title);
+  copy_string(record->path, sizeof(record->path), path);
+  record->start_unix_sec = start_unix_sec;
+  record->duration_sec = duration_sec;
+}
+
 int ta_write_usage_record(const char* platform,
                           const char* app_id,
                           const char* app_name,
@@ -234,19 +331,83 @@ int ta_write_usage_record(const char* platform,
                           const char* path,
                           int64_t start_unix_sec,
                           uint64_t duration_sec) {
+  // Lazily initialize so callers can use the bridge directly in simple tools or
+  // tests without remembering to call ta_storage_init first.
   if (!g_storage.initialized && timearc_storage_init_global() != 0) {
     return -1;
   }
 
   TimeArcUsageRecord record;
-  memset(&record, 0, sizeof(record));
-  copy_string(record.platform, sizeof(record.platform), platform);
-  copy_string(record.app_id, sizeof(record.app_id), app_id);
-  copy_string(record.app_name, sizeof(record.app_name), app_name);
-  copy_string(record.window_title, sizeof(record.window_title), window_title);
-  copy_string(record.path, sizeof(record.path), path);
-  record.start_unix_sec = start_unix_sec;
-  record.duration_sec = duration_sec;
+  fill_usage_record(&record, platform, "foreground", app_id, app_name,
+                    window_title, path, start_unix_sec, duration_sec);
 
   return timearc_storage_write_record(&g_storage, &record);
+}
+
+int ta_write_usage_record_with_source(const char* platform,
+                                      const char* source,
+                                      const char* app_id,
+                                      const char* app_name,
+                                      const char* window_title,
+                                      const char* path,
+                                      int64_t start_unix_sec,
+                                      uint64_t duration_sec) {
+  if (!g_storage.initialized && timearc_storage_init_global() != 0) {
+    return -1;
+  }
+
+  TimeArcUsageRecord record;
+  fill_usage_record(&record, platform, source, app_id, app_name, window_title,
+                    path, start_unix_sec, duration_sec);
+
+  return timearc_storage_write_record(&g_storage, &record);
+}
+
+int ta_write_current_usage(const char* platform,
+                           const char* app_id,
+                           const char* app_name,
+                           const char* window_title,
+                           const char* path,
+                           int64_t start_unix_sec,
+                           uint64_t duration_sec,
+                           int64_t updated_unix_sec) {
+  if (!g_storage.initialized && timearc_storage_init_global() != 0) {
+    return -1;
+  }
+
+  TimeArcUsageRecord record;
+  fill_usage_record(&record, platform, "foreground", app_id, app_name,
+                    window_title, path, start_unix_sec, duration_sec);
+
+  return timearc_storage_write_current_record(&g_storage, &record,
+                                              updated_unix_sec);
+}
+
+int ta_write_current_usage_with_source(const char* platform,
+                                       const char* source,
+                                       const char* app_id,
+                                       const char* app_name,
+                                       const char* window_title,
+                                       const char* path,
+                                       int64_t start_unix_sec,
+                                       uint64_t duration_sec,
+                                       int64_t updated_unix_sec) {
+  if (!g_storage.initialized && timearc_storage_init_global() != 0) {
+    return -1;
+  }
+
+  TimeArcUsageRecord record;
+  fill_usage_record(&record, platform, source, app_id, app_name, window_title,
+                    path, start_unix_sec, duration_sec);
+
+  return timearc_storage_write_current_record(&g_storage, &record,
+                                              updated_unix_sec);
+}
+
+void ta_clear_current_usage(void) {
+  if (!g_storage.initialized && timearc_storage_init_global() != 0) {
+    return;
+  }
+
+  timearc_storage_clear_current_record(&g_storage);
 }

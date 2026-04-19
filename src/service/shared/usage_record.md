@@ -2,14 +2,15 @@
 
 `usage_record` is the stored cross-platform protocol for completed app usage
 sessions. Windows and macOS may collect app activity differently, but both
-services should write records with the same 7 fields so JSONL, SQLite, and the
-Qt statistics layer can share one format.
+services should write records that fit one shared JSON shape so JSONL, SQLite,
+and the Qt statistics layer can share one format.
 
 ## Fields
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `platform` | string | The producer platform: `windows` or `macos`. |
+| `source` | string | Optional activity source: `foreground` for active-window usage, `audio` for audio playback. Missing values are treated as `foreground`. |
 | `app_id` | string | Stable app identifier. Windows uses the full exe path; macOS uses the bundle id. |
 | `app_name` | string | Short app name, such as `chrome.exe` or `Safari`. |
 | `window_title` | string | Active window title captured for the usage session. |
@@ -22,6 +23,7 @@ Qt statistics layer can share one format.
 Windows:
 
 - `platform`: `windows`
+- `source`: `foreground` for foreground-window tracking; audio tracking uses `audio`. Older writers may omit this field.
 - `app_id`: full executable path
 - `app_name`: executable file name
 - `window_title`: foreground window title
@@ -30,6 +32,7 @@ Windows:
 macOS:
 
 - `platform`: `macos`
+- `source`: `foreground` for active app tracking. Writers that have not adopted this field yet may omit it.
 - `app_id`: bundle identifier
 - `app_name`: localized app name or process name
 - `window_title`: active window title when available
@@ -49,6 +52,22 @@ The intended flow is:
 ```text
 platform API -> app_info -> tracker -> usage_record -> storage
 ```
+
+## Source And Interval Union
+
+`source` keeps foreground usage and audio playback separate at capture time.
+For backwards compatibility, readers should treat a missing `source` as
+`foreground`.
+The same app can be both foreground and playing audio during the same wall-clock
+period. Qt statistics should avoid double counting by merging intervals for the
+same app:
+
+```text
+end_unix_sec = start_unix_sec + duration_sec
+```
+
+For example, if one app has `foreground` from 10:00-10:05 and `audio` from
+10:00-10:10, its combined active duration is 10 minutes, not 15 minutes.
 
 ## Why Keep Both `app_id` And `path`
 
@@ -91,5 +110,5 @@ arrays:
 ## JSONL Example
 
 ```json
-{"platform":"windows","app_id":"C:/Program Files/Google/Chrome/Application/chrome.exe","app_name":"chrome.exe","window_title":"YouTube - Google Chrome","path":"C:/Program Files/Google/Chrome/Application/chrome.exe","start_unix_sec":1713386400,"duration_sec":60}
+{"platform":"windows","source":"foreground","app_id":"C:/Program Files/Google/Chrome/Application/chrome.exe","app_name":"chrome.exe","window_title":"YouTube - Google Chrome","path":"C:/Program Files/Google/Chrome/Application/chrome.exe","start_unix_sec":1713386400,"duration_sec":60}
 ```

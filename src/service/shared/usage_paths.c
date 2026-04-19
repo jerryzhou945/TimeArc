@@ -108,3 +108,22 @@ int timearc_get_usage_jsonl_path(char* out_path, size_t out_path_size) {
 
   return copy_string(out_path, out_path_size, path);
 }
+
+int timearc_get_usage_current_path(char* out_path, size_t out_path_size) {
+  char dir[1024];
+  if (timearc_get_usage_data_dir(dir, sizeof(dir)) != 0) {
+    return -1;
+  }
+
+  char path[1200];
+#ifdef _WIN32
+  int written = snprintf(path, sizeof(path), "%s\\usage_current.json", dir);
+#else
+  int written = snprintf(path, sizeof(path), "%s/usage_current.json", dir);
+#endif
+  if (written < 0 || (size_t)written >= sizeof(path)) {
+    return -1;
+  }
+
+  return copy_string(out_path, out_path_size, path);
+}

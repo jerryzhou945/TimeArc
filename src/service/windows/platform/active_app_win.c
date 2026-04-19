@@ -1,12 +1,12 @@
 #include "active_app_win.h"
 
 #define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <psapi.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <windows.h>
 
 static void copy_string(char* dst, size_t dst_size, const char* src) {
   if (dst == NULL || dst_size == 0) {
@@ -43,31 +43,59 @@ static const char* basename_from_path(const char* path) {
   return base;
 }
 
+static int wide_to_utf8(const wchar_t* src, char* dst, size_t dst_size) {
+  if (dst == NULL || dst_size == 0) {
+    return -1;
+  }
+  dst[0] = '\0';
+
+  if (src == NULL || src[0] == L'\0') {
+    return 0;
+  }
+
+  int written = WideCharToMultiByte(CP_UTF8, 0, src, -1, dst, (int)dst_size,
+                                    NULL, NULL);
+  if (written <= 0) {
+    dst[0] = '\0';
+    return -1;
+  }
+
+  dst[dst_size - 1] = '\0';
+  return 0;
+}
+
 static int query_process_path(DWORD pid, char* out_path, size_t out_path_size) {
   if (out_path == NULL || out_path_size == 0) {
     return -1;
   }
   out_path[0] = '\0';
 
+  // Try the older PSAPI route first because it works well for ordinary desktop
+  // apps when the process grants VM read access.
   HANDLE process =
       OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
   if (process != NULL) {
-    DWORD len =
-        GetModuleFileNameExA(process, NULL, out_path, (DWORD)out_path_size);
+    wchar_t path_w[TA_MAX_PATH_BYTES];
+    DWORD len = GetModuleFileNameExW(process, NULL, path_w,
+                                     (DWORD)(sizeof(path_w) / sizeof(path_w[0])));
     CloseHandle(process);
-    if (len > 0 && len < out_path_size) {
+    if (len > 0 && len < (sizeof(path_w) / sizeof(path_w[0])) &&
+        wide_to_utf8(path_w, out_path, out_path_size) == 0) {
       return 0;
     }
     out_path[0] = '\0';
   }
 
+  // Fall back to limited process information for elevated/protected processes
+  // that do not allow PROCESS_VM_READ.
   process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
   if (process != NULL) {
-    DWORD len = (DWORD)out_path_size;
-    int ok = QueryFullProcessImageNameA(process, 0, out_path, &len);
+    wchar_t path_w[TA_MAX_PATH_BYTES];
+    DWORD len = (DWORD)(sizeof(path_w) / sizeof(path_w[0]));
+    int ok = QueryFullProcessImageNameW(process, 0, path_w, &len);
     CloseHandle(process);
-    if (ok && len > 0 && len < out_path_size) {
-      out_path[len] = '\0';
+    if (ok && len > 0 && len < (sizeof(path_w) / sizeof(path_w[0])) &&
+        wide_to_utf8(path_w, out_path, out_path_size) == 0) {
       return 0;
     }
     out_path[0] = '\0';
@@ -98,8 +126,12 @@ int timearc_win_get_active_app(AppInfo* out_app) {
   out_app->timestamp = time(NULL);
   out_app->active_status = true;
 
-  GetWindowTextA(hwnd, out_app->window_title,
-                 (int)sizeof(out_app->window_title));
+  // GetWindowTextW can legitimately return an empty title, so the executable
+  // path remains the stable identifier for session grouping.
+  wchar_t title_w[TA_MAX_TITLE_BYTES];
+  title_w[0] = L'\0';
+  GetWindowTextW(hwnd, title_w, (int)(sizeof(title_w) / sizeof(title_w[0])));
+  wide_to_utf8(title_w, out_app->window_title, sizeof(out_app->window_title));
 
   if (query_process_path(pid, out_app->exec_path, sizeof(out_app->exec_path)) !=
       0) {

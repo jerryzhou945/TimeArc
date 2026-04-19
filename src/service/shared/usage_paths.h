@@ -9,6 +9,7 @@ extern "C" {
 
 int timearc_get_usage_data_dir(char* out_path, size_t out_path_size);
 int timearc_get_usage_jsonl_path(char* out_path, size_t out_path_size);
+int timearc_get_usage_current_path(char* out_path, size_t out_path_size);
 
 #ifdef __cplusplus
 }

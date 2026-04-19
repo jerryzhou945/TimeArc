@@ -78,8 +78,91 @@ Item {
     }
 
     function secondsToDisplay(seconds) {
-        var totalMinutes = Math.floor(Math.max(0, seconds) / 60)
-        return minutesToDisplay(totalMinutes)
+        var total = Math.max(0, Math.floor(seconds ? seconds : 0))
+        if (total <= 0)
+            return "0m"
+        if (total < 60)
+            return "<1m"
+
+        var h = Math.floor(total / 3600)
+        var m = Math.floor((total % 3600) / 60)
+        if (h > 0)
+            return h + "h " + m + "m"
+        return m + "m"
+    }
+
+    property var todaySoftwareStats: []
+
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: refreshTodaySoftwareStats()
+    }
+
+    Connections {
+        target: usageStatManager
+
+        function onUsageStatsChanged() {
+            todaySoftwareStats = usageStatManager ? usageStatManager.activeSoftwareForRange("day") : []
+            ringCanvas.requestPaint()
+        }
+    }
+
+    function refreshTodaySoftwareStats() {
+        if (!usageStatManager) {
+            todaySoftwareStats = []
+            return
+        }
+
+        usageStatManager.refresh()
+        todaySoftwareStats = usageStatManager.activeSoftwareForRange("day")
+        ringCanvas.requestPaint()
+    }
+
+    function topTodaySoftwareStats() {
+        var list = todaySoftwareStats ? todaySoftwareStats.slice() : []
+        list.sort(function(a, b) {
+            return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
+        })
+        return list.length > 3 ? list.slice(0, 3) : list
+    }
+
+    function containsAny(text, words) {
+        for (var i = 0; i < words.length; i++) {
+            if (text.indexOf(words[i]) >= 0)
+                return true
+        }
+        return false
+    }
+
+    function hashedColor(text) {
+        var palette = ["#E8C6A3", "#8E93D8", "#7FB3A1", "#DFA65F", "#A9BFE6", "#D98E9F", "#B4C986", "#C7ADD9", "#78A6C8", "#C58C7B"]
+        var hash = 0
+        for (var i = 0; i < text.length; i++)
+            hash = ((hash * 31) + text.charCodeAt(i)) & 0x7fffffff
+        return palette[hash % palette.length]
+    }
+
+    function appColor(appId, appName, path) {
+        var text = ((appId || "") + " " + (appName || "") + " " + (path || "")).toLowerCase()
+
+        if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D33A31"
+        if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#4285F4"
+        if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#007ACC"
+        if (containsAny(text, ["discord"])) return "#5865F2"
+        if (containsAny(text, ["weixin", "wechat"])) return "#07C160"
+        if (containsAny(text, ["qqmusic", "qqmusic.exe"])) return "#31C27C"
+        if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"])) return "#1B2838"
+        if (containsAny(text, ["msedge", "edge.exe"])) return "#0AA6A6"
+        if (containsAny(text, ["firefox"])) return "#FF7139"
+        if (containsAny(text, ["explorer.exe", "windows\\explorer"])) return "#F2C14E"
+        if (containsAny(text, ["powershell", "windowsterminal", "cmd.exe"])) return "#4D8BFF"
+        if (containsAny(text, ["telegram"])) return "#2AABEE"
+        if (containsAny(text, ["spotify"])) return "#1DB954"
+        if (containsAny(text, ["zoom.exe"])) return "#2D8CFF"
+
+        return hashedColor(text)
     }
 
     function tagSummariesAll() {
@@ -133,16 +216,55 @@ Item {
         return result
     }
 
+    function softwareUsageSecondsToday() {
+        var list = todaySoftwareStats ? todaySoftwareStats : []
+        var total = 0
+
+        for (var i = 0; i < list.length; i++)
+            total += list[i].seconds ? list[i].seconds : 0
+
+        return total
+    }
+
+    function allTodayDistributionStats() {
+        var result = []
+        var softwareSeconds = softwareUsageSecondsToday()
+
+        for (var i = 0; i < fixedTags.length; i++) {
+            var tag = fixedTags[i]
+            var minutes = tagMinutesToday(tag)
+            result.push({
+                tag: tag,
+                label: tag,
+                seconds: minutes * 60,
+                minutes: minutes,
+                color: tagColor(tag),
+                source: "project"
+            })
+        }
+
+        result.push({
+            tag: "自动软件",
+            label: "自动软件",
+            seconds: softwareSeconds,
+            minutes: softwareSeconds / 60,
+            color: "#8E93D8",
+            source: "software"
+        })
+
+        return result
+    }
+
     function topThreeTagStatsToday() {
-        var list = allTagStatsToday().slice()
+        var list = allTodayDistributionStats().slice()
 
         list.sort(function(a, b) {
-            return b.minutes - a.minutes
+            return b.seconds - a.seconds
         })
 
         var filtered = []
         for (var i = 0; i < list.length; i++) {
-            if (list[i].minutes > 0)
+            if (list[i].seconds > 0)
                 filtered.push(list[i])
         }
 
@@ -152,14 +274,14 @@ Item {
         return filtered
     }
 
-    function totalAllTagsTodayMinutes() {
-        var list = allTagStatsToday()
+    function totalAllTagsTodaySeconds() {
+        var list = allTodayDistributionStats()
         var total = 0
 
         for (var i = 0; i < list.length; i++)
-            total += list[i].minutes
+            total += list[i].seconds
 
-        return Math.max(1, total)
+        return total
     }
 
     property var todayTagStats: allTagStatsToday()
@@ -242,7 +364,7 @@ Item {
                         }
 
                         Text {
-                            text: "圆环按今天的主要标签时长比例展示。"
+                            text: "圆环按今天的手动项目和自动软件时长比例展示。"
                             color: textSecondary
                             font.pixelSize: 15
                             wrapMode: Text.Wrap
@@ -285,7 +407,7 @@ Item {
                                     }
 
                                     Text {
-                                        text: modelData.tag + "  " + minutesToDisplay(modelData.minutes)
+                                        text: (modelData.label || modelData.tag) + "  " + secondsToDisplay(modelData.seconds)
                                         color: textPrimary
                                         font.pixelSize: 15
                                         font.bold: true
@@ -297,7 +419,7 @@ Item {
 
                         Text {
                             visible: topThreeTodayTagStats.length === 0
-                            text: "今天还没有标签记录"
+                            text: "今天还没有项目或软件记录"
                             color: textSecondary
                             font.pixelSize: 14
                         }
@@ -340,23 +462,23 @@ Item {
                                 ctx.arc(cx, cy, radius, 0, Math.PI * 2, false)
                                 ctx.stroke()
 
-                                var stats = allTagStatsToday()
-                                var totalMinutes = 0
+                                var stats = allTodayDistributionStats()
+                                var totalSeconds = 0
 
                                 for (var i = 0; i < stats.length; i++)
-                                    totalMinutes += stats[i].minutes
+                                    totalSeconds += stats[i].seconds
 
-                                if (totalMinutes <= 0)
+                                if (totalSeconds <= 0)
                                     return
 
                                 var start = -Math.PI / 2
                                 var full = Math.PI * 2
 
                                 for (var j = 0; j < stats.length; j++) {
-                                    if (stats[j].minutes <= 0)
+                                    if (stats[j].seconds <= 0)
                                         continue
 
-                                    var angle = full * stats[j].minutes / totalMinutes
+                                    var angle = full * stats[j].seconds / totalSeconds
                                     drawArc(start, angle, stats[j].color)
                                     start += angle
                                 }
@@ -384,7 +506,7 @@ Item {
                                 spacing: 6
 
                                 Text {
-                                    text: minutesToDisplay(totalAllTagsTodayMinutes())
+                                    text: secondsToDisplay(totalAllTagsTodaySeconds())
                                     color: textPrimary
                                     font.pixelSize: 30
                                     font.bold: true
@@ -392,7 +514,7 @@ Item {
                                 }
 
                                 Text {
-                                    text: "今日项目累计"
+                                    text: "今日累计"
                                     color: textSecondary
                                     font.pixelSize: 14
                                     anchors.horizontalCenter: parent.horizontalCenter
@@ -443,11 +565,7 @@ Item {
                         }
 
                         Repeater {
-                            model: [
-                                { name: "微信", time: "2h 15m" },
-                                { name: "Chrome", time: "1h 42m" },
-                                { name: "VSCode", time: "3h 08m" }
-                            ]
+                            model: topTodaySoftwareStats()
 
                             delegate: Rectangle {
                                 required property var modelData
@@ -479,39 +597,51 @@ Item {
                                         width: 12
                                         height: 12
                                         radius: 6
-                                        color: tagColor("娱乐")
+                                        color: appColor(modelData.appId, modelData.name, modelData.path)
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     Column {
+                                        width: parent.width - 118
                                         anchors.verticalCenter: parent.verticalCenter
                                         spacing: 4
 
                                         Text {
-                                            text: modelData.name
+                                            text: modelData.name ? modelData.name : "Unknown app"
                                             color: textPrimary
                                             font.pixelSize: 18
                                             font.bold: true
+                                            width: parent.width
+                                            elide: Text.ElideRight
                                         }
 
                                         Text {
-                                            text: "自动记录"
+                                            text: modelData.subtitle ? modelData.subtitle : "Auto recorded"
                                             color: textSecondary
                                             font.pixelSize: 13
+                                            width: parent.width
+                                            elide: Text.ElideRight
                                         }
                                     }
 
-                                    Item { width: 1; height: 1 }
+                                    Item { width: 1; height: 1; Layout.fillWidth: true }
 
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: modelData.time
+                                        text: modelData.time ? modelData.time : secondsToDisplay(modelData.seconds)
                                         color: accentBrownDeep
                                         font.pixelSize: 17
                                         font.bold: true
                                     }
                                 }
                             }
+                        }
+
+                        Text {
+                            visible: topTodaySoftwareStats().length === 0
+                            text: "今天还没有自动记录的软件使用"
+                            color: textSecondary
+                            font.pixelSize: 14
                         }
                     }
                 }
@@ -1047,7 +1177,10 @@ Item {
         }
     }
 
-    Component.onCompleted: ringCanvas.requestPaint()
+    Component.onCompleted: {
+        ringCanvas.requestPaint()
+        refreshTodaySoftwareStats()
+    }
 
     onImportSoftware: {
         console.log("导入想查看时间的软件")

@@ -11,6 +11,8 @@ int64_t timearc_win_get_idle_ms(void) {
     return 0;
   }
 
+  // GetTickCount64 and LASTINPUTINFO.dwTime use the same monotonic millisecond
+  // clock, so their difference is not affected by wall-clock changes.
   ULONGLONG now = GetTickCount64();
   if (now < input_info.dwTime) {
     return 0;
