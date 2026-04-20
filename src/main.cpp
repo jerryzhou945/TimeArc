@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QUrl>
 
+#include "services/appiconimageprovider.h"
 #include "services/calendarmanager.h"
 #include "services/projectmanager.h"
 #include "services/timermanager.h"
@@ -42,6 +43,8 @@ int main(int argc, char* argv[]) {
   TimerManager timerManager;
   ProjectManager projectManager;
   UsageStatManager usageStatManager;
+
+  engine.addImageProvider(QStringLiteral("appicon"), new AppIconImageProvider);
 
   engine.rootContext()->setContextProperty("calendarManager", &calendarManager);
   engine.rootContext()->setContextProperty("timerManager", &timerManager);

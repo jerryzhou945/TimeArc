@@ -15,7 +15,7 @@ if(APPLE)
     enable_language(Swift)
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Quick Svg)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick Svg Widgets)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -55,6 +55,7 @@ target_link_libraries(time-arc
         Qt6::Core
         Qt6::Quick
         Qt6::Svg
+        Qt6::Widgets
     ${TIME_ARC_THIRDPARTY_LIBS}
 )
 

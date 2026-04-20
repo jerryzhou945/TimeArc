@@ -150,6 +150,13 @@ Item {
         return hashedColor(text)
     }
 
+    function appIconSource(path) {
+        var raw = path ? path.toString() : ""
+        if (raw.length === 0)
+            return ""
+        return "image://appicon/" + encodeURIComponent(raw)
+    }
+
     function refreshTodaySoftwareStats() {
         if (!usageStatManager) {
             todaySoftwareStats = []
@@ -695,11 +702,17 @@ Item {
                                                 radius: 17
                                                 color: appColor(modelData.appId, modelData.name, modelData.path)
 
-                                                Text {
+                                                Image {
                                                     anchors.centerIn: parent
-                                                    text: "●"
-                                                    color: nightMode ? "#252B3D" : "#FFFDF9"
-                                                    font.pixelSize: 11
+                                                    width: 24
+                                                    height: 24
+                                                    source: appIconSource(modelData.path)
+                                                    sourceSize.width: 48
+                                                    sourceSize.height: 48
+                                                    fillMode: Image.PreserveAspectFit
+                                                    asynchronous: true
+                                                    smooth: true
+                                                    mipmap: true
                                                 }
                                             }
 

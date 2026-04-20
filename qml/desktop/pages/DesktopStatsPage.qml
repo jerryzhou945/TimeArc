@@ -247,6 +247,13 @@ Item {
         return hashedColor(text)
     }
 
+    function appIconSource(path) {
+        var raw = path ? path.toString() : ""
+        if (raw.length === 0)
+            return ""
+        return "image://appicon/" + encodeURIComponent(raw)
+    }
+
     function summaryStats() {
         return [
             { title: "总时长", value: secondsToDisplay(totalCombinedSeconds()), note: rangeText() + "视图", icon: "Σ", color: mint },
@@ -680,12 +687,17 @@ Item {
                                         radius: 21
                                         color: appColor(modelData.appId, modelData.name, modelData.path)
 
-                                        Text {
+                                        Image {
                                             anchors.centerIn: parent
-                                            text: index + 1
-                                            color: textPrimary
-                                            font.pixelSize: 12
-                                            font.bold: true
+                                            width: 30
+                                            height: 30
+                                            source: appIconSource(modelData.path)
+                                            sourceSize.width: 64
+                                            sourceSize.height: 64
+                                            fillMode: Image.PreserveAspectFit
+                                            asynchronous: true
+                                            smooth: true
+                                            mipmap: true
                                         }
                                     }
 

@@ -4,6 +4,7 @@ set(TIME_ARC_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/services/timermanager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/projectmanager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/usagestatmanager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/appiconimageprovider.cpp
 )
 
 set(TIME_ARC_INCLUDE_DIRS
