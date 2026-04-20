@@ -168,7 +168,7 @@ Item {
             anchors.fill: parent
             source: appBackgroundSource
             fillMode: Image.PreserveAspectCrop
-            opacity: nightMode ? 0.52 : 0.12
+            opacity: nightMode ? 0.52 : 0.06
             smooth: true
             asynchronous: true
         }
@@ -178,7 +178,11 @@ Item {
             gradient: Gradient {
                 GradientStop {
                     position: 0.0
-                    color: nightMode ? "#2D3148" : "#F7F3EE"
+                    color: nightMode ? "#2D3148" : "#E8F4EC"
+                }
+                GradientStop {
+                    position: 0.46
+                    color: nightMode ? "#353A56" : "#F7F3EE"
                 }
                 GradientStop {
                     position: 1.0
@@ -191,11 +195,12 @@ Item {
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-                GradientStop { position: 0.0; color: nightMode ? "#4E5578" : "#DDF1E5" }
-                GradientStop { position: 0.48; color: nightMode ? "transparent" : "#F7F3EE" }
-                GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#F4E8C8" }
+                GradientStop { position: 0.0; color: nightMode ? "#4E5578" : "#CFE8D8" }
+                GradientStop { position: 0.38; color: nightMode ? "#3F4665" : "#F4E8C8" }
+                GradientStop { position: 0.72; color: nightMode ? "#303650" : "#F7F3EE" }
+                GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#EBC9CF" }
             }
-            opacity: nightMode ? 0.28 : 0.30
+            opacity: nightMode ? 0.28 : 0.42
         }
     }
 
@@ -472,7 +477,7 @@ Item {
                 anchors.margins: 1
                 radius: 31
                 color: appPanelGlass
-                opacity: nightMode ? 0.76 : 0.88
+                opacity: nightMode ? 0.76 : 0.84
                 z: -1
             }
 
