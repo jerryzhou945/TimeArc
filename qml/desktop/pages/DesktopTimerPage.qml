@@ -1,41 +1,34 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
+import "../components"
 
 Item {
+    id: root
     anchors.fill: parent
+    clip: true
 
-    // =========================
-    // 从 AppShell 传入的主题参数
-    // 如果没传，就先用白天默认值
-    // =========================
     property bool nightMode: false
-    property color themeTextPrimary: "#4E342E"
-    property color themeTextSecondary: "#9C806C"
-    property color themePanelColor: "#FFFDF9"
-    property color themeBorderColor: "#D8C2AC"
-    property color themeAccentColor: "#E8C6A3"
+    property color themeTextPrimary: "#2D2724"
+    property color themeTextSecondary: "#7C746D"
+    property color themePanelColor: "#FBF8F4"
+    property color themeBorderColor: "#E8E0D8"
+    property color themeAccentColor: "#CFE8D8"
 
-    // =========================
-    // 页面内部颜色
-    // 白天：米色暖棕
-    // 夜晚：淡蓝紫、雾感灰紫
-    // =========================
-    property color timerPanelColor: nightMode ? "#252C40" : "#FFFFFF"
-    property color timerInnerCardColor: nightMode ? "#303850" : "#FFFFFF"
-    property color timerBorderColor: themeBorderColor
-
-    property color titleColor: themeTextSecondary
-    property color projectColor: themeTextPrimary
-    property color timeColor: nightMode ? "#EEF0FF" : "#4E342E"
-    property color statusColor: themeTextSecondary
-
-    property color pauseButtonColor: nightMode ? "#343C58" : "#F1EDE6"
-    property color pauseButtonBorder: nightMode ? "#525D7D" : "#DDD4C7"
-    property color pauseButtonText: nightMode ? "#F8F7FF" : "#4E342E"
-
-    property color stopButtonColor: nightMode ? "#8E93D8" : "#E8C6A3"
-    property color stopButtonBorder: nightMode ? "#757ED0" : "#D5AE86"
-    property color stopButtonText: "#FFFDF9"
+    property color textPrimary: themeTextPrimary
+    property color textSecondary: themeTextSecondary
+    property color panelColor: nightMode ? "#353C55" : "#FBF8F4"
+    property color cardColor: nightMode ? "#3E465F" : "#FFFDF9"
+    property color cardSoft: nightMode ? "#454D68" : "#F7F3EE"
+    property color mint: nightMode ? "#7780B5" : "#CFE8D8"
+    property color lightMint: nightMode ? "#596184" : "#DDF1E5"
+    property color cream: nightMode ? "#555A78" : "#F4E8C8"
+    property color blush: nightMode ? "#65536A" : "#EBC9CF"
+    property color borderColor: nightMode ? "#626A90" : "#E8E0D8"
+    property color softBorder: nightMode ? "#737BA4" : "#EFE7DE"
+    property color shadowColor: nightMode ? "#05070D" : "#BFAE9D"
+    property color primaryButton: nightMode ? "#8E93D8" : "#1F1A17"
+    property color primaryButtonHover: nightMode ? "#9AA0E7" : "#332C27"
 
     function formatTime(totalSeconds) {
         var t = totalSeconds
@@ -56,157 +49,335 @@ Item {
         return pad(h) + ":" + pad(m) + ":" + pad(s)
     }
 
-    // =========================
-    // 外层大面板
-    // =========================
+    function secondsToDisplay(seconds) {
+        var total = Math.max(0, Math.floor(seconds ? seconds : 0))
+        if (total <= 0)
+            return "0m"
+        if (total < 60)
+            return "<1m"
+
+        var h = Math.floor(total / 3600)
+        var m = Math.floor((total % 3600) / 60)
+        if (h > 0)
+            return h + "h " + m + "m"
+        return m + "m"
+    }
+
+    function recentProjects(maxCount) {
+        var list = projectManager ? projectManager.projects : []
+        var copy = list ? list.slice() : []
+        return copy.length > maxCount ? copy.slice(0, maxCount) : copy
+    }
+
+    function tagColor(tag) {
+        if (tag === "学习") return "#D9D0F2"
+        if (tag === "工作") return "#EFDCC3"
+        if (tag === "运动") return "#CFE8D8"
+        if (tag === "娱乐") return "#EBC9CF"
+        if (tag === "阅读") return "#BFD7EA"
+        if (tag === "社交") return "#E7D4EA"
+        if (tag === "生活") return "#DDF1E5"
+        return "#D8D1CA"
+    }
+
+    function tagIcon(tag) {
+        if (tag === "学习") return "✦"
+        if (tag === "工作") return "▣"
+        if (tag === "运动") return "●"
+        if (tag === "娱乐") return "★"
+        if (tag === "阅读") return "✎"
+        if (tag === "社交") return "♥"
+        if (tag === "生活") return "☀"
+        return "•"
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: 28
-        color: timerPanelColor
-        border.width: 1
-        border.color: timerBorderColor
-        opacity: nightMode ? 0.72 : 1.0
+        color: panelColor
+        opacity: nightMode ? 0.28 : 0.42
     }
 
-    // 轻微高光层，让夜晚模式有一点玻璃感
-    Rectangle {
+    ColumnLayout {
         anchors.fill: parent
-        radius: 28
-        color: "#FFFFFF"
-        opacity: nightMode ? 0.04 : 0.00
-    }
+        anchors.margins: 6
+        spacing: 18
 
-    Column {
-        anchors.centerIn: parent
-        spacing: 22
+        SoftCard {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 500
+            radius: 34
+            padding: 30
+            fillColor: cardColor
+            fillOpacity: nightMode ? 0.76 : 0.88
+            strokeColor: borderColor
+            shadowColor: shadowColor
+            shadowOpacity: nightMode ? 0.18 : 0.09
 
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: "正在计时"
-            color: titleColor
-            font.pixelSize: 18
-            font.bold: true
-        }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: timerManager ? timerManager.currentProject : "未选择项目"
-            color: projectColor
-            font.pixelSize: 30
-            font.bold: true
-        }
-
-        Rectangle {
-            width: 520
-            height: 210
-            radius: 26
-            color: timerInnerCardColor
-            border.width: 1
-            border.color: nightMode ? "#757CA6" : "#E6D6C5"
-            opacity: nightMode ? 0.76 : 0.88
-
-            Rectangle {
+            ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: 1
-                radius: 25
-                color: "#FFFFFF"
-                opacity: nightMode ? 0.04 : 0.08
-                z: -1
-            }
+                spacing: 22
 
-            Column {
-                anchors.centerIn: parent
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 14
+
+                    Rectangle {
+                        Layout.preferredWidth: 52
+                        Layout.preferredHeight: 52
+                        radius: 26
+                        color: lightMint
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "▶"
+                            color: textPrimary
+                            font.pixelSize: 18
+                            font.bold: true
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+
+                        Text {
+                            text: "手动计时"
+                            color: textPrimary
+                            font.pixelSize: 30
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: "结束后会自动回到首页，并把本次时长累计到项目中。"
+                            color: textSecondary
+                            font.pixelSize: 14
+                        }
+                    }
+
+                    SoftPill {
+                        title: "状态"
+                        value: timerManager ? (timerManager.running ? "进行中" : "已暂停") : "未连接"
+                        iconText: timerManager && timerManager.running ? "●" : "Ⅱ"
+                        fillColor: timerManager && timerManager.running ? lightMint : cream
+                        strokeColor: softBorder
+                        accentColor: timerManager && timerManager.running ? mint : blush
+                        titleColor: textSecondary
+                        valueColor: textPrimary
+                    }
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    SoftCard {
+                        width: Math.min(parent.width, 720)
+                        height: Math.min(parent.height, 332)
+                        anchors.centerIn: parent
+                        radius: 36
+                        padding: 28
+                        fillColor: nightMode ? "#454D68" : "#FBF8F4"
+                        fillOpacity: nightMode ? 0.80 : 0.96
+                        strokeColor: softBorder
+                        shadowColor: shadowColor
+                        shadowOpacity: nightMode ? 0.16 : 0.08
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 18
+
+                            SoftPill {
+                                Layout.alignment: Qt.AlignHCenter
+                                compact: true
+                                title: ""
+                                value: timerManager ? (timerManager.currentProject && timerManager.currentProject.length > 0 ? timerManager.currentProject : "未选择项目") : "计时器未连接"
+                                iconText: "T"
+                                fillColor: nightMode ? "#535B7B" : "#FFFDF9"
+                                strokeColor: softBorder
+                                accentColor: mint
+                                valueColor: textPrimary
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: timerManager ? formatTime(timerManager.elapsedSeconds) : "00:00:00"
+                                color: textPrimary
+                                font.pixelSize: 88
+                                font.family: "Segoe UI"
+                                font.weight: Font.DemiBold
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: timerManager
+                                      ? (timerManager.running ? "保持现在的节奏，慢慢推进。" : "已经暂停，可以随时继续。")
+                                      : "计时器未连接"
+                                color: textSecondary
+                                font.pixelSize: 15
+                                horizontalAlignment: Text.AlignHCenter
+                            }
+
+                            RowLayout {
+                                Layout.alignment: Qt.AlignHCenter
+                                spacing: 14
+
+                                SoftButton {
+                                    text: timerManager && timerManager.running ? "暂停" : "继续"
+                                    iconText: timerManager && timerManager.running ? "Ⅱ" : "▶"
+                                    implicitWidth: 132
+                                    implicitHeight: 52
+                                    radius: 20
+                                    fillColor: nightMode ? "#535B7B" : "#F4E8C8"
+                                    hoverColor: nightMode ? "#60698E" : "#EFDCC3"
+                                    strokeColor: softBorder
+                                    strokeWidth: 1
+                                    textColor: textPrimary
+                                    fontSize: 16
+                                    onClicked: {
+                                        if (!timerManager)
+                                            return
+
+                                        if (timerManager.running)
+                                            timerManager.pauseTimer()
+                                        else
+                                            timerManager.resumeTimer()
+                                    }
+                                }
+
+                                SoftButton {
+                                    text: "结束"
+                                    iconText: "✓"
+                                    implicitWidth: 132
+                                    implicitHeight: 52
+                                    radius: 20
+                                    fillColor: primaryButton
+                                    hoverColor: primaryButtonHover
+                                    textColor: "#FFFDF9"
+                                    fontSize: 16
+                                    onClicked: {
+                                        if (timerManager)
+                                            timerManager.stopAndCommit()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        SoftCard {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 172
+            radius: 30
+            padding: 20
+            fillColor: cardColor
+            fillOpacity: nightMode ? 0.74 : 0.86
+            strokeColor: borderColor
+            shadowColor: shadowColor
+            shadowOpacity: nightMode ? 0.16 : 0.08
+
+            ColumnLayout {
+                anchors.fill: parent
                 spacing: 14
 
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: timerManager ? formatTime(timerManager.elapsedSeconds) : "00:00:00"
-                    color: timeColor
-                    font.pixelSize: 84
-                    font.family: "Segoe UI"
-                    font.weight: Font.Medium
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "最近项目"
+                        color: textPrimary
+                        font.pixelSize: 22
+                        font.bold: true
+                    }
+
+                    Text {
+                        text: recentProjects(4).length + " 个"
+                        color: textSecondary
+                        font.pixelSize: 13
+                    }
                 }
 
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    text: timerManager
-                          ? (timerManager.running ? "正在计时中" : "已暂停")
-                          : "计时器未连接"
-                    color: statusColor
-                    font.pixelSize: 16
-                }
-            }
-        }
+                ListView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    orientation: ListView.Horizontal
+                    spacing: 12
+                    clip: true
+                    model: recentProjects(8)
 
-        Row {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 18
+                    delegate: Rectangle {
+                        required property var modelData
 
-            Rectangle {
-                width: 128
-                height: 54
-                radius: 20
-                color: pauseButtonColor
-                border.width: 1
-                border.color: pauseButtonBorder
+                        width: 220
+                        height: ListView.view.height
+                        radius: 20
+                        color: cardSoft
+                        border.width: 1
+                        border.color: softBorder
 
-                Text {
-                    anchors.centerIn: parent
-                    text: timerManager && timerManager.running ? "暂停" : "继续"
-                    color: pauseButtonText
-                    font.pixelSize: 18
-                    font.bold: true
-                }
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 14
+                            spacing: 10
 
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (!timerManager)
-                            return
+                            Rectangle {
+                                Layout.preferredWidth: 38
+                                Layout.preferredHeight: 38
+                                radius: 19
+                                color: tagColor(modelData.tag)
 
-                        if (timerManager.running)
-                            timerManager.pauseTimer()
-                        else
-                            timerManager.resumeTimer()
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: tagIcon(modelData.tag)
+                                    color: textPrimary
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                }
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.name
+                                    color: textPrimary
+                                    font.pixelSize: 15
+                                    font.bold: true
+                                    elide: Text.ElideRight
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: (modelData.tag ? modelData.tag + " · " : "") + (modelData.time ? modelData.time : "0h 0m")
+                                    color: textSecondary
+                                    font.pixelSize: 12
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                    }
+
+                    footer: Item {
+                        width: ListView.view ? ListView.view.width : 0
+                        height: ListView.view ? ListView.view.height : 0
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: recentProjects(8).length === 0
+                            text: "还没有最近项目"
+                            color: textSecondary
+                            font.pixelSize: 14
+                        }
                     }
                 }
             }
-
-            Rectangle {
-                width: 128
-                height: 54
-                radius: 20
-                color: stopButtonColor
-                border.width: 1
-                border.color: stopButtonBorder
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "结束"
-                    color: stopButtonText
-                    font.pixelSize: 18
-                    font.bold: true
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (timerManager)
-                            timerManager.stopAndCommit()
-                    }
-                }
-            }
-        }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: nightMode
-                  ? "结束后会自动返回首页，并把这段夜晚时光累计到项目中。"
-                  : "结束后会自动返回首页，并把本次时长累计到项目中。"
-            color: statusColor
-            font.pixelSize: 14
         }
     }
 

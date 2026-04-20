@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../components"
 
 Item {
     id: root
@@ -10,53 +11,74 @@ Item {
     signal importSoftware()
     signal startProject(string projectName, string tagName)
 
-    // =========================
-    // 从 AppShell 传入的主题属性
-    // =========================
     property bool nightMode: false
-    property color themeTextPrimary: "#4E342E"
-    property color themeTextSecondary: "#9C806C"
-    property color themePanelColor: "#FFFDF9"
-    property color themeBorderColor: "#D8C2AC"
-    property color themeAccentColor: "#E8C6A3"
+    property color themeTextPrimary: "#2D2724"
+    property color themeTextSecondary: "#7C746D"
+    property color themePanelColor: "#FBF8F4"
+    property color themeBorderColor: "#E8E0D8"
+    property color themeAccentColor: "#CFE8D8"
 
-    // =========================
-    // 基础颜色
-    // =========================
     property color textPrimary: themeTextPrimary
     property color textSecondary: themeTextSecondary
+    property color pageSurface: nightMode ? "#30364D" : "#F7F3EE"
+    property color panelGlass: nightMode ? "#353C55" : "#FBF8F4"
+    property color cardGlass: nightMode ? "#3E465F" : "#FFFDF9"
+    property color softMint: nightMode ? "#596184" : "#DDF1E5"
+    property color mint: nightMode ? "#7780B5" : "#CFE8D8"
+    property color cream: nightMode ? "#4B526F" : "#F4E8C8"
+    property color almond: nightMode ? "#555A78" : "#EFDCC3"
+    property color blush: nightMode ? "#65536A" : "#EBC9CF"
+    property color lavender: nightMode ? "#60668C" : "#D9D0F2"
+    property color borderColor: nightMode ? "#626A90" : "#E8E0D8"
+    property color softBorder: nightMode ? "#737BA4" : "#EFE7DE"
+    property color shadowColor: nightMode ? "#05070D" : "#BFAE9D"
+    property color buttonDark: nightMode ? "#8E93D8" : "#1F1A17"
+    property color buttonDarkHover: nightMode ? "#9AA0E7" : "#332C27"
+    property color accentText: nightMode ? "#DADDFD" : "#2F7A5B"
+    property bool showSideRail: width >= 1320
 
-    property color accentBrown: themeAccentColor
-    property color accentBrownDeep: nightMode ? "#D9D8FF" : "#A56D46"
-
-    property color panelGlass: nightMode ? "#2C334A" : "#FFFFFF"
-    property real panelOpacity: nightMode ? 0.68 : 0.62
-
-    property color cardGlass: nightMode ? "#343C55" : "#FFFFFF"
-    property real cardOpacity: nightMode ? 0.62 : 0.58
-
-    property color borderColor: themeBorderColor
-    property color softBorder: nightMode ? "#757CA6" : "#E6D6C5"
-
-    // 删除弹窗当前目标项目
     property string deleteTargetProjectName: ""
-
-    // =========================
-    // 固定标签
-    // =========================
     property var fixedTags: ["学习", "工作", "运动", "娱乐", "阅读", "社交", "生活", "其他"]
     property string selectedTag: fixedTags[0]
     property int projectRefreshKey: 0
+    property var todaySoftwareStats: []
+
+    onNightModeChanged: Qt.callLater(function() { ringCanvas.requestPaint() })
+
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: refreshTodaySoftwareStats()
+    }
+
+    Connections {
+        target: usageStatManager
+
+        function onUsageStatsChanged() {
+            todaySoftwareStats = usageStatManager ? usageStatManager.activeSoftwareForRange("day") : []
+            ringCanvas.requestPaint()
+        }
+    }
+
+    Connections {
+        target: projectManager
+
+        function onProjectsChanged() {
+            projectRefreshKey += 1
+            ringCanvas.requestPaint()
+        }
+    }
 
     function tagColor(tag) {
-        if (tag === "学习") return "#B7A6F0"
-        if (tag === "工作") return "#D7B79A"
-        if (tag === "运动") return "#B4C986"
-        if (tag === "娱乐") return "#DFA65F"
-        if (tag === "阅读") return "#A9BFE6"
-        if (tag === "社交") return "#C7ADD9"
-        if (tag === "生活") return "#E2B6C3"
-        return "#B7AEA6"
+        if (tag === "学习") return "#D9D0F2"
+        if (tag === "工作") return "#EFDCC3"
+        if (tag === "运动") return "#CFE8D8"
+        if (tag === "娱乐") return "#EBC9CF"
+        if (tag === "阅读") return "#BFD7EA"
+        if (tag === "社交") return "#E7D4EA"
+        if (tag === "生活") return "#DDF1E5"
+        return "#D8D1CA"
     }
 
     function tagIcon(tag) {
@@ -71,7 +93,7 @@ Item {
     }
 
     function minutesToDisplay(minutes) {
-        var total = Math.max(0, Math.floor(minutes))
+        var total = Math.max(0, Math.floor(minutes ? minutes : 0))
         var h = Math.floor(total / 60)
         var m = total % 60
         return h + "h " + m + "m"
@@ -91,22 +113,41 @@ Item {
         return m + "m"
     }
 
-    property var todaySoftwareStats: []
-
-    Timer {
-        interval: 5000
-        running: true
-        repeat: true
-        onTriggered: refreshTodaySoftwareStats()
+    function containsAny(text, words) {
+        for (var i = 0; i < words.length; i++) {
+            if (text.indexOf(words[i]) >= 0)
+                return true
+        }
+        return false
     }
 
-    Connections {
-        target: usageStatManager
+    function hashedColor(text) {
+        var palette = ["#CFE8D8", "#D9D0F2", "#EFDCC3", "#EBC9CF", "#BFD7EA", "#DDF1E5", "#E7D4EA", "#D8D1CA"]
+        var hash = 0
+        for (var i = 0; i < text.length; i++)
+            hash = ((hash * 31) + text.charCodeAt(i)) & 0x7fffffff
+        return palette[hash % palette.length]
+    }
 
-        function onUsageStatsChanged() {
-            todaySoftwareStats = usageStatManager ? usageStatManager.activeSoftwareForRange("day") : []
-            ringCanvas.requestPaint()
-        }
+    function appColor(appId, appName, path) {
+        var text = ((appId || "") + " " + (appName || "") + " " + (path || "")).toLowerCase()
+
+        if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D98E9F"
+        if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#BFD7EA"
+        if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#9FC7DE"
+        if (containsAny(text, ["discord"])) return "#D9D0F2"
+        if (containsAny(text, ["weixin", "wechat"])) return "#CFE8D8"
+        if (containsAny(text, ["qqmusic", "qqmusic.exe"])) return "#DDF1E5"
+        if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"])) return "#B9B5C8"
+        if (containsAny(text, ["msedge", "edge.exe"])) return "#A8D5C0"
+        if (containsAny(text, ["firefox"])) return "#EFDCC3"
+        if (containsAny(text, ["explorer.exe", "windows\\explorer"])) return "#F4E8C8"
+        if (containsAny(text, ["powershell", "windowsterminal", "cmd.exe"])) return "#BFD7EA"
+        if (containsAny(text, ["telegram"])) return "#BFD7EA"
+        if (containsAny(text, ["spotify"])) return "#CFE8D8"
+        if (containsAny(text, ["zoom.exe"])) return "#BFD7EA"
+
+        return hashedColor(text)
     }
 
     function refreshTodaySoftwareStats() {
@@ -120,49 +161,9 @@ Item {
         ringCanvas.requestPaint()
     }
 
-    function topTodaySoftwareStats() {
-        var list = todaySoftwareStats ? todaySoftwareStats.slice() : []
-        list.sort(function(a, b) {
-            return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
-        })
-        return list.length > 3 ? list.slice(0, 3) : list
-    }
-
-    function containsAny(text, words) {
-        for (var i = 0; i < words.length; i++) {
-            if (text.indexOf(words[i]) >= 0)
-                return true
-        }
-        return false
-    }
-
-    function hashedColor(text) {
-        var palette = ["#E8C6A3", "#8E93D8", "#7FB3A1", "#DFA65F", "#A9BFE6", "#D98E9F", "#B4C986", "#C7ADD9", "#78A6C8", "#C58C7B"]
-        var hash = 0
-        for (var i = 0; i < text.length; i++)
-            hash = ((hash * 31) + text.charCodeAt(i)) & 0x7fffffff
-        return palette[hash % palette.length]
-    }
-
-    function appColor(appId, appName, path) {
-        var text = ((appId || "") + " " + (appName || "") + " " + (path || "")).toLowerCase()
-
-        if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D33A31"
-        if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#4285F4"
-        if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#007ACC"
-        if (containsAny(text, ["discord"])) return "#5865F2"
-        if (containsAny(text, ["weixin", "wechat"])) return "#07C160"
-        if (containsAny(text, ["qqmusic", "qqmusic.exe"])) return "#31C27C"
-        if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"])) return "#1B2838"
-        if (containsAny(text, ["msedge", "edge.exe"])) return "#0AA6A6"
-        if (containsAny(text, ["firefox"])) return "#FF7139"
-        if (containsAny(text, ["explorer.exe", "windows\\explorer"])) return "#F2C14E"
-        if (containsAny(text, ["powershell", "windowsterminal", "cmd.exe"])) return "#4D8BFF"
-        if (containsAny(text, ["telegram"])) return "#2AABEE"
-        if (containsAny(text, ["spotify"])) return "#1DB954"
-        if (containsAny(text, ["zoom.exe"])) return "#2D8CFF"
-
-        return hashedColor(text)
+    function currentTodayProjects() {
+        projectRefreshKey
+        return projectManager ? projectManager.projectsForRange("day") : []
     }
 
     function tagSummariesAll() {
@@ -175,20 +176,13 @@ Item {
         return projectManager ? projectManager.projectsForTag(selectedTag, "all") : []
     }
 
-    function todaySecondsForTag(tag) {
-        return tagMinutesToday(tag) * 60
+    function tagMinutesToday(tag) {
+        projectRefreshKey
+        return projectManager ? projectManager.tagMinutesFor(tag, "day") : 0
     }
 
-    // =========================
-    // 今日项目数据
-    // =========================
-    property var todayProjects: projectManager ? projectManager.projectsForRange("day") : []
-
-    // 右侧列表显示全部项目
-    property var allProjects: projectManager ? projectManager.projects : []
-
     function todaySecondsForProject(projectName, tagName) {
-        var list = todayProjects
+        var list = currentTodayProjects()
         for (var i = 0; i < list.length; i++) {
             if (list[i].name === projectName && list[i].tag === tagName)
                 return list[i].seconds ? list[i].seconds : 0
@@ -196,34 +190,40 @@ Item {
         return 0
     }
 
-    function tagMinutesToday(tag) {
-        return projectManager ? projectManager.tagMinutesFor(tag, "day") : 0
-    }
-
-    function allTagStatsToday() {
-        var result = []
-
-        for (var i = 0; i < fixedTags.length; i++) {
-            var tag = fixedTags[i]
-            var minutes = tagMinutesToday(tag)
-            result.push({
-                tag: tag,
-                minutes: minutes,
-                color: tagColor(tag)
-            })
-        }
-
-        return result
-    }
-
     function softwareUsageSecondsToday() {
         var list = todaySoftwareStats ? todaySoftwareStats : []
         var total = 0
-
         for (var i = 0; i < list.length; i++)
             total += list[i].seconds ? list[i].seconds : 0
-
         return total
+    }
+
+    function manualUsageSecondsToday() {
+        projectRefreshKey
+        return projectManager ? projectManager.todayProjectMinutes * 60 : 0
+    }
+
+    function totalTodaySeconds() {
+        return softwareUsageSecondsToday() + manualUsageSecondsToday()
+    }
+
+    function activeProjectName() {
+        if (timerManager && timerManager.currentProject && timerManager.currentProject.length > 0)
+            return timerManager.currentProject
+        return "暂无进行中"
+    }
+
+    function currentSoftwareName() {
+        if (!usageStatManager)
+            return "等待记录"
+        var current = usageStatManager.currentSoftware()
+        if (!current)
+            return "等待记录"
+        if (current.name && current.name.length > 0)
+            return current.name
+        if (current.appName && current.appName.length > 0)
+            return current.appName
+        return "等待记录"
     }
 
     function allTodayDistributionStats() {
@@ -248,16 +248,15 @@ Item {
             label: "自动软件",
             seconds: softwareSeconds,
             minutes: softwareSeconds / 60,
-            color: "#8E93D8",
+            color: "#CFE8D8",
             source: "software"
         })
 
         return result
     }
 
-    function topThreeTagStatsToday() {
+    function topThreeTodayTagStats() {
         var list = allTodayDistributionStats().slice()
-
         list.sort(function(a, b) {
             return b.seconds - a.seconds
         })
@@ -268,31 +267,78 @@ Item {
                 filtered.push(list[i])
         }
 
-        if (filtered.length > 3)
-            return filtered.slice(0, 3)
-
-        return filtered
+        return filtered.length > 3 ? filtered.slice(0, 3) : filtered
     }
 
-    function totalAllTagsTodaySeconds() {
-        var list = allTodayDistributionStats()
-        var total = 0
+    function topTodaySoftwareStats(maxCount) {
+        var list = todaySoftwareStats ? todaySoftwareStats.slice() : []
+        list.sort(function(a, b) {
+            return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
+        })
+        return list.length > maxCount ? list.slice(0, maxCount) : list
+    }
 
+    function topTodayProjectStats(maxCount) {
+        var list = currentTodayProjects().slice()
+        var filtered = []
+        for (var i = 0; i < list.length; i++) {
+            if ((list[i].seconds ? list[i].seconds : 0) > 0)
+                filtered.push(list[i])
+        }
+        filtered.sort(function(a, b) {
+            return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
+        })
+        return filtered.length > maxCount ? filtered.slice(0, maxCount) : filtered
+    }
+
+    function recentProjects(maxCount) {
+        projectRefreshKey
+        var list = projectManager ? projectManager.projects : []
+        var copy = list ? list.slice() : []
+        return copy.length > maxCount ? copy.slice(0, maxCount) : copy
+    }
+
+    function maxSoftwareSeconds() {
+        var list = topTodaySoftwareStats(12)
+        if (!list || list.length === 0)
+            return 1
+        return Math.max(1, list[0].seconds ? list[0].seconds : 1)
+    }
+
+    function maxSelectedProjectSeconds() {
+        var list = projectsForSelectedTag()
+        var maxValue = 1
         for (var i = 0; i < list.length; i++)
-            total += list[i].seconds
-
-        return total
+            maxValue = Math.max(maxValue, todaySecondsForProject(list[i].name, list[i].tag))
+        return maxValue
     }
 
-    property var todayTagStats: allTagStatsToday()
-    property var topThreeTodayTagStats: topThreeTagStatsToday()
+    function summaryPills() {
+        return [
+            { title: "今日自动记录", value: secondsToDisplay(softwareUsageSecondsToday()), icon: "A", color: mint },
+            { title: "今日手动计时", value: secondsToDisplay(manualUsageSecondsToday()), icon: "M", color: cream },
+            { title: "当前项目", value: activeProjectName(), icon: "▶", color: blush },
+            { title: "活跃应用", value: (todaySoftwareStats ? todaySoftwareStats.length : 0) + " 个", icon: "●", color: lavender }
+        ]
+    }
+
+    function progressRatio(seconds, targetSeconds) {
+        return Math.min(1, Math.max(0, seconds / Math.max(1, targetSeconds)))
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        radius: 28
+        color: pageSurface
+        opacity: nightMode ? 0.20 : 0.42
+    }
 
     Flickable {
         id: flickArea
         anchors.fill: parent
         clip: true
         contentWidth: width
-        contentHeight: pageColumn.implicitHeight + 40
+        contentHeight: pageColumn.implicitHeight + 28
         boundsBehavior: Flickable.StopAtBounds
 
         ScrollBar.vertical: ScrollBar {
@@ -302,222 +348,253 @@ Item {
         Column {
             id: pageColumn
             width: flickArea.width
-            spacing: 18
+            spacing: 20
 
-            // =========================
-            // 顶部标题
-            // =========================
-            Column {
-                spacing: 6
-
-                Text {
-                    text: "首页"
-                    color: textPrimary
-                    font.pixelSize: 42
-                    font.bold: true
-                }
-
-                Text {
-                    text: nightMode
-                          ? "今晚也慢慢记录今天的时间轨迹。"
-                          : "今天也慢慢记录今天的时间轨迹。"
-                    color: textSecondary
-                    font.pixelSize: 16
-                }
-            }
-
-            // =========================
-            // 今日项目分布 + 圆环
-            // =========================
             Rectangle {
                 width: parent.width
-                height: 390
-                radius: 30
+                height: 286
+                radius: 34
                 color: "transparent"
                 border.width: 1
-                border.color: borderColor
-                clip: true
+                border.color: nightMode ? "#697195" : "#D8E7DC"
+                clip: false
+
+                Rectangle {
+                    x: 0
+                    y: 10
+                    width: parent.width
+                    height: parent.height
+                    radius: parent.radius
+                    color: shadowColor
+                    opacity: nightMode ? 0.18 : 0.10
+                    z: -2
+                }
 
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: 1
-                    radius: 29
-                    color: panelGlass
-                    opacity: panelOpacity
+                    radius: 33
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: nightMode ? "#495170" : "#CFE8D8" }
+                        GradientStop { position: 0.52; color: nightMode ? "#414762" : "#E8EFD8" }
+                        GradientStop { position: 1.0; color: nightMode ? "#383E57" : "#F4E8C8" }
+                    }
+                    opacity: nightMode ? 0.90 : 0.96
                     z: -1
                 }
 
-                Row {
+                RowLayout {
                     anchors.fill: parent
-                    anchors.margins: 24
+                    anchors.margins: 28
                     spacing: 24
 
-                    Column {
-                        width: 240
-                        spacing: 12
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 16
+
+                        SoftPill {
+                            compact: true
+                            title: ""
+                            value: "TimeArc Today"
+                            iconText: "T"
+                            fillColor: nightMode ? "#555D7E" : "#FBF8F4"
+                            strokeColor: nightMode ? "#71789E" : "#E8E0D8"
+                            accentColor: nightMode ? "#8E93D8" : "#DDF1E5"
+                            valueColor: textPrimary
+                            titleColor: textSecondary
+                        }
 
                         Text {
-                            text: "今日项目分布"
+                            Layout.fillWidth: true
+                            text: "把今天的时间轻轻收好"
                             color: textPrimary
-                            font.pixelSize: 28
+                            font.pixelSize: 42
                             font.bold: true
+                            wrapMode: Text.WordWrap
                         }
 
                         Text {
-                            text: "圆环按今天的手动项目和自动软件时长比例展示。"
+                            Layout.fillWidth: true
+                            text: nightMode ? "今晚也保持温柔的节奏，自动记录与手动计时都在这里汇合。" : "欢迎回来。自动记录、手动项目和今日节奏，都在这里安静地展开。"
                             color: textSecondary
-                            font.pixelSize: 15
-                            wrapMode: Text.Wrap
-                            width: parent.width
+                            font.pixelSize: 16
+                            wrapMode: Text.WordWrap
+                            lineHeight: 1.18
                         }
 
-                        Repeater {
-                            model: topThreeTodayTagStats
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: width > 720 ? 4 : 2
+                            columnSpacing: 10
+                            rowSpacing: 10
 
-                            delegate: Rectangle {
-                                required property var modelData
+                            Repeater {
+                                model: summaryPills()
 
-                                width: parent.width
-                                height: 70
-                                radius: 18
-                                color: "transparent"
-                                border.width: 1
-                                border.color: softBorder
+                                delegate: SoftPill {
+                                    required property var modelData
 
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.margins: 1
-                                    radius: 17
-                                    color: cardGlass
-                                    opacity: cardOpacity
-                                    z: -1
-                                }
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.margins: 14
-                                    spacing: 12
-
-                                    Rectangle {
-                                        width: 16
-                                        height: 16
-                                        radius: 8
-                                        color: modelData.color
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Text {
-                                        text: (modelData.label || modelData.tag) + "  " + secondsToDisplay(modelData.seconds)
-                                        color: textPrimary
-                                        font.pixelSize: 15
-                                        font.bold: true
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
+                                    Layout.fillWidth: true
+                                    title: modelData.title
+                                    value: modelData.value
+                                    iconText: modelData.icon
+                                    fillColor: nightMode ? "#4A526F" : "#FFFDF9"
+                                    strokeColor: nightMode ? "#6E769C" : "#E8E0D8"
+                                    accentColor: modelData.color
+                                    titleColor: textSecondary
+                                    valueColor: textPrimary
                                 }
                             }
-                        }
-
-                        Text {
-                            visible: topThreeTodayTagStats.length === 0
-                            text: "今天还没有项目或软件记录"
-                            color: textSecondary
-                            font.pixelSize: 14
                         }
                     }
 
-                    Item {
-                        width: parent.width - 280
-                        height: parent.height
+                    SoftCard {
+                        Layout.preferredWidth: 260
+                        Layout.fillHeight: true
+                        radius: 30
+                        padding: 18
+                        fillColor: nightMode ? "#3E465F" : "#FFFDF9"
+                        fillOpacity: nightMode ? 0.72 : 0.70
+                        strokeColor: nightMode ? "#6E769C" : "#E8E0D8"
+                        shadowColor: shadowColor
+                        shadowOpacity: 0.04
 
-                        Canvas {
-                            id: ringCanvas
-                            width: 270
-                            height: 270
-                            anchors.centerIn: parent
-                            antialiasing: true
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 12
 
-                            onPaint: {
-                                var ctx = getContext("2d")
-                                ctx.reset()
+                            RowLayout {
+                                Layout.fillWidth: true
 
-                                var cx = width / 2
-                                var cy = height / 2
-                                var radius = 100
-                                var lineWidth = 26
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 2
 
-                                function drawArc(startAngle, spanAngle, colorValue) {
-                                    if (spanAngle <= 0)
-                                        return
-                                    ctx.beginPath()
-                                    ctx.strokeStyle = colorValue
-                                    ctx.lineWidth = lineWidth
-                                    ctx.lineCap = "round"
-                                    ctx.arc(cx, cy, radius, startAngle, startAngle + spanAngle, false)
-                                    ctx.stroke()
+                                    Text {
+                                        text: "今日概览"
+                                        color: textPrimary
+                                        font.pixelSize: 18
+                                        font.bold: true
+                                    }
+
+                                    Text {
+                                        text: "自动 + 手动"
+                                        color: textSecondary
+                                        font.pixelSize: 12
+                                    }
                                 }
-
-                                ctx.beginPath()
-                                ctx.strokeStyle = nightMode ? "#686F98" : "#EFE7DD"
-                                ctx.lineWidth = lineWidth
-                                ctx.arc(cx, cy, radius, 0, Math.PI * 2, false)
-                                ctx.stroke()
-
-                                var stats = allTodayDistributionStats()
-                                var totalSeconds = 0
-
-                                for (var i = 0; i < stats.length; i++)
-                                    totalSeconds += stats[i].seconds
-
-                                if (totalSeconds <= 0)
-                                    return
-
-                                var start = -Math.PI / 2
-                                var full = Math.PI * 2
-
-                                for (var j = 0; j < stats.length; j++) {
-                                    if (stats[j].seconds <= 0)
-                                        continue
-
-                                    var angle = full * stats[j].seconds / totalSeconds
-                                    drawArc(start, angle, stats[j].color)
-                                    start += angle
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            width: 162
-                            height: 162
-                            radius: 81
-                            color: "transparent"
-                            anchors.centerIn: ringCanvas
-
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 1
-                                radius: 80
-                                color: cardGlass
-                                opacity: 0.60
-                                z: -1
-                            }
-
-                            Column {
-                                anchors.centerIn: parent
-                                spacing: 6
 
                                 Text {
-                                    text: secondsToDisplay(totalAllTagsTodaySeconds())
-                                    color: textPrimary
-                                    font.pixelSize: 30
+                                    text: secondsToDisplay(totalTodaySeconds())
+                                    color: accentText
+                                    font.pixelSize: 18
                                     font.bold: true
-                                    anchors.horizontalCenter: parent.horizontalCenter
+                                }
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+
+                                Canvas {
+                                    id: ringCanvas
+                                    width: 156
+                                    height: 156
+                                    anchors.centerIn: parent
+                                    antialiasing: true
+
+                                    onPaint: {
+                                        var ctx = getContext("2d")
+                                        ctx.reset()
+
+                                        var cx = width / 2
+                                        var cy = height / 2
+                                        var radius = 56
+                                        var lineWidth = 18
+
+                                        ctx.beginPath()
+                                        ctx.strokeStyle = nightMode ? "#626A90" : "#EFE7DE"
+                                        ctx.lineWidth = lineWidth
+                                        ctx.arc(cx, cy, radius, 0, Math.PI * 2, false)
+                                        ctx.stroke()
+
+                                        var stats = allTodayDistributionStats()
+                                        var totalSeconds = 0
+                                        for (var i = 0; i < stats.length; i++)
+                                            totalSeconds += stats[i].seconds
+                                        if (totalSeconds <= 0)
+                                            return
+
+                                        var start = -Math.PI / 2
+                                        var full = Math.PI * 2
+                                        for (var j = 0; j < stats.length; j++) {
+                                            if (stats[j].seconds <= 0)
+                                                continue
+
+                                            var angle = full * stats[j].seconds / totalSeconds
+                                            ctx.beginPath()
+                                            ctx.strokeStyle = stats[j].color
+                                            ctx.lineWidth = lineWidth
+                                            ctx.lineCap = "round"
+                                            ctx.arc(cx, cy, radius, start, start + angle, false)
+                                            ctx.stroke()
+                                            start += angle
+                                        }
+                                    }
                                 }
 
-                                Text {
-                                    text: "今日累计"
-                                    color: textSecondary
-                                    font.pixelSize: 14
-                                    anchors.horizontalCenter: parent.horizontalCenter
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: 2
+
+                                    Text {
+                                        text: secondsToDisplay(totalTodaySeconds())
+                                        color: textPrimary
+                                        font.pixelSize: 23
+                                        font.bold: true
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                    }
+
+                                    Text {
+                                        text: "今日累计"
+                                        color: textSecondary
+                                        font.pixelSize: 12
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                    }
+                                }
+                            }
+
+                            Repeater {
+                                model: topThreeTodayTagStats()
+
+                                delegate: RowLayout {
+                                    required property var modelData
+
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Rectangle {
+                                        width: 9
+                                        height: 9
+                                        radius: 5
+                                        color: modelData.color
+                                    }
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: modelData.label
+                                        color: textSecondary
+                                        font.pixelSize: 12
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Text {
+                                        text: secondsToDisplay(modelData.seconds)
+                                        color: textPrimary
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                    }
                                 }
                             }
                         }
@@ -525,445 +602,717 @@ Item {
                 }
             }
 
-            // =========================
-            // 今日软件 + 全部自定义项目
-            // =========================
-            Row {
+            RowLayout {
+                id: coreRow
                 width: parent.width
-                height: 440
+                height: showSideRail ? 826 : 624
                 spacing: 18
 
-                // 左侧：今日软件
-                Rectangle {
-                    width: (parent.width - 18) / 2
-                    height: parent.height
-                    radius: 30
-                    color: "transparent"
-                    border.width: 1
-                    border.color: borderColor
-                    clip: true
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: 18
 
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 29
-                        color: panelGlass
-                        opacity: panelOpacity
-                        z: -1
-                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 384
+                        spacing: 18
 
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 20
-                        spacing: 14
+                        SoftCard {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 384
+                            radius: 30
+                            padding: 20
+                            fillColor: cardGlass
+                            fillOpacity: nightMode ? 0.70 : 0.82
+                            strokeColor: borderColor
+                            shadowColor: shadowColor
+                            shadowOpacity: nightMode ? 0.16 : 0.08
 
-                        Text {
-                            text: "今日软件使用"
-                            color: textPrimary
-                            font.pixelSize: 28
-                            font.bold: true
-                        }
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 14
 
-                        Repeater {
-                            model: topTodaySoftwareStats()
+                                RowLayout {
+                                    Layout.fillWidth: true
 
-                            delegate: Rectangle {
-                                required property var modelData
-
-                                width: parent.width
-                                height: 72
-                                radius: 20
-                                color: "transparent"
-                                border.width: 1
-                                border.color: softBorder
-                                clip: true
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.margins: 1
-                                    radius: 19
-                                    color: cardGlass
-                                    opacity: cardOpacity
-                                    z: -1
-                                }
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 16
-                                    anchors.rightMargin: 16
-                                    spacing: 12
-
-                                    Rectangle {
-                                        width: 12
-                                        height: 12
-                                        radius: 6
-                                        color: appColor(modelData.appId, modelData.name, modelData.path)
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Column {
-                                        width: parent.width - 118
-                                        anchors.verticalCenter: parent.verticalCenter
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
                                         spacing: 4
 
                                         Text {
-                                            text: modelData.name ? modelData.name : "Unknown app"
+                                            text: "今日自动记录"
                                             color: textPrimary
-                                            font.pixelSize: 18
+                                            font.pixelSize: 24
                                             font.bold: true
-                                            width: parent.width
-                                            elide: Text.ElideRight
                                         }
 
                                         Text {
-                                            text: modelData.subtitle ? modelData.subtitle : "Auto recorded"
+                                            text: currentSoftwareName()
                                             color: textSecondary
                                             font.pixelSize: 13
-                                            width: parent.width
                                             elide: Text.ElideRight
                                         }
                                     }
 
-                                    Item { width: 1; height: 1; Layout.fillWidth: true }
+                                    SoftPill {
+                                        compact: true
+                                        title: ""
+                                        value: secondsToDisplay(softwareUsageSecondsToday())
+                                        iconText: "A"
+                                        fillColor: softMint
+                                        strokeColor: "transparent"
+                                        accentColor: mint
+                                        valueColor: textPrimary
+                                    }
+                                }
 
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: modelData.time ? modelData.time : secondsToDisplay(modelData.seconds)
-                                        color: accentBrownDeep
-                                        font.pixelSize: 17
-                                        font.bold: true
+                                ListView {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    clip: true
+                                    spacing: 10
+                                    model: topTodaySoftwareStats(5)
+
+                                    delegate: Rectangle {
+                                        required property var modelData
+
+                                        width: ListView.view.width
+                                        height: 58
+                                        radius: 18
+                                        color: nightMode ? "#454D68" : "#FBF8F4"
+                                        border.width: 1
+                                        border.color: softBorder
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 12
+                                            spacing: 10
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 34
+                                                Layout.preferredHeight: 34
+                                                radius: 17
+                                                color: appColor(modelData.appId, modelData.name, modelData.path)
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "●"
+                                                    color: nightMode ? "#252B3D" : "#FFFDF9"
+                                                    font.pixelSize: 11
+                                                }
+                                            }
+
+                                            ColumnLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 5
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+
+                                                    Text {
+                                                        Layout.fillWidth: true
+                                                        text: modelData.name ? modelData.name : (modelData.appName ? modelData.appName : "Unknown app")
+                                                        color: textPrimary
+                                                        font.pixelSize: 14
+                                                        font.bold: true
+                                                        elide: Text.ElideRight
+                                                    }
+
+                                                    Text {
+                                                        text: modelData.time ? modelData.time : secondsToDisplay(modelData.seconds)
+                                                        color: accentText
+                                                        font.pixelSize: 12
+                                                        font.bold: true
+                                                    }
+                                                }
+
+                                                Rectangle {
+                                                    Layout.fillWidth: true
+                                                    Layout.preferredHeight: 6
+                                                    radius: 3
+                                                    color: nightMode ? "#596184" : "#EFE7DE"
+                                                    clip: true
+
+                                                    Rectangle {
+                                                        width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxSoftwareSeconds()))
+                                                        height: parent.height
+                                                        radius: 3
+                                                        color: appColor(modelData.appId, modelData.name, modelData.path)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    footer: Item {
+                                        width: ListView.view ? ListView.view.width : 0
+                                        height: topTodaySoftwareStats(5).length === 0 ? 96 : 0
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            visible: topTodaySoftwareStats(5).length === 0
+                                            text: "今天还没有自动记录"
+                                            color: textSecondary
+                                            font.pixelSize: 14
+                                        }
                                     }
                                 }
                             }
                         }
 
-                        Text {
-                            visible: topTodaySoftwareStats().length === 0
-                            text: "今天还没有自动记录的软件使用"
-                            color: textSecondary
-                            font.pixelSize: 14
+                        SoftCard {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 384
+                            radius: 30
+                            padding: 20
+                            fillColor: cardGlass
+                            fillOpacity: nightMode ? 0.70 : 0.82
+                            strokeColor: borderColor
+                            shadowColor: shadowColor
+                            shadowOpacity: nightMode ? 0.16 : 0.08
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 14
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 4
+
+                                        Text {
+                                            text: "手动项目计时"
+                                            color: textPrimary
+                                            font.pixelSize: 24
+                                            font.bold: true
+                                        }
+
+                                        Text {
+                                            text: selectedTag + "里的项目"
+                                            color: textSecondary
+                                            font.pixelSize: 13
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+
+                                    SoftButton {
+                                        text: "新建"
+                                        iconText: "+"
+                                        implicitWidth: 84
+                                        fillColor: buttonDark
+                                        hoverColor: buttonDarkHover
+                                        textColor: "#FFFDF9"
+                                        onClicked: {
+                                            tagBox.currentIndex = fixedTags.indexOf(selectedTag)
+                                            addProjectDialog.open()
+                                        }
+                                    }
+                                }
+
+                                Flow {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 88
+                                    spacing: 8
+
+                                    Repeater {
+                                        model: tagSummariesAll()
+
+                                        delegate: Rectangle {
+                                            required property var modelData
+
+                                            width: Math.max(76, (parent.width - 24) / 4)
+                                            height: 38
+                                            radius: 19
+                                            color: selectedTag === modelData.tag ? tagColor(modelData.tag) : (nightMode ? "#454D68" : "#FBF8F4")
+                                            border.width: 1
+                                            border.color: selectedTag === modelData.tag ? "transparent" : softBorder
+
+                                            Row {
+                                                anchors.centerIn: parent
+                                                spacing: 7
+
+                                                Text {
+                                                    text: tagIcon(modelData.tag)
+                                                    color: textPrimary
+                                                    font.pixelSize: 12
+                                                    font.bold: true
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                }
+
+                                                Text {
+                                                    text: modelData.tag
+                                                    color: textPrimary
+                                                    font.pixelSize: 13
+                                                    font.bold: true
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: selectedTag = modelData.tag
+                                            }
+                                        }
+                                    }
+                                }
+
+                                ListView {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    clip: true
+                                    spacing: 10
+                                    model: projectsForSelectedTag()
+
+                                    delegate: Rectangle {
+                                        required property var modelData
+
+                                        width: ListView.view.width
+                                        height: 70
+                                        radius: 20
+                                        color: nightMode ? "#454D68" : "#FBF8F4"
+                                        border.width: 1
+                                        border.color: softBorder
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 12
+                                            spacing: 10
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 36
+                                                Layout.preferredHeight: 36
+                                                radius: 18
+                                                color: tagColor(modelData.tag)
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: tagIcon(modelData.tag)
+                                                    color: textPrimary
+                                                    font.pixelSize: 13
+                                                    font.bold: true
+                                                }
+                                            }
+
+                                            ColumnLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 4
+
+                                                Text {
+                                                    Layout.fillWidth: true
+                                                    text: modelData.name
+                                                    color: textPrimary
+                                                    font.pixelSize: 15
+                                                    font.bold: true
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                RowLayout {
+                                                    Layout.fillWidth: true
+                                                    spacing: 8
+
+                                                    Text {
+                                                        text: "今日 " + secondsToDisplay(todaySecondsForProject(modelData.name, modelData.tag))
+                                                        color: accentText
+                                                        font.pixelSize: 12
+                                                        font.bold: true
+                                                    }
+
+                                                    Rectangle {
+                                                        Layout.fillWidth: true
+                                                        Layout.preferredHeight: 5
+                                                        radius: 3
+                                                        color: nightMode ? "#596184" : "#EFE7DE"
+                                                        clip: true
+
+                                                        Rectangle {
+                                                            width: parent.width * (todaySecondsForProject(modelData.name, modelData.tag) / Math.max(1, maxSelectedProjectSeconds()))
+                                                            height: parent.height
+                                                            radius: 3
+                                                            color: tagColor(modelData.tag)
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            SoftButton {
+                                                text: "开始"
+                                                implicitWidth: 74
+                                                implicitHeight: 38
+                                                radius: 15
+                                                fontSize: 13
+                                                fillColor: nightMode ? "#8E93D8" : "#1F1A17"
+                                                hoverColor: nightMode ? "#9AA0E7" : "#332C27"
+                                                textColor: "#FFFDF9"
+                                                onClicked: startProject(modelData.name, modelData.tag)
+                                            }
+                                        }
+                                    }
+
+                                    footer: Item {
+                                        width: ListView.view ? ListView.view.width : 0
+                                        height: projectsForSelectedTag().length === 0 ? 92 : 0
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            visible: projectsForSelectedTag().length === 0
+                                            text: "这个标签里还没有项目"
+                                            color: textSecondary
+                                            font.pixelSize: 14
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    SoftCard {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 222
+                        radius: 30
+                        padding: 20
+                        fillColor: cardGlass
+                        fillOpacity: nightMode ? 0.70 : 0.82
+                        strokeColor: borderColor
+                        shadowColor: shadowColor
+                        shadowOpacity: nightMode ? 0.16 : 0.08
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 14
+
+                            RowLayout {
+                                Layout.fillWidth: true
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+
+                                    Text {
+                                        text: "本周趋势预览"
+                                        color: textPrimary
+                                        font.pixelSize: 24
+                                        font.bold: true
+                                    }
+
+                                    Text {
+                                        text: "用今日分布先预览节奏，保持数据来源不变"
+                                        color: textSecondary
+                                        font.pixelSize: 13
+                                    }
+                                }
+
+                                Text {
+                                    text: secondsToDisplay(totalTodaySeconds())
+                                    color: accentText
+                                    font.pixelSize: 16
+                                    font.bold: true
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                spacing: 12
+
+                                Repeater {
+                                    model: allTodayDistributionStats()
+
+                                    delegate: ColumnLayout {
+                                        required property var modelData
+
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        spacing: 8
+
+                                        Item {
+                                            Layout.fillWidth: true
+                                            Layout.fillHeight: true
+
+                                            Rectangle {
+                                                width: Math.min(28, parent.width * 0.42)
+                                                height: parent.height
+                                                radius: 14
+                                                color: nightMode ? "#596184" : "#EFE7DE"
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                anchors.bottom: parent.bottom
+                                            }
+
+                                            Rectangle {
+                                                width: Math.min(28, parent.width * 0.42)
+                                                height: Math.max(8, parent.height * progressRatio(modelData.seconds, Math.max(1, totalTodaySeconds())))
+                                                radius: 14
+                                                color: modelData.color
+                                                anchors.horizontalCenter: parent.horizontalCenter
+                                                anchors.bottom: parent.bottom
+                                            }
+                                        }
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: modelData.label
+                                            color: textSecondary
+                                            font.pixelSize: 11
+                                            horizontalAlignment: Text.AlignHCenter
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
 
-                // 右侧：全部自定义项目
-                Rectangle {
-                    width: (parent.width - 18) / 2
-                    height: parent.height
-                    radius: 30
-                    color: "transparent"
-                    border.width: 1
-                    border.color: borderColor
-                    clip: true
+                ColumnLayout {
+                    id: sideRail
+                    Layout.preferredWidth: showSideRail ? 318 : 0
+                    Layout.maximumWidth: showSideRail ? 318 : 0
+                    Layout.fillHeight: true
+                    spacing: 18
+                    visible: showSideRail
 
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 29
-                        color: panelGlass
-                        opacity: panelOpacity
-                        z: -1
-                    }
+                    SoftCard {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 184
+                        radius: 30
+                        padding: 20
+                        fillColor: nightMode ? "#3E465F" : "#FFFDF9"
+                        fillOpacity: nightMode ? 0.74 : 0.86
+                        strokeColor: borderColor
+                        shadowColor: shadowColor
+                        shadowOpacity: nightMode ? 0.16 : 0.08
 
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 20
-                        spacing: 14
-
-                        Row {
-                            width: parent.width
+                        ColumnLayout {
+                            anchors.fill: parent
                             spacing: 12
 
-                            Column {
-                                width: parent.width - 106
-                                spacing: 4
+                            Text {
+                                text: "今日总结"
+                                color: textPrimary
+                                font.pixelSize: 22
+                                font.bold: true
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: totalTodaySeconds() > 0 ? "已经留下 " + secondsToDisplay(totalTodaySeconds()) + " 的时间轨迹。" : "今天还很安静，可以从一个小项目开始。"
+                                color: textSecondary
+                                font.pixelSize: 14
+                                wrapMode: Text.WordWrap
+                                lineHeight: 1.18
+                            }
+
+                            SoftPill {
+                                Layout.fillWidth: true
+                                title: "当前应用"
+                                value: currentSoftwareName()
+                                iconText: "●"
+                                fillColor: nightMode ? "#4A526F" : "#F7F3EE"
+                                strokeColor: softBorder
+                                accentColor: mint
+                                titleColor: textSecondary
+                                valueColor: textPrimary
+                            }
+                        }
+                    }
+
+                    SoftCard {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 196
+                        radius: 30
+                        padding: 20
+                        fillColor: nightMode ? "#3E465F" : "#FFFDF9"
+                        fillOpacity: nightMode ? 0.74 : 0.86
+                        strokeColor: borderColor
+                        shadowColor: shadowColor
+                        shadowOpacity: nightMode ? 0.16 : 0.08
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 12
+
+                            RowLayout {
+                                Layout.fillWidth: true
 
                                 Text {
-                                    text: "自定义项目"
+                                    Layout.fillWidth: true
+                                    text: "Lake progress"
                                     color: textPrimary
-                                    font.pixelSize: 28
+                                    font.pixelSize: 22
                                     font.bold: true
                                 }
 
                                 Text {
-                                    text: "先进入标签，再添加或开始具体项目"
-                                    color: textSecondary
-                                    font.pixelSize: 14
+                                    text: Math.round(progressRatio(totalTodaySeconds(), 8 * 3600) * 100) + "%"
+                                    color: accentText
+                                    font.pixelSize: 18
+                                    font.bold: true
                                 }
                             }
 
                             Rectangle {
-                                width: 94
-                                height: 38
-                                radius: 14
-                                color: nightMode ? "#59608A" : "#F3E5D6"
-                                border.width: 1
-                                border.color: softBorder
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 12
+                                radius: 6
+                                color: nightMode ? "#596184" : "#EFE7DE"
+                                clip: true
 
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: selectedTag
-                                    color: accentBrownDeep
-                                    font.pixelSize: 14
-                                    font.bold: true
+                                Rectangle {
+                                    width: parent.width * progressRatio(totalTodaySeconds(), 8 * 3600)
+                                    height: parent.height
+                                    radius: 6
+                                    color: mint
+                                }
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: "以 8 小时为满格，展示今天的积累感。"
+                                color: textSecondary
+                                font.pixelSize: 13
+                                wrapMode: Text.WordWrap
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                SoftPill {
+                                    Layout.fillWidth: true
+                                    compact: true
+                                    title: "手动"
+                                    value: secondsToDisplay(manualUsageSecondsToday())
+                                    iconText: "M"
+                                    fillColor: nightMode ? "#4A526F" : "#FBF8F4"
+                                    strokeColor: softBorder
+                                    accentColor: cream
+                                    titleColor: textSecondary
+                                    valueColor: textPrimary
+                                }
+
+                                SoftPill {
+                                    Layout.fillWidth: true
+                                    compact: true
+                                    title: "自动"
+                                    value: secondsToDisplay(softwareUsageSecondsToday())
+                                    iconText: "A"
+                                    fillColor: nightMode ? "#4A526F" : "#FBF8F4"
+                                    strokeColor: softBorder
+                                    accentColor: mint
+                                    titleColor: textSecondary
+                                    valueColor: textPrimary
                                 }
                             }
                         }
+                    }
 
-                        Grid {
-                            width: parent.width
-                            height: 98
-                            columns: 4
-                            spacing: 10
+                    SoftCard {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 392
+                        radius: 30
+                        padding: 20
+                        fillColor: nightMode ? "#3E465F" : "#FFFDF9"
+                        fillOpacity: nightMode ? 0.74 : 0.86
+                        strokeColor: borderColor
+                        shadowColor: shadowColor
+                        shadowOpacity: nightMode ? 0.16 : 0.08
 
-                            Repeater {
-                                model: tagSummariesAll()
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 14
+
+                            Text {
+                                text: "最近项目"
+                                color: textPrimary
+                                font.pixelSize: 22
+                                font.bold: true
+                            }
+
+                            ListView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                clip: true
+                                spacing: 10
+                                model: recentProjects(5)
 
                                 delegate: Rectangle {
                                     required property var modelData
 
-                                    width: (parent.width - 30) / 4
-                                    height: 42
-                                    radius: 16
-                                    color: selectedTag === modelData.tag
-                                           ? (nightMode ? "#656DA2" : "#F0D8BF")
-                                           : (nightMode ? "#343C55" : "#FFF9F2")
+                                    width: ListView.view.width
+                                    height: 58
+                                    radius: 18
+                                    color: nightMode ? "#454D68" : "#F7F3EE"
                                     border.width: 1
-                                    border.color: selectedTag === modelData.tag
-                                                  ? (nightMode ? "#C3C8FF" : "#D7AC83")
-                                                  : softBorder
+                                    border.color: softBorder
 
-                                    Row {
+                                    RowLayout {
                                         anchors.fill: parent
-                                        anchors.leftMargin: 12
-                                        anchors.rightMargin: 12
-                                        spacing: 8
+                                        anchors.margins: 12
+                                        spacing: 10
 
                                         Rectangle {
-                                            width: 10
-                                            height: 10
-                                            radius: 5
+                                            Layout.preferredWidth: 30
+                                            Layout.preferredHeight: 30
+                                            radius: 15
                                             color: tagColor(modelData.tag)
-                                            anchors.verticalCenter: parent.verticalCenter
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: tagIcon(modelData.tag)
+                                                color: textPrimary
+                                                font.pixelSize: 11
+                                                font.bold: true
+                                            }
                                         }
 
-                                        Text {
-                                            width: parent.width - 30
-                                            text: modelData.tag
-                                            color: textPrimary
-                                            font.pixelSize: 13
-                                            font.bold: true
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            elide: Text.ElideRight
-                                        }
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
 
-                                        Text {
-                                            visible: false
-                                            width: 0
-                                            text: modelData.time
-                                            color: accentBrownDeep
-                                            font.pixelSize: 11
-                                            font.bold: true
-                                            anchors.verticalCenter: parent.verticalCenter
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.name
+                                                color: textPrimary
+                                                font.pixelSize: 13
+                                                font.bold: true
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.time ? modelData.time : "0h 0m"
+                                                color: textSecondary
+                                                font.pixelSize: 11
+                                                elide: Text.ElideRight
+                                            }
                                         }
                                     }
-
-                                    MouseArea {
-                                        anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: selectedTag = modelData.tag
-                                    }
-                                }
-                            }
-                        }
-
-                        Row {
-                            width: parent.width
-                            spacing: 10
-
-                            Text {
-                                width: parent.width - 112
-                                text: selectedTag + "里的项目"
-                                color: textPrimary
-                                font.pixelSize: 20
-                                font.bold: true
-                                elide: Text.ElideRight
-                            }
-
-                            Rectangle {
-                                width: 102
-                                height: 36
-                                radius: 14
-                                color: nightMode ? "#8E93D8" : "#E8C6A3"
-                                border.width: 1
-                                border.color: nightMode ? "#757ED0" : "#D5AE86"
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "新建项目"
-                                    color: nightMode ? "#F8F7FF" : "#6A4C3B"
-                                    font.pixelSize: 13
-                                    font.bold: true
                                 }
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        tagBox.currentIndex = fixedTags.indexOf(selectedTag)
-                                        addProjectDialog.open()
+                                footer: Item {
+                                    width: ListView.view ? ListView.view.width : 0
+                                    height: recentProjects(5).length === 0 ? 80 : 0
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: recentProjects(5).length === 0
+                                        text: "还没有项目"
+                                        color: textSecondary
+                                        font.pixelSize: 13
                                     }
                                 }
                             }
                         }
-
-                        ListView {
-                            width: parent.width
-                            height: parent.height - 238
-                            clip: true
-                            spacing: 10
-                            model: projectsForSelectedTag()
-
-                            delegate: Rectangle {
-                                required property var modelData
-
-                                width: ListView.view.width
-                                height: 68
-                                radius: 18
-                                color: "transparent"
-                                border.width: 1
-                                border.color: softBorder
-                                clip: true
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.margins: 1
-                                    radius: 17
-                                    color: cardGlass
-                                    opacity: cardOpacity
-                                    z: -1
-                                }
-
-                                Row {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 14
-                                    anchors.rightMargin: 14
-                                    spacing: 10
-
-                                    Column {
-                                        width: parent.width - 104
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        spacing: 4
-
-                                        Text {
-                                            text: modelData.name
-                                            color: textPrimary
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            width: parent.width
-                                            elide: Text.ElideRight
-                                        }
-
-                                        Text {
-                                            text: "今日 " + secondsToDisplay(todaySecondsForProject(modelData.name, modelData.tag))
-                                                  + " / 累计 " + (modelData.time ? modelData.time : "0h 0m")
-                                            color: accentBrownDeep
-                                            font.pixelSize: 12
-                                            font.bold: true
-                                            width: parent.width
-                                            elide: Text.ElideRight
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        width: 82
-                                        height: 36
-                                        radius: 14
-                                        color: nightMode ? "#8E93D8" : "#E8C6A3"
-                                        border.width: 1
-                                        border.color: nightMode ? "#757ED0" : "#D5AE86"
-                                        anchors.verticalCenter: parent.verticalCenter
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "开始"
-                                            color: nightMode ? "#F8F7FF" : "#6A4C3B"
-                                            font.pixelSize: 13
-                                            font.bold: true
-                                        }
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: startProject(modelData.name, modelData.tag)
-                                        }
-                                    }
-                                }
-                            }
-
-                            footer: Item {
-                                width: ListView.view ? ListView.view.width : 0
-                                height: projectsForSelectedTag().length === 0 ? 80 : 0
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    visible: projectsForSelectedTag().length === 0
-                                    text: "这个标签里还没有项目"
-                                    color: textSecondary
-                                    font.pixelSize: 14
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // =========================
-            // 更多记录
-            // =========================
-            Rectangle {
-                width: parent.width
-                height: 220
-                radius: 30
-                color: "transparent"
-                border.width: 1
-                border.color: borderColor
-                clip: true
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    radius: 29
-                    color: panelGlass
-                    opacity: panelOpacity
-                    z: -1
-                }
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 24
-                    spacing: 14
-
-                    Text {
-                        text: "今日记录"
-                        color: textPrimary
-                        font.pixelSize: 28
-                        font.bold: true
-                    }
-
-                    Text {
-                        text: "这里以后可以继续放今日趋势、今日完成项目、今日最常用软件。"
-                        color: textSecondary
-                        font.pixelSize: 15
                     }
                 }
             }
         }
     }
 
-    // =========================
-    // 删除确认弹窗
-    // =========================
     Dialog {
         id: deleteProjectDialog
         modal: true
@@ -975,7 +1324,7 @@ Item {
 
         background: Rectangle {
             radius: 24
-            color: nightMode ? "#4A506F" : "#FBF7F2"
+            color: nightMode ? "#4A506F" : "#FBF8F4"
             border.width: 1
             border.color: borderColor
         }
@@ -1015,9 +1364,8 @@ Item {
                 Button {
                     text: "确认删除"
                     onClicked: {
-                        if (projectManager && deleteTargetProjectName.length > 0) {
+                        if (projectManager && deleteTargetProjectName.length > 0)
                             projectManager.removeProject(deleteTargetProjectName)
-                        }
                         deleteTargetProjectName = ""
                         deleteProjectDialog.close()
                     }
@@ -1026,28 +1374,36 @@ Item {
         }
     }
 
-    // =========================
-    // 右下角添加按钮
-    // =========================
     Rectangle {
         id: addButton
-        width: 68
-        height: 68
-        radius: 34
-        color: nightMode ? "#8E93D8" : accentBrown
+        width: 66
+        height: 66
+        radius: 33
+        color: buttonDark
         border.width: 1
-        border.color: nightMode ? "#757ED0" : "#D5AE86"
+        border.color: nightMode ? "#9AA0E7" : "#2D2724"
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.rightMargin: 28
-        anchors.bottomMargin: 28
+        anchors.rightMargin: 26
+        anchors.bottomMargin: 26
         z: 30
+
+        Rectangle {
+            x: 0
+            y: 7
+            width: parent.width
+            height: parent.height
+            radius: parent.radius
+            color: shadowColor
+            opacity: nightMode ? 0.20 : 0.14
+            z: -1
+        }
 
         Text {
             anchors.centerIn: parent
             text: "+"
             color: "#FFFDF9"
-            font.pixelSize: 34
+            font.pixelSize: 32
             font.bold: true
         }
 
@@ -1086,7 +1442,7 @@ Item {
 
         background: Rectangle {
             radius: 24
-            color: nightMode ? "#4A506F" : "#FBF7F2"
+            color: nightMode ? "#4A506F" : "#FBF8F4"
             border.width: 1
             border.color: borderColor
         }
@@ -1108,7 +1464,7 @@ Item {
 
                 Text {
                     text: "项目名称"
-                    color: accentBrownDeep
+                    color: accentText
                     font.pixelSize: 14
                 }
 
@@ -1125,7 +1481,7 @@ Item {
 
                 Text {
                     text: "选择标签"
-                    color: accentBrownDeep
+                    color: accentText
                     font.pixelSize: 14
                 }
 
@@ -1165,15 +1521,6 @@ Item {
                     }
                 }
             }
-        }
-    }
-
-    Connections {
-        target: projectManager
-
-        function onProjectsChanged() {
-            projectRefreshKey += 1
-            ringCanvas.requestPaint()
         }
     }
 

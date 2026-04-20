@@ -37,42 +37,42 @@ Item {
 
     // =========================
     // 全局主题颜色
-    // 白天：米色、奶茶色
-    // 夜晚：淡蓝紫、雾感紫灰
+    // 白天：奶油薄荷、米杏、浅粉紫
+    // 夜晚：保留低亮度雾感紫灰
     // =========================
 
     // 文字颜色
-    property color appTextPrimary: nightMode ? "#EAE8F8" : "#4E342E"
-    property color appTextSecondary: nightMode ? "#B8B4D4" : "#9C806C"
+    property color appTextPrimary: nightMode ? "#F3F0FF" : "#2D2724"
+    property color appTextSecondary: nightMode ? "#C9C4DD" : "#7C746D"
 
     // 侧边栏玻璃层与边框
-    property color appSidebarGlass: nightMode ? "#3E435F" : "#FFFDF9"
-    property color appSidebarBorder: nightMode ? "#6D7297" : "#D8C2AC"
+    property color appSidebarGlass: nightMode ? "#34394F" : "#FBF8F4"
+    property color appSidebarBorder: nightMode ? "#5F6687" : "#E8E0D8"
 
     // 主内容区玻璃层与边框
-    property color appPanelGlass: nightMode ? "#454B69" : "#FFFDF9"
-    property color appPanelBorder: nightMode ? "#6D7297" : "#D8C2AC"
+    property color appPanelGlass: nightMode ? "#3C425C" : "#FBF8F4"
+    property color appPanelBorder: nightMode ? "#626A90" : "#E8E0D8"
 
     // 当前选中的导航项
-    property color appSelectedItem: nightMode ? "#5B6185" : "#EFE1D0"
-    property color appSelectedItemBorder: nightMode ? "#8188B1" : "#DFCBB5"
+    property color appSelectedItem: nightMode ? "#596184" : "#DDF1E5"
+    property color appSelectedItemBorder: nightMode ? "#8188B1" : "#BFDCCB"
 
     // 收起侧栏按钮
-    property color appCollapseButton: nightMode ? "#525878" : "#F4ECE2"
-    property color appCollapseButtonBorder: nightMode ? "#767DA7" : "#E6D7C7"
+    property color appCollapseButton: nightMode ? "#4B526F" : "#F4E8C8"
+    property color appCollapseButtonBorder: nightMode ? "#767DA7" : "#E8D9BC"
 
     // 强调色（logo 圆点 / 强调按钮）
     // 白天偏奶茶，夜晚偏柔和蓝紫
-    property color appAccentWarm: nightMode ? "#8E93D8" : "#E8C6A3"
-    property color appAccentWarmText: nightMode ? "#F8F7FF" : "#6A4C3B"
+    property color appAccentWarm: nightMode ? "#8E93D8" : "#CFE8D8"
+    property color appAccentWarmText: nightMode ? "#F8F7FF" : "#2D2724"
 
     // 左下角陪伴卡片
-    property color appBottomCardBorder: nightMode ? "#7078A5" : "#ECE2D6"
-    property color appBottomCardGlass: nightMode ? "#4A506F" : "#FFFDF9"
+    property color appBottomCardBorder: nightMode ? "#7078A5" : "#E8E0D8"
+    property color appBottomCardGlass: nightMode ? "#444B67" : "#FFFDF9"
 
     // 夜晚模式下的小高光文字
     property color appNightAccentText: "#BFC7FF"
-    property color appShadowColor: nightMode ? "#05070D" : "#A67C52"
+    property color appShadowColor: nightMode ? "#05070D" : "#BFAE9D"
 
     // =========================
     // 左侧导航项
@@ -168,7 +168,7 @@ Item {
             anchors.fill: parent
             source: appBackgroundSource
             fillMode: Image.PreserveAspectCrop
-            opacity: nightMode ? 0.80 : 0.80
+            opacity: nightMode ? 0.52 : 0.12
             smooth: true
             asynchronous: true
         }
@@ -178,41 +178,41 @@ Item {
             gradient: Gradient {
                 GradientStop {
                     position: 0.0
-                    color: nightMode ? "#2D3148" : "#F6F1EA"
+                    color: nightMode ? "#2D3148" : "#F7F3EE"
                 }
                 GradientStop {
                     position: 1.0
-                    color: nightMode ? "#3B4160" : "#F3EEE5"
+                    color: nightMode ? "#3B4160" : "#FBF8F4"
                 }
             }
-            opacity: nightMode ? 0.34 : 0.20
+            opacity: nightMode ? 0.46 : 0.96
         }
 
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
-                GradientStop { position: 0.0; color: nightMode ? "#4E5578" : "#FFF9F1" }
-                GradientStop { position: 0.42; color: "transparent" }
-                GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#EBDCCB" }
+                GradientStop { position: 0.0; color: nightMode ? "#4E5578" : "#DDF1E5" }
+                GradientStop { position: 0.48; color: nightMode ? "transparent" : "#F7F3EE" }
+                GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#F4E8C8" }
             }
-            opacity: nightMode ? 0.28 : 0.22
+            opacity: nightMode ? 0.28 : 0.30
         }
     }
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 18
+        anchors.margins: 20
+        spacing: 20
 
         // =========================
         // 左侧侧边栏
         // =========================
         Rectangle {
             id: sidebar
-            width: sidebarCollapsed ? 92 : 240
+            width: sidebarCollapsed ? 88 : 232
             Layout.preferredWidth: width
             Layout.fillHeight: true
-            radius: 24
+            radius: 30
             color: "transparent"
             border.width: 1
             border.color: appSidebarBorder
@@ -224,7 +224,7 @@ Item {
                 height: parent.height
                 radius: parent.radius
                 color: appShadowColor
-                opacity: nightMode ? 0.28 : 0.10
+                opacity: nightMode ? 0.24 : 0.09
                 z: -2
             }
 
@@ -238,27 +238,27 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 23
+                radius: 29
                 color: appSidebarGlass
-                opacity: nightMode ? 0.82 : 0.76
+                opacity: nightMode ? 0.88 : 0.92
                 z: -1
             }
 
             Column {
                 anchors.fill: parent
-                anchors.margins: 16
+                anchors.margins: 18
                 spacing: 16
 
                 // 顶部 Logo
                 Row {
                     width: parent.width
-                    height: 60
+                    height: 62
                     spacing: 12
 
                     Rectangle {
-                        width: 30
-                        height: 30
-                        radius: 15
+                        width: 36
+                        height: 36
+                        radius: 18
                         color: appAccentWarm
                         anchors.verticalCenter: parent.verticalCenter
 
@@ -266,7 +266,7 @@ Item {
                             anchors.centerIn: parent
                             text: "T"
                             color: appAccentWarmText
-                            font.pixelSize: 16
+                            font.pixelSize: 17
                             font.bold: true
                         }
                     }
@@ -275,7 +275,7 @@ Item {
                         visible: !sidebarCollapsed
                         text: "TimeArc"
                         color: appTextPrimary
-                        font.pixelSize: 24
+                        font.pixelSize: 23
                         font.bold: true
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -285,7 +285,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     height: 48
-                    radius: 12
+                    radius: 18
                     color: appCollapseButton
                     border.width: 1
                     border.color: appCollapseButtonBorder
@@ -293,7 +293,7 @@ Item {
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: 1
-                        radius: 15
+                        radius: 17
                         color: "#FFFFFF"
                         opacity: nightMode ? 0.07 : 0.18
                         z: -1
@@ -305,7 +305,7 @@ Item {
 
                         Text {
                             text: sidebarCollapsed ? "»" : "«"
-                            color: nightMode ? "#D5DAFF" : "#8A654C"
+                            color: nightMode ? "#D5DAFF" : "#2D2724"
                             font.pixelSize: 18
                             font.bold: true
                         }
@@ -329,7 +329,7 @@ Item {
                 // 导航列表
                 Column {
                     width: parent.width
-                    spacing: 10
+                    spacing: 8
 
                     Repeater {
                         model: navItems
@@ -339,10 +339,10 @@ Item {
                             required property var modelData
 
                             width: parent.width
-                            height: 58
-                            radius: 12
+                            height: 56
+                            radius: 18
                             color: selectedIndex === index && !showingTimerPage ? appSelectedItem
-                                   : navMouse.containsMouse ? (nightMode ? "#525878" : "#F4ECE2")
+                                   : navMouse.containsMouse ? (nightMode ? "#4B526F" : "#F4E8C8")
                                                             : "transparent"
                             border.width: selectedIndex === index && !showingTimerPage ? 1 : 0
                             border.color: appSelectedItemBorder
@@ -354,7 +354,7 @@ Item {
                             Row {
                                 anchors.verticalCenter: parent.verticalCenter
                                 anchors.left: sidebarCollapsed ? undefined : parent.left
-                                anchors.leftMargin: sidebarCollapsed ? 0 : 18
+                                anchors.leftMargin: sidebarCollapsed ? 0 : 16
                                 anchors.horizontalCenter: sidebarCollapsed ? parent.horizontalCenter : undefined
                                 spacing: 14
 
@@ -371,7 +371,7 @@ Item {
                                     visible: !sidebarCollapsed
                                     text: modelData.title
                                     color: selectedIndex === index && !showingTimerPage ? appTextPrimary : appTextSecondary
-                                    font.pixelSize: 17
+                                    font.pixelSize: 16
                                     font.weight: Font.Medium
                                     anchors.verticalCenter: parent.verticalCenter
                                 }
@@ -400,8 +400,8 @@ Item {
                 Rectangle {
                     visible: !sidebarCollapsed
                     width: parent.width
-                    height: 116
-                    radius: 16
+                    height: 122
+                    radius: 22
                     color: appBottomCardGlass
                     border.width: 1
                     border.color: appBottomCardBorder
@@ -429,8 +429,8 @@ Item {
 
                         Text {
                             text: nightMode ? "夜晚模式中" : "白天模式中"
-                            color: nightMode ? appNightAccentText : "#A96F46"
-                            font.pixelSize: 24
+                            color: nightMode ? appNightAccentText : "#2F7A5B"
+                            font.pixelSize: 22
                             font.bold: true
                         }
 
@@ -451,7 +451,7 @@ Item {
             id: contentPanel
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 26
+            radius: 32
             color: "transparent"
             border.width: 1
             border.color: appPanelBorder
@@ -463,16 +463,16 @@ Item {
                 height: parent.height
                 radius: parent.radius
                 color: appShadowColor
-                opacity: nightMode ? 0.30 : 0.11
+                opacity: nightMode ? 0.26 : 0.08
                 z: -2
             }
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 25
+                radius: 31
                 color: appPanelGlass
-                opacity: nightMode ? 0.66 : 0.58
+                opacity: nightMode ? 0.76 : 0.88
                 z: -1
             }
 

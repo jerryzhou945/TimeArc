@@ -1,38 +1,66 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "../components"
 
 Item {
     id: root
     anchors.fill: parent
     clip: true
 
-    // ===== 从 AppShell 传入主题 =====
     property bool nightMode: false
-    property color themeTextPrimary: "#4E342E"
-    property color themeTextSecondary: "#9C806C"
-    property color themePanelColor: "#FFFDF9"
-    property color themeBorderColor: "#D8C2AC"
-    property color themeAccentColor: "#E8C6A3"
+    property color themeTextPrimary: "#2D2724"
+    property color themeTextSecondary: "#7C746D"
+    property color themePanelColor: "#FBF8F4"
+    property color themeBorderColor: "#E8E0D8"
+    property color themeAccentColor: "#CFE8D8"
 
     property color textPrimary: themeTextPrimary
     property color textSecondary: themeTextSecondary
-    property color borderColor: themeBorderColor
-    property color accentColor: themeAccentColor
-
-    // 白底/奶茶底，更容易看清
-    property color panelGlass: nightMode ? "#2C334A" : "#FFFFFF"
-    property real panelOpacity: nightMode ? 0.68 : 0.62
-
-    property color cardGlass: nightMode ? "#343C55" : "#FFFFFF"
-    property real cardOpacity: nightMode ? 0.62 : 0.58
-
-    property color softBorder: nightMode ? "#757CA6" : "#E6D6C5"
-    property color progressBg: nightMode ? "#46516F" : "#E7E2D9"
-    property color strongText: nightMode ? "#D9D8FF" : "#A56D46"
+    property color panelColor: nightMode ? "#353C55" : "#FBF8F4"
+    property color cardColor: nightMode ? "#3E465F" : "#FFFDF9"
+    property color cardSoft: nightMode ? "#454D68" : "#F7F3EE"
+    property color mint: nightMode ? "#7780B5" : "#CFE8D8"
+    property color lightMint: nightMode ? "#596184" : "#DDF1E5"
+    property color cream: nightMode ? "#555A78" : "#F4E8C8"
+    property color almond: nightMode ? "#5A5268" : "#EFDCC3"
+    property color blush: nightMode ? "#65536A" : "#EBC9CF"
+    property color lavender: nightMode ? "#60668C" : "#D9D0F2"
+    property color borderColor: nightMode ? "#626A90" : "#E8E0D8"
+    property color softBorder: nightMode ? "#737BA4" : "#EFE7DE"
+    property color progressBg: nightMode ? "#596184" : "#EFE7DE"
+    property color shadowColor: nightMode ? "#05070D" : "#BFAE9D"
+    property color strongText: nightMode ? "#DADDFD" : "#2F7A5B"
 
     // 0=今日 1=本月 2=本年 3=全部
     property int selectedRange: 3
+    property var softwareStats: []
+    property int projectRefreshKey: 0
+
+    onSelectedRangeChanged: refreshSoftwareStats()
+
+    Connections {
+        target: usageStatManager
+
+        function onUsageStatsChanged() {
+            root.softwareStats = usageStatManager ? usageStatManager.activeSoftwareForRange(root.rangeKey()) : []
+        }
+    }
+
+    Connections {
+        target: projectManager
+
+        function onProjectsChanged() {
+            projectRefreshKey += 1
+        }
+    }
+
+    Timer {
+        interval: 5000
+        running: true
+        repeat: true
+        onTriggered: refreshSoftwareStats()
+    }
 
     function rangeKey() {
         if (selectedRange === 0) return "day"
@@ -49,146 +77,10 @@ Item {
     }
 
     function minutesToDisplay(minutes) {
-        var total = Math.max(0, Math.floor(minutes))
+        var total = Math.max(0, Math.floor(minutes ? minutes : 0))
         var h = Math.floor(total / 60)
         var m = total % 60
         return h + "h " + m + "m"
-    }
-
-    function projectMinutesForCurrentRange() {
-        if (!projectManager)
-            return 0
-
-        if (selectedRange === 0)
-            return projectManager.todayProjectMinutes
-        if (selectedRange === 1)
-            return projectManager.monthProjectMinutes
-        if (selectedRange === 2)
-            return projectManager.yearProjectMinutes
-        return projectManager.allProjectMinutes
-    }
-
-    function tagColor(tag) {
-        if (tag === "学习") return "#B7A6F0"
-        if (tag === "工作") return "#D7B79A"
-        if (tag === "运动") return "#B4C986"
-        if (tag === "娱乐") return "#DFA65F"
-        if (tag === "阅读") return "#A9BFE6"
-        if (tag === "社交") return "#C7ADD9"
-        if (tag === "生活") return "#E2B6C3"
-        return "#B7AEA6"
-    }
-
-    function projectColor(tag) {
-        return tagColor(tag)
-    }
-
-    function currentProjects() {
-        if (!projectManager)
-            return []
-
-        var raw = projectManager.projectsForRange(rangeKey())
-        var filtered = []
-
-        for (var i = 0; i < raw.length; i++) {
-            var sec = raw[i].seconds ? raw[i].seconds : 0
-            if (sec > 0)
-                filtered.push(raw[i])
-        }
-
-        filtered.sort(function(a, b) {
-            var aSec = a.seconds ? a.seconds : 0
-            var bSec = b.seconds ? b.seconds : 0
-            return bSec - aSec
-        })
-
-        return filtered
-    }
-
-    function maxProjectSeconds() {
-        var list = currentProjects()
-        if (!list || list.length === 0)
-            return 1
-        return list[0].seconds ? list[0].seconds : 1
-    }
-
-    // ===== 软件使用时长：读取 Windows 自动统计 JSONL =====
-    property var softwareStatsDay: [
-        { name: "微信", minutes: 45, note: "自动记录" },
-        { name: "Chrome", minutes: 38, note: "自动记录" },
-        { name: "VS Code", minutes: 72, note: "自动记录" },
-        { name: "QQ音乐", minutes: 21, note: "自动记录" }
-    ]
-
-    property var softwareStatsMonth: [
-        { name: "微信", minutes: 420, note: "自动记录" },
-        { name: "Chrome", minutes: 580, note: "自动记录" },
-        { name: "VS Code", minutes: 910, note: "自动记录" },
-        { name: "QQ音乐", minutes: 260, note: "自动记录" },
-        { name: "Steam", minutes: 190, note: "自动记录" }
-    ]
-
-    property var softwareStatsYear: [
-        { name: "微信", minutes: 2100, note: "自动记录" },
-        { name: "Chrome", minutes: 3460, note: "自动记录" },
-        { name: "VS Code", minutes: 4880, note: "自动记录" },
-        { name: "QQ音乐", minutes: 1620, note: "自动记录" },
-        { name: "Steam", minutes: 1330, note: "自动记录" }
-    ]
-
-    property var softwareStatsAll: [
-        { name: "微信", minutes: 2350, note: "自动记录" },
-        { name: "Chrome", minutes: 3910, note: "自动记录" },
-        { name: "VS Code", minutes: 5320, note: "自动记录" },
-        { name: "QQ音乐", minutes: 1740, note: "自动记录" },
-        { name: "Steam", minutes: 1490, note: "自动记录" }
-    ]
-
-    property var softwareStats: []
-
-    onSelectedRangeChanged: refreshSoftwareStats()
-
-    Component.onCompleted: refreshSoftwareStats()
-
-    Connections {
-        target: usageStatManager
-
-        function onUsageStatsChanged() {
-            root.softwareStats = usageStatManager ? usageStatManager.activeSoftwareForRange(root.rangeKey()) : []
-        }
-    }
-
-    Timer {
-        interval: 5000
-        running: true
-        repeat: true
-        onTriggered: refreshSoftwareStats()
-    }
-
-    function refreshSoftwareStats() {
-        if (!usageStatManager) {
-            softwareStats = []
-            return
-        }
-
-        usageStatManager.refresh()
-        softwareStats = usageStatManager.activeSoftwareForRange(rangeKey())
-    }
-
-    function currentSoftwareStats() {
-        return softwareStats ? softwareStats : []
-    }
-
-    function totalSoftwareMinutes() {
-        return Math.floor(totalSoftwareSeconds() / 60)
-    }
-
-    function totalSoftwareSeconds() {
-        var list = currentSoftwareStats()
-        var totalSeconds = 0
-        for (var i = 0; i < list.length; i++)
-            totalSeconds += list[i].seconds ? list[i].seconds : 0
-        return totalSeconds
     }
 
     function secondsToDisplay(seconds) {
@@ -205,16 +97,109 @@ Item {
         return m + "m"
     }
 
-    function maxSoftwareSeconds() {
-        var list = currentSoftwareStats()
-        if (!list || list.length === 0)
-            return 1
+    function projectMinutesForCurrentRange() {
+        projectRefreshKey
+        if (!projectManager)
+            return 0
 
-        var sorted = list.slice()
-        sorted.sort(function(a, b) {
+        if (selectedRange === 0)
+            return projectManager.todayProjectMinutes
+        if (selectedRange === 1)
+            return projectManager.monthProjectMinutes
+        if (selectedRange === 2)
+            return projectManager.yearProjectMinutes
+        return projectManager.allProjectMinutes
+    }
+
+    function refreshSoftwareStats() {
+        if (!usageStatManager) {
+            softwareStats = []
+            return
+        }
+
+        usageStatManager.refresh()
+        softwareStats = usageStatManager.activeSoftwareForRange(rangeKey())
+    }
+
+    function currentSoftwareStats() {
+        return softwareStats ? softwareStats : []
+    }
+
+    function totalSoftwareSeconds() {
+        var list = currentSoftwareStats()
+        var totalSeconds = 0
+        for (var i = 0; i < list.length; i++)
+            totalSeconds += list[i].seconds ? list[i].seconds : 0
+        return totalSeconds
+    }
+
+    function totalCombinedSeconds() {
+        return totalSoftwareSeconds() + projectMinutesForCurrentRange() * 60
+    }
+
+    function currentProjects() {
+        projectRefreshKey
+        if (!projectManager)
+            return []
+
+        var raw = projectManager.projectsForRange(rangeKey())
+        var filtered = []
+        for (var i = 0; i < raw.length; i++) {
+            var sec = raw[i].seconds ? raw[i].seconds : 0
+            if (sec > 0)
+                filtered.push(raw[i])
+        }
+
+        filtered.sort(function(a, b) {
+            var aSec = a.seconds ? a.seconds : 0
+            var bSec = b.seconds ? b.seconds : 0
+            return bSec - aSec
+        })
+
+        return filtered
+    }
+
+    function currentSoftwareStatsSorted() {
+        var list = currentSoftwareStats().slice()
+        list.sort(function(a, b) {
             return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
         })
-        return sorted[0].seconds > 0 ? sorted[0].seconds : 1
+        return list
+    }
+
+    function topSoftware(maxCount) {
+        var list = currentSoftwareStatsSorted()
+        return list.length > maxCount ? list.slice(0, maxCount) : list
+    }
+
+    function topProjects(maxCount) {
+        var list = currentProjects()
+        return list.length > maxCount ? list.slice(0, maxCount) : list
+    }
+
+    function maxSoftwareSeconds() {
+        var list = currentSoftwareStatsSorted()
+        if (!list || list.length === 0)
+            return 1
+        return list[0].seconds > 0 ? list[0].seconds : 1
+    }
+
+    function maxProjectSeconds() {
+        var list = currentProjects()
+        if (!list || list.length === 0)
+            return 1
+        return list[0].seconds ? list[0].seconds : 1
+    }
+
+    function tagColor(tag) {
+        if (tag === "学习") return "#D9D0F2"
+        if (tag === "工作") return "#EFDCC3"
+        if (tag === "运动") return "#CFE8D8"
+        if (tag === "娱乐") return "#EBC9CF"
+        if (tag === "阅读") return "#BFD7EA"
+        if (tag === "社交") return "#E7D4EA"
+        if (tag === "生活") return "#DDF1E5"
+        return "#D8D1CA"
     }
 
     function containsAny(text, words) {
@@ -226,7 +211,7 @@ Item {
     }
 
     function hashedColor(text) {
-        var palette = ["#E8C6A3", "#8E93D8", "#7FB3A1", "#DFA65F", "#A9BFE6", "#D98E9F", "#B4C986", "#C7ADD9", "#78A6C8", "#C58C7B"]
+        var palette = ["#CFE8D8", "#D9D0F2", "#EFDCC3", "#EBC9CF", "#BFD7EA", "#DDF1E5", "#E7D4EA", "#D8D1CA"]
         var hash = 0
         for (var i = 0; i < text.length; i++)
             hash = ((hash * 31) + text.charCodeAt(i)) & 0x7fffffff
@@ -236,563 +221,511 @@ Item {
     function appColor(appId, appName, path) {
         var text = ((appId || "") + " " + (appName || "") + " " + (path || "")).toLowerCase()
 
-        if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"]))
-            return "#D33A31"   // NetEase Cloud Music
-        if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"]))
-            return "#4285F4"   // Chrome
-        if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"]))
-            return "#007ACC"   // VS Code
-        if (containsAny(text, ["discord"]))
-            return "#5865F2"   // Discord
-        if (containsAny(text, ["weixin", "wechat"]))
-            return "#07C160"   // WeChat
-        if (containsAny(text, ["qqmusic", "qqmusic.exe"]))
-            return "#31C27C"   // QQ Music
-        if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"]))
-            return "#1B2838"   // Steam
-        if (containsAny(text, ["msedge", "edge.exe"]))
-            return "#0AA6A6"   // Microsoft Edge
-        if (containsAny(text, ["firefox"]))
-            return "#FF7139"   // Firefox
-        if (containsAny(text, ["photoshop"]))
-            return "#31A8FF"   // Photoshop
-        if (containsAny(text, ["illustrator"]))
-            return "#FF9A00"   // Illustrator
-        if (containsAny(text, ["premiere"]))
-            return "#9999FF"   // Premiere
-        if (containsAny(text, ["obsidian"]))
-            return "#7C3AED"   // Obsidian
-        if (containsAny(text, ["notion"]))
-            return nightMode ? "#EDEDED" : "#111111"
-        if (containsAny(text, ["word.exe", "winword"]))
-            return "#2B579A"   // Word
-        if (containsAny(text, ["excel.exe"]))
-            return "#217346"   // Excel
-        if (containsAny(text, ["powerpnt.exe", "powerpoint"]))
-            return "#D24726"   // PowerPoint
-        if (containsAny(text, ["explorer.exe", "windows\\explorer"]))
-            return "#F2C14E"   // File Explorer
-        if (containsAny(text, ["powershell", "windowsterminal", "cmd.exe"]))
-            return "#4D8BFF"   // Terminal
-        if (containsAny(text, ["telegram"]))
-            return "#2AABEE"   // Telegram
-        if (containsAny(text, ["spotify"]))
-            return "#1DB954"   // Spotify
-        if (containsAny(text, ["zoom.exe"]))
-            return "#2D8CFF"   // Zoom
+        if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D98E9F"
+        if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#BFD7EA"
+        if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#9FC7DE"
+        if (containsAny(text, ["discord"])) return "#D9D0F2"
+        if (containsAny(text, ["weixin", "wechat"])) return "#CFE8D8"
+        if (containsAny(text, ["qqmusic", "qqmusic.exe"])) return "#DDF1E5"
+        if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"])) return "#B9B5C8"
+        if (containsAny(text, ["msedge", "edge.exe"])) return "#A8D5C0"
+        if (containsAny(text, ["firefox"])) return "#EFDCC3"
+        if (containsAny(text, ["photoshop"])) return "#BFD7EA"
+        if (containsAny(text, ["illustrator"])) return "#EFDCC3"
+        if (containsAny(text, ["premiere"])) return "#D9D0F2"
+        if (containsAny(text, ["obsidian"])) return "#D9D0F2"
+        if (containsAny(text, ["notion"])) return nightMode ? "#EDEDED" : "#2D2724"
+        if (containsAny(text, ["word.exe", "winword"])) return "#BFD7EA"
+        if (containsAny(text, ["excel.exe"])) return "#CFE8D8"
+        if (containsAny(text, ["powerpnt.exe", "powerpoint"])) return "#EBC9CF"
+        if (containsAny(text, ["explorer.exe", "windows\\explorer"])) return "#F4E8C8"
+        if (containsAny(text, ["powershell", "windowsterminal", "cmd.exe"])) return "#BFD7EA"
+        if (containsAny(text, ["telegram"])) return "#BFD7EA"
+        if (containsAny(text, ["spotify"])) return "#CFE8D8"
+        if (containsAny(text, ["zoom.exe"])) return "#BFD7EA"
 
         return hashedColor(text)
     }
 
-    function currentSoftwareStatsSorted() {
-        var list = currentSoftwareStats().slice()
-        list.sort(function(a, b) {
-            return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
-        })
-        return list
+    function summaryStats() {
+        return [
+            { title: "总时长", value: secondsToDisplay(totalCombinedSeconds()), note: rangeText() + "视图", icon: "Σ", color: mint },
+            { title: "软件使用", value: secondsToDisplay(totalSoftwareSeconds()), note: "自动记录", icon: "A", color: lightMint },
+            { title: "自定义项目", value: minutesToDisplay(projectMinutesForCurrentRange()), note: "手动计时", icon: "M", color: cream }
+        ]
+    }
+
+    function distributionStats() {
+        return [
+            { label: "软件使用", seconds: totalSoftwareSeconds(), color: mint },
+            { label: "手动项目", seconds: projectMinutesForCurrentRange() * 60, color: lavender }
+        ]
+    }
+
+    function ratio(seconds) {
+        return Math.min(1, Math.max(0, seconds / Math.max(1, totalCombinedSeconds())))
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        radius: 28
+        color: panelColor
+        opacity: nightMode ? 0.28 : 0.42
     }
 
     ScrollView {
         anchors.fill: parent
-        anchors.margins: 6
+        anchors.margins: 4
         clip: true
 
         Column {
             id: pageColumn
-            width: root.width - 24
+            width: root.width - 16
             spacing: 18
 
-            // ===== 顶部标题 =====
             Rectangle {
                 width: parent.width
-                height: 112
-                radius: 28
+                height: 150
+                radius: 34
                 color: "transparent"
                 border.width: 1
-                border.color: borderColor
-                clip: true
+                border.color: nightMode ? "#697195" : "#D8E7DC"
+
+                Rectangle {
+                    x: 0
+                    y: 10
+                    width: parent.width
+                    height: parent.height
+                    radius: parent.radius
+                    color: shadowColor
+                    opacity: nightMode ? 0.16 : 0.08
+                    z: -2
+                }
 
                 Rectangle {
                     anchors.fill: parent
                     anchors.margins: 1
-                    radius: 27
-                    color: panelGlass
-                    opacity: panelOpacity
+                    radius: 33
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: nightMode ? "#495170" : "#CFE8D8" }
+                        GradientStop { position: 1.0; color: nightMode ? "#383E57" : "#F4E8C8" }
+                    }
+                    opacity: nightMode ? 0.88 : 0.96
                     z: -1
                 }
 
-                Column {
-                    anchors.left: parent.left
-                    anchors.leftMargin: 24
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 8
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 24
+                    spacing: 20
 
-                    Text {
-                        text: "时间统计"
-                        color: textPrimary
-                        font.pixelSize: 34
-                        font.bold: true
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        SoftPill {
+                            compact: true
+                            title: ""
+                            value: rangeText() + " dashboard"
+                            iconText: "S"
+                            fillColor: nightMode ? "#535B7B" : "#FFFDF9"
+                            strokeColor: nightMode ? "#737BA4" : "#E8E0D8"
+                            accentColor: mint
+                            valueColor: textPrimary
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: "时间统计"
+                            color: textPrimary
+                            font.pixelSize: 36
+                            font.bold: true
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: "查看软件使用时长与自定义项目时长"
+                            color: textSecondary
+                            font.pixelSize: 15
+                        }
                     }
 
-                    Text {
-                        text: "查看软件使用时长与自定义项目时长"
-                        color: textSecondary
-                        font.pixelSize: 15
-                    }
-                }
+                    Rectangle {
+                        Layout.preferredWidth: 410
+                        Layout.preferredHeight: 52
+                        radius: 22
+                        color: nightMode ? "#454D68" : "#FFFDF9"
+                        border.width: 1
+                        border.color: nightMode ? "#737BA4" : "#E8E0D8"
 
-                Rectangle {
-                    width: 110
-                    height: 42
-                    radius: 16
-                    color: nightMode ? "#626A95" : "#EFE1D0"
-                    opacity: 0.94
-                    anchors.right: parent.right
-                    anchors.rightMargin: 24
-                    anchors.verticalCenter: parent.verticalCenter
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            spacing: 6
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: rangeText()
-                        color: textPrimary
-                        font.pixelSize: 15
-                        font.bold: true
+                            Repeater {
+                                model: ["今日", "本月", "本年", "全部"]
+
+                                delegate: Rectangle {
+                                    required property int index
+                                    required property string modelData
+
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    radius: 17
+                                    color: root.selectedRange === index ? (nightMode ? "#8E93D8" : "#1F1A17") : "transparent"
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData
+                                        color: root.selectedRange === index ? "#FFFDF9" : textSecondary
+                                        font.pixelSize: 14
+                                        font.bold: root.selectedRange === index
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.selectedRange = index
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            // ===== 时间范围切换 =====
-            Rectangle {
+            GridLayout {
                 width: parent.width
-                height: 76
-                radius: 24
-                color: "transparent"
-                border.width: 1
-                border.color: borderColor
-                clip: true
+                columns: 3
+                columnSpacing: 18
+                rowSpacing: 18
 
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    radius: 23
-                    color: panelGlass
-                    opacity: panelOpacity
-                    z: -1
-                }
+                Repeater {
+                    model: summaryStats()
 
-                Row {
-                    anchors.centerIn: parent
-                    spacing: 14
+                    delegate: SoftCard {
+                        required property var modelData
 
-                    Repeater {
-                        model: ["今日", "本月", "本年", "全部"]
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 132
+                        radius: 28
+                        padding: 18
+                        fillColor: cardColor
+                        fillOpacity: nightMode ? 0.74 : 0.86
+                        strokeColor: borderColor
+                        shadowColor: shadowColor
+                        shadowOpacity: nightMode ? 0.15 : 0.07
 
-                        delegate: Rectangle {
-                            required property int index
-                            required property string modelData
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 9
 
-                            width: 100
-                            height: 42
-                            radius: 14
-                            color: root.selectedRange === index
-                                   ? (nightMode ? "#8E93D8" : "#E8C6A3")
-                                   : (nightMode ? "#343C58" : "#F1EDE6")
-                            opacity: root.selectedRange === index ? 0.96 : 0.86
-                            border.width: 1
-                            border.color: root.selectedRange === index
-                                          ? (nightMode ? "#757ED0" : "#D5AE86")
-                                          : "transparent"
+                            RowLayout {
+                                Layout.fillWidth: true
+
+                                Rectangle {
+                                    Layout.preferredWidth: 34
+                                    Layout.preferredHeight: 34
+                                    radius: 17
+                                    color: modelData.color
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: modelData.icon
+                                        color: textPrimary
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: modelData.title
+                                    color: textSecondary
+                                    font.pixelSize: 14
+                                }
+                            }
 
                             Text {
-                                anchors.centerIn: parent
-                                text: modelData
-                                color: root.selectedRange === index
-                                       ? (nightMode ? "#F8F7FF" : "#FFFFFF")
-                                       : textPrimary
-                                font.pixelSize: 14
-                                font.bold: root.selectedRange === index
+                                Layout.fillWidth: true
+                                text: modelData.value
+                                color: textPrimary
+                                font.pixelSize: 28
+                                font.bold: true
+                                elide: Text.ElideRight
                             }
 
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.selectedRange = index
+                            Text {
+                                Layout.fillWidth: true
+                                text: modelData.note
+                                color: strongText
+                                font.pixelSize: 13
+                                font.bold: true
                             }
                         }
                     }
                 }
             }
 
-            // ===== 概览 =====
-            Row {
+            SoftCard {
                 width: parent.width
-                spacing: 18
+                height: 250
+                radius: 30
+                padding: 22
+                fillColor: cardColor
+                fillOpacity: nightMode ? 0.74 : 0.86
+                strokeColor: borderColor
+                shadowColor: shadowColor
+                shadowOpacity: nightMode ? 0.16 : 0.08
 
-                Rectangle {
-                    width: (parent.width - 36) / 3
-                    height: 132
-                    radius: 24
-                    color: "transparent"
-                    border.width: 1
-                    border.color: borderColor
-                    clip: true
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 16
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Text {
+                                text: rangeText() + "时间分布"
+                                color: textPrimary
+                                font.pixelSize: 24
+                                font.bold: true
+                            }
+
+                            Text {
+                                text: "自动记录与手动项目的占比"
+                                color: textSecondary
+                                font.pixelSize: 13
+                            }
+                        }
+
+                        SoftPill {
+                            compact: true
+                            title: ""
+                            value: secondsToDisplay(totalCombinedSeconds())
+                            iconText: "Σ"
+                            fillColor: lightMint
+                            strokeColor: softBorder
+                            accentColor: mint
+                            valueColor: textPrimary
+                        }
+                    }
 
                     Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 23
-                        color: panelGlass
-                        opacity: panelOpacity
-                        z: -1
-                    }
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34
+                        radius: 17
+                        color: progressBg
+                        clip: true
 
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 10
+                        Row {
+                            anchors.fill: parent
 
-                        Text {
-                            text: "总时长"
-                            color: textSecondary
-                            font.pixelSize: 15
-                        }
+                            Repeater {
+                                model: distributionStats()
 
-                        Text {
-                            text: secondsToDisplay(totalSoftwareSeconds() + projectMinutesForCurrentRange() * 60)
-                            color: textPrimary
-                            font.pixelSize: 26
-                            font.bold: true
-                        }
+                                delegate: Rectangle {
+                                    required property var modelData
 
-                        Text {
-                            text: rangeText() + "视图"
-                            color: strongText
-                            font.pixelSize: 13
+                                    width: Math.max(modelData.seconds > 0 ? 10 : 0, parent.width * ratio(modelData.seconds))
+                                    height: parent.height
+                                    color: modelData.color
+                                }
+                            }
                         }
                     }
-                }
 
-                Rectangle {
-                    width: (parent.width - 36) / 3
-                    height: 132
-                    radius: 24
-                    color: "transparent"
-                    border.width: 1
-                    border.color: borderColor
-                    clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 23
-                        color: panelGlass
-                        opacity: panelOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 10
-
-                        Text {
-                            text: "软件使用"
-                            color: textSecondary
-                            font.pixelSize: 15
-                        }
-
-                        Text {
-                            text: secondsToDisplay(totalSoftwareSeconds())
-                            color: textPrimary
-                            font.pixelSize: 26
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "自动记录"
-                            color: strongText
-                            font.pixelSize: 13
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: (parent.width - 36) / 3
-                    height: 132
-                    radius: 24
-                    color: "transparent"
-                    border.width: 1
-                    border.color: borderColor
-                    clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 23
-                        color: panelGlass
-                        opacity: panelOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 10
-
-                        Text {
-                            text: "自定义项目"
-                            color: textSecondary
-                            font.pixelSize: 15
-                        }
-
-                        Text {
-                            text: minutesToDisplay(projectMinutesForCurrentRange())
-                            color: textPrimary
-                            font.pixelSize: 26
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "手动计时"
-                            color: strongText
-                            font.pixelSize: 13
-                        }
-                    }
-                }
-            }
-
-            // ===== 左右双栏 =====
-            Row {
-                width: parent.width
-                spacing: 18
-
-                // 软件
-                Rectangle {
-                    width: (parent.width - 18) / 2
-                    height: 490
-                    radius: 30
-                    color: "transparent"
-                    border.width: 1
-                    border.color: borderColor
-                    clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 29
-                        color: panelGlass
-                        opacity: panelOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 20
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
                         spacing: 14
 
-                        Text {
-                            text: rangeText() + "软件使用时长"
-                            color: textPrimary
-                            font.pixelSize: 28
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "按使用量查看各软件时长"
-                            color: textSecondary
-                            font.pixelSize: 14
-                        }
-
-                        ListView {
-                            width: parent.width
-                            height: parent.height - 76
-                            clip: true
-                            spacing: 12
-                            model: currentSoftwareStatsSorted()
+                        Repeater {
+                            model: distributionStats()
 
                             delegate: Rectangle {
                                 required property var modelData
 
-                                width: ListView.view.width
-                                height: 104
-                                radius: 20
-                                color: "transparent"
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                radius: 22
+                                color: cardSoft
                                 border.width: 1
                                 border.color: softBorder
-                                clip: true
 
-                                Rectangle {
+                                RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 1
-                                    radius: 19
-                                    color: cardGlass
-                                    opacity: cardOpacity
-                                    z: -1
-                                }
+                                    anchors.margins: 16
+                                    spacing: 12
 
-                                Column {
-                                    anchors.fill: parent
-                                    anchors.margins: 14
-                                    spacing: 10
+                                    Rectangle {
+                                        Layout.preferredWidth: 42
+                                        Layout.preferredHeight: 42
+                                        radius: 21
+                                        color: modelData.color
+                                    }
 
-                                    Item {
-                                        width: parent.width
-                                        height: 24
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 4
 
                                         Text {
-                                            text: modelData.name ? modelData.name : (modelData.appName ? modelData.appName : "Unknown app")
+                                            Layout.fillWidth: true
+                                            text: modelData.label
                                             color: textPrimary
-                                            font.pixelSize: 17
+                                            font.pixelSize: 16
                                             font.bold: true
-                                            width: parent.width - timeLabel.width - 16
-                                            anchors.left: parent.left
-                                            anchors.verticalCenter: parent.verticalCenter
                                             elide: Text.ElideRight
                                         }
 
                                         Text {
-                                            id: timeLabel
-                                            text: modelData.time ? modelData.time : minutesToDisplay(modelData.minutes)
-                                            color: strongText
-                                            font.pixelSize: 15
-                                            font.bold: true
-                                            anchors.right: parent.right
-                                            anchors.verticalCenter: parent.verticalCenter
+                                            Layout.fillWidth: true
+                                            text: secondsToDisplay(modelData.seconds)
+                                            color: textSecondary
+                                            font.pixelSize: 13
+                                            elide: Text.ElideRight
                                         }
                                     }
 
                                     Text {
-                                        text: modelData.subtitle ? modelData.subtitle : (modelData.appName ? modelData.appName : modelData.note)
-                                        color: textSecondary
-                                        font.pixelSize: 12
-                                        width: parent.width
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Rectangle {
-                                        width: parent.width
-                                        height: 8
-                                        radius: 4
-                                        color: progressBg
-                                        opacity: 0.92
-                                        clip: true
-
-                                        Rectangle {
-                                            width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxSoftwareSeconds()))
-                                            height: parent.height
-                                            radius: 4
-                                            color: appColor(modelData.appId, modelData.name, modelData.path)
-                                        }
+                                        text: Math.round(ratio(modelData.seconds) * 100) + "%"
+                                        color: strongText
+                                        font.pixelSize: 18
+                                        font.bold: true
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
 
-                // 手动项目
-                Rectangle {
-                    width: (parent.width - 18) / 2
-                    height: 540
+            RowLayout {
+                width: parent.width
+                spacing: 18
+
+                SoftCard {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 520
                     radius: 30
-                    color: "transparent"
-                    border.width: 1
-                    border.color: borderColor
-                    clip: true
+                    padding: 20
+                    fillColor: cardColor
+                    fillOpacity: nightMode ? 0.74 : 0.86
+                    strokeColor: borderColor
+                    shadowColor: shadowColor
+                    shadowOpacity: nightMode ? 0.16 : 0.08
 
-                    Rectangle {
+                    ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 29
-                        color: panelGlass
-                        opacity: panelOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 20
                         spacing: 14
 
-                        Text {
-                            text: rangeText() + "自定义项目时长"
-                            color: textPrimary
-                            font.pixelSize: 28
-                            font.bold: true
-                        }
+                        RowLayout {
+                            Layout.fillWidth: true
 
-                        Text {
-                            text: "来自你的手动计时记录"
-                            color: textSecondary
-                            font.pixelSize: 14
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                Text {
+                                    text: "Top apps"
+                                    color: textPrimary
+                                    font.pixelSize: 24
+                                    font.bold: true
+                                }
+
+                                Text {
+                                    text: rangeText() + "软件使用排行"
+                                    color: textSecondary
+                                    font.pixelSize: 13
+                                }
+                            }
+
+                            Text {
+                                text: topSoftware(99).length + " 个"
+                                color: textSecondary
+                                font.pixelSize: 13
+                            }
                         }
 
                         ListView {
-                            width: parent.width
-                            height: parent.height - 76
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
                             clip: true
                             spacing: 12
-                            model: currentProjects()
+                            model: topSoftware(8)
 
                             delegate: Rectangle {
                                 required property var modelData
 
                                 width: ListView.view.width
-                                height: 112
-                                radius: 20
-                                color: "transparent"
+                                height: 76
+                                radius: 22
+                                color: cardSoft
                                 border.width: 1
                                 border.color: softBorder
-                                clip: true
 
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.margins: 1
-                                    radius: 19
-                                    color: cardGlass
-                                    opacity: cardOpacity
-                                    z: -1
-                                }
-
-                                Column {
+                                RowLayout {
                                     anchors.fill: parent
                                     anchors.margins: 14
                                     spacing: 12
 
-                                    Text {
-                                        text: modelData.name ? modelData.name : "未命名项目"
-                                        color: textPrimary
-                                        font.pixelSize: 17
-                                        font.bold: true
-                                        width: parent.width
-                                        elide: Text.ElideRight
-                                    }
-
-                                    Row {
-                                        width: parent.width
-                                        spacing: 10
+                                    Rectangle {
+                                        Layout.preferredWidth: 42
+                                        Layout.preferredHeight: 42
+                                        radius: 21
+                                        color: appColor(modelData.appId, modelData.name, modelData.path)
 
                                         Text {
-                                            text: modelData.time ? modelData.time : "0h 0m"
-                                            color: strongText
-                                            font.pixelSize: 14
+                                            anchors.centerIn: parent
+                                            text: index + 1
+                                            color: textPrimary
+                                            font.pixelSize: 12
                                             font.bold: true
                                         }
                                     }
 
-                                    Rectangle {
-                                        width: parent.width
-                                        height: 8
-                                        radius: 4
-                                        color: progressBg
-                                        opacity: 0.92
-                                        clip: true
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.name ? modelData.name : (modelData.appName ? modelData.appName : "Unknown app")
+                                                color: textPrimary
+                                                font.pixelSize: 15
+                                                font.bold: true
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                text: modelData.time ? modelData.time : secondsToDisplay(modelData.seconds)
+                                                color: strongText
+                                                font.pixelSize: 13
+                                                font.bold: true
+                                            }
+                                        }
 
                                         Rectangle {
-                                            width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxProjectSeconds()))
-                                            height: parent.height
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 7
                                             radius: 4
-                                            color: projectColor(modelData.tag)
+                                            color: progressBg
+                                            clip: true
+
+                                            Rectangle {
+                                                width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxSoftwareSeconds()))
+                                                height: parent.height
+                                                radius: 4
+                                                color: appColor(modelData.appId, modelData.name, modelData.path)
+                                            }
                                         }
                                     }
                                 }
@@ -800,14 +733,160 @@ Item {
 
                             footer: Item {
                                 width: ListView.view ? ListView.view.width : 0
-                                height: currentProjects().length === 0 ? 120 : 0
+                                height: topSoftware(8).length === 0 ? 120 : 0
 
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: currentProjects().length === 0
-                                    text: "这个时间范围里还没有项目记录"
+                                    visible: topSoftware(8).length === 0
+                                    text: "当前范围还没有软件记录"
                                     color: textSecondary
-                                    font.pixelSize: 15
+                                    font.pixelSize: 14
+                                }
+                            }
+                        }
+                    }
+                }
+
+                SoftCard {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 520
+                    radius: 30
+                    padding: 20
+                    fillColor: cardColor
+                    fillOpacity: nightMode ? 0.74 : 0.86
+                    strokeColor: borderColor
+                    shadowColor: shadowColor
+                    shadowOpacity: nightMode ? 0.16 : 0.08
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: 14
+
+                        RowLayout {
+                            Layout.fillWidth: true
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 4
+
+                                Text {
+                                    text: "Top projects"
+                                    color: textPrimary
+                                    font.pixelSize: 24
+                                    font.bold: true
+                                }
+
+                                Text {
+                                    text: rangeText() + "自定义项目排行"
+                                    color: textSecondary
+                                    font.pixelSize: 13
+                                }
+                            }
+
+                            Text {
+                                text: topProjects(99).length + " 个"
+                                color: textSecondary
+                                font.pixelSize: 13
+                            }
+                        }
+
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            spacing: 12
+                            model: topProjects(8)
+
+                            delegate: Rectangle {
+                                required property var modelData
+
+                                width: ListView.view.width
+                                height: 82
+                                radius: 22
+                                color: cardSoft
+                                border.width: 1
+                                border.color: softBorder
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 14
+                                    spacing: 12
+
+                                    Rectangle {
+                                        Layout.preferredWidth: 42
+                                        Layout.preferredHeight: 42
+                                        radius: 21
+                                        color: tagColor(modelData.tag)
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: index + 1
+                                            color: textPrimary
+                                            font.pixelSize: 12
+                                            font.bold: true
+                                        }
+                                    }
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.name ? modelData.name : "未命名项目"
+                                                color: textPrimary
+                                                font.pixelSize: 15
+                                                font.bold: true
+                                                elide: Text.ElideRight
+                                            }
+
+                                            Text {
+                                                text: modelData.time ? modelData.time : secondsToDisplay(modelData.seconds)
+                                                color: strongText
+                                                font.pixelSize: 13
+                                                font.bold: true
+                                            }
+                                        }
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: modelData.tag ? modelData.tag : "未分类"
+                                            color: textSecondary
+                                            font.pixelSize: 12
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 7
+                                            radius: 4
+                                            color: progressBg
+                                            clip: true
+
+                                            Rectangle {
+                                                width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxProjectSeconds()))
+                                                height: parent.height
+                                                radius: 4
+                                                color: tagColor(modelData.tag)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            footer: Item {
+                                width: ListView.view ? ListView.view.width : 0
+                                height: topProjects(8).length === 0 ? 120 : 0
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: topProjects(8).length === 0
+                                    text: "当前范围还没有项目记录"
+                                    color: textSecondary
+                                    font.pixelSize: 14
                                 }
                             }
                         }
@@ -821,4 +900,6 @@ Item {
             }
         }
     }
+
+    Component.onCompleted: refreshSoftwareStats()
 }

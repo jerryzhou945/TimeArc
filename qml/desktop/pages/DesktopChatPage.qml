@@ -12,19 +12,19 @@ Item {
     // 如果没传，就先用白天默认值
     // =========================
     property bool nightMode: false
-    property color themeTextPrimary: "#4C342C"
-    property color themeTextSecondary: "#9E8471"
+    property color themeTextPrimary: "#2D2724"
+    property color themeTextSecondary: "#7C746D"
     property color themePanelColor: "#FFFDF9"
-    property color themeBorderColor: "#DDC9B5"
-    property color themeAccentColor: "#DDB892"
+    property color themeBorderColor: "#E8E0D8"
+    property color themeAccentColor: "#CFE8D8"
 
     // =========================
     // 页面内部颜色
     // 白天：米色暖棕
     // 夜晚：淡蓝紫、雾感灰紫
     // =========================
-    property color bgTop: nightMode ? "#2F344D" : "#FBF7F2"
-    property color bgBottom: nightMode ? "#424865" : "#F2E8DE"
+    property color bgTop: nightMode ? "#30364D" : "#F7F3EE"
+    property color bgBottom: nightMode ? "#424865" : "#FBF8F4"
 
     property color panelColor: themePanelColor
     property color borderColor: themeBorderColor
@@ -34,27 +34,27 @@ Item {
     property color textSecondary: themeTextSecondary
 
     property color accentBrown: themeAccentColor
-    property color accentBrownDeep: nightMode ? "#D8D9FF" : "#A56D46"
+    property color accentBrownDeep: nightMode ? "#D8D9FF" : "#2F7A5B"
 
-    property color bubbleMine: nightMode ? "#6A72A8" : "#EFD9C1"
-    property color bubbleOther: nightMode ? "#565E86" : "#FFF9F2"
+    property color bubbleMine: nightMode ? "#6A72A8" : "#DDF1E5"
+    property color bubbleOther: nightMode ? "#565E86" : "#FFFDF9"
 
-    property color topLightCard: nightMode ? "#59608A" : "#FFF6EC"
-    property color topButtonBg: nightMode ? "#59608A" : "#F3E5D6"
-    property color topButtonBorder: nightMode ? "#7A82B0" : "#DEC9B2"
+    property color topLightCard: nightMode ? "#59608A" : "#DDF1E5"
+    property color topButtonBg: nightMode ? "#59608A" : "#F4E8C8"
+    property color topButtonBorder: nightMode ? "#7A82B0" : "#E8E0D8"
 
-    property color inputPanelColor: nightMode ? "#4D5478" : "#FFFDF9"
+    property color inputPanelColor: nightMode ? "#4D5478" : "#FBF8F4"
     property color inputFieldColor: nightMode ? "#525A82" : "#FFFDF9"
-    property color inputFieldBorder: nightMode ? "#757CA6" : "#E8DDD1"
+    property color inputFieldBorder: nightMode ? "#757CA6" : "#E8E0D8"
 
-    property color sendButtonColor: nightMode ? "#8E93D8" : "#E7C29D"
-    property color sendButtonBorder: nightMode ? "#757ED0" : "#D5AE86"
+    property color sendButtonColor: nightMode ? "#8E93D8" : "#1F1A17"
+    property color sendButtonBorder: nightMode ? "#757ED0" : "#2D2724"
 
-    property color pendingImageBar: nightMode ? "#586083" : "#F4E7D8"
-    property color pendingImageBorder: nightMode ? "#7A82B0" : "#E2D0BC"
+    property color pendingImageBar: nightMode ? "#586083" : "#F4E8C8"
+    property color pendingImageBorder: nightMode ? "#7A82B0" : "#E8E0D8"
 
-    property color timeChipColor: nightMode ? "#59608A" : "#F4E9DC"
-    property color timeChipBorder: nightMode ? "#7A82B0" : "#E7D8C7"
+    property color timeChipColor: nightMode ? "#59608A" : "#F7F3EE"
+    property color timeChipBorder: nightMode ? "#7A82B0" : "#E8E0D8"
 
     property string pendingImagePath: ""
     property string previewImagePath: ""
@@ -178,6 +178,7 @@ Item {
         y: -60
         color: "#FFFFFF"
         opacity: nightMode ? 0.05 : 0.10
+        visible: false
     }
 
     Rectangle {
@@ -188,6 +189,7 @@ Item {
         y: 90
         color: nightMode ? "#7A80B4" : "#F6EBDD"
         opacity: nightMode ? 0.08 : 0.14
+        visible: false
     }
 
     ColumnLayout {
@@ -201,7 +203,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 92
-            radius: 30
+            radius: 28
             color: "transparent"
             border.width: 1
             border.color: borderColor
@@ -209,24 +211,24 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 29
+                radius: 27
                 color: panelColor
-                opacity: nightMode ? 0.76 : 0.56
+                opacity: nightMode ? 0.78 : 0.82
                 z: -1
             }
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 29
+                radius: 27
                 color: "transparent"
 
                 Rectangle {
                     width: parent.width * 0.42
                     height: parent.height
-                    radius: 29
+                    radius: 27
                     color: nightMode ? "#6670A6" : topLightCard
-                    opacity: nightMode ? 0.14 : 0.30
+                    opacity: nightMode ? 0.14 : 0.32
                 }
             }
 
@@ -247,7 +249,7 @@ Item {
                         width: 32
                         height: 32
                         radius: 16
-                        color: nightMode ? "#56608A" : "#F8EFE5"
+                        color: nightMode ? "#56608A" : "#FFFDF9"
                     }
 
                     Text {
@@ -314,7 +316,7 @@ Item {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 32
+            radius: 30
             color: "transparent"
             border.width: 1
             border.color: borderColor
@@ -322,18 +324,18 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 31
+                radius: 29
                 color: panelColor
-                opacity: nightMode ? 0.74 : 0.48
+                opacity: nightMode ? 0.74 : 0.80
                 z: -1
             }
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 10
-                radius: 26
+                radius: 24
                 color: "#FFFFFF"
-                opacity: nightMode ? 0.04 : 0.08
+                opacity: nightMode ? 0.04 : 0.18
             }
 
             ListView {
@@ -401,8 +403,8 @@ Item {
                                 height: textBubble.height
                                 x: textBubble.x
                                 y: textBubble.y + 3
-                                color: nightMode ? "#000000" : "#A67C52"
-                                opacity: nightMode ? 0.10 : 0.04
+                            color: nightMode ? "#000000" : "#BFAE9D"
+                            opacity: nightMode ? 0.10 : 0.06
 
                                 topLeftRadius: 22
                                 topRightRadius: 22
@@ -422,8 +424,8 @@ Item {
                                 color: isMine ? bubbleMine : bubbleOther
                                 border.width: 1
                                 border.color: isMine
-                                              ? (nightMode ? "#8A92C5" : "#D8B99A")
-                                              : (nightMode ? "#6E76A4" : "#E8DDD1")
+                                              ? (nightMode ? "#8A92C5" : "#BFDCCB")
+                                              : (nightMode ? "#6E76A4" : "#E8E0D8")
 
                                 topLeftRadius: 22
                                 topRightRadius: 22
@@ -477,7 +479,7 @@ Item {
                                 x: imageBubble.x
                                 y: imageBubble.y + 4
                                 radius: imageBubble.radius
-                                color: nightMode ? "#000000" : "#A67C52"
+                                color: nightMode ? "#000000" : "#BFAE9D"
                                 opacity: nightMode ? 0.12 : 0.05
                             }
 
@@ -489,9 +491,9 @@ Item {
                                 x: isMine ? parent.width - width - 18 : 6
 
                                 radius: 22
-                                color: nightMode ? "#5A628B" : "#F8F1E8"
+                                color: nightMode ? "#5A628B" : "#FBF8F4"
                                 border.width: 1
-                                border.color: nightMode ? "#7A82B0" : "#E5D4C2"
+                                border.color: nightMode ? "#7A82B0" : "#E8E0D8"
                                 clip: true
 
                                 implicitHeight: height
@@ -544,7 +546,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: pendingImagePath === "" ? inputPanel.implicitHeight + 20
                                                            : inputPanel.implicitHeight + 68
-            radius: 30
+            radius: 28
             color: "transparent"
             border.width: 1
             border.color: borderColor
@@ -552,16 +554,16 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 29
+                radius: 27
                 color: inputPanelColor
-                opacity: nightMode ? 0.76 : 0.56
+                opacity: nightMode ? 0.78 : 0.88
                 z: -1
             }
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 29
+                radius: 27
                 color: "transparent"
 
                 Rectangle {
@@ -569,9 +571,9 @@ Item {
                     y: 10
                     width: parent.width * 0.5
                     height: parent.height * 0.7
-                    radius: 26
+                    radius: 24
                     color: "#FFFFFF"
-                    opacity: nightMode ? 0.04 : 0.10
+                    opacity: nightMode ? 0.04 : 0.16
                 }
             }
 
