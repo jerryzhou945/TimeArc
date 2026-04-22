@@ -11,6 +11,9 @@
 #include <sys/stat.h>
 #endif
 
+// 路径工具只负责决定 TimeArc 使用数据放在哪里，并确保目录存在。
+// Windows: %LOCALAPPDATA%\TimeArc\usage
+// 其他平台: ~/.timearc/usage
 static int copy_string(char* dst, size_t dst_size, const char* src) {
   if (dst == NULL || dst_size == 0 || src == NULL) {
     return -1;
@@ -47,6 +50,8 @@ int timearc_get_usage_data_dir(char* out_path, size_t out_path_size) {
   char base[1024];
 
 #ifdef _WIN32
+  // 优先 LOCALAPPDATA，回退 APPDATA。使用用户目录而不是程序目录，避免安装路径
+  // 权限问题，也让 UI 和 service 能读到同一份数据。
   const char* local_app_data = getenv("LOCALAPPDATA");
   if (local_app_data == NULL || local_app_data[0] == '\0') {
     local_app_data = getenv("APPDATA");
@@ -91,6 +96,7 @@ int timearc_get_usage_data_dir(char* out_path, size_t out_path_size) {
 }
 
 int timearc_get_usage_jsonl_path(char* out_path, size_t out_path_size) {
+  // 历史记录：追加写，每行一个 JSON object。
   char dir[1024];
   if (timearc_get_usage_data_dir(dir, sizeof(dir)) != 0) {
     return -1;
@@ -110,6 +116,7 @@ int timearc_get_usage_jsonl_path(char* out_path, size_t out_path_size) {
 }
 
 int timearc_get_usage_current_path(char* out_path, size_t out_path_size) {
+  // 实时快照：覆盖写，UI 只读取当前这一段，不把它当历史记录。
   char dir[1024];
   if (timearc_get_usage_data_dir(dir, sizeof(dir)) != 0) {
     return -1;

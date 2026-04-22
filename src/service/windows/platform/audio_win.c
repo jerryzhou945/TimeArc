@@ -14,6 +14,8 @@
 #include <string.h>
 #include <time.h>
 
+// 某些 MinGW/SDK 组合没有暴露 IAudioMeterInformation 的 C 接口定义。
+// 这里补一个最小 vtable，让 C 代码可以读取音频峰值判断“真的有声音”。
 #ifndef __IAudioMeterInformation_INTERFACE_DEFINED__
 #define __IAudioMeterInformation_INTERFACE_DEFINED__
 
@@ -56,9 +58,13 @@ interface IAudioMeterInformation {
 
 #define TIMEARC_AUDIO_PEAK_THRESHOLD 0.005f
 
+// COM 初始化是线程级状态。采样函数可能被未来的测试或工具直接调用，所以
+// 在本文件里懒初始化，并记录是否需要由我们自己 CoUninitialize。
 static int g_com_initialized = 0;
 static int g_should_uninitialize_com = 0;
 
+// 以下几个工具函数和 active_app_win.c 类似：把 Windows 的 pid/路径/UTF-16
+// 转成 TimeArc 统一使用的 UTF-8 AppInfo。
 static void copy_string(char* dst, size_t dst_size, const char* src) {
   if (dst == NULL || dst_size == 0) {
     return;
@@ -164,6 +170,8 @@ static int ensure_com_initialized(void) {
   }
 
   if (hr == RPC_E_CHANGED_MODE) {
+    // 当前线程已经被别的代码用不同 COM 模式初始化过。仍然可以继续使用
+    // 已存在的 COM apartment，但不能由这里负责反初始化。
     g_com_initialized = 1;
     g_should_uninitialize_com = 0;
     return 0;
@@ -210,13 +218,14 @@ static int contains_ascii_case_insensitive(const char* text,
 }
 
 static int should_ignore_audio_process(const char* path) {
-  // Wallpaper Engine commonly exposes a continuous audio session for animated
-  // wallpapers/visualizers. Treat it as desktop decoration, not intentional
-  // media playback.
+  // Wallpaper Engine 经常为动态壁纸暴露持续音频会话。这里把它视为桌面装饰，
+  // 不算作用户主动播放的媒体。
   return contains_ascii_case_insensitive(path, "\\wallpaper_engine\\");
 }
 
 static int session_has_audio_peak(IAudioSessionControl* control) {
+  // AudioSessionStateActive 只能说明会话处于活动态，不代表当前有可听声音。
+  // 再读取峰值可以过滤掉暂停、静音或残留的空会话。
   IAudioMeterInformation* meter = NULL;
   if (FAILED(IAudioSessionControl_QueryInterface(
           control, &IID_IAudioMeterInformation, (void**)&meter)) ||
@@ -260,6 +269,7 @@ static int session_is_audible(IAudioSessionControl* control) {
 }
 
 static void fill_audio_app(AppInfo* app, DWORD pid, const char* path) {
+  // 音频会话没有前台窗口标题，所以用固定标题区分它是 audio 来源的记录。
   memset(app, 0, sizeof(*app));
   app->process_id = (uint32_t)pid;
   app->timestamp = time(NULL);
@@ -288,6 +298,7 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
   IAudioSessionManager2* session_manager = NULL;
   IAudioSessionEnumerator* session_enumerator = NULL;
 
+  // 路径：默认播放设备 -> IAudioSessionManager2 -> 当前音频 session 列表。
   HRESULT hr = CoCreateInstance(&CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL,
                                 &IID_IMMDeviceEnumerator,
                                 (void**)&device_enumerator);
@@ -342,6 +353,7 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
     DWORD pid = 0;
     HRESULT system_sound_hr =
         IAudioSessionControl2_IsSystemSoundsSession(control2);
+    // 系统提示音没有稳定应用身份，这里直接跳过，避免把 Windows 自己计入使用。
     if (system_sound_hr == S_OK ||
         FAILED(IAudioSessionControl2_GetProcessId(control2, &pid)) ||
         pid == 0) {

@@ -11,6 +11,8 @@
 
 static volatile LONG g_stop_requested = 0;
 
+// 控制台关闭或未来服务 stop 信号会设置这个标记。主循环每轮检查一次，
+// 这样可以在退出前正常 flush 当前 session。
 void timearc_usage_tracker_request_stop(void) {
   InterlockedExchange(&g_stop_requested, 1);
 }
@@ -27,8 +29,7 @@ static int64_t unix_time_sec(void) {
   value.LowPart = ft.dwLowDateTime;
   value.HighPart = ft.dwHighDateTime;
 
-  // FILETIME counts 100 ns ticks since 1601-01-01; subtract the Unix epoch
-  // offset and convert to whole seconds for the shared usage record schema.
+  // FILETIME 从 1601-01-01 开始计 100ns tick；存储协议使用 Unix 秒。
   return (int64_t)((value.QuadPart - 116444736000000000ULL) / 10000000ULL);
 }
 
@@ -37,14 +38,15 @@ static int same_active_app(const AppInfo* a, const AppInfo* b) {
     return 0;
   }
 
+  // 前台使用按“同一个 exe + 同一个窗口标题”连续计时。浏览器切换网页标题时
+  // 会自然切开，这正是当前保守版站点识别的基础。
   return strcmp(a->exec_path, b->exec_path) == 0 &&
          strcmp(a->window_title, b->window_title) == 0;
 }
 
 static void close_session(const AppInfo* app, int64_t start_sec,
                           int64_t end_sec) {
-  // Zero-length sessions are ignored so brief polling jitter does not create
-  // noisy records.
+  // 0 秒片段直接丢弃，避免轮询边界抖动制造噪声记录。
   if (app == NULL || app->exec_path[0] == '\0' || end_sec <= start_sec) {
     return;
   }
@@ -90,12 +92,11 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   while (!should_stop()) {
     int64_t now_sec = unix_time_sec();
 
-    // Audio playback is tracked independently from keyboard/mouse idle state.
+    // 音频播放独立于键鼠空闲：人离开电脑但音乐/视频还在播放时，仍然记录 audio。
     timearc_audio_tracker_poll(&audio_state, now_sec);
 
-    // Foreground usage still respects idle state. If the user is idle, any
-    // active foreground session is closed and no new foreground app is recorded
-    // until input resumes.
+    // foreground 使用尊重空闲状态：人离开后关闭当前前台 session，
+    // 等下一次输入恢复再重新开始。
     int is_idle = timearc_win_is_idle(active_config.idle_threshold_ms);
 
     if (is_idle) {
@@ -116,8 +117,7 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
       continue;
     }
 
-    // A session starts on the first non-idle sample and rolls over whenever the
-    // foreground executable or title changes.
+    // 第一轮非空闲采样开启 session；之后只要 exe 或标题变化就滚动到新 session。
     if (!has_session) {
       current_app = next_app;
       session_start_sec = now_sec;

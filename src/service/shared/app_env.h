@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Jeff Zhang
 
+// AppEnv 是较早的跨平台前台应用抽象。
+//
+// 当前 Windows 新实现已经拆到了 windows/platform/*，但这个接口仍然保留给
+// macOS/旧代码路径参考：平台层填充窗口标题、应用名、pid，tracker 只消费统一字段。
 // AppEnv represents the environment for retrieving app information. It
 // abstracts away window-manager-specific details and provides a consistent
 // interface for the rest of the service to interact with.
@@ -20,35 +24,31 @@ extern "C" {
 typedef struct AppEnv AppEnv;
 
 typedef struct AppEnvOps {
-  // Updates window_title, app_name, and current_pid.
+  // 刷新 window_title、app_name 和 current_pid。
   void (*Update)(AppEnv* env);
 
-  // Returns the number of seconds the user has been idle. Generally, this is
-  // the time since the last input event (mouse movement, key press, etc.). But
-  // the exact definition of "idle" can vary based on the platform.
+  // 返回用户空闲秒数。不同平台对“空闲”的底层定义略有差异。
   double (*GetIdleSeconds)(AppEnv* env);
 
-  // Retrieves the executable path of the current app and fills it into
-  // exec_path. The exec_path buffer has a size of exec_path_size bytes. It uses
-  // current_pid to determine which process's executable path to retrieve.
+  // 根据 current_pid 查询当前应用可执行路径，写入调用方提供的 buffer。
   void (*GetExecPath)(AppEnv* env, char* exec_path, size_t exec_path_size);
 
-  // Cleans up any resources associated with the AppEnv instance.
+  // 清理平台实现持有的资源。
   void (*Destroy)(AppEnv* env);
 
 } AppEnvOps;
 
 struct AppEnv {
-  // The title of the currently active window.
+  // 当前前台窗口标题。
   char window_title[TA_MAX_TITLE_BYTES];
 
-  // The name of the currently active application.
+  // 当前前台应用名。
   char app_name[TA_MAX_NAME_BYTES];
 
-  // The process ID of the currently active application.
+  // 当前前台应用 pid。
   uint32_t current_pid;
 
-  // Function pointers for platform-specific operations.
+  // 平台相关操作表。
   const AppEnvOps* ops;
 };
 

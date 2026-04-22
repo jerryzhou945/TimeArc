@@ -4,6 +4,10 @@
 #include <QObject>
 #include <QTimer>
 
+// 手动计时器服务。
+//
+// 它只维护“当前项目 + 已经过秒数 + 是否运行”，真正把时间写入项目历史由
+// QML 接收到 timerStopped 后调用 ProjectManager 完成。
 class TimerManager : public QObject {
   Q_OBJECT
   Q_PROPERTY(

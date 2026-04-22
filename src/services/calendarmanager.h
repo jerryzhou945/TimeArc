@@ -4,6 +4,10 @@
 #include <QObject>
 #include <QString>
 
+// 日历页轻量数据服务。
+//
+// QML 负责编辑待办、每日照片和选中日期；这里只做持久化和少量 JSON 修改。
+// 数据暂存在 QSettings 中，savedTodos/dayPhotos 本身是 QML 使用的 JSON 字符串。
 class CalendarManager : public QObject {
   Q_OBJECT
 

@@ -6,6 +6,10 @@
 #include <QSettings>
 #include <QVariantList>
 
+// 手动项目和日历待办时间的聚合服务。
+//
+// m_projects 保存项目列表和累计显示字段；m_sessions 保存每次计时的明细。
+// UI 的“今日/本月/全年/全部”视图都从 m_sessions 重新聚合，避免历史明细丢失。
 class ProjectManager : public QObject {
   Q_OBJECT
 
@@ -46,6 +50,7 @@ class ProjectManager : public QObject {
 
   Q_INVOKABLE void addProject(const QString& name, const QString& tag);
   Q_INVOKABLE void ensureProject(const QString& name, const QString& tag);
+  // 给已存在项目追加“今天”的手动计时时长。
   Q_INVOKABLE void addElapsedTime(const QString& projectName,
                                   int elapsedSeconds);
   Q_INVOKABLE void addElapsedTimeForTag(const QString& projectName,
@@ -59,6 +64,7 @@ class ProjectManager : public QObject {
                                             const QString& linkedProjectName,
                                             int elapsedSeconds,
                                             const QString& dateText);
+  // 写一条不一定绑定项目的时间明细，主要给日历待办和未来导入入口使用。
   Q_INVOKABLE void recordTimeEntryOnDate(const QString& title,
                                          const QString& tag,
                                          int elapsedSeconds,
@@ -80,8 +86,8 @@ class ProjectManager : public QObject {
   void projectsChanged();
 
  private:
-  QVariantList m_projects;
-  QVariantList m_sessions;
+  QVariantList m_projects;  // 项目主表：name/tag/seconds/time。
+  QVariantList m_sessions;  // 时间流水：date/source/displayName/seconds 等。
 
   void loadProjects();
   void saveProjects();

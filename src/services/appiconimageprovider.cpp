@@ -12,6 +12,8 @@ AppIconImageProvider::AppIconImageProvider()
 
 QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
                                             const QSize& requestedSize) {
+  // QML 传入的 id 是 percent-encoded 路径。这里解码后交给 QFileIconProvider，
+  // 由系统决定 exe/快捷方式/文件的最佳图标。
   const int requestedSide =
       qMax(requestedSize.width(), requestedSize.height());
   const int side = qBound(16, requestedSide > 0 ? requestedSide : 64, 256);
@@ -27,6 +29,7 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
     }
   }
 
+  // 返回透明图而不是 null pixmap，可以让 QML 布局尺寸保持稳定。
   if (pixmap.isNull()) pixmap = transparentPixmap(side);
 
   if (requestedSize.isValid() && !requestedSize.isEmpty()) {

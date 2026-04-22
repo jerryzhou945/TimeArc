@@ -9,6 +9,11 @@
 
 class QJsonObject;
 
+// 自动使用统计服务。
+//
+// 这个类运行在 Qt UI 进程中，读取 Windows service 写出的 JSONL/current 文件，
+// 再聚合成 QML 可直接展示的 QVariantMap 列表。它不负责采集，只负责读取、
+// 归类、合并 foreground/audio 时间段，以及给当前页面提供实时状态。
 class UsageStatManager : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString usageRecordsPath READ usageRecordsPath CONSTANT)
@@ -27,9 +32,12 @@ class UsageStatManager : public QObject {
   int allSoftwareMinutes() const;
 
   Q_INVOKABLE void refresh();
+  // active = foreground + audio 合并视图；重叠时间会按区间合并，避免双算。
   Q_INVOKABLE QVariantList softwareForRange(const QString& range) const;
   Q_INVOKABLE QVariantList activeSoftwareForRange(const QString& range) const;
+  // 只看前台窗口使用时长。
   Q_INVOKABLE QVariantList foregroundSoftwareForRange(const QString& range) const;
+  // 只看音频播放时长。
   Q_INVOKABLE QVariantList audioForRange(const QString& range) const;
   Q_INVOKABLE int softwareSecondsForRange(const QString& range) const;
   Q_INVOKABLE int activeSoftwareSecondsForRange(const QString& range) const;
@@ -42,6 +50,7 @@ signals:
 
  private:
   struct UsageRecord {
+    // 对应 usage_record JSON 的字段；live 表示来自 usage_current.json。
     QString appId;
     QString source;
     QString appName;

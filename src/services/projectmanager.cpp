@@ -1,14 +1,16 @@
 #include "projectmanager.h"
 
-#include <algorithm>
 #include <QMap>
 #include <QStringList>
 #include <QVariantMap>
+#include <algorithm>
 
 namespace {
+// 固定标签顺序和 QML 中的标签筛选保持一致。当前文件里的中文显示受历史编码
+// 影响看起来像乱码，但值需要保持不变以兼容已有 QSettings 数据。
 const QStringList kFixedTags = {"学习", "工作", "运动", "娱乐",
                                 "阅读", "社交", "生活", "其他"};
-}
+}  // namespace
 
 ProjectManager::ProjectManager(QObject* parent) : QObject(parent) {
   loadProjects();
@@ -72,6 +74,7 @@ void ProjectManager::ensureProject(const QString& name, const QString& tag) {
 
 void ProjectManager::addElapsedTime(const QString& projectName,
                                     int elapsedSeconds) {
+  // 旧入口只按项目名找项目，适合首页手动计时。带 tag 的入口用于日历/分类页。
   if (elapsedSeconds <= 0) return;
 
   int index = findProjectIndex(projectName);
@@ -134,10 +137,13 @@ void ProjectManager::addElapsedTimeForTagOnDate(const QString& projectName,
   emit projectsChanged();
 }
 
-void ProjectManager::addTodoElapsedTimeOnDate(
-    const QString& todoText, const QString& tag,
-    const QString& linkedProjectName, int elapsedSeconds,
-    const QString& dateText) {
+void ProjectManager::addTodoElapsedTimeOnDate(const QString& todoText,
+                                              const QString& tag,
+                                              const QString& linkedProjectName,
+                                              int elapsedSeconds,
+                                              const QString& dateText) {
+  // 日历待办可以只作为一条时间明细存在，也可以绑定到项目。绑定项目时，
+  // 项目累计时长和明细流水都会增加。
   if (elapsedSeconds <= 0) return;
 
   const QString trimmedLinkedProject = linkedProjectName.trimmed();
@@ -173,10 +179,12 @@ void ProjectManager::addTodoElapsedTimeOnDate(
   emit projectsChanged();
 }
 
-void ProjectManager::recordTimeEntryOnDate(
-    const QString& title, const QString& tag, int elapsedSeconds,
-    const QString& dateText, const QString& source,
-    const QString& linkedProjectName) {
+void ProjectManager::recordTimeEntryOnDate(const QString& title,
+                                           const QString& tag,
+                                           int elapsedSeconds,
+                                           const QString& dateText,
+                                           const QString& source,
+                                           const QString& linkedProjectName) {
   if (title.trimmed().isEmpty() || elapsedSeconds <= 0) return;
 
   QString normalizedTag = tag.trimmed().isEmpty() ? kFixedTags.last() : tag;
@@ -191,6 +199,8 @@ void ProjectManager::recordTimeEntryOnDate(
 }
 
 void ProjectManager::removeProject(const QString& projectName) {
+  // 删除项目时，普通手动项目流水一起删除；日历待办如果曾绑定该项目，则解绑
+  // 回到独立待办明细，避免用户的日历记录被误删。
   int index = findProjectIndex(projectName);
   if (index >= 0) {
     m_projects.removeAt(index);
@@ -237,10 +247,11 @@ void ProjectManager::saveSessions() {
 }
 
 void ProjectManager::appendSession(const QString& title, const QString& tag,
-                                   int elapsedSeconds,
-                                   const QDate& sessionDate,
+                                   int elapsedSeconds, const QDate& sessionDate,
                                    const QString& source,
                                    const QString& linkedProjectName) {
+  // session
+  // 是事实流水：视图层按日期/标签/来源重新聚合，项目主表只保存快速显示值。
   const QString trimmedTitle = title.trimmed();
   const QString trimmedLinkedProject = linkedProjectName.trimmed();
 
@@ -313,8 +324,8 @@ bool ProjectManager::sessionMatchesDate(const QVariantMap& session,
          session.value("day").toInt() == date.day();
 }
 
-bool ProjectManager::sessionCountsForProject(
-    const QVariantMap& session) const {
+bool ProjectManager::sessionCountsForProject(const QVariantMap& session) const {
+  // 日历待办默认不计入项目列表，除非它明确绑定到了某个项目。
   const QString source = session.value("source").toString();
   if (source.isEmpty() || source == "manual_project") return true;
   return session.value("linkedProject", false).toBool() ||
@@ -427,8 +438,8 @@ QVariantList ProjectManager::projectsForDate(const QString& dateText) const {
   return result;
 }
 
-QVariantList ProjectManager::timeEntriesForDate(
-    const QString& dateText) const {
+QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
+  // 同一天同名/同标签/同来源/同绑定项目的流水合并显示，避免 UI 被很多碎片占满。
   QVariantList result;
   const QDate targetDate = QDate::fromString(dateText, "yyyy-MM-dd");
   if (!targetDate.isValid()) return result;
@@ -440,8 +451,7 @@ QVariantList ProjectManager::timeEntriesForDate(
     if (!sessionMatchesDate(session, targetDate)) continue;
 
     const QString name =
-        session.value("displayName",
-                      session.value("projectName").toString())
+        session.value("displayName", session.value("projectName").toString())
             .toString();
     const QString tag = session.value("tag").toString();
     const QString source = session.value("source").toString();
@@ -458,9 +468,8 @@ QVariantList ProjectManager::timeEntriesForDate(
     entry["tag"] = tag;
     entry["source"] = source.isEmpty() ? "manual_project" : source;
     entry["linkedProjectName"] = linkedProjectName;
-    entry["linkedProject"] =
-        session.value("linkedProject", false).toBool() ||
-        !linkedProjectName.trimmed().isEmpty();
+    entry["linkedProject"] = session.value("linkedProject", false).toBool() ||
+                             !linkedProjectName.trimmed().isEmpty();
     entry["seconds"] = seconds;
     entry["minutes"] = seconds / 60;
     entry["time"] = secondsToTimeText(seconds);

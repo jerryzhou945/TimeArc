@@ -219,8 +219,10 @@ Item {
     }
 
     function appColor(appId, appName, path) {
-        var text = ((appId || "") + " " + (appName || "") + " " + (path || "")).toLowerCase()
+        var identity = appId ? appId.toString() : ""
+        var text = (identity + " " + (appName || "") + " " + (path || "")).toLowerCase()
 
+        if (identity === "site:bilibili" || containsAny(text, ["bilibili", "b23.tv"])) return '#f6c8d5'
         if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D98E9F"
         if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#BFD7EA"
         if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#9FC7DE"
@@ -247,7 +249,11 @@ Item {
         return hashedColor(text)
     }
 
-    function appIconSource(path) {
+    function appIconSource(appId, path) {
+        var identity = appId ? appId.toString() : ""
+        if (identity === "site:bilibili")
+            return Qt.resolvedUrl("../../../resources/icons/bilibili.svg")
+
         var raw = path ? path.toString() : ""
         if (raw.length === 0)
             return ""
@@ -685,13 +691,13 @@ Item {
                                         Layout.preferredWidth: 42
                                         Layout.preferredHeight: 42
                                         radius: 21
-                                        color: appColor(modelData.appId, modelData.name, modelData.path)
+                                        color: appColor(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.name, modelData.path)
 
                                         Image {
                                             anchors.centerIn: parent
                                             width: 30
                                             height: 30
-                                            source: appIconSource(modelData.path)
+                                            source: appIconSource(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.path)
                                             sourceSize.width: 64
                                             sourceSize.height: 64
                                             fillMode: Image.PreserveAspectFit
@@ -736,7 +742,7 @@ Item {
                                                 width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxSoftwareSeconds()))
                                                 height: parent.height
                                                 radius: 4
-                                                color: appColor(modelData.appId, modelData.name, modelData.path)
+                                                color: appColor(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.name, modelData.path)
                                             }
                                         }
                                     }

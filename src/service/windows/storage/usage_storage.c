@@ -7,10 +7,11 @@
 #include <stdio.h>
 #include <string.h>
 
-// The Windows service currently uses one process-wide storage context exposed
-// through data_bridge.h.
+// Windows 采集进程当前只维护一个全局存储上下文，并通过 data_bridge.h 暴露给
+// foreground/audio tracker。后续如果支持多用户或多 profile，可以把它改成显式传参。
 static TimeArcStorageContext g_storage;
 
+// 所有落盘字段都是固定 buffer。写入前统一安全复制，空指针按空字符串处理。
 static void copy_string(char* dst, size_t dst_size, const char* src) {
   if (dst == NULL || dst_size == 0) {
     return;
@@ -31,6 +32,7 @@ static void copy_string(char* dst, size_t dst_size, const char* src) {
 }
 
 static int make_db_path(char* out_path, size_t out_path_size) {
+  // SQLite 还没有真正启用，但路径先保持和 JSONL 同目录，方便将来做迁移工具。
   char dir[4096];
   if (timearc_get_usage_data_dir(dir, sizeof(dir)) != 0) {
     return -1;
@@ -46,7 +48,9 @@ static int make_db_path(char* out_path, size_t out_path_size) {
   return written >= 0 && (size_t)written < out_path_size ? 0 : -1;
 }
 
-// TODO: Expand JSON escaping and UTF-8 validation before treating this as final.
+// 只负责 JSON 字符串转义，不验证 UTF-8。平台层已经尽量把 Windows 字符串转成
+// UTF-8；这里保持简单，避免引入额外依赖。
+// TODO: 真正启用跨平台同步前，补完整 UTF-8 校验和更严格的转义测试。
 static void write_json_string(FILE* file, const char* value) {
   fputc('"', file);
 
@@ -93,9 +97,8 @@ static void write_usage_record_object(FILE* file,
                                       const TimeArcUsageRecord* record,
                                       int live,
                                       int64_t updated_unix_sec) {
-  // Keep JSON emission explicit so the on-disk format mirrors
-  // usage_record.schema.json field-for-field. Live checkpoint metadata is only
-  // added for usage_current.json and is ignored by historical JSONL readers.
+  // 显式写字段，保证磁盘格式和 usage_record.schema.json 一一对应。
+  // live/updated_unix_sec 只用于 usage_current.json，历史 JSONL 读者可以忽略它。
   fputc('{', file);
   write_json_field(file, "platform", record->platform);
   fputc(',', file);
@@ -164,7 +167,7 @@ int timearc_storage_write_current_record(TimeArcStorageContext* context,
     return -1;
   }
 
-  // C rename does not reliably replace existing files on Windows.
+  // Windows 上 C rename 不稳定覆盖已有文件，所以先删旧文件再换入临时文件。
   remove(context->current_path);
   if (rename(temp_path, context->current_path) != 0) {
     remove(temp_path);
@@ -204,7 +207,7 @@ int timearc_storage_init(TimeArcStorageContext* context,
   }
 
   memset(context, 0, sizeof(*context));
-  // Normalize backend flags to 0/1 so callers can pass any truthy value.
+  // 把 backend 标志标准化成 0/1，调用方传任意 truthy 值也不会影响后续判断。
   context->use_jsonl = use_jsonl ? 1 : 0;
   context->use_sqlite = use_sqlite ? 1 : 0;
   copy_string(context->table_name, sizeof(context->table_name),
@@ -259,8 +262,8 @@ int timearc_storage_write_record(TimeArcStorageContext* context,
   }
 
   int wrote = 0;
-  // Treat enabled backends as all-or-nothing: if one write fails, report the
-  // failure instead of silently accepting a partial record.
+  // 启用的 backend 按 all-or-nothing 处理：任一写入失败就返回失败，避免悄悄
+  // 产生“JSONL 有、SQLite 没有”的不一致。
   if (context->use_jsonl) {
     if (timearc_storage_write_jsonl(context, record) != 0) {
       return -1;
@@ -311,6 +314,7 @@ static void fill_usage_record(TimeArcUsageRecord* record,
                               const char* path,
                               int64_t start_unix_sec,
                               uint64_t duration_sec) {
+  // data_bridge 的参数很多，先收敛成一个标准结构体，再交给具体 backend 写入。
   memset(record, 0, sizeof(*record));
   copy_string(record->platform, sizeof(record->platform), platform);
   copy_string(record->source, sizeof(record->source),
@@ -331,8 +335,7 @@ int ta_write_usage_record(const char* platform,
                           const char* path,
                           int64_t start_unix_sec,
                           uint64_t duration_sec) {
-  // Lazily initialize so callers can use the bridge directly in simple tools or
-  // tests without remembering to call ta_storage_init first.
+  // 懒初始化：简单工具或测试直接调用 data bridge 时，不必先记得 ta_storage_init。
   if (!g_storage.initialized && timearc_storage_init_global() != 0) {
     return -1;
   }

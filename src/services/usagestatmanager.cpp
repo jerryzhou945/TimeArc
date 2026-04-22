@@ -20,11 +20,14 @@
 namespace {
 
 struct UsageInterval {
+  // 用闭区间语义以外的 [start, end) 表示法，方便合并相邻/重叠时间段。
   qint64 start = 0;
   qint64 end = 0;
 };
 
 QString usageDataDir() {
+  // 必须和 service/shared/usage_paths.c 的 Windows 路径保持一致，
+  // UI 才能读到后台服务写出的 JSONL/current 文件。
   const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
   QString base = env.value("LOCALAPPDATA");
   if (base.trimmed().isEmpty()) base = env.value("APPDATA");
@@ -57,7 +60,30 @@ QString normalizedSource(const QString& source) {
   return normalized == "audio" ? "audio" : "foreground";
 }
 
+QString bilibiliDisplayName() {
+  return QStringLiteral("\u54D4\u54E9\u54D4\u54E9");
+}
+
+bool isChromeApp(const QString& appId, const QString& appName,
+                 const QString& path) {
+  const QString text = (appId + " " + appName + " " + path).toLower();
+  return containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome"});
+}
+
+bool isBilibiliWindowTitle(const QString& windowTitle) {
+  // 保守版网站识别：不读取浏览器 URL，只从 Chrome 窗口标题猜测当前站点。
+  // 将来接浏览器扩展后，这里应迁移到 domain/favIconUrl 规则。
+  const QString title = windowTitle.trimmed();
+  if (title.isEmpty()) return false;
+
+  const QString lowerTitle = title.toLower();
+  return title.contains(QStringLiteral("\u54D4\u54E9\u54D4\u54E9")) ||
+         containsAny(lowerTitle, {"bilibili", "b23.tv", "bilibili.com"});
+}
+
 quint64 mergedIntervalSeconds(QVector<UsageInterval> intervals) {
+  // foreground 与 audio 可能在同一时间段重叠。active 总时长按区间并集计算，
+  // 避免“看视频时前台 + 音频”被重复加两次。
   if (intervals.isEmpty()) return 0;
 
   std::sort(intervals.begin(), intervals.end(),
@@ -95,6 +121,7 @@ quint64 mergedIntervalSeconds(QVector<UsageInterval> intervals) {
 
 QString appDisplayName(const QString& appId, const QString& appName,
                        const QString& path) {
+  // 把 exe/path 归一成更适合 UI 的名称。没有命中特例时回退到 exe 文件名。
   const QString text = (appId + " " + appName + " " + path).toLower();
 
   if (containsAny(text, {"cloudmusic", "netease"})) return "网易云音乐";
@@ -135,6 +162,8 @@ QString normalizedExeName(const QString& appName, const QString& path) {
 
 QString appGroupKey(const QString& appId, const QString& appName,
                     const QString& path) {
+  // group key 是统计聚合的身份。多个实际进程可以归到同一个 app key，
+  // 例如 steam.exe 和 steamwebhelper.exe 都算 Steam。
   const QString text = (appId + " " + appName + " " + path).toLower();
 
   if (containsAny(text, {"weixin", "wechat", "wechatappex", "wechatbrowser"}))
@@ -172,6 +201,26 @@ QString appGroupKey(const QString& appId, const QString& appName,
 
   const QString fallback = !appId.trimmed().isEmpty() ? appId : path;
   return "path:" + fallback.toLower();
+}
+
+QString activityGroupKey(const QString& appId, const QString& appName,
+                         const QString& path, const QString& windowTitle) {
+  // activity key 比 app key 更细：Chrome 里的 B 站被提升成 site:bilibili，
+  // 这样 UI 统计里不会只显示“Google Chrome”。
+  if (isChromeApp(appId, appName, path) && isBilibiliWindowTitle(windowTitle)) {
+    return "site:bilibili";
+  }
+
+  return appGroupKey(appId, appName, path);
+}
+
+QString activityDisplayName(const QString& groupKey, const QString& appId,
+                            const QString& appName, const QString& path) {
+  if (groupKey == "site:bilibili") {
+    return bilibiliDisplayName();
+  }
+
+  return appDisplayName(appId, appName, path);
 }
 
 QJsonDocument parseJsonLine(const QByteArray& line) {
@@ -214,6 +263,8 @@ int UsageStatManager::allSoftwareMinutes() const {
 }
 
 void UsageStatManager::refresh() {
+  // refresh 是 UI 的数据入口：重读历史 JSONL，再尝试叠加仍在运行的 current 快照。
+  // 因为 service 独立进程写文件，UI 不能只依赖内存状态。
   QList<UsageRecord> records;
 
   QFile file(recordsFilePath());
@@ -228,6 +279,7 @@ void UsageStatManager::refresh() {
       const QJsonObject object = doc.object();
       if (object.value("platform").toString() != "windows") continue;
 
+      // 目前 UI 只消费 Windows service 写出的记录；macOS 记录后续接入时再放开。
       UsageRecord record = parseRecordObject(object, false);
 
       if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
@@ -257,6 +309,8 @@ void UsageStatManager::refresh() {
                       static_cast<qint64>(currentRecord.durationSec);
         const qint64 nowUnixSec = QDateTime::currentSecsSinceEpoch();
 
+        // current 文件是覆盖写的实时快照。超过 15 秒没更新就视为 service 已停或
+        // session 已结束，避免 UI 一直显示陈旧的“正在使用”。
         if (currentRecord.startUnixSec > 0 &&
             (!currentRecord.appId.trimmed().isEmpty() ||
              !currentRecord.appName.trimmed().isEmpty()) &&
@@ -296,7 +350,10 @@ QVariantList UsageStatManager::audioForRange(const QString& range) const {
 
 QVariantList UsageStatManager::aggregateSoftwareForRange(
     const QString& range, const QString& sourceFilter) const {
+  // 聚合先按 activity key 收集所有时间区间，再在输出时合并重叠区间。
+  // sourceFilter 为空表示 active 合并视图；否则只看 foreground 或 audio。
   struct Aggregate {
+    QString groupKey;
     QString appId;
     QString appName;
     QString path;
@@ -314,13 +371,16 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
     if (!matchesSource(record, sourceFilter)) return;
     if (record.durationSec == 0) return;
 
-    const QString key =
-        appGroupKey(record.appId, record.appName, record.path);
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
     const qint64 endUnixSec =
         record.startUnixSec + static_cast<qint64>(record.durationSec);
     if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
 
     Aggregate aggregate = grouped.value(key);
+    if (aggregate.groupKey.trimmed().isEmpty()) {
+      aggregate.groupKey = key;
+    }
     if (aggregate.appId.trimmed().isEmpty()) {
       aggregate.appId =
           !record.appId.trimmed().isEmpty() ? record.appId : key;
@@ -335,6 +395,7 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
     }
     const UsageInterval interval{record.startUnixSec, endUnixSec};
     aggregate.intervals.append(interval);
+    // 保留 foreground/audio 分项，UI 可以同时显示总时长和来源拆分。
     if (record.source == "audio") {
       aggregate.audioIntervals.append(interval);
       aggregate.hasAudio = true;
@@ -362,14 +423,18 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
         mergedIntervalSeconds(aggregate.foregroundIntervals);
     const quint64 audioSeconds = mergedIntervalSeconds(aggregate.audioIntervals);
 
-    const QString displayName =
-        appDisplayName(aggregate.appId, aggregate.appName, aggregate.path);
+    const QString displayName = activityDisplayName(
+        aggregate.groupKey, aggregate.appId, aggregate.appName, aggregate.path);
 
     QVariantMap item;
+    item["groupKey"] = aggregate.groupKey;
     item["appId"] = aggregate.appId;
     item["appName"] = aggregate.appName;
     item["name"] = displayName;
     item["path"] = aggregate.path;
+    if (aggregate.groupKey == "site:bilibili") {
+      item["siteDomain"] = "bilibili.com";
+    }
     item["source"] = sourceFilter.trimmed().isEmpty()
                          ? "active"
                          : normalizedSource(sourceFilter);
@@ -396,10 +461,14 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
     if (aggregate.live) {
       subtitle += " - Live";
     }
+    const QString subtitleName =
+        aggregate.groupKey == "site:bilibili"
+            ? appDisplayName(aggregate.appId, aggregate.appName, aggregate.path)
+            : aggregate.appName;
     item["note"] = subtitle;
-    item["subtitle"] = aggregate.appName == displayName
+    item["subtitle"] = subtitleName == displayName
                            ? subtitle
-                           : aggregate.appName + " - " + subtitle;
+                           : subtitleName + " - " + subtitle;
     result.append(item);
   }
 
@@ -469,19 +538,26 @@ UsageStatManager::UsageRecord UsageStatManager::parseRecordObject(
 
 QVariantMap UsageStatManager::recordToVariantMap(
     const UsageRecord& record) const {
+  // currentSoftware 只返回当前一条 live record，不走完整聚合；但仍复用 activity
+  // 识别，保证 Chrome/B 站显示逻辑和列表一致。
   const QString appName = !record.appName.trimmed().isEmpty()
                               ? record.appName
                               : QFileInfo(record.path).fileName();
-  const QString appId =
-      appGroupKey(record.appId, appName, record.path);
-  const QString displayName = appDisplayName(appId, appName, record.path);
+  const QString groupKey =
+      activityGroupKey(record.appId, appName, record.path, record.windowTitle);
+  const QString displayName =
+      activityDisplayName(groupKey, record.appId, appName, record.path);
 
   QVariantMap item;
-  item["appId"] = appId;
+  item["groupKey"] = groupKey;
+  item["appId"] = groupKey;
   item["appName"] = appName;
   item["name"] = displayName;
   item["path"] = record.path;
   item["windowTitle"] = record.windowTitle;
+  if (groupKey == "site:bilibili") {
+    item["siteDomain"] = "bilibili.com";
+  }
   item["source"] = record.source;
   item["seconds"] = static_cast<qlonglong>(record.durationSec);
   item["minutes"] = static_cast<int>(record.durationSec / 60);

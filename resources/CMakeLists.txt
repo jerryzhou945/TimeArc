@@ -3,6 +3,7 @@ set(TIME_ARC_RESOURCE_FILES
     resources/background_night.png
     resources/icons/home.svg
     resources/icons/chat.svg
+    resources/icons/bilibili.svg
     resources/icons/calendar.svg
     resources/icons/stats.svg
     resources/icons/user.svg

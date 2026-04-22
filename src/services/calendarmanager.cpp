@@ -35,6 +35,8 @@ void CalendarManager::setSelectedDateKey(const QString& value) {
 }
 
 void CalendarManager::completeTodo(const QString& dateKey, const QString& text) {
+  // savedTodos 是按日期分组的 JSON 字符串。这里只修改目标日期下第一个同名待办，
+  // 然后整体写回 QSettings，QML 收到信号后重新渲染。
   QJsonObject root;
   if (!m_savedTodos.isEmpty()) {
     QJsonDocument doc = QJsonDocument::fromJson(m_savedTodos.toUtf8());
@@ -59,6 +61,7 @@ void CalendarManager::completeTodo(const QString& dateKey, const QString& text) 
 }
 
 void CalendarManager::load() {
+  // QSettings 会落到当前平台的用户配置区；对这个轻量日历数据足够简单可靠。
   QSettings settings("TimeArc", "CalendarManagerData");
   m_savedTodos = settings.value("savedTodos", "").toString();
   m_dayPhotos = settings.value("dayPhotos", "").toString();

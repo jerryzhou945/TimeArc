@@ -1,16 +1,16 @@
 #include "win_service.h"
 
 int timearc_win_service_run(void) {
-  // TODO: Register a SERVICE_MAIN_FUNCTION with StartServiceCtrlDispatcher.
+  // TODO: 注册 SERVICE_MAIN_FUNCTION，并把 stop/pause 信号转给 tracker。
   return -1;
 }
 
 int timearc_win_service_install(void) {
-  // TODO: Create the service with OpenSCManager/CreateService.
+  // TODO: 通过 OpenSCManager/CreateService 写入 Windows 服务表。
   return -1;
 }
 
 int timearc_win_service_uninstall(void) {
-  // TODO: Stop and delete the service through the Service Control Manager.
+  // TODO: 先停止运行中的服务，再通过 Service Control Manager 删除服务。
   return -1;
 }

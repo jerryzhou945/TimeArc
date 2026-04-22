@@ -7,8 +7,10 @@
 
 #define TIMEARC_AUDIO_MAX_TRACKED_APPS 64
 #define TIMEARC_AUDIO_SILENCE_GRACE_SEC 3
-// Audio sessions are periodically checkpointed into JSONL so long-running
-// music/video calls become visible without waiting for playback to stop.
+// 音频 session 不是前台窗口，而是“当前有可听声音的进程”。
+//
+// 长时间播放会按固定间隔切成多段写入 JSONL，这样 UI 不必等到播放停止才能看到
+// 音频时长增长。短暂静音有 grace period，避免播放器瞬间掉峰值就切段。
 #define TIMEARC_AUDIO_FLUSH_INTERVAL_SEC 15
 
 typedef struct TimeArcAudioSession {

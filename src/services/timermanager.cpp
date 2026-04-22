@@ -2,6 +2,7 @@
 
 TimerManager::TimerManager(QObject* parent)
     : QObject(parent), m_elapsedSeconds(0), m_running(false) {
+  // 手动计时精度按秒。QTimer 只驱动 UI 状态，最终提交时再把秒数交给 ProjectManager。
   m_timer.setInterval(1000);
   connect(&m_timer, &QTimer::timeout, this, &TimerManager::onTick);
 }
@@ -13,6 +14,7 @@ int TimerManager::elapsedSeconds() const { return m_elapsedSeconds; }
 bool TimerManager::running() const { return m_running; }
 
 void TimerManager::startProject(const QString& projectName) {
+  // 开始新项目会重置已有秒数；当前 UI 设计一次只允许一个手动计时。
   m_currentProject = projectName;
   m_elapsedSeconds = 0;
   m_running = true;
@@ -42,6 +44,7 @@ void TimerManager::resumeTimer() {
 }
 
 void TimerManager::stopAndCommit() {
+  // 先保存结束信息再清空内部状态，确保 timerStopped 信号携带完整结果。
   m_timer.stop();
 
   QString finishedProject = m_currentProject;
