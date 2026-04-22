@@ -3,33 +3,36 @@
 
 import Cocoa
 import ApplicationServices
+import IOKit.pwr_mgt
+
+enum MediaType {
+  case video
+  case audio
+  case null
+}
 
 struct AppEnv: WindowIdentifying {
   private(set) var windowTitle: String? = nil
   private(set) var appID: String? = nil
-  private(set) var appName: String? = nil
-  private var currentPID: pid_t? = nil
+  private var frontmostApp: NSRunningApplication? = nil
 
   // Update the current frontmost application info.
   mutating func update() {
     // Get the frontmost application.
-    guard let frontApp = NSWorkspace.shared.frontmostApplication else {
+    guard let currentApp = NSWorkspace.shared.frontmostApplication else {
       windowTitle = nil
       appID = nil
-      appName = nil
-      currentPID = nil
+      frontmostApp = nil
       return
     }
 
-    // If the frontmost application has changed, update the stored info.
-    let frontPID = frontApp.processIdentifier
-    if currentPID != frontPID {
-      currentPID = frontPID
-      appID = frontApp.bundleIdentifier ?? "unknown.app"
-      appName = frontApp.localizedName ?? "Unknown App"
+    // If the frontmost application has changed, update the app info.
+    if frontmostApp?.processIdentifier != currentApp.processIdentifier {
+      frontmostApp = currentApp
+      appID = currentApp.bundleIdentifier ?? "app.unknown"
     }
 
-    // If the app is the same, just update the window title.
+    // Update the window title regardless of whether the app changed.
     windowTitle = getFocusedWindowTitle()
 
   }
@@ -42,9 +45,69 @@ struct AppEnv: WindowIdentifying {
     )
   }
 
-  // Get the title of the currently focused window of the frontmost application using PID.
+  // Get the name of the frontmost application.
+  func getAppName() -> String {
+    frontmostApp?.localizedName ?? "Unknown App"
+  }
+
+  // Get the icon path of the frontmost application.
+  func getAppIcon() -> String {
+    frontmostApp?.bundleURL?.path ?? ""
+  }
+
+  // Get the media playback state of the app.
+  func getMediaType() -> MediaType {
+    guard let pid = frontmostApp?.processIdentifier else {
+      return .null
+    }
+
+    // Get the list of power assertions for all processes.
+    var assertionsValue: Unmanaged<CFDictionary>?
+    let assertionsStatus = IOPMCopyAssertionsByProcess(&assertionsValue)
+    guard assertionsStatus == kIOReturnSuccess,
+          let assertionsDict = assertionsValue?.takeRetainedValue()
+                               as? [NSNumber: [[String: Any]]]
+    else {
+      return .null
+    }
+
+    // Check if the PID is in the list of assertions.
+    guard let targetAssertions = assertionsDict[NSNumber(value: pid)] else {
+      return .null
+    }
+
+    // Check if the app is holding a media playback assertion.
+    for assertion in targetAssertions {
+      guard let type = assertion[kIOPMAssertionTypeKey] as? String,
+            let name = assertion[kIOPMAssertionNameKey] as? String,
+            let level = assertion[kIOPMAssertionLevelKey] as? Int,
+            level > 0
+      else {
+        continue
+      }
+
+      let lowercasedType = type.lowercased()
+      let lowercasedName = name.lowercased()
+
+      // Check for video assertions first.
+      if isVideoAssertion(lowercasedType) {
+        return .video
+      }
+
+      // If no video assertions, check for audio assertions.
+      if isAudioAssertion(lowercasedType, lowercasedName) {
+        return .audio
+      }
+
+    }
+
+    return .null
+
+  }
+
+  // Get the title of the currently focused window of the frontmost application.
   private func getFocusedWindowTitle() -> String? {
-    guard let pid = currentPID else {
+    guard let pid = frontmostApp?.processIdentifier else {
       return nil
     }
     let appElement = AXUIElementCreateApplication(pid)
@@ -76,8 +139,25 @@ struct AppEnv: WindowIdentifying {
     }
 
     // Trim whitespace and newlines from the title.
-    let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-    return trimmed.isEmpty ? nil : trimmed
+    let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmedTitle.isEmpty ? nil : trimmedTitle
+
+  }
+
+  private func isVideoAssertion(_ lowercasedType: String) -> Bool {
+    lowercasedType.contains("displaysleep")
+  }
+
+  private func isAudioAssertion(_ lowercasedType: String, _ lowercasedName: String) -> Bool {
+    guard lowercasedType.contains("useridlesystemsleep") ||
+          lowercasedType.contains("noidlesleep")
+    else {
+      return false
+    }
+
+    let nameKeywords = ["audio", "music", "media", "play", "stream"]
+    return nameKeywords.contains(where: lowercasedName.contains)
+
   }
 
 }
