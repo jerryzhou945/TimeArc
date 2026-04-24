@@ -12,11 +12,23 @@
 
 #include "services/appiconimageprovider.h"
 #include "services/calendarmanager.h"
+#include "services/harnesslogger.h"
 #include "services/projectmanager.h"
 #include "services/timermanager.h"
 #include "services/usagestatmanager.h"
 
 namespace {
+
+bool hasMobilePreviewArg(int argc, char* argv[]) {
+  for (int i = 1; i < argc; ++i) {
+    const QString arg = QString::fromLocal8Bit(argv[i]);
+    if (arg == QStringLiteral("--mobile") ||
+        arg == QStringLiteral("--mobile-preview")) {
+      return true;
+    }
+  }
+  return false;
+}
 
 void startUsageService() {
 #if defined(Q_OS_WIN)
@@ -31,9 +43,18 @@ void startUsageService() {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+  const bool mobilePreview =
+      hasMobilePreviewArg(argc, argv) ||
+      qEnvironmentVariableIsSet("TIMEARC_MOBILE_PREVIEW");
+
   QGuiApplication app(argc, argv);
   QCoreApplication::setOrganizationName("TimeArc");
   QCoreApplication::setApplicationName("TimeArc");
+
+  // Tee Qt Warning/Critical/Fatal into the harness log. See
+  // .harness/tools/scan_qt_log.py for the consumer that converts log
+  // lines into L2 error reports.
+  installHarnessLogger();
 
   startUsageService();
 
@@ -51,6 +72,7 @@ int main(int argc, char* argv[]) {
   engine.rootContext()->setContextProperty("projectManager", &projectManager);
   engine.rootContext()->setContextProperty("usageStatManager",
                                            &usageStatManager);
+  engine.rootContext()->setContextProperty("mobilePreview", mobilePreview);
 
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
