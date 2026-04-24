@@ -564,6 +564,12 @@ Item {
     // 1. 把本次时间累计到项目
     // 2. 返回首页
     // =========================
+    AchievementToast {
+        id: achievementToast
+        anchors.fill: parent
+        nightMode: root.nightMode
+    }
+
     Connections {
         target: timerManager
 
