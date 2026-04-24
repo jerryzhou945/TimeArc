@@ -1,0 +1,63 @@
+{
+  "$comment": "Frozen-files registry. See CHARTER.md 3. Hashes populated by tools/harness_check.py --bootstrap.",
+  "version": "0.1",
+  "algorithm": "sha256",
+  "files": [
+    {
+      "path": "src/service/shared/data_bridge.h",
+      "sha256": "8ab8404ed033b8914891fc09480619b8c0b869e2619c27c59edb9f6a154e17bb"
+    },
+    {
+      "path": "src/service/shared/usage_record.h",
+      "sha256": "d53599fa1ad37071b9f5cb2bdbba34f918466ce95d69149cb0d15fcb3398838c"
+    },
+    {
+      "path": "src/service/shared/usage_record.schema.json",
+      "sha256": "8ac23e7d1774f9cf9a06ad87a60689a41053dbdd47a2631b4d7f9e26704e9eec"
+    },
+    {
+      "path": "src/service/shared/usage_paths.h",
+      "sha256": "e725ac6e88c91cc8995333a871672eaf2af9f5afb1f3c1729db7cbf1fdd4620d"
+    },
+    {
+      "path": "src/service/shared/usage_paths.c",
+      "sha256": "cef8c9d30f115d5aad9fc70f35571ec1946920ef085c79048b9a47251c27bca0"
+    },
+    {
+      "path": "src/service/shared/app_info.h",
+      "sha256": "4d52ac905262e032a677ed9bf63194b54d8ba4ae6c5fd5ca847f984c7d6963bf"
+    },
+    {
+      "path": "src/service/shared/app_env.h",
+      "sha256": "0035373d1891524e507d70000a83e8c534192447168d290d1d04fb751471944e"
+    },
+    {
+      "path": "src/include/util.h",
+      "sha256": "b96bd249f99dbe0bb921ded2eb0ae16d8aa9208118641d99934b906d0d3e88c3"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "bd1d9314a22101901fe7161c23b11cee4cdb5c467f2983692f1bab080a6561de"
+    },
+    {
+      "path": "src/CMakeLists.txt",
+      "sha256": "aee92170de1d51901a5d426bf78ffc5c11e29f7bcb47b98fbcd8a9c66a7ad93c"
+    },
+    {
+      "path": "src/service/CMakeLists.txt",
+      "sha256": "b4a414ec0485542ed0ce17a476355cab59c3a5ee930cbbc5a4f4d95ab4b9fa73"
+    },
+    {
+      "path": ".harness/CHARTER.md",
+      "sha256": "49017585f03014a029fda90477af4e6f2d8aab0326f86a9a8b5b2d45f63562c4"
+    },
+    {
+      "path": ".harness/AGENTS.md",
+      "sha256": "0e8231401d65dc63404732547bc02288b46aebc5a99ca4460716707fa2bad59f"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "729c245ee6891445adeb028cc6531aeda8f979cde96fd54e62d34f13c100aabb"
+    }
+  ]
+}
