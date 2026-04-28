@@ -49,6 +49,8 @@ with day and night modes.
 - **Desktop shell** — a Qt Quick interface with full day/night theming
   across the Home, Chat, Memory Lake, Calendar, Stats, Profile, and Timer
   pages.
+- **Animated Memory Lake shell** — the Memory Lake page includes an 8-frame
+  hot spring animation assembled from transparent resource frames.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 
@@ -287,8 +289,8 @@ See `.harness/CHARTER.md` for invariants and frozen files;
 - [ ] Add an in-app licenses page surfacing all third-party texts.
 - [ ] Wire Parson in as the JSON parser for user preferences /
       configuration.
-- [ ] Ship the "Memory Lake" data model + UI (currently a placeholder
-      page).
+- [ ] Ship the "Memory Lake" data model; the visual shell exists, but it is
+      not yet backed by real memory data.
 - [ ] Add UTF-8 validation to `usage_storage.c::write_json_string`.
 
 ## License
