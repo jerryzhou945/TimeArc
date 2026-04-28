@@ -9,7 +9,16 @@ ApplicationWindow {
     title: qsTr("TimeArc")
     color: "#F6F1EA"
 
-    DesktopAppShell {
+    Loader {
         anchors.fill: parent
+        sourceComponent: desktopShell
+    }
+
+    Component {
+        id: desktopShell
+
+        DesktopAppShell {
+            anchors.fill: parent
+        }
     }
 }

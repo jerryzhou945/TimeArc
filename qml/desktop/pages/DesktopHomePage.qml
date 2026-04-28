@@ -88,7 +88,7 @@ Item {
         if (tag === "娱乐") return "★"
         if (tag === "阅读") return "✎"
         if (tag === "社交") return "♥"
-        if (tag === "生活") return "☀"
+        if (tag === "生活") return ""
         return "•"
     }
 

@@ -2,6 +2,8 @@ import QtQuick
 import QtQuick.Controls
 
 Item {
+    id: root
+
     anchors.fill: parent
 
     property bool nightMode: false
@@ -10,95 +12,138 @@ Item {
     property color themePanelColor: "#FFFDF9"
     property color themeBorderColor: "#D8C2AC"
     property color themeAccentColor: "#E8C6A3"
+    property int hotSpringFrame: 0
+    readonly property int hotSpringFrameInterval: 240
+    readonly property var hotSpringFrames: [
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_01.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_02.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_03.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_04.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_05.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_06.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_07.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_08.png")
+    ]
+
+    Timer {
+        interval: root.hotSpringFrameInterval
+        repeat: true
+        running: true
+        onTriggered: root.hotSpringFrame = (root.hotSpringFrame + 1) % root.hotSpringFrames.length
+    }
 
     Rectangle {
         anchors.fill: parent
         radius: 30
         color: "transparent"
         border.width: 1
-        border.color: themeBorderColor
+        border.color: nightMode ? "#6D7668" : "#D9CEB9"
 
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
             radius: 29
-            color: themePanelColor
-            opacity: nightMode ? 0.66 : 0.58
+            opacity: nightMode ? 0.74 : 0.90
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0.0; color: nightMode ? "#23302C" : "#FFF2C9" }
+                GradientStop { position: 0.46; color: nightMode ? "#273A31" : "#DCD6B5" }
+                GradientStop { position: 1.0; color: nightMode ? "#1A2A26" : "#A8D5BA" }
+            }
             z: -1
         }
     }
 
-    Image {
+    Rectangle {
         anchors.fill: parent
-        source: Qt.resolvedUrl("../../../resources/memorylake/memory_bg.png")
-        fillMode: Image.PreserveAspectCrop
-        opacity: nightMode ? 0.28 : 0.20
-        asynchronous: true
+        anchors.margins: 1
+        radius: 29
+        color: "transparent"
+        opacity: nightMode ? 0.16 : 0.24
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0.0; color: "#7ACB73" }
+            GradientStop { position: 0.55; color: "#D4CFA9" }
+            GradientStop { position: 1.0; color: "#FFC7D8" }
+        }
     }
 
     Column {
         anchors.centerIn: parent
-        spacing: 14
+        width: Math.min(parent.width - 96, 720)
+        spacing: 18
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "记忆湖"
-            color: themeTextPrimary
-            font.pixelSize: 42
+            color: nightMode ? "#F6F2DD" : themeTextPrimary
+            font.pixelSize: 40
             font.bold: true
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "这里会展示你的记忆卡片与沉淀内容。"
-            color: themeTextSecondary
+            text: "温泉正在慢慢冒热气，替你保存今天的时间温度。"
+            color: nightMode ? "#C9D5C9" : themeTextSecondary
             font.pixelSize: 16
         }
 
-        Row {
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 16
-
-            Image {
-                width: 120
-                height: 120
-                source: Qt.resolvedUrl("../../../resources/memorylake/memory_cat_1.png")
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-            }
-
-            Image {
-                width: 120
-                height: 120
-                source: Qt.resolvedUrl("../../../resources/memorylake/memory_tree.png")
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-            }
-
-            Image {
-                width: 120
-                height: 120
-                source: Qt.resolvedUrl("../../../resources/memorylake/memory_pond_rocks.png")
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-            }
-        }
-
         Rectangle {
-            width: 280
-            height: 48
-            radius: 16
-            color: themeAccentColor
+            width: parent.width
+            height: Math.min(520, root.height - 260)
+            radius: 34
+            color: nightMode ? "#22352F" : "#FFF8E8"
+            opacity: nightMode ? 0.88 : 0.78
             border.width: 1
-            border.color: nightMode ? "#757ED0" : "#D5AE86"
+            border.color: nightMode ? "#55695F" : "#EFE2C7"
             anchors.horizontalCenter: parent.horizontalCenter
 
-            Text {
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: 33
+                color: "transparent"
+                opacity: 0.45
+                gradient: Gradient {
+                    orientation: Gradient.Vertical
+                    GradientStop { position: 0.0; color: "#FFFFFF" }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+            }
+
+            Image {
+                id: hotSpringImage
                 anchors.centerIn: parent
-                text: "功能开发中"
-                color: nightMode ? "#F8F7FF" : "#FFFFFF"
-                font.pixelSize: 16
-                font.bold: true
+                width: Math.min(parent.width - 56, 560)
+                height: parent.height - 42
+                source: root.hotSpringFrames[root.hotSpringFrame]
+                fillMode: Image.PreserveAspectFit
+                asynchronous: false
+                smooth: true
+            }
+
+            Rectangle {
+                width: 248
+                height: 46
+                radius: 23
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 20
+                opacity: 0.84
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: "#75C46F" }
+                    GradientStop { position: 0.55; color: "#D8D3A8" }
+                    GradientStop { position: 1.0; color: "#FFC7D8" }
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "温泉动效 · 8 帧循环"
+                    color: "#FFFFFF"
+                    font.pixelSize: 15
+                    font.bold: true
+                }
             }
         }
     }

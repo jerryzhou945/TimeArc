@@ -11,6 +11,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/components/SoftCard.qml
     qml/desktop/components/SoftPill.qml
     qml/desktop/components/SoftButton.qml
+    qml/desktop/components/AchievementToast.qml
 )
 
 set(TIME_ARC_QML_FILES ${TIME_ARC_QML_FILES} PARENT_SCOPE)

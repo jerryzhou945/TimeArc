@@ -1,0 +1,74 @@
+# Rule 03 — Data Contract
+
+What ends up on disk and what the UI expects to read. The tightest
+constraint in the project: it crosses both the process boundary (UI ↔
+service) and the platform boundary (Windows C ↔ macOS Swift ↔ Linux TBD).
+
+The canonical schema is `src/service/shared/usage_record.schema.json`. This
+file is a human summary; if the two disagree, the schema wins and the diff
+is a bug.
+
+## 1. Files on disk
+
+Root directory from `usage_paths.c`:
+- Windows: `%LOCALAPPDATA%\TimeArc\usage\`, fallback `%APPDATA%\TimeArc\usage\`.
+- Unix: `~/.timearc/usage/`.
+
+| Filename                  | Writer                      | Reader         | Shape                               |
+|---------------------------|-----------------------------|----------------|-------------------------------------|
+| `usage_records.jsonl`     | service (append)            | UI (scan)      | one JSON record per line, UTF-8     |
+| `usage_current.json`      | service (atomic overwrite)  | UI (poll read) | single JSON record + `live`, `updated_unix_sec` |
+| `usage_records.sqlite3`   | **reserved** — SQLite       | UI (TBD)       | table `usage_records` — not yet enabled |
+
+The SQLite path is computed by `make_db_path` in `usage_storage.c` but the
+backend is a no-op today. Migration owned by track B
+(`tracks/B-feature.md §Playbook`).
+
+## 2. Record shape
+
+| Field              | Type     | Req. | Notes                                                      |
+|--------------------|----------|------|------------------------------------------------------------|
+| `platform`         | string   | yes  | `"windows" | "macos"` (add to enum when implementing Linux) |
+| `source`           | string   | no   | `"foreground" | "audio"` — absent == `foreground`          |
+| `app_id`           | string   | yes  | Stable identity. Win: exe path. macOS: bundle id.          |
+| `app_name`         | string   | yes  | Short name (`chrome.exe`, `Safari`).                       |
+| `window_title`     | string   | yes  | May be empty for `audio` source.                           |
+| `path`             | string   | yes  | Full exe/bundle path.                                      |
+| `start_unix_sec`   | integer  | yes  | Unix seconds.                                              |
+| `duration_sec`     | integer  | yes  | `>= 0`.                                                    |
+| `live`             | int 0/1  | live | Only in `usage_current.json`.                              |
+| `updated_unix_sec` | integer  | live | Only in `usage_current.json`.                              |
+
+## 3. Invariants
+
+**D1. Append-only history.** `usage_records.jsonl` is only appended by the
+service. The UI must not rewrite it. Migrations are separate tools, run with
+the service stopped, producing a backup.
+
+**D2. Session segmentation.** `foreground` segments on `app_id` or
+`window_title` change, on idle, on shutdown. `audio` segments on app change,
+on silence > `TIMEARC_AUDIO_SILENCE_GRACE_SEC` (3 s), and every
+`TIMEARC_AUDIO_FLUSH_INTERVAL_SEC` (15 s) for long runs. `duration_sec == 0`
+records are dropped at the service.
+
+**D3. Atomic live snapshot.** `usage_current.json` is always written to
+`<path>.tmp` then renamed. Do not read it for history — UI filters on the
+`live: 1` marker.
+
+**D4. UTF-8 everywhere.** Platform code must UTF-8-encode strings before
+calling `ta_write_usage_record*`. Storage escapes but does not yet validate
+UTF-8 (see `TODO` in `usage_storage.c` / `write_json_string`). New platforms
+that cannot trivially produce UTF-8 must address this TODO first (track C).
+
+**D5. UI read model.** `UsageStatManager` merges `foreground` and `audio`
+intervals by union (simultaneous foreground + audio does not double-count
+in the "active" view). Keep this semantics on refactor.
+
+## 4. Changing anything in this rule
+
+A data-contract change is a charter amendment (`CHARTER.md` §4) **and**
+a track-B session. It requires: schema update, struct update in
+`usage_record.h`, writing both old and new shape for at least one release,
+and a migration note in the error journal or a dedicated upgrade doc.
+
+SQLite migration steps are owned by `tracks/B-feature.md`.
