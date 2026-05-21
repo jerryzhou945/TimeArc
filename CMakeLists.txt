@@ -15,7 +15,7 @@ if(APPLE)
     enable_language(Swift)
 endif()
 
-find_package(Qt6 REQUIRED COMPONENTS Core Quick Svg Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick Svg Sql Widgets)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -55,9 +55,29 @@ target_link_libraries(time-arc
         Qt6::Core
         Qt6::Quick
         Qt6::Svg
+        Qt6::Sql
         Qt6::Widgets
     ${TIME_ARC_THIRDPARTY_LIBS}
 )
+
+enable_testing()
+
+add_executable(timearc_db_smoke
+    tests/db_smoke.cpp
+    ${TIME_ARC_DATABASE_SOURCES}
+)
+
+target_include_directories(timearc_db_smoke PRIVATE
+    ${TIME_ARC_INCLUDE_DIRS}
+)
+
+target_link_libraries(timearc_db_smoke
+    PRIVATE
+        Qt6::Core
+        Qt6::Sql
+)
+
+add_test(NAME timearc_db_smoke COMMAND timearc_db_smoke)
 
 include(GNUInstallDirs)
 install(TARGETS time-arc

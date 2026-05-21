@@ -3,9 +3,17 @@
 Contract between Codex and the harness. Each tool has a documented CLI and
 exit code. Codex **MUST** treat a non-zero exit as a blocking signal.
 
-Convention: `python` is Windows-friendly; Unix may need `python3`. All tools
-are pure stdlib, no pip install. Stderr carries human prose; stdout is
-machine-readable when anything useful is emitted.
+Convention: use a real Python 3 interpreter. Windows Store aliases can look
+like `python.exe` while failing to launch; in that case set `TIMEARC_PYTHON`
+and invoke tools with it, e.g. PowerShell:
+
+    $env:TIMEARC_PYTHON="C:\path\to\python.exe"
+    & $env:TIMEARC_PYTHON .harness/tools/preflight.py --track B
+
+Tool-to-tool calls use `sys.executable`; CMake hooks honor `TIMEARC_PYTHON`
+before probing Python3. All tools are pure stdlib, no pip install. Stderr
+carries human prose; stdout is machine-readable when anything useful is
+emitted.
 
 ## preflight.py
 

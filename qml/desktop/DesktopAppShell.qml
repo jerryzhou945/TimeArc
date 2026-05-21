@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import time_arc
 
 Item {
+    id: root
     anchors.fill: parent
 
     // =========================
@@ -23,7 +24,7 @@ Item {
     // false = 白天
     // true  = 夜晚
     // =========================
-    property bool nightMode: false
+    property bool nightMode: settingsRepository ? settingsRepository.getBool("night_mode", false) : false
 
     // =========================
     // 背景图路径
@@ -83,7 +84,7 @@ Item {
             icon: Qt.resolvedUrl("../../resources/icons/home.svg")
         },
         {
-            title: "聊天",
+            title: "备忘",
             icon: Qt.resolvedUrl("../../resources/icons/chat.svg")
         },
         {
@@ -153,6 +154,8 @@ Item {
     }
 
     onNightModeChanged: {
+        if (settingsRepository)
+            settingsRepository.setBool("night_mode", nightMode)
         applyThemeToLoadedPage();
     }
 
@@ -513,13 +516,6 @@ Item {
                                 timerManager.startProject(projectName);
                                 showingTimerPage = true;
                             }
-                        });
-                    }
-
-                    // 首页：连接导入软件信号
-                    if (selectedIndex === 0 && item.importSoftware) {
-                        item.importSoftware.connect(function () {
-                            console.log("导入想查看时间的软件");
                         });
                     }
 

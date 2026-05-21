@@ -5,7 +5,19 @@
 #include <QJsonObject>
 #include <QSettings>
 
-CalendarManager::CalendarManager(QObject* parent) : QObject(parent) { load(); }
+#include "services/SettingsRepository.h"
+
+namespace {
+const QString kSavedTodosKey = QStringLiteral("calendar_saved_todos");
+const QString kDayPhotosKey = QStringLiteral("calendar_day_photos");
+const QString kSelectedDateKey = QStringLiteral("calendar_selected_date");
+}  // namespace
+
+CalendarManager::CalendarManager(SettingsRepository* settingsRepository,
+                                 QObject* parent)
+    : QObject(parent), m_settingsRepository(settingsRepository) {
+  load();
+}
 
 QString CalendarManager::savedTodos() const { return m_savedTodos; }
 
@@ -35,8 +47,6 @@ void CalendarManager::setSelectedDateKey(const QString& value) {
 }
 
 void CalendarManager::completeTodo(const QString& dateKey, const QString& text) {
-  // savedTodos 是按日期分组的 JSON 字符串。这里只修改目标日期下第一个同名待办，
-  // 然后整体写回 QSettings，QML 收到信号后重新渲染。
   QJsonObject root;
   if (!m_savedTodos.isEmpty()) {
     QJsonDocument doc = QJsonDocument::fromJson(m_savedTodos.toUtf8());
@@ -61,7 +71,13 @@ void CalendarManager::completeTodo(const QString& dateKey, const QString& text) 
 }
 
 void CalendarManager::load() {
-  // QSettings 会落到当前平台的用户配置区；对这个轻量日历数据足够简单可靠。
+  if (m_settingsRepository) {
+    m_savedTodos = m_settingsRepository->getValue(kSavedTodosKey, "");
+    m_dayPhotos = m_settingsRepository->getValue(kDayPhotosKey, "");
+    m_selectedDateKey = m_settingsRepository->getValue(kSelectedDateKey, "");
+    return;
+  }
+
   QSettings settings("TimeArc", "CalendarManagerData");
   m_savedTodos = settings.value("savedTodos", "").toString();
   m_dayPhotos = settings.value("dayPhotos", "").toString();
@@ -69,6 +85,13 @@ void CalendarManager::load() {
 }
 
 void CalendarManager::save() {
+  if (m_settingsRepository) {
+    m_settingsRepository->setValue(kSavedTodosKey, m_savedTodos);
+    m_settingsRepository->setValue(kDayPhotosKey, m_dayPhotos);
+    m_settingsRepository->setValue(kSelectedDateKey, m_selectedDateKey);
+    return;
+  }
+
   QSettings settings("TimeArc", "CalendarManagerData");
   settings.setValue("savedTodos", m_savedTodos);
   settings.setValue("dayPhotos", m_dayPhotos);

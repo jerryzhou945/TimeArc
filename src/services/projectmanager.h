@@ -2,9 +2,12 @@
 #define PROJECTMANAGER_H
 
 #include <QDate>
+#include <QDateTime>
 #include <QObject>
 #include <QSettings>
 #include <QVariantList>
+
+class ManualProjectRepository;
 
 // 手动项目和日历待办时间的聚合服务。
 //
@@ -33,7 +36,8 @@ class ProjectManager : public QObject {
       int allProjectMinutes READ allProjectMinutes NOTIFY projectsChanged)
 
  public:
-  explicit ProjectManager(QObject* parent = nullptr);
+  explicit ProjectManager(ManualProjectRepository* repository = nullptr,
+                          QObject* parent = nullptr);
 
   QVariantList projects() const;
   QVariantList projectsModel() const;
@@ -64,7 +68,7 @@ class ProjectManager : public QObject {
                                             const QString& linkedProjectName,
                                             int elapsedSeconds,
                                             const QString& dateText);
-  // 写一条不一定绑定项目的时间明细，主要给日历待办和未来导入入口使用。
+  // 写一条不一定绑定项目的时间明细，主要给日历待办和批量写入场景使用。
   Q_INVOKABLE void recordTimeEntryOnDate(const QString& title,
                                          const QString& tag,
                                          int elapsedSeconds,
@@ -88,6 +92,7 @@ class ProjectManager : public QObject {
  private:
   QVariantList m_projects;  // 项目主表：name/tag/seconds/time。
   QVariantList m_sessions;  // 时间流水：date/source/displayName/seconds 等。
+  ManualProjectRepository* m_repository;
 
   void loadProjects();
   void saveProjects();
@@ -110,6 +115,11 @@ class ProjectManager : public QObject {
                      int elapsedSeconds, const QDate& sessionDate,
                      const QString& source,
                      const QString& linkedProjectName);
+  QVariantList sessionsForRange(const QString& range) const;
+  qint64 rangeStartUnix(const QString& range) const;
+  qint64 rangeEndUnix(const QString& range) const;
+  QDateTime sessionEndForDate(const QDate& sessionDate,
+                              int elapsedSeconds) const;
 
   QString secondsToTimeText(int totalSeconds) const;
 };

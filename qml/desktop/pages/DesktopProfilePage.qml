@@ -356,7 +356,7 @@ Item {
                         }
 
                         Text {
-                            text: "风格：米色温馨 / 大圆角 / 半透明"
+                            text: "数据：本机 SQLite 与本地采集记录"
                             color: themeTextPrimary
                             font.pixelSize: 16
                             wrapMode: Text.Wrap
@@ -364,7 +364,7 @@ Item {
                         }
 
                         Text {
-                            text: "这里以后可以继续放头像、自定义签名、账号信息。"
+                            text: "当前页面只展示本地资料与设置状态，不包含账号或云端同步能力。"
                             color: themeTextSecondary
                             font.pixelSize: 14
                             wrapMode: Text.Wrap
@@ -416,7 +416,7 @@ Item {
                         }
 
                         Text {
-                            text: "这里以后可以继续放通知设置、字体大小、语言切换。"
+                            text: "夜晚模式会保存到 SQLite 设置，并同步到桌面端全局主题。"
                             color: themeTextSecondary
                             font.pixelSize: 14
                             wrapMode: Text.Wrap
@@ -426,7 +426,55 @@ Item {
                 }
             }
 
-            // 夜晚模式设置（保留原功能）
+            Rectangle {
+                width: parent.width
+                height: 170
+                radius: 28
+                color: "transparent"
+                border.width: 1
+                border.color: themeBorderColor
+                clip: true
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    radius: 27
+                    color: panelGlass
+                    opacity: panelOpacity
+                    z: -1
+                }
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 24
+                    spacing: 12
+
+                    Text {
+                        text: "SQLite 数据路径"
+                        color: themeTextPrimary
+                        font.pixelSize: 28
+                        font.bold: true
+                    }
+
+                    Text {
+                        text: "只读信息：当前本机 TimeArc SQLite 数据库文件位置。当前版本不支持在设置页修改路径。"
+                        color: themeTextSecondary
+                        font.pixelSize: 14
+                        wrapMode: Text.Wrap
+                        width: parent.width
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: databaseManager ? databaseManager.getDatabasePath() : "未连接到本地 SQLite 数据库"
+                        color: themeTextPrimary
+                        font.pixelSize: 14
+                        wrapMode: Text.WrapAnywhere
+                    }
+                }
+            }
+
+            // 夜晚模式设置（持久化到本地设置）
             Rectangle {
                 width: parent.width
                 height: 200
@@ -459,8 +507,8 @@ Item {
 
                     Text {
                         text: nightMode
-                              ? "当前已开启夜晚主题，背景和整体组件颜色会切换。"
-                              : "当前为白天主题，点击右侧开关可切换到夜晚主题。"
+                              ? "当前已开启夜晚主题，设置已写入 SQLite，并同步到桌面端全局主题。"
+                              : "当前为白天主题，点击右侧开关会写入 SQLite 并同步桌面端全局主题。"
                         color: themeTextSecondary
                         font.pixelSize: 15
                         wrapMode: Text.Wrap

@@ -8,7 +8,6 @@ Item {
     anchors.fill: parent
     clip: true
 
-    signal importSoftware()
     signal startProject(string projectName, string tagName)
 
     property bool nightMode: false
@@ -1362,7 +1361,7 @@ Item {
             Text {
                 width: parent.width
                 wrapMode: Text.WordWrap
-                text: "确定删除项目“" + deleteTargetProjectName + "”吗？删除后，对应的统计记录也会一起移除。"
+                text: "确定归档项目“" + deleteTargetProjectName + "”吗？归档后项目会从列表隐藏，历史计时和统计仍会保留。"
                 color: textSecondary
                 font.pixelSize: 14
             }
@@ -1444,10 +1443,6 @@ Item {
             }
         }
 
-        MenuItem {
-            text: "导入想查看时间的软件"
-            onTriggered: importSoftware()
-        }
     }
 
     Dialog {
@@ -1546,9 +1541,5 @@ Item {
     Component.onCompleted: {
         ringCanvas.requestPaint()
         refreshTodaySoftwareStats()
-    }
-
-    onImportSoftware: {
-        console.log("导入想查看时间的软件")
     }
 }

@@ -1,9 +1,13 @@
 #include "projectmanager.h"
 
+#include <QDateTime>
 #include <QMap>
 #include <QStringList>
+#include <QTime>
 #include <QVariantMap>
 #include <algorithm>
+
+#include "services/ManualProjectRepository.h"
 
 namespace {
 // 固定标签顺序和 QML 中的标签筛选保持一致。当前文件里的中文显示受历史编码
@@ -12,7 +16,9 @@ const QStringList kFixedTags = {"学习", "工作", "运动", "娱乐",
                                 "阅读", "社交", "生活", "其他"};
 }  // namespace
 
-ProjectManager::ProjectManager(QObject* parent) : QObject(parent) {
+ProjectManager::ProjectManager(ManualProjectRepository* repository,
+                               QObject* parent)
+    : QObject(parent), m_repository(repository) {
   loadProjects();
   loadSessions();
 }
@@ -54,14 +60,20 @@ void ProjectManager::addProject(const QString& name, const QString& tag) {
   QString normalizedTag = tag.trimmed().isEmpty() ? kFixedTags.last() : tag;
   if (findProjectIndex(name, normalizedTag) >= 0) return;
 
-  QVariantMap project;
-  project["name"] = name;
-  project["tag"] = normalizedTag;
-  project["seconds"] = 0;
-  project["time"] = "0h 0m";
+  if (m_repository) {
+    m_repository->ensureProject(name, normalizedTag);
+    loadProjects();
+    loadSessions();
+  } else {
+    QVariantMap project;
+    project["name"] = name;
+    project["tag"] = normalizedTag;
+    project["seconds"] = 0;
+    project["time"] = "0h 0m";
 
-  m_projects.append(project);
-  saveProjects();
+    m_projects.append(project);
+    saveProjects();
+  }
   emit projectsChanged();
 }
 
@@ -81,20 +93,23 @@ void ProjectManager::addElapsedTime(const QString& projectName,
   if (index < 0) return;
 
   QVariantMap project = m_projects[index].toMap();
-
   QString tag = project.value("tag").toString();
-  int oldSeconds = project.value("seconds", 0).toInt();
-  int newSeconds = oldSeconds + elapsedSeconds;
-
-  project["seconds"] = newSeconds;
-  project["time"] = secondsToTimeText(newSeconds);
-  m_projects[index] = project;
 
   appendSession(projectName, tag, elapsedSeconds, QDate::currentDate(),
                 "manual_project", projectName);
 
-  saveProjects();
-  saveSessions();
+  if (!m_repository) {
+    int oldSeconds = project.value("seconds", 0).toInt();
+    int newSeconds = oldSeconds + elapsedSeconds;
+    project["seconds"] = newSeconds;
+    project["time"] = secondsToTimeText(newSeconds);
+    m_projects[index] = project;
+    saveProjects();
+    saveSessions();
+  } else {
+    loadProjects();
+    loadSessions();
+  }
   emit projectsChanged();
 }
 
@@ -118,22 +133,25 @@ void ProjectManager::addElapsedTimeForTagOnDate(const QString& projectName,
   int index = findProjectIndex(projectName, normalizedTag);
   if (index < 0) return;
 
-  QVariantMap project = m_projects[index].toMap();
-  int oldSeconds = project.value("seconds", 0).toInt();
-  int newSeconds = oldSeconds + elapsedSeconds;
-
-  project["seconds"] = newSeconds;
-  project["time"] = secondsToTimeText(newSeconds);
-  m_projects[index] = project;
-
   QDate sessionDate = QDate::fromString(dateText, "yyyy-MM-dd");
   if (!sessionDate.isValid()) sessionDate = QDate::currentDate();
 
   appendSession(projectName, normalizedTag, elapsedSeconds, sessionDate,
                 "manual_project", projectName);
 
-  saveProjects();
-  saveSessions();
+  if (!m_repository) {
+    QVariantMap project = m_projects[index].toMap();
+    int oldSeconds = project.value("seconds", 0).toInt();
+    int newSeconds = oldSeconds + elapsedSeconds;
+    project["seconds"] = newSeconds;
+    project["time"] = secondsToTimeText(newSeconds);
+    m_projects[index] = project;
+    saveProjects();
+    saveSessions();
+  } else {
+    loadProjects();
+    loadSessions();
+  }
   emit projectsChanged();
 }
 
@@ -160,22 +178,25 @@ void ProjectManager::addTodoElapsedTimeOnDate(const QString& todoText,
   int index = findProjectIndex(trimmedLinkedProject, normalizedTag);
   if (index < 0) return;
 
-  QVariantMap project = m_projects[index].toMap();
-  int oldSeconds = project.value("seconds", 0).toInt();
-  int newSeconds = oldSeconds + elapsedSeconds;
-
-  project["seconds"] = newSeconds;
-  project["time"] = secondsToTimeText(newSeconds);
-  m_projects[index] = project;
-
   QDate sessionDate = QDate::fromString(dateText, "yyyy-MM-dd");
   if (!sessionDate.isValid()) sessionDate = QDate::currentDate();
 
   appendSession(todoText, normalizedTag, elapsedSeconds, sessionDate,
                 "calendar_todo", trimmedLinkedProject);
 
-  saveProjects();
-  saveSessions();
+  if (!m_repository) {
+    QVariantMap project = m_projects[index].toMap();
+    int oldSeconds = project.value("seconds", 0).toInt();
+    int newSeconds = oldSeconds + elapsedSeconds;
+    project["seconds"] = newSeconds;
+    project["time"] = secondsToTimeText(newSeconds);
+    m_projects[index] = project;
+    saveProjects();
+    saveSessions();
+  } else {
+    loadProjects();
+    loadSessions();
+  }
   emit projectsChanged();
 }
 
@@ -194,11 +215,33 @@ void ProjectManager::recordTimeEntryOnDate(const QString& title,
   appendSession(title, normalizedTag, elapsedSeconds, sessionDate, source,
                 linkedProjectName.trimmed());
 
-  saveSessions();
+  if (m_repository) {
+    loadProjects();
+    loadSessions();
+  } else {
+    saveSessions();
+  }
   emit projectsChanged();
 }
 
 void ProjectManager::removeProject(const QString& projectName) {
+  if (m_repository) {
+    bool changed = false;
+    for (const QVariant& item : m_projects) {
+      const QVariantMap project = item.toMap();
+      if (project.value("name").toString() != projectName) continue;
+      const int projectId = project.value("id").toInt();
+      if (projectId > 0 && m_repository->archiveProject(projectId))
+        changed = true;
+    }
+    if (changed) {
+      loadProjects();
+      loadSessions();
+      emit projectsChanged();
+    }
+    return;
+  }
+
   // 删除项目时，普通手动项目流水一起删除；日历待办如果曾绑定该项目，则解绑
   // 回到独立待办明细，避免用户的日历记录被误删。
   int index = findProjectIndex(projectName);
@@ -227,21 +270,35 @@ void ProjectManager::removeProject(const QString& projectName) {
 }
 
 void ProjectManager::loadProjects() {
+  if (m_repository) {
+    m_projects = m_repository->getActiveProjects();
+    return;
+  }
+
   QSettings settings("TimeArc", "ProjectManagerData");
   m_projects = settings.value("projects").toList();
 }
 
 void ProjectManager::saveProjects() {
+  if (m_repository) return;
+
   QSettings settings("TimeArc", "ProjectManagerData");
   settings.setValue("projects", m_projects);
 }
 
 void ProjectManager::loadSessions() {
+  if (m_repository) {
+    m_sessions = m_repository->getSessionsByRange(0, rangeEndUnix("all"));
+    return;
+  }
+
   QSettings settings("TimeArc", "ProjectManagerData");
   m_sessions = settings.value("sessions").toList();
 }
 
 void ProjectManager::saveSessions() {
+  if (m_repository) return;
+
   QSettings settings("TimeArc", "ProjectManagerData");
   settings.setValue("sessions", m_sessions);
 }
@@ -254,6 +311,22 @@ void ProjectManager::appendSession(const QString& title, const QString& tag,
   // 是事实流水：视图层按日期/标签/来源重新聚合，项目主表只保存快速显示值。
   const QString trimmedTitle = title.trimmed();
   const QString trimmedLinkedProject = linkedProjectName.trimmed();
+
+  if (m_repository) {
+    const QString projectName =
+        trimmedLinkedProject.isEmpty() ? trimmedTitle : trimmedLinkedProject;
+    const int projectId = m_repository->ensureProject(projectName, tag);
+    if (projectId <= 0) return;
+
+    const QDateTime endDateTime = sessionEndForDate(sessionDate, elapsedSeconds);
+    const qint64 endUnixSec = endDateTime.toSecsSinceEpoch();
+    const qint64 startUnixSec = qMax<qint64>(0, endUnixSec - elapsedSeconds);
+    m_repository->addManualSessionEntry(
+        projectId, startUnixSec, endUnixSec, elapsedSeconds, trimmedTitle,
+        source.trimmed().isEmpty() ? QStringLiteral("manual_project") : source,
+        trimmedLinkedProject);
+    return;
+  }
 
   QVariantMap session;
   session["projectName"] =
@@ -332,14 +405,72 @@ bool ProjectManager::sessionCountsForProject(const QVariantMap& session) const {
          !session.value("linkedProjectName").toString().trimmed().isEmpty();
 }
 
+QVariantList ProjectManager::sessionsForRange(const QString& range) const {
+  if (m_repository) {
+    if (range == QStringLiteral("all"))
+      return m_repository->getSessionsByRange(0, rangeEndUnix(range));
+    return m_repository->getSessionsByRange(rangeStartUnix(range),
+                                            rangeEndUnix(range));
+  }
+
+  QVariantList result;
+  for (const QVariant& item : m_sessions) {
+    const QVariantMap session = item.toMap();
+    if (sessionMatchesRange(session, range)) result.append(item);
+  }
+  return result;
+}
+
+qint64 ProjectManager::rangeStartUnix(const QString& range) const {
+  const QDate today = QDate::currentDate();
+  if (range == QStringLiteral("day"))
+    return QDateTime(today, QTime(0, 0, 0)).toSecsSinceEpoch();
+  if (range == QStringLiteral("month"))
+    return QDateTime(QDate(today.year(), today.month(), 1), QTime(0, 0, 0))
+        .toSecsSinceEpoch();
+  if (range == QStringLiteral("year"))
+    return QDateTime(QDate(today.year(), 1, 1), QTime(0, 0, 0))
+        .toSecsSinceEpoch();
+  return 0;
+}
+
+qint64 ProjectManager::rangeEndUnix(const QString& range) const {
+  if (range == QStringLiteral("all"))
+    return QDateTime(QDate(3000, 1, 1), QTime(0, 0, 0)).toSecsSinceEpoch();
+
+  const QDate today = QDate::currentDate();
+  if (range == QStringLiteral("day"))
+    return QDateTime(today.addDays(1), QTime(0, 0, 0)).toSecsSinceEpoch();
+  if (range == QStringLiteral("month")) {
+    const QDate monthStart(today.year(), today.month(), 1);
+    return QDateTime(monthStart.addMonths(1), QTime(0, 0, 0))
+        .toSecsSinceEpoch();
+  }
+  if (range == QStringLiteral("year"))
+    return QDateTime(QDate(today.year() + 1, 1, 1), QTime(0, 0, 0))
+        .toSecsSinceEpoch();
+  return QDateTime::currentSecsSinceEpoch();
+}
+
+QDateTime ProjectManager::sessionEndForDate(const QDate& sessionDate,
+                                            int elapsedSeconds) const {
+  QDate date = sessionDate.isValid() ? sessionDate : QDate::currentDate();
+  QTime time = QTime::currentTime();
+  if (date != QDate::currentDate()) {
+    const int secondsIntoDay =
+        qBound(0, 12 * 60 * 60 + qMax(0, elapsedSeconds), 24 * 60 * 60 - 1);
+    time = QTime(0, 0, 0).addSecs(secondsIntoDay);
+  }
+  return QDateTime(date, time);
+}
+
 int ProjectManager::tagMinutesForRange(const QString& tagName,
                                        const QString& range) const {
   int totalSeconds = 0;
 
-  for (const QVariant& item : m_sessions) {
+  for (const QVariant& item : sessionsForRange(range)) {
     QVariantMap session = item.toMap();
-    if (session.value("tag").toString() == tagName &&
-        sessionMatchesRange(session, range)) {
+    if (session.value("tag").toString() == tagName) {
       totalSeconds += session.value("seconds", 0).toInt();
     }
   }
@@ -350,11 +481,9 @@ int ProjectManager::tagMinutesForRange(const QString& tagName,
 int ProjectManager::totalMinutesForRange(const QString& range) const {
   int totalSeconds = 0;
 
-  for (const QVariant& item : m_sessions) {
+  for (const QVariant& item : sessionsForRange(range)) {
     QVariantMap session = item.toMap();
-    if (sessionMatchesRange(session, range)) {
-      totalSeconds += session.value("seconds", 0).toInt();
-    }
+    totalSeconds += session.value("seconds", 0).toInt();
   }
 
   return totalSeconds / 60;
@@ -368,6 +497,44 @@ QString ProjectManager::secondsToTimeText(int totalSeconds) const {
 }
 
 QVariantList ProjectManager::projectsForRange(const QString& range) const {
+  if (m_repository) {
+    const QVariantList ranked =
+        range == QStringLiteral("all")
+            ? m_repository->getProjectRankingByRange(0, rangeEndUnix(range))
+            : m_repository->getProjectRankingByRange(rangeStartUnix(range),
+                                                     rangeEndUnix(range));
+    QVariantList result = m_repository->getActiveProjects();
+    QStringList activeIds;
+
+    for (int i = 0; i < result.size(); ++i) {
+      QVariantMap project = result.at(i).toMap();
+      const int projectId = project.value("id").toInt();
+      activeIds.append(QString::number(projectId));
+
+      int seconds = range == QStringLiteral("all")
+                        ? project.value("totalDurationSec", 0).toInt()
+                        : 0;
+      for (const QVariant& rankedItem : ranked) {
+        const QVariantMap rankedProject = rankedItem.toMap();
+        if (rankedProject.value("id").toInt() != projectId) continue;
+        seconds = rankedProject.value("seconds", 0).toInt();
+        break;
+      }
+
+      project["seconds"] = seconds;
+      project["time"] = secondsToTimeText(seconds);
+      result[i] = project;
+    }
+
+    for (const QVariant& rankedItem : ranked) {
+      const QVariantMap rankedProject = rankedItem.toMap();
+      if (!activeIds.contains(QString::number(rankedProject.value("id").toInt())))
+        result.append(rankedItem);
+    }
+
+    return result;
+  }
+
   QVariantList result;
 
   for (const QVariant& item : m_projects) {
@@ -400,6 +567,13 @@ QVariantList ProjectManager::projectsForRange(const QString& range) const {
 }
 
 QVariantList ProjectManager::projectsForDate(const QString& dateText) const {
+  if (m_repository) {
+    const QDate targetDate = QDate::fromString(dateText, "yyyy-MM-dd");
+    if (!targetDate.isValid()) return QVariantList();
+    const qint64 start = QDateTime(targetDate, QTime(0, 0, 0)).toSecsSinceEpoch();
+    return m_repository->getProjectRankingByRange(start, start + 24 * 60 * 60);
+  }
+
   QVariantList result;
   const QDate targetDate = QDate::fromString(dateText, "yyyy-MM-dd");
   if (!targetDate.isValid()) return result;
@@ -443,6 +617,53 @@ QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
   QVariantList result;
   const QDate targetDate = QDate::fromString(dateText, "yyyy-MM-dd");
   if (!targetDate.isValid()) return result;
+
+  if (m_repository) {
+    const qint64 start =
+        QDateTime(targetDate, QTime(0, 0, 0)).toSecsSinceEpoch();
+    const QVariantList sessions =
+        m_repository->getSessionsByRange(start, start + 24 * 60 * 60);
+    QMap<QString, QVariantMap> grouped;
+
+    for (const QVariant& item : sessions) {
+      QVariantMap session = item.toMap();
+      const QString name =
+          session.value("displayName", session.value("projectName").toString())
+              .toString();
+      const QString tag = session.value("tag").toString();
+      const QString source = session.value("source").toString();
+      const QString linkedProjectName =
+          session.value("linkedProjectName").toString();
+      const QString key =
+          name + "\x1F" + tag + "\x1F" + source + "\x1F" + linkedProjectName;
+
+      QVariantMap entry = grouped.value(key);
+      const int seconds =
+          entry.value("seconds", 0).toInt() +
+          session.value("seconds", session.value("durationSec", 0)).toInt();
+
+      entry["name"] = name;
+      entry["tag"] = tag;
+      entry["source"] = source.isEmpty() ? "manual_project" : source;
+      entry["linkedProjectName"] = linkedProjectName;
+      entry["linkedProject"] = session.value("linkedProject", false).toBool() ||
+                               !linkedProjectName.trimmed().isEmpty();
+      entry["seconds"] = seconds;
+      entry["minutes"] = seconds / 60;
+      entry["time"] = secondsToTimeText(seconds);
+      grouped[key] = entry;
+    }
+
+    for (const QVariantMap& entry : grouped) result.append(entry);
+
+    std::sort(result.begin(), result.end(),
+              [](const QVariant& left, const QVariant& right) {
+                return left.toMap().value("seconds", 0).toInt() >
+                       right.toMap().value("seconds", 0).toInt();
+              });
+
+    return result;
+  }
 
   QMap<QString, QVariantMap> grouped;
 
@@ -501,6 +722,7 @@ QVariantList ProjectManager::projectsForTag(const QString& tagName,
 
 QVariantList ProjectManager::tagSummariesForRange(const QString& range) const {
   QVariantList result;
+  const QVariantList rangeSessions = sessionsForRange(range);
 
   for (const QString& tag : kFixedTags) {
     int seconds = 0;
@@ -511,10 +733,9 @@ QVariantList ProjectManager::tagSummariesForRange(const QString& range) const {
       if (project.value("tag").toString() == tag) ++projectCount;
     }
 
-    for (const QVariant& item : m_sessions) {
+    for (const QVariant& item : rangeSessions) {
       QVariantMap session = item.toMap();
-      if (session.value("tag").toString() == tag &&
-          sessionMatchesRange(session, range)) {
+      if (session.value("tag").toString() == tag) {
         seconds += session.value("seconds", 0).toInt();
       }
     }

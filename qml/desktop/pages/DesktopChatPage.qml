@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
-import QtCore
 
 Item {
     anchors.fill: parent
@@ -60,12 +59,6 @@ Item {
     property string previewImagePath: ""
     property int contextMessageIndex: -1
 
-    Settings {
-        id: chatSettings
-        category: "DesktopChatPageData"
-        property string savedChats: ""
-    }
-
     ListModel {
         id: chatModel
     }
@@ -84,34 +77,54 @@ Item {
         var arr = []
         for (var i = 0; i < chatModel.count; i++) {
             var item = chatModel.get(i)
+            var messageText = (item.message ? item.message : "").trim()
+            if (messageText.length === 0)
+                continue
             arr.push({
                 sender: item.sender,
-                message: item.message,
+                message: messageText,
                 imagePath: item.imagePath,
                 timeText: item.timeText
             })
         }
-        chatSettings.savedChats = JSON.stringify(arr)
+        if (settingsRepository)
+            settingsRepository.setValue("local_memo_chat_messages", JSON.stringify(arr))
     }
 
     function loadChats() {
-        if (!chatSettings.savedChats || chatSettings.savedChats === "") {
+        var savedChats = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
+        if (!savedChats || savedChats === "") {
             chatModel.clear()
             return
         }
 
         try {
-            var arr = JSON.parse(chatSettings.savedChats)
+            var arr = JSON.parse(savedChats)
             chatModel.clear()
 
             if (!arr || arr.length === 0)
                 return
 
+            arr.sort(function(a, b) {
+                var left = a.timeText ? a.timeText : ""
+                var right = b.timeText ? b.timeText : ""
+                return left.localeCompare(right)
+            })
+
             for (var i = 0; i < arr.length; i++) {
-                chatModel.append(arr[i])
+                var item = arr[i]
+                var messageText = (item.message ? item.message : "").trim()
+                if (messageText.length === 0)
+                    continue
+                chatModel.append({
+                    sender: item.sender ? item.sender : "me",
+                    message: messageText,
+                    imagePath: item.imagePath ? item.imagePath : "",
+                    timeText: item.timeText ? item.timeText : currentTimeString()
+                })
             }
         } catch (e) {
-            console.log("读取聊天记录失败:", e)
+            console.log("读取本地备忘失败:", e)
             chatModel.clear()
         }
     }
@@ -120,7 +133,7 @@ Item {
         var messageText = inputField.text.trim()
         var imageValue = pendingImagePath
 
-        if (messageText.length === 0 && imageValue.length === 0)
+        if (messageText.length === 0)
             return
 
         chatModel.append({
@@ -266,14 +279,14 @@ Item {
                     spacing: 4
 
                     Text {
-                        text: "记忆聊天"
+                        text: "本地备忘"
                         color: textPrimary
                         font.pixelSize: 28
                         font.bold: true
                     }
 
                     Text {
-                        text: "记录想法、图片和每天的片段"
+                        text: "只保存在本机，用来记录想法和每天的片段"
                         color: textSecondary
                         font.pixelSize: 14
                     }
@@ -295,7 +308,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "清空聊天记录"
+                        text: "清空备忘记录"
                         color: accentBrownDeep
                         font.pixelSize: 13
                         font.bold: true
@@ -311,7 +324,7 @@ Item {
         }
 
         // =========================
-        // 聊天消息区域
+        // 本地备忘消息区域
         // =========================
         Rectangle {
             Layout.fillWidth: true
@@ -533,7 +546,7 @@ Item {
             Text {
                 visible: chatModel.count === 0
                 anchors.centerIn: parent
-                text: "还没有聊天记录，发出第一条消息吧。"
+                text: "还没有本地备忘，写下第一条记录吧。"
                 color: textSecondary
                 font.pixelSize: 16
             }
@@ -678,7 +691,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 12
 
-                            placeholderText: "写点什么，或者配一张图片..."
+                            placeholderText: "写一条本地备忘，留给之后的自己..."
                             placeholderTextColor: textSecondary
                             wrapMode: TextEdit.WrapAnywhere
                             color: textPrimary
@@ -725,7 +738,7 @@ Item {
 
                         MouseArea {
                             anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
+                            cursorShape: inputField.text.trim().length > 0 ? Qt.PointingHandCursor : Qt.ArrowCursor
                             onClicked: sendMessage()
                         }
 
@@ -733,6 +746,7 @@ Item {
                             anchors.centerIn: parent
                             text: "➤"
                             color: "#FFFDF9"
+                            opacity: inputField.text.trim().length > 0 ? 1.0 : 0.42
                             font.pixelSize: 22
                             font.bold: true
                         }
@@ -749,7 +763,7 @@ Item {
         id: messageMenu
 
         MenuItem {
-            text: "删除这条聊天记录"
+            text: "删除这条备忘"
             onTriggered: {
                 deleteMessageAt(contextMessageIndex)
                 contextMessageIndex = -1
@@ -758,7 +772,7 @@ Item {
     }
 
     // =========================
-    // 清空聊天弹窗
+    // 清空备忘弹窗
     // =========================
     Dialog {
         id: clearAllDialog
@@ -781,7 +795,7 @@ Item {
             spacing: 16
 
             Text {
-                text: "确认清空全部聊天记录？"
+                text: "确认清空全部本地备忘？"
                 color: textPrimary
                 font.pixelSize: 24
                 font.bold: true

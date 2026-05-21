@@ -1,17 +1,24 @@
 #include "usage_storage.h"
 
 #include "data_bridge.h"
+#include "sqlite3.h"
 #include "usage_paths.h"
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-// Windows 采集进程当前只维护一个全局存储上下文，并通过 data_bridge.h 暴露给
-// foreground/audio tracker。后续如果支持多用户或多 profile，可以把它改成显式传参。
+#ifdef _WIN32
+#include <direct.h>
+#else
+#include <sys/stat.h>
+#endif
+
 static TimeArcStorageContext g_storage;
 
-// 所有落盘字段都是固定 buffer。写入前统一安全复制，空指针按空字符串处理。
 static void copy_string(char* dst, size_t dst_size, const char* src) {
   if (dst == NULL || dst_size == 0) {
     return;
@@ -31,26 +38,105 @@ static void copy_string(char* dst, size_t dst_size, const char* src) {
   dst[len] = '\0';
 }
 
-static int make_db_path(char* out_path, size_t out_path_size) {
-  // SQLite 还没有真正启用，但路径先保持和 JSONL 同目录，方便将来做迁移工具。
-  char dir[4096];
-  if (timearc_get_usage_data_dir(dir, sizeof(dir)) != 0) {
+static int create_dir_if_missing(const char* path) {
+  if (path == NULL || path[0] == '\0') {
     return -1;
   }
 
 #ifdef _WIN32
-  int written = snprintf(out_path, out_path_size,
-                         "%s\\usage_records.sqlite3", dir);
+  if (_mkdir(path) == 0 || errno == EEXIST) {
+    return 0;
+  }
 #else
-  int written = snprintf(out_path, out_path_size,
-                         "%s/usage_records.sqlite3", dir);
+  if (mkdir(path, 0755) == 0 || errno == EEXIST) {
+    return 0;
+  }
 #endif
+
+  return -1;
+}
+
+static int make_db_path(char* out_path, size_t out_path_size) {
+  if (out_path == NULL || out_path_size == 0) {
+    return -1;
+  }
+
+  const char* app_data = getenv("APPDATA");
+  if (app_data == NULL || app_data[0] == '\0') {
+    app_data = getenv("LOCALAPPDATA");
+  }
+  if (app_data == NULL || app_data[0] == '\0') {
+    return -1;
+  }
+
+  char org_dir[4096];
+  char app_dir[4096];
+
+#ifdef _WIN32
+  int written = snprintf(org_dir, sizeof(org_dir), "%s\\TimeArc", app_data);
+#else
+  int written = snprintf(org_dir, sizeof(org_dir), "%s/.timearc", app_data);
+#endif
+  if (written < 0 || (size_t)written >= sizeof(org_dir) ||
+      create_dir_if_missing(org_dir) != 0) {
+    return -1;
+  }
+
+#ifdef _WIN32
+  written = snprintf(app_dir, sizeof(app_dir), "%s\\TimeArc", org_dir);
+#else
+  written = snprintf(app_dir, sizeof(app_dir), "%s/TimeArc", org_dir);
+#endif
+  if (written < 0 || (size_t)written >= sizeof(app_dir) ||
+      create_dir_if_missing(app_dir) != 0) {
+    return -1;
+  }
+
+#ifdef _WIN32
+  written = snprintf(out_path, out_path_size, "%s\\timearc.db", app_dir);
+#else
+  written = snprintf(out_path, out_path_size, "%s/timearc.db", app_dir);
+#endif
+
   return written >= 0 && (size_t)written < out_path_size ? 0 : -1;
 }
 
-// 只负责 JSON 字符串转义，不验证 UTF-8。平台层已经尽量把 Windows 字符串转成
-// UTF-8；这里保持简单，避免引入额外依赖。
-// TODO: 真正启用跨平台同步前，补完整 UTF-8 校验和更严格的转义测试。
+static const char* basename_from_path(const char* path) {
+  const char* base = path;
+
+  if (path == NULL) {
+    return "";
+  }
+
+  for (const char* p = path; *p != '\0'; ++p) {
+    if (*p == '\\' || *p == '/') {
+      base = p + 1;
+    }
+  }
+
+  return base;
+}
+
+static const char* non_empty_or(const char* value, const char* fallback) {
+  return value != NULL && value[0] != '\0' ? value : fallback;
+}
+
+static int sqlite_exec(TimeArcStorageContext* context, const char* sql) {
+  char* error = NULL;
+  if (context == NULL || context->db == NULL || sql == NULL) {
+    return -1;
+  }
+
+  if (sqlite3_exec(context->db, sql, NULL, NULL, &error) != SQLITE_OK) {
+    fprintf(stderr, "sqlite exec failed: %s\nSQL: %s\n",
+            error != NULL ? error : sqlite3_errmsg(context->db), sql);
+    sqlite3_free(error);
+    return -1;
+  }
+
+  return 0;
+}
+
 static void write_json_string(FILE* file, const char* value) {
   fputc('"', file);
 
@@ -97,8 +183,6 @@ static void write_usage_record_object(FILE* file,
                                       const TimeArcUsageRecord* record,
                                       int live,
                                       int64_t updated_unix_sec) {
-  // 显式写字段，保证磁盘格式和 usage_record.schema.json 一一对应。
-  // live/updated_unix_sec 只用于 usage_current.json，历史 JSONL 读者可以忽略它。
   fputc('{', file);
   write_json_field(file, "platform", record->platform);
   fputc(',', file);
@@ -167,7 +251,6 @@ int timearc_storage_write_current_record(TimeArcStorageContext* context,
     return -1;
   }
 
-  // Windows 上 C rename 不稳定覆盖已有文件，所以先删旧文件再换入临时文件。
   remove(context->current_path);
   if (rename(temp_path, context->current_path) != 0) {
     remove(temp_path);
@@ -186,16 +269,256 @@ void timearc_storage_clear_current_record(TimeArcStorageContext* context) {
 }
 
 int timearc_storage_init_sqlite(TimeArcStorageContext* context) {
-  (void)context;
-  // TODO: Open SQLite database and create usage_records table.
+  if (context == NULL || context->db_path[0] == '\0') {
+    return -1;
+  }
+
+  if (sqlite3_open(context->db_path, &context->db) != SQLITE_OK) {
+    fprintf(stderr, "failed to open SQLite database: %s (%s)\n",
+            context->db_path,
+            context->db != NULL ? sqlite3_errmsg(context->db) : "unknown");
+    if (context->db != NULL) {
+      sqlite3_close(context->db);
+      context->db = NULL;
+    }
+    return -1;
+  }
+
+  sqlite3_busy_timeout(context->db, 5000);
+
+  if (sqlite_exec(context, "PRAGMA foreign_keys = ON;") != 0 ||
+      sqlite_exec(context, "PRAGMA journal_mode = WAL;") != 0 ||
+      sqlite_exec(context,
+                  "CREATE TABLE IF NOT EXISTS apps ("
+                  "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                  "app_identifier TEXT NOT NULL UNIQUE,"
+                  "app_name TEXT NOT NULL,"
+                  "display_name TEXT,"
+                  "app_icon_path TEXT,"
+                  "executable_path TEXT,"
+                  "platform TEXT DEFAULT 'windows',"
+                  "created_at INTEGER NOT NULL,"
+                  "updated_at INTEGER NOT NULL"
+                  ");") != 0 ||
+      sqlite_exec(context,
+                  "CREATE TABLE IF NOT EXISTS frontmost_sessions ("
+                  "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                  "app_identifier TEXT NOT NULL,"
+                  "window_title TEXT,"
+                  "start_unix_sec INTEGER NOT NULL,"
+                  "end_unix_sec INTEGER NOT NULL,"
+                  "duration_sec INTEGER NOT NULL,"
+                  "active_sec INTEGER NOT NULL,"
+                  "idle_sec INTEGER DEFAULT 0,"
+                  "created_at INTEGER NOT NULL"
+                  ");") != 0 ||
+      sqlite_exec(context,
+                  "CREATE TABLE IF NOT EXISTS media_sessions ("
+                  "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                  "app_identifier TEXT NOT NULL,"
+                  "media_type TEXT NOT NULL,"
+                  "media_title TEXT,"
+                  "start_unix_sec INTEGER NOT NULL,"
+                  "end_unix_sec INTEGER NOT NULL,"
+                  "playback_sec INTEGER NOT NULL,"
+                  "created_at INTEGER NOT NULL"
+                  ");") != 0 ||
+      sqlite_exec(context,
+                  "CREATE INDEX IF NOT EXISTS idx_frontmost_time "
+                  "ON frontmost_sessions(start_unix_sec, end_unix_sec);") !=
+          0 ||
+      sqlite_exec(context,
+                  "CREATE INDEX IF NOT EXISTS idx_frontmost_app "
+                  "ON frontmost_sessions(app_identifier);") != 0 ||
+      sqlite_exec(context,
+                  "CREATE UNIQUE INDEX IF NOT EXISTS "
+                  "idx_frontmost_unique_record "
+                  "ON frontmost_sessions(app_identifier, window_title, "
+                  "start_unix_sec, end_unix_sec);") != 0 ||
+      sqlite_exec(context,
+                  "CREATE INDEX IF NOT EXISTS idx_media_time "
+                  "ON media_sessions(start_unix_sec, end_unix_sec);") != 0 ||
+      sqlite_exec(context,
+                  "CREATE INDEX IF NOT EXISTS idx_media_app "
+                  "ON media_sessions(app_identifier);") != 0 ||
+      sqlite_exec(context,
+                  "CREATE UNIQUE INDEX IF NOT EXISTS idx_media_unique_record "
+                  "ON media_sessions(app_identifier, media_type, media_title, "
+                  "start_unix_sec, end_unix_sec);") != 0 ||
+      sqlite_exec(context,
+                  "CREATE INDEX IF NOT EXISTS idx_apps_identifier "
+                  "ON apps(app_identifier);") != 0) {
+    sqlite3_close(context->db);
+    context->db = NULL;
+    return -1;
+  }
+
   return 0;
+}
+
+static int bind_text(sqlite3_stmt* stmt, int index, const char* value) {
+  return sqlite3_bind_text(stmt, index, non_empty_or(value, ""), -1,
+                           SQLITE_TRANSIENT);
 }
 
 int timearc_storage_write_sqlite(TimeArcStorageContext* context,
                                  const TimeArcUsageRecord* record) {
-  (void)context;
-  (void)record;
-  // TODO: Insert usage record into SQLite.
+  if (context == NULL || record == NULL || context->db == NULL) {
+    return -1;
+  }
+
+  int is_foreground =
+      record->source[0] == '\0' || strcmp(record->source, "foreground") == 0;
+  int is_audio = strcmp(record->source, "audio") == 0;
+  if (!is_foreground && !is_audio) {
+    return 0;
+  }
+
+  const char* app_identifier = non_empty_or(record->app_id, record->path);
+  if (app_identifier == NULL || app_identifier[0] == '\0' ||
+      record->start_unix_sec <= 0 || record->duration_sec == 0) {
+    return 0;
+  }
+
+  int64_t duration_sec = (int64_t)record->duration_sec;
+  int64_t end_unix_sec = record->start_unix_sec + duration_sec;
+  if (end_unix_sec <= record->start_unix_sec) {
+    return 0;
+  }
+
+  const char* executable_path = non_empty_or(record->path, app_identifier);
+  const char* app_name = record->app_name[0] != '\0'
+                             ? record->app_name
+                             : basename_from_path(executable_path);
+  if (app_name == NULL || app_name[0] == '\0') {
+    app_name = app_identifier;
+  }
+
+  const char* platform = non_empty_or(record->platform, "windows");
+  int64_t now = (int64_t)time(NULL);
+
+  if (sqlite_exec(context, "BEGIN IMMEDIATE;") != 0) {
+    return -1;
+  }
+
+  sqlite3_stmt* app_stmt = NULL;
+  const char* app_sql =
+      "INSERT INTO apps ("
+      "app_identifier, app_name, display_name, app_icon_path, "
+      "executable_path, platform, created_at, updated_at"
+      ") VALUES (?, ?, ?, '', ?, ?, ?, ?) "
+      "ON CONFLICT(app_identifier) DO UPDATE SET "
+      "app_name = excluded.app_name,"
+      "display_name = excluded.display_name,"
+      "app_icon_path = excluded.app_icon_path,"
+      "executable_path = excluded.executable_path,"
+      "platform = excluded.platform,"
+      "updated_at = excluded.updated_at;";
+
+  if (sqlite3_prepare_v2(context->db, app_sql, -1, &app_stmt, NULL) !=
+      SQLITE_OK) {
+    fprintf(stderr, "failed to prepare app upsert: %s\n",
+            sqlite3_errmsg(context->db));
+    sqlite_exec(context, "ROLLBACK;");
+    return -1;
+  }
+
+  bind_text(app_stmt, 1, app_identifier);
+  bind_text(app_stmt, 2, app_name);
+  bind_text(app_stmt, 3, app_name);
+  bind_text(app_stmt, 4, executable_path);
+  bind_text(app_stmt, 5, platform);
+  sqlite3_bind_int64(app_stmt, 6, now);
+  sqlite3_bind_int64(app_stmt, 7, now);
+
+  int rc = sqlite3_step(app_stmt);
+  sqlite3_finalize(app_stmt);
+  if (rc != SQLITE_DONE) {
+    fprintf(stderr, "failed to upsert app into SQLite: %s\n",
+            sqlite3_errmsg(context->db));
+    sqlite_exec(context, "ROLLBACK;");
+    return -1;
+  }
+
+  sqlite3_stmt* session_stmt = NULL;
+  int changes = 0;
+
+  if (is_foreground) {
+    const char* session_sql =
+        "INSERT OR IGNORE INTO frontmost_sessions ("
+        "app_identifier, window_title, start_unix_sec, end_unix_sec, "
+        "duration_sec, active_sec, idle_sec, created_at"
+        ") VALUES (?, ?, ?, ?, ?, ?, 0, ?);";
+
+    if (sqlite3_prepare_v2(context->db, session_sql, -1, &session_stmt, NULL) !=
+        SQLITE_OK) {
+      fprintf(stderr, "failed to prepare frontmost insert: %s\n",
+              sqlite3_errmsg(context->db));
+      sqlite_exec(context, "ROLLBACK;");
+      return -1;
+    }
+
+    bind_text(session_stmt, 1, app_identifier);
+    bind_text(session_stmt, 2, record->window_title);
+    sqlite3_bind_int64(session_stmt, 3, record->start_unix_sec);
+    sqlite3_bind_int64(session_stmt, 4, end_unix_sec);
+    sqlite3_bind_int64(session_stmt, 5, duration_sec);
+    sqlite3_bind_int64(session_stmt, 6, duration_sec);
+    sqlite3_bind_int64(session_stmt, 7, now);
+
+    rc = sqlite3_step(session_stmt);
+    changes = sqlite3_changes(context->db);
+    sqlite3_finalize(session_stmt);
+    if (rc != SQLITE_DONE) {
+      fprintf(stderr, "failed to insert frontmost session into SQLite: %s\n",
+              sqlite3_errmsg(context->db));
+      sqlite_exec(context, "ROLLBACK;");
+      return -1;
+    }
+  } else if (is_audio) {
+    const char* media_title =
+        record->window_title[0] != '\0' ? record->window_title : "Audio playback";
+    const char* session_sql =
+        "INSERT OR IGNORE INTO media_sessions ("
+        "app_identifier, media_type, media_title, start_unix_sec, "
+        "end_unix_sec, playback_sec, created_at"
+        ") VALUES (?, 'audio', ?, ?, ?, ?, ?);";
+
+    if (sqlite3_prepare_v2(context->db, session_sql, -1, &session_stmt, NULL) !=
+        SQLITE_OK) {
+      fprintf(stderr, "failed to prepare media insert: %s\n",
+              sqlite3_errmsg(context->db));
+      sqlite_exec(context, "ROLLBACK;");
+      return -1;
+    }
+
+    bind_text(session_stmt, 1, app_identifier);
+    bind_text(session_stmt, 2, media_title);
+    sqlite3_bind_int64(session_stmt, 3, record->start_unix_sec);
+    sqlite3_bind_int64(session_stmt, 4, end_unix_sec);
+    sqlite3_bind_int64(session_stmt, 5, duration_sec);
+    sqlite3_bind_int64(session_stmt, 6, now);
+
+    rc = sqlite3_step(session_stmt);
+    changes = sqlite3_changes(context->db);
+    sqlite3_finalize(session_stmt);
+    if (rc != SQLITE_DONE) {
+      fprintf(stderr, "failed to insert media session into SQLite: %s\n",
+              sqlite3_errmsg(context->db));
+      sqlite_exec(context, "ROLLBACK;");
+      return -1;
+    }
+  }
+
+  if (sqlite_exec(context, "COMMIT;") != 0) {
+    sqlite_exec(context, "ROLLBACK;");
+    return -1;
+  }
+
+  if (changes == 0) {
+    fprintf(stderr, "duplicate session skipped in SQLite\n");
+  }
+
   return 0;
 }
 
@@ -207,11 +530,10 @@ int timearc_storage_init(TimeArcStorageContext* context,
   }
 
   memset(context, 0, sizeof(*context));
-  // 把 backend 标志标准化成 0/1，调用方传任意 truthy 值也不会影响后续判断。
   context->use_jsonl = use_jsonl ? 1 : 0;
   context->use_sqlite = use_sqlite ? 1 : 0;
   copy_string(context->table_name, sizeof(context->table_name),
-              "usage_records");
+              "frontmost_sessions");
 
   if (timearc_get_usage_jsonl_path(context->jsonl_path,
                                    sizeof(context->jsonl_path)) != 0) {
@@ -251,7 +573,11 @@ void timearc_storage_close(TimeArcStorageContext* context) {
     context->jsonl_fp = NULL;
   }
 
-  context->db = NULL;
+  if (context->db != NULL) {
+    sqlite3_close(context->db);
+    context->db = NULL;
+  }
+
   context->initialized = 0;
 }
 
@@ -262,8 +588,6 @@ int timearc_storage_write_record(TimeArcStorageContext* context,
   }
 
   int wrote = 0;
-  // 启用的 backend 按 all-or-nothing 处理：任一写入失败就返回失败，避免悄悄
-  // 产生“JSONL 有、SQLite 没有”的不一致。
   if (context->use_jsonl) {
     if (timearc_storage_write_jsonl(context, record) != 0) {
       return -1;
@@ -290,7 +614,7 @@ int timearc_storage_init_global(void) {
     return 0;
   }
 
-  return timearc_storage_init(&g_storage, 1, 0);
+  return timearc_storage_init(&g_storage, 1, 1);
 }
 
 void timearc_storage_shutdown_global(void) {
@@ -314,7 +638,6 @@ static void fill_usage_record(TimeArcUsageRecord* record,
                               const char* path,
                               int64_t start_unix_sec,
                               uint64_t duration_sec) {
-  // data_bridge 的参数很多，先收敛成一个标准结构体，再交给具体 backend 写入。
   memset(record, 0, sizeof(*record));
   copy_string(record->platform, sizeof(record->platform), platform);
   copy_string(record->source, sizeof(record->source),
@@ -335,7 +658,6 @@ int ta_write_usage_record(const char* platform,
                           const char* path,
                           int64_t start_unix_sec,
                           uint64_t duration_sec) {
-  // 懒初始化：简单工具或测试直接调用 data bridge 时，不必先记得 ta_storage_init。
   if (!g_storage.initialized && timearc_storage_init_global() != 0) {
     return -1;
   }

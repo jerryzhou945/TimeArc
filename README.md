@@ -16,6 +16,7 @@ adapts between desktop and mobile layouts and between day and night modes.
   - [Features](#features)
   - [Platform Support](#platform-support)
   - [Architecture](#architecture)
+  - [Desktop P1 MVP Status](#desktop-p1-mvp-status)
   - [Tech Stack](#tech-stack)
   - [Installation](#installation)
     - [Prerequisites](#prerequisites)
@@ -30,6 +31,7 @@ adapts between desktop and mobile layouts and between day and night modes.
   - [Contributing](#contributing)
     - [For Humans](#for-humans)
     - [Contributing with AI Agents](#contributing-with-ai-agents)
+    - [Verification](#verification)
     - [Code Style](#code-style)
   - [Roadmap](#roadmap)
   - [License](#license)
@@ -44,12 +46,19 @@ adapts between desktop and mobile layouts and between day and night modes.
   captures "I left the computer but the video kept playing".
 - **Manual project timers** — run timers against user-defined projects
   tagged across eight fixed categories (study, work, sport, leisure,
-  reading, social, life, other).
+  reading, social, life, other). Manual projects and timer sessions are
+  stored through the SQLite repository layer.
 - **Calendar of daily to-dos and photos** — persist per-date tasks and
   optional imagery, link to-dos to projects to merge into the timeline.
+  Calendar to-dos are stored in the SQLite settings table.
 - **Adaptive shell** — a single QML application auto-switches between a
   desktop and a mobile shell based on window width (`<= 720 px` → mobile)
   or explicit flag; includes full day/night theming.
+- **Local memo chat** — the desktop Chat page is a local self-recording
+  memo surface, not an AI chat or cloud chat. Messages are stored in the
+  SQLite settings repository and loaded back in timestamp order.
+- **Animated Memory Lake shell** — the Memory Lake page includes an 8-frame
+  hot spring animation assembled from transparent resource frames.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 
@@ -72,9 +81,10 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 |   Qt 6 + QML         |          |  C (Win/Linux),       |
 |   C++17              |          |  Swift (macOS)        |
 |                      |          |                       |
-|   reads              |  <----   |  writes (append)      |
+|   reads/writes       | <---->   |  writes               |
 |   usage_records.jsonl|          |  usage_records.jsonl  |
 |   usage_current.json |  <----   |  usage_current.json   |
+|   timearc.db         | <---->   |  timearc.db           |
 +----------------------+          +-----------------------+
          starts (Windows only, via QProcess)
          --------------------------------->
@@ -89,19 +99,63 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 - `data_bridge.h` is the cross-language C ABI used by Swift (macOS) and
   C (Windows/Linux) tracker code to submit sessions to the storage
   layer.
+- SQLite database-layer integration has started. The app and service can
+  open the shared `timearc.db` and write/read app and session tables, but
+  the migration is transitional: SQLite is not yet the sole primary data
+  source, and the JSONL history plus live JSON snapshot still remain in use.
+- Current desktop data split: automatic foreground-app and media usage
+  still come from the real service capture path and journal/database session
+  readers; manual projects, timer sessions, calendar todos, night mode, and
+  local memo chat are routed through SQLite-backed repositories/settings.
+  Legacy QSettings data for those UI-owned items is migrated into SQLite on
+  startup without deleting the old QSettings keys.
+
+## Desktop P1 MVP Status
+
+The desktop MVP is in a P1 stabilization state, not a production-complete
+state. The main data loop is now closed for the desktop surfaces below:
+
+- Home and Stats share the same real usage/project/session repositories for
+  today's manual-project totals, project rankings, recent activity, and range
+  aggregation.
+- Project creation, timer session submission, project deletion, calendar
+  todos, night mode, and local memo chat are persisted through SQLite-backed
+  repositories/settings.
+- Project deletion is conservative: projects are archived/hidden from active
+  lists, while historical sessions and stats remain queryable.
+- Calendar todos persist date, title, and completion state through SQLite
+  settings.
+- The Settings page stores night mode in SQLite settings and shows the real
+  read-only SQLite database path from `databaseManager.getDatabasePath()`.
+- The Chat page is a local memo/self-recording chat. It is not an AI chat,
+  does not call cloud services, and does not provide smart replies.
+
+Important limits remain:
+
+- SQLite is not yet the only primary data source. Automatic foreground and
+  media usage still depend on the service capture path, journal files, and
+  current database readers.
+- Legacy QSettings project/session/todo/memo/night-mode data is migrated
+  idempotently into SQLite when possible, but the old QSettings data is kept
+  for rollback rather than deleted.
+- Cross-day manual sessions are retained by overlapping range queries; they
+  are not yet split or prorated per day.
+- Data export/backup, user-selectable database path migration, fuller
+  migration tooling, richer memo management, and production packaging remain
+  P2 work.
 
 ## Tech Stack
 
 | Layer            | Technology                                                      |
 |------------------|-----------------------------------------------------------------|
-| UI               | Qt 6.8 (Core, Quick, Svg, Widgets), QML, C++17                  |
+| UI               | Qt 6.8 (Core, Quick, Svg, Sql, Widgets), QML, C++17             |
 | Service (Win)    | C11 (WinAPI, WASAPI `IAudioMeterInformation`, PSAPI, COM)       |
 | Service (macOS)  | Swift 5+ (`NSWorkspace`, Accessibility API, IOKit power mgmt)   |
 | Service (Linux)  | C11 — X11 + Wayland planned                                     |
-| Storage (today)  | JSONL history + atomic JSON live snapshot, UTF-8                |
-| Storage (planned)| SQLite; path reserved, writer is a no-op today                  |
+| Storage (today)  | JSONL history + atomic JSON live snapshot for service usage; SQLite repositories for app/session/project/settings data |
+| Storage (planned)| Finish SQLite migration as the primary data source              |
 | Build            | CMake 3.16+, Qt's `qt_standard_project_setup(REQUIRES 6.8)`     |
-| Persistence (UI) | `QSettings` for projects, sessions, calendar data               |
+| Persistence (UI) | SQLite settings/repositories; legacy QSettings is migrated and retained for rollback |
 | Third-party      | SQLite (vendored, public domain), Parson (vendored, MIT)        |
 | License          | GPL-3.0-or-later                                                |
 
@@ -110,7 +164,7 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 ### Prerequisites
 
 - **CMake** 3.16 or newer.
-- **Qt** 6.8 or newer with the `Core`, `Quick`, `Svg`, and `Widgets`
+- **Qt** 6.8 or newer with the `Core`, `Quick`, `Svg`, `Sql`, and `Widgets`
   modules. On macOS, Swift toolchain enabled.
 - **C11** and **C++17** compiler: MSVC ≥ 2019 or MinGW-w64 on Windows,
   Clang on macOS (with Swift), GCC/Clang on Linux.
@@ -132,6 +186,15 @@ build failures are automatically journalled:
 
 ```bash
 python .harness/tools/build.py -- --config Release
+```
+
+If the Windows `python` command points at a broken Windows Store alias, install
+a real Python 3 interpreter and either put it on `PATH` or point
+`TIMEARC_PYTHON` at it:
+
+```powershell
+$env:TIMEARC_PYTHON = "D:\path\to\python.exe"
+& $env:TIMEARC_PYTHON .harness/tools/preflight.py --track B
 ```
 
 Two executables are produced: `TimeArc` (the UI) and `time-arc-service`
@@ -163,11 +226,22 @@ automatically: window width `<= 720 px` selects the mobile shell.
 | macOS    | `~/.timearc/usage/`                                       |
 | Linux    | `~/.timearc/usage/`                                       |
 
-Files written there:
+Files written in the usage directory:
 
-- `usage_records.jsonl` — append-only history, one JSON record per line.
-- `usage_current.json` — atomic overwrite, UI-polled live snapshot.
-- `usage_records.sqlite3` — reserved for the planned SQLite migration.
+- `usage_records.jsonl` - append-only history, one JSON record per line.
+- `usage_current.json` - atomic overwrite, UI-polled live snapshot.
+
+The SQLite file is separate from the usage directory. It uses Qt's
+`QStandardPaths::AppDataLocation`; on Windows that is typically
+`%APPDATA%\TimeArc\TimeArc\timearc.db`. It is being introduced alongside
+JSONL and is not yet the sole primary data source.
+
+Desktop manual projects, timer sessions, calendar to-dos, night mode, and
+local memo chat now read/write this SQLite database. Existing QSettings data
+for projects/sessions, calendar todos, local memo chat, and night mode is
+migrated once on startup when possible. The migration is idempotent and keeps
+the legacy QSettings data in place; it does not make SQLite the only source
+for automatic foreground/media usage yet.
 
 A separate log produced by the Qt message handler (harness journal) is
 written to `<GenericDataLocation>/TimeArc/logs/harness-qt.log`.
@@ -183,8 +257,9 @@ triggers an orderly flush of the current session.
 
 ### Configuration
 
-User preferences are not yet externalized; the bundled Parson JSON
-parser exists for this purpose and will be wired in a later release.
+User preferences are not yet externalized as editable config files. Desktop
+night mode is persisted in SQLite settings, and the bundled Parson JSON parser
+exists for future user-config work.
 
 ## Project Structure
 
@@ -265,6 +340,22 @@ python .harness/tools/harness_check.py
 Human contributors may bypass the harness, but using it produces a
 reviewable change history for free.
 
+### Verification
+
+Recommended P1 desktop verification sequence:
+
+```bash
+python .harness/tools/preflight.py --track B
+python .harness/tools/build.py
+ctest --test-dir build --output-on-failure
+python .harness/tools/scan_qt_log.py
+python .harness/tools/harness_check.py
+```
+
+Run `scan_qt_log.py` after a Qt/QML app run; it drains the harness Qt log and
+records real runtime warnings. Do not report harness validation as passed if
+Python cannot start or these commands were not actually run.
+
 See `.harness/CHARTER.md` for invariants and frozen files;
 `.harness/OPTIMIZE.md` for how to keep agent context cost low;
 `.harness/state/open-issues.md` for the running list of known gaps.
@@ -289,15 +380,20 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       idle detection, PipeWire/PulseAudio audio.
 - [ ] Register the Windows service with the Service Control Manager
       (stubs in `src/service/windows/service/win_service.c`).
-- [ ] Migrate on-disk storage from JSONL to SQLite behind a feature
-      flag, with a one-shot migrator.
+- [ ] Finish the on-disk storage migration so SQLite becomes the primary
+      source, with a one-shot JSONL backfill/migrator.
 - [ ] Compile Qt as dynamically-linked libraries in release builds to
       satisfy the LGPL-3.0 combination posture.
 - [ ] Add an in-app licenses page surfacing all third-party texts.
 - [ ] Wire Parson in as the JSON parser for user preferences /
       configuration.
-- [ ] Ship the "Memory Lake" data model + UI (currently a placeholder
-      page).
+- [ ] Ship the "Memory Lake" data model; the visual shell exists, but it is
+      not yet backed by real memory data.
+- [ ] Add export/backup and restore flows for SQLite-backed desktop data.
+- [ ] Add a safe database-path migration flow if user-selectable data
+      locations become a product requirement.
+- [ ] Expand local memo management only as local/offline tooling; do not
+      describe it as AI chat unless an actual AI feature is added later.
 - [ ] Add UTF-8 validation to `usage_storage.c::write_json_string`.
 
 ## License
@@ -310,5 +406,5 @@ or later (GPL-3.0-or-later)**. See `LICENSE` for the full text.
 | Component | License                   | Linkage | Notes                                |
 |-----------|---------------------------|---------|--------------------------------------|
 | Qt 6      | LGPL-3.0 (with exceptions)| dynamic (planned for release) | Required for GUI + QML + Svg. |
-| SQLite    | Public domain             | static  | Vendored under `thirdparty/sqlite3/`. Reserved for future storage backend. |
+| SQLite    | Public domain             | static  | Vendored under `thirdparty/sqlite3/`; used by the database layer and service storage. |
 | Parson    | MIT                       | static  | Vendored under `thirdparty/parson/`. Will back user config. |

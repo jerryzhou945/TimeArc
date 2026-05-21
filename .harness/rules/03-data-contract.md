@@ -16,13 +16,14 @@ Root directory from `usage_paths.c`:
 
 | Filename                  | Writer                      | Reader         | Shape                               |
 |---------------------------|-----------------------------|----------------|-------------------------------------|
-| `usage_records.jsonl`     | service (append)            | UI (scan)      | one JSON record per line, UTF-8     |
+| `usage_records.jsonl`     | service (append)            | legacy UI/import | one JSON record per line, UTF-8   |
 | `usage_current.json`      | service (atomic overwrite)  | UI (poll read) | single JSON record + `live`, `updated_unix_sec` |
-| `usage_records.sqlite3`   | **reserved** — SQLite       | UI (TBD)       | table `usage_records` — not yet enabled |
+| `timearc.db`              | UI + service SQLite writers | UI DB layer    | app/session/settings tables         |
 
-The SQLite path is computed by `make_db_path` in `usage_storage.c` but the
-backend is a no-op today. Migration owned by track B
-(`tracks/B-feature.md §Playbook`).
+SQLite is now partially enabled for the database layer. The Qt app uses
+`QStandardPaths::AppDataLocation`; the Windows service mirrors that path as
+`%APPDATA%\TimeArc\TimeArc\timearc.db`. JSONL and the live snapshot remain
+active during the transition, so SQLite is not yet the sole primary source.
 
 ## 2. Record shape
 

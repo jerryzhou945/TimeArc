@@ -54,7 +54,7 @@ def parse_args(argv):
 def cell(text, limit=120):
     text = str(text).replace("|", "\\|").replace("\n", " ").strip()
     if len(text) > limit:
-        text = text[: limit - 1] + "\u2026"
+        text = text[: limit - 3] + "..."
     return text
 
 
@@ -64,7 +64,7 @@ def write_report(path, args, ts_iso):
         try:
             tail = "\n".join(
                 log_path.read_text(encoding="utf-8", errors="replace")
-                .splitlines()[-80:]
+                .splitlines()[-55:]
             )
             evidence = "\n```\n" + tail + "\n```\n"
         except OSError as e:
@@ -155,8 +155,27 @@ def update_index(ts_iso, args, report_rel):
     if not inserted:
         out.extend(["", "<!-- record_error.py: error table not found -->",
                     new_row])
+    out = compact_index(out)
     tail_nl = "\n" if text.endswith("\n") else ""
     INDEX.write_text("\n".join(out) + tail_nl, encoding="utf-8")
+
+
+def compact_index(lines, max_l2_rows=24):
+    compacted, in_errors, l2_rows, omitted = [], False, 0, False
+    for line in lines:
+        if line.startswith("## Error entries"):
+            in_errors, l2_rows, omitted = True, 0, False
+        elif line.startswith("## "):
+            in_errors = False
+        if in_errors and "| L2 |" in line and "[report](" in line:
+            l2_rows += 1
+            if l2_rows > max_l2_rows:
+                if not omitted:
+                    compacted.append("| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |")
+                    omitted = True
+                continue
+        compacted.append(line)
+    return compacted
 
 
 def main(argv):

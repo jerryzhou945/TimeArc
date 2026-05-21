@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -10,6 +11,14 @@
 #include <QStringList>
 #include <QUrl>
 
+#include "services/AppRepository.h"
+#include "services/DatabaseManager.h"
+#include "services/FrontmostSessionRepository.h"
+#include "services/ManualProjectRepository.h"
+#include "services/MediaSessionRepository.h"
+#include "services/SettingsRepository.h"
+#include "services/StatsService.h"
+#include "services/TagRepository.h"
 #include "services/appiconimageprovider.h"
 #include "services/calendarmanager.h"
 #include "services/harnesslogger.h"
@@ -60,14 +69,44 @@ int main(int argc, char* argv[]) {
 
   QQmlApplicationEngine engine;
 
-  CalendarManager calendarManager;
+  DatabaseManager databaseManager;
+  if (!databaseManager.initialize()) {
+    qWarning() << "Database initialization failed.";
+  }
+
+  AppRepository appRepository;
+  SettingsRepository settingsRepository;
+  FrontmostSessionRepository frontmostRepository;
+  ManualProjectRepository manualProjectRepository;
+  if (!settingsRepository.migrateLegacyQSettings(&manualProjectRepository)) {
+    qWarning() << "Legacy QSettings migration did not complete.";
+  }
+
+  CalendarManager calendarManager(&settingsRepository);
+  MediaSessionRepository mediaRepository;
+  StatsService statsService(&frontmostRepository, &mediaRepository,
+                            &manualProjectRepository);
+  TagRepository tagRepository;
   TimerManager timerManager;
-  ProjectManager projectManager;
+  ProjectManager projectManager(&manualProjectRepository);
   UsageStatManager usageStatManager;
 
   engine.addImageProvider(QStringLiteral("appicon"), new AppIconImageProvider);
 
+  engine.rootContext()->setContextProperty("databaseManager",
+                                           &databaseManager);
+  engine.rootContext()->setContextProperty("appRepository", &appRepository);
   engine.rootContext()->setContextProperty("calendarManager", &calendarManager);
+  engine.rootContext()->setContextProperty("frontmostRepository",
+                                           &frontmostRepository);
+  engine.rootContext()->setContextProperty("manualProjectRepository",
+                                           &manualProjectRepository);
+  engine.rootContext()->setContextProperty("mediaRepository",
+                                           &mediaRepository);
+  engine.rootContext()->setContextProperty("settingsRepository",
+                                           &settingsRepository);
+  engine.rootContext()->setContextProperty("statsService", &statsService);
+  engine.rootContext()->setContextProperty("tagRepository", &tagRepository);
   engine.rootContext()->setContextProperty("timerManager", &timerManager);
   engine.rootContext()->setContextProperty("projectManager", &projectManager);
   engine.rootContext()->setContextProperty("usageStatManager",

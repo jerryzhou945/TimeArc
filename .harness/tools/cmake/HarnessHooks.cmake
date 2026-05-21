@@ -21,15 +21,29 @@ set(TIMEARC_HARNESS_ROOT "${CMAKE_SOURCE_DIR}/.harness"
 #   Master switch. Finds Python and wires the check target. Safe to call
 #   even if Python is missing (prints a warning and skips hooks).
 function(timearc_harness_enable)
-    find_package(Python3 COMPONENTS Interpreter QUIET)
-    if(NOT Python3_Interpreter_FOUND)
+    set(_timearc_python "")
+    if(DEFINED ENV{TIMEARC_PYTHON} AND NOT "$ENV{TIMEARC_PYTHON}" STREQUAL "")
+        if(EXISTS "$ENV{TIMEARC_PYTHON}")
+            set(_timearc_python "$ENV{TIMEARC_PYTHON}")
+        else()
+            message(WARNING
+                "TimeArc harness: TIMEARC_PYTHON is set but not found: $ENV{TIMEARC_PYTHON}")
+        endif()
+    endif()
+    if(NOT _timearc_python)
+        find_package(Python3 COMPONENTS Interpreter QUIET)
+        if(Python3_Interpreter_FOUND)
+            set(_timearc_python "${Python3_EXECUTABLE}")
+        endif()
+    endif()
+    if(NOT _timearc_python)
         message(WARNING
-            "TimeArc harness: Python3 not found; skipping harness hooks.")
+            "TimeArc harness: Python3 not found; set TIMEARC_PYTHON to enable hooks.")
         return()
     endif()
     message(STATUS
-        "TimeArc harness: enabled (python=${Python3_EXECUTABLE})")
-    set(TIMEARC_HARNESS_PYTHON "${Python3_EXECUTABLE}"
+        "TimeArc harness: enabled (python=${_timearc_python})")
+    set(TIMEARC_HARNESS_PYTHON "${_timearc_python}"
         CACHE INTERNAL "Python used by TimeArc harness")
     timearc_harness_add_check_target()
 endfunction()

@@ -4,6 +4,8 @@
 #include <QObject>
 #include <QString>
 
+class SettingsRepository;
+
 // 日历页轻量数据服务。
 //
 // QML 负责编辑待办、每日照片和选中日期；这里只做持久化和少量 JSON 修改。
@@ -16,7 +18,8 @@ class CalendarManager : public QObject {
   Q_PROPERTY(QString selectedDateKey READ selectedDateKey NOTIFY calendarDataChanged)
 
  public:
-  explicit CalendarManager(QObject* parent = nullptr);
+  explicit CalendarManager(SettingsRepository* settingsRepository = nullptr,
+                           QObject* parent = nullptr);
 
   QString savedTodos() const;
   QString dayPhotos() const;
@@ -34,6 +37,7 @@ class CalendarManager : public QObject {
   QString m_savedTodos;
   QString m_dayPhotos;
   QString m_selectedDateKey;
+  SettingsRepository* m_settingsRepository;
 
   void load();
   void save();
