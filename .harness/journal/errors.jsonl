@@ -1,0 +1,1 @@
+{"timestamp": "2026-05-30T10:00:42Z", "level": "L3", "track": "C", "topic": "merge-main-readme-conflict", "summary": "Merging origin/main into dev produced a README.md content conflict that needs manual resolution", "platform": "n-a", "session": null, "file": "errors/20260530-100042-C-merge-main-readme-conflict.md"}

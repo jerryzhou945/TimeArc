@@ -15,7 +15,7 @@ is regenerated (or maintained by hand) from it.
 
 | Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
 |----------------------|-----|--------------|-------------------------------------------------|--------|
-| _(none yet)_         |     |              |                                                 |        |
+| 2026-05-30T10:00:42Z | L3 | merge-main-read... | Merging origin/main into dev produced a README.md content... | [report](errors/20260530-100042-C-merge-main-readme-conflict.md) |
 
 ## Session entries
 

@@ -1,10 +1,10 @@
 # TimeArc
 
-A cross-platform personal time-tracking desktop/mobile app with a life-log
+A cross-platform personal time-tracking desktop app with a life-log
 aesthetic. TimeArc combines **automatic** system-level activity sampling
 (foreground apps and audio sessions) with **manual** project timers and
-a calendar of daily to-dos, and presents them through a Qt Quick UI that
-adapts between desktop and mobile layouts and between day and night modes.
+a calendar of daily to-dos, and presents them through a Qt Quick desktop UI
+with day and night modes.
 
 > Status: early development (project version `0.1`). Windows tracker is
 > end-to-end functional; macOS has the sampling primitives but the
@@ -23,7 +23,6 @@ adapts between desktop and mobile layouts and between day and night modes.
     - [Building](#building)
   - [Usage](#usage)
     - [Basic Usage](#basic-usage)
-    - [Mobile Preview](#mobile-preview)
     - [Data Location](#data-location)
     - [TimeArc Service](#timearc-service)
     - [Configuration](#configuration)
@@ -51,9 +50,9 @@ adapts between desktop and mobile layouts and between day and night modes.
 - **Calendar of daily to-dos and photos** — persist per-date tasks and
   optional imagery, link to-dos to projects to merge into the timeline.
   Calendar to-dos are stored in the SQLite settings table.
-- **Adaptive shell** — a single QML application auto-switches between a
-  desktop and a mobile shell based on window width (`<= 720 px` → mobile)
-  or explicit flag; includes full day/night theming.
+- **Desktop shell** — a Qt Quick interface with full day/night theming
+  across the Home, Chat, Memory Lake, Calendar, Stats, Profile, and Timer
+  pages.
 - **Local memo chat** — the desktop Chat page is a local self-recording
   memo surface, not an AI chat or cloud chat. Messages are stored in the
   SQLite settings repository and loaded back in timestamp order.
@@ -208,15 +207,7 @@ Two executables are produced: `TimeArc` (the UI) and `time-arc-service`
 Launch `TimeArc`. On Windows it will auto-spawn `time-arc-service` from
 the same directory (detached); on macOS the service is not yet started
 by the UI. The UI shows seven pages on desktop (Home, Chat, Memory Lake,
-Calendar, Stats, Profile, Timer) and nine pages on mobile (Home, Timer,
-Project Detail, Chat, Memory Lake, Calendar, Stats, Profile, Settings).
-
-### Mobile Preview
-
-To force the mobile shell on a desktop, pass `--mobile` (or
-`--mobile-preview`) on the command line, or set the environment variable
-`TIMEARC_MOBILE_PREVIEW=1` before launch. Otherwise the shell is chosen
-automatically: window width `<= 720 px` selects the mobile shell.
+Calendar, Stats, Profile, Timer).
 
 ### Data Location
 
