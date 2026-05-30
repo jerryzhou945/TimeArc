@@ -4,13 +4,21 @@
 #include "DailyCardService.h"
 
 #include <QDate>
+#include <QDateTime>
 #include <QVariant>
 
+#include <algorithm>
+
+#include "FrontmostSessionRepository.h"
 #include "StatsService.h"
 
 namespace {
 
 constexpr int kTopAppLimit = 5;
+// 两个活跃区间间断不超过该秒数，视为同一个连续专注块（10 分钟）。
+constexpr qint64 kFocusGapSec = 10 * 60;
+// 专注块至少要这么长才值得单独成卡（5 分钟），避免琐碎短块。
+constexpr qint64 kFocusMinSpanSec = 5 * 60;
 
 // 取一条 app 记录的显示名，displayName 为空时退回到 appIdentifier。
 QString appDisplayName(const QVariantMap& app) {
@@ -19,10 +27,60 @@ QString appDisplayName(const QVariantMap& app) {
   return app.value(QStringLiteral("appIdentifier")).toString();
 }
 
+// 本地化的时长文案，规则与 StatsService::formatDuration 对齐。
+QString formatDuration(qint64 seconds) {
+  const qint64 safe = std::max<qint64>(0, seconds);
+  if (safe < 60) return QStringLiteral("%1s").arg(safe);
+  const qint64 minutes = safe / 60;
+  if (minutes < 60) return QStringLiteral("%1m").arg(minutes);
+  const qint64 hours = minutes / 60;
+  const qint64 rem = minutes % 60;
+  if (rem == 0) return QStringLiteral("%1h").arg(hours);
+  return QStringLiteral("%1h %2m").arg(hours).arg(rem);
+}
+
+// unix 秒 -> 本地 HH:mm。
+QString formatClock(qint64 unixSec) {
+  return QDateTime::fromSecsSinceEpoch(unixSec).toString(QStringLiteral("HH:mm"));
+}
+
+struct Block {
+  qint64 start;
+  qint64 end;
+};
+
+// 把今天的前台活跃区间合并成连续专注块：先按起点排序，间断 <= gap
+// 的相邻区间桥接进同一块。返回按起点排序的块列表。
+QList<Block> segmentFocusBlocks(const QVariantList& intervals, qint64 gap) {
+  QList<Block> raw;
+  for (const QVariant& item : intervals) {
+    const QVariantMap m = item.toMap();
+    const qint64 s = m.value(QStringLiteral("startUnixSec")).toLongLong();
+    const qint64 e = m.value(QStringLiteral("endUnixSec")).toLongLong();
+    if (e > s) raw.append({s, e});
+  }
+  std::sort(raw.begin(), raw.end(),
+            [](const Block& a, const Block& b) { return a.start < b.start; });
+
+  QList<Block> blocks;
+  for (const Block& b : raw) {
+    if (!blocks.isEmpty() && b.start - blocks.last().end <= gap) {
+      blocks.last().end = std::max(blocks.last().end, b.end);
+    } else {
+      blocks.append(b);
+    }
+  }
+  return blocks;
+}
+
 }  // namespace
 
-DailyCardService::DailyCardService(StatsService* statsService, QObject* parent)
-    : QObject(parent), m_statsService(statsService) {}
+DailyCardService::DailyCardService(
+    StatsService* statsService, FrontmostSessionRepository* frontmostRepository,
+    QObject* parent)
+    : QObject(parent),
+      m_statsService(statsService),
+      m_frontmostRepository(frontmostRepository) {}
 
 QVariantList DailyCardService::getTodayCards() {
   QVariantList cards;
@@ -35,6 +93,9 @@ QVariantList DailyCardService::getTodayCards() {
 
   const QVariantMap topApps = buildTopAppsCard(isoDate);
   if (!topApps.isEmpty()) cards.append(topApps);
+
+  const QVariantMap focusBlock = buildFocusBlockCard(isoDate);
+  if (!focusBlock.isEmpty()) cards.append(focusBlock);
 
   return cards;
 }
@@ -117,6 +178,52 @@ QVariantMap DailyCardService::buildTopAppsCard(const QString& isoDate) {
   card.insert(QStringLiteral("tags"), QVariantList());
   card.insert(QStringLiteral("confidence"), 0.9);
   card.insert(QStringLiteral("source"), QStringLiteral("local_template"));
+  card.insert(QStringLiteral("aiGenerated"), false);
+  return card;
+}
+
+// 专注块卡：把今天的前台活跃区间按 10 分钟间断阈值分段，取最长的连续块。
+QVariantMap DailyCardService::buildFocusBlockCard(const QString& isoDate) {
+  if (!m_frontmostRepository) return QVariantMap();
+
+  const qint64 dayStart =
+      QDate::currentDate().startOfDay().toSecsSinceEpoch();
+  const qint64 now = QDateTime::currentSecsSinceEpoch();
+  if (now <= dayStart) return QVariantMap();
+
+  const QList<Block> blocks = segmentFocusBlocks(
+      m_frontmostRepository->getIntervalsByRange(dayStart, now), kFocusGapSec);
+  if (blocks.isEmpty()) return QVariantMap();
+
+  const Block longest = *std::max_element(
+      blocks.begin(), blocks.end(), [](const Block& a, const Block& b) {
+        return (a.end - a.start) < (b.end - b.start);
+      });
+
+  const qint64 span = longest.end - longest.start;
+  if (span < kFocusMinSpanSec) return QVariantMap();
+
+  const QString range =
+      formatClock(longest.start) + QStringLiteral("–") + formatClock(longest.end);
+
+  QVariantList metrics;
+  metrics.append(QVariantMap{{QStringLiteral("label"),
+                              QStringLiteral("持续时长")},
+                             {QStringLiteral("value"), formatDuration(span)}});
+
+  QVariantMap card;
+  card.insert(QStringLiteral("id"), isoDate + QStringLiteral("-focus-block"));
+  card.insert(QStringLiteral("date"), isoDate);
+  card.insert(QStringLiteral("type"), QStringLiteral("focus_block"));
+  card.insert(QStringLiteral("title"), QStringLiteral("专注块"));
+  card.insert(QStringLiteral("body"),
+              QStringLiteral("这是你今天最长的一段连续活跃,中途没有长时间离开。"));
+  card.insert(QStringLiteral("timeRange"), range);
+  card.insert(QStringLiteral("metrics"), metrics);
+  card.insert(QStringLiteral("apps"), QVariantList());
+  card.insert(QStringLiteral("tags"), QVariantList());
+  card.insert(QStringLiteral("confidence"), 0.7);
+  card.insert(QStringLiteral("source"), QStringLiteral("local_rule"));
   card.insert(QStringLiteral("aiGenerated"), false);
   return card;
 }

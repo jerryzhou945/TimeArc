@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
   MediaSessionRepository mediaRepository;
   StatsService statsService(&frontmostRepository, &mediaRepository,
                             &manualProjectRepository);
-  DailyCardService dailyCardService(&statsService);
+  DailyCardService dailyCardService(&statsService, &frontmostRepository);
   TagRepository tagRepository;
   TimerManager timerManager;
   ProjectManager projectManager(&manualProjectRepository);

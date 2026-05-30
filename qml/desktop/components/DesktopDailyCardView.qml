@@ -49,9 +49,18 @@ SoftCard {
             wrapMode: Text.WordWrap
         }
 
-        // mainline: metric 行
+        // 时间段（专注块等）——醒目地展示 timeRange
+        Text {
+            visible: text.length > 0
+            text: (cardData && cardData.timeRange) ? cardData.timeRange : ""
+            color: root.themeTextPrimary
+            font.pixelSize: 26
+            font.bold: true
+        }
+
+        // metric 行（mainline / focus_block 等都用）
         Row {
-            visible: root.cardType === "mainline" && root.metricList.length > 0
+            visible: root.metricList.length > 0
             spacing: 26
 
             Repeater {
