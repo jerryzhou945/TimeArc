@@ -1,6 +1,8 @@
 set(TIME_ARC_DATABASE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/services/AppRepository.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/AppRepository.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/DailyCardService.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/DailyCardService.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/DatabaseManager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/DatabaseManager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/FrontmostSessionRepository.cpp
