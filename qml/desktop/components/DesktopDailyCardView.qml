@@ -82,9 +82,9 @@ SoftCard {
             }
         }
 
-        // top_apps: 图标 + 名称 + 进度条 + 时长
+        // app 列表（top_apps / 娱乐等）：图标 + 名称 + 进度条 + 时长
         Column {
-            visible: root.cardType === "top_apps" && root.appList.length > 0
+            visible: root.appList.length > 0
             width: parent.width
             spacing: 12
 

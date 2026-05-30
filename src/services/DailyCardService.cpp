@@ -27,6 +27,55 @@ QString appDisplayName(const QVariantMap& app) {
   return app.value(QStringLiteral("appIdentifier")).toString();
 }
 
+// 把排名记录整理成卡片用的 app 条目（图标退回 app_identifier 全路径）。
+QVariantMap makeAppEntry(const QVariantMap& src) {
+  QString iconPath = src.value(QStringLiteral("appIconPath")).toString();
+  if (iconPath.isEmpty()) {
+    iconPath = src.value(QStringLiteral("appIdentifier")).toString();
+  }
+  return QVariantMap{
+      {QStringLiteral("displayName"), appDisplayName(src)},
+      {QStringLiteral("durationText"), src.value(QStringLiteral("durationText"))},
+      {QStringLiteral("durationSec"), src.value(QStringLiteral("durationSec"))},
+      {QStringLiteral("appIconPath"), iconPath},
+  };
+}
+
+// 本地规则分类器（第一版硬编码，后续可搬进 SettingsRepository 做可编辑）。
+// 依据 app_identifier / 显示名的关键词归类，未命中归“其他”。
+QString classifyApp(const QVariantMap& app) {
+  const QString hay = (app.value(QStringLiteral("appIdentifier")).toString() +
+                       QLatin1Char(' ') +
+                       app.value(QStringLiteral("displayName")).toString())
+                          .toLower();
+  auto has = [&](const char* kw) { return hay.contains(QLatin1String(kw)); };
+
+  if (has("steam") || has("epicgames") || has("riotclient") ||
+      has("leagueoflegends") || has("genshin") || has("streetfighter") ||
+      has("game"))
+    return QStringLiteral("游戏");
+  if (has("bilibili") || has("youtube") || has("potplayer") || has("vlc.exe") ||
+      has("iqiyi") || has("youku") || has("netflix") || has("tencentvideo") ||
+      has("qqlive"))
+    return QStringLiteral("视频");
+  if (has("qqmusic") || has("cloudmusic") || has("spotify") || has("netease"))
+    return QStringLiteral("音乐");
+  if (has("weixin") || has("wechat") || has("discord") || has("telegram") ||
+      has("slack") || has("qq.exe"))
+    return QStringLiteral("社交");
+  if (has("code.exe") || has("devenv") || has("clion") || has("pycharm") ||
+      has("idea64") || has("qtcreator") || has("windowsterminal") ||
+      has("powershell") || has("cmd.exe"))
+    return QStringLiteral("开发");
+  return QStringLiteral("其他");
+}
+
+// 计入“娱乐卡”的分类：游戏 + 视频。
+bool isEntertainment(const QString& category) {
+  return category == QStringLiteral("游戏") ||
+         category == QStringLiteral("视频");
+}
+
 // 本地化的时长文案，规则与 StatsService::formatDuration 对齐。
 QString formatDuration(qint64 seconds) {
   const qint64 safe = std::max<qint64>(0, seconds);
@@ -97,6 +146,9 @@ QVariantList DailyCardService::getTodayCards() {
   const QVariantMap focusBlock = buildFocusBlockCard(isoDate);
   if (!focusBlock.isEmpty()) cards.append(focusBlock);
 
+  const QVariantMap entertainment = buildEntertainmentCard(isoDate);
+  if (!entertainment.isEmpty()) cards.append(entertainment);
+
   return cards;
 }
 
@@ -148,21 +200,7 @@ QVariantMap DailyCardService::buildTopAppsCard(const QString& isoDate) {
   QVariantList apps;
   for (const QVariant& entry : ranking) {
     if (apps.size() >= kTopAppLimit) break;
-    const QVariantMap src = entry.toMap();
-    // app_icon_path 在库里通常为空；退回到 app_identifier(即可执行文件
-    // 全路径),交给 QFileIconProvider 抽取系统图标。
-    QString iconPath = src.value(QStringLiteral("appIconPath")).toString();
-    if (iconPath.isEmpty()) {
-      iconPath = src.value(QStringLiteral("appIdentifier")).toString();
-    }
-    QVariantMap app;
-    app.insert(QStringLiteral("displayName"), appDisplayName(src));
-    app.insert(QStringLiteral("durationText"),
-               src.value(QStringLiteral("durationText")));
-    app.insert(QStringLiteral("durationSec"),
-               src.value(QStringLiteral("durationSec")));
-    app.insert(QStringLiteral("appIconPath"), iconPath);
-    apps.append(app);
+    apps.append(makeAppEntry(entry.toMap()));
   }
 
   QVariantMap card;
@@ -223,6 +261,49 @@ QVariantMap DailyCardService::buildFocusBlockCard(const QString& isoDate) {
   card.insert(QStringLiteral("apps"), QVariantList());
   card.insert(QStringLiteral("tags"), QVariantList());
   card.insert(QStringLiteral("confidence"), 0.7);
+  card.insert(QStringLiteral("source"), QStringLiteral("local_rule"));
+  card.insert(QStringLiteral("aiGenerated"), false);
+  return card;
+}
+
+// 娱乐卡：用本地分类器筛出今天的“游戏 + 视频”类 app，汇总时长。
+QVariantMap DailyCardService::buildEntertainmentCard(const QString& isoDate) {
+  const QVariantList ranking = m_statsService->getTodayAppRanking();
+
+  QVariantList apps;
+  qint64 totalSec = 0;
+  QString topApp;
+  for (const QVariant& entry : ranking) {
+    const QVariantMap src = entry.toMap();
+    if (!isEntertainment(classifyApp(src))) continue;
+    totalSec += src.value(QStringLiteral("durationSec")).toLongLong();
+    if (apps.size() < kTopAppLimit) apps.append(makeAppEntry(src));
+    if (topApp.isEmpty()) topApp = appDisplayName(src);
+  }
+
+  if (totalSec <= 0) return QVariantMap();
+
+  QString body = QStringLiteral("今天的娱乐时间约 %1。").arg(formatDuration(totalSec));
+  if (!topApp.isEmpty()) {
+    body += QStringLiteral("主要来自 %1。").arg(topApp);
+  }
+
+  QVariantList metrics;
+  metrics.append(QVariantMap{{QStringLiteral("label"),
+                              QStringLiteral("娱乐时长")},
+                             {QStringLiteral("value"), formatDuration(totalSec)}});
+
+  QVariantMap card;
+  card.insert(QStringLiteral("id"), isoDate + QStringLiteral("-entertainment"));
+  card.insert(QStringLiteral("date"), isoDate);
+  card.insert(QStringLiteral("type"), QStringLiteral("entertainment"));
+  card.insert(QStringLiteral("title"), QStringLiteral("娱乐"));
+  card.insert(QStringLiteral("body"), body);
+  card.insert(QStringLiteral("timeRange"), QString());
+  card.insert(QStringLiteral("metrics"), metrics);
+  card.insert(QStringLiteral("apps"), apps);
+  card.insert(QStringLiteral("tags"), QVariantList());
+  card.insert(QStringLiteral("confidence"), 0.6);
   card.insert(QStringLiteral("source"), QStringLiteral("local_rule"));
   card.insert(QStringLiteral("aiGenerated"), false);
   return card;
