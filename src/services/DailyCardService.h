@@ -34,6 +34,7 @@ class DailyCardService : public QObject {
   QVariantMap buildFocusBlockCard(const QString& isoDate);
   QVariantMap buildEntertainmentCard(const QString& isoDate);
   QVariantMap buildContrastCard(const QString& isoDate);
+  QVariantMap buildFlipCard(const QString& isoDate);
 
   StatsService* m_statsService;
   FrontmostSessionRepository* m_frontmostRepository;

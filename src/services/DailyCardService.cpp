@@ -5,6 +5,8 @@
 
 #include <QDate>
 #include <QDateTime>
+#include <QHash>
+#include <QStringList>
 #include <QVariant>
 
 #include <algorithm>
@@ -151,6 +153,9 @@ QVariantList DailyCardService::getTodayCards() {
 
   const QVariantMap contrast = buildContrastCard(isoDate);
   if (!contrast.isEmpty()) cards.append(contrast);
+
+  const QVariantMap flip = buildFlipCard(isoDate);
+  if (!flip.isEmpty()) cards.append(flip);
 
   return cards;
 }
@@ -353,6 +358,56 @@ QVariantMap DailyCardService::buildContrastCard(const QString& isoDate) {
   card.insert(QStringLiteral("apps"), QVariantList());
   card.insert(QStringLiteral("tags"), QVariantList());
   card.insert(QStringLiteral("confidence"), 0.55);
+  card.insert(QStringLiteral("source"), QStringLiteral("local_rule"));
+  card.insert(QStringLiteral("aiGenerated"), false);
+  return card;
+}
+
+// 今日翻牌卡：一条轻量“小发现”。从一个确定性的事实池里按日期轮换，
+// 既有变化又可复现（不用真随机），尽量和其它卡不重复。
+QVariantMap DailyCardService::buildFlipCard(const QString& isoDate) {
+  const QVariantList ranking = m_statsService->getTodayAppRanking();
+  if (ranking.isEmpty()) return QVariantMap();
+
+  QStringList facts;
+  facts << QStringLiteral("今天你一共打开了 %1 个不同的应用。").arg(ranking.size());
+  facts << QStringLiteral("今天用得最多的是 %1。")
+               .arg(appDisplayName(ranking.first().toMap()));
+
+  // 占比最高的活动类型（排除“其他”，否则没意义）。
+  QHash<QString, qint64> byCategory;
+  for (const QVariant& entry : ranking) {
+    const QVariantMap src = entry.toMap();
+    byCategory[classifyApp(src)] +=
+        src.value(QStringLiteral("durationSec")).toLongLong();
+  }
+  QString topCategory;
+  qint64 topCategorySec = 0;
+  for (auto it = byCategory.constBegin(); it != byCategory.constEnd(); ++it) {
+    if (it.key() == QStringLiteral("其他")) continue;
+    if (it.value() > topCategorySec) {
+      topCategorySec = it.value();
+      topCategory = it.key();
+    }
+  }
+  if (!topCategory.isEmpty()) {
+    facts << QStringLiteral("今天占比最高的活动类型是「%1」。").arg(topCategory);
+  }
+
+  // 按一年中的第几天轮换，当天稳定。
+  const int idx = QDate::currentDate().dayOfYear() % facts.size();
+
+  QVariantMap card;
+  card.insert(QStringLiteral("id"), isoDate + QStringLiteral("-flip"));
+  card.insert(QStringLiteral("date"), isoDate);
+  card.insert(QStringLiteral("type"), QStringLiteral("random_flip"));
+  card.insert(QStringLiteral("title"), QStringLiteral("今日翻牌"));
+  card.insert(QStringLiteral("body"), facts.at(idx));
+  card.insert(QStringLiteral("timeRange"), QString());
+  card.insert(QStringLiteral("metrics"), QVariantList());
+  card.insert(QStringLiteral("apps"), QVariantList());
+  card.insert(QStringLiteral("tags"), QVariantList());
+  card.insert(QStringLiteral("confidence"), 0.5);
   card.insert(QStringLiteral("source"), QStringLiteral("local_rule"));
   card.insert(QStringLiteral("aiGenerated"), false);
   return card;
