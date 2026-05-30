@@ -149,6 +149,9 @@ QVariantList DailyCardService::getTodayCards() {
   const QVariantMap entertainment = buildEntertainmentCard(isoDate);
   if (!entertainment.isEmpty()) cards.append(entertainment);
 
+  const QVariantMap contrast = buildContrastCard(isoDate);
+  if (!contrast.isEmpty()) cards.append(contrast);
+
   return cards;
 }
 
@@ -304,6 +307,52 @@ QVariantMap DailyCardService::buildEntertainmentCard(const QString& isoDate) {
   card.insert(QStringLiteral("apps"), apps);
   card.insert(QStringLiteral("tags"), QVariantList());
   card.insert(QStringLiteral("confidence"), 0.6);
+  card.insert(QStringLiteral("source"), QStringLiteral("local_rule"));
+  card.insert(QStringLiteral("aiGenerated"), false);
+  return card;
+}
+
+// 反差卡：专注（开发类）vs 娱乐（游戏/视频类）的时间对比。
+// 注：现有数据没有“计划时长”字段，所以这里用分类时间做可计算的反差，
+// 等将来有计划/目标时长后再升级成真正的“计划 vs 实际”。
+QVariantMap DailyCardService::buildContrastCard(const QString& isoDate) {
+  const QVariantList ranking = m_statsService->getTodayAppRanking();
+
+  qint64 focusSec = 0;
+  qint64 leisureSec = 0;
+  for (const QVariant& entry : ranking) {
+    const QVariantMap src = entry.toMap();
+    const QString cat = classifyApp(src);
+    const qint64 sec = src.value(QStringLiteral("durationSec")).toLongLong();
+    if (cat == QStringLiteral("开发")) {
+      focusSec += sec;
+    } else if (isEntertainment(cat)) {
+      leisureSec += sec;
+    }
+  }
+
+  if (focusSec <= 0 && leisureSec <= 0) return QVariantMap();
+
+  QVariantList metrics;
+  metrics.append(QVariantMap{{QStringLiteral("label"),
+                              QStringLiteral("专注 · 开发")},
+                             {QStringLiteral("value"), formatDuration(focusSec)}});
+  metrics.append(QVariantMap{{QStringLiteral("label"),
+                              QStringLiteral("娱乐 · 游戏视频")},
+                             {QStringLiteral("value"), formatDuration(leisureSec)}});
+
+  QVariantMap card;
+  card.insert(QStringLiteral("id"), isoDate + QStringLiteral("-contrast"));
+  card.insert(QStringLiteral("date"), isoDate);
+  card.insert(QStringLiteral("type"), QStringLiteral("contrast"));
+  card.insert(QStringLiteral("title"), QStringLiteral("专注 vs 娱乐"));
+  card.insert(QStringLiteral("body"),
+              QStringLiteral("今天检测到的专注类(开发)和娱乐类(游戏/视频)时间对比。"));
+  card.insert(QStringLiteral("timeRange"), QString());
+  card.insert(QStringLiteral("metrics"), metrics);
+  card.insert(QStringLiteral("apps"), QVariantList());
+  card.insert(QStringLiteral("tags"), QVariantList());
+  card.insert(QStringLiteral("confidence"), 0.55);
   card.insert(QStringLiteral("source"), QStringLiteral("local_rule"));
   card.insert(QStringLiteral("aiGenerated"), false);
   return card;
