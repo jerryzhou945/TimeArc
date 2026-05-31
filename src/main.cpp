@@ -11,20 +11,20 @@
 #include <QStringList>
 #include <QUrl>
 
-#include "services/app_repository.h"
-#include "services/database_manager.h"
-#include "services/frontmost_session_repository.h"
-#include "services/manual_project_repository.h"
-#include "services/media_session_repository.h"
-#include "services/settings_repository.h"
-#include "services/stats_service.h"
-#include "services/tag_repository.h"
-#include "services/app_icon_image_provider.h"
-#include "services/calendar_manager.h"
-#include "services/harness_logger.h"
-#include "services/project_manager.h"
-#include "services/timer_manager.h"
-#include "services/usage_stat_manager.h"
+#include "services/AppRepository.h"
+#include "services/DatabaseManager.h"
+#include "services/FrontmostSessionRepository.h"
+#include "services/ManualProjectRepository.h"
+#include "services/MediaSessionRepository.h"
+#include "services/SettingsRepository.h"
+#include "services/StatsService.h"
+#include "services/TagRepository.h"
+#include "services/appiconimageprovider.h"
+#include "services/calendarmanager.h"
+#include "services/harnesslogger.h"
+#include "services/projectmanager.h"
+#include "services/timermanager.h"
+#include "services/usagestatmanager.h"
 
 namespace {
 

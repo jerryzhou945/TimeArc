@@ -12,7 +12,25 @@ Item {
     property color themePanelColor: "#FFFDF9"
     property color themeBorderColor: "#D8C2AC"
     property color themeAccentColor: "#E8C6A3"
-    readonly property url hotSpringImageSource: Qt.resolvedUrl("../../../resources/memorylake/hotspring_01.png")
+    property int hotSpringFrame: 0
+    readonly property int hotSpringFrameInterval: 240
+    readonly property var hotSpringFrames: [
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_01.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_02.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_03.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_04.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_05.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_06.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_07.png"),
+        Qt.resolvedUrl("../../../resources/memorylake/hotspring_08.png")
+    ]
+
+    Timer {
+        interval: root.hotSpringFrameInterval
+        repeat: true
+        running: true
+        onTriggered: root.hotSpringFrame = (root.hotSpringFrame + 1) % root.hotSpringFrames.length
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -98,9 +116,9 @@ Item {
                 anchors.centerIn: parent
                 width: Math.min(parent.width - 56, 560)
                 height: parent.height - 42
-                source: root.hotSpringImageSource
+                source: root.hotSpringFrames[root.hotSpringFrame]
                 fillMode: Image.PreserveAspectFit
-                asynchronous: true
+                asynchronous: false
                 smooth: true
             }
 
@@ -121,7 +139,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "温泉静态预览"
+                    text: "温泉动效 · 8 帧循环"
                     color: "#FFFFFF"
                     font.pixelSize: 15
                     font.bold: true
