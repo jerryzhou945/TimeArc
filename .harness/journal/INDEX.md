@@ -1,34 +1,52 @@
 # Journal Index
 
-Rolling, human-friendly index of everything that has gone wrong and been
-recorded. The authoritative machine-readable log is `errors.jsonl` — this file
-is regenerated (or maintained by hand) from it.
-
-## Conventions
-
-- Newest entries at the top.
-- Each line: ISO date, level, topic, one-line summary, link to full report.
-- One-liners only. Put detail in the report.
-- `errors.jsonl` is the source of truth. When in doubt, `jq` it.
+Rolling, human-friendly index of recent notable reports. The authoritative
+machine-readable log is `errors.jsonl`; older rows may be omitted here to keep
+the harness line budget intact.
 
 ## Error entries
 
 | Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
 |----------------------|-----|--------------|-------------------------------------------------|--------|
 | 2026-05-31T08:21:45Z | L3 | git-revert-inde... | git revert failed to create .git/index.lock with Permissi... | [report](errors/20260531-082145-B-git-revert-index-lock.md) |
-| 2026-05-30T10:00:42Z | L3 | merge-main-read... | Merging origin/main into dev produced a README.md content... | [report](errors/20260530-100042-C-merge-main-readme-conflict.md) |
+| 2026-05-31T07:51:29Z | L1 | build-failure | cmake --build exited 2 | [report](errors/20260531-075129-B-build-failure.md) |
+| 2026-05-31T07:16:13Z | L3 | rg-access-denied | rg.exe failed with Access is denied while searching qml f... | [report](errors/20260531-071613-B-rg-access-denied.md) |
+| 2026-05-31T07:15:41Z | L3 | default-python-... | Default python.exe failed to start during preflight/error... | [report](errors/20260531-071541-B-default-python-launch.md) |
+| 2026-05-31T03:32:44Z | L2 | qt-warning-d7b0... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033244-C-qt-warning-d7b0a0f08c.md) |
+| 2026-05-31T03:32:44Z | L2 | qt-warning-7c15... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033244-C-qt-warning-7c158ce944.md) |
+| 2026-05-31T03:32:44Z | L2 | qt-warning-8802... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033244-C-qt-warning-8802bf6d43.md) |
+| 2026-05-31T03:32:44Z | L2 | qt-warning-b53b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033244-C-qt-warning-b53b5739cc.md) |
+| 2026-05-31T03:32:44Z | L2 | qt-warning-9663... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033244-C-qt-warning-96633e7177.md) |
+| 2026-05-31T03:32:44Z | L2 | qt-warning-8909... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033244-C-qt-warning-89090b3e3c.md) |
+| 2026-05-31T03:32:44Z | L2 | qt-warning-8cd2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033244-C-qt-warning-8cd225532b.md) |
+| 2026-05-31T03:32:44Z | L2 | qt-warning-edae... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033244-C-qt-warning-edaef72713.md) |
+| 2026-05-31T03:32:43Z | L2 | qt-warning-ccc8... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033243-C-qt-warning-ccc8e93194.md) |
+| 2026-05-31T03:32:43Z | L2 | qt-warning-a88e... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033243-C-qt-warning-a88e5eaecd.md) |
+| 2026-05-31T03:32:43Z | L2 | qt-warning-2495... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033243-C-qt-warning-2495f869b5.md) |
+| 2026-05-31T03:32:43Z | L2 | qt-warning-3e22... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033243-C-qt-warning-3e22a561f6.md) |
+| 2026-05-31T03:32:43Z | L2 | qt-warning-2780... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033243-C-qt-warning-278097f1fa.md) |
+| 2026-05-31T03:32:43Z | L2 | qt-warning-19ca... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033243-C-qt-warning-19caff1ea4.md) |
+| 2026-05-31T03:32:43Z | L2 | qt-warning-d789... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033243-C-qt-warning-d789f8158d.md) |
+| 2026-05-31T03:32:42Z | L2 | qt-warning-29ba... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033242-C-qt-warning-29ba07740f.md) |
+| 2026-05-31T03:32:42Z | L2 | qt-warning-61da... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopS... | [report](errors/20260531-033242-C-qt-warning-61da977e22.md) |
+| 2026-05-31T03:32:41Z | L2 | qt-warning-61da... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopS... | [report](errors/20260531-033241-C-qt-warning-61da977e22.md) |
+| 2026-05-31T03:32:41Z | L2 | qt-warning-bf36... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033241-C-qt-warning-bf369e3bb3.md) |
+| 2026-05-31T03:32:41Z | L2 | qt-warning-cd63... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033241-C-qt-warning-cd630d5a2c.md) |
+| 2026-05-31T03:32:40Z | L2 | qt-warning-2c3b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033240-C-qt-warning-2c3b3d0fe0.md) |
+| 2026-05-31T03:32:40Z | L2 | qt-warning-d109... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033240-C-qt-warning-d10940b19b.md) |
+| 2026-05-31T03:32:40Z | L2 | qt-warning-203d... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033240-C-qt-warning-203d9a37ce.md) |
+| 2026-05-31T03:32:40Z | L2 | qt-warning-c347... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260531-033240-C-qt-warning-c347c67218.md) |
+| ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |
 
 ## Session entries
 
-Sessions are logged under `sessions/` (one file per session). A session gets an
-INDEX entry when it contains a charter amendment, a frozen-file change
-proposal, or an unusually long L3 takeaway worth finding again.
+Sessions are logged under `sessions/` when they capture frozen-file changes or
+other high-signal context.
 
 | Date          | Kind               | Slug                                  | Link |
 |---------------|--------------------|---------------------------------------|------|
-| _(none yet)_  |                    |                                       |      |
+| 2026-05-31    | Frozen change      | services-snake-case                   | [session](sessions/20260531-1138-B-services-snake-case.md) |
 
 ## Open issues
 
-Live issues — things we know are wrong but have not fixed — are tracked in
-[`../state/open-issues.md`](../state/open-issues.md).
+Live issues are tracked in [`../state/open-issues.md`](../state/open-issues.md).
