@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
 
 Item {
     id: root
@@ -10,570 +9,534 @@ Item {
     signal nightModeToggled(bool enabled)
 
     property bool nightMode: false
+    property string languageMode: settingsRepository ? settingsRepository.getValue("language_mode", "zh") : "zh"
     property color themeTextPrimary: nightMode ? "#EAE8F8" : "#4E342E"
     property color themeTextSecondary: nightMode ? "#B8B4D4" : "#9C806C"
     property color themePanelColor: nightMode ? "#2C334A" : "#FFFDF9"
     property color themeBorderColor: nightMode ? "#6D7297" : "#D8C2AC"
-    property color themeAccentColor: nightMode ? "#8E93D8" : "#E8C6A3"
+    property color themeAccentColor: nightMode ? "#8E93D8" : "#CFE8D8"
 
-    property color panelGlass: themePanelColor
-    property real panelOpacity: nightMode ? 0.68 : 0.62
+    property bool chinese: languageMode !== "en"
+    property color surfaceColor: nightMode ? "#343C55" : "#FFFEFC"
+    property color rowColor: nightMode ? "#3F4661" : "#F1EAE1"
+    property color selectedRowColor: nightMode ? "#505981" : "#D6EBDD"
+    property color strongBorderColor: nightMode ? "#858BB2" : "#C9B9A8"
+    property color subtleBorderColor: nightMode ? "#697197" : "#DDD0C3"
+    property color shadowColor: nightMode ? "#05070D" : "#BFAE9D"
 
-    property color cardGlass: nightMode ? "#343C55" : "#FFFFFF"
-    property real cardOpacity: nightMode ? 0.62 : 0.58
+    function textFor(zh, en) {
+        return chinese ? zh : en
+    }
 
-    Flickable {
-        anchors.fill: parent
+    function applyThemeMode(mode) {
+        var enabled = mode === "dark"
+        if (root.nightMode === enabled)
+            return
+        root.nightMode = enabled
+        root.nightModeToggled(enabled)
+    }
+
+    function applyLanguage(mode) {
+        root.languageMode = mode
+        if (settingsRepository)
+            settingsRepository.setValue("language_mode", mode)
+    }
+
+    component SectionPanel: Rectangle {
+        id: panel
+        property string title: ""
+        property string subtitle: ""
+        property int padding: 18
+        property int contentHeight: 64
+        default property alias content: contentHost.data
+
+        height: implicitHeight
+        implicitHeight: padding * 2 + headerBlock.implicitHeight + 14 + contentHeight
+        radius: 12
+        color: "transparent"
+        border.width: 1
+        border.color: root.strongBorderColor
         clip: true
-        contentWidth: width
-        contentHeight: pageColumn.implicitHeight + 30
-        boundsBehavior: Flickable.StopAtBounds
 
-        ScrollBar.vertical: ScrollBar {
-            policy: ScrollBar.AsNeeded
+        Rectangle {
+            x: 0
+            y: 6
+            width: parent.width
+            height: parent.height
+            radius: parent.radius
+            color: root.shadowColor
+            opacity: root.nightMode ? 0.20 : 0.06
+            z: -2
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: 11
+            color: root.surfaceColor
+            opacity: root.nightMode ? 0.64 : 0.74
+            z: -1
         }
 
         Column {
-            id: pageColumn
-            width: root.width
-            spacing: 18
+            anchors.fill: parent
+            anchors.margins: panel.padding
+            spacing: 14
 
-            // 顶部标题
             Column {
-                spacing: 6
+                id: headerBlock
+                width: parent.width
+                spacing: 4
 
                 Text {
-                    text: "我的"
-                    color: themeTextPrimary
-                    font.pixelSize: 40
+                    width: parent.width
+                    text: panel.title
+                    color: root.themeTextPrimary
+                    font.pixelSize: 18
                     font.bold: true
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
                 }
 
                 Text {
-                    text: "查看个人主页、使用概览与主题设置"
-                    color: themeTextSecondary
-                    font.pixelSize: 15
-                }
-            }
-
-            // 个人信息区
-            Rectangle {
-                width: parent.width
-                height: 210
-                radius: 30
-                color: "transparent"
-                border.width: 1
-                border.color: themeBorderColor
-                clip: true
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    radius: 29
-                    color: panelGlass
-                    opacity: panelOpacity
-                    z: -1
-                }
-
-                Row {
-                    anchors.fill: parent
-                    anchors.margins: 24
-                    spacing: 22
-
-                    Rectangle {
-                        width: 92
-                        height: 92
-                        radius: 46
-                        color: themeAccentColor
-                        opacity: 0.92
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "C"
-                            color: nightMode ? "#FFF8F2" : "#FFFFFF"
-                            font.pixelSize: 34
-                            font.bold: true
-                        }
-                    }
-
-                    Column {
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 8
-                        width: parent.width - 140
-
-                        Text {
-                            text: "Chen"
-                            color: themeTextPrimary
-                            font.pixelSize: 30
-                            font.bold: true
-                            elide: Text.ElideRight
-                            width: parent.width
-                        }
-
-                        Text {
-                            text: "TimeArc 用户"
-                            color: themeTextSecondary
-                            font.pixelSize: 16
-                        }
-
-                        Text {
-                            text: nightMode
-                                  ? "今晚也在慢慢积累自己的时间轨迹。"
-                                  : "今天也在慢慢积累自己的时间轨迹。"
-                            color: themeTextSecondary
-                            font.pixelSize: 14
-                            wrapMode: Text.Wrap
-                            width: parent.width
-                        }
-
-                        Row {
-                            spacing: 10
-
-                            Rectangle {
-                                width: 110
-                                height: 34
-                                radius: 17
-                                color: cardGlass
-                                opacity: cardOpacity
-                                border.width: 1
-                                border.color: themeBorderColor
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: "记忆湖旅者"
-                                    color: themeTextPrimary
-                                    font.pixelSize: 13
-                                    font.bold: true
-                                }
-                            }
-
-                            Rectangle {
-                                width: 96
-                                height: 34
-                                radius: 17
-                                color: cardGlass
-                                opacity: cardOpacity
-                                border.width: 1
-                                border.color: themeBorderColor
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: nightMode ? "夜晚模式" : "白天模式"
-                                    color: themeTextPrimary
-                                    font.pixelSize: 13
-                                    font.bold: true
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 使用概览
-            Row {
-                width: parent.width
-                spacing: 18
-
-                Rectangle {
-                    width: (parent.width - 36) / 3
-                    height: 138
-                    radius: 24
-                    color: "transparent"
-                    border.width: 1
-                    border.color: themeBorderColor
-                    clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 23
-                        color: cardGlass
-                        opacity: cardOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 10
-
-                        Text {
-                            text: "今日项目"
-                            color: themeTextSecondary
-                            font.pixelSize: 15
-                        }
-
-                        Text {
-                            text: projectManager ? (projectManager.todayProjectMinutes + " 分钟") : "0 分钟"
-                            color: themeTextPrimary
-                            font.pixelSize: 26
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "今日累计手动计时"
-                            color: themeTextSecondary
-                            font.pixelSize: 13
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: (parent.width - 36) / 3
-                    height: 138
-                    radius: 24
-                    color: "transparent"
-                    border.width: 1
-                    border.color: themeBorderColor
-                    clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 23
-                        color: cardGlass
-                        opacity: cardOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 10
-
-                        Text {
-                            text: "本月项目"
-                            color: themeTextSecondary
-                            font.pixelSize: 15
-                        }
-
-                        Text {
-                            text: projectManager ? (projectManager.monthProjectMinutes + " 分钟") : "0 分钟"
-                            color: themeTextPrimary
-                            font.pixelSize: 26
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "本月累计手动计时"
-                            color: themeTextSecondary
-                            font.pixelSize: 13
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: (parent.width - 36) / 3
-                    height: 138
-                    radius: 24
-                    color: "transparent"
-                    border.width: 1
-                    border.color: themeBorderColor
-                    clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 23
-                        color: cardGlass
-                        opacity: cardOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 10
-
-                        Text {
-                            text: "全部项目"
-                            color: themeTextSecondary
-                            font.pixelSize: 15
-                        }
-
-                        Text {
-                            text: projectManager ? (projectManager.allProjectMinutes + " 分钟") : "0 分钟"
-                            color: themeTextPrimary
-                            font.pixelSize: 26
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "总累计手动计时"
-                            color: themeTextSecondary
-                            font.pixelSize: 13
-                        }
-                    }
-                }
-            }
-
-            // 个人信息 + 偏好
-            Row {
-                width: parent.width
-                spacing: 18
-
-                Rectangle {
-                    width: (parent.width - 18) / 2
-                    height: 220
-                    radius: 28
-                    color: "transparent"
-                    border.width: 1
-                    border.color: themeBorderColor
-                    clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 27
-                        color: cardGlass
-                        opacity: cardOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 22
-                        spacing: 14
-
-                        Text {
-                            text: "个人资料"
-                            color: themeTextPrimary
-                            font.pixelSize: 26
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "昵称：Chen"
-                            color: themeTextPrimary
-                            font.pixelSize: 16
-                        }
-
-                        Text {
-                            text: "身份：TimeArc 用户"
-                            color: themeTextPrimary
-                            font.pixelSize: 16
-                        }
-
-                        Text {
-                            text: "数据：本机 SQLite 与本地采集记录"
-                            color: themeTextPrimary
-                            font.pixelSize: 16
-                            wrapMode: Text.Wrap
-                            width: parent.width
-                        }
-
-                        Text {
-                            text: "当前页面只展示本地资料与设置状态，不包含账号或云端同步能力。"
-                            color: themeTextSecondary
-                            font.pixelSize: 14
-                            wrapMode: Text.Wrap
-                            width: parent.width
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: (parent.width - 18) / 2
-                    height: 220
-                    radius: 28
-                    color: "transparent"
-                    border.width: 1
-                    border.color: themeBorderColor
-                    clip: true
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 27
-                        color: cardGlass
-                        opacity: cardOpacity
-                        z: -1
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 22
-                        spacing: 14
-
-                        Text {
-                            text: "偏好设置"
-                            color: themeTextPrimary
-                            font.pixelSize: 26
-                            font.bold: true
-                        }
-
-                        Text {
-                            text: "常用标签：学习 / 运动 / 游戏"
-                            color: themeTextPrimary
-                            font.pixelSize: 16
-                        }
-
-                        Text {
-                            text: "当前主题：" + (nightMode ? "夜晚模式" : "白天模式")
-                            color: themeTextPrimary
-                            font.pixelSize: 16
-                        }
-
-                        Text {
-                            text: "夜晚模式会保存到 SQLite 设置，并同步到桌面端全局主题。"
-                            color: themeTextSecondary
-                            font.pixelSize: 14
-                            wrapMode: Text.Wrap
-                            width: parent.width
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                width: parent.width
-                height: 170
-                radius: 28
-                color: "transparent"
-                border.width: 1
-                border.color: themeBorderColor
-                clip: true
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    radius: 27
-                    color: panelGlass
-                    opacity: panelOpacity
-                    z: -1
-                }
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 24
-                    spacing: 12
-
-                    Text {
-                        text: "SQLite 数据路径"
-                        color: themeTextPrimary
-                        font.pixelSize: 28
-                        font.bold: true
-                    }
-
-                    Text {
-                        text: "只读信息：当前本机 TimeArc SQLite 数据库文件位置。当前版本不支持在设置页修改路径。"
-                        color: themeTextSecondary
-                        font.pixelSize: 14
-                        wrapMode: Text.Wrap
-                        width: parent.width
-                    }
-
-                    Text {
-                        width: parent.width
-                        text: databaseManager ? databaseManager.getDatabasePath() : "未连接到本地 SQLite 数据库"
-                        color: themeTextPrimary
-                        font.pixelSize: 14
-                        wrapMode: Text.WrapAnywhere
-                    }
-                }
-            }
-
-            // 夜晚模式设置（持久化到本地设置）
-            Rectangle {
-                width: parent.width
-                height: 200
-                radius: 28
-                color: "transparent"
-                border.width: 1
-                border.color: themeBorderColor
-                clip: true
-
-                Rectangle {
-                    anchors.fill: parent
-                    anchors.margins: 1
-                    radius: 27
-                    color: panelGlass
-                    opacity: panelOpacity
-                    z: -1
-                }
-
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 24
-                    spacing: 20
-
-                    Text {
-                        text: "夜晚模式"
-                        color: themeTextPrimary
-                        font.pixelSize: 28
-                        font.bold: true
-                    }
-
-                    Text {
-                        text: nightMode
-                              ? "当前已开启夜晚主题，设置已写入 SQLite，并同步到桌面端全局主题。"
-                              : "当前为白天主题，点击右侧开关会写入 SQLite 并同步桌面端全局主题。"
-                        color: themeTextSecondary
-                        font.pixelSize: 15
-                        wrapMode: Text.Wrap
-                        width: parent.width
-                    }
-
-                    Row {
-                        spacing: 18
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: nightMode ? "开启" : "关闭"
-                            color: nightMode ? "#86D38E" : "#E06A6A"
-                            font.pixelSize: 18
-                            font.bold: true
-                        }
-
-                        Rectangle {
-                            id: switchTrack
-                            width: 86
-                            height: 42
-                            radius: 21
-                            color: nightMode ? "#69C36F" : "#D96C6C"
-                            border.width: 1
-                            border.color: nightMode ? "#5CAA62" : "#C65A5A"
-
-                            Behavior on color {
-                                ColorAnimation { duration: 180 }
-                            }
-
-                            Rectangle {
-                                id: switchKnob
-                                width: 34
-                                height: 34
-                                radius: 17
-                                y: 4
-                                x: nightMode ? 48 : 4
-                                color: "#FFFDF9"
-                                border.width: 1
-                                border.color: "#D8CFC7"
-
-                                Behavior on x {
-                                    NumberAnimation {
-                                        duration: 180
-                                        easing.type: Easing.OutCubic
-                                    }
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    nightMode = !nightMode
-                                    nightModeToggled(nightMode)
-                                }
-                            }
-                        }
-                    }
+                    width: parent.width
+                    text: panel.subtitle
+                    color: root.themeTextSecondary
+                    font.pixelSize: 12
+                    lineHeight: 1.25
+                    wrapMode: Text.Wrap
+                    maximumLineCount: 2
                 }
             }
 
             Item {
-                width: 1
-                height: 12
+                id: contentHost
+                width: parent.width
+                height: panel.contentHeight
+            }
+        }
+    }
+
+    component ChoiceControl: Rectangle {
+        id: choice
+        property string title: ""
+        property string detail: ""
+        property string marker: ""
+        property bool selected: false
+        signal picked()
+
+        height: 62
+        radius: 8
+        color: selected ? root.selectedRowColor : root.rowColor
+        opacity: selected ? 0.96 : (root.nightMode ? 0.66 : 0.94)
+        border.width: 1
+        border.color: selected ? root.themeAccentColor : root.subtleBorderColor
+
+        Row {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 12
+
+            Rectangle {
+                width: 28
+                height: 28
+                radius: 8
+                color: choice.selected ? root.themeAccentColor : "transparent"
+                border.width: 1
+                border.color: choice.selected ? root.themeAccentColor : root.strongBorderColor
+                anchors.verticalCenter: parent.verticalCenter
+
+                Text {
+                    anchors.centerIn: parent
+                    text: choice.marker
+                    color: choice.selected && !root.nightMode ? "#2D2724" : root.themeTextPrimary
+                    font.pixelSize: 13
+                    font.bold: true
+                }
+            }
+
+            Column {
+                width: parent.width - 40
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 4
+
+                Text {
+                    width: parent.width
+                    text: choice.title
+                    color: root.themeTextPrimary
+                    font.pixelSize: 14
+                    font.bold: true
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                }
+
+                Text {
+                    width: parent.width
+                    text: choice.detail
+                    color: root.themeTextSecondary
+                    font.pixelSize: 11
+                    elide: Text.ElideRight
+                    maximumLineCount: 1
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: choice.picked()
+        }
+    }
+
+    component SettingLine: Rectangle {
+        id: setting
+        property string title: ""
+        property string detail: ""
+        property string value: ""
+
+        height: 54
+        radius: 8
+        color: root.rowColor
+        opacity: root.nightMode ? 0.62 : 0.94
+        border.width: 1
+        border.color: root.subtleBorderColor
+
+        Column {
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            anchors.right: valueLabel.left
+            anchors.rightMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 4
+
+            Text {
+                width: parent.width
+                text: setting.title
+                color: root.themeTextPrimary
+                font.pixelSize: 13
+                font.bold: true
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            Text {
+                width: parent.width
+                text: setting.detail
+                color: root.themeTextSecondary
+                font.pixelSize: 11
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+        }
+
+        Text {
+            id: valueLabel
+            anchors.right: parent.right
+            anchors.rightMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            width: 150
+            text: setting.value
+            color: root.themeTextPrimary
+            font.pixelSize: 12
+            font.bold: true
+            horizontalAlignment: Text.AlignRight
+            elide: Text.ElideRight
+            maximumLineCount: 1
+        }
+    }
+
+    component MetricLine: Rectangle {
+        id: metric
+        property string title: ""
+        property string value: ""
+        property string detail: ""
+
+        height: 58
+        radius: 8
+        color: root.rowColor
+        opacity: root.nightMode ? 0.62 : 0.94
+        border.width: 1
+        border.color: root.subtleBorderColor
+
+        Row {
+            anchors.fill: parent
+            anchors.margins: 14
+            spacing: 14
+
+            Text {
+                width: 98
+                text: metric.title
+                color: root.themeTextSecondary
+                font.pixelSize: 12
+                anchors.verticalCenter: parent.verticalCenter
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            Text {
+                width: 120
+                text: metric.value
+                color: root.themeTextPrimary
+                font.pixelSize: 21
+                font.bold: true
+                anchors.verticalCenter: parent.verticalCenter
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            Text {
+                width: parent.width - 232
+                text: metric.detail
+                color: root.themeTextSecondary
+                font.pixelSize: 11
+                anchors.verticalCenter: parent.verticalCenter
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+        }
+    }
+
+    Item {
+        id: stage
+        anchors.fill: parent
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 14
+            color: root.nightMode ? "#2C334A" : "#FFFCF7"
+            opacity: root.nightMode ? 0.34 : 0.78
+            border.width: 2
+            border.color: root.strongBorderColor
+        }
+
+        Column {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 16
+
+            Row {
+                width: parent.width
+                height: 62
+                spacing: 14
+
+                Rectangle {
+                    width: 42
+                    height: 42
+                    radius: 10
+                    color: root.themeAccentColor
+                    opacity: 0.94
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "S"
+                        color: root.nightMode ? "#F8F7FF" : "#2D2724"
+                        font.pixelSize: 17
+                        font.bold: true
+                    }
+                }
+
+                Column {
+                    width: parent.width - 220
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 5
+
+                    Text {
+                        width: parent.width
+                        text: root.textFor("设置", "Settings")
+                        color: root.themeTextPrimary
+                        font.pixelSize: 30
+                        font.bold: true
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: root.textFor("外观、语言、个人资料与本地数据，一页完成。", "Appearance, language, profile, and local data in one page.")
+                        color: root.themeTextSecondary
+                        font.pixelSize: 13
+                        elide: Text.ElideRight
+                        maximumLineCount: 1
+                    }
+                }
+
+                Rectangle {
+                    width: 142
+                    height: 32
+                    radius: 8
+                    color: root.rowColor
+                    opacity: root.nightMode ? 0.66 : 0.94
+                    border.width: 1
+                    border.color: root.subtleBorderColor
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.textFor("本地保存", "Saved locally")
+                        color: root.themeTextPrimary
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+                }
+            }
+
+            Flickable {
+                width: parent.width
+                height: parent.height - 78
+                contentWidth: width
+                contentHeight: contentColumn.implicitHeight
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+
+                ScrollBar.vertical: ScrollBar {
+                    policy: ScrollBar.AsNeeded
+                }
+
+                Column {
+                    id: contentColumn
+                    width: parent.width - 12
+                    spacing: 14
+
+                    SectionPanel {
+                        width: parent.width
+                        contentHeight: 62
+                        title: root.textFor("外观", "Appearance")
+                        subtitle: root.textFor("选择浅色或深色主题，设置会同步到桌面端全局主题。", "Choose light or dark theme. This syncs with the desktop shell theme.")
+
+                        Row {
+                            anchors.fill: parent
+                            spacing: 12
+
+                            ChoiceControl {
+                                width: (parent.width - 12) / 2
+                                title: root.textFor("浅色", "Light")
+                                detail: root.textFor("柔和、明亮，适合白天使用", "Soft and bright for daytime work")
+                                marker: "L"
+                                selected: !root.nightMode
+                                onPicked: root.applyThemeMode("light")
+                            }
+
+                            ChoiceControl {
+                                width: (parent.width - 12) / 2
+                                title: root.textFor("深色", "Dark")
+                                detail: root.textFor("低亮度玻璃感，适合夜间使用", "Low-light glass style for evenings")
+                                marker: "D"
+                                selected: root.nightMode
+                                onPicked: root.applyThemeMode("dark")
+                            }
+                        }
+                    }
+
+                    SectionPanel {
+                        width: parent.width
+                        contentHeight: 62
+                        title: root.textFor("语言", "Language")
+                        subtitle: root.textFor("选择设置页显示语言。后续页面接入翻译后会沿用这个偏好。", "Choose the settings page language. Other pages can reuse this preference later.")
+
+                        Row {
+                            anchors.fill: parent
+                            spacing: 12
+
+                            ChoiceControl {
+                                width: (parent.width - 12) / 2
+                                title: "中文"
+                                detail: "TimeArc 当前默认语言"
+                                marker: "中"
+                                selected: root.languageMode !== "en"
+                                onPicked: root.applyLanguage("zh")
+                            }
+
+                            ChoiceControl {
+                                width: (parent.width - 12) / 2
+                                title: "English"
+                                detail: "Settings page display language"
+                                marker: "EN"
+                                selected: root.languageMode === "en"
+                                onPicked: root.applyLanguage("en")
+                            }
+                        }
+                    }
+
+                    SectionPanel {
+                        width: parent.width
+                        contentHeight: 118
+                        title: root.textFor("个人资料", "Profile")
+                        subtitle: root.textFor("本地身份信息，不包含账号或云端同步。", "Local identity only. No account or cloud sync.")
+
+                        Column {
+                            anchors.fill: parent
+                            spacing: 10
+
+                            SettingLine {
+                                width: parent.width
+                                title: root.textFor("昵称", "Name")
+                                detail: root.textFor("显示在我的页面", "Shown on the profile page")
+                                value: "Chen"
+                            }
+
+                            SettingLine {
+                                width: parent.width
+                                title: root.textFor("身份", "Role")
+                                detail: root.textFor("当前本机用户", "Current local user")
+                                value: root.textFor("TimeArc 用户", "TimeArc user")
+                            }
+                        }
+                    }
+
+                    SectionPanel {
+                        width: parent.width
+                        contentHeight: 126
+                        title: root.textFor("使用概览", "Usage Overview")
+                        subtitle: root.textFor("手动计时数据仍来自本地项目统计。", "Manual timer data still comes from local project stats.")
+
+                        Column {
+                            anchors.fill: parent
+                            spacing: 10
+
+                            MetricLine {
+                                width: parent.width
+                                title: root.textFor("今日项目", "Today")
+                                value: projectManager ? (projectManager.todayProjectMinutes + " m") : "0 m"
+                                detail: root.textFor("今日累计手动计时", "Manual time tracked today")
+                            }
+
+                            MetricLine {
+                                width: parent.width
+                                title: root.textFor("本月项目", "This Month")
+                                value: projectManager ? (projectManager.monthProjectMinutes + " m") : "0 m"
+                                detail: root.textFor("本月累计手动计时", "Manual time tracked this month")
+                            }
+                        }
+                    }
+
+                    SectionPanel {
+                        width: parent.width
+                        contentHeight: 92
+                        title: root.textFor("数据位置", "Data Location")
+                        subtitle: root.textFor("只读信息：当前本机 TimeArc SQLite 数据库文件位置。", "Read-only: current local TimeArc SQLite database path.")
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 8
+                            color: root.rowColor
+                            opacity: root.nightMode ? 0.62 : 0.94
+                            border.width: 1
+                            border.color: root.subtleBorderColor
+
+                            Text {
+                                anchors.fill: parent
+                                anchors.margins: 13
+                                text: databaseManager ? databaseManager.getDatabasePath() : root.textFor("未连接到本地 SQLite 数据库", "Local SQLite database is not connected")
+                                color: root.themeTextPrimary
+                                font.pixelSize: 12
+                                lineHeight: 1.25
+                                wrapMode: Text.WrapAnywhere
+                            }
+                        }
+                    }
+                }
             }
         }
     }
