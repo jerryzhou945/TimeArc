@@ -1,0 +1,13 @@
+[  2%] Built target time-arc-parson
+[  3%] Built target time-arc_copy_qml
+[  4%] Built target time-arc_copy_res
+[  6%] Built target generate_qmlls_build_ini_file
+[  7%] Built target time-arc_qmlimportscan
+[  9%] Built target time-arc-sqlite3
+[  9%] Built target time-arc_autogen_timestamp_deps
+[  9%] Built target time-arc_autogen
+[ 73%] Built target time-arc
+[ 73%] Built target timearc_db_smoke_autogen_timestamp_deps
+[ 74%] Built target timearc_db_smoke_autogen
+[ 89%] Built target timearc_db_smoke
+[100%] Built target time_arc_service

@@ -1,0 +1,29 @@
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Configuring done (6.0s)
+-- Generating done (2.1s)
+-- Build files have been written to: F:/TimeArc/time-arc/build
+[  2%] Built target time-arc-parson
+[  3%] Copying time-arc qml sources into build dir
+[  3%] Built target time-arc_copy_qml
+[  4%] Built target time-arc_copy_res
+[  6%] Built target generate_qmlls_build_ini_file
+[  7%] Running qmlimportscanner for time-arc
+[  7%] Built target time-arc_qmlimportscan
+[  9%] Built target time-arc-sqlite3
+[  9%] Built target time-arc_autogen_timestamp_deps
+[  9%] Automatic MOC and UIC for target time-arc
+[  9%] Built target time-arc_autogen
+[ 10%] Running AUTOMOC file extraction for target time-arc
+[ 12%] Running rcc for resource time-arc_raw_qml_0
+[ 13%] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.aotstats
+[ 13%] Running AUTOMOC file extraction for target time-arc
+[ 14%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.obj
+[ 14%] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.obj
+[ 15%] Linking CXX executable TimeArc.exe
+[ 73%] Built target time-arc
+[ 73%] Built target timearc_db_smoke_autogen_timestamp_deps
+[ 74%] Automatic MOC and UIC for target timearc_db_smoke
+[ 74%] Built target timearc_db_smoke_autogen
+[ 89%] Built target timearc_db_smoke
+[100%] Built target time_arc_service

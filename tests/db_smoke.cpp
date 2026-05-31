@@ -18,15 +18,15 @@
 
 #include <algorithm>
 
-#include "services/AppRepository.h"
-#include "services/DatabaseManager.h"
-#include "services/FrontmostSessionRepository.h"
-#include "services/ManualProjectRepository.h"
-#include "services/MediaSessionRepository.h"
-#include "services/SettingsRepository.h"
-#include "services/StatsService.h"
-#include "services/calendarmanager.h"
-#include "services/projectmanager.h"
+#include "services/app_repository.h"
+#include "services/database_manager.h"
+#include "services/frontmost_session_repository.h"
+#include "services/manual_project_repository.h"
+#include "services/media_session_repository.h"
+#include "services/settings_repository.h"
+#include "services/stats_service.h"
+#include "services/calendar_manager.h"
+#include "services/project_manager.h"
 
 namespace {
 

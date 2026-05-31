@@ -1,0 +1,83 @@
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Configuring done (13.5s)
+-- Generating done (146.1s)
+-- Build files have been written to: F:/TimeArc/time-arc/build
+[  2%] Built target time-arc-parson
+[  3%] Copying time-arc qml sources into build dir
+[  3%] Built target time-arc_copy_qml
+[  4%] Built target time-arc_copy_res
+[  6%] Built target generate_qmlls_build_ini_file
+[  7%] Running qmlimportscanner for time-arc
+[  7%] Built target time-arc_qmlimportscan
+[  9%] Built target time-arc-sqlite3
+[  9%] Built target time-arc_autogen_timestamp_deps
+[  9%] Automatic MOC and UIC for target time-arc
+[  9%] Built target time-arc_autogen
+[ 10%] Running AUTOMOC file extraction for target time-arc
+[ 12%] Running moc --collect-json for target time-arc
+[ 12%] Generating meta_types/qt6time-arc_metatypes.json
+[ 13%] Automatic QML type registration for target time-arc
+[ 14%] Running rcc for resource time-arc_raw_qml_0
+[ 15%] Generating .rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.aotstats
+[ 17%] Generating .rcc/qmlcache/time-arc_qml/desktop/components/AchievementToast_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/AchievementToast_qml.cpp.aotstats
+[ 18%] Generating .rcc/qmlcache/time-arc_qml/desktop/components/SoftButton_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/SoftButton_qml.cpp.aotstats
+[ 19%] Generating .rcc/qmlcache/time-arc_qml/desktop/components/SoftCard_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/SoftCard_qml.cpp.aotstats
+[ 19%] Generating .rcc/qmlcache/time-arc_qml/desktop/components/SoftPill_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/SoftPill_qml.cpp.aotstats
+[ 20%] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopCalenderPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopCalenderPage_qml.cpp.aotstats
+[ 21%] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopChatPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopChatPage_qml.cpp.aotstats
+[ 21%] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp.aotstats
+[ 23%] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp.aotstats
+[ 24%] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.aotstats
+[ 25%] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.aotstats
+[ 26%] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopTimerPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopTimerPage_qml.cpp.aotstats
+[ 28%] Generating .rcc/qmlcache/time-arc_qml/main_qml.cpp, .rcc/qmlcache/time-arc_qml/main_qml.cpp.aotstats
+[ 29%] Building CXX object CMakeFiles/time-arc.dir/time-arc_autogen/mocs_compilation.cpp.obj
+[ 30%] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.obj
+[ 31%] Building CXX object CMakeFiles/time-arc.dir/src/services/app_repository.cpp.obj
+[ 32%] Building CXX object CMakeFiles/time-arc.dir/src/services/database_manager.cpp.obj
+[ 34%] Building CXX object CMakeFiles/time-arc.dir/src/services/frontmost_session_repository.cpp.obj
+[ 35%] Building CXX object CMakeFiles/time-arc.dir/src/services/manual_project_repository.cpp.obj
+[ 36%] Building CXX object CMakeFiles/time-arc.dir/src/services/media_session_repository.cpp.obj
+[ 36%] Building CXX object CMakeFiles/time-arc.dir/src/services/settings_repository.cpp.obj
+[ 37%] Building CXX object CMakeFiles/time-arc.dir/src/services/stats_service.cpp.obj
+[ 39%] Building CXX object CMakeFiles/time-arc.dir/src/services/calendar_manager.cpp.obj
+[ 40%] Building CXX object CMakeFiles/time-arc.dir/src/services/project_manager.cpp.obj
+[ 41%] Building CXX object CMakeFiles/time-arc.dir/src/services/tag_repository.cpp.obj
+[ 42%] Building CXX object CMakeFiles/time-arc.dir/src/services/timer_manager.cpp.obj
+[ 43%] Building CXX object CMakeFiles/time-arc.dir/src/services/usage_stat_manager.cpp.obj
+[ 45%] Building CXX object CMakeFiles/time-arc.dir/src/services/app_icon_image_provider.cpp.obj
+[ 46%] Building CXX object CMakeFiles/time-arc.dir/src/services/harness_logger.cpp.obj
+[ 46%] Building CXX object CMakeFiles/time-arc.dir/time-arc_qmltyperegistrations.cpp.obj
+[ 47%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/main_qml.cpp.obj
+[ 48%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.obj
+[ 50%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp.obj
+[ 51%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopChatPage_qml.cpp.obj
+[ 52%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp.obj
+[ 52%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopCalenderPage_qml.cpp.obj
+[ 53%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopTimerPage_qml.cpp.obj
+[ 54%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.obj
+[ 56%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.obj
+[ 57%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftCard_qml.cpp.obj
+[ 58%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftPill_qml.cpp.obj
+[ 59%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftButton_qml.cpp.obj
+[ 60%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/AchievementToast_qml.cpp.obj
+[ 60%] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.obj
+[ 62%] Linking CXX executable TimeArc.exe
+[ 73%] Built target time-arc
+[ 73%] Built target timearc_db_smoke_autogen_timestamp_deps
+[ 74%] Automatic MOC and UIC for target timearc_db_smoke
+[ 74%] Built target timearc_db_smoke_autogen
+[ 75%] Building CXX object CMakeFiles/timearc_db_smoke.dir/timearc_db_smoke_autogen/mocs_compilation.cpp.obj
+[ 76%] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.obj
+[ 78%] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/app_repository.cpp.obj
+[ 79%] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/database_manager.cpp.obj
+[ 79%] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/frontmost_session_repository.cpp.obj
+[ 80%] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/manual_project_repository.cpp.obj
+[ 81%] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/media_session_repository.cpp.obj
+[ 82%] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/settings_repository.cpp.obj
+[ 85%] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/calendar_manager.cpp.obj
+[ 86%] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/project_manager.cpp.obj
+[ 87%] Linking CXX executable timearc_db_smoke.exe
+[ 89%] Built target timearc_db_smoke
+[100%] Built target time_arc_service
