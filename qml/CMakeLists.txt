@@ -19,6 +19,10 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/GlowCircle.qml
     qml/desktop/memorylake/AmbientBackground.qml
     qml/desktop/memorylake/UsageRankList.qml
+    qml/desktop/memorylake/MemoryCard.qml
+    qml/desktop/memorylake/CardCarousel.qml
+    qml/desktop/memorylake/TimeRiver.qml
+    qml/desktop/memorylake/DetailPanel.qml
     qml/mobile/MobileAppShell.qml
     qml/mobile/MobileTheme.qml
     qml/mobile/pages/MobileHomePage.qml

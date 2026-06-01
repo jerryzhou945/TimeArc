@@ -51,3 +51,17 @@ refactors.
   honoring the theme contract. Registered new QML files + 5 card PNGs in CMake.
   Smoke: `cmake --build build` links clean (qmlcachegen compiles all new files); app
   launches without QML errors. Center carousel + right time-river follow in phase B.
+
+- Phase B — card carousel interaction + detail + time river.
+  New components: `MemoryCard.qml` (Flipable Y-axis 3D flip .68s bezier, selected
+  resize, hover preview), `CardCarousel.qml` (horizontal track, analytic center
+  offset with .42s bezier, throttled wheel switch, flip-lock + lock badge + dynamic
+  wheel-tip), `TimeRiver.qml` (axis/nodes/ripples/labels/ruler following current app),
+  `DetailPanel.qml` (follows current app). Wired into the page: shared selectedIndex /
+  flippedIndex / previewIndex state with selectCard()/toggleFlip(); ranking ↔ carousel
+  selection + hover preview synced; flip locks ranking + wheel + other cards; ambient
+  bg + detail + time-river all follow the current card.
+  Verify: qmlcachegen compiles; `qmllint` clean (only ComponentBehavior info, no
+  errors); loaded the page in the `qml` runtime — zero stderr / no load errors.
+  (Win32 screenshot automation was unreliable in this environment; visual pass is to be
+  confirmed via `run.cmd`.)

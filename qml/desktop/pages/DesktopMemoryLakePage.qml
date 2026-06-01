@@ -19,10 +19,22 @@ Item {
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
 
-    // —— 当前选中的记忆（阶段 B 接交互）——
+    // —— 当前选中的记忆 ——
     property int selectedIndex: 0
+    property int flippedIndex: -1
+    property int previewIndex: -1
     readonly property var apps: Mock.apps
     readonly property var current: apps[selectedIndex]
+    readonly property bool locked: flippedIndex >= 0
+
+    function selectCard(i) {
+        if (root.locked && i !== root.selectedIndex) return;
+        root.previewIndex = -1;
+        root.selectedIndex = Math.max(0, Math.min(apps.length - 1, i));
+    }
+    function toggleFlip(i) {
+        root.flippedIndex = (root.flippedIndex === i) ? -1 : i;
+    }
 
     MemoryLakeStyle {
         id: ml
@@ -193,66 +205,33 @@ Item {
                         apps: root.apps
                         ranking: Mock.ranking
                         selectedIndex: root.selectedIndex
-                        onRequestSelect: function(cardIndex) { root.selectedIndex = cardIndex }
+                        locked: root.locked
+                        onRequestSelect: function(cardIndex) { root.selectCard(cardIndex) }
+                        onHoverCard: function(cardIndex) { if (!root.locked) root.previewIndex = cardIndex }
+                        onUnhoverCard: root.previewIndex = -1
                     }
                 }
             }
         }
 
-        // ============ 中栏（阶段 A 占位，阶段 B 接卡牌轮盘）============
+        // ============ 中栏：卡牌轮盘 ============
         GlassPanel {
             id: centerPanel
             width: parent.width - 300 - 310 - 36
             height: parent.height
             style: ml
 
-            Rectangle {
+            CardCarousel {
                 anchors.fill: parent
-                anchors.margins: 18
-                radius: 18
-                color: ml.night ? Qt.rgba(0.012, 0.027, 0.055, 0.58) : Qt.rgba(1, 1, 1, 0.30)
-                border.width: 1
-                border.color: ml.cardBorder
-                clip: true
-
-                // 中线
-                Rectangle {
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 90
-                    anchors.rightMargin: 90
-                    height: 1
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0; color: "transparent" }
-                        GradientStop { position: 0.5; color: Qt.rgba(0.62, 0.90, 0.93, 0.12) }
-                        GradientStop { position: 1; color: "transparent" }
-                    }
-                }
-
-                // wheel-tip
-                Rectangle {
-                    x: 26; y: 22
-                    width: tipText.width + 22; height: 34; radius: 17
-                    color: Qt.rgba(0, 0, 0, ml.night ? 0.18 : 0.06)
-                    border.width: 1
-                    border.color: ml.cardBorder
-                    Text {
-                        id: tipText
-                        anchors.centerIn: parent
-                        text: "滚轮 / 左侧排行切换当前 APP，悬停预览"
-                        color: ml.textTertiary
-                        font.pixelSize: 12
-                    }
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "卡牌轮盘 · 阶段 B 接入"
-                    color: ml.textTertiary
-                    font.pixelSize: 13
-                }
+                style: ml
+                apps: root.apps
+                selectedIndex: root.selectedIndex
+                flippedIndex: root.flippedIndex
+                previewIndex: root.previewIndex
+                onRequestSelect: function(i) { root.selectCard(i) }
+                onRequestToggleFlip: function(i) { root.toggleFlip(i) }
+                onHoverCard: function(i) { root.previewIndex = i }
+                onUnhoverCard: root.previewIndex = -1
             }
         }
 
@@ -269,55 +248,14 @@ Item {
                 spacing: 14
 
                 // 详情卡
-                Rectangle {
+                DetailPanel {
                     width: parent.width
                     height: 250
-                    radius: 18
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
-                    clip: true
-                    Column {
-                        anchors.fill: parent
-                        Text {
-                            x: 15; topPadding: 14
-                            width: parent.width - 30
-                            text: root.current.name + " · 使用时间分布"
-                            color: ml.textPrimary; font.pixelSize: 16; font.bold: true
-                            elide: Text.ElideRight
-                        }
-                        Item {
-                            width: parent.width; height: 104
-                            clip: true
-                            Image {
-                                anchors.fill: parent
-                                source: Mock.imagePath(root.current.image)
-                                fillMode: Image.PreserveAspectCrop
-                                asynchronous: true
-                            }
-                            Rectangle {
-                                anchors.fill: parent
-                                gradient: Gradient {
-                                    GradientStop { position: 0; color: "transparent" }
-                                    GradientStop { position: 1; color: ml.night ? Qt.rgba(0.012, 0.027, 0.055, 0.86) : Qt.rgba(1, 1, 1, 0.4) }
-                                }
-                            }
-                        }
-                        Column {
-                            x: 15; width: parent.width - 30; topPadding: 12; spacing: 6
-                            Text { text: root.current.type + " · " + root.current.time; color: ml.textTertiary; font.pixelSize: 12 }
-                            Text { text: root.current.mood; color: ml.textPrimary; font.pixelSize: 21; font.bold: true }
-                            Text {
-                                width: parent.width
-                                text: root.current.analysis
-                                color: ml.textSecondary; font.pixelSize: 13; wrapMode: Text.WordWrap
-                                maximumLineCount: 2; elide: Text.ElideRight
-                            }
-                        }
-                    }
+                    style: ml
+                    app: root.current
                 }
 
-                // 使用时间图（阶段 B 接 TimeRiver 组件）
+                // 使用时间图 · 时间河流
                 Rectangle {
                     width: parent.width
                     height: parent.height - 250 - 76 - 28
@@ -325,28 +263,11 @@ Item {
                     color: ml.cardBg
                     border.width: 1
                     border.color: ml.cardBorder
-                    Column {
+                    TimeRiver {
                         anchors.fill: parent
                         anchors.margins: 16
-                        spacing: 10
-                        Item {
-                            width: parent.width; height: 18
-                            Text { anchors.left: parent.left; text: "使用时间图 · 时间河流"; color: ml.textPrimary; font.pixelSize: 16; font.bold: true }
-                            Text { anchors.right: parent.right; anchors.bottom: parent.bottom; text: "几点到几点"; color: ml.textTertiary; font.pixelSize: 11 }
-                        }
-                        Rectangle {
-                            width: parent.width
-                            height: parent.height - 28
-                            radius: 16
-                            color: ml.night ? Qt.rgba(0, 0, 0, 0.10) : Qt.rgba(1, 1, 1, 0.25)
-                            border.width: 1
-                            border.color: ml.cardBorder
-                            Text {
-                                anchors.centerIn: parent
-                                text: "时间河流 · 阶段 B 接入"
-                                color: ml.textTertiary; font.pixelSize: 12
-                            }
-                        }
+                        style: ml
+                        app: root.current
                     }
                 }
 
@@ -361,7 +282,8 @@ Item {
                     Text {
                         anchors.fill: parent
                         anchors.margins: 14
-                        text: "点击中心记忆查看分析。翻面后会暂时锁定当前记忆。"
+                        text: root.locked ? "当前记忆已翻面并锁定。再次点击卡牌取消翻面后即可切换。"
+                                          : "点击中心记忆查看分析。翻面后会暂时锁定当前记忆。"
                         color: ml.textSecondary; font.pixelSize: 13; wrapMode: Text.WordWrap
                     }
                 }
