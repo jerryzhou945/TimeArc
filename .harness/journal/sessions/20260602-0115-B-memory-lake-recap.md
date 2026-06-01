@@ -74,3 +74,17 @@ refactors.
   overflow), avoiding redundant nested scrollbars; the recap inner scroll (phase D)
   will reuse SilkyFlickable. Verified: qmllint clean, build clean, page loads in qml
   runtime with no errors.
+
+- Phase D — monthly recap overlay. New `RecapSlide.qml` (per-type layouts: cover /
+  monthMap / poster / split / orbit / article / timeline / trend(Canvas line) /
+  keywords / comparison / ticket; entrance transforms zoom/wipe/rise/rotate/ticket via
+  ParallelAnimation; inner SilkyFlickable scroll) and `RecapOverlay.qml` (dark shell,
+  blurred bg-app following slide, flowing wave + bottom glow ring, topbar with
+  pause/close, mode note, stage + step directory that unlocks after the story is seen,
+  progress bar, autoplay 3.2s/4.2s, click-to-advance, wheel/arrow/ESC nav). Wired the
+  left CTA to `recap.open()`; overlay covers the three panels.
+  Fixed a real bug qmllint caught: `property var data` shadowed Item's default `data`
+  property → renamed to `slideData`. Verified: qmllint clean (only ComponentBehavior
+  info), build clean, page (incl. all 11 instantiated slides) loads in the qml runtime
+  with zero errors. Win32 screenshot capture remained unreliable in this environment;
+  visual pass to be confirmed via `run.cmd`.

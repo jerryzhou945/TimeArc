@@ -187,7 +187,7 @@ Item {
                         Text { text: "开始回顾 →"; color: ml.accentText; font.pixelSize: 12; font.bold: true }
                     }
                     HoverHandler { id: ctaHover }
-                    TapHandler { onTapped: console.log("[memorylake] recap requested (阶段 D)") }
+                    TapHandler { onTapped: recap.open() }
                 }
 
                 // 排行
@@ -289,5 +289,13 @@ Item {
                 }
             }
         }
+    }
+
+    // —— 月度回顾覆盖层（盖住三栏）——
+    RecapOverlay {
+        id: recap
+        anchors.fill: parent
+        style: ml
+        apps: root.apps
     }
 }

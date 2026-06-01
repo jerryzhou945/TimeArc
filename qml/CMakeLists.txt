@@ -24,6 +24,8 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/TimeRiver.qml
     qml/desktop/memorylake/DetailPanel.qml
     qml/desktop/memorylake/SilkyFlickable.qml
+    qml/desktop/memorylake/RecapSlide.qml
+    qml/desktop/memorylake/RecapOverlay.qml
     qml/mobile/MobileAppShell.qml
     qml/mobile/MobileTheme.qml
     qml/mobile/pages/MobileHomePage.qml
