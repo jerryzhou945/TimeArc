@@ -65,3 +65,12 @@ refactors.
   errors); loaded the page in the `qml` runtime — zero stderr / no load errors.
   (Win32 screenshot automation was unreliable in this environment; visual pass is to be
   confirmed via `run.cmd`.)
+
+- Phase C — silky scroll. New `SilkyFlickable.qml`: eased mouse-wheel scrolling
+  (NumberAnimation toward target, ~lerp feel), edge bounce (Translate on content via
+  SequentialAnimation), and a thin neon `ScrollBar`. Converted the ranking list
+  (`UsageRankList`) from `ListView` to `SilkyFlickable` + Column + Repeater — the real
+  scroll surface. Left/right panels stay fit-to-height in the embedded layout (no
+  overflow), avoiding redundant nested scrollbars; the recap inner scroll (phase D)
+  will reuse SilkyFlickable. Verified: qmllint clean, build clean, page loads in qml
+  runtime with no errors.

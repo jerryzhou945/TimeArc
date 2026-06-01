@@ -23,6 +23,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/CardCarousel.qml
     qml/desktop/memorylake/TimeRiver.qml
     qml/desktop/memorylake/DetailPanel.qml
+    qml/desktop/memorylake/SilkyFlickable.qml
     qml/mobile/MobileAppShell.qml
     qml/mobile/MobileTheme.qml
     qml/mobile/pages/MobileHomePage.qml
