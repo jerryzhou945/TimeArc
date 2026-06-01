@@ -44,7 +44,7 @@ Concrete anti-examples — if you see these, reject the diff:
 - A `#include <QObject>` anywhere under `src/service/`.
 - A `#include <windows.h>` anywhere under `src/service/shared/`.
 - A `#include "../windows/..."` from `src/service/macos/`.
-- A `services/usagestatmanager.cpp` opening a raw socket to the service.
+- A `services/usage_stat_manager.cpp` opening a raw socket to the service.
 
 ## 2. Data-flow direction
 
@@ -54,23 +54,24 @@ sampling (e.g., pause, filter), introduce a control file in
 `~/.timearc/control/` and define it in `rules/03-data-contract.md` — do not
 open a pipe.
 
-## 3. The four UI managers
+## 3. UI managers and repositories
 
-All four are registered as QML context properties in `src/main.cpp`. They are
-expected to remain small, UI-facing, and synchronous where possible:
+UI-facing managers are registered as QML context properties in `src/main.cpp`.
+They stay small, synchronous where possible, and delegate persistence to the
+repository layer.
 
-| Manager             | Source of truth              | Notes                                                 |
-|---------------------|------------------------------|-------------------------------------------------------|
-| `CalendarManager`   | `QSettings`                  | Todos + daily photos + selected date.                 |
-| `TimerManager`      | in-memory                    | Manual stopwatch. Commits via `ProjectManager`.       |
-| `ProjectManager`    | `QSettings` (`projects`, `sessions`) | Projects + session flow, aggregated by tag/range. |
-| `UsageStatManager`  | journal files on disk        | Reads `usage_records.jsonl` + `usage_current.json`.   |
+| Component | Source of truth | Notes |
+|-----------|-----------------|-------|
+| `CalendarManager` | `SettingsRepository` / SQLite settings | Todos, day photos, selected date. Legacy QSettings is fallback/migration input only. |
+| `ProjectManager` | `ManualProjectRepository` / SQLite | Manual projects, timer sessions, archive-hidden deletes, range aggregation. |
+| `TimerManager` | in-memory | Manual stopwatch. Commits through `ProjectManager`. |
+| `UsageStatManager` | journal files on disk | Reads service JSONL/current snapshot for the legacy usage surface. |
+| `StatsService` | SQLite repositories | Aggregates foreground, media, and manual project data for desktop summaries. |
 
 `AppIconImageProvider` is a passive `image://appicon/<path>` provider.
 
 Do not add new cross-manager signals without a short note in
 `rules/04-ui-conventions.md`.
-
 ## 4. Adding a new subsystem
 
 A "new subsystem" (say, keyboard-input heatmap) lands as:

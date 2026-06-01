@@ -271,12 +271,12 @@ time-arc/
 │   ├── main.cpp               UI entry: starts service, registers managers
 │   ├── include/util.h         Shared macros (TA_MAX_*, TA_CONTAINER_OF …)
 │   ├── services/              UI-side QObject managers (context properties)
-│   │   ├── calendarmanager.{h,cpp}    Calendar to-dos, daily photos
-│   │   ├── projectmanager.{h,cpp}     Projects + session aggregation
-│   │   ├── timermanager.{h,cpp}       Manual stopwatch
-│   │   ├── usagestatmanager.{h,cpp}   Reads journal files, aggregates
-│   │   ├── appiconimageprovider.{h,cpp}   image://appicon/<exe path>
-│   │   └── harnesslogger.{h,cpp}      Qt message handler → harness log
+│   │   ├── calendar_manager.{h,cpp}    Calendar to-dos, daily photos
+│   │   ├── project_manager.{h,cpp}     Projects + session aggregation
+│   │   ├── timer_manager.{h,cpp}       Manual stopwatch
+│   │   ├── usage_stat_manager.{h,cpp}   Reads journal files, aggregates
+│   │   ├── app_icon_image_provider.{h,cpp}   image://appicon/<exe path>
+│   │   └── harness_logger.{h,cpp}      Qt message handler → harness log
 │   └── service/               Background sampler (separate binary)
 │       ├── CMakeLists.txt
 │       ├── shared/            Cross-platform C ABI and on-disk contract
