@@ -47,12 +47,6 @@ Item {
     property string sidePanelMode: "tasks"
 
     Settings {
-        id: chatSettings
-        category: "DesktopChatPageData"
-        property string savedChats: ""
-    }
-
-    Settings {
         id: anniversarySettings
         category: "DesktopCalendarAnniversaryData"
         property string savedAnniversaries: ""
@@ -131,10 +125,11 @@ Item {
     }
 
     function chatImagesForDate(key) {
-        if (!chatSettings.savedChats || chatSettings.savedChats === "")
+        var savedChats = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
+        if (!savedChats || savedChats === "")
             return []
         try {
-            var chats = JSON.parse(chatSettings.savedChats)
+            var chats = JSON.parse(savedChats)
             var result = []
             for (var i = 0; i < chats.length; i++) {
                 var item = chats[i]

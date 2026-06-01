@@ -107,8 +107,6 @@ Item {
 
     // =========================
     // 当前 Loader 要加载哪个页面
-    // 这里继续保留你现在已经验证能跑的
-    // Loader.source 路径切页方案
     // =========================
     property string currentPageSource: {
         if (showingTimerPage)
@@ -159,63 +157,67 @@ Item {
         applyThemeToLoadedPage();
     }
 
-    // =========================
-    // 整体背景层
-    // 这里做白天 / 夜晚背景图切换
-    // 同时叠一层渐变遮罩，让整体更统一
-    // =========================
     Item {
+        id: desktopStage
         anchors.fill: parent
 
-        Image {
-            anchors.fill: parent
-            source: appBackgroundSource
-            fillMode: Image.PreserveAspectCrop
-            opacity: nightMode ? 0.52 : 0.04
-            smooth: true
-            asynchronous: true
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop {
-                    position: 0.0
-                    color: nightMode ? "#2D3148" : "#DDF1E5"
-                }
-                GradientStop {
-                    position: 0.46
-                    color: nightMode ? "#353A56" : "#F7F1E8"
-                }
-                GradientStop {
-                    position: 1.0
-                    color: nightMode ? "#3B4160" : "#FFF7ED"
-                }
-            }
-            opacity: nightMode ? 0.46 : 1.0
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: nightMode ? "#4E5578" : "#BFE4D0" }
-                GradientStop { position: 0.36; color: nightMode ? "#3F4665" : "#F2DFAF" }
-                GradientStop { position: 0.70; color: nightMode ? "#303650" : "#F8EFE7" }
-                GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#E7B7C3" }
-            }
-            opacity: nightMode ? 0.28 : 0.52
-        }
-    }
-
-    RowLayout {
-        anchors.fill: parent
-        anchors.margins: 20
-        spacing: 20
-
         // =========================
-        // 左侧侧边栏
+        // 整体背景层
+        // 这里做白天 / 夜晚背景图切换
+        // 同时叠一层渐变遮罩，让整体更统一
         // =========================
-        Rectangle {
+        Item {
+            anchors.fill: parent
+
+            Image {
+                anchors.fill: parent
+                source: appBackgroundSource
+                fillMode: Image.PreserveAspectCrop
+                opacity: nightMode ? 0.52 : 0.04
+                smooth: true
+                asynchronous: true
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0.0
+                        color: nightMode ? "#2D3148" : "#DDF1E5"
+                    }
+                    GradientStop {
+                        position: 0.46
+                        color: nightMode ? "#353A56" : "#F7F1E8"
+                    }
+                    GradientStop {
+                        position: 1.0
+                        color: nightMode ? "#3B4160" : "#FFF7ED"
+                    }
+                }
+                opacity: nightMode ? 0.46 : 1.0
+            }
+
+            Rectangle {
+                anchors.fill: parent
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: nightMode ? "#4E5578" : "#BFE4D0" }
+                    GradientStop { position: 0.36; color: nightMode ? "#3F4665" : "#F2DFAF" }
+                    GradientStop { position: 0.70; color: nightMode ? "#303650" : "#F8EFE7" }
+                    GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#E7B7C3" }
+                }
+                opacity: nightMode ? 0.28 : 0.52
+            }
+        }
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 20
+
+            // =========================
+            // 左侧侧边栏
+            // =========================
+            Rectangle {
             id: sidebar
             width: sidebarCollapsed ? 88 : 232
             Layout.preferredWidth: width
@@ -455,103 +457,109 @@ Item {
         // =========================
         // 主内容区域
         // =========================
-        Rectangle {
-            id: contentPanel
+        Item {
+            id: contentSlot
             Layout.fillWidth: true
             Layout.fillHeight: true
-            radius: 32
-            color: "transparent"
-            border.width: 1
-            border.color: appPanelBorder
 
             Rectangle {
-                x: 0
-                y: 12
-                width: parent.width
-                height: parent.height
-                radius: parent.radius
-                color: appShadowColor
-                opacity: nightMode ? 0.26 : 0.08
-                z: -2
-            }
-
-            Rectangle {
+                id: contentPanel
                 anchors.fill: parent
-                anchors.margins: 1
-                radius: 31
-                color: appPanelGlass
-                opacity: nightMode ? 0.76 : 0.82
-                z: -1
-            }
+                radius: 32
+                color: "transparent"
+                border.width: 1
+                border.color: appPanelBorder
 
-            Loader {
-                id: pageLoader
-                anchors.fill: parent
-                anchors.margins: 22
-                source: currentPageSource
-
-                onLoaded: {
-                    console.log("Loader loaded:", source);
-
-                    if (!item)
-                        return;
-
-                    // 页面加载后，把当前主题注入进去
-                    applyThemeToLoadedPage();
-
-                    // 计时页不需要再连首页 signal
-                    if (showingTimerPage)
-                        return;
-
-                    // 首页：连接开始计时信号
-                    if (selectedIndex === 0 && item.startProject) {
-                        item.startProject.connect(function (projectName, tagName) {
-                            console.log("startProject signal received:", projectName);
-                            if (timerManager) {
-                                pendingProjectTag = tagName;
-                                pendingTodoDateKey = "";
-                                pendingTodoText = "";
-                                pendingTodoTag = "";
-                                pendingTodoLinkedProject = "";
-                                timerManager.startProject(projectName);
-                                showingTimerPage = true;
-                            }
-                        });
-                    }
-
-                    // 我的页：连接夜晚模式开关信号
-                    if (selectedIndex === 5 && item.nightModeToggled) {
-                        item.nightModeToggled.connect(function (enabled) {
-                            nightMode = enabled;
-                        });
-                    }
-
-                    // 我的页：把当前 nightMode 同步给 profile page
-                    if (selectedIndex === 5 && "nightMode" in item) {
-                        item.nightMode = nightMode;
-                    }
-
-                    if (selectedIndex === 3 && item.startTodoProject) {
-                        item.startTodoProject.connect(function (projectName, tagName, dateKey, linkedProjectName) {
-                            if (timerManager) {
-                                pendingProjectTag = "";
-                                pendingTodoDateKey = dateKey;
-                                pendingTodoText = projectName;
-                                pendingTodoTag = tagName;
-                                pendingTodoLinkedProject = linkedProjectName;
-                                timerManager.startProject(projectName);
-                                showingTimerPage = true;
-                            }
-                        });
-                    }
+                Rectangle {
+                    x: 0
+                    y: 12
+                    width: parent.width
+                    height: parent.height
+                    radius: parent.radius
+                    color: appShadowColor
+                    opacity: nightMode ? 0.26 : 0.08
+                    z: -2
                 }
 
-                onStatusChanged: {
-                    console.log("Loader status:", status, "source:", source);
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    radius: 31
+                    color: appPanelGlass
+                    opacity: nightMode ? 0.76 : 0.82
+                    z: -1
+                }
+
+                Loader {
+                    id: pageLoader
+                    anchors.fill: parent
+                    anchors.margins: 22
+                    source: currentPageSource
+
+                    onLoaded: {
+                        console.log("Loader loaded:", source);
+
+                        if (!item)
+                            return;
+
+                        // 页面加载后，把当前主题注入进去
+                        applyThemeToLoadedPage();
+
+                        // 计时页不需要再连首页 signal
+                        if (showingTimerPage)
+                            return;
+
+                        // 首页：连接开始计时信号
+                        if (selectedIndex === 0 && item.startProject) {
+                            item.startProject.connect(function (projectName, tagName) {
+                                console.log("startProject signal received:", projectName);
+                                if (timerManager) {
+                                    pendingProjectTag = tagName;
+                                    pendingTodoDateKey = "";
+                                    pendingTodoText = "";
+                                    pendingTodoTag = "";
+                                    pendingTodoLinkedProject = "";
+                                    timerManager.startProject(projectName);
+                                    showingTimerPage = true;
+                                }
+                            });
+                        }
+
+                        // 我的页：连接夜晚模式开关信号
+                        if (selectedIndex === 5 && item.nightModeToggled) {
+                            item.nightModeToggled.connect(function (enabled) {
+                                nightMode = enabled;
+                            });
+                        }
+
+                        // 我的页：把当前 nightMode 同步给 profile page
+                        if (selectedIndex === 5 && "nightMode" in item) {
+                            item.nightMode = nightMode;
+                        }
+
+                        if (selectedIndex === 3 && item.startTodoProject) {
+                            item.startTodoProject.connect(function (projectName, tagName, dateKey, linkedProjectName) {
+                                if (timerManager) {
+                                    pendingProjectTag = "";
+                                    pendingTodoDateKey = dateKey;
+                                    pendingTodoText = projectName;
+                                    pendingTodoTag = tagName;
+                                    pendingTodoLinkedProject = linkedProjectName;
+                                    timerManager.startProject(projectName);
+                                    showingTimerPage = true;
+                                }
+                            });
+                        }
+                    }
+
+                    onStatusChanged: {
+                        console.log("Loader status:", status, "source:", source);
+                    }
                 }
             }
 
         }
+    }
     }
 
     // =========================
