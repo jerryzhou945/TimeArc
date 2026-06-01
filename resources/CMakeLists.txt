@@ -20,6 +20,11 @@ set(TIME_ARC_RESOURCE_FILES
     resources/memorylake/hotspring_08.png
     resources/memorylake/memory_pond_rocks.png
     resources/memorylake/memory_tree.png
+    resources/memorylake/desktop.png
+    resources/memorylake/exit8.png
+    resources/memorylake/senren.png
+    resources/memorylake/p3r.png
+    resources/memorylake/elden.png
 )
 
 set(TIME_ARC_RESOURCE_FILES ${TIME_ARC_RESOURCE_FILES} PARENT_SCOPE)
