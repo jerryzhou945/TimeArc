@@ -12,6 +12,18 @@ set(TIME_ARC_QML_FILES
     qml/desktop/components/SoftPill.qml
     qml/desktop/components/SoftButton.qml
     qml/desktop/components/AchievementToast.qml
+    qml/mobile/MobileAppShell.qml
+    qml/mobile/MobileTheme.qml
+    qml/mobile/pages/MobileHomePage.qml
+    qml/mobile/pages/MobileStatsPage.qml
+    qml/mobile/pages/MobileHistoryPage.qml
+    qml/mobile/pages/MobileSettingsPage.qml
+    qml/mobile/components/MobileStatusBar.qml
+    qml/mobile/components/MobileSectionTitle.qml
+    qml/mobile/components/MobileSwitch.qml
+    qml/mobile/components/MobileSettingRow.qml
+    qml/mobile/components/MobileFlipCard.qml
+    qml/mobile/components/MobileTabButton.qml
 )
 
 set(TIME_ARC_QML_FILES ${TIME_ARC_QML_FILES} PARENT_SCOPE)
