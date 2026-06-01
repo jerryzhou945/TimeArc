@@ -56,13 +56,17 @@ with day and night modes.
 - **Local memo chat** — the desktop Chat page is a local self-recording
   memo surface, not an AI chat or cloud chat. Messages are stored in the
   SQLite settings repository and loaded back in timestamp order.
-- **Daily cards in Memory Lake** — the Memory Lake page generates deterministic
-  local cards from today's recorded data: a mainline summary, a top-app usage
-  breakdown (native icons + proportional bars), a focus block (longest
-  continuous active stretch, via an activity segmenter), an entertainment card
-  and a focus-vs-leisure contrast (via a local keyword classifier), and a
-  rotating "flip" fun-fact card. Cards are generated on the fly (no AI, no
-  persistence yet) and only appear when their data exists.
+- **Memory Lake usage-memory view** — the Memory Lake page is a three-panel
+  "记忆湖": an app usage ranking, a center flip-card carousel (3D flip, wheel/
+  click switching, flip-to-lock), and a right-side detail + "time river"
+  visualization, plus a full-screen monthly recap (story-mode slides with
+  transitions, autoplay, and an unlockable step directory). It follows the
+  day/night theme and uses glass/neon lighting and silky scrolling. The UI is a
+  1:1 port of the `MemoryLakeDesign/` prototype and currently renders demo data;
+  wiring it to real recorded usage is a tracked follow-up (see
+  `docs/memory-lake-implementation-plan.md`). The deterministic local daily-card
+  generator (`DailyCardService`, no AI, no persistence) remains available for
+  reuse when real data is wired in.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 

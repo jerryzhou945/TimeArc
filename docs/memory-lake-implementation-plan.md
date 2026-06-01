@@ -12,6 +12,19 @@
 > 3. **做不到的必须如实记录**：凡 QML 无法 100% 还原 HTML 的地方，写进 `docs/memory-lake-fidelity-gaps.md`，
 >    说明差在哪、能到几成、折中方案——不许假装做到了。
 
+## 实施进度（每阶段一个 commit）
+
+- [x] **Phase A** — 三栏静态排版 + 灯光底子 + 主题
+- [x] **Phase B** — 卡牌轮盘交互（翻卡/选择/锁定/预览）+ 详情 + 时间河流
+- [x] **Phase C** — 丝滑滚动（缓动 + 边界回弹 + 霓虹滚动条）
+- [x] **Phase D** — 月度回顾叙事（11 屏 + 五种转场 + 自动播放 + 目录解锁 + 键鼠导航）
+- [ ] **Phase E** — 真实数据接入（**跟进项**，依赖 4 个 C++ 扩展，见 `.harness/state/open-issues.md`；
+      本阶段按"先写死演示数据"约定暂缓）
+- [x] **Phase F** — 收尾（文档/README/journal/open-issues/harness_check）
+
+> 组件均在 `qml/desktop/memorylake/`。验证手段：`cmake --build build`（qmlcachegen 编译）+
+> `qmllint` + `qml` 运行时加载零报错。像素级视觉走查请用 `run.cmd` 在真机查看。
+
 ---
 
 ## 0. 已锁定的范围决策

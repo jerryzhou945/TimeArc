@@ -88,3 +88,25 @@ refactors.
   info), build clean, page (incl. all 11 instantiated slides) loads in the qml runtime
   with zero errors. Win32 screenshot capture remained unreliable in this environment;
   visual pass to be confirmed via `run.cmd`.
+
+- Phase E — real-data wiring: **deferred** per the locked "demo data first" decision.
+  It needs new read-only C++ aggregation (per-day month series, last-month compare,
+  cover-art strategy, local mood/keyword templates) with no schema change; logged in
+  `state/open-issues.md` as the phase-E follow-up.
+
+- Phase F — finalize. Updated `docs/memory-lake-implementation-plan.md` progress,
+  `docs/memory-lake-fidelity-gaps.md`, `README.md` (Memory Lake bullet now describes the
+  new usage-memory view + recap), and `state/open-issues.md` (placeholder resolved +
+  phase-E follow-up). `harness_check.py`: clean (7 passes).
+
+# Smoke path
+
+Build `cmake --build build` → launch `run.cmd` → click "记忆湖" in the left nav. Expect:
+three-panel memory lake with the app ranking, center flip-card carousel, and right
+detail + time river. Scroll the ranking (eased + neon bar + edge bounce). Wheel/click to
+switch the center card; click the center card to flip (locks switching; lock badge +
+note appear). Click "查看月度记忆回顾" → the recap overlay opens and auto-plays 11 slides;
+click to advance, pause/resume, and after the last slide the right step directory unlocks
+for wheel/arrow/click navigation; "返回湖面"/ESC closes. Headless verification this
+session: qmlcachegen build + qmllint + `qml` runtime load all clean (no GUI driver to
+click through in this environment).
