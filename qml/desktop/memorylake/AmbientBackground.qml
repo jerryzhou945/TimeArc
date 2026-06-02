@@ -11,39 +11,8 @@ Item {
 
     clip: true
 
-    // 底色
-    Rectangle {
-        anchors.fill: parent
-        color: ambient.style ? ambient.style.stageBg : "#070A11"
-    }
-
-    // 模糊大背景图（真模糊层之一，受控使用，详见 fidelity-gaps 🔴1 / 性能注意）
-    Item {
-        id: imgSource
-        anchors.fill: parent
-        layer.enabled: true
-        visible: false
-        Image {
-            anchors.fill: parent
-            source: ambient.appImage
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
-            cache: true
-        }
-    }
-    MultiEffect {
-        anchors.fill: parent
-        source: imgSource
-        blurEnabled: true
-        // .app-bg: blur(42px) saturate(.95) brightness(.86) scale(1.18) opacity .34 (v25)
-        blur: 0.66
-        blurMax: 64
-        brightness: ambient.style && ambient.style.night ? -0.14 : -0.06
-        saturation: -0.05
-        scale: 1.18
-        opacity: ambient.style ? ambient.style.ambientImageOpacity : 0.3
-        Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
-    }
+    // 模糊大背景图已上移为「整个 App 背景」（见 DesktopAppShell，Issue 1）。
+    // 这里底色透明，让 App 背景透出；仅保留角向柔光与底部加深营造水面氛围。
 
     // 顶部角向柔光（aqua 左 / violet 右）
     GlowCircle {

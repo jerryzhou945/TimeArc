@@ -27,6 +27,9 @@ Item {
     readonly property var current: apps[selectedIndex]
     readonly property bool locked: flippedIndex >= 0
 
+    // 当前应作为「整个 App 背景」的模糊封面图（由 DesktopAppShell 读取，Issue 1）。
+    readonly property url ambientSource: Mock.imagePath(root.current.image)
+
     function selectCard(i) {
         if (root.locked && i !== root.selectedIndex) return;
         root.previewIndex = -1;
@@ -43,25 +46,26 @@ Item {
         injectedTextSecondary: root.themeTextSecondary
     }
 
-    // —— 氛围灯光层 ——
+    // —— 氛围灯光层（角向柔光 + 半透水面色；模糊大图已上移为整个 App 背景，见 Shell Issue 1）——
     AmbientBackground {
         anchors.fill: parent
         style: ml
-        appImage: Mock.imagePath(root.current.image)
     }
 
-    // —— 三栏 ——
-    Row {
+    // —— 布局：中间卡牌轮盘铺满占位符做背景层，左右玻璃面板浮在上层 ——
+    Item {
         id: columns
         anchors.fill: parent
         anchors.margins: 4
-        spacing: 18
 
-        // ============ 左栏 ============
+        // ============ 左栏：浮在上层 ============
         GlassPanel {
             id: leftPanel
             width: 300
-            height: parent.height
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            z: 1
             style: ml
 
             Column {
@@ -214,32 +218,30 @@ Item {
             }
         }
 
-        // ============ 中栏：卡牌轮盘 ============
-        GlassPanel {
-            id: centerPanel
-            width: parent.width - 300 - 310 - 36
-            height: parent.height
+        // ============ 中栏：卡牌轮盘 = 占位符背景层（铺满、无边框，在最底层）============
+        CardCarousel {
+            id: centerCarousel
+            anchors.fill: parent
+            z: 0
             style: ml
-
-            CardCarousel {
-                anchors.fill: parent
-                style: ml
-                apps: root.apps
-                selectedIndex: root.selectedIndex
-                flippedIndex: root.flippedIndex
-                previewIndex: root.previewIndex
-                onRequestSelect: function(i) { root.selectCard(i) }
-                onRequestToggleFlip: function(i) { root.toggleFlip(i) }
-                onHoverCard: function(i) { root.previewIndex = i }
-                onUnhoverCard: root.previewIndex = -1
-            }
+            apps: root.apps
+            selectedIndex: root.selectedIndex
+            flippedIndex: root.flippedIndex
+            previewIndex: root.previewIndex
+            onRequestSelect: function(i) { root.selectCard(i) }
+            onRequestToggleFlip: function(i) { root.toggleFlip(i) }
+            onHoverCard: function(i) { root.previewIndex = i }
+            onUnhoverCard: root.previewIndex = -1
         }
 
-        // ============ 右栏（阶段 A 静态，阶段 B 跟随选中）============
+        // ============ 右栏：浮在上层 ============
         GlassPanel {
             id: rightPanel
             width: 310
-            height: parent.height
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            z: 1
             style: ml
 
             Column {

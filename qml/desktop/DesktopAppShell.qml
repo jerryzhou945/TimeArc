@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 import time_arc
 
 Item {
@@ -35,6 +36,11 @@ Item {
 
     // 当前实际使用的背景图
     property string appBackgroundSource: nightMode ? nightBackgroundSource : dayBackgroundSource
+
+    // 记忆湖：把当前卡牌封面的模糊大图升级为整个 App 背景（Issue 1）
+    readonly property bool onMemoryLake: selectedIndex === 2 && !showingTimerPage
+    readonly property url memoryLakeBackgroundSource:
+        (onMemoryLake && pageLoader.item && ("ambientSource" in pageLoader.item)) ? pageLoader.item.ambientSource : ""
 
     // =========================
     // 全局主题颜色
@@ -206,6 +212,36 @@ Item {
                     GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#E7B7C3" }
                 }
                 opacity: nightMode ? 0.28 : 0.52
+            }
+
+            // 记忆湖：当前卡牌封面的模糊大图作为整个 App 背景（Issue 1）
+            Item {
+                anchors.fill: parent
+                visible: onMemoryLake && memoryLakeBackgroundSource != ""
+                Image {
+                    id: mlBgSrc
+                    anchors.fill: parent
+                    source: memoryLakeBackgroundSource
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    visible: false
+                    layer.enabled: true
+                }
+                MultiEffect {
+                    anchors.fill: parent
+                    source: mlBgSrc
+                    blurEnabled: true
+                    blur: 0.78
+                    blurMax: 64
+                    brightness: nightMode ? -0.12 : -0.04
+                    saturation: -0.05
+                    scale: 1.08
+                }
+                // 轻压暗一层，保证前景文字/卡牌可读，但让模糊封面仍清晰可见
+                Rectangle {
+                    anchors.fill: parent
+                    color: nightMode ? Qt.rgba(0.02, 0.03, 0.06, 0.32) : Qt.rgba(0.93, 0.95, 1.0, 0.20)
+                }
             }
         }
 
@@ -486,14 +522,16 @@ Item {
                     anchors.margins: 1
                     radius: 31
                     color: appPanelGlass
-                    opacity: nightMode ? 0.76 : 0.82
+                    // 记忆湖时透明，让整个 App 模糊背景 + 卡牌占位符背景透出（Issue 1/2）
+                    opacity: onMemoryLake ? 0 : (nightMode ? 0.76 : 0.82)
                     z: -1
                 }
 
                 Loader {
                     id: pageLoader
                     anchors.fill: parent
-                    anchors.margins: 22
+                    // 记忆湖几乎铺满占位符（卡牌作为背景层覆盖最大圆角方体，Issue 2）
+                    anchors.margins: onMemoryLake ? 8 : 22
                     source: currentPageSource
 
                     onLoaded: {

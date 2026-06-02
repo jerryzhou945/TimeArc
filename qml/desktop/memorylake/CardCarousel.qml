@@ -34,11 +34,11 @@ Item {
     Rectangle {
         id: zone
         anchors.fill: parent
-        anchors.margins: 18
+        anchors.margins: 0
         radius: 26
-        color: carousel.style ? (carousel.style.night ? Qt.rgba(0.012, 0.027, 0.055, 0.58) : Qt.rgba(1, 1, 1, 0.30)) : "#0a0f18"
-        border.width: 1
-        border.color: carousel.style ? carousel.style.cardBorder : "#ffffff14"
+        // 占位符背景层：半透水面色（让其后的 App 模糊大图透出一点），无边框
+        color: carousel.style ? (carousel.style.night ? Qt.rgba(0.012, 0.027, 0.055, 0.42) : Qt.rgba(1, 1, 1, 0.18)) : "#0a0f18"
+        border.width: 0
         clip: true
 
         // 中线
@@ -112,9 +112,9 @@ Item {
             }
         }
 
-        // wheel-tip
+        // wheel-tip（移到左面板右侧，避免被上层左栏遮住）
         Rectangle {
-            x: 26; y: 22
+            x: 320; y: 22
             width: tipText.width + 22; height: 34; radius: 17
             color: carousel.locked ? (carousel.style ? carousel.style.lockBg : "#3c0a18")
                                     : Qt.rgba(0, 0, 0, carousel.style && carousel.style.night ? 0.18 : 0.06)
