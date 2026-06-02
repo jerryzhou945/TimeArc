@@ -56,8 +56,13 @@ with day and night modes.
 - **Local memo chat** — the desktop Chat page is a local self-recording
   memo surface, not an AI chat or cloud chat. Messages are stored in the
   SQLite settings repository and loaded back in timestamp order.
-- **Animated Memory Lake shell** — the Memory Lake page includes an 8-frame
-  hot spring animation assembled from transparent resource frames.
+- **Daily cards in Memory Lake** — the Memory Lake page generates deterministic
+  local cards from today's recorded data: a mainline summary, a top-app usage
+  breakdown (native icons + proportional bars), a focus block (longest
+  continuous active stretch, via an activity segmenter), an entertainment card
+  and a focus-vs-leisure contrast (via a local keyword classifier), and a
+  rotating "flip" fun-fact card. Cards are generated on the fly (no AI, no
+  persistence yet) and only appear when their data exists.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 
@@ -378,8 +383,11 @@ See `.harness/CHARTER.md` for invariants and frozen files;
 - [ ] Add an in-app licenses page surfacing all third-party texts.
 - [ ] Wire Parson in as the JSON parser for user preferences /
       configuration.
-- [ ] Ship the "Memory Lake" data model; the visual shell exists, but it is
-      not yet backed by real memory data.
+- [ ] Evolve the "Memory Lake" Daily Cards: the six local card types
+      (mainline, top-app, focus-block, entertainment, contrast, flip) plus the
+      activity segmenter and keyword classifier ship. Still to do: a privacy
+      filter for sensitive apps, user-editable categories, card persistence,
+      and a confirmed-summary AI pass.
 - [ ] Add export/backup and restore flows for SQLite-backed desktop data.
 - [ ] Add a safe database-path migration flow if user-selectable data
       locations become a product requirement.

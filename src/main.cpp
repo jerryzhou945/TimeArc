@@ -12,6 +12,7 @@
 #include <QUrl>
 
 #include "services/app_repository.h"
+#include "services/daily_card_service.h"
 #include "services/database_manager.h"
 #include "services/frontmost_session_repository.h"
 #include "services/manual_project_repository.h"
@@ -86,6 +87,7 @@ int main(int argc, char* argv[]) {
   MediaSessionRepository mediaRepository;
   StatsService statsService(&frontmostRepository, &mediaRepository,
                             &manualProjectRepository);
+  DailyCardService dailyCardService(&statsService, &frontmostRepository);
   TagRepository tagRepository;
   TimerManager timerManager;
   ProjectManager projectManager(&manualProjectRepository);
@@ -106,6 +108,8 @@ int main(int argc, char* argv[]) {
   engine.rootContext()->setContextProperty("settingsRepository",
                                            &settingsRepository);
   engine.rootContext()->setContextProperty("statsService", &statsService);
+  engine.rootContext()->setContextProperty("dailyCardService",
+                                           &dailyCardService);
   engine.rootContext()->setContextProperty("tagRepository", &tagRepository);
   engine.rootContext()->setContextProperty("timerManager", &timerManager);
   engine.rootContext()->setContextProperty("projectManager", &projectManager);
