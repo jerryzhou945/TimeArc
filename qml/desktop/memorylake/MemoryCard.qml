@@ -52,9 +52,8 @@ Item {
             anchors.fill: parent
             radius: 28
             color: card.style ? card.style.faceBg : "#0D121D"
-            border.width: 1
-            border.color: card.selected ? (card.style ? card.style.faceBorderActive : "#9ef1ffb0")
-                                         : (card.style ? card.style.faceBorder : "#ffffff14")
+            // 描边由顶层 overlay 绘制（见 face 末尾），确保盖在封面图之上且随翻面
+            border.width: 0
             clip: true
 
             Column {
@@ -165,14 +164,23 @@ Item {
                     }
                 }
             }
+
+            // 顶层描边：盖在封面图之上（封面侧边也有辉光），随卡片翻面
+            Rectangle {
+                anchors.fill: parent
+                radius: 28
+                color: "transparent"
+                border.width: 1
+                border.color: card.selected ? (card.style ? card.style.faceBorderActive : "#9ef1ffb0")
+                                             : (card.style ? card.style.faceBorder : "#ffffff14")
+            }
         }
 
         back: Rectangle {
             anchors.fill: parent
             radius: 28
             color: card.style ? card.style.faceBg : "#0D121D"
-            border.width: 1
-            border.color: card.style ? card.style.faceBorderActive : "#9ef1ffb0"
+            border.width: 0
 
             // 背面的淡背景图 + 暗罩同样圆角裁切（避免方角溢出卡片圆角）
             Item {
@@ -254,17 +262,16 @@ Item {
                     }
                 }
             }
-        }
-    }
 
-    // 选中卡牌辉光描边
-    Rectangle {
-        visible: card.selected
-        anchors.fill: parent
-        radius: 28
-        color: "transparent"
-        border.width: 1
-        border.color: card.style ? Qt.rgba(card.style.aqua.r, card.style.aqua.g, card.style.aqua.b, card.style.night ? 0.16 : 0.10) : "transparent"
+            // 顶层描边：盖在背面暗罩之上，随卡片翻面
+            Rectangle {
+                anchors.fill: parent
+                radius: 28
+                color: "transparent"
+                border.width: 1
+                border.color: card.style ? card.style.faceBorderActive : "#9ef1ffb0"
+            }
+        }
     }
 
     HoverHandler {
