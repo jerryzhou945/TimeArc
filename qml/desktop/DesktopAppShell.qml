@@ -504,7 +504,8 @@ Item {
                 anchors.fill: parent
                 radius: 32
                 color: "transparent"
-                border.width: 1
+                // 记忆湖时去掉内容区外框，让暗色水面真正铺满全 App、不再有「框中框」
+                border.width: onMemoryLake ? 0 : 1
                 border.color: appPanelBorder
 
                 Rectangle {
@@ -514,7 +515,7 @@ Item {
                     height: parent.height
                     radius: parent.radius
                     color: appShadowColor
-                    opacity: nightMode ? 0.26 : 0.08
+                    opacity: onMemoryLake ? 0 : (nightMode ? 0.26 : 0.08)
                     z: -2
                 }
 
