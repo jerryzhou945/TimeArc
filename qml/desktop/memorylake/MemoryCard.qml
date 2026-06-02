@@ -14,6 +14,15 @@ Item {
     property bool previewed: false
     property bool dimmed: false   // 翻面锁定时其它卡变暗
 
+    // 卡面圆角 / 边缘光（描边）几何 + 圆角遮罩裁切阈值，集中此处便于统一调参。
+    // maskThresholdMin：把 MultiEffect 圆角遮罩的裁切位置卡在「50% 覆盖」等高线（= 几何圆角
+    // 半径），而不是默认 0 让抗锯齿淡边（alpha≈0）也整幅透出——后者会让内容圆角实际半径比
+    // 描边大 ~2px，于是棱角处图片/黑底越过边缘光漏出。maskSpreadAtMin 给一点点软过渡保留抗锯齿。
+    property int faceRadius: 28
+    property real rimWidth: 2
+    property real maskThresholdMin: 0.5
+    property real maskSpreadAtMin: 0.28
+
     signal clicked()
     signal hoverEnter()
     signal hoverLeave()
@@ -107,9 +116,17 @@ Item {
         front: Item {
             anchors.fill: parent
 
-            // 整张正面（底色 + 封面图 + 文本）先按方角合成，再用单一圆角遮罩统一裁切：
-            // 让封面图圆角「就是」卡片圆角，消除早前「封面图自带圆角 vs 卡片圆角」两套半径
-            // 对不齐、在上方两个棱角露出底色黑边的问题（如 P3R 卡）。
+            // 选中卡会随翻面绕 Y 轴旋转。把整张正面（含边缘光描边）合成进一张多重采样 layer，
+            // 让 Flipable 旋转的是这张已抗锯齿的单一纹理（圆角 + 描边一起重采样，无旋转锯齿台阶）。
+            // 仅 selected 开（只有选中卡会翻面），避免给 9 张卡都建 FBO。
+            layer.enabled: card.selected
+            layer.samples: 4
+            layer.smooth: true
+
+            // 整张正面（底色 + 封面图 + 文本 + 顶层边缘光）先按方角合成，再用单一圆角遮罩统一裁切。
+            // 关键：边缘光（描边）放进同一张被裁切的合成里，与内容共用同一条圆角边——内容绝不会越过
+            // 描边漏到边缘光之外（修复棱角处图片/黑底突破边缘光的漏边）。圆角也由这张整面遮罩统一负责，
+            // 消除早前「封面图自带圆角 vs 卡片圆角」两套半径对不齐露出底色黑边的问题（如 P3R 卡）。
             Item {
                 id: faceContent
                 anchors.fill: parent
@@ -205,13 +222,24 @@ Item {
                         }
                     }
                 }
+                // 顶层边缘光（描边）：合进同一张被裁切的合成，与内容共用同一条圆角边——
+                // 内容绝不会越过它漏到边缘光外（这正是修复棱角漏边的关键）。
+                Rectangle {
+                    anchors.fill: parent
+                    radius: card.faceRadius
+                    color: "transparent"
+                    antialiasing: true
+                    border.width: card.rimWidth
+                    border.color: card.selected ? (card.style ? card.style.faceBorderActive : "#9ef1ffb0")
+                                                 : (card.style ? card.style.faceBorder : "#ffffff14")
+                }
             }
 
-            // 单一圆角遮罩（四角统一 28），整面一次裁圆——封面图随之得到与卡片完全一致的圆角
+            // 单一圆角遮罩：整面一次裁圆（含边缘光），封面图随之得到与卡片完全一致的圆角
             Rectangle {
                 id: faceMask
                 anchors.fill: parent
-                radius: 28
+                radius: card.faceRadius
                 color: "white"
                 antialiasing: true
                 visible: false
@@ -224,28 +252,24 @@ Item {
                 source: faceContent
                 maskEnabled: true
                 maskSource: faceMask
-                // 默认阈值：直接采用遮罩的抗锯齿 alpha 渐变（已由上面的多重采样平滑），
-                // 不做硬阈值，否则会把边缘渐变重新切成锯齿。
-            }
-
-            // 顶层描边：盖在封面图之上（封面侧边也有辉光），随卡片翻面
-            Rectangle {
-                anchors.fill: parent
-                radius: 28
-                color: "transparent"
-                border.width: 1
-                border.color: card.selected ? (card.style ? card.style.faceBorderActive : "#9ef1ffb0")
-                                             : (card.style ? card.style.faceBorder : "#ffffff14")
+                // 把裁切卡在 50% 覆盖等高线（几何圆角半径），而非默认 0 阈值让抗锯齿淡边整幅透出——
+                // 后者使内容圆角实际半径比描边大 ~2px、棱角处越过边缘光漏出。spread 留软过渡保留抗锯齿，
+                // 旋转时父层 layer.samples:4 再做一次重采样。
+                maskThresholdMin: card.maskThresholdMin
+                maskSpreadAtMin: card.maskSpreadAtMin
             }
         }
 
-        back: Rectangle {
+        back: Item {
             anchors.fill: parent
-            radius: 28
-            color: card.style ? card.style.faceBg : "#0D121D"
-            border.width: 0
 
-            // 背面的淡背景图 + 暗罩同样圆角裁切（避免方角溢出卡片圆角）
+            // 同正面：整张背面（底色 + 淡背景图 + 暗罩 + 文本 + 顶层边缘光）合成进一张多重采样 layer，
+            // Flipable 旋转的是这张单一已抗锯齿纹理。仅 selected 开（只有选中卡会翻面）。
+            layer.enabled: card.selected
+            layer.samples: 4
+            layer.smooth: true
+
+            // 背面整面方角合成，再单一圆角遮罩一次裁切（含边缘光），避免方角/图片溢出卡片圆角。
             Item {
                 id: backArtSrc
                 anchors.fill: parent
@@ -253,6 +277,13 @@ Item {
                 layer.enabled: true
                 layer.samples: 4
                 layer.smooth: true
+
+                // 底色（方角，交给下方遮罩裁圆）
+                Rectangle {
+                    anchors.fill: parent
+                    color: card.style ? card.style.faceBg : "#0D121D"
+                }
+                // 淡背景图 + 暗罩
                 Image {
                     anchors.fill: parent
                     source: card.app ? Mock.imagePath(card.app.image) : ""
@@ -264,6 +295,65 @@ Item {
                     anchors.fill: parent
                     color: card.style && card.style.night ? Qt.rgba(0.05, 0.07, 0.11, 0.93) : Qt.rgba(1, 1, 1, 0.86)
                 }
+
+                // 文本区
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 14
+                    Text {
+                        width: parent.width
+                        text: card.app ? card.app.mood : ""
+                        color: card.style ? card.style.textPrimary : "#fff"
+                        font.pixelSize: card.selected ? 30 : 20
+                        font.bold: true
+                        wrapMode: Text.WordWrap
+                    }
+                    Text {
+                        width: parent.width
+                        text: card.app ? card.app.analysis : ""
+                        color: card.style ? card.style.textSecondary : "#bbb"
+                        font.pixelSize: 14
+                        lineHeight: 1.4
+                        wrapMode: Text.WordWrap
+                    }
+                    Row {
+                        width: parent.width
+                        spacing: 10
+                        Repeater {
+                            model: card.app ? [
+                                { k: "启动", v: card.app.launches },
+                                { k: "最长", v: card.app.longest }
+                            ] : []
+                            delegate: Rectangle {
+                                required property var modelData
+                                width: (parent.width - 10) / 2
+                                height: 44
+                                radius: 14
+                                color: card.style ? card.style.cardBg : "#ffffff12"
+                                border.width: 1
+                                border.color: card.style ? card.style.cardBorder : "#ffffff16"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.k + "  " + modelData.v
+                                    color: card.style ? card.style.textSecondary : "#ccc"
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 顶层边缘光（描边）：合进同一张被裁切的合成，与内容共用同一条圆角边
+                Rectangle {
+                    anchors.fill: parent
+                    radius: card.faceRadius
+                    color: "transparent"
+                    antialiasing: true
+                    border.width: card.rimWidth
+                    border.color: card.style ? card.style.faceBorderActive : "#9ef1ffb0"
+                }
             }
             Rectangle {
                 id: backArtMask
@@ -274,70 +364,15 @@ Item {
                 layer.smooth: true
                 antialiasing: true
                 color: "white"
-                radius: 28
+                radius: card.faceRadius
             }
             MultiEffect {
                 anchors.fill: parent
                 source: backArtSrc
                 maskEnabled: true
                 maskSource: backArtMask
-            }
-
-            Column {
-                anchors.fill: parent
-                anchors.margins: 20
-                spacing: 14
-                Text {
-                    width: parent.width
-                    text: card.app ? card.app.mood : ""
-                    color: card.style ? card.style.textPrimary : "#fff"
-                    font.pixelSize: card.selected ? 30 : 20
-                    font.bold: true
-                    wrapMode: Text.WordWrap
-                }
-                Text {
-                    width: parent.width
-                    text: card.app ? card.app.analysis : ""
-                    color: card.style ? card.style.textSecondary : "#bbb"
-                    font.pixelSize: 14
-                    lineHeight: 1.4
-                    wrapMode: Text.WordWrap
-                }
-                Row {
-                    width: parent.width
-                    spacing: 10
-                    Repeater {
-                        model: card.app ? [
-                            { k: "启动", v: card.app.launches },
-                            { k: "最长", v: card.app.longest }
-                        ] : []
-                        delegate: Rectangle {
-                            required property var modelData
-                            width: (parent.width - 10) / 2
-                            height: 44
-                            radius: 14
-                            color: card.style ? card.style.cardBg : "#ffffff12"
-                            border.width: 1
-                            border.color: card.style ? card.style.cardBorder : "#ffffff16"
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData.k + "  " + modelData.v
-                                color: card.style ? card.style.textSecondary : "#ccc"
-                                font.pixelSize: 12
-                                font.bold: true
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 顶层描边：盖在背面暗罩之上，随卡片翻面
-            Rectangle {
-                anchors.fill: parent
-                radius: 28
-                color: "transparent"
-                border.width: 1
-                border.color: card.style ? card.style.faceBorderActive : "#9ef1ffb0"
+                maskThresholdMin: card.maskThresholdMin
+                maskSpreadAtMin: card.maskSpreadAtMin
             }
         }
     }
