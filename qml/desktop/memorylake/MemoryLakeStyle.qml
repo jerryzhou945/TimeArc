@@ -20,9 +20,10 @@ QtObject {
     readonly property color stageGlow2: night ? Qt.rgba(0.61, 0.55, 1.0, 0.06)
                                               : Qt.rgba(0.61, 0.55, 1.0, 0.12)
 
-    // 三栏面板
-    readonly property color panelBg: night ? Qt.rgba(0.043, 0.063, 0.106, 0.72)
-                                            : Qt.rgba(1, 1, 1, 0.66)
+    // 三栏面板（提高不透明度：左右栏会盖住滑到其后的非焦点卡牌，0.72 时卡牌清晰透出很违和；
+    // QML 无逐面板实时背景模糊，故以更实的叠色来挡住后面的卡牌，仍保留一点点通透感）
+    readonly property color panelBg: night ? Qt.rgba(0.043, 0.063, 0.106, 0.94)
+                                            : Qt.rgba(1, 1, 1, 0.92)
     readonly property color panelBorder: night ? Qt.rgba(1, 1, 1, 0.075)
                                                : Qt.rgba(0.40, 0.34, 0.28, 0.22)
     readonly property color panelBorderStrong: night ? Qt.rgba(1, 1, 1, 0.13)

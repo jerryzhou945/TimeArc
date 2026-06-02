@@ -47,7 +47,8 @@ Item {
             style: rankRoot.style
 
             Column {
-                width: parent.width
+                // 右侧留出 12px 让常显滚动条（宽 7 + 右距 1）独占，行内容不再被滚动条压住重叠
+                width: parent.width - 12
                 spacing: 8
 
                 Repeater {
