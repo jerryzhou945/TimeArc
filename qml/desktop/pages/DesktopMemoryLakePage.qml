@@ -170,8 +170,9 @@ Item {
                 Rectangle {
                     id: recapCta
                     width: parent.width
-                    height: 92
+                    height: 120
                     radius: 19
+                    clip: true
                     color: ctaHover.hovered ? Qt.rgba(1, 1, 1, ml.night ? 0.065 : 0.20) : ml.cardBg
                     border.width: 1
                     border.color: ctaHover.hovered ? Qt.rgba(0.62, 0.90, 0.93, 0.28) : Qt.rgba(0.62, 0.90, 0.93, 0.16)
@@ -179,7 +180,7 @@ Item {
                     Column {
                         anchors.fill: parent
                         anchors.margins: 12
-                        spacing: 5
+                        spacing: 4
                         Text { text: "MONTHLY RECAP"; color: ml.aqua; font.pixelSize: 11; opacity: 0.8 }
                         Text { text: "查看月度记忆回顾"; color: ml.textPrimary; font.pixelSize: 18; font.bold: true }
                         Text {
@@ -197,8 +198,9 @@ Item {
                 // 排行
                 Rectangle {
                     width: parent.width
-                    height: parent.height - 66 - 124 - 92 - 30
+                    height: parent.height - 66 - 124 - 120 - 30
                     radius: 22
+                    clip: true
                     color: ml.cardBg
                     border.width: 1
                     border.color: ml.cardBorder

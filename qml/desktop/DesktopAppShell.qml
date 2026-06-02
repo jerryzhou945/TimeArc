@@ -42,6 +42,14 @@ Item {
     readonly property url memoryLakeBackgroundSource:
         (onMemoryLake && pageLoader.item && ("ambientSource" in pageLoader.item)) ? pageLoader.item.ambientSource : ""
 
+    // 记忆湖时导航栏配色对齐记忆湖左右玻璃面板（MemoryLakeStyle 的 panel/accent 值）
+    readonly property color mlNavGlass: nightMode ? Qt.rgba(0.055, 0.080, 0.130, 0.86) : Qt.rgba(1, 1, 1, 0.66)
+    readonly property color mlNavBorder: nightMode ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(0.40, 0.34, 0.28, 0.22)
+    readonly property color mlNavSelected: nightMode ? Qt.rgba(0.62, 0.90, 0.93, 0.12) : Qt.rgba(0.40, 0.55, 0.52, 0.16)
+    readonly property color mlNavSelectedBorder: nightMode ? Qt.rgba(0.62, 0.90, 0.93, 0.24) : Qt.rgba(0.40, 0.55, 0.52, 0.30)
+    readonly property color mlNavSoft: nightMode ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.45)
+    readonly property color mlNavAccent: nightMode ? "#9FE7EE" : "#CFE8D8"
+
     // =========================
     // 全局主题颜色
     // 白天：奶油薄荷、米杏、浅粉紫
@@ -52,30 +60,30 @@ Item {
     property color appTextPrimary: nightMode ? "#F3F0FF" : "#2D2724"
     property color appTextSecondary: nightMode ? "#C9C4DD" : "#7C746D"
 
-    // 侧边栏玻璃层与边框
-    property color appSidebarGlass: nightMode ? "#34394F" : "#FBF8F4"
-    property color appSidebarBorder: nightMode ? "#5F6687" : "#E8E0D8"
+    // 侧边栏玻璃层与边框（记忆湖时对齐左右玻璃面板）
+    property color appSidebarGlass: onMemoryLake ? mlNavGlass : (nightMode ? "#34394F" : "#FBF8F4")
+    property color appSidebarBorder: onMemoryLake ? mlNavBorder : (nightMode ? "#5F6687" : "#E8E0D8")
 
     // 主内容区玻璃层与边框
     property color appPanelGlass: nightMode ? "#3C425C" : "#FBF8F4"
     property color appPanelBorder: nightMode ? "#626A90" : "#E8E0D8"
 
     // 当前选中的导航项
-    property color appSelectedItem: nightMode ? "#596184" : "#DDF1E5"
-    property color appSelectedItemBorder: nightMode ? "#8188B1" : "#BFDCCB"
+    property color appSelectedItem: onMemoryLake ? mlNavSelected : (nightMode ? "#596184" : "#DDF1E5")
+    property color appSelectedItemBorder: onMemoryLake ? mlNavSelectedBorder : (nightMode ? "#8188B1" : "#BFDCCB")
 
     // 收起侧栏按钮
-    property color appCollapseButton: nightMode ? "#4B526F" : "#F4E8C8"
-    property color appCollapseButtonBorder: nightMode ? "#767DA7" : "#E8D9BC"
+    property color appCollapseButton: onMemoryLake ? mlNavSoft : (nightMode ? "#4B526F" : "#F4E8C8")
+    property color appCollapseButtonBorder: onMemoryLake ? mlNavBorder : (nightMode ? "#767DA7" : "#E8D9BC")
 
     // 强调色（logo 圆点 / 强调按钮）
-    // 白天偏奶茶，夜晚偏柔和蓝紫
-    property color appAccentWarm: nightMode ? "#8E93D8" : "#CFE8D8"
-    property color appAccentWarmText: nightMode ? "#F8F7FF" : "#2D2724"
+    // 白天偏奶茶，夜晚偏柔和蓝紫；记忆湖偏霓虹 aqua
+    property color appAccentWarm: onMemoryLake ? mlNavAccent : (nightMode ? "#8E93D8" : "#CFE8D8")
+    property color appAccentWarmText: onMemoryLake ? "#05070D" : (nightMode ? "#F8F7FF" : "#2D2724")
 
     // 左下角陪伴卡片
-    property color appBottomCardBorder: nightMode ? "#7078A5" : "#E8E0D8"
-    property color appBottomCardGlass: nightMode ? "#444B67" : "#FFFDF9"
+    property color appBottomCardBorder: onMemoryLake ? mlNavBorder : (nightMode ? "#7078A5" : "#E8E0D8")
+    property color appBottomCardGlass: onMemoryLake ? mlNavSoft : (nightMode ? "#444B67" : "#FFFDF9")
 
     // 夜晚模式下的小高光文字
     property color appNightAccentText: "#BFC7FF"
@@ -218,14 +226,37 @@ Item {
             Item {
                 anchors.fill: parent
                 visible: onMemoryLake && memoryLakeBackgroundSource != ""
-                Image {
+                // 双图交叉淡入淡出：切换卡牌时背景柔和过渡，而非硬切
+                Item {
                     id: mlBgSrc
                     anchors.fill: parent
-                    source: memoryLakeBackgroundSource
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
                     visible: false
                     layer.enabled: true
+                    property url src: memoryLakeBackgroundSource
+                    property bool frontIsA: true
+                    onSrcChanged: {
+                        if (src == "")
+                            return
+                        if (frontIsA) { mlImgB.source = src; frontIsA = false }
+                        else { mlImgA.source = src; frontIsA = true }
+                    }
+                    Component.onCompleted: if (src != "") { mlImgA.source = src; frontIsA = true }
+                    Image {
+                        id: mlImgA
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        opacity: mlBgSrc.frontIsA ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
+                    }
+                    Image {
+                        id: mlImgB
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        opacity: mlBgSrc.frontIsA ? 0 : 1
+                        Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
+                    }
                 }
                 MultiEffect {
                     anchors.fill: parent

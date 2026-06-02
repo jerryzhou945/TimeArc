@@ -40,21 +40,7 @@ Item {
         border.width: 0
         clip: true
 
-        // 中线
-        Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 90
-            anchors.rightMargin: 90
-            height: 1
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0; color: "transparent" }
-                GradientStop { position: 0.5; color: Qt.rgba(0.62, 0.90, 0.93, 0.12) }
-                GradientStop { position: 1; color: "transparent" }
-            }
-        }
+        // （移除原 .cards-zone::before 中线：占位符全幅化后它横贯整屏，像把画面割开一条蓝线）
 
         // 卡轨
         Item {
