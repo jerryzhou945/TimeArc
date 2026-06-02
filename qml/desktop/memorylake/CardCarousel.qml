@@ -70,8 +70,9 @@ Item {
                         dimmed: carousel.locked && index !== carousel.flippedIndex
                         enabled: !carousel.locked || selected
 
-                        y: (track.height - height) / 2 - (selected ? 6 : 0)
-                        Behavior on y { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+                        // 垂直始终居中：y 直接跟随动画中的 height，使卡片中心恒定（330），
+                        // 翻面只对称放大、不再上下漂移（去掉了原 -6 选中上移与会与高度动画抢拍的 y Behavior）。
+                        y: (track.height - height) / 2
 
                         onClicked: {
                             if (!selected) carousel.requestSelect(index)

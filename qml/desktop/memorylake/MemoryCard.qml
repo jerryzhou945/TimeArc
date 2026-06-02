@@ -35,24 +35,51 @@ Item {
     Behavior on scale { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
     Behavior on opacity { NumberAnimation { duration: 260 } }
 
-    // 选中卡牌氛围底灯：贴合卡片轮廓的圆角辉光（近似设计稿 .face 的 0 0 38px 辉光）。
-    // 用与卡片同形（圆角矩形）的实心块做模糊源——模糊只向外散出（向内被卡片本体盖住），
-    // 因此光晕沿卡片边缘均匀铺开、贴合卡牌形状，而不是早前那种圆/椭圆光斑。
-    // 底部留负边距让辉光略向下铺成「底灯」。
+    // 翻面角度提升为卡片级属性：底灯据此做 3D 透视收束 + 高光绽放（见下方 ambientGlow）。
+    property real flipAngle: flipped ? 180 : 0
+    Behavior on flipAngle {
+        NumberAnimation { duration: 680; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] }
+    }
+
+    // 选中卡牌氛围底灯 + 翻面光效。让光像是卡片自身发出、随 3D 转动守恒，而非呆板的亮方块：
+    //  · 静止：贴合卡片圆角轮廓的 aqua 柔光（向外散出，向内被卡身遮住），底部略向下成「底灯」。
+    //  · 翻面中：光随卡片透视收束——转到侧面(90°)时水平压成一道竖直光芯，
+    //    同时亮度绽放、色相由 aqua 偏移到 violet（仿光线穿过转动卡片的折射），转回正面再舒展还原。
     Item {
         id: ambientGlow
         z: -1
         anchors.fill: parent
         anchors.bottomMargin: -Math.round(card.height * 0.05)
-        opacity: card.selected ? 0.55 : 0.0
-        visible: opacity > 0
-        Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+
+        // 卡片在 Y 轴旋转下的投影系数：|cos θ|（正面=1，侧面=0，背面=1）
+        readonly property real foreshorten: Math.abs(Math.cos(card.flipAngle * Math.PI / 180))
+        readonly property real edgeOn: 1.0 - foreshorten   // 侧面观程度，90° 处达峰
+        readonly property color restColor: card.style ? card.style.aqua : "#9FE7EE"
+        readonly property color peakColor: card.style ? card.style.violet : "#9B8BFF"
+
+        // 选中淡入淡出走 baseGlow（带 Behavior）；翻面高光走 edgeOn（跟随 flipAngle 动画），两者相乘，互不干扰
+        property real baseGlow: card.selected ? 0.55 : 0.0
+        Behavior on baseGlow { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+        opacity: baseGlow * (1.0 + 0.55 * edgeOn)
+        visible: opacity > 0.01
+
+        // 透视收束：侧面观时水平压成光芯（留 14% 下限，避免完全熄灭）
+        transform: Scale {
+            origin.x: ambientGlow.width / 2
+            origin.y: ambientGlow.height / 2
+            xScale: 0.14 + 0.86 * ambientGlow.foreshorten
+        }
 
         Rectangle {
             id: glowSrc
             anchors.fill: parent
             radius: 30
-            color: card.style ? card.style.aqua : "#9FE7EE"
+            // aqua → violet 折射偏移（峰值偏移 0.7）
+            color: Qt.rgba(
+                ambientGlow.restColor.r + (ambientGlow.peakColor.r - ambientGlow.restColor.r) * ambientGlow.edgeOn * 0.7,
+                ambientGlow.restColor.g + (ambientGlow.peakColor.g - ambientGlow.restColor.g) * ambientGlow.edgeOn * 0.7,
+                ambientGlow.restColor.b + (ambientGlow.peakColor.b - ambientGlow.restColor.b) * ambientGlow.edgeOn * 0.7,
+                1.0)
             visible: false
             layer.enabled: true
         }
@@ -74,10 +101,7 @@ Item {
             origin.x: card.width / 2
             origin.y: card.height / 2
             axis { x: 0; y: 1; z: 0 }
-            angle: card.flipped ? 180 : 0
-            Behavior on angle {
-                NumberAnimation { duration: 680; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] }
-            }
+            angle: card.flipAngle   // 动画由 card.flipAngle 的 Behavior 驱动（底灯共享同一角度）
         }
 
         front: Rectangle {
