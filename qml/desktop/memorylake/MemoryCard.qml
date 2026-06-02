@@ -18,21 +18,37 @@ Item {
     signal hoverEnter()
     signal hoverLeave()
 
-    // 布局宽高（v25：选中 310×440、翻面 360 宽；缩放是纯视觉变换，不影响居中计算）
-    readonly property int layoutW: selected ? (flipped ? 360 : 310) : 156
-    readonly property int layoutH: selected ? 440 : 310
+    // 布局宽高（选中 310×440；翻面时整体放大 20% → 372×528，翻回恢复。
+    // 用 layoutW 作为 Row 排布宽度，翻面变宽时会自动把相邻卡牌挤开。）
+    readonly property int layoutW: selected ? (flipped ? 372 : 310) : 156
+    readonly property int layoutH: selected ? (flipped ? 528 : 440) : 310
 
     width: layoutW
     height: layoutH
 
-    Behavior on width { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-    Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+    Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+    Behavior on height { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
 
     // .card.is-selected{ scale(1.01) }；非选中 .88；锁定时其它卡 .25；预览微放大
     scale: selected ? 1.01 : (previewed ? 0.96 : 0.88)
     opacity: selected ? 1.0 : (dimmed ? 0.25 : (previewed ? 0.82 : 0.42))
     Behavior on scale { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
     Behavior on opacity { NumberAnimation { duration: 260 } }
+
+    // 选中卡牌氛围底灯：aqua 柔光从卡片四周/下方散出（近似设计稿 .face 的 0 0 38px 辉光）
+    GlowCircle {
+        z: -1
+        visible: card.selected
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenterOffset: Math.round(card.height * 0.10)
+        width: Math.round(card.width * 1.40)
+        height: Math.round(card.height * 1.14)
+        glowColor: card.style ? card.style.aqua : "#9FE7EE"
+        glowOpacity: card.selected ? 0.46 : 0.0
+        blurAmount: 1.0
+        Behavior on glowOpacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+    }
 
     Flipable {
         id: flip

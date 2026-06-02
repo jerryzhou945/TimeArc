@@ -25,7 +25,7 @@ Item {
         var x = 0;
         for (var j = 0; j < selectedIndex; j++)
             x += 156 + spacing;
-        var selW = (flippedIndex === selectedIndex) ? 360 : 310;
+        var selW = (flippedIndex === selectedIndex) ? 372 : 310;
         x += selW / 2;
         return x;
     }
@@ -50,7 +50,7 @@ Item {
 
             Row {
                 id: track
-                height: 460
+                height: 540   // 容纳翻面放大后的卡牌（528 高）并保持垂直居中
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 18
                 x: viewport.width / 2 - carousel.centerOffset()
