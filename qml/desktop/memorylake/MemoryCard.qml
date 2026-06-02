@@ -18,10 +18,10 @@ Item {
     signal hoverEnter()
     signal hoverLeave()
 
-    // 布局宽高（选中 310×440；翻面时整体放大 20% → 372×528，翻回恢复。
+    // 布局宽高（选中 310×440；翻面时整体放大 40% → 434×616，翻回恢复。
     // 用 layoutW 作为 Row 排布宽度，翻面变宽时会自动把相邻卡牌挤开。）
-    readonly property int layoutW: selected ? (flipped ? 372 : 310) : 156
-    readonly property int layoutH: selected ? (flipped ? 528 : 440) : 310
+    readonly property int layoutW: selected ? (flipped ? 434 : 310) : 156
+    readonly property int layoutH: selected ? (flipped ? 616 : 440) : 310
 
     width: layoutW
     height: layoutH
@@ -35,19 +35,35 @@ Item {
     Behavior on scale { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
     Behavior on opacity { NumberAnimation { duration: 260 } }
 
-    // 选中卡牌氛围底灯：aqua 柔光从卡片四周/下方散出（近似设计稿 .face 的 0 0 38px 辉光）
-    GlowCircle {
+    // 选中卡牌氛围底灯：贴合卡片轮廓的圆角辉光（近似设计稿 .face 的 0 0 38px 辉光）。
+    // 用与卡片同形（圆角矩形）的实心块做模糊源——模糊只向外散出（向内被卡片本体盖住），
+    // 因此光晕沿卡片边缘均匀铺开、贴合卡牌形状，而不是早前那种圆/椭圆光斑。
+    // 底部留负边距让辉光略向下铺成「底灯」。
+    Item {
+        id: ambientGlow
         z: -1
-        visible: card.selected
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: Math.round(card.height * 0.10)
-        width: Math.round(card.width * 1.40)
-        height: Math.round(card.height * 1.14)
-        glowColor: card.style ? card.style.aqua : "#9FE7EE"
-        glowOpacity: card.selected ? 0.46 : 0.0
-        blurAmount: 1.0
-        Behavior on glowOpacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+        anchors.fill: parent
+        anchors.bottomMargin: -Math.round(card.height * 0.05)
+        opacity: card.selected ? 0.55 : 0.0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+
+        Rectangle {
+            id: glowSrc
+            anchors.fill: parent
+            radius: 30
+            color: card.style ? card.style.aqua : "#9FE7EE"
+            visible: false
+            layer.enabled: true
+        }
+        MultiEffect {
+            anchors.fill: glowSrc
+            source: glowSrc
+            blurEnabled: true
+            blur: 1.0
+            blurMax: 48
+            autoPaddingEnabled: true
+        }
     }
 
     Flipable {
