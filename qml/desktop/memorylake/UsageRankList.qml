@@ -67,9 +67,16 @@ Item {
                         color: active ? (rankRoot.style ? rankRoot.style.accentSoft : "#8edfff14")
                                       : (hover.hovered ? Qt.rgba(1, 1, 1, rankRoot.style && rankRoot.style.night ? 0.035 : 0.10)
                                                        : "transparent")
-                        border.width: active ? 1 : 0
-                        border.color: rankRoot.style ? rankRoot.style.accentSoftBorder : "#8edfff33"
+                        border.width: (active || hover.hovered) ? 1 : 0
+                        border.color: active ? (rankRoot.style ? rankRoot.style.accentSoftBorder : "#8edfff33")
+                                             : Qt.rgba(1, 1, 1, 0.06)
                         opacity: rankRoot.locked && !active ? 0.42 : 1.0
+
+                        // .usage-item:hover { transform: translateX(2px) }
+                        transform: Translate {
+                            x: hover.hovered ? 2 : 0
+                            Behavior on x { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                        }
 
                         Behavior on color { ColorAnimation { duration: 160 } }
                         Behavior on opacity { NumberAnimation { duration: 160 } }

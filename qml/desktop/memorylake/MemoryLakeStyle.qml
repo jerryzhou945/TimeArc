@@ -66,8 +66,8 @@ QtObject {
     readonly property color lockBorder: Qt.rgba(1, 0.84, 0.61, 0.22)
     readonly property color lockText: night ? Qt.rgba(1, 0.93, 0.80, 0.90) : "#7A5A1E"
 
-    // APP 大背景图模糊层不透明度
-    readonly property real ambientImageOpacity: night ? 0.32 : 0.22
+    // APP 大背景图模糊层不透明度（.app-bg opacity .34）
+    readonly property real ambientImageOpacity: night ? 0.34 : 0.22
 
     // 发光强度（白天显著降低）
     readonly property real glowStrength: night ? 1.0 : 0.45

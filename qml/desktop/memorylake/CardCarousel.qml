@@ -25,7 +25,7 @@ Item {
         var x = 0;
         for (var j = 0; j < selectedIndex; j++)
             x += 156 + spacing;
-        var selW = (flippedIndex === selectedIndex) ? 380 : 330;
+        var selW = (flippedIndex === selectedIndex) ? 360 : 310;
         x += selW / 2;
         return x;
     }
@@ -35,7 +35,7 @@ Item {
         id: zone
         anchors.fill: parent
         anchors.margins: 18
-        radius: 18
+        radius: 26
         color: carousel.style ? (carousel.style.night ? Qt.rgba(0.012, 0.027, 0.055, 0.58) : Qt.rgba(1, 1, 1, 0.30)) : "#0a0f18"
         border.width: 1
         border.color: carousel.style ? carousel.style.cardBorder : "#ffffff14"
@@ -85,7 +85,7 @@ Item {
                         dimmed: carousel.locked && index !== carousel.flippedIndex
                         enabled: !carousel.locked || selected
 
-                        y: (track.height - height) / 2 - (selected ? 10 : 0)
+                        y: (track.height - height) / 2 - (selected ? 6 : 0)
                         Behavior on y { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
 
                         onClicked: {

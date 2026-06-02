@@ -22,8 +22,9 @@ Item {
     visible: opened || opacity > 0
     opacity: opened ? 1 : 0
     scale: opened ? 1 : 0.985
-    Behavior on opacity { NumberAnimation { duration: 440; easing.type: Easing.OutCubic } }
-    Behavior on scale { NumberAnimation { duration: 440; easing.type: Easing.OutCubic } }
+    // .summary-overlay open/close：.46s cubic-bezier(.2,.8,.2,1)
+    Behavior on opacity { NumberAnimation { duration: 460; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] } }
+    Behavior on scale { NumberAnimation { duration: 460; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] } }
     focus: opened
 
     function open() {
@@ -78,6 +79,24 @@ Item {
         border.color: recap.style ? recap.style.panelBorderStrong : "#ffffff20"
         clip: true
 
+        // .summary-shell 入场：translateY(28→0) + scale(.965→1) .58s cubic-bezier(.16,.9,.2,1)
+        // （设计稿另有 filter blur(10→0)，按 fidelity-gaps 性能取舍以位移+缩放+透明近似，不逐帧模糊整壳）
+        opacity: recap.opened ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
+        transform: [
+            Translate {
+                y: recap.opened ? 0 : 28
+                Behavior on y { NumberAnimation { duration: 580; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] } }
+            },
+            Scale {
+                origin.x: shell.width / 2; origin.y: shell.height / 2
+                xScale: recap.opened ? 1 : 0.965
+                yScale: recap.opened ? 1 : 0.965
+                Behavior on xScale { NumberAnimation { duration: 580; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] } }
+                Behavior on yScale { NumberAnimation { duration: 580; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] } }
+            }
+        ]
+
         // 模糊主角背景
         Item {
             id: bgSrc
@@ -94,10 +113,11 @@ Item {
             anchors.fill: parent
             source: bgSrc
             blurEnabled: true
-            blur: 1.0
+            // .summary-bg-app: blur(42px) saturate(.92) brightness(.78) opacity .40 (v25)
+            blur: 0.66
             blurMax: 64
-            brightness: -0.3
-            saturation: -0.2
+            brightness: -0.22
+            saturation: -0.08
             opacity: recap.bgIndex >= 0 ? (recap.style && recap.style.night ? 0.4 : 0.28) : 0
             Behavior on opacity { NumberAnimation { duration: 550 } }
         }
@@ -107,8 +127,11 @@ Item {
             id: wave
             anchors.fill: parent
             rotation: -8
-            scale: 1.3
-            opacity: 0.34
+            // .summary-wave 入场：opacity 0→.34、scale 1.14→1.25 (.78s)
+            scale: recap.opened ? 1.25 : 1.14
+            opacity: recap.opened ? 0.34 : 0
+            Behavior on scale { NumberAnimation { duration: 780; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] } }
+            Behavior on opacity { NumberAnimation { duration: 550; easing.type: Easing.OutCubic } }
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: "transparent" }
@@ -133,6 +156,11 @@ Item {
             glowColor: recap.style ? recap.style.violet : "#9B8BFF"
             glowOpacity: (recap.style ? recap.style.glowStrength : 1) * 0.18
             blurAmount: 1.0
+            // .summary-glow-ring 入场：scale .82→1 (.72s) + opacity 0→1 (.52s)
+            scale: recap.opened ? 1 : 0.82
+            opacity: recap.opened ? 1 : 0
+            Behavior on scale { NumberAnimation { duration: 720; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] } }
+            Behavior on opacity { NumberAnimation { duration: 520; easing.type: Easing.OutCubic } }
         }
 
         // topbar
@@ -142,6 +170,18 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 64
+
+            // 错峰入场 transition-delay .08s（opacity 0→1 + translateY 14→0）
+            opacity: 0
+            transform: Translate { id: topbarT; y: 14 }
+            SequentialAnimation {
+                running: recap.opened
+                PauseAnimation { duration: 80 }
+                ParallelAnimation {
+                    NumberAnimation { target: topbar; property: "opacity"; from: 0; to: 1; duration: 420; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: topbarT; property: "y"; from: 14; to: 0; duration: 520; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] }
+                }
+            }
 
             Row {
                 anchors.left: parent.left
@@ -183,6 +223,19 @@ Item {
             width: noteT.width + 28; height: 34; radius: 17
             color: Qt.rgba(0, 0, 0, 0.28)
             border.width: 1; border.color: recap.style ? recap.style.panelBorder : "#ffffff14"
+
+            // 错峰入场 ~.12s
+            opacity: 0
+            transform: Translate { id: modeNoteT; y: 14 }
+            SequentialAnimation {
+                running: recap.opened
+                PauseAnimation { duration: 120 }
+                ParallelAnimation {
+                    NumberAnimation { target: modeNote; property: "opacity"; from: 0; to: 1; duration: 420; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: modeNoteT; property: "y"; from: 14; to: 0; duration: 520; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] }
+                }
+            }
+
             Text {
                 id: noteT
                 anchors.centerIn: parent
@@ -203,6 +256,18 @@ Item {
             anchors.leftMargin: 22
             anchors.rightMargin: 22
             anchors.bottomMargin: 40
+
+            // 错峰入场 transition-delay .16s（stage + 目录整体）
+            opacity: 0
+            transform: Translate { id: contentT; y: 14 }
+            SequentialAnimation {
+                running: recap.opened
+                PauseAnimation { duration: 160 }
+                ParallelAnimation {
+                    NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: 420; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: contentT; property: "y"; from: 14; to: 0; duration: 520; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] }
+                }
+            }
 
             // stage
             Rectangle {
@@ -227,6 +292,7 @@ Item {
                         apps: recap.apps
                         slideData: modelData
                         active: index === recap.index
+                        playing: index === recap.index && recap.opened
                     }
                 }
 
@@ -285,10 +351,24 @@ Item {
 
         // 进度条
         Rectangle {
+            id: progressBar
             anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
             anchors.leftMargin: 28; anchors.rightMargin: 28; anchors.bottomMargin: 24
             height: 4; radius: 2
             color: recap.style ? recap.style.trackBg : "#ffffff1a"
+
+            // 错峰入场 transition-delay .28s
+            opacity: 0
+            transform: Translate { id: progressBarT; y: 14 }
+            SequentialAnimation {
+                running: recap.opened
+                PauseAnimation { duration: 280 }
+                ParallelAnimation {
+                    NumberAnimation { target: progressBar; property: "opacity"; from: 0; to: 1; duration: 420; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: progressBarT; property: "y"; from: 14; to: 0; duration: 520; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] }
+                }
+            }
+
             Rectangle {
                 height: parent.height; radius: 2
                 width: parent.width * ((recap.index + 1) / recap.slides.length)

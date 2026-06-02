@@ -121,3 +121,43 @@ QML 的 `MultiEffect`（尤其 blur）是 GPU 开销项。设计稿那种**十�
 | **多重 + inset 阴影叠加** | 🔴 ~85% 近似 |
 
 整体：**交互与排版可做到几乎不可分辨；灯光约 85–95%**，差在 CSS 合成器独有的实时背景模糊与混合模式。
+
+---
+
+## 精修轮（2026-06-02，对齐 v25 override 层）
+
+> 复刻初版按设计稿的**早期字面 CSS**实现；但 `memory_lake_v25_win11_style.html`
+> 在 CSS ~1514–2089 行有一整套 **v25 "win11" `!important` 覆盖层**（`--ml-*` 皮肤），
+> 才是真正的最终观感。本轮把实现对齐到该覆盖层。
+
+**已修正（对齐 v25）**
+- 月度回顾开/关：补**错峰入场**（shell translateY(28)+缩放；glow-ring scale .82→1；
+  wave opacity/skew/scale；topbar .08 / stage .16 / side .22 / progressbar .28s 延迟）。
+  shell 的 `filter: blur(10→0)` 按性能取舍以位移+缩放+透明近似（不逐帧模糊整壳）。
+- 回顾单屏：补 `recapRise` 内容错峰上浮（kicker 先、正文随后）；新增 `playing`
+  触发，修复"打开瞬间当前屏不重播入场"。
+- 卡牌几何：选中 310×440、翻面 360 宽、translateY(-6)、scale 1.01、封面 196、圆角 28；
+  修正 `centerOffset()` 用错宽度导致的卡轨居中偏移。
+- 时间河流：轴心 46→52px；轴渐变 1 段→3 段(transparent→rgba(133,237,255,.38)→transparent)；
+  节点条由 12px 粗条改为设计稿 **2px 细线**（aqua .84→violet .66）；补节点圆点柔晕、轴心对齐。
+- 排行项：补 `:hover` translateX(2px) + 悬停描边。
+- 大背景图：模糊 64px→**42px**、不透明度 .32→**.34**、scale 1.16→1.18、亮度/饱和对齐。
+- 详情分析行高 1.35→1.6；丝滑滚动条回弹去掉二次过冲（OutBack→OutCubic）。
+
+**🔴 实现期发现并修复：自定义霓虹滚动条此前并未真正生效**
+- App 使用 Qt 原生 **Windows Controls 样式**，该样式**不支持 `ScrollBar` 的
+  `contentItem` 自定义**（运行时刷 "The current style does not support customization"
+  告警），即 `SilkyFlickable` 里的霓虹 thumb 被忽略、并未绘制。
+- 修复：`SilkyFlickable` 改为**手绘 `Rectangle` 滚动条**（常显、随内容平滑移动、可拖拽），
+  绕开样式系统，既真正渲染霓虹滚动条，又消除该类告警。
+
+**本轮仍为近似（保持诚实）**
+- 回顾**逐项**微错峰（orbitPop 单节点、月历单柱依次弹入）未做，仅做了**整块** recapRise；
+  属 🟡 细节，留待后续。
+- 时间河流节点/圆点/涟漪辉光用低透叠圆近似 `box-shadow 0 0 18/30px`（无原生外发光），非逐像素一致。
+- 设计稿 `.overview::after "点击查看月度总结"` 提示**有意未复刻**：v25 标记里总览卡无
+  点击绑定（专门的 `.recap-cta` 才是入口，已实现），该 ::after 是早期版残留，加之反而误导。
+
+**验证状态**：`build.py` 干净；记忆湖三栏页（含细线辉光时间河流）已截图确认渲染；
+新代码运行期零新增 QML 告警。回顾覆盖层打开态与新滚动条因本环境 Win32 输入自动化不稳定
+（见早期 session journal）未截图确认，建议用 `run.cmd` 真机走查。

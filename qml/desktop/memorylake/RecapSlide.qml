@@ -10,6 +10,8 @@ Item {
     property var slideData
     property var apps: []
     property bool active: false
+    // 由 overlay 注入 = active && opened：用于在"打开瞬间"为当前屏触发入场（active 在关闭时也可能为真）。
+    property bool playing: false
 
     readonly property color tPrimary: style ? style.textPrimary : "#fff"
     readonly property color tSecondary: style ? style.textSecondary : "#bbb"
@@ -25,7 +27,7 @@ Item {
         Translate { id: tr }
     ]
 
-    onActiveChanged: if (active) applyEnter()
+    onPlayingChanged: if (playing) applyEnter()
 
     function applyEnter() {
         var t = slideData ? slideData.transition : "rise"
@@ -36,6 +38,11 @@ Item {
         else if (t === "rotate") { ro.axis = Qt.vector3d(1, 0, 0); ro.angle = 10; tr.y = 38 }
         else if (t === "ticket") { ro.axis = Qt.vector3d(0, 0, 1); ro.angle = -2; tr.y = 42 }
         enterAnim.restart()
+        // 屏内内容错峰上浮（recapRise）：kicker 先、正文随后。
+        kickerChip.opacity = 0; kickerT.y = 24
+        bodyLoader.opacity = 0; bodyT.y = 24
+        kickerRise.restart()
+        bodyRise.restart()
     }
 
     ParallelAnimation {
@@ -45,6 +52,24 @@ Item {
         NumberAnimation { target: tr; property: "x"; to: 0; duration: 600; easing.type: Easing.OutCubic }
         NumberAnimation { target: tr; property: "y"; to: 0; duration: 620; easing.type: Easing.OutCubic }
         NumberAnimation { target: ro; property: "angle"; to: 0; duration: 640; easing.type: Easing.OutCubic }
+    }
+
+    // recapRise：kicker 先（~.06s），正文随后（~.15s），各自 opacity 0→1 + translateY 24→0
+    SequentialAnimation {
+        id: kickerRise
+        PauseAnimation { duration: 60 }
+        ParallelAnimation {
+            NumberAnimation { target: kickerChip; property: "opacity"; from: 0; to: 1; duration: 460; easing.type: Easing.OutCubic }
+            NumberAnimation { target: kickerT; property: "y"; from: 24; to: 0; duration: 560; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] }
+        }
+    }
+    SequentialAnimation {
+        id: bodyRise
+        PauseAnimation { duration: 150 }
+        ParallelAnimation {
+            NumberAnimation { target: bodyLoader; property: "opacity"; from: 0; to: 1; duration: 520; easing.type: Easing.OutCubic }
+            NumberAnimation { target: bodyT; property: "y"; from: 24; to: 0; duration: 600; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] }
+        }
     }
 
     SilkyFlickable {
@@ -63,12 +88,15 @@ Item {
 
             // kicker
             Rectangle {
+                id: kickerChip
                 width: kickerText.width + 26
                 height: 34
                 radius: 17
                 color: slide.style ? slide.style.accentSoft : "#ffffff14"
                 border.width: 1
                 border.color: slide.style ? slide.style.accentSoftBorder : "#ffffff20"
+                opacity: 0
+                transform: Translate { id: kickerT; y: 24 }
                 Text {
                     id: kickerText
                     anchors.centerIn: parent
@@ -79,8 +107,11 @@ Item {
             }
 
             Loader {
+                id: bodyLoader
                 width: col.width - 84
                 active: true
+                opacity: 0
+                transform: Translate { id: bodyT; y: 24 }
                 sourceComponent: {
                     if (!slide.slideData) return coverBody
                     switch (slide.slideData.type) {

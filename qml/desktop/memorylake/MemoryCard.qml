@@ -17,9 +17,9 @@ Item {
     signal hoverEnter()
     signal hoverLeave()
 
-    // 布局宽高（与设计稿一致；缩放是纯视觉变换，不影响居中计算）
-    readonly property int layoutW: selected ? (flipped ? 380 : 330) : 156
-    readonly property int layoutH: selected ? 455 : 310
+    // 布局宽高（v25：选中 310×440、翻面 360 宽；缩放是纯视觉变换，不影响居中计算）
+    readonly property int layoutW: selected ? (flipped ? 360 : 310) : 156
+    readonly property int layoutH: selected ? 440 : 310
 
     width: layoutW
     height: layoutH
@@ -27,8 +27,9 @@ Item {
     Behavior on width { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
     Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
 
-    scale: selected ? 1.0 : (previewed ? 0.96 : 0.88)
-    opacity: selected ? 1.0 : (dimmed ? 0.25 : (previewed ? 0.82 : 0.46))
+    // .card.is-selected{ scale(1.01) }；非选中 .88；锁定时其它卡 .25；预览微放大
+    scale: selected ? 1.01 : (previewed ? 0.96 : 0.88)
+    opacity: selected ? 1.0 : (dimmed ? 0.25 : (previewed ? 0.82 : 0.42))
     Behavior on scale { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
     Behavior on opacity { NumberAnimation { duration: 260 } }
 
@@ -48,7 +49,7 @@ Item {
 
         front: Rectangle {
             anchors.fill: parent
-            radius: 18
+            radius: 28
             color: card.style ? card.style.faceBg : "#0D121D"
             border.width: 1
             border.color: card.selected ? (card.style ? card.style.faceBorderActive : "#9ef1ffb0")
@@ -60,7 +61,7 @@ Item {
                 // 封面图
                 Item {
                     width: parent.width
-                    height: card.selected ? 205 : 128
+                    height: card.selected ? 196 : 128
                     clip: true
                     Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
                     Image {
@@ -140,7 +141,7 @@ Item {
 
         back: Rectangle {
             anchors.fill: parent
-            radius: 18
+            radius: 28
             color: card.style ? card.style.faceBg : "#0D121D"
             border.width: 1
             border.color: card.style ? card.style.faceBorderActive : "#9ef1ffb0"
@@ -212,7 +213,7 @@ Item {
     Rectangle {
         visible: card.selected
         anchors.fill: parent
-        radius: 18
+        radius: 28
         color: "transparent"
         border.width: 1
         border.color: card.style ? Qt.rgba(card.style.aqua.r, card.style.aqua.g, card.style.aqua.b, card.style.night ? 0.16 : 0.10) : "transparent"

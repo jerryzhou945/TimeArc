@@ -69,7 +69,7 @@ Rectangle {
                 text: detail.app ? detail.app.analysis : ""
                 color: detail.style ? detail.style.textSecondary : "#bbb"
                 font.pixelSize: 13
-                lineHeight: 1.35
+                lineHeight: 1.6
                 wrapMode: Text.WordWrap
                 maximumLineCount: 3
                 elide: Text.ElideRight

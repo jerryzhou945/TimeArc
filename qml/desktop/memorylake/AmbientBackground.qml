@@ -35,11 +35,12 @@ Item {
         anchors.fill: parent
         source: imgSource
         blurEnabled: true
-        blur: 1.0
+        // .app-bg: blur(42px) saturate(.95) brightness(.86) scale(1.18) opacity .34 (v25)
+        blur: 0.66
         blurMax: 64
-        brightness: ambient.style && ambient.style.night ? -0.22 : -0.06
-        saturation: -0.10
-        scale: 1.16
+        brightness: ambient.style && ambient.style.night ? -0.14 : -0.06
+        saturation: -0.05
+        scale: 1.18
         opacity: ambient.style ? ambient.style.ambientImageOpacity : 0.3
         Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
     }
