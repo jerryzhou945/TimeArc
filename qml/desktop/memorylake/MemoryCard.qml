@@ -115,6 +115,8 @@ Item {
                 anchors.fill: parent
                 visible: false
                 layer.enabled: true
+                layer.samples: 4        // 关键：给 layer FBO 开多重采样，否则边缘无抗锯齿
+                layer.smooth: true
 
                 // 底色（方角，统一交给下方遮罩裁圆）
                 Rectangle {
@@ -211,14 +213,19 @@ Item {
                 anchors.fill: parent
                 radius: 28
                 color: "white"
+                antialiasing: true
                 visible: false
                 layer.enabled: true
+                layer.samples: 4        // 多重采样让圆角遮罩边缘平滑，消除黑色锯齿噪边
+                layer.smooth: true
             }
             MultiEffect {
                 anchors.fill: parent
                 source: faceContent
                 maskEnabled: true
                 maskSource: faceMask
+                // 默认阈值：直接采用遮罩的抗锯齿 alpha 渐变（已由上面的多重采样平滑），
+                // 不做硬阈值，否则会把边缘渐变重新切成锯齿。
             }
 
             // 顶层描边：盖在封面图之上（封面侧边也有辉光），随卡片翻面
@@ -244,6 +251,8 @@ Item {
                 anchors.fill: parent
                 visible: false
                 layer.enabled: true
+                layer.samples: 4
+                layer.smooth: true
                 Image {
                     anchors.fill: parent
                     source: card.app ? Mock.imagePath(card.app.image) : ""
@@ -261,6 +270,9 @@ Item {
                 anchors.fill: parent
                 visible: false
                 layer.enabled: true
+                layer.samples: 4        // 与正面一致：多重采样平滑圆角遮罩边缘
+                layer.smooth: true
+                antialiasing: true
                 color: "white"
                 radius: 28
             }
