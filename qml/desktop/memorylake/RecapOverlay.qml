@@ -62,21 +62,20 @@ Item {
         else if (storyComplete && (e.key === Qt.Key_Left || e.key === Qt.Key_Up)) { setSlide(index - 1, false); e.accepted = true }
     }
 
-    // 暗底
+    // 暗底：不透明，彻底盖住其后的记忆湖页面（之前 .86 会透出 8.9h / 排行等，显脏）
     Rectangle {
         anchors.fill: parent
-        color: recap.style && recap.style.night ? Qt.rgba(0.008, 0.02, 0.04, 0.86) : Qt.rgba(0.10, 0.12, 0.18, 0.74)
+        color: recap.style && recap.style.night ? Qt.rgba(0.008, 0.02, 0.04, 1.0) : Qt.rgba(0.10, 0.12, 0.18, 0.97)
     }
 
-    // shell
+    // shell：铺满内容区、去掉外框（避免「框中框」），只留内部 stage 一层框
     Rectangle {
         id: shell
         anchors.fill: parent
-        anchors.margins: 22
-        radius: 30
-        color: recap.style && recap.style.night ? Qt.rgba(0.024, 0.04, 0.07, 0.82) : Qt.rgba(1, 1, 1, 0.55)
-        border.width: 1
-        border.color: recap.style ? recap.style.panelBorderStrong : "#ffffff20"
+        anchors.margins: 8
+        radius: 28
+        color: recap.style && recap.style.night ? Qt.rgba(0.024, 0.04, 0.07, 1.0) : Qt.rgba(1, 1, 1, 0.92)
+        border.width: 0
         clip: true
 
         // .summary-shell 入场：translateY(28→0) + scale(.965→1) .58s cubic-bezier(.16,.9,.2,1)
