@@ -231,16 +231,17 @@ Item {
                     anchors.fill: parent
                     source: mlBgSrc
                     blurEnabled: true
-                    blur: 0.78
+                    blur: 0.82
                     blurMax: 64
-                    brightness: nightMode ? -0.12 : -0.04
-                    saturation: -0.05
+                    brightness: nightMode ? -0.18 : -0.06
+                    saturation: -0.06
                     scale: 1.08
                 }
-                // 轻压暗一层，保证前景文字/卡牌可读，但让模糊封面仍清晰可见
+                // 整个 App 统一压成「记忆湖」暗色水面（避免中间黑、四周亮的不一致），
+                // 仍保留模糊封面的隐约色块。
                 Rectangle {
                     anchors.fill: parent
-                    color: nightMode ? Qt.rgba(0.02, 0.03, 0.06, 0.32) : Qt.rgba(0.93, 0.95, 1.0, 0.20)
+                    color: nightMode ? Qt.rgba(0.02, 0.03, 0.06, 0.60) : Qt.rgba(0.10, 0.13, 0.20, 0.40)
                 }
             }
         }

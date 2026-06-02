@@ -35,9 +35,8 @@ Item {
         id: zone
         anchors.fill: parent
         anchors.margins: 0
-        radius: 26
-        // 占位符背景层：半透水面色（让其后的 App 模糊大图透出一点），无边框
-        color: carousel.style ? (carousel.style.night ? Qt.rgba(0.012, 0.027, 0.055, 0.42) : Qt.rgba(1, 1, 1, 0.18)) : "#0a0f18"
+        // 透明：不再画第二个圆角暗框；水面暗色已上移为整个 App 背景（见 Shell）
+        color: "transparent"
         border.width: 0
         clip: true
 
