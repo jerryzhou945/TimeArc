@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import "MemoryLakeMock.js" as Mock
 
 // 单张记忆卡牌：3D 翻面（Flipable + Y 轴旋转，自带透视），选中放大，悬停预览。
@@ -58,25 +59,52 @@ Item {
 
             Column {
                 anchors.fill: parent
-                // 封面图
+                // 封面图：顶部圆角裁切到卡片圆角（Qt 的 clip 只裁矩形，会让方角溢出，
+                // 故用 MultiEffect + 顶部圆角遮罩做真正的圆角裁切）
                 Item {
+                    id: cover
                     width: parent.width
                     height: card.selected ? 196 : 128
-                    clip: true
                     Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-                    Image {
+
+                    // 被裁切的内容（图 + 底部渐变），渲染到 layer 供 MultiEffect 取样
+                    Item {
+                        id: coverSrc
                         anchors.fill: parent
-                        source: card.app ? Mock.imagePath(card.app.image) : ""
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        opacity: 0.88
-                    }
-                    Rectangle {
-                        anchors.fill: parent
-                        gradient: Gradient {
-                            GradientStop { position: 0; color: "transparent" }
-                            GradientStop { position: 1; color: card.style && card.style.night ? Qt.rgba(0.027, 0.035, 0.063, 0.6) : Qt.rgba(1, 1, 1, 0.35) }
+                        visible: false
+                        layer.enabled: true
+                        Image {
+                            anchors.fill: parent
+                            source: card.app ? Mock.imagePath(card.app.image) : ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            opacity: 0.88
                         }
+                        Rectangle {
+                            anchors.fill: parent
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: "transparent" }
+                                GradientStop { position: 1; color: card.style && card.style.night ? Qt.rgba(0.027, 0.035, 0.063, 0.6) : Qt.rgba(1, 1, 1, 0.35) }
+                            }
+                        }
+                    }
+                    // 顶部圆角遮罩（底部保持直角，与下方文字区平接）
+                    Rectangle {
+                        id: coverMask
+                        anchors.fill: parent
+                        visible: false
+                        layer.enabled: true
+                        color: "white"
+                        topLeftRadius: 28
+                        topRightRadius: 28
+                        bottomLeftRadius: 0
+                        bottomRightRadius: 0
+                    }
+                    MultiEffect {
+                        anchors.fill: parent
+                        source: coverSrc
+                        maskEnabled: true
+                        maskSource: coverMask
                     }
                 }
                 // 文本区
@@ -145,18 +173,38 @@ Item {
             color: card.style ? card.style.faceBg : "#0D121D"
             border.width: 1
             border.color: card.style ? card.style.faceBorderActive : "#9ef1ffb0"
-            clip: true
 
-            Image {
+            // 背面的淡背景图 + 暗罩同样圆角裁切（避免方角溢出卡片圆角）
+            Item {
+                id: backArtSrc
                 anchors.fill: parent
-                source: card.app ? Mock.imagePath(card.app.image) : ""
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                opacity: 0.18
+                visible: false
+                layer.enabled: true
+                Image {
+                    anchors.fill: parent
+                    source: card.app ? Mock.imagePath(card.app.image) : ""
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    opacity: 0.18
+                }
+                Rectangle {
+                    anchors.fill: parent
+                    color: card.style && card.style.night ? Qt.rgba(0.05, 0.07, 0.11, 0.93) : Qt.rgba(1, 1, 1, 0.86)
+                }
             }
             Rectangle {
+                id: backArtMask
                 anchors.fill: parent
-                color: card.style && card.style.night ? Qt.rgba(0.05, 0.07, 0.11, 0.93) : Qt.rgba(1, 1, 1, 0.86)
+                visible: false
+                layer.enabled: true
+                color: "white"
+                radius: 28
+            }
+            MultiEffect {
+                anchors.fill: parent
+                source: backArtSrc
+                maskEnabled: true
+                maskSource: backArtMask
             }
 
             Column {
