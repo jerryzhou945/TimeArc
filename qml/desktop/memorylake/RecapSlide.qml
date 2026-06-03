@@ -206,19 +206,20 @@ Item {
                 spacing: 10
                 Repeater {
                     model: slide.slideData.monthMap
-                    delegate: Rectangle {
+                    delegate: RoundedFrame {
                         required property var modelData
                         width: 86; height: 92; radius: 18
-                        color: slide.style ? slide.style.cardBg : "#ffffff10"
                         border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
-                        clip: true
+                        // 底色
+                        Rectangle {
+                            anchors.fill: parent
+                            color: slide.style ? slide.style.cardBg : "#ffffff10"
+                        }
+                        // 填充条：方角，整体随帧圆角遮罩一次裁切——矮条保持平顶水位线；满条（如 Jun28 96%）
+                        // 顶部自然贴合容器圆角、不再方角溢出（满溢漏顶）；底部同样收圆。比 clip:true（只裁矩形）正确。
                         Rectangle {
                             anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                             height: parent.height * modelData.h
-                            // 填充条底部圆角对齐容器（radius 18），杜绝方角越过圆角容器底缘突出；
-                            // 顶部保持平直——它是填充水位线，不该收圆。clip:true 只裁矩形包围盒，治不了这里。
-                            bottomLeftRadius: parent.radius
-                            bottomRightRadius: parent.radius
                             gradient: Gradient {
                                 GradientStop { position: 0; color: slide.style ? Qt.rgba(slide.style.aqua.r, slide.style.aqua.g, slide.style.aqua.b, 0.18) : "#63eaff30" }
                                 GradientStop { position: 1; color: slide.style ? Qt.rgba(slide.style.violet.r, slide.style.violet.g, slide.style.violet.b, 0.40) : "#d15aff66" }
