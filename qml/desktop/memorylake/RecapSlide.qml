@@ -241,8 +241,9 @@ Item {
         id: posterBody
         Row {
             spacing: 28
-            Rectangle {
-                width: 300; height: 460; radius: 28; clip: true
+            // 圆角裁切帧：封面图 + 底部暗角渐变 + 标题随帧圆角一起裁切，杜绝方角棱角溢出。
+            RoundedFrame {
+                width: 300; height: 460; radius: 28
                 border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
                 Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
                 Rectangle {
