@@ -357,8 +357,8 @@ Item {
                         Text { width: parent.width; text: slide.slideData.articleBody; color: slide.tSecondary; font.pixelSize: 15; lineHeight: 1.6; wrapMode: Text.WordWrap }
                     }
                 }
-                Rectangle {
-                    width: 260; height: 360; radius: 28; clip: true
+                RoundedFrame {
+                    width: 260; height: 360; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
                     Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
                 }
