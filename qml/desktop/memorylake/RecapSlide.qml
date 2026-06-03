@@ -315,9 +315,9 @@ Item {
             SubText { text: slide.slideData.subtitle }
             Item {
                 width: parent.width; height: 360
-                Rectangle {
+                RoundedFrame {
                     anchors.centerIn: parent
-                    width: 220; height: 220; radius: 110; clip: true
+                    width: 220; height: 220; radius: 110   // = 半边长 → 正圆环形头像
                     border.width: 1; border.color: slide.style ? slide.style.faceBorderActive : "#ffffff33"
                     Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
                 }
