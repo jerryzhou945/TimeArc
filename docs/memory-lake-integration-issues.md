@@ -130,6 +130,13 @@
   节点 y 用 0–100 百分比，轴 y 用 0–1 分数，**两套坐标系**，做动态轴时必须统一到同一时间窗（§3.6）。
 - 处置：阶段一统一时间窗并参数化轴；阶段二把 :433 写死曲线换按天序列。
 
+### [RESOLVED] B4 背景是预设单色、与图标真实色调不符 → 已接图标主色多色 blend
+> 2026-06-03 已落地：`usage_stat_manager.cpp` 新增 `iconDominantColors(path)`（QFileIconProvider 取图标
+> 位图、量化直方图取最多 3 主色、跳过透明/灰/黑白、按 path 缓存），item 输出 `iconColors`；放在 USM
+> 而非 DCS（db_smoke 只链 Core+Sql，DCS 不能含 QtGui 头）。背景/封面改图标主色多色渐变 + 两团模糊色块
+> 混入（`DesktopAppShell` 记忆湖背景层 + `GenerativeCover` + 回顾背景），缺色退回 appColor。真机实测：
+> QQ Music 背景已是其图标的绿+金双色 blend，非预设单色。下方原始条目存档。
+
 ### [DEFERRED→阶段三] B4 背景是预设单色、与图标真实色调不符
 - 日期：2026-06-03
 - 位置：§4.4 / §8 阶段三 / `DesktopMemoryLakePage.ambientColor` → `DesktopAppShell` 记忆湖背景层

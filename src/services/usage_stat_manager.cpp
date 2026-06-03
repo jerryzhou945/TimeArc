@@ -1,16 +1,22 @@
 #include "usage_stat_manager.h"
 
+#include <QColor>
 #include <QDate>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileIconProvider>
 #include <QFileInfo>
+#include <QIcon>
+#include <QImage>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QJsonValue>
 #include <QMap>
+#include <QPixmap>
 #include <QProcessEnvironment>
+#include <QStringList>
 #include <QVariantMap>
 #include <QVector>
 #include <algorithm>
@@ -298,6 +304,62 @@ QString classifyActivity(const QString& groupKey, const QString& appId,
   return QStringLiteral("其他");
 }
 
+// 从 app 图标位图提取最多 3 个主色调（跳过透明/接近灰/接近黑白），按 path 缓存。
+// 用于背景/封面的多色晕染，贴合该 app 图标真实观感（取代查表/哈希的预设单色）。
+QStringList iconDominantColors(const QString& path) {
+  static QHash<QString, QStringList> cache;
+  if (path.trimmed().isEmpty()) return QStringList();
+  const auto hit = cache.constFind(path);
+  if (hit != cache.constEnd()) return hit.value();
+
+  QStringList colors;
+  const QFileInfo fi(path);
+  if (fi.exists()) {
+    static QFileIconProvider provider;
+    const QPixmap pm = provider.icon(fi).pixmap(48, 48);
+    if (!pm.isNull()) {
+      const QImage img = pm.toImage().convertToFormat(QImage::Format_ARGB32);
+      QHash<QRgb, int> hist;
+      for (int y = 0; y < img.height(); ++y) {
+        for (int x = 0; x < img.width(); ++x) {
+          const QColor c = img.pixelColor(x, y);
+          if (c.alpha() < 128) continue;
+          const int mx = std::max({c.red(), c.green(), c.blue()});
+          const int mn = std::min({c.red(), c.green(), c.blue()});
+          if (mx - mn < 28) continue;         // 接近灰，丢弃
+          if (mx < 45 || mn > 225) continue;  // 接近黑/白，丢弃
+          const int qr = (c.red() / 32) * 32 + 16;
+          const int qg = (c.green() / 32) * 32 + 16;
+          const int qb = (c.blue() / 32) * 32 + 16;
+          hist[qRgb(qr, qg, qb)] += 1;
+        }
+      }
+      struct Bin { QRgb rgb; int n; };
+      QVector<Bin> bins;
+      for (auto it = hist.constBegin(); it != hist.constEnd(); ++it)
+        bins.append({it.key(), it.value()});
+      std::sort(bins.begin(), bins.end(),
+                [](const Bin& a, const Bin& b) { return a.n > b.n; });
+      for (int i = 0; i < bins.size() && colors.size() < 3; ++i) {
+        const QColor c(bins[i].rgb);
+        bool dup = false;
+        for (const QString& h : colors) {
+          const QColor e(h);
+          if (qAbs(e.red() - c.red()) + qAbs(e.green() - c.green()) +
+                  qAbs(e.blue() - c.blue()) <
+              64) {
+            dup = true;
+            break;
+          }
+        }
+        if (!dup) colors << c.name();
+      }
+    }
+  }
+  cache.insert(path, colors);
+  return colors;
+}
+
 QJsonDocument parseJsonLine(const QByteArray& line) {
   QJsonParseError error;
   QJsonDocument doc = QJsonDocument::fromJson(line, &error);
@@ -530,6 +592,7 @@ QVariantList UsageStatManager::aggregateSoftware(
       }
     }
     item["category"] = topCategory;
+    item["iconColors"] = iconDominantColors(aggregate.path);
     if (aggregate.groupKey == "site:bilibili") {
       item["siteDomain"] = "bilibili.com";
     }

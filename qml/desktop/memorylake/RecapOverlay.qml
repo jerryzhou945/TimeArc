@@ -107,11 +107,14 @@ Item {
             anchors.fill: parent
             layer.enabled: true
             visible: false
-            // 主角专属 appColor 晕染（取代游戏海报），被 MultiEffect 模糊成柔和色背景。
+            // 主角图标主色晕染（取代游戏海报），被 MultiEffect 模糊成柔和色背景。
             Rectangle {
                 anchors.fill: parent
                 property var bgApp: recap.bgIndex >= 0 ? recap.apps[recap.bgIndex] : null
-                color: bgApp ? AppVisual.appColor(bgApp.appId, bgApp.name, bgApp.path) : "transparent"
+                color: bgApp ? ((bgApp.iconColors && bgApp.iconColors.length > 0)
+                                  ? bgApp.iconColors[0]
+                                  : AppVisual.appColor(bgApp.appId, bgApp.name, bgApp.path))
+                             : "transparent"
             }
         }
         MultiEffect {

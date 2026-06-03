@@ -23,13 +23,19 @@ Item {
     readonly property string iconSrc: AppVisual.appIconSource(_appId, _path)
     readonly property int side: Math.round(Math.min(iconSize, Math.min(width, height) * 0.52))
 
-    // 底：appColor 同色系柔和渐变，绝对平滑、零像素感。
+    // 图标主色（最多 3 色，来自后端提取）；缺失退回 appColor 预设色。
+    readonly property var iconColors: app && app.iconColors && app.iconColors.length > 0 ? app.iconColors : []
+    readonly property color c0: iconColors.length > 0 ? iconColors[0] : baseColor
+    readonly property color c1: iconColors.length > 1 ? iconColors[1] : c0
+    readonly property color c2: iconColors.length > 2 ? iconColors[2] : c1
+
+    // 底：图标主色系多色渐变，绝对平滑、零像素感，贴合该 app 图标观感。
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.lighter(genCover.baseColor, genCover.night ? 0.94 : 1.07) }
-            GradientStop { position: 0.55; color: genCover.baseColor }
-            GradientStop { position: 1.0; color: Qt.darker(genCover.baseColor, genCover.night ? 1.75 : 1.16) }
+            GradientStop { position: 0.0; color: Qt.lighter(genCover.c0, genCover.night ? 0.92 : 1.08) }
+            GradientStop { position: 0.5; color: genCover.c1 }
+            GradientStop { position: 1.0; color: Qt.darker(genCover.c2, genCover.night ? 1.7 : 1.14) }
         }
     }
 

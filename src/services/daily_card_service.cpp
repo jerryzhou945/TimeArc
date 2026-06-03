@@ -8,6 +8,7 @@
 #include <QHash>
 #include <QStringList>
 #include <QVariant>
+#include <QVector>
 
 #include <algorithm>
 
@@ -911,6 +912,7 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
     app.insert(QStringLiteral("name"), name);
     app.insert(QStringLiteral("appName"), u.value(QStringLiteral("appName")));
     app.insert(QStringLiteral("path"), path);
+    app.insert(QStringLiteral("iconColors"), u.value(QStringLiteral("iconColors")));
     app.insert(QStringLiteral("category"), category);
     app.insert(QStringLiteral("type"), category);
     app.insert(QStringLiteral("time"), timeText);
@@ -1038,6 +1040,7 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
   model.insert(
       QStringLiteral("modeNote"),
       QStringLiteral("首次播放会按顺序展开，点击画面可加速。看完后右侧目录会解锁。"));
+  // 月级 apps 已由 USM 带上 iconColors（回顾背景/主角封面做多色晕染用）。
   model.insert(QStringLiteral("apps"), monthApps);
 
   QHash<QString, QVariantMap> segByKey;

@@ -47,10 +47,13 @@ Item {
         return r;
     }
 
-    // 氛围大背景色：当前选中 APP 的 appColor（§4.4，DesktopAppShell 拉取做色彩晕染）。
+    // 氛围大背景色：优先用当前 APP 图标主色（多色 blend），缺失退回 appColor 单色。
     readonly property color ambientColor: current
         ? AppVisual.appColor(current.appId, current.name, current.path)
         : (ml ? ml.aqua : "#9FE7EE")
+    readonly property var ambientColors: (current && current.iconColors && current.iconColors.length > 0)
+        ? current.iconColors
+        : [ambientColor]
     readonly property bool hasAmbient: hasData
 
     function recomputeDayModel() {
