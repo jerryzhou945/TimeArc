@@ -181,13 +181,15 @@ QString dominantPeriod(const QVariantList& segments) {
   return top;
 }
 
-// 使用模式标签（仅凭可测信号）。
+// 使用模式标签（仅凭可测信号）。注意：多次短段≠"碎片"——正常使用本就在多个 app
+// 间反复跳转，单个 app 被反复穿插用是中性的「穿插使用」，不带负面意味；"是否专注"
+// 改由"连续专注块"在 day 层判断（见 taskBlocks），不在单 app 上扣帽子。
 QString patternLabel(qint64 longestSec, int sessionCount, qint64 totalSec) {
   if (totalSec < 5 * 60) return QStringLiteral("少量使用");
   if (sessionCount <= 1 && totalSec < 15 * 60) return QStringLiteral("少量使用");
   if (longestSec >= 30 * 60) return QStringLiteral("连续投入");
   const qint64 avg = sessionCount > 0 ? totalSec / sessionCount : totalSec;
-  if (sessionCount >= 4 && avg < 8 * 60) return QStringLiteral("碎片使用");
+  if (sessionCount >= 4 && avg < 8 * 60) return QStringLiteral("穿插使用");
   return QStringLiteral("平稳使用");
 }
 
@@ -197,27 +199,43 @@ QString moodWord(const QString& category, qint64 longestSec, int sessionCount,
   const QString p = patternLabel(longestSec, sessionCount, totalSec);
   if (p == QStringLiteral("少量使用")) return QStringLiteral("短暂使用");
   const bool isLong = p == QStringLiteral("连续投入");
-  const bool isFrag = p == QStringLiteral("碎片使用");
+  const bool isWeave = p == QStringLiteral("穿插使用");
   if (category == QStringLiteral("开发"))
     return isLong ? QStringLiteral("专注开发")
-                  : (isFrag ? QStringLiteral("穿插编码")
-                            : QStringLiteral("平稳编码"));
+                  : (isWeave ? QStringLiteral("穿插编码")
+                             : QStringLiteral("平稳编码"));
   if (category == QStringLiteral("游戏"))
     return isLong ? QStringLiteral("沉浸游玩")
-                  : (isFrag ? QStringLiteral("短局穿插")
-                            : QStringLiteral("平稳游玩"));
+                  : (isWeave ? QStringLiteral("穿插游玩")
+                             : QStringLiteral("平稳游玩"));
   if (category == QStringLiteral("视频"))
     return isLong ? QStringLiteral("连续观看")
-                  : (isFrag ? QStringLiteral("随手观看")
-                            : QStringLiteral("平稳观看"));
+                  : (isWeave ? QStringLiteral("随手观看")
+                             : QStringLiteral("平稳观看"));
   if (category == QStringLiteral("音乐")) return QStringLiteral("音乐陪伴");
   if (category == QStringLiteral("社交"))
     return isLong ? QStringLiteral("持续沟通")
-                  : (isFrag ? QStringLiteral("穿插沟通")
-                            : QStringLiteral("日常沟通"));
+                  : (isWeave ? QStringLiteral("穿插沟通")
+                             : QStringLiteral("日常沟通"));
+  if (category == QStringLiteral("办公"))
+    return isLong ? QStringLiteral("专注处理")
+                  : (isWeave ? QStringLiteral("穿插处理")
+                             : QStringLiteral("平稳处理"));
+  if (category == QStringLiteral("创作"))
+    return isLong ? QStringLiteral("沉浸创作")
+                  : (isWeave ? QStringLiteral("穿插创作")
+                             : QStringLiteral("平稳创作"));
+  if (category == QStringLiteral("笔记"))
+    return isLong ? QStringLiteral("专注记录")
+                  : (isWeave ? QStringLiteral("随手记录")
+                             : QStringLiteral("平稳记录"));
+  if (category == QStringLiteral("浏览"))
+    return isLong ? QStringLiteral("沉浸浏览")
+                  : (isWeave ? QStringLiteral("随手浏览")
+                             : QStringLiteral("平稳浏览"));
   return isLong ? QStringLiteral("连续投入")
-                : (isFrag ? QStringLiteral("碎片使用")
-                          : QStringLiteral("日常使用"));
+                : (isWeave ? QStringLiteral("穿插使用")
+                           : QStringLiteral("日常使用"));
 }
 
 // 分析句：带槽位拼装，填不上的从句整句省略（断言守卫）。
@@ -276,6 +294,95 @@ QVariantList buildRiverNodes(const QVariantList& segments, qint64 dayStart) {
   return nodes;
 }
 
+// 任务块：把所有 app 的前台会话段在**统一时间轴**上合并成"连续使用块"
+// （块间空闲 <12min 视为同一段），每块按时长取主类别 + 代表 app。跨 app 跳转
+// 落在同一块里 = 一段任务（如开发时在 VSCode/Chrome/Terminal 间跳），不是碎片。
+// 系统/外壳类别不参与命名（降权）。返回按块跨度降序 [{category,span,apps}]。
+QVariantList taskBlocks(const QVariantList& segments,
+                        const QHash<QString, QString>& catByKey,
+                        const QHash<QString, QString>& nameByKey) {
+  struct Seg { qint64 start; qint64 end; qint64 sec; QString cat; QString name; };
+  QVector<Seg> segs;
+  for (const QVariant& av : segments) {
+    const QVariantMap a = av.toMap();
+    const QString key = a.value(QStringLiteral("groupKey")).toString();
+    const QString cat = catByKey.value(key, QStringLiteral("其他"));
+    const QString name = nameByKey.value(key, key);
+    for (const QVariant& sv : a.value(QStringLiteral("segments")).toList()) {
+      const QVariantMap s = sv.toMap();
+      segs.append({s.value(QStringLiteral("startUnixSec")).toLongLong(),
+                   s.value(QStringLiteral("endUnixSec")).toLongLong(),
+                   s.value(QStringLiteral("seconds")).toLongLong(), cat, name});
+    }
+  }
+  std::sort(segs.begin(), segs.end(),
+            [](const Seg& a, const Seg& b) { return a.start < b.start; });
+
+  constexpr qint64 kTaskGap = 12 * 60;
+  struct Block {
+    qint64 start;
+    qint64 end;
+    QHash<QString, qint64> catSec;
+    QHash<QString, qint64> appSec;
+  };
+  QVector<Block> blocks;
+  for (const Seg& s : segs) {
+    if (s.end <= s.start) continue;
+    if (!blocks.isEmpty() && s.start - blocks.last().end <= kTaskGap) {
+      blocks.last().end = std::max(blocks.last().end, s.end);
+    } else {
+      blocks.append({s.start, s.end, {}, {}});
+    }
+    Block& b = blocks.last();
+    if (s.cat != QStringLiteral("系统")) {  // 系统/外壳不参与任务命名
+      b.catSec[s.cat] += s.sec;
+      b.appSec[s.name] += s.sec;
+    }
+  }
+
+  struct AppT { QString name; qint64 sec; };
+  QVariantList result;
+  for (const Block& b : blocks) {
+    const qint64 span = b.end - b.start;
+    if (span < 5 * 60) continue;  // 太短不成任务
+    QString topCat;
+    qint64 topCatSec = 0;
+    for (auto it = b.catSec.constBegin(); it != b.catSec.constEnd(); ++it) {
+      if (it.key() == QStringLiteral("其他")) continue;
+      if (it.value() > topCatSec) {
+        topCatSec = it.value();
+        topCat = it.key();
+      }
+    }
+    if (topCat.isEmpty()) {  // 整块只有 其他/系统
+      for (auto it = b.catSec.constBegin(); it != b.catSec.constEnd(); ++it)
+        if (it.value() > topCatSec) {
+          topCatSec = it.value();
+          topCat = it.key();
+        }
+    }
+    if (topCat.isEmpty()) continue;  // 纯系统块，不成任务
+    QVector<AppT> apps;
+    for (auto it = b.appSec.constBegin(); it != b.appSec.constEnd(); ++it)
+      apps.append({it.key(), it.value()});
+    std::sort(apps.begin(), apps.end(),
+              [](const AppT& a, const AppT& c) { return a.sec > c.sec; });
+    QStringList names;
+    for (int i = 0; i < apps.size() && i < 3; ++i) names << apps[i].name;
+    QVariantMap m;
+    m.insert(QStringLiteral("category"), topCat);
+    m.insert(QStringLiteral("span"), static_cast<qlonglong>(span));
+    m.insert(QStringLiteral("apps"), names.join(QStringLiteral(" / ")));
+    result.append(m);
+  }
+  std::sort(result.begin(), result.end(),
+            [](const QVariant& a, const QVariant& b) {
+              return a.toMap().value(QStringLiteral("span")).toLongLong() >
+                     b.toMap().value(QStringLiteral("span")).toLongLong();
+            });
+  return result;
+}
+
 QString themeTitle(const QString& cat) {
   if (cat.isEmpty() || cat == QStringLiteral("其他"))
     return QStringLiteral("日常使用为主");
@@ -313,7 +420,7 @@ QString categoryKeyword(const QString& cat) {
 
 QString majorKeyword(const QString& topCat, const QString& topPattern) {
   if (topPattern == QStringLiteral("连续投入")) return QStringLiteral("沉浸");
-  if (topPattern == QStringLiteral("碎片使用")) return QStringLiteral("碎片");
+  if (topPattern == QStringLiteral("穿插使用")) return QStringLiteral("穿插");
   return categoryKeyword(topCat);
 }
 
@@ -733,9 +840,9 @@ QVariantMap DailyCardService::buildFlipCard(const QString& isoDate) {
 QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
                                             const QVariantList& segments) {
   QVariantMap model;
-  QVariantList appsOut;
-
   const QDate today = QDate::currentDate();
+  const qint64 dayStart = today.startOfDay().toSecsSinceEpoch();
+
   QVariantMap overview;
   QVariantMap theme;
   theme.insert(QStringLiteral("kicker"), QStringLiteral("今日主题"));
@@ -746,48 +853,63 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
     segByKey.insert(m.value(QStringLiteral("groupKey")).toString(), m);
   }
 
-  const qint64 dayStart = today.startOfDay().toSecsSinceEpoch();
+  // 全量类别聚合（ratio 用真实占比）+ 总秒数 + 非系统/系统分桶 + key->类别/名。
   qint64 totalDaySec = 0;
-  for (const QVariant& v : usmApps)
-    totalDaySec += v.toMap().value(QStringLiteral("seconds")).toLongLong();
-  const qlonglong topSeconds =
-      usmApps.isEmpty()
-          ? 1
-          : std::max<qlonglong>(
-                1, usmApps.first().toMap().value(QStringLiteral("seconds"))
-                       .toLongLong());
-
   QHash<QString, qint64> catSec;
-  int totalSessions = 0;
-  QVariantList allSegments;
-
+  QHash<QString, QString> catByKey;
+  QHash<QString, QString> nameByKey;
+  QVariantList nonSystem;
+  QVariantList systemApps;
   for (const QVariant& v : usmApps) {
+    const QVariantMap u = v.toMap();
+    const QString key = u.value(QStringLiteral("groupKey")).toString();
+    QString cat = u.value(QStringLiteral("category")).toString();
+    if (cat.isEmpty()) cat = QStringLiteral("其他");
+    const qlonglong sec = u.value(QStringLiteral("seconds")).toLongLong();
+    totalDaySec += sec;
+    catSec[cat] += sec;
+    catByKey.insert(key, cat);
+    nameByKey.insert(key, u.value(QStringLiteral("name")).toString());
+    if (cat == QStringLiteral("系统"))
+      systemApps.append(v);
+    else
+      nonSystem.append(v);
+  }
+
+  // 卡牌/排行：非系统优先（系统外壳降权沉底），取前 10，长尾不进 List。
+  QVariantList ordered = nonSystem;
+  ordered.append(systemApps);
+  if (ordered.size() > 10) ordered = ordered.mid(0, 10);
+  const qlonglong topSeconds =
+      ordered.isEmpty()
+          ? 1
+          : std::max<qlonglong>(1, ordered.first().toMap()
+                                       .value(QStringLiteral("seconds"))
+                                       .toLongLong());
+
+  QVariantList appsOut;
+  int totalSessions = 0;
+  for (const QVariant& v : ordered) {
     const QVariantMap u = v.toMap();
     const QString groupKey = u.value(QStringLiteral("groupKey")).toString();
     const QString name = u.value(QStringLiteral("name")).toString();
     const QString path = u.value(QStringLiteral("path")).toString();
-    const qlonglong seconds =
-        u.value(QStringLiteral("seconds")).toLongLong();
+    const qlonglong seconds = u.value(QStringLiteral("seconds")).toLongLong();
     const QString timeText = u.value(QStringLiteral("time")).toString();
-    const QString category = categoryForUsmItem(u);
-    catSec[category] += seconds;
+    const QString category = catByKey.value(groupKey, QStringLiteral("其他"));
 
     const QVariantMap seg = segByKey.value(groupKey);
     const int sessionCount = seg.value(QStringLiteral("sessionCount"), 0).toInt();
     const qlonglong longestSec =
         seg.value(QStringLiteral("longestSec"), 0).toLongLong();
-    const QVariantList segments =
-        seg.value(QStringLiteral("segments")).toList();
+    const QVariantList segs = seg.value(QStringLiteral("segments")).toList();
     totalSessions += sessionCount;
-    allSegments.append(segments);
-
-    const QString period = dominantPeriod(segments);
+    const QString period = dominantPeriod(segs);
 
     QVariantMap app;
     app.insert(QStringLiteral("appId"), groupKey);
     app.insert(QStringLiteral("name"), name);
-    app.insert(QStringLiteral("appName"),
-               u.value(QStringLiteral("appName")));
+    app.insert(QStringLiteral("appName"), u.value(QStringLiteral("appName")));
     app.insert(QStringLiteral("path"), path);
     app.insert(QStringLiteral("category"), category);
     app.insert(QStringLiteral("type"), category);
@@ -808,11 +930,13 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
     app.insert(QStringLiteral("longest"),
                longestSec > 0 ? formatDuration(longestSec) : QString());
     app.insert(QStringLiteral("sessionCount"), sessionCount);
-    app.insert(QStringLiteral("times"), buildRiverNodes(segments, dayStart));
+    app.insert(QStringLiteral("times"), buildRiverNodes(segs, dayStart));
     appsOut.append(app);
   }
-
   model.insert(QStringLiteral("apps"), appsOut);
+
+  // 任务块（跨 app 连续使用，系统不参与命名）。
+  const QVariantList tasks = taskBlocks(segments, catByKey, nameByKey);
 
   overview.insert(QStringLiteral("total"), decimalHoursText(totalDaySec));
   overview.insert(
@@ -827,26 +951,67 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
                 .arg(totalSessions));
   model.insert(QStringLiteral("overview"), overview);
 
-  QString topCat;
-  qint64 topCatSec = 0;
-  for (auto it = catSec.constBegin(); it != catSec.constEnd(); ++it) {
-    if (it.value() > topCatSec) {
-      topCatSec = it.value();
-      topCat = it.key();
-    }
-  }
   if (appsOut.isEmpty() || totalDaySec <= 0) {
     theme.insert(QStringLiteral("title"), QStringLiteral("今天还很安静"));
     theme.insert(QStringLiteral("desc"),
                  QStringLiteral("还没有自动记录，开始使用后这里会生成今日主题。"));
     theme.insert(QStringLiteral("ratio"), 0.0);
   } else {
+    // 头条类别取"前台任务"占比（task block 反映真实活动；背景音乐不会顶上来），
+    // 无任务块时退回 active 类别占比；均排除系统/其他。
+    QHash<QString, qint64> headlineSrc;
+    if (!tasks.isEmpty()) {
+      for (const QVariant& tv : tasks) {
+        const QVariantMap t = tv.toMap();
+        headlineSrc[t.value(QStringLiteral("category")).toString()] +=
+            t.value(QStringLiteral("span")).toLongLong();
+      }
+    } else {
+      headlineSrc = catSec;
+    }
+    qint64 srcTotal = 0;
+    for (auto it = headlineSrc.constBegin(); it != headlineSrc.constEnd(); ++it)
+      srcTotal += it.value();
+    const auto pickTop = [&](const QString& skipA, const QString& skipB) {
+      QString c;
+      qint64 best = 0;
+      for (auto it = headlineSrc.constBegin(); it != headlineSrc.constEnd();
+           ++it) {
+        if (it.key() == skipA || it.key() == skipB) continue;
+        if (it.value() > best) {
+          best = it.value();
+          c = it.key();
+        }
+      }
+      return c;
+    };
+    QString topCat = pickTop(QStringLiteral("系统"), QStringLiteral("其他"));
+    if (topCat.isEmpty()) topCat = pickTop(QStringLiteral("系统"), QString());
+    QString cat2 = pickTop(QStringLiteral("系统"), topCat);
+    if (cat2 == QStringLiteral("其他")) cat2.clear();
     const double ratio =
-        static_cast<double>(topCatSec) / static_cast<double>(totalDaySec);
+        (srcTotal > 0 && !topCat.isEmpty())
+            ? std::min(1.0, static_cast<double>(headlineSrc.value(topCat, 0)) /
+                                srcTotal)
+            : 0.0;
+
     theme.insert(QStringLiteral("title"), themeTitle(topCat));
-    theme.insert(QStringLiteral("desc"),
-                 themeDesc(topCat, ratio, dominantPeriod(allSegments)));
     theme.insert(QStringLiteral("ratio"), ratio);
+    if (!tasks.isEmpty()) {
+      const qlonglong longestSpan =
+          tasks.first().toMap().value(QStringLiteral("span")).toLongLong();
+      QString d = QStringLiteral("今天有 %1 段连续使用，最长约 %2")
+                      .arg(tasks.size())
+                      .arg(decimalHoursText(longestSpan));
+      if (!topCat.isEmpty()) {
+        d += QStringLiteral("，主要在%1").arg(topCat);
+        if (!cat2.isEmpty()) d += QStringLiteral("、%1").arg(cat2);
+      }
+      d += QStringLiteral("。");
+      theme.insert(QStringLiteral("desc"), d);
+    } else {
+      theme.insert(QStringLiteral("desc"), themeDesc(topCat, ratio, QString()));
+    }
   }
   model.insert(QStringLiteral("todayTheme"), theme);
 
@@ -881,20 +1046,37 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
     segByKey.insert(m.value(QStringLiteral("groupKey")).toString(), m);
   }
 
+  // 优先用 USM 的窗口标题感知类别；缺失退回旧 classifyApp。
+  const auto catOf = [](const QVariantMap& u) {
+    const QString c = u.value(QStringLiteral("category")).toString();
+    return c.isEmpty() ? categoryForUsmItem(u) : c;
+  };
   qint64 monthTotalSec = 0;
   QHash<QString, qint64> catSec;
   for (const QVariant& v : monthApps) {
     const QVariantMap u = v.toMap();
     const qlonglong sec = u.value(QStringLiteral("seconds")).toLongLong();
     monthTotalSec += sec;
-    catSec[categoryForUsmItem(u)] += sec;
+    catSec[catOf(u)] += sec;
   }
+  // 头条类别排除系统/其他（系统外壳降权、不当最高类别）。
   QString topCat;
   qint64 topCatSec = 0;
   for (auto it = catSec.constBegin(); it != catSec.constEnd(); ++it) {
+    if (it.key() == QStringLiteral("系统") || it.key() == QStringLiteral("其他"))
+      continue;
     if (it.value() > topCatSec) {
       topCatSec = it.value();
       topCat = it.key();
+    }
+  }
+  if (topCat.isEmpty()) {  // 全是系统/其他时退而求其次（仍排除系统）
+    for (auto it = catSec.constBegin(); it != catSec.constEnd(); ++it) {
+      if (it.key() == QStringLiteral("系统")) continue;
+      if (it.value() > topCatSec) {
+        topCatSec = it.value();
+        topCat = it.key();
+      }
     }
   }
   const int topPct =
@@ -905,12 +1087,14 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
   const QString peakPeriod = dominantPeriodFromHist(hist);
 
   QString topPattern = QStringLiteral("平稳使用");
-  if (!monthApps.isEmpty()) {
-    const QVariantMap a0 = monthApps.first().toMap();
+  for (const QVariant& v : monthApps) {  // 取首个非系统 app 的模式做主关键词
+    const QVariantMap a0 = v.toMap();
+    if (catOf(a0) == QStringLiteral("系统")) continue;
     const QVariantMap s0 = segByKey.value(a0.value(QStringLiteral("groupKey")).toString());
     topPattern = patternLabel(s0.value(QStringLiteral("longestSec"), 0).toLongLong(),
                               s0.value(QStringLiteral("sessionCount"), 0).toInt(),
                               a0.value(QStringLiteral("seconds")).toLongLong());
+    break;
   }
   const QString major = majorKeyword(topCat, topPattern);
 
@@ -984,9 +1168,10 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
     const QVariantMap u = monthApps.at(i).toMap();
     const qlonglong sec = u.value(QStringLiteral("seconds")).toLongLong();
     if (sec < 5 * 60) break;  // 不足 5 分钟不立为主角
+    const QString cat = catOf(u);
+    if (cat == QStringLiteral("系统")) continue;  // 系统/外壳不当主角
     const QString name = u.value(QStringLiteral("name")).toString();
     const QString timeText = u.value(QStringLiteral("time")).toString();
-    const QString cat = categoryForUsmItem(u);
     const QVariantMap seg = segByKey.value(u.value(QStringLiteral("groupKey")).toString());
     const qlonglong longestSec = seg.value(QStringLiteral("longestSec"), 0).toLongLong();
     const int sessionCount = seg.value(QStringLiteral("sessionCount"), 0).toInt();
@@ -1107,10 +1292,15 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
     kws << major;
     if (!peakPeriod.isEmpty()) kws << peakPeriod + QStringLiteral("使用");
     if (!topCat.isEmpty() && topCat != QStringLiteral("其他")) kws << topCat;
-    for (int i = 0; i < monthApps.size() && i < 3; ++i)
-      kws << categoryKeyword(categoryForUsmItem(monthApps.at(i).toMap()));
+    int kc = 0;
+    for (int i = 0; i < monthApps.size() && kc < 3; ++i) {
+      const QString c = catOf(monthApps.at(i).toMap());
+      if (c == QStringLiteral("系统")) continue;
+      kws << categoryKeyword(c);
+      ++kc;
+    }
     kws << (topPattern == QStringLiteral("连续投入") ? QStringLiteral("连续使用")
-            : topPattern == QStringLiteral("碎片使用") ? QStringLiteral("碎片切换")
+            : topPattern == QStringLiteral("穿插使用") ? QStringLiteral("穿插切换")
                                                        : QStringLiteral("平稳节奏"));
     QStringList uniq;
     for (const QString& k : kws)
@@ -1133,13 +1323,16 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
     QHash<QString, qint64> lastCat;
     for (const QVariant& v : lastMonthApps) {
       const QVariantMap u = v.toMap();
-      lastCat[categoryForUsmItem(u)] += u.value(QStringLiteral("seconds")).toLongLong();
+      lastCat[catOf(u)] += u.value(QStringLiteral("seconds")).toLongLong();
     }
+    const auto skipCat = [](const QString& k) {
+      return k == QStringLiteral("其他") || k == QStringLiteral("系统");
+    };
     QStringList cats;
     for (auto it = catSec.constBegin(); it != catSec.constEnd(); ++it)
-      if (it.key() != QStringLiteral("其他") && !cats.contains(it.key())) cats << it.key();
+      if (!skipCat(it.key()) && !cats.contains(it.key())) cats << it.key();
     for (auto it = lastCat.constBegin(); it != lastCat.constEnd(); ++it)
-      if (it.key() != QStringLiteral("其他") && !cats.contains(it.key())) cats << it.key();
+      if (!skipCat(it.key()) && !cats.contains(it.key())) cats << it.key();
     struct Cmp { QString cat; qint64 cur; qint64 last; };
     QVector<Cmp> cmps;
     for (const QString& c : cats) cmps.append({c, catSec.value(c, 0), lastCat.value(c, 0)});

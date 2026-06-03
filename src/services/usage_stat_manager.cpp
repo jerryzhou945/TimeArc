@@ -223,6 +223,81 @@ QString activityDisplayName(const QString& groupKey, const QString& appId,
   return appDisplayName(appId, appName, path);
 }
 
+// 活动分类（本地确定性，记忆湖用）。除 exe/显示名外，**还读窗口标题**作为分类信号
+// （仅本地：用于定类别，绝不展示原文、不进 AI、不落库，符合隐私边界=仅本地聚合）。
+// 系统/外壳进程单列为「系统」，便于 UI 降权（不当主角/不当头条类别）。
+// 站点特例（site:bilibili 等）已在 groupKey 体现，这里按 groupKey 直接定。
+QString classifyActivity(const QString& groupKey, const QString& appId,
+                         const QString& appName, const QString& path,
+                         const QString& windowTitle) {
+  if (groupKey == "site:bilibili") return QStringLiteral("视频");
+
+  const QString id = (appId + " " + appName + " " + path).toLower();
+  const QString all = id + " " + windowTitle.toLower();
+
+  if (containsAny(id, {"startmenuexperiencehost", "searchhost", "searchapp",
+                       "shellexperiencehost", "lockapp", "applicationframehost",
+                       "textinputhost", "dwm.exe", "sihost", "ctfmon",
+                       "systemsettings", "useroobe", "explorer.exe",
+                       "windows\\explorer", "rundll32", "taskmgr", "winlogon",
+                       "fontdrvhost", "wininit", "csrss", "smartscreen"}))
+    return QStringLiteral("系统");
+
+  if (containsAny(all, {"code.exe", "visual studio code", "vscode", "devenv",
+                        "visual studio", "clion", "pycharm", "intellij",
+                        "idea64", "goland", "webstorm", "rider", "qtcreator",
+                        "android studio", "sublime_text", "notepad++", "neovim",
+                        "powershell", "windowsterminal", "cmd.exe", "conemu",
+                        "git-bash", "mingw", "docker", "datagrip", "dbeaver",
+                        "postman"}))
+    return QStringLiteral("开发");
+
+  if (containsAny(all, {"bilibili", "b23.tv", "youtube", "potplayer", "vlc.exe",
+                        "iqiyi", "youku", "netflix", "tencentvideo", "qqlive",
+                        "mpv.exe", "mpc-hc", "douyu", "huya", "twitch",
+                        "爱奇艺", "优酷", "腾讯视频"}))
+    return QStringLiteral("视频");
+
+  if (containsAny(all, {"qqmusic", "cloudmusic", "netease", "spotify", "kugou",
+                        "kuwo", "foobar", "apple music", "网易云"}))
+    return QStringLiteral("音乐");
+
+  if (containsAny(all, {"weixin", "wechat", "discord", "telegram", "slack",
+                        "qq.exe", "tim.exe", "dingtalk", "feishu", "lark",
+                        "teams", "whatsapp", "skype", "微信", "钉钉", "飞书"}))
+    return QStringLiteral("社交");
+
+  if (containsAny(all, {"steam", "epicgames", "riotclient", "leagueoflegends",
+                        "valorant", "genshin", "yuanshen", "starrail",
+                        "streetfighter", "wegame", "battle.net", "ubisoft",
+                        "gog galaxy", "原神", "game"}))
+    return QStringLiteral("游戏");
+
+  if (containsAny(all, {"winword", "excel", "powerpnt", "onenote", "outlook",
+                        "wps", "et.exe", "wpp.exe", "acrobat", "acrord32",
+                        "foxit", "sumatrapdf", " - word", " - excel",
+                        " - powerpoint", "microsoft word", "microsoft excel"}))
+    return QStringLiteral("办公");
+
+  if (containsAny(all, {"photoshop", "illustrator", "premiere", "afterfx",
+                        "lightroom", "figma", "blender", "obs64", "obs.exe",
+                        "capcut", "jianying", "剪映", "davinci", "resolve",
+                        "audition", "coreldraw", "3dsmax", "maya"}))
+    return QStringLiteral("创作");
+
+  if (containsAny(all, {"notion", "obsidian", "typora", "evernote", "youdao",
+                        "joplin", "logseq", "zotero", "calibre", "kindle",
+                        "有道", "印象笔记"}))
+    return QStringLiteral("笔记");
+
+  if (containsAny(id, {"chrome.exe", "google\\chrome", "msedge", "edge.exe",
+                       "firefox", "opera.exe", "brave", "vivaldi", "360se",
+                       "qqbrowser", "sogouexplorer", "ucbrowser"}))
+    return QStringLiteral("浏览");
+
+  return QStringLiteral("其他");
+}
+
 QJsonDocument parseJsonLine(const QByteArray& line) {
   QJsonParseError error;
   QJsonDocument doc = QJsonDocument::fromJson(line, &error);
@@ -368,6 +443,7 @@ QVariantList UsageStatManager::aggregateSoftware(
     QVector<UsageInterval> intervals;
     QVector<UsageInterval> foregroundIntervals;
     QVector<UsageInterval> audioIntervals;
+    QMap<QString, quint64> categorySeconds;  // 按窗口标题逐记录分类、时长加权
     bool live = false;
     bool hasForeground = false;
     bool hasAudio = false;
@@ -411,6 +487,10 @@ QVariantList UsageStatManager::aggregateSoftware(
       aggregate.foregroundIntervals.append(interval);
       aggregate.hasForeground = true;
     }
+    // 逐记录按窗口标题分类、按时长累加，输出时取占比最高的类别。
+    aggregate.categorySeconds[classifyActivity(
+        key, record.appId, record.appName, record.path, record.windowTitle)] +=
+        record.durationSec;
     aggregate.live = aggregate.live || record.live;
     grouped[key] = aggregate;
   };
@@ -440,6 +520,16 @@ QVariantList UsageStatManager::aggregateSoftware(
     item["appName"] = aggregate.appName;
     item["name"] = displayName;
     item["path"] = aggregate.path;
+    QString topCategory = QStringLiteral("其他");
+    quint64 topCatSec = 0;
+    for (auto it = aggregate.categorySeconds.constBegin();
+         it != aggregate.categorySeconds.constEnd(); ++it) {
+      if (it.value() > topCatSec) {
+        topCatSec = it.value();
+        topCategory = it.key();
+      }
+    }
+    item["category"] = topCategory;
     if (aggregate.groupKey == "site:bilibili") {
       item["siteDomain"] = "bilibili.com";
     }
