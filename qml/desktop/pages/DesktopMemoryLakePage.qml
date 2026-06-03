@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import "../memorylake"
-import "../memorylake/MemoryLakeMock.js" as Mock
+import "../components/AppVisual.js" as AppVisual
 
 // 记忆湖页面：1:1 复刻 MemoryLakeDesign/memory_lake_v25_win11_style.html 的窗口内部三栏。
 // 阶段 A：三栏静态排版 + 灯光底子 + 主题。后续阶段补卡牌交互 / 丝滑滚动 / 月度回顾。
@@ -23,12 +23,66 @@ Item {
     property int selectedIndex: 0
     property int flippedIndex: -1
     property int previewIndex: -1
-    readonly property var apps: Mock.apps
-    readonly property var current: apps[selectedIndex]
+
+    // 记忆湖·日视图模型：dailyCardService.memoryLakeDay 产出（后端组装，QML 只渲染）。
+    // 取数走首页同款只读路径（usageStatManager），无数据走空态，绝不用 Mock 假数据冒充。
+    property var dayModel: ({})
+    readonly property var apps: (dayModel && dayModel.apps) ? dayModel.apps : []
+    readonly property bool hasData: apps.length > 0
+    readonly property var current: apps.length > 0
+        ? apps[Math.max(0, Math.min(selectedIndex, apps.length - 1))] : null
     readonly property bool locked: flippedIndex >= 0
 
-    // 当前应作为「整个 App 背景」的模糊封面图（由 DesktopAppShell 读取，Issue 1）。
-    readonly property url ambientSource: Mock.imagePath(root.current.image)
+    readonly property var overview: (dayModel && dayModel.overview)
+        ? dayModel.overview : ({ total: "0m", sub: "暂无记录" })
+    readonly property var todayTheme: (dayModel && dayModel.todayTheme)
+        ? dayModel.todayTheme
+        : ({ kicker: "今日主题", title: "今天还很安静",
+             desc: "还没有自动记录，开始使用后这里会生成今日主题。", ratio: 0 })
+
+    // 今日结论 / 今日占比：后端在 memoryLakeDay 里组装好，QML 只渲染。
+    readonly property var todayConclusion: (dayModel && dayModel.todayConclusion)
+        ? dayModel.todayConclusion : ({})
+    readonly property var usageShare: (dayModel && dayModel.usageShare)
+        ? dayModel.usageShare : []
+
+    // 请求切换导航页（shell 在 onLoaded 里连接；今日事项「日历」按钮用）。
+    signal requestNavigate(string pageKey)
+
+    // 排行：apps 已按时长降序 -> 身份索引序列（喂 UsageRankList）。
+    readonly property var ranking: {
+        var r = [];
+        for (var i = 0; i < apps.length; i++) r.push(i);
+        return r;
+    }
+
+    // 氛围大背景色：优先用当前 APP 图标主色（多色 blend），缺失退回 appColor 单色。
+    readonly property color ambientColor: current
+        ? AppVisual.appColor(current.appId, current.name, current.path)
+        : (ml ? ml.aqua : "#9FE7EE")
+    readonly property var ambientColors: (current && current.iconColors && current.iconColors.length > 0)
+        ? current.iconColors
+        : [ambientColor]
+    readonly property bool hasAmbient: hasData
+
+    function recomputeDayModel() {
+        if (!usageStatManager || !dailyCardService) { root.dayModel = ({}); return; }
+        root.dayModel = dailyCardService.memoryLakeDay(
+            usageStatManager.activeSoftwareForRange("day"),
+            usageStatManager.foregroundSegmentsForRange("day"));
+    }
+
+    // 月度回顾已拆为独立页面 DesktopMonthlyRecapPage（菜单底部「记忆湖」）。
+
+    Timer {
+        interval: 5000; running: true; repeat: true
+        onTriggered: if (usageStatManager) usageStatManager.refresh()
+    }
+    Connections {
+        target: usageStatManager
+        function onUsageStatsChanged() { root.recomputeDayModel(); }
+    }
+    Component.onCompleted: root.recomputeDayModel()
 
     function selectCard(i) {
         if (root.locked && i !== root.selectedIndex) return;
@@ -122,8 +176,8 @@ Item {
                             anchors.margins: 12
                             spacing: 5
                             Text { text: "使用总览"; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
-                            Text { text: Mock.overview.total; color: ml.textPrimary; font.pixelSize: 27; font.bold: true }
-                            Text { text: Mock.overview.sub; color: ml.textTertiary; font.pixelSize: 11 }
+                            Text { text: root.overview.total; color: ml.textPrimary; font.pixelSize: 27; font.bold: true }
+                            Text { text: root.overview.sub; color: ml.textTertiary; font.pixelSize: 11 }
                         }
                     }
 
@@ -138,11 +192,11 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 5
-                            Text { text: Mock.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
-                            Text { text: Mock.todayTheme.title; color: ml.textPrimary; font.pixelSize: 17; font.bold: true }
+                            Text { text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
+                            Text { text: root.todayTheme.title; color: ml.textPrimary; font.pixelSize: 17; font.bold: true }
                             Text {
                                 width: parent.width
-                                text: Mock.todayTheme.desc
+                                text: root.todayTheme.desc
                                 color: ml.textSecondary
                                 font.pixelSize: 11
                                 wrapMode: Text.WordWrap
@@ -153,7 +207,7 @@ Item {
                                 width: parent.width; height: 6; radius: 3
                                 color: ml.trackBg
                                 Rectangle {
-                                    width: parent.width * Mock.todayTheme.ratio
+                                    width: parent.width * root.todayTheme.ratio
                                     height: parent.height; radius: 3
                                     gradient: Gradient {
                                         orientation: Gradient.Horizontal
@@ -166,39 +220,19 @@ Item {
                     }
                 }
 
-                // 月度回顾 CTA
-                Rectangle {
-                    id: recapCta
+                // 今日结论（替换原月度回顾 CTA 位置；月度回顾已独立成页）
+                TodayConclusionCard {
                     width: parent.width
-                    height: 120
-                    radius: 19
-                    clip: true
-                    color: ctaHover.hovered ? Qt.rgba(1, 1, 1, ml.night ? 0.065 : 0.20) : ml.cardBg
-                    border.width: 1
-                    border.color: ctaHover.hovered ? Qt.rgba(0.62, 0.90, 0.93, 0.28) : Qt.rgba(0.62, 0.90, 0.93, 0.16)
-                    Behavior on color { ColorAnimation { duration: 180 } }
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 4
-                        Text { text: "MONTHLY RECAP"; color: ml.aqua; font.pixelSize: 11; opacity: 0.8 }
-                        Text { text: "查看月度记忆回顾"; color: ml.textPrimary; font.pixelSize: 18; font.bold: true }
-                        Text {
-                            width: parent.width
-                            text: "按顺序回放这个月的主要软件、趋势变化和关键词。"
-                            color: ml.textSecondary; font.pixelSize: 11; wrapMode: Text.WordWrap
-                            maximumLineCount: 2; elide: Text.ElideRight
-                        }
-                        Text { text: "开始回顾 →"; color: ml.accentText; font.pixelSize: 12; font.bold: true }
-                    }
-                    HoverHandler { id: ctaHover }
-                    TapHandler { onTapped: recap.open() }
+                    height: 150
+                    style: ml
+                    model: root.todayConclusion
+                    todoRemaining: calendarSync.remaining
                 }
 
                 // 排行
                 Rectangle {
                     width: parent.width
-                    height: parent.height - 66 - 124 - 120 - 30
+                    height: parent.height - 66 - 124 - 150 - 30
                     radius: 22
                     clip: true
                     color: ml.cardBg
@@ -209,7 +243,7 @@ Item {
                         anchors.margins: 13
                         style: ml
                         apps: root.apps
-                        ranking: Mock.ranking
+                        ranking: root.ranking
                         selectedIndex: root.selectedIndex
                         locked: root.locked
                         onRequestSelect: function(cardIndex) { root.selectCard(cardIndex) }
@@ -236,6 +270,27 @@ Item {
             onUnhoverCard: root.previewIndex = -1
         }
 
+        // 中栏空态：今天还没有自动记录时给保守提示，不显假卡片。
+        Column {
+            anchors.centerIn: parent
+            z: 0
+            spacing: 8
+            visible: !root.hasData
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "今天还没有自动记录"
+                color: ml.textPrimary
+                font.pixelSize: 18
+                font.bold: true
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "开始使用电脑后，这里会浮现今天的记忆卡片。"
+                color: ml.textSecondary
+                font.pixelSize: 13
+            }
+        }
+
         // ============ 右栏：浮在上层 ============
         GlassPanel {
             id: rightPanel
@@ -246,60 +301,136 @@ Item {
             z: 1
             style: ml
 
-            Column {
+            // 右栏出现逻辑同步 v88（V71）：未翻面 = 今日事项(上) + 软件使用占比(下)，隐藏时间图；
+            // 翻面 = 仅显示使用时间图，事项/占比隐藏。切换用 v88 rightSectionSwap 弹性入场。
+            Item {
                 anchors.fill: parent
                 anchors.margins: 14
-                spacing: 14
 
-                // 详情卡
-                DetailPanel {
-                    width: parent.width
-                    height: 250
-                    style: ml
-                    app: root.current
+                // —— 未翻面：今日事项（顺序一/上）+ 今日软件使用占比（顺序二/下）——
+                Item {
+                    id: homeRight
+                    anchors.fill: parent
+                    readonly property bool active: !root.locked
+                    visible: opacity > 0.01
+                    opacity: 1
+                    transform: [
+                        Translate { id: homeTr; y: 0 },
+                        Scale {
+                            id: homeSc
+                            origin.x: homeRight.width / 2; origin.y: homeRight.height / 2
+                            xScale: 1; yScale: 1
+                        }
+                    ]
+                    Component.onCompleted: opacity = active ? 1 : 0
+                    onActiveChanged: active ? homeIn.restart() : homeOut.restart()
+
+                    Column {
+                        anchors.fill: parent
+                        spacing: 14
+
+                        // 顺序一：今日事项（与日历同步）
+                        CalendarSyncList {
+                            id: calendarSync
+                            width: parent.width
+                            height: Math.max(140, parent.height - 226 - 14)
+                            style: ml
+                            onOpenCalendar: root.requestNavigate("calendar")
+                        }
+
+                        // 顺序二：今日软件使用占比（饼图 + 图例）
+                        DailyUsageShare {
+                            width: parent.width
+                            height: 226
+                            style: ml
+                            share: root.usageShare
+                            total: root.overview.total
+                        }
+                    }
+
+                    SequentialAnimation {
+                        id: homeIn
+                        PropertyAction { target: homeTr; property: "y"; value: 14 }
+                        PropertyAction { target: homeSc; property: "xScale"; value: 0.985 }
+                        PropertyAction { target: homeSc; property: "yScale"; value: 0.985 }
+                        PropertyAction { target: homeRight; property: "opacity"; value: 0.45 }
+                        ParallelAnimation {
+                            NumberAnimation { target: homeRight; property: "opacity"; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                            SequentialAnimation {
+                                ParallelAnimation {
+                                    NumberAnimation { target: homeTr; property: "y"; to: -3; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                    NumberAnimation { target: homeSc; property: "xScale"; to: 1.008; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                    NumberAnimation { target: homeSc; property: "yScale"; to: 1.008; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                }
+                                ParallelAnimation {
+                                    NumberAnimation { target: homeTr; property: "y"; to: 0; duration: 160; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: homeSc; property: "xScale"; to: 1; duration: 160; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: homeSc; property: "yScale"; to: 1; duration: 160; easing.type: Easing.OutQuad }
+                                }
+                            }
+                        }
+                    }
+                    NumberAnimation { id: homeOut; target: homeRight; property: "opacity"; to: 0; duration: 200; easing.type: Easing.OutCubic }
                 }
 
-                // 使用时间图 · 时间河流
-                Rectangle {
-                    width: parent.width
-                    height: parent.height - 250 - 76 - 28
-                    radius: 18
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
-                    TimeRiver {
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        style: ml
-                        app: root.current
-                    }
-                }
+                // —— 翻面：使用时间图填满；事项/占比隐藏 ——
+                Item {
+                    id: lockedRight
+                    anchors.fill: parent
+                    readonly property bool active: root.locked
+                    visible: opacity > 0.01
+                    opacity: 0
+                    transform: [
+                        Translate { id: lockTr; y: 0 },
+                        Scale {
+                            id: lockSc
+                            origin.x: lockedRight.width / 2; origin.y: lockedRight.height / 2
+                            xScale: 1; yScale: 1
+                        }
+                    ]
+                    Component.onCompleted: opacity = active ? 1 : 0
+                    onActiveChanged: active ? lockIn.restart() : lockOut.restart()
 
-                // note
-                Rectangle {
-                    width: parent.width
-                    height: 76
-                    radius: 18
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
-                    Text {
+                    Rectangle {
                         anchors.fill: parent
-                        anchors.margins: 14
-                        text: root.locked ? "当前记忆已翻面并锁定。再次点击卡牌取消翻面后即可切换。"
-                                          : "点击中心记忆查看分析。翻面后会暂时锁定当前记忆。"
-                        color: ml.textSecondary; font.pixelSize: 13; wrapMode: Text.WordWrap
+                        radius: 18
+                        color: ml.cardBg
+                        border.width: 1
+                        border.color: ml.cardBorder
+                        TimeRiver {
+                            anchors.fill: parent
+                            anchors.margins: 16
+                            style: ml
+                            app: root.current
+                        }
                     }
+
+                    SequentialAnimation {
+                        id: lockIn
+                        PropertyAction { target: lockTr; property: "y"; value: 14 }
+                        PropertyAction { target: lockSc; property: "xScale"; value: 0.985 }
+                        PropertyAction { target: lockSc; property: "yScale"; value: 0.985 }
+                        PropertyAction { target: lockedRight; property: "opacity"; value: 0.45 }
+                        ParallelAnimation {
+                            NumberAnimation { target: lockedRight; property: "opacity"; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                            SequentialAnimation {
+                                ParallelAnimation {
+                                    NumberAnimation { target: lockTr; property: "y"; to: -3; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                    NumberAnimation { target: lockSc; property: "xScale"; to: 1.008; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                    NumberAnimation { target: lockSc; property: "yScale"; to: 1.008; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                }
+                                ParallelAnimation {
+                                    NumberAnimation { target: lockTr; property: "y"; to: 0; duration: 160; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: lockSc; property: "xScale"; to: 1; duration: 160; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: lockSc; property: "yScale"; to: 1; duration: 160; easing.type: Easing.OutQuad }
+                                }
+                            }
+                        }
+                    }
+                    NumberAnimation { id: lockOut; target: lockedRight; property: "opacity"; to: 0; duration: 200; easing.type: Easing.OutCubic }
                 }
             }
         }
     }
 
-    // —— 月度回顾覆盖层（盖住三栏）——
-    RecapOverlay {
-        id: recap
-        anchors.fill: parent
-        style: ml
-        apps: root.apps
-    }
 }

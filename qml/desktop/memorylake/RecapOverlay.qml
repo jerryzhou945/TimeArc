@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Effects
-import "MemoryLakeMock.js" as Mock
+import "../components/AppVisual.js" as AppVisual
 
 // 月度记忆回顾全屏覆盖层：自动播放 11 屏 + 进度条 + 看完解锁目录 + 滚轮/键盘/点击导航。
 // 1:1 对应设计稿 .summary-overlay 全套逻辑。
@@ -9,13 +9,18 @@ Item {
 
     property MemoryLakeStyle style
     property var apps: []
+    // 真实月度回顾模型（dailyCardService.memoryLakeRecap），由页面在打开时注入。
+    property var model: ({})
 
     property bool opened: false
     property int index: 0
     property int seenMax: 0
     property bool autoPlay: true
 
-    readonly property var slides: Mock.recap.slides
+    // 作为独立页面承载时：关闭（返回湖面 / Esc）请求退出回首页。
+    signal exitRequested()
+
+    readonly property var slides: (model && model.slides) ? model.slides : []
     readonly property bool storyComplete: seenMax >= slides.length - 1
     readonly property int bgIndex: slides[index] ? slides[index].bgIndex : -1
 
@@ -33,7 +38,7 @@ Item {
         recap.forceActiveFocus()
         schedule()
     }
-    function close() { opened = false; autoTimer.stop() }
+    function close() { opened = false; autoTimer.stop(); recap.exitRequested() }
     function setSlide(i, fromAuto) {
         index = Math.max(0, Math.min(slides.length - 1, i))
         seenMax = Math.max(seenMax, index)
@@ -62,9 +67,12 @@ Item {
         else if (storyComplete && (e.key === Qt.Key_Left || e.key === Qt.Key_Up)) { setSlide(index - 1, false); e.accepted = true }
     }
 
-    // 暗底：不透明，彻底盖住其后的记忆湖页面（之前 .86 会透出 8.9h / 排行等，显脏）
+    // 暗底：不透明，彻底盖住其后的记忆湖页面（之前 .86 会透出 8.9h / 排行等，显脏）。
+    // 外缘收圆：记忆湖页面内嵌于 radius:32 内容卡、再内缩 8px，故圆角 24 让暗底外缘与内容卡
+    // 圆角对齐，整屏读作一块圆角面板，而非「方角黑框套圆角壳」。
     Rectangle {
         anchors.fill: parent
+        radius: 24
         color: recap.style && recap.style.night ? Qt.rgba(0.008, 0.02, 0.04, 1.0) : Qt.rgba(0.10, 0.12, 0.18, 0.97)
     }
 
@@ -102,10 +110,14 @@ Item {
             anchors.fill: parent
             layer.enabled: true
             visible: false
-            Image {
+            // 主角图标主色晕染（取代游戏海报），被 MultiEffect 模糊成柔和色背景。
+            Rectangle {
                 anchors.fill: parent
-                source: recap.bgIndex >= 0 && recap.apps[recap.bgIndex] ? Mock.imagePath(recap.apps[recap.bgIndex].image) : ""
-                fillMode: Image.PreserveAspectCrop
+                property var bgApp: recap.bgIndex >= 0 ? recap.apps[recap.bgIndex] : null
+                color: bgApp ? ((bgApp.iconColors && bgApp.iconColors.length > 0)
+                                  ? bgApp.iconColors[0]
+                                  : AppVisual.appColor(bgApp.appId, bgApp.name, bgApp.path))
+                             : "transparent"
             }
         }
         MultiEffect {
@@ -187,8 +199,8 @@ Item {
                 anchors.leftMargin: 26
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 12
-                RecapPill { text: Mock.recap.headerLeft }
-                RecapPill { text: Mock.recap.headerRight }
+                RecapPill { text: (recap.model && recap.model.headerLeft) ? recap.model.headerLeft : "" }
+                RecapPill { text: (recap.model && recap.model.headerRight) ? recap.model.headerRight : "" }
             }
             Row {
                 anchors.right: parent.right
@@ -238,7 +250,7 @@ Item {
             Text {
                 id: noteT
                 anchors.centerIn: parent
-                text: recap.storyComplete ? "已看完 · 右侧目录已解锁，可自由回看" : Mock.recap.modeNote
+                text: recap.storyComplete ? "已看完 · 右侧目录已解锁，可自由回看" : ((recap.model && recap.model.modeNote) ? recap.model.modeNote : "")
                 color: recap.storyComplete ? (recap.style ? recap.style.accentText : "#9ef1ff") : (recap.style ? recap.style.textSecondary : "#bbb")
                 font.pixelSize: 12
             }
@@ -370,7 +382,7 @@ Item {
 
             Rectangle {
                 height: parent.height; radius: 2
-                width: parent.width * ((recap.index + 1) / recap.slides.length)
+                width: parent.width * ((recap.index + 1) / Math.max(1, recap.slides.length))
                 Behavior on width { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
                 gradient: Gradient {
                     orientation: Gradient.Horizontal

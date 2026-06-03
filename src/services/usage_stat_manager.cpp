@@ -1,16 +1,22 @@
 #include "usage_stat_manager.h"
 
+#include <QColor>
 #include <QDate>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileIconProvider>
 #include <QFileInfo>
+#include <QIcon>
+#include <QImage>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
 #include <QJsonValue>
 #include <QMap>
+#include <QPixmap>
 #include <QProcessEnvironment>
+#include <QStringList>
 #include <QVariantMap>
 #include <QVector>
 #include <algorithm>
@@ -223,6 +229,143 @@ QString activityDisplayName(const QString& groupKey, const QString& appId,
   return appDisplayName(appId, appName, path);
 }
 
+// 活动分类（本地确定性，记忆湖用）。除 exe/显示名外，**还读窗口标题**作为分类信号
+// （仅本地：用于定类别，绝不展示原文、不进 AI、不落库，符合隐私边界=仅本地聚合）。
+// 系统/外壳进程单列为「系统」，便于 UI 降权（不当主角/不当头条类别）。
+// 站点特例（site:bilibili 等）已在 groupKey 体现，这里按 groupKey 直接定。
+QString classifyActivity(const QString& groupKey, const QString& appId,
+                         const QString& appName, const QString& path,
+                         const QString& windowTitle) {
+  if (groupKey == "site:bilibili") return QStringLiteral("视频");
+
+  // 关键：**类别关键词只匹配 exe 身份（id）**，不匹配窗口标题——否则泛词（game/
+  // excel/docker/powershell…）会被任意网页标题误命中（如 Chrome 标题含 "game" 被判
+  // 游戏）。窗口标题只用于"浏览器内站点细分"这一个高置信度场景。
+  const QString id = (appId + " " + appName + " " + path).toLower();
+  const QString title = windowTitle.toLower();
+
+  if (containsAny(id, {"startmenuexperiencehost", "searchhost", "searchapp",
+                       "shellexperiencehost", "lockapp", "applicationframehost",
+                       "textinputhost", "dwm.exe", "sihost", "ctfmon",
+                       "systemsettings", "useroobe", "explorer.exe",
+                       "windows\\explorer", "rundll32", "taskmgr", "winlogon",
+                       "fontdrvhost", "wininit", "csrss", "smartscreen"}))
+    return QStringLiteral("系统");
+
+  // 浏览器：先按 exe 认定，再**仅用站点专名标题词**细分到 视频/音乐，否则 浏览。
+  if (containsAny(id, {"chrome.exe", "google\\chrome", "msedge", "edge.exe",
+                       "firefox", "opera.exe", "brave", "vivaldi", "360se",
+                       "qqbrowser", "sogouexplorer", "ucbrowser"})) {
+    if (containsAny(title, {"bilibili", "b23.tv", "youtube", "youku", "iqiyi",
+                            "netflix", "twitch", "douyu", "huya", "腾讯视频",
+                            "爱奇艺", "优酷"}))
+      return QStringLiteral("视频");
+    if (containsAny(title, {"music.163", "网易云音乐", "qq音乐", "spotify"}))
+      return QStringLiteral("音乐");
+    return QStringLiteral("浏览");
+  }
+
+  if (containsAny(id, {"code.exe", "vscode", "devenv", "clion", "pycharm",
+                       "idea64", "goland", "webstorm", "rider", "qtcreator",
+                       "android studio", "sublime_text", "notepad++", "neovim",
+                       "powershell", "windowsterminal", "cmd.exe", "conemu",
+                       "git-bash", "mingw", "docker", "datagrip", "dbeaver",
+                       "postman"}))
+    return QStringLiteral("开发");
+
+  if (containsAny(id, {"bilibili", "potplayer", "vlc.exe", "tencentvideo",
+                       "qqlive", "mpv.exe", "mpc-hc", "iqiyi", "youku"}))
+    return QStringLiteral("视频");
+
+  if (containsAny(id, {"qqmusic", "cloudmusic", "netease", "spotify", "kugou",
+                       "kuwo", "foobar"}))
+    return QStringLiteral("音乐");
+
+  if (containsAny(id, {"weixin", "wechat", "discord", "telegram", "slack",
+                       "qq.exe", "tim.exe", "dingtalk", "feishu", "lark",
+                       "teams.exe", "whatsapp", "skype"}))
+    return QStringLiteral("社交");
+
+  if (containsAny(id, {"steam.exe", "steamwebhelper", "epicgames", "riotclient",
+                       "leagueoflegends", "valorant", "genshin", "yuanshen",
+                       "starrail", "streetfighter", "wegame", "battle.net",
+                       "ubisoft", "gog galaxy"}))
+    return QStringLiteral("游戏");
+
+  if (containsAny(id, {"winword", "excel.exe", "powerpnt", "onenote", "outlook",
+                       "wps.exe", "et.exe", "wpp.exe", "acrobat", "acrord32",
+                       "foxit", "sumatrapdf"}))
+    return QStringLiteral("办公");
+
+  if (containsAny(id, {"photoshop", "illustrator", "premiere", "afterfx",
+                       "lightroom", "figma", "blender", "obs64", "obs.exe",
+                       "capcut", "jianying", "davinci", "resolve.exe",
+                       "audition", "coreldraw", "3dsmax", "maya.exe"}))
+    return QStringLiteral("创作");
+
+  if (containsAny(id, {"notion", "obsidian", "typora", "evernote", "youdao",
+                       "joplin", "logseq", "zotero", "calibre", "kindle"}))
+    return QStringLiteral("笔记");
+
+  return QStringLiteral("其他");
+}
+
+// 从 app 图标位图提取最多 3 个主色调（跳过透明/接近灰/接近黑白），按 path 缓存。
+// 用于背景/封面的多色晕染，贴合该 app 图标真实观感（取代查表/哈希的预设单色）。
+QStringList iconDominantColors(const QString& path) {
+  static QHash<QString, QStringList> cache;
+  if (path.trimmed().isEmpty()) return QStringList();
+  const auto hit = cache.constFind(path);
+  if (hit != cache.constEnd()) return hit.value();
+
+  QStringList colors;
+  const QFileInfo fi(path);
+  if (fi.exists()) {
+    static QFileIconProvider provider;
+    const QPixmap pm = provider.icon(fi).pixmap(48, 48);
+    if (!pm.isNull()) {
+      const QImage img = pm.toImage().convertToFormat(QImage::Format_ARGB32);
+      QHash<QRgb, int> hist;
+      for (int y = 0; y < img.height(); ++y) {
+        for (int x = 0; x < img.width(); ++x) {
+          const QColor c = img.pixelColor(x, y);
+          if (c.alpha() < 128) continue;
+          const int mx = std::max({c.red(), c.green(), c.blue()});
+          const int mn = std::min({c.red(), c.green(), c.blue()});
+          if (mx - mn < 28) continue;         // 接近灰，丢弃
+          if (mx < 45 || mn > 225) continue;  // 接近黑/白，丢弃
+          const int qr = (c.red() / 32) * 32 + 16;
+          const int qg = (c.green() / 32) * 32 + 16;
+          const int qb = (c.blue() / 32) * 32 + 16;
+          hist[qRgb(qr, qg, qb)] += 1;
+        }
+      }
+      struct Bin { QRgb rgb; int n; };
+      QVector<Bin> bins;
+      for (auto it = hist.constBegin(); it != hist.constEnd(); ++it)
+        bins.append({it.key(), it.value()});
+      std::sort(bins.begin(), bins.end(),
+                [](const Bin& a, const Bin& b) { return a.n > b.n; });
+      for (int i = 0; i < bins.size() && colors.size() < 3; ++i) {
+        const QColor c(bins[i].rgb);
+        bool dup = false;
+        for (const QString& h : colors) {
+          const QColor e(h);
+          if (qAbs(e.red() - c.red()) + qAbs(e.green() - c.green()) +
+                  qAbs(e.blue() - c.blue()) <
+              64) {
+            dup = true;
+            break;
+          }
+        }
+        if (!dup) colors << c.name();
+      }
+    }
+  }
+  cache.insert(path, colors);
+  return colors;
+}
+
 QJsonDocument parseJsonLine(const QByteArray& line) {
   QJsonParseError error;
   QJsonDocument doc = QJsonDocument::fromJson(line, &error);
@@ -350,6 +493,14 @@ QVariantList UsageStatManager::audioForRange(const QString& range) const {
 
 QVariantList UsageStatManager::aggregateSoftwareForRange(
     const QString& range, const QString& sourceFilter) const {
+  return aggregateSoftware(
+      [&](const UsageRecord& record) { return matchesRange(record, range); },
+      sourceFilter);
+}
+
+QVariantList UsageStatManager::aggregateSoftware(
+    const std::function<bool(const UsageRecord&)>& inWindow,
+    const QString& sourceFilter) const {
   // 聚合先按 activity key 收集所有时间区间，再在输出时合并重叠区间。
   // sourceFilter 为空表示 active 合并视图；否则只看 foreground 或 audio。
   struct Aggregate {
@@ -360,6 +511,7 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
     QVector<UsageInterval> intervals;
     QVector<UsageInterval> foregroundIntervals;
     QVector<UsageInterval> audioIntervals;
+    QMap<QString, quint64> categorySeconds;  // 按窗口标题逐记录分类、时长加权
     bool live = false;
     bool hasForeground = false;
     bool hasAudio = false;
@@ -367,7 +519,7 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
 
   QMap<QString, Aggregate> grouped;
   const auto addRecord = [&](const UsageRecord& record) {
-    if (!matchesRange(record, range)) return;
+    if (!inWindow(record)) return;
     if (!matchesSource(record, sourceFilter)) return;
     if (record.durationSec == 0) return;
 
@@ -403,6 +555,10 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
       aggregate.foregroundIntervals.append(interval);
       aggregate.hasForeground = true;
     }
+    // 逐记录按窗口标题分类、按时长累加，输出时取占比最高的类别。
+    aggregate.categorySeconds[classifyActivity(
+        key, record.appId, record.appName, record.path, record.windowTitle)] +=
+        record.durationSec;
     aggregate.live = aggregate.live || record.live;
     grouped[key] = aggregate;
   };
@@ -432,6 +588,22 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
     item["appName"] = aggregate.appName;
     item["name"] = displayName;
     item["path"] = aggregate.path;
+    QString topCategory = QStringLiteral("其他");
+    quint64 topCatSec = 0;
+    for (auto it = aggregate.categorySeconds.constBegin();
+         it != aggregate.categorySeconds.constEnd(); ++it) {
+      if (it.value() > topCatSec) {
+        topCatSec = it.value();
+        topCategory = it.key();
+      }
+    }
+    item["category"] = topCategory;
+    // 站点组（如 site:bilibili）的 path 是**浏览器 exe**，取图标色会错成浏览器色调
+    // （用户反馈：bilibili 背景显示成 Chrome 的色）。站点组留空 -> QML 退回 appColor
+    // 的站点品牌色（site:bilibili -> 粉色）。避免任何 site:* 组取到宿主浏览器色。
+    item["iconColors"] = aggregate.groupKey.startsWith("site:")
+                             ? QStringList()
+                             : iconDominantColors(aggregate.path);
     if (aggregate.groupKey == "site:bilibili") {
       item["siteDomain"] = "bilibili.com";
     }
@@ -581,6 +753,158 @@ QVariantMap UsageStatManager::currentSoftware() const {
   return recordToVariantMap(m_currentRecord);
 }
 
+QVariantList UsageStatManager::foregroundSegmentsForRange(
+    const QString& range) const {
+  // 只看前台记录（service 已按"同 exe+同窗口标题连续"切会话；浏览器换标签标题
+  // 会滚动新记录），按 activity key 分组，相邻间隙 <= 60s 合并成一次"会话段"，
+  // 既消除标题抖动，又保留真实再次访问（中间隔了别的 app -> 有真实间隙，不合并）。
+  struct AppSessions {
+    QString groupKey;
+    QString appId;
+    QString appName;
+    QString path;
+    QVector<UsageInterval> intervals;
+  };
+
+  QMap<QString, AppSessions> grouped;
+  const auto addRecord = [&](const UsageRecord& record) {
+    if (record.source == "audio") return;  // 仅前台
+    if (!matchesRange(record, range)) return;
+    if (record.durationSec == 0) return;
+
+    const qint64 endUnixSec =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
+
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    AppSessions& app = grouped[key];
+    if (app.groupKey.trimmed().isEmpty()) {
+      app.groupKey = key;
+      app.appId = !record.appId.trimmed().isEmpty() ? record.appId : key;
+      app.appName = !record.appName.trimmed().isEmpty()
+                        ? record.appName
+                        : QFileInfo(record.path).fileName();
+      app.path = record.path;
+    }
+    if (app.path.trimmed().isEmpty() && !record.path.trimmed().isEmpty()) {
+      app.path = record.path;
+    }
+    app.intervals.append({record.startUnixSec, endUnixSec});
+  };
+
+  for (const UsageRecord& record : m_records) addRecord(record);
+  if (m_hasCurrentRecord) addRecord(m_currentRecord);
+
+  // 相邻会话间隙 <= 60s 视为同一次连续使用。
+  constexpr qint64 kMergeGapSec = 60;
+
+  QVariantList result;
+  for (AppSessions& app : grouped) {
+    std::sort(app.intervals.begin(), app.intervals.end(),
+              [](const UsageInterval& a, const UsageInterval& b) {
+                return a.start < b.start;
+              });
+
+    QVariantList segments;
+    qint64 longestSec = 0;
+    qint64 curStart = 0;
+    qint64 curEnd = 0;
+    bool open = false;
+    const auto flush = [&]() {
+      if (!open) return;
+      const qint64 secs = curEnd - curStart;
+      QVariantMap seg;
+      seg["startUnixSec"] = static_cast<qlonglong>(curStart);
+      seg["endUnixSec"] = static_cast<qlonglong>(curEnd);
+      seg["seconds"] = static_cast<qlonglong>(secs);
+      segments.append(seg);
+      if (secs > longestSec) longestSec = secs;
+      open = false;
+    };
+
+    for (const UsageInterval& interval : app.intervals) {
+      if (!open) {
+        curStart = interval.start;
+        curEnd = interval.end;
+        open = true;
+        continue;
+      }
+      if (interval.start - curEnd <= kMergeGapSec) {
+        curEnd = std::max(curEnd, interval.end);
+      } else {
+        flush();
+        curStart = interval.start;
+        curEnd = interval.end;
+        open = true;
+      }
+    }
+    flush();
+
+    QVariantMap item;
+    item["groupKey"] = app.groupKey;
+    item["appId"] = app.appId;
+    item["appName"] = app.appName;
+    item["path"] = app.path;
+    item["sessionCount"] = segments.size();
+    item["longestSec"] = static_cast<qlonglong>(longestSec);
+    item["segments"] = segments;
+    result.append(item);
+  }
+
+  return result;
+}
+
+QVariantList UsageStatManager::activeSoftwareForMonth(int year,
+                                                      int month) const {
+  return aggregateSoftware(
+      [&](const UsageRecord& record) {
+        return matchesYearMonth(record, year, month);
+      },
+      QString());
+}
+
+QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
+  // 按天分桶：day -> (groupKey -> intervals)。每天对各 app 自身区间求并集时长
+  // 再相加，与 softwareSecondsForRange("month") 同口径（避免与月总值自相矛盾）。
+  QMap<int, QMap<QString, QVector<UsageInterval>>> byDay;
+  const auto add = [&](const UsageRecord& record) {
+    if (record.durationSec == 0) return;
+    const QDate d =
+        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
+    if (!d.isValid() || d.year() != year || d.month() != month) return;
+    const qint64 end =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    byDay[d.day()][key].append({record.startUnixSec, end});
+  };
+  for (const UsageRecord& record : m_records) add(record);
+  if (m_hasCurrentRecord) add(m_currentRecord);
+
+  QVariantList result;
+  // 当月只覆盖到"今天"为止——绝不把尚未发生的未来天补成 0，否则趋势会被未来的
+  // 全 0 尾巴误判成"月末回落"（一种数据不支持的断言）。过去的月用整月天数。
+  const QDate today = QDate::currentDate();
+  int days = QDate(year, month, 1).daysInMonth();
+  if (year == today.year() && month == today.month()) days = today.day();
+  for (int day = 1; day <= days; ++day) {
+    qint64 total = 0;
+    const auto dayIt = byDay.constFind(day);
+    if (dayIt != byDay.constEnd()) {
+      for (auto it = dayIt->constBegin(); it != dayIt->constEnd(); ++it) {
+        total += static_cast<qint64>(mergedIntervalSeconds(it.value()));
+      }
+    }
+    QVariantMap m;
+    m["day"] = day;
+    m["seconds"] = static_cast<qlonglong>(total);
+    result.append(m);
+  }
+  return result;
+}
+
 bool UsageStatManager::matchesRange(const UsageRecord& record,
                                     const QString& range) const {
   if (range == "all") return true;
@@ -597,6 +921,14 @@ bool UsageStatManager::matchesRange(const UsageRecord& record,
   if (range == "year") return recordDate.year() == today.year();
 
   return false;
+}
+
+bool UsageStatManager::matchesYearMonth(const UsageRecord& record, int year,
+                                        int month) const {
+  const QDate recordDate =
+      QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
+  if (!recordDate.isValid()) return false;
+  return recordDate.year() == year && recordDate.month() == month;
 }
 
 bool UsageStatManager::matchesSource(const UsageRecord& record,

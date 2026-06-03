@@ -1,5 +1,5 @@
 import QtQuick
-import "MemoryLakeMock.js" as Mock
+import "../components/AppVisual.js" as AppVisual
 
 // 左栏「APP 使用排行」面板内容：标题 + 排行列表（丝滑滚动）。
 // 选择/悬停通过信号上抛，由页面统一调度。
@@ -87,18 +87,28 @@ Item {
                             anchors.margins: 9
                             spacing: 10
 
+                            // appColor 圆角底块 + 居中系统小图标（§3.3/§4.2 小尺寸）。
                             Rectangle {
                                 width: 34; height: 34; radius: 10
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: "#00000022"
+                                color: AppVisual.appColor(row.app ? row.app.appId : "",
+                                                          row.app ? row.app.name : "",
+                                                          row.app ? row.app.path : "")
                                 border.width: 1
                                 border.color: rankRoot.style ? rankRoot.style.cardBorder : "#ffffff20"
                                 clip: true
                                 Image {
-                                    anchors.fill: parent
-                                    source: row.app ? Mock.imagePath(row.app.image) : ""
-                                    fillMode: Image.PreserveAspectCrop
+                                    anchors.centerIn: parent
+                                    width: 22; height: 22
+                                    source: AppVisual.appIconSource(row.app ? row.app.appId : "",
+                                                                    row.app ? row.app.path : "")
+                                    sourceSize.width: 48
+                                    sourceSize.height: 48
+                                    fillMode: Image.PreserveAspectFit
                                     asynchronous: true
+                                    smooth: true
+                                    mipmap: true
+                                    visible: source != ""
                                 }
                             }
 
@@ -160,6 +170,19 @@ Item {
                             enabled: !rankRoot.locked || row.active
                             onTapped: rankRoot.requestSelect(row.cardIndex)
                         }
+                    }
+                }
+
+                // 空态：今天还没有自动记录时给保守提示，不显假数据。
+                Item {
+                    width: parent.width
+                    height: rankRoot.ranking.length === 0 ? 120 : 0
+                    Text {
+                        anchors.centerIn: parent
+                        visible: rankRoot.ranking.length === 0
+                        text: "今天还没有自动记录"
+                        color: rankRoot.style ? rankRoot.style.textTertiary : "#888"
+                        font.pixelSize: 13
                     }
                 }
             }

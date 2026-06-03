@@ -1,5 +1,4 @@
 import QtQuick
-import "MemoryLakeMock.js" as Mock
 
 // 右栏详情卡：标题 + 封面 + 类别/时长 + 心情 + 分析，跟随当前 APP。
 // 1:1 对应设计稿 .detail-panel。
@@ -33,11 +32,12 @@ Rectangle {
             width: parent.width
             height: 104
             clip: true
-            Image {
+            // 生成式封面（§4.3）：appColor 渐变 + 居中系统图标，取代游戏海报。
+            GenerativeCover {
                 anchors.fill: parent
-                source: detail.app ? Mock.imagePath(detail.app.image) : ""
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
+                style: detail.style
+                app: detail.app
+                iconSize: 64
             }
             Rectangle {
                 anchors.fill: parent

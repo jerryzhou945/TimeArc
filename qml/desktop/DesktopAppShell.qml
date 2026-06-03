@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 import time_arc
+import "components/AppVisual.js" as AppVisual
 
 Item {
     id: root
@@ -37,10 +38,18 @@ Item {
     // 当前实际使用的背景图
     property string appBackgroundSource: nightMode ? nightBackgroundSource : dayBackgroundSource
 
-    // 记忆湖：把当前卡牌封面的模糊大图升级为整个 App 背景（Issue 1）
-    readonly property bool onMemoryLake: selectedIndex === 2 && !showingTimerPage
-    readonly property url memoryLakeBackgroundSource:
-        (onMemoryLake && pageLoader.item && ("ambientSource" in pageLoader.item)) ? pageLoader.item.ambientSource : ""
+    // 记忆湖：整个 App 背景改为当前 APP 的 appColor 色彩晕染（§4.4，取代游戏海报模糊大图）。
+    readonly property bool onMemoryLake: selectedPage === "memorylake" && !showingTimerPage
+    // 记忆湖首页 + 月度回顾页都铺满内容区（去外框/玻璃，让暗色水面铺满整窗）。
+    readonly property bool fullBleedPage:
+        (selectedPage === "memorylake" || selectedPage === "recap") && !showingTimerPage
+    readonly property bool memoryLakeHasAmbient:
+        onMemoryLake && pageLoader.item && ("hasAmbient" in pageLoader.item) && pageLoader.item.hasAmbient
+    readonly property color memoryLakeAmbientColor:
+        (onMemoryLake && pageLoader.item && ("ambientColor" in pageLoader.item)) ? pageLoader.item.ambientColor : "#9FE7EE"
+    // 当前 APP 图标主色数组（多色 blend 背景用）；缺失退回单色。
+    readonly property var memoryLakeAmbientColors:
+        (onMemoryLake && pageLoader.item && ("ambientColors" in pageLoader.item)) ? pageLoader.item.ambientColors : [memoryLakeAmbientColor]
 
     // 记忆湖时导航栏配色对齐记忆湖左右玻璃面板（MemoryLakeStyle 的 panel/accent 值）
     readonly property color mlNavGlass: nightMode ? Qt.rgba(0.055, 0.080, 0.130, 0.86) : Qt.rgba(1, 1, 1, 0.66)
@@ -92,32 +101,37 @@ Item {
     // =========================
     // 左侧导航项
     // =========================
+    // 顺序 / 文案对齐 v88 设计稿。page = 路由键（与下标解耦，供 currentPageSource /
+    // onMemoryLake / 信号连接使用）；bottom = true 的项固定在菜单最底部（月度回顾）。
     property var navItems: [
-        {
-            title: "首页",
-            icon: Qt.resolvedUrl("../../resources/icons/home.svg")
-        },
-        {
-            title: "备忘",
-            icon: Qt.resolvedUrl("../../resources/icons/chat.svg")
-        },
-        {
-            title: "记忆湖",
-            icon: Qt.resolvedUrl("../../resources/icons/home.svg")
-        },
-        {
-            title: "日历",
-            icon: Qt.resolvedUrl("../../resources/icons/calendar.svg")
-        },
-        {
-            title: "统计",
-            icon: Qt.resolvedUrl("../../resources/icons/stats.svg")
-        },
-        {
-            title: "我的",
-            icon: Qt.resolvedUrl("../../resources/icons/user.svg")
-        }
+        { title: "首页", subtitle: "Dashboard", page: "memorylake",
+          icon: Qt.resolvedUrl("../../resources/icons/home.svg") },
+        { title: "日历", subtitle: "Calendar", page: "calendar",
+          icon: Qt.resolvedUrl("../../resources/icons/calendar.svg") },
+        { title: "统计", subtitle: "Stats", page: "stats",
+          icon: Qt.resolvedUrl("../../resources/icons/stats.svg") },
+        { title: "设置", subtitle: "Settings", page: "settings",
+          icon: Qt.resolvedUrl("../../resources/icons/settings.svg") },
+        { title: "备忘", subtitle: "Notes", page: "notes",
+          icon: Qt.resolvedUrl("../../resources/icons/chat.svg") },
+        { title: "记忆湖", subtitle: "Memory Recap", page: "recap", bottom: true,
+          icon: Qt.resolvedUrl("../../resources/icons/recap.svg") }
     ]
+
+    readonly property var topNavItems: navItems.filter(function (it) { return !it.bottom })
+    readonly property var bottomNavItems: navItems.filter(function (it) { return it.bottom })
+
+    // 当前选中项的路由键。
+    readonly property string selectedPage:
+        (selectedIndex >= 0 && selectedIndex < navItems.length)
+            ? navItems[selectedIndex].page : "memorylake"
+
+    function indexOfPage(key) {
+        for (var i = 0; i < navItems.length; i++)
+            if (navItems[i].page === key)
+                return i;
+        return -1;
+    }
 
     // =========================
     // 当前 Loader 要加载哪个页面
@@ -126,19 +140,14 @@ Item {
         if (showingTimerPage)
             return Qt.resolvedUrl("pages/DesktopTimerPage.qml");
 
-        if (selectedIndex === 0)
-            return Qt.resolvedUrl("pages/DesktopHomePage.qml");
-        if (selectedIndex === 1)
-            return Qt.resolvedUrl("pages/DesktopChatPage.qml");
-        if (selectedIndex === 2)
-            return Qt.resolvedUrl("pages/DesktopMemoryLakePage.qml");
-        if (selectedIndex === 3)
-            return Qt.resolvedUrl("pages/DesktopCalenderPage.qml");
-        if (selectedIndex === 4)
-            return Qt.resolvedUrl("pages/DesktopStatsPage.qml");
-        if (selectedIndex === 5)
-            return Qt.resolvedUrl("pages/DesktopProfilePage.qml");
-
+        switch (selectedPage) {
+        case "memorylake": return Qt.resolvedUrl("pages/DesktopMemoryLakePage.qml");
+        case "calendar":   return Qt.resolvedUrl("pages/DesktopCalenderPage.qml");
+        case "stats":      return Qt.resolvedUrl("pages/DesktopStatsPage.qml");
+        case "settings":   return Qt.resolvedUrl("pages/DesktopProfilePage.qml");
+        case "notes":      return Qt.resolvedUrl("pages/DesktopChatPage.qml");
+        case "recap":      return Qt.resolvedUrl("pages/DesktopMonthlyRecapPage.qml");
+        }
         return "";
     }
 
@@ -222,57 +231,86 @@ Item {
                 opacity: nightMode ? 0.28 : 0.52
             }
 
-            // 记忆湖：当前卡牌封面的模糊大图作为整个 App 背景（Issue 1）
+            // 记忆湖：整个 App 背景 = 当前 APP **图标主色**的多色晕染（§4.4 / issue A7/B4）。
+            // 不再用游戏海报；改图标主色（2–3 色）渐变交叉淡入 + 两团模糊色块混入，仍重模糊。
             Item {
                 anchors.fill: parent
-                visible: onMemoryLake && memoryLakeBackgroundSource != ""
-                // 双图交叉淡入淡出：切换卡牌时背景柔和过渡，而非硬切
+                visible: onMemoryLake && memoryLakeHasAmbient
+                // 多色渐变交叉淡入淡出：保留原 A/B 乒乓 + 450ms Behavior（颜色数组驱动）。
                 Item {
                     id: mlBgSrc
                     anchors.fill: parent
-                    visible: false
-                    layer.enabled: true
-                    property url src: memoryLakeBackgroundSource
+                    property var cols: memoryLakeAmbientColors
                     property bool frontIsA: true
-                    onSrcChanged: {
-                        if (src == "")
-                            return
-                        if (frontIsA) { mlImgB.source = src; frontIsA = false }
-                        else { mlImgA.source = src; frontIsA = true }
+                    // 取色数组第 i 项（不足则取末项；空则兜底）。
+                    function col(arr, i) {
+                        return (arr && arr.length > 0) ? arr[Math.min(i, arr.length - 1)] : "#9FE7EE"
                     }
-                    Component.onCompleted: if (src != "") { mlImgA.source = src; frontIsA = true }
-                    Image {
-                        id: mlImgA
+                    onColsChanged: {
+                        if (frontIsA) { mlRectB.cols = cols; frontIsA = false }
+                        else { mlRectA.cols = cols; frontIsA = true }
+                    }
+                    Component.onCompleted: { mlRectA.cols = cols; frontIsA = true }
+                    Rectangle {
+                        id: mlRectA
                         anchors.fill: parent
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
+                        property var cols: mlBgSrc.cols
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: Qt.lighter(AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 0), nightMode), 1.06) }
+                            GradientStop { position: 0.5; color: AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 1), nightMode) }
+                            GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 2), nightMode), 1.16) }
+                        }
                         opacity: mlBgSrc.frontIsA ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
                     }
-                    Image {
-                        id: mlImgB
+                    Rectangle {
+                        id: mlRectB
                         anchors.fill: parent
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
+                        property var cols: mlBgSrc.cols
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: Qt.lighter(AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 0), nightMode), 1.06) }
+                            GradientStop { position: 0.5; color: AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 1), nightMode) }
+                            GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 2), nightMode), 1.16) }
+                        }
                         opacity: mlBgSrc.frontIsA ? 0 : 1
                         Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
                     }
                 }
-                MultiEffect {
-                    anchors.fill: parent
-                    source: mlBgSrc
-                    blurEnabled: true
-                    blur: 0.82
-                    blurMax: 64
-                    brightness: nightMode ? -0.18 : -0.06
-                    saturation: -0.06
-                    scale: 1.08
+                // 点缀色块：两团模糊圆，取图标主色的**淡化色调**错位摆放——模糊后柔和混入，不夸张。
+                Rectangle {
+                    id: mlBlobA
+                    width: Math.min(parent.width, parent.height) * 0.8
+                    height: width; radius: width / 2
+                    x: parent.width * 0.2 - width / 2
+                    y: parent.height * 0.26 - height / 2
+                    visible: false; layer.enabled: true
+                    color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 0), nightMode)
+                    Behavior on color { ColorAnimation { duration: 450 } }
                 }
-                // 整个 App 统一压成「记忆湖」暗色水面（避免中间黑、四周亮的不一致），
-                // 仍保留模糊封面的隐约色块。
+                MultiEffect {
+                    anchors.fill: mlBlobA; source: mlBlobA
+                    blurEnabled: true; blur: 1.0; blurMax: 64
+                    opacity: nightMode ? 0.16 : 0.24; autoPaddingEnabled: true
+                }
+                Rectangle {
+                    id: mlBlobB
+                    width: Math.min(parent.width, parent.height) * 0.74
+                    height: width; radius: width / 2
+                    x: parent.width * 0.8 - width / 2
+                    y: parent.height * 0.72 - height / 2
+                    visible: false; layer.enabled: true
+                    color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 1), nightMode)
+                    Behavior on color { ColorAnimation { duration: 450 } }
+                }
+                MultiEffect {
+                    anchors.fill: mlBlobB; source: mlBlobB
+                    blurEnabled: true; blur: 1.0; blurMax: 64
+                    opacity: nightMode ? 0.13 : 0.20; autoPaddingEnabled: true
+                }
+                // 轻压一层统一「水面」，淡淡的、保留清新色调（不再压成深色）。
                 Rectangle {
                     anchors.fill: parent
-                    color: nightMode ? Qt.rgba(0.02, 0.03, 0.06, 0.60) : Qt.rgba(0.10, 0.13, 0.20, 0.40)
+                    color: nightMode ? Qt.rgba(0.05, 0.07, 0.11, 0.26) : Qt.rgba(0.14, 0.16, 0.22, 0.12)
                 }
             }
         }
@@ -320,6 +358,78 @@ Item {
                 color: appSidebarGlass
                 opacity: nightMode ? 0.88 : 0.92
                 z: -1
+            }
+
+            // 导航项委托：顶部主菜单与底部「记忆湖」入口共用（index 由 page 反查，与下标解耦）。
+            Component {
+                id: navItemDelegate
+                Rectangle {
+                    required property var modelData
+                    readonly property int navIndex: root.indexOfPage(modelData.page)
+                    readonly property bool isSel: selectedIndex === navIndex && !showingTimerPage
+
+                    width: parent ? parent.width : 0
+                    height: 56
+                    radius: 18
+                    color: isSel ? appSelectedItem
+                                 : navMouse.containsMouse ? (nightMode ? "#4B526F" : "#F4E8C8")
+                                                          : "transparent"
+                    border.width: isSel ? 1 : 0
+                    border.color: appSelectedItemBorder
+
+                    Behavior on color {
+                        ColorAnimation { duration: 140 }
+                    }
+
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: sidebarCollapsed ? undefined : parent.left
+                        anchors.leftMargin: sidebarCollapsed ? 0 : 16
+                        anchors.horizontalCenter: sidebarCollapsed ? parent.horizontalCenter : undefined
+                        spacing: 14
+
+                        Image {
+                            source: modelData.icon
+                            width: 22
+                            height: 22
+                            fillMode: Image.PreserveAspectFit
+                            anchors.verticalCenter: parent.verticalCenter
+                            opacity: isSel ? 1.0 : 0.72
+                        }
+
+                        Column {
+                            visible: !sidebarCollapsed
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 1
+
+                            Text {
+                                text: modelData.title
+                                color: isSel ? appTextPrimary : appTextSecondary
+                                font.pixelSize: 16
+                                font.weight: Font.Medium
+                            }
+
+                            Text {
+                                text: modelData.subtitle ? modelData.subtitle : ""
+                                visible: text.length > 0
+                                color: appTextSecondary
+                                font.pixelSize: 10
+                                opacity: 0.7
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: navMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            showingTimerPage = false;
+                            selectedIndex = navIndex;
+                        }
+                    }
+                }
             }
 
             Column {
@@ -404,74 +514,37 @@ Item {
                     }
                 }
 
-                // 导航列表
+                // 导航列表（顶部主菜单：非 bottom 项）
                 Column {
                     width: parent.width
                     spacing: 8
 
                     Repeater {
-                        model: navItems
-
-                        delegate: Rectangle {
-                            required property int index
-                            required property var modelData
-
-                            width: parent.width
-                            height: 56
-                            radius: 18
-                            color: selectedIndex === index && !showingTimerPage ? appSelectedItem
-                                   : navMouse.containsMouse ? (nightMode ? "#4B526F" : "#F4E8C8")
-                                                            : "transparent"
-                            border.width: selectedIndex === index && !showingTimerPage ? 1 : 0
-                            border.color: appSelectedItemBorder
-
-                            Behavior on color {
-                                ColorAnimation { duration: 140 }
-                            }
-
-                            Row {
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.left: sidebarCollapsed ? undefined : parent.left
-                                anchors.leftMargin: sidebarCollapsed ? 0 : 16
-                                anchors.horizontalCenter: sidebarCollapsed ? parent.horizontalCenter : undefined
-                                spacing: 14
-
-                                Image {
-                                    source: modelData.icon
-                                    width: 22
-                                    height: 22
-                                    fillMode: Image.PreserveAspectFit
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    opacity: selectedIndex === index && !showingTimerPage ? 1.0 : 0.72
-                                }
-
-                                Text {
-                                    visible: !sidebarCollapsed
-                                    text: modelData.title
-                                    color: selectedIndex === index && !showingTimerPage ? appTextPrimary : appTextSecondary
-                                    font.pixelSize: 16
-                                    font.weight: Font.Medium
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            MouseArea {
-                                id: navMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    showingTimerPage = false;
-                                    selectedIndex = index;
-                                }
-                            }
-                        }
+                        model: root.topNavItems
+                        delegate: navItemDelegate
                     }
                 }
+            }
 
-                Item {
-                    width: 1
-                    Layout.fillHeight: true
+            // 底部固定区：分隔的「记忆湖 / Memory Recap」入口 + 陪伴卡片
+            Column {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.margins: 18
+                spacing: 12
+
+                Rectangle {
+                    visible: !sidebarCollapsed
+                    width: parent.width
+                    height: 1
+                    color: appSidebarBorder
+                    opacity: 0.6
+                }
+
+                Repeater {
+                    model: root.bottomNavItems
+                    delegate: navItemDelegate
                 }
 
                 // 左下角状态卡片
@@ -535,8 +608,8 @@ Item {
                 anchors.fill: parent
                 radius: 32
                 color: "transparent"
-                // 记忆湖时去掉内容区外框，让暗色水面真正铺满全 App、不再有「框中框」
-                border.width: onMemoryLake ? 0 : 1
+                // 记忆湖/月度回顾时去掉内容区外框，让暗色水面真正铺满全 App、不再有「框中框」
+                border.width: fullBleedPage ? 0 : 1
                 border.color: appPanelBorder
 
                 Rectangle {
@@ -546,7 +619,7 @@ Item {
                     height: parent.height
                     radius: parent.radius
                     color: appShadowColor
-                    opacity: onMemoryLake ? 0 : (nightMode ? 0.26 : 0.08)
+                    opacity: fullBleedPage ? 0 : (nightMode ? 0.26 : 0.08)
                     z: -2
                 }
 
@@ -555,16 +628,16 @@ Item {
                     anchors.margins: 1
                     radius: 31
                     color: appPanelGlass
-                    // 记忆湖时透明，让整个 App 模糊背景 + 卡牌占位符背景透出（Issue 1/2）
-                    opacity: onMemoryLake ? 0 : (nightMode ? 0.76 : 0.82)
+                    // 记忆湖/月度回顾时透明，让整个 App 模糊背景 + 卡牌占位符背景透出（Issue 1/2）
+                    opacity: fullBleedPage ? 0 : (nightMode ? 0.76 : 0.82)
                     z: -1
                 }
 
                 Loader {
                     id: pageLoader
                     anchors.fill: parent
-                    // 记忆湖几乎铺满占位符（卡牌作为背景层覆盖最大圆角方体，Issue 2）
-                    anchors.margins: onMemoryLake ? 8 : 22
+                    // 记忆湖/月度回顾几乎铺满占位符（卡牌作为背景层覆盖最大圆角方体，Issue 2）
+                    anchors.margins: fullBleedPage ? 8 : 22
                     source: currentPageSource
 
                     onLoaded: {
@@ -580,35 +653,31 @@ Item {
                         if (showingTimerPage)
                             return;
 
-                        // 首页：连接开始计时信号
-                        if (selectedIndex === 0 && item.startProject) {
-                            item.startProject.connect(function (projectName, tagName) {
-                                console.log("startProject signal received:", projectName);
-                                if (timerManager) {
-                                    pendingProjectTag = tagName;
-                                    pendingTodoDateKey = "";
-                                    pendingTodoText = "";
-                                    pendingTodoTag = "";
-                                    pendingTodoLinkedProject = "";
-                                    timerManager.startProject(projectName);
-                                    showingTimerPage = true;
+                        // 记忆湖首页 / 月度回顾页：请求切页（今日事项「日历」、返回湖面等）。
+                        if ((selectedPage === "memorylake" || selectedPage === "recap")
+                                && item.requestNavigate) {
+                            item.requestNavigate.connect(function (pageKey) {
+                                var idx = indexOfPage(pageKey);
+                                if (idx >= 0) {
+                                    showingTimerPage = false;
+                                    selectedIndex = idx;
                                 }
                             });
                         }
 
-                        // 我的页：连接夜晚模式开关信号
-                        if (selectedIndex === 5 && item.nightModeToggled) {
-                            item.nightModeToggled.connect(function (enabled) {
-                                nightMode = enabled;
-                            });
+                        // 设置页：连接夜晚模式开关 + 同步当前 nightMode。
+                        if (selectedPage === "settings") {
+                            if (item.nightModeToggled) {
+                                item.nightModeToggled.connect(function (enabled) {
+                                    nightMode = enabled;
+                                });
+                            }
+                            if ("nightMode" in item)
+                                item.nightMode = nightMode;
                         }
 
-                        // 我的页：把当前 nightMode 同步给 profile page
-                        if (selectedIndex === 5 && "nightMode" in item) {
-                            item.nightMode = nightMode;
-                        }
-
-                        if (selectedIndex === 3 && item.startTodoProject) {
+                        // 日历页：待办计时。
+                        if (selectedPage === "calendar" && item.startTodoProject) {
                             item.startTodoProject.connect(function (projectName, tagName, dateKey, linkedProjectName) {
                                 if (timerManager) {
                                     pendingProjectTag = "";

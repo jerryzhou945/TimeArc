@@ -80,3 +80,20 @@ Any Card/AI feature that changes product behavior must update at least one of:
 - `README.md` if user-visible
 
 Keep product notes in `docs/`; keep harness rules short and enforceable.
+
+## 7. Memory Lake data path
+
+Memory Lake (`qml/desktop/memorylake/`) renders **real local data**, not
+`MemoryLakeMock.js` (kept only as design-time fallback). It reuses the homepage
+read-only path — `usageStatManager.activeSoftwareForRange` /
+`foregroundSegmentsForRange` + `refresh` + `onUsageStatsChanged` — so its security
+surface equals the homepage's. The view model is assembled in C++ by
+`DailyCardService::memoryLake{Day,Recap}` (local deterministic templates; the day
+headline is a cross-app focus-block task summary). Category comes from
+`UsageStatManager::classifyActivity` — keyword match on the **exe identity**, with
+window titles read locally only to split browser→视频/音乐 (never displayed/AI/
+stored); shell processes bucket to `系统` and are down-weighted. QML only renders.
+Visuals use shared `components/AppVisual.js` (color/icon + ambient/cover tone) and
+`GenerativeCover.qml` (icon-dominant-color blend, no per-app artwork). No new data
+path, no IPC, no AI over raw logs. Plan:
+`docs/memory-lake-backend-integration-plan.md`.

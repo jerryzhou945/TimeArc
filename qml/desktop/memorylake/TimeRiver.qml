@@ -1,20 +1,32 @@
 import QtQuick
 
-// 右栏「使用时间图 · 时间河流」：纵向时间轴 + 节点条 + 涟漪 + 刻度，跟随当前 APP。
-// 1:1 对应设计稿 .time-tree / .tree-wrap / .time-node / .ripple。
+// 右栏「使用时间图 · 时间河流」：纵向时间轴 + 节点条 + 涟漪，跟随当前 APP。
+// 纵轴固定 0–24 时（自上而下），节点 y 与轴共用同一时间窗（§3.6 反错配修复）；
+// 节点横向长度表示单次会话时长。数据来自后端 buildRiverNodes：
+//   app.times = [{ start:"HH:mm", end:"HH:mm", y:0..1(全天分数), dur:秒 }]。
 Item {
     id: river
 
     property MemoryLakeStyle style
     property var app
 
+    // 纵轴固定刻度：0–24 时，5 档；f = 全天分数，与节点 y 同一坐标系。
     readonly property var axisLabels: [
-        { t: "10:00", y: 0.18 }, { t: "16:00", y: 0.42 },
-        { t: "20:00", y: 0.66 }, { t: "24:00", y: 0.86 }
+        { t: "00:00", f: 0.0 }, { t: "06:00", f: 0.25 },
+        { t: "12:00", f: 0.5 }, { t: "18:00", f: 0.75 }, { t: "24:00", f: 1.0 }
     ]
-    readonly property var ruler: ["10:00", "14:00", "18:00", "22:00"]
     // 设计稿 .tree-axis / .time-node / .ripple 均以 left:52px 为基准
     readonly property int axisX: 52
+
+    readonly property var nodes: app && app.times ? app.times : []
+
+    // 全天分数 -> 轴可视区像素 y。轴线在 wrap 内上 26 / 下 30 内缩，节点与标签共用。
+    function mapY(frac) {
+        var top = 26;
+        var avail = wrap.height - 56;
+        var f = frac < 0 ? 0 : (frac > 1 ? 1 : frac);
+        return top + avail * f;
+    }
 
     Column {
         anchors.fill: parent
@@ -34,7 +46,7 @@ Item {
             Text {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                text: "几点到几点"
+                text: "纵轴 0–24 时"
                 color: river.style ? river.style.textTertiary : "#888"
                 font.pixelSize: 11
             }
@@ -44,7 +56,7 @@ Item {
         Rectangle {
             id: wrap
             width: parent.width
-            height: parent.height - 18 - 10 - 18 - 10
+            height: parent.height - 18 - 10
             radius: 20
             color: river.style ? (river.style.night ? Qt.rgba(0, 0, 0, 0.10) : Qt.rgba(1, 1, 1, 0.25)) : "#0b1018"
             border.width: 1
@@ -80,13 +92,13 @@ Item {
                 }
             }
 
-            // 左侧时间标签
+            // 左侧时间标签（固定 0–24 时，与节点同窗）
             Repeater {
                 model: river.axisLabels
                 delegate: Text {
                     required property var modelData
-                    x: 10
-                    y: wrap.height * modelData.y - height / 2
+                    x: 8
+                    y: river.mapY(modelData.f) - height / 2
                     text: modelData.t
                     color: river.style ? river.style.textTertiary : "#888"
                     font.pixelSize: 10
@@ -95,14 +107,17 @@ Item {
 
             // 涟漪 + 节点
             Repeater {
-                model: river.app ? river.app.times : []
+                model: river.nodes
                 delegate: Item {
                     required property int index
                     required property var modelData
                     anchors.fill: parent
 
-                    readonly property real nodeY: wrap.height * (modelData[3] / 100)
-                    readonly property real nodeW: Math.min(modelData[2], wrap.width - river.axisX - 70)
+                    readonly property real availW: wrap.width - river.axisX - 70
+                    readonly property real nodeY: river.mapY(modelData.y ? modelData.y : 0)
+                    // 横向长度按单次时长映射：约 2h 占满，按比例缩短，最短 20px。
+                    readonly property real nodeW: Math.max(20, Math.min(availW,
+                        availW * Math.min(1, (modelData.dur ? modelData.dur : 0) / 7200)))
 
                     // 涟漪
                     Rectangle {
@@ -129,8 +144,7 @@ Item {
                         }
                     }
 
-                    // 节点圆点辉光（近似 box-shadow 0 0 18px rgba(130,239,255,.42)；
-                    // 无原生外发光，用两层低透圆叠出柔晕，避开逐节点 MultiEffect 开销）
+                    // 节点圆点辉光（两层低透圆叠出柔晕）
                     Rectangle {
                         x: river.axisX - 14; y: nodeY - 14
                         width: 28; height: 28; radius: 14
@@ -154,30 +168,20 @@ Item {
                     Text {
                         x: river.axisX + nodeW + 10
                         y: nodeY - 8
-                        text: modelData[0] + "–" + modelData[1]
+                        text: (modelData.start ? modelData.start : "") + "–" + (modelData.end ? modelData.end : "")
                         color: river.style ? river.style.textSecondary : "#bbb"
                         font.pixelSize: 11
                     }
                 }
             }
-        }
 
-        // 底部刻度
-        Row {
-            width: parent.width
-            height: 18
-            Repeater {
-                model: river.ruler
-                delegate: Text {
-                    required property int index
-                    required property var modelData
-                    width: wrap.width / 4
-                    text: modelData
-                    color: river.style ? river.style.textTertiary : "#888"
-                    font.pixelSize: 10
-                    horizontalAlignment: index === 0 ? Text.AlignLeft
-                                                     : (index === 3 ? Text.AlignRight : Text.AlignHCenter)
-                }
+            // 空态：当前应用今天没有可展示的使用时段。
+            Text {
+                anchors.centerIn: parent
+                visible: river.nodes.length === 0
+                text: "今天没有该应用的使用时段"
+                color: river.style ? river.style.textTertiary : "#888"
+                font.pixelSize: 12
             }
         }
     }
