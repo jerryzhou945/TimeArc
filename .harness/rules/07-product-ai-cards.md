@@ -88,8 +88,12 @@ Memory Lake (`qml/desktop/memorylake/`) renders **real local data**, not
 read-only path — `usageStatManager.activeSoftwareForRange` /
 `foregroundSegmentsForRange` + `refresh` + `onUsageStatsChanged` — so its security
 surface equals the homepage's. The view model is assembled in C++ by
-`DailyCardService::memoryLakeDay` (local deterministic templates over
-`classifyApp`); QML only renders. Visuals use shared
-`components/AppVisual.js` (appColor + `image://appicon`) and `GenerativeCover.qml`
-(no per-app artwork; missing icon → appColor). No new data path, no IPC, no AI
-over raw logs. Plan: `docs/memory-lake-backend-integration-plan.md`.
+`DailyCardService::memoryLake{Day,Recap}` (local deterministic templates; the day
+headline is a cross-app focus-block task summary). Category comes from
+`UsageStatManager::classifyActivity` — keyword match on the **exe identity**, with
+window titles read locally only to split browser→视频/音乐 (never displayed/AI/
+stored); shell processes bucket to `系统` and are down-weighted. QML only renders.
+Visuals use shared `components/AppVisual.js` (color/icon + ambient/cover tone) and
+`GenerativeCover.qml` (icon-dominant-color blend, no per-app artwork). No new data
+path, no IPC, no AI over raw logs. Plan:
+`docs/memory-lake-backend-integration-plan.md`.

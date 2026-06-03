@@ -37,11 +37,12 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   Phase 2 monthly recap): `MemoryLakeMock.js` replaced by read-only `UsageStatManager`
   data + `DailyCardService::memoryLake{Day,Recap}` local templates; C++ aggregation added
   (no schema change): per-day month series, last-month compare, category share, time-of-day
-  peak, per-app sessions; generative covers (appColor + `image://appicon`) for arbitrary
-  apps. **Still open:** mobile equivalent; Phase 3 polish (icon-derived background color
-  `B4`; classify keyword coverage `A4`/`B5` — see `docs/memory-lake-integration-issues.md`).
-  Full per-surface plan: `docs/memory-lake-backend-integration-plan.md`
-  (also `…-implementation-plan.md` §4).
+  peak, per-app sessions; cross-app focus-block task summary; window-title-aware category
+  classifier (`系统` bucket); icon-dominant-color blended background + covers. **Still
+  open:** mobile equivalent; classifier long-tail keyword coverage (`A4` — uncommon apps
+  still fall to 其他). Implementation issues + resolutions (A1–A7, B1–B11):
+  `docs/memory-lake-integration-issues.md`; per-surface plan:
+  `docs/memory-lake-backend-integration-plan.md` (also `…-implementation-plan.md` §4).
 - **Third-party license page missing.** Main README TO-DO. Required by GPL +
   Qt LGPL combination; see
   [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.

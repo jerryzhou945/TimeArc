@@ -60,13 +60,16 @@ with day and night modes.
   "记忆湖": an app usage ranking, a center flip-card carousel (3D flip, wheel/
   click switching, flip-to-lock), and a right-side detail + "time river"
   visualization, plus a full-screen monthly recap (story-mode slides with
-  transitions, autoplay, and an unlockable step directory). It follows the
-  day/night theme and uses glass/neon lighting and silky scrolling. The UI is a
-  1:1 port of the `MemoryLakeDesign/` prototype and currently renders demo data;
-  wiring it to real recorded usage is a tracked follow-up (see
-  `docs/memory-lake-implementation-plan.md`). The deterministic local daily-card
-  generator (`DailyCardService`, no AI, no persistence) remains available for
-  reuse when real data is wired in.
+  transitions, autoplay, and an unlockable step directory). It renders **real
+  recorded usage** via the same read-only path as the Home page: the day view is
+  a cross-app focus-block task summary (e.g. "开发为主 · 今天有 N 段连续使用")
+  with per-app categories, generative covers tinted by the app icon's own colors
+  (no per-app artwork), and a time river; the monthly recap is built from real
+  month data (per-day trend, category share, month-on-month). All copy is local
+  deterministic templates (`DailyCardService`, no AI, no chat/screenshots/raw
+  audio); missing data falls back to honest empty states. It follows the
+  day/night theme with glass/neon lighting and silky scrolling. Per-surface
+  design: `docs/memory-lake-backend-integration-plan.md`.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 
