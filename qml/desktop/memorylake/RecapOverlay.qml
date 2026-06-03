@@ -62,9 +62,12 @@ Item {
         else if (storyComplete && (e.key === Qt.Key_Left || e.key === Qt.Key_Up)) { setSlide(index - 1, false); e.accepted = true }
     }
 
-    // 暗底：不透明，彻底盖住其后的记忆湖页面（之前 .86 会透出 8.9h / 排行等，显脏）
+    // 暗底：不透明，彻底盖住其后的记忆湖页面（之前 .86 会透出 8.9h / 排行等，显脏）。
+    // 外缘收圆：记忆湖页面内嵌于 radius:32 内容卡、再内缩 8px，故圆角 24 让暗底外缘与内容卡
+    // 圆角对齐，整屏读作一块圆角面板，而非「方角黑框套圆角壳」。
     Rectangle {
         anchors.fill: parent
+        radius: 24
         color: recap.style && recap.style.night ? Qt.rgba(0.008, 0.02, 0.04, 1.0) : Qt.rgba(0.10, 0.12, 0.18, 0.97)
     }
 

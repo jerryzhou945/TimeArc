@@ -206,12 +206,17 @@ Item {
                 spacing: 10
                 Repeater {
                     model: slide.slideData.monthMap
-                    delegate: Rectangle {
+                    delegate: RoundedFrame {
                         required property var modelData
                         width: 86; height: 92; radius: 18
-                        color: slide.style ? slide.style.cardBg : "#ffffff10"
                         border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
-                        clip: true
+                        // 底色
+                        Rectangle {
+                            anchors.fill: parent
+                            color: slide.style ? slide.style.cardBg : "#ffffff10"
+                        }
+                        // 填充条：方角，整体随帧圆角遮罩一次裁切——矮条保持平顶水位线；满条（如 Jun28 96%）
+                        // 顶部自然贴合容器圆角、不再方角溢出（满溢漏顶）；底部同样收圆。比 clip:true（只裁矩形）正确。
                         Rectangle {
                             anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                             height: parent.height * modelData.h
@@ -237,8 +242,9 @@ Item {
         id: posterBody
         Row {
             spacing: 28
-            Rectangle {
-                width: 300; height: 460; radius: 28; clip: true
+            // 圆角裁切帧：封面图 + 底部暗角渐变 + 标题随帧圆角一起裁切，杜绝方角棱角溢出。
+            RoundedFrame {
+                width: 300; height: 460; radius: 28
                 border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
                 Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
                 Rectangle {
@@ -275,8 +281,8 @@ Item {
                 width: 430; spacing: 18
                 BigTitle { width: 430; text: slide.slideData.title; font.pixelSize: 44 }
                 SubText { width: 430; text: slide.slideData.subtitle }
-                Rectangle {
-                    width: 430; height: 250; radius: 28; clip: true
+                RoundedFrame {
+                    width: 430; height: 250; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
                     Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
                     Rectangle { anchors.fill: parent; gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: "transparent" } GradientStop { position: 1; color: Qt.rgba(0,0,0,0.7) } } }
@@ -310,9 +316,9 @@ Item {
             SubText { text: slide.slideData.subtitle }
             Item {
                 width: parent.width; height: 360
-                Rectangle {
+                RoundedFrame {
                     anchors.centerIn: parent
-                    width: 220; height: 220; radius: 110; clip: true
+                    width: 220; height: 220; radius: 110   // = 半边长 → 正圆环形头像
                     border.width: 1; border.color: slide.style ? slide.style.faceBorderActive : "#ffffff33"
                     Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
                 }
@@ -352,8 +358,8 @@ Item {
                         Text { width: parent.width; text: slide.slideData.articleBody; color: slide.tSecondary; font.pixelSize: 15; lineHeight: 1.6; wrapMode: Text.WordWrap }
                     }
                 }
-                Rectangle {
-                    width: 260; height: 360; radius: 28; clip: true
+                RoundedFrame {
+                    width: 260; height: 360; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
                     Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
                 }
