@@ -301,43 +301,133 @@ Item {
             z: 1
             style: ml
 
-            Column {
+            // 右栏出现逻辑同步 v88（V71）：未翻面 = 今日事项(上) + 软件使用占比(下)，隐藏时间图；
+            // 翻面 = 仅显示使用时间图，事项/占比隐藏。切换用 v88 rightSectionSwap 弹性入场。
+            Item {
                 anchors.fill: parent
                 anchors.margins: 14
-                spacing: 14
 
-                // 今日软件使用占比（饼图 + 图例）
-                DailyUsageShare {
-                    width: parent.width
-                    height: 226
-                    style: ml
-                    share: root.usageShare
-                    total: root.overview.total
-                }
+                // —— 未翻面：今日事项（顺序一/上）+ 今日软件使用占比（顺序二/下）——
+                Item {
+                    id: homeRight
+                    anchors.fill: parent
+                    readonly property bool active: !root.locked
+                    visible: opacity > 0.01
+                    opacity: 1
+                    transform: [
+                        Translate { id: homeTr; y: 0 },
+                        Scale {
+                            id: homeSc
+                            origin.x: homeRight.width / 2; origin.y: homeRight.height / 2
+                            xScale: 1; yScale: 1
+                        }
+                    ]
+                    Component.onCompleted: opacity = active ? 1 : 0
+                    onActiveChanged: active ? homeIn.restart() : homeOut.restart()
 
-                // 使用时间图 · 时间河流（仍按当前选中 APP）
-                Rectangle {
-                    width: parent.width
-                    height: Math.max(120, parent.height - 226 - 196 - 28)
-                    radius: 18
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
-                    TimeRiver {
+                    Column {
                         anchors.fill: parent
-                        anchors.margins: 16
-                        style: ml
-                        app: root.current
+                        spacing: 14
+
+                        // 顺序一：今日事项（与日历同步）
+                        CalendarSyncList {
+                            id: calendarSync
+                            width: parent.width
+                            height: Math.max(140, parent.height - 226 - 14)
+                            style: ml
+                            onOpenCalendar: root.requestNavigate("calendar")
+                        }
+
+                        // 顺序二：今日软件使用占比（饼图 + 图例）
+                        DailyUsageShare {
+                            width: parent.width
+                            height: 226
+                            style: ml
+                            share: root.usageShare
+                            total: root.overview.total
+                        }
                     }
+
+                    SequentialAnimation {
+                        id: homeIn
+                        PropertyAction { target: homeTr; property: "y"; value: 14 }
+                        PropertyAction { target: homeSc; property: "xScale"; value: 0.985 }
+                        PropertyAction { target: homeSc; property: "yScale"; value: 0.985 }
+                        PropertyAction { target: homeRight; property: "opacity"; value: 0.45 }
+                        ParallelAnimation {
+                            NumberAnimation { target: homeRight; property: "opacity"; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                            SequentialAnimation {
+                                ParallelAnimation {
+                                    NumberAnimation { target: homeTr; property: "y"; to: -3; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                    NumberAnimation { target: homeSc; property: "xScale"; to: 1.008; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                    NumberAnimation { target: homeSc; property: "yScale"; to: 1.008; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                }
+                                ParallelAnimation {
+                                    NumberAnimation { target: homeTr; property: "y"; to: 0; duration: 160; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: homeSc; property: "xScale"; to: 1; duration: 160; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: homeSc; property: "yScale"; to: 1; duration: 160; easing.type: Easing.OutQuad }
+                                }
+                            }
+                        }
+                    }
+                    NumberAnimation { id: homeOut; target: homeRight; property: "opacity"; to: 0; duration: 200; easing.type: Easing.OutCubic }
                 }
 
-                // 今日事项（与日历同步）
-                CalendarSyncList {
-                    id: calendarSync
-                    width: parent.width
-                    height: 196
-                    style: ml
-                    onOpenCalendar: root.requestNavigate("calendar")
+                // —— 翻面：使用时间图填满；事项/占比隐藏 ——
+                Item {
+                    id: lockedRight
+                    anchors.fill: parent
+                    readonly property bool active: root.locked
+                    visible: opacity > 0.01
+                    opacity: 0
+                    transform: [
+                        Translate { id: lockTr; y: 0 },
+                        Scale {
+                            id: lockSc
+                            origin.x: lockedRight.width / 2; origin.y: lockedRight.height / 2
+                            xScale: 1; yScale: 1
+                        }
+                    ]
+                    Component.onCompleted: opacity = active ? 1 : 0
+                    onActiveChanged: active ? lockIn.restart() : lockOut.restart()
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 18
+                        color: ml.cardBg
+                        border.width: 1
+                        border.color: ml.cardBorder
+                        TimeRiver {
+                            anchors.fill: parent
+                            anchors.margins: 16
+                            style: ml
+                            app: root.current
+                        }
+                    }
+
+                    SequentialAnimation {
+                        id: lockIn
+                        PropertyAction { target: lockTr; property: "y"; value: 14 }
+                        PropertyAction { target: lockSc; property: "xScale"; value: 0.985 }
+                        PropertyAction { target: lockSc; property: "yScale"; value: 0.985 }
+                        PropertyAction { target: lockedRight; property: "opacity"; value: 0.45 }
+                        ParallelAnimation {
+                            NumberAnimation { target: lockedRight; property: "opacity"; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                            SequentialAnimation {
+                                ParallelAnimation {
+                                    NumberAnimation { target: lockTr; property: "y"; to: -3; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                    NumberAnimation { target: lockSc; property: "xScale"; to: 1.008; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                    NumberAnimation { target: lockSc; property: "yScale"; to: 1.008; duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: [0.18, 0.9, 0.2, 1, 1, 1] }
+                                }
+                                ParallelAnimation {
+                                    NumberAnimation { target: lockTr; property: "y"; to: 0; duration: 160; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: lockSc; property: "xScale"; to: 1; duration: 160; easing.type: Easing.OutQuad }
+                                    NumberAnimation { target: lockSc; property: "yScale"; to: 1; duration: 160; easing.type: Easing.OutQuad }
+                                }
+                            }
+                        }
+                    }
+                    NumberAnimation { id: lockOut; target: lockedRight; property: "opacity"; to: 0; duration: 200; easing.type: Easing.OutCubic }
                 }
             }
         }
