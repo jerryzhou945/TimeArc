@@ -350,6 +350,14 @@ QVariantList UsageStatManager::audioForRange(const QString& range) const {
 
 QVariantList UsageStatManager::aggregateSoftwareForRange(
     const QString& range, const QString& sourceFilter) const {
+  return aggregateSoftware(
+      [&](const UsageRecord& record) { return matchesRange(record, range); },
+      sourceFilter);
+}
+
+QVariantList UsageStatManager::aggregateSoftware(
+    const std::function<bool(const UsageRecord&)>& inWindow,
+    const QString& sourceFilter) const {
   // 聚合先按 activity key 收集所有时间区间，再在输出时合并重叠区间。
   // sourceFilter 为空表示 active 合并视图；否则只看 foreground 或 audio。
   struct Aggregate {
@@ -367,7 +375,7 @@ QVariantList UsageStatManager::aggregateSoftwareForRange(
 
   QMap<QString, Aggregate> grouped;
   const auto addRecord = [&](const UsageRecord& record) {
-    if (!matchesRange(record, range)) return;
+    if (!inWindow(record)) return;
     if (!matchesSource(record, sourceFilter)) return;
     if (record.durationSec == 0) return;
 
@@ -683,6 +691,56 @@ QVariantList UsageStatManager::foregroundSegmentsForRange(
   return result;
 }
 
+QVariantList UsageStatManager::activeSoftwareForMonth(int year,
+                                                      int month) const {
+  return aggregateSoftware(
+      [&](const UsageRecord& record) {
+        return matchesYearMonth(record, year, month);
+      },
+      QString());
+}
+
+QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
+  // 按天分桶：day -> (groupKey -> intervals)。每天对各 app 自身区间求并集时长
+  // 再相加，与 softwareSecondsForRange("month") 同口径（避免与月总值自相矛盾）。
+  QMap<int, QMap<QString, QVector<UsageInterval>>> byDay;
+  const auto add = [&](const UsageRecord& record) {
+    if (record.durationSec == 0) return;
+    const QDate d =
+        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
+    if (!d.isValid() || d.year() != year || d.month() != month) return;
+    const qint64 end =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    byDay[d.day()][key].append({record.startUnixSec, end});
+  };
+  for (const UsageRecord& record : m_records) add(record);
+  if (m_hasCurrentRecord) add(m_currentRecord);
+
+  QVariantList result;
+  // 当月只覆盖到"今天"为止——绝不把尚未发生的未来天补成 0，否则趋势会被未来的
+  // 全 0 尾巴误判成"月末回落"（一种数据不支持的断言）。过去的月用整月天数。
+  const QDate today = QDate::currentDate();
+  int days = QDate(year, month, 1).daysInMonth();
+  if (year == today.year() && month == today.month()) days = today.day();
+  for (int day = 1; day <= days; ++day) {
+    qint64 total = 0;
+    const auto dayIt = byDay.constFind(day);
+    if (dayIt != byDay.constEnd()) {
+      for (auto it = dayIt->constBegin(); it != dayIt->constEnd(); ++it) {
+        total += static_cast<qint64>(mergedIntervalSeconds(it.value()));
+      }
+    }
+    QVariantMap m;
+    m["day"] = day;
+    m["seconds"] = static_cast<qlonglong>(total);
+    result.append(m);
+  }
+  return result;
+}
+
 bool UsageStatManager::matchesRange(const UsageRecord& record,
                                     const QString& range) const {
   if (range == "all") return true;
@@ -699,6 +757,14 @@ bool UsageStatManager::matchesRange(const UsageRecord& record,
   if (range == "year") return recordDate.year() == today.year();
 
   return false;
+}
+
+bool UsageStatManager::matchesYearMonth(const UsageRecord& record, int year,
+                                        int month) const {
+  const QDate recordDate =
+      QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
+  if (!recordDate.isValid()) return false;
+  return recordDate.year() == year && recordDate.month() == month;
 }
 
 bool UsageStatManager::matchesSource(const UsageRecord& record,

@@ -33,11 +33,15 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 
 - ~~**Memory Lake is a placeholder page.**~~ **Replaced** by a 1:1 port of the
   `MemoryLakeDesign/` prototype (`qml/desktop/memorylake/`). Renders **demo data**.
-- **Memory Lake real-data wiring (phase E).** Replace `MemoryLakeMock.js` with
-  read-only `UsageStatManager`/`FrontmostSessionRepository` data; add C++ aggregation
-  (no schema change): per-day month series (month-map/trend), last-month compare,
-  cover-art for arbitrary apps, local mood/keyword templates (no AI). Mobile equivalent
-  still pending. See `docs/memory-lake-implementation-plan.md` §4.
+- **Memory Lake real-data wiring (phase E).** Desktop **done** (Phase 1 daily view +
+  Phase 2 monthly recap): `MemoryLakeMock.js` replaced by read-only `UsageStatManager`
+  data + `DailyCardService::memoryLake{Day,Recap}` local templates; C++ aggregation added
+  (no schema change): per-day month series, last-month compare, category share, time-of-day
+  peak, per-app sessions; generative covers (appColor + `image://appicon`) for arbitrary
+  apps. **Still open:** mobile equivalent; Phase 3 polish (icon-derived background color
+  `B4`; classify keyword coverage `A4`/`B5` — see `docs/memory-lake-integration-issues.md`).
+  Full per-surface plan: `docs/memory-lake-backend-integration-plan.md`
+  (also `…-implementation-plan.md` §4).
 - **Third-party license page missing.** Main README TO-DO. Required by GPL +
   Qt LGPL combination; see
   [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.

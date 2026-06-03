@@ -292,6 +292,153 @@ QString themeDesc(const QString& cat, double ratio, const QString& period) {
   return s;
 }
 
+// ===== 记忆湖·月度回顾 helpers（阶段二，题材中立、断言守卫）=====
+
+QString chineseMonth(int month) {
+  static const char* const names[] = {"一月", "二月",   "三月", "四月",
+                                      "五月", "六月",   "七月", "八月",
+                                      "九月", "十月", "十一月", "十二月"};
+  if (month >= 1 && month <= 12) return QString::fromUtf8(names[month - 1]);
+  return QStringLiteral("本月");
+}
+
+QString categoryKeyword(const QString& cat) {
+  if (cat == QStringLiteral("游戏")) return QStringLiteral("游戏");
+  if (cat == QStringLiteral("视频")) return QStringLiteral("观看");
+  if (cat == QStringLiteral("音乐")) return QStringLiteral("聆听");
+  if (cat == QStringLiteral("社交")) return QStringLiteral("沟通");
+  if (cat == QStringLiteral("开发")) return QStringLiteral("专注");
+  return QStringLiteral("日常");
+}
+
+QString majorKeyword(const QString& topCat, const QString& topPattern) {
+  if (topPattern == QStringLiteral("连续投入")) return QStringLiteral("沉浸");
+  if (topPattern == QStringLiteral("碎片使用")) return QStringLiteral("碎片");
+  return categoryKeyword(topCat);
+}
+
+// 把所有月度会话段拍平成 24 小时直方图（按时长加权）。
+QVector<qint64> monthHourHistogram(const QVariantList& monthSegments) {
+  QVector<qint64> hist(24, 0);
+  for (const QVariant& av : monthSegments) {
+    const QVariantList segs =
+        av.toMap().value(QStringLiteral("segments")).toList();
+    for (const QVariant& sv : segs) {
+      const QVariantMap s = sv.toMap();
+      const qint64 startU = s.value(QStringLiteral("startUnixSec")).toLongLong();
+      const qint64 endU = s.value(QStringLiteral("endUnixSec")).toLongLong();
+      const qint64 dur = s.value(QStringLiteral("seconds")).toLongLong();
+      const qint64 mid = startU + (endU - startU) / 2;
+      const int h = QDateTime::fromSecsSinceEpoch(mid).time().hour();
+      if (h >= 0 && h < 24) hist[h] += dur;
+    }
+  }
+  return hist;
+}
+
+// 峰值连续 4 小时窗口 -> "HH:00–HH:00"；无数据返回空串（断言守卫）。
+QString peakWindowText(const QVector<qint64>& hist) {
+  qint64 totalAll = 0;
+  for (qint64 v : hist) totalAll += v;
+  if (totalAll <= 0) return QString();
+  int bestStart = 0;
+  qint64 best = -1;
+  for (int start = 0; start < 24; ++start) {
+    qint64 sum = 0;
+    for (int k = 0; k < 4; ++k) sum += hist[(start + k) % 24];
+    if (sum > best) {
+      best = sum;
+      bestStart = start;
+    }
+  }
+  int endH = (bestStart + 4) % 24;
+  if (endH == 0) endH = 24;
+  return QStringLiteral("%1:00–%2:00")
+      .arg(bestStart, 2, 10, QChar('0'))
+      .arg(endH, 2, 10, QChar('0'));
+}
+
+QString dominantPeriodFromHist(const QVector<qint64>& hist) {
+  QHash<QString, qint64> bucket;
+  for (int h = 0; h < 24; ++h) bucket[periodForHour(h)] += hist[h];
+  QString top;
+  qint64 topSec = 0;
+  for (auto it = bucket.constBegin(); it != bucket.constEnd(); ++it) {
+    if (it.value() > topSec) {
+      topSec = it.value();
+      top = it.key();
+    }
+  }
+  return top;
+}
+
+// 月趋势方向：比较前 1/3 与后 1/3 日均，返回 rising/falling/flat（断言守卫）。
+QString monthTrendDir(const QVariantList& dailySeries) {
+  const int n = dailySeries.size();
+  if (n < 6) return QStringLiteral("flat");
+  const int third = n / 3;
+  if (third <= 0) return QStringLiteral("flat");
+  qint64 firstSum = 0;
+  qint64 lastSum = 0;
+  for (int i = 0; i < third; ++i)
+    firstSum += dailySeries.at(i).toMap().value(QStringLiteral("seconds")).toLongLong();
+  for (int i = n - third; i < n; ++i)
+    lastSum += dailySeries.at(i).toMap().value(QStringLiteral("seconds")).toLongLong();
+  const double f = static_cast<double>(firstSum) / third;
+  const double l = static_cast<double>(lastSum) / third;
+  if (l > f * 1.2 && (l - f) > 20 * 60) return QStringLiteral("rising");
+  if (l < f * 0.8 && (f - l) > 20 * 60) return QStringLiteral("falling");
+  return QStringLiteral("flat");
+}
+
+// 月历柱：按天序列分桶求和（最多 7 桶；已过天数不足 7 时按实际天数出柱，
+// 避免出现没有任何真实天落入的"0m 空桶"被误读成零使用日）。h 归一化到最大桶。
+QVariantList monthMapBars(const QVariantList& dailySeries) {
+  QVariantList bars;
+  const int n = dailySeries.size();
+  if (n == 0) return bars;
+  const int nbins = std::min(7, n);
+  qint64 binSec[7] = {0, 0, 0, 0, 0, 0, 0};
+  int binFirstDay[7] = {0, 0, 0, 0, 0, 0, 0};
+  bool binSet[7] = {false, false, false, false, false, false, false};
+  for (int i = 0; i < n; ++i) {
+    int b = i * nbins / n;
+    if (b > nbins - 1) b = nbins - 1;
+    const QVariantMap d = dailySeries.at(i).toMap();
+    binSec[b] += d.value(QStringLiteral("seconds")).toLongLong();
+    if (!binSet[b]) {
+      binFirstDay[b] = d.value(QStringLiteral("day")).toInt();
+      binSet[b] = true;
+    }
+  }
+  qint64 maxBin = 1;
+  for (int b = 0; b < nbins; ++b) maxBin = std::max(maxBin, binSec[b]);
+  for (int b = 0; b < nbins; ++b) {
+    QVariantMap m;
+    m.insert(QStringLiteral("h"),
+             std::max(0.06, static_cast<double>(binSec[b]) / maxBin));
+    m.insert(QStringLiteral("value"), decimalHoursText(binSec[b]));
+    m.insert(QStringLiteral("day"),
+             QStringLiteral("%1日").arg(binSet[b] ? binFirstDay[b] : 1));
+    bars.append(m);
+  }
+  return bars;
+}
+
+// 趋势曲线点：每天 seconds 归一到 0..1（按最大日）。
+QVariantList trendSeries(const QVariantList& dailySeries) {
+  QVariantList pts;
+  qint64 maxDay = 1;
+  for (const QVariant& v : dailySeries)
+    maxDay = std::max(maxDay, v.toMap().value(QStringLiteral("seconds")).toLongLong());
+  for (const QVariant& v : dailySeries) {
+    pts.append(static_cast<double>(
+                   v.toMap().value(QStringLiteral("seconds")).toLongLong()) /
+               maxDay);
+  }
+  return pts;
+}
+
 }  // namespace
 
 DailyCardService::DailyCardService(
@@ -703,5 +850,349 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
   }
   model.insert(QStringLiteral("todayTheme"), theme);
 
+  return model;
+}
+
+// 记忆湖·月度回顾模型：题材中立 + 断言守卫 + 动态屏数（§6）。
+QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
+                                              const QVariantList& monthSegments,
+                                              const QVariantList& lastMonthApps,
+                                              const QVariantList& dailySeries) {
+  QVariantMap model;
+  const QDate today = QDate::currentDate();
+  const int year = today.year();
+  const int month = today.month();
+  const QString monthCn = chineseMonth(month);
+
+  model.insert(QStringLiteral("headerLeft"),
+               QStringLiteral("Memory Lake Monthly Recap · %1.%2")
+                   .arg(year)
+                   .arg(month, 2, 10, QChar('0')));
+  model.insert(QStringLiteral("headerRight"),
+               QStringLiteral("滚轮 / 按钮逐步播放 · APP 逐个登场"));
+  model.insert(
+      QStringLiteral("modeNote"),
+      QStringLiteral("首次播放会按顺序展开，点击画面可加速。看完后右侧目录会解锁。"));
+  model.insert(QStringLiteral("apps"), monthApps);
+
+  QHash<QString, QVariantMap> segByKey;
+  for (const QVariant& v : monthSegments) {
+    const QVariantMap m = v.toMap();
+    segByKey.insert(m.value(QStringLiteral("groupKey")).toString(), m);
+  }
+
+  qint64 monthTotalSec = 0;
+  QHash<QString, qint64> catSec;
+  for (const QVariant& v : monthApps) {
+    const QVariantMap u = v.toMap();
+    const qlonglong sec = u.value(QStringLiteral("seconds")).toLongLong();
+    monthTotalSec += sec;
+    catSec[categoryForUsmItem(u)] += sec;
+  }
+  QString topCat;
+  qint64 topCatSec = 0;
+  for (auto it = catSec.constBegin(); it != catSec.constEnd(); ++it) {
+    if (it.value() > topCatSec) {
+      topCatSec = it.value();
+      topCat = it.key();
+    }
+  }
+  const int topPct =
+      monthTotalSec > 0 ? qRound(100.0 * topCatSec / monthTotalSec) : 0;
+
+  const QVector<qint64> hist = monthHourHistogram(monthSegments);
+  const QString peakText = peakWindowText(hist);
+  const QString peakPeriod = dominantPeriodFromHist(hist);
+
+  QString topPattern = QStringLiteral("平稳使用");
+  if (!monthApps.isEmpty()) {
+    const QVariantMap a0 = monthApps.first().toMap();
+    const QVariantMap s0 = segByKey.value(a0.value(QStringLiteral("groupKey")).toString());
+    topPattern = patternLabel(s0.value(QStringLiteral("longestSec"), 0).toLongLong(),
+                              s0.value(QStringLiteral("sessionCount"), 0).toInt(),
+                              a0.value(QStringLiteral("seconds")).toLongLong());
+  }
+  const QString major = majorKeyword(topCat, topPattern);
+
+  QVariantList slides;
+  int idx = 0;
+  const auto addSlide = [&](QVariantMap s, const QString& step,
+                            const QString& type, int bgIndex,
+                            const QString& transition) {
+    idx += 1;
+    s.insert(QStringLiteral("step"), step);
+    s.insert(QStringLiteral("kicker"),
+             QStringLiteral("%1 · %2").arg(idx, 2, 10, QChar('0')).arg(step));
+    s.insert(QStringLiteral("type"), type);
+    s.insert(QStringLiteral("bgIndex"), bgIndex);
+    s.insert(QStringLiteral("transition"), transition);
+    slides.append(s);
+  };
+
+  const bool hasData = !monthApps.isEmpty() && monthTotalSec > 0;
+
+  // 01 月度封面
+  {
+    QVariantMap s;
+    s.insert(QStringLiteral("title"),
+             hasData ? QStringLiteral("%1的记忆湖\n这个月的使用轨迹。").arg(monthCn)
+                     : QStringLiteral("%1的记忆湖\n这个月还很安静。").arg(monthCn));
+    s.insert(QStringLiteral("subtitle"),
+             hasData ? QStringLiteral("不是单纯的时间统计，而是一段设备使用轨迹。系统会按软件、时段、趋势和变化，把这个月一点点展开。")
+                     : QStringLiteral("这个月还没有足够的自动记录。继续使用后，回顾会逐渐展开。"));
+    QVariantList metrics;
+    metrics.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("月度总使用")},
+                               {QStringLiteral("value"), decimalHoursText(monthTotalSec)}});
+    if (!topCat.isEmpty() && topCatSec > 0)
+      metrics.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("最高类别")},
+                                 {QStringLiteral("value"), QStringLiteral("%1 %2%").arg(topCat).arg(topPct)}});
+    if (!peakText.isEmpty())
+      metrics.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("最活跃时段")},
+                                 {QStringLiteral("value"), peakText}});
+    s.insert(QStringLiteral("metrics"), metrics);
+    addSlide(s, QStringLiteral("月度封面"), QStringLiteral("cover"), -1, QStringLiteral("zoom"));
+  }
+
+  if (!hasData) {
+    model.insert(QStringLiteral("slides"), slides);
+    return model;
+  }
+
+  // 02 月初到月末
+  {
+    const QString dir = monthTrendDir(dailySeries);
+    QString title = dir == QStringLiteral("rising")
+                        ? QStringLiteral("使用强度在月末明显抬升。")
+                        : (dir == QStringLiteral("falling")
+                               ? QStringLiteral("使用强度在月末逐渐回落。")
+                               : QStringLiteral("整月使用强度大致平稳。"));
+    QVariantMap s;
+    s.insert(QStringLiteral("title"), title);
+    s.insert(QStringLiteral("subtitle"),
+             QStringLiteral("把整月按时间顺序排开，每根柱子是一段时间的使用总量。"));
+    s.insert(QStringLiteral("monthMap"), monthMapBars(dailySeries));
+    addSlide(s, QStringLiteral("月初到月末"), QStringLiteral("monthMap"), -1, QStringLiteral("rise"));
+  }
+
+  // 03–06 主角（poster/split/orbit/article 当纯模板，按月度 Top 顺序套用，不足则减屏）
+  const char* const tmpls[4] = {"poster", "split", "orbit", "article"};
+  const QString steps[4] = {QStringLiteral("第一个主角"), QStringLiteral("第二个主角"),
+                            QStringLiteral("第三个主角"), QStringLiteral("第四个主角")};
+  const char* const trans[4] = {"zoom", "wipe", "rotate", "rise"};
+  int proto = 0;
+  for (int i = 0; i < monthApps.size() && proto < 4; ++i) {
+    const QVariantMap u = monthApps.at(i).toMap();
+    const qlonglong sec = u.value(QStringLiteral("seconds")).toLongLong();
+    if (sec < 5 * 60) break;  // 不足 5 分钟不立为主角
+    const QString name = u.value(QStringLiteral("name")).toString();
+    const QString timeText = u.value(QStringLiteral("time")).toString();
+    const QString cat = categoryForUsmItem(u);
+    const QVariantMap seg = segByKey.value(u.value(QStringLiteral("groupKey")).toString());
+    const qlonglong longestSec = seg.value(QStringLiteral("longestSec"), 0).toLongLong();
+    const int sessionCount = seg.value(QStringLiteral("sessionCount"), 0).toInt();
+    const QVariantList segs = seg.value(QStringLiteral("segments")).toList();
+    const QString period = dominantPeriod(segs);
+    const QString mood = moodWord(cat, longestSec, sessionCount, sec);
+    const QString pattern = patternLabel(longestSec, sessionCount, sec);
+
+    const QString title = QStringLiteral("%1：%2").arg(name, mood);
+    QString subtitle = QStringLiteral("%1 本月使用约 %2").arg(name, timeText);
+    if (!period.isEmpty()) subtitle += QStringLiteral("，多集中在%1").arg(period);
+    if (longestSec > 0) subtitle += QStringLiteral("，最长连续 %1").arg(formatDuration(longestSec));
+    subtitle += QStringLiteral("。系统据连续性识别为「%1」。").arg(pattern);
+    const QString kw = QStringLiteral("%1 / %2").arg(categoryKeyword(cat), majorKeyword(cat, pattern));
+
+    QVariantList stats;
+    stats.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("月度时长")}, {QStringLiteral("value"), timeText}});
+    if (longestSec > 0)
+      stats.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("最长连续")}, {QStringLiteral("value"), formatDuration(longestSec)}});
+    if (!period.isEmpty())
+      stats.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("主要时段")}, {QStringLiteral("value"), period}});
+    stats.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("关键词")}, {QStringLiteral("value"), kw}});
+
+    QVariantMap s;
+    const QString tmpl = QString::fromLatin1(tmpls[proto]);
+    s.insert(QStringLiteral("title"), title);
+    if (tmpl == QStringLiteral("poster")) {
+      s.insert(QStringLiteral("posterTitle"), name);
+      s.insert(QStringLiteral("posterSub"),
+               proto == 0 ? QStringLiteral("%1 · 本月最长使用").arg(timeText)
+                          : QStringLiteral("%1 · 月度主角").arg(timeText));
+      s.insert(QStringLiteral("subtitle"), subtitle);
+      s.insert(QStringLiteral("stats"), stats);
+    } else if (tmpl == QStringLiteral("split")) {
+      s.insert(QStringLiteral("subtitle"), subtitle);
+      s.insert(QStringLiteral("stats"), stats);
+    } else if (tmpl == QStringLiteral("orbit")) {
+      s.insert(QStringLiteral("subtitle"), subtitle);
+      QVariantList orbit;
+      orbit.append(QVariantMap{{QStringLiteral("a"), -25}, {QStringLiteral("value"), timeText}, {QStringLiteral("label"), QStringLiteral("月度使用")}});
+      if (longestSec > 0)
+        orbit.append(QVariantMap{{QStringLiteral("a"), 35}, {QStringLiteral("value"), formatDuration(longestSec)}, {QStringLiteral("label"), QStringLiteral("最长连续")}});
+      if (!period.isEmpty())
+        orbit.append(QVariantMap{{QStringLiteral("a"), 105}, {QStringLiteral("value"), period}, {QStringLiteral("label"), QStringLiteral("主要时段")}});
+      orbit.append(QVariantMap{{QStringLiteral("a"), 185}, {QStringLiteral("value"), majorKeyword(cat, pattern)}, {QStringLiteral("label"), QStringLiteral("月度关键词")}});
+      s.insert(QStringLiteral("orbit"), orbit);
+    } else {  // article
+      s.insert(QStringLiteral("articleTitle"), QStringLiteral("%1，而不是爆发。").arg(pattern));
+      s.insert(QStringLiteral("articleBody"), subtitle);
+    }
+    addSlide(s, steps[proto], tmpl, i, QString::fromLatin1(trans[proto]));
+    proto += 1;
+  }
+
+  // 07 一天里的轨迹（按时段聚合代表 app）
+  {
+    struct PA { QString name; qint64 sec; };
+    QHash<QString, QVector<PA>> byPeriod;
+    QHash<QString, qint64> periodSec;
+    for (int i = 0; i < monthApps.size(); ++i) {
+      const QVariantMap u = monthApps.at(i).toMap();
+      const QVariantMap seg = segByKey.value(u.value(QStringLiteral("groupKey")).toString());
+      const QString p = dominantPeriod(seg.value(QStringLiteral("segments")).toList());
+      if (p.isEmpty()) continue;
+      const qint64 sec = u.value(QStringLiteral("seconds")).toLongLong();
+      byPeriod[p].append({u.value(QStringLiteral("name")).toString(), sec});
+      periodSec[p] += sec;
+    }
+    QStringList periods;
+    for (auto it = periodSec.constBegin(); it != periodSec.constEnd(); ++it) periods << it.key();
+    std::sort(periods.begin(), periods.end(),
+              [&](const QString& a, const QString& b) { return periodSec[a] > periodSec[b]; });
+    if (periods.size() > 3) periods = periods.mid(0, 3);
+    qint64 maxP = 1;
+    for (const QString& p : periods) maxP = std::max(maxP, periodSec[p]);
+    QVariantList strips;
+    for (const QString& p : periods) {
+      QVector<PA>& list = byPeriod[p];
+      std::sort(list.begin(), list.end(), [](const PA& a, const PA& b) { return a.sec > b.sec; });
+      QStringList names;
+      for (int k = 0; k < list.size() && k < 3; ++k) names << list[k].name;
+      const double frac = static_cast<double>(periodSec[p]) / maxP;
+      QVariantList segvis;
+      segvis.append(QVariantList{0.10, 0.32 * frac + 0.08});
+      segvis.append(QVariantList{0.56, 0.28 * frac + 0.06});
+      strips.append(QVariantMap{{QStringLiteral("tag"), QStringLiteral("%1 · 常用").arg(p)},
+                                {QStringLiteral("apps"), names.join(QStringLiteral(" / "))},
+                                {QStringLiteral("segs"), segvis}});
+    }
+    if (!strips.isEmpty()) {
+      QVariantMap s;
+      s.insert(QStringLiteral("title"), QStringLiteral("不同时段，软件也不一样。"));
+      s.insert(QStringLiteral("subtitle"), QStringLiteral("从时段看，每个时间段都有它常驻的软件。"));
+      s.insert(QStringLiteral("strips"), strips);
+      addSlide(s, QStringLiteral("一天里的轨迹"), QStringLiteral("timeline"), -1, QStringLiteral("wipe"));
+    }
+  }
+
+  // 08 趋势变化（接真实按天序列，断言守卫）
+  {
+    const QString dir = monthTrendDir(dailySeries);
+    QString title = dir == QStringLiteral("rising")
+                        ? QStringLiteral("月末出现明显高峰。")
+                        : (dir == QStringLiteral("falling")
+                               ? QStringLiteral("使用在月末逐渐回落。")
+                               : QStringLiteral("整月使用大致平稳。"));
+    QVariantMap s;
+    s.insert(QStringLiteral("title"), title);
+    s.insert(QStringLiteral("subtitle"),
+             QStringLiteral("这条曲线是本月每日使用总时长，可以看作湖面水位的变化。"));
+    s.insert(QStringLiteral("series"), trendSeries(dailySeries));
+    addSlide(s, QStringLiteral("趋势变化"), QStringLiteral("trend"), -1, QStringLiteral("rotate"));
+  }
+
+  // 09 月度关键词
+  {
+    QStringList kws;
+    kws << major;
+    if (!peakPeriod.isEmpty()) kws << peakPeriod + QStringLiteral("使用");
+    if (!topCat.isEmpty() && topCat != QStringLiteral("其他")) kws << topCat;
+    for (int i = 0; i < monthApps.size() && i < 3; ++i)
+      kws << categoryKeyword(categoryForUsmItem(monthApps.at(i).toMap()));
+    kws << (topPattern == QStringLiteral("连续投入") ? QStringLiteral("连续使用")
+            : topPattern == QStringLiteral("碎片使用") ? QStringLiteral("碎片切换")
+                                                       : QStringLiteral("平稳节奏"));
+    QStringList uniq;
+    for (const QString& k : kws)
+      if (!k.isEmpty() && !uniq.contains(k)) uniq << k;
+    if (uniq.size() > 7) uniq = uniq.mid(0, 7);
+    QVariantList kwv;
+    for (const QString& k : uniq) kwv << k;
+    QVariantMap s;
+    s.insert(QStringLiteral("title"), QStringLiteral("这个月的关键词。"));
+    s.insert(QStringLiteral("subtitle"),
+             QStringLiteral("根据软件类别、连续时长、启动次数和时段生成，代表本月最常出现的使用状态。"));
+    s.insert(QStringLiteral("keywords"), kwv);
+    s.insert(QStringLiteral("major"), major);
+    addSlide(s, QStringLiteral("月度关键词"), QStringLiteral("keywords"), -1, QStringLiteral("rise"));
+  }
+
+  // 10 相比上月（环比类别；上月无数据则跳过该屏）
+  QString topChangeStr;
+  if (!lastMonthApps.isEmpty()) {
+    QHash<QString, qint64> lastCat;
+    for (const QVariant& v : lastMonthApps) {
+      const QVariantMap u = v.toMap();
+      lastCat[categoryForUsmItem(u)] += u.value(QStringLiteral("seconds")).toLongLong();
+    }
+    QStringList cats;
+    for (auto it = catSec.constBegin(); it != catSec.constEnd(); ++it)
+      if (it.key() != QStringLiteral("其他") && !cats.contains(it.key())) cats << it.key();
+    for (auto it = lastCat.constBegin(); it != lastCat.constEnd(); ++it)
+      if (it.key() != QStringLiteral("其他") && !cats.contains(it.key())) cats << it.key();
+    struct Cmp { QString cat; qint64 cur; qint64 last; };
+    QVector<Cmp> cmps;
+    for (const QString& c : cats) cmps.append({c, catSec.value(c, 0), lastCat.value(c, 0)});
+    std::sort(cmps.begin(), cmps.end(), [](const Cmp& a, const Cmp& b) {
+      return qAbs(a.cur - a.last) > qAbs(b.cur - b.last);
+    });
+    if (cmps.size() > 3) cmps.resize(3);
+    QVariantList comparisons;
+    for (const Cmp& c : cmps) {
+      const qint64 delta = c.cur - c.last;
+      QString change;
+      if (c.last <= 0)
+        change = c.cur > 0 ? QStringLiteral("新增") : QStringLiteral("—");
+      else {
+        const int pct = qRound(100.0 * delta / c.last);
+        change = QStringLiteral("%1%2%").arg(pct >= 0 ? QStringLiteral("+") : QString()).arg(pct);
+      }
+      const bool down = delta < 0;
+      comparisons.append(QVariantMap{
+          {QStringLiteral("label"), QStringLiteral("%1类时间").arg(c.cat)},
+          {QStringLiteral("change"), change},
+          {QStringLiteral("down"), down},
+          {QStringLiteral("desc"), down ? QStringLiteral("%1类时间较上月减少。").arg(c.cat)
+                                        : QStringLiteral("%1类时间较上月增加。").arg(c.cat)}});
+      if (topChangeStr.isEmpty()) topChangeStr = QStringLiteral("%1 %2").arg(c.cat, change);
+    }
+    if (!comparisons.isEmpty()) {
+      QVariantMap s;
+      s.insert(QStringLiteral("title"), QStringLiteral("相比上个月的变化。"));
+      s.insert(QStringLiteral("comparisons"), comparisons);
+      addSlide(s, QStringLiteral("相比上月"), QStringLiteral("comparison"), -1, QStringLiteral("wipe"));
+    }
+  }
+
+  // 11 月度标签（票根：复述前面真实值，不另造数字）
+  {
+    QVariantList rows;
+    rows << QStringLiteral("总使用 %1").arg(decimalHoursText(monthTotalSec));
+    rows << QStringLiteral("最高类别：%1").arg(topCat.isEmpty() ? QStringLiteral("—") : topCat);
+    rows << QStringLiteral("关键词：%1").arg(major);
+    rows << (topChangeStr.isEmpty() ? QStringLiteral("首月记录")
+                                    : QStringLiteral("较上月 %1").arg(topChangeStr));
+    QVariantMap ticket;
+    ticket.insert(QStringLiteral("title"), QStringLiteral("%1\n记忆标签").arg(monthCn));
+    ticket.insert(QStringLiteral("rows"), rows);
+    QVariantMap s;
+    s.insert(QStringLiteral("title"), QStringLiteral("%1标签已经生成。").arg(monthCn));
+    s.insert(QStringLiteral("subtitle"),
+             QStringLiteral("这张标签把本月的主要时间、最高类别和变化保存下来。"));
+    s.insert(QStringLiteral("ticket"), ticket);
+    addSlide(s, QStringLiteral("月度标签"), QStringLiteral("ticket"), -1, QStringLiteral("ticket"));
+  }
+
+  model.insert(QStringLiteral("slides"), slides);
   return model;
 }

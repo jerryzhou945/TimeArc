@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import "../memorylake"
-import "../memorylake/MemoryLakeMock.js" as Mock
 import "../components/AppVisual.js" as AppVisual
 
 // 记忆湖页面：1:1 复刻 MemoryLakeDesign/memory_lake_v25_win11_style.html 的窗口内部三栏。
@@ -59,6 +58,25 @@ Item {
         root.dayModel = dailyCardService.memoryLakeDay(
             usageStatManager.activeSoftwareForRange("day"),
             usageStatManager.foregroundSegmentsForRange("day"));
+    }
+
+    // 月度回顾模型：打开前用首页同款只读路径取当月+上月数据，交后端组装（QML 只渲染）。
+    property var recapModel: ({})
+    property var recapApps: []
+    function buildRecap() {
+        if (!usageStatManager || !dailyCardService) { root.recapModel = ({}); root.recapApps = []; return; }
+        usageStatManager.refresh();
+        var monthApps = usageStatManager.activeSoftwareForRange("month");
+        var monthSegs = usageStatManager.foregroundSegmentsForRange("month");
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = now.getMonth() + 1;
+        var pm = m === 1 ? 12 : m - 1;
+        var py = m === 1 ? y - 1 : y;
+        var lastApps = usageStatManager.activeSoftwareForMonth(py, pm);
+        var series = usageStatManager.dailySecondsForMonth(y, m);
+        root.recapApps = monthApps;
+        root.recapModel = dailyCardService.memoryLakeRecap(monthApps, monthSegs, lastApps, series);
     }
 
     Timer {
@@ -233,7 +251,7 @@ Item {
                         Text { text: "开始回顾 →"; color: ml.accentText; font.pixelSize: 12; font.bold: true }
                     }
                     HoverHandler { id: ctaHover }
-                    TapHandler { onTapped: recap.open() }
+                    TapHandler { onTapped: { root.buildRecap(); recap.open() } }
                 }
 
                 // 排行
@@ -358,11 +376,12 @@ Item {
     }
 
     // —— 月度回顾覆盖层（盖住三栏）——
-    // 阶段一不触碰 Monthly Recap：仍用 Mock 演示数据（阶段二再接真实当月数据集）。
+    // 接真实当月数据集：月级 Top apps + 后端组装的回顾模型（题材中立、动态屏数）。
     RecapOverlay {
         id: recap
         anchors.fill: parent
         style: ml
-        apps: Mock.apps
+        apps: root.recapApps
+        model: root.recapModel
     }
 }

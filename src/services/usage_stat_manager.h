@@ -7,6 +7,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include <functional>
+
 class QJsonObject;
 
 // 自动使用统计服务。
@@ -51,6 +53,13 @@ class UsageStatManager : public QObject {
   // longestSec, segments:[{startUnixSec,endUnixSec,seconds}]}。只组合自身记录，
   // 不开新数据路径，安全面与首页一致。
   Q_INVOKABLE QVariantList foregroundSegmentsForRange(const QString& range) const;
+  // 记忆湖月度（阶段二）：指定自然月的 app 聚合（与 activeSoftwareForRange 同形），
+  // 用于环比上月等需要"非当前月"数据的场景。只组合自身记录，不开新数据路径。
+  Q_INVOKABLE QVariantList activeSoftwareForMonth(int year, int month) const;
+  // 记忆湖月度：当月按天的 active(前台+音频并集) 使用秒数序列，覆盖整月每天
+  // （无记录的天补 0），口径与 softwareSecondsForRange("month") 一致。
+  // 返回 [{day:int(1..N), seconds:qlonglong}]，用于趋势曲线 / 月历柱。
+  Q_INVOKABLE QVariantList dailySecondsForMonth(int year, int month) const;
 
 signals:
   void usageStatsChanged();
@@ -79,9 +88,15 @@ signals:
   QVariantMap recordToVariantMap(const UsageRecord& record) const;
   QVariantList aggregateSoftwareForRange(const QString& range,
                                          const QString& sourceFilter) const;
+  // 聚合核心：按 inWindow 谓词筛记录、按 activity key 分组、合并重叠区间。
+  // range 字符串版与显式自然月版共用同一核心，避免逻辑漂移。
+  QVariantList aggregateSoftware(
+      const std::function<bool(const UsageRecord&)>& inWindow,
+      const QString& sourceFilter) const;
   int aggregateSoftwareSecondsForRange(const QString& range,
                                        const QString& sourceFilter) const;
   bool matchesRange(const UsageRecord& record, const QString& range) const;
+  bool matchesYearMonth(const UsageRecord& record, int year, int month) const;
   bool matchesSource(const UsageRecord& record,
                      const QString& sourceFilter) const;
   QString secondsToTimeText(quint64 totalSeconds) const;

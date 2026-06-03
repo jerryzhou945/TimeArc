@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Effects
-import "MemoryLakeMock.js" as Mock
+import "../components/AppVisual.js" as AppVisual
 
 // 月度记忆回顾全屏覆盖层：自动播放 11 屏 + 进度条 + 看完解锁目录 + 滚轮/键盘/点击导航。
 // 1:1 对应设计稿 .summary-overlay 全套逻辑。
@@ -9,13 +9,15 @@ Item {
 
     property MemoryLakeStyle style
     property var apps: []
+    // 真实月度回顾模型（dailyCardService.memoryLakeRecap），由页面在打开时注入。
+    property var model: ({})
 
     property bool opened: false
     property int index: 0
     property int seenMax: 0
     property bool autoPlay: true
 
-    readonly property var slides: Mock.recap.slides
+    readonly property var slides: (model && model.slides) ? model.slides : []
     readonly property bool storyComplete: seenMax >= slides.length - 1
     readonly property int bgIndex: slides[index] ? slides[index].bgIndex : -1
 
@@ -105,10 +107,11 @@ Item {
             anchors.fill: parent
             layer.enabled: true
             visible: false
-            Image {
+            // 主角专属 appColor 晕染（取代游戏海报），被 MultiEffect 模糊成柔和色背景。
+            Rectangle {
                 anchors.fill: parent
-                source: recap.bgIndex >= 0 && recap.apps[recap.bgIndex] ? Mock.imagePath(recap.apps[recap.bgIndex].image) : ""
-                fillMode: Image.PreserveAspectCrop
+                property var bgApp: recap.bgIndex >= 0 ? recap.apps[recap.bgIndex] : null
+                color: bgApp ? AppVisual.appColor(bgApp.appId, bgApp.name, bgApp.path) : "transparent"
             }
         }
         MultiEffect {
@@ -190,8 +193,8 @@ Item {
                 anchors.leftMargin: 26
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 12
-                RecapPill { text: Mock.recap.headerLeft }
-                RecapPill { text: Mock.recap.headerRight }
+                RecapPill { text: (recap.model && recap.model.headerLeft) ? recap.model.headerLeft : "" }
+                RecapPill { text: (recap.model && recap.model.headerRight) ? recap.model.headerRight : "" }
             }
             Row {
                 anchors.right: parent.right
@@ -241,7 +244,7 @@ Item {
             Text {
                 id: noteT
                 anchors.centerIn: parent
-                text: recap.storyComplete ? "已看完 · 右侧目录已解锁，可自由回看" : Mock.recap.modeNote
+                text: recap.storyComplete ? "已看完 · 右侧目录已解锁，可自由回看" : ((recap.model && recap.model.modeNote) ? recap.model.modeNote : "")
                 color: recap.storyComplete ? (recap.style ? recap.style.accentText : "#9ef1ff") : (recap.style ? recap.style.textSecondary : "#bbb")
                 font.pixelSize: 12
             }
@@ -373,7 +376,7 @@ Item {
 
             Rectangle {
                 height: parent.height; radius: 2
-                width: parent.width * ((recap.index + 1) / recap.slides.length)
+                width: parent.width * ((recap.index + 1) / Math.max(1, recap.slides.length))
                 Behavior on width { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
                 gradient: Gradient {
                     orientation: Gradient.Horizontal

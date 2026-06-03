@@ -1,5 +1,4 @@
 import QtQuick
-import "MemoryLakeMock.js" as Mock
 
 // 月度回顾单屏：kicker + 类型化布局 + 入场转场（zoom/wipe/rise/rotate/ticket）+ 内滚动。
 // 1:1 对应设计稿 .summary-slide / 各 data-transition。
@@ -166,7 +165,8 @@ Item {
         }
     }
 
-    function appImg(i) { return slide.apps[i] ? Mock.imagePath(slide.apps[i].image) : "" }
+    // 月度主角 = 月级 apps[bgIndex]（真实当月 Top），喂给生成式封面。
+    function protagApp(i) { return (i >= 0 && slide.apps && slide.apps[i]) ? slide.apps[i] : null }
 
     // —— 01 封面 ——
     Component {
@@ -246,7 +246,7 @@ Item {
             RoundedFrame {
                 width: 300; height: 460; radius: 28
                 border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
-                Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
+                GenerativeCover { anchors.fill: parent; style: slide.style; app: slide.protagApp(slide.slideData.bgIndex); iconSize: 150 }
                 Rectangle {
                     anchors.fill: parent
                     gradient: Gradient {
@@ -284,7 +284,7 @@ Item {
                 RoundedFrame {
                     width: 430; height: 250; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
-                    Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
+                    GenerativeCover { anchors.fill: parent; style: slide.style; app: slide.protagApp(slide.slideData.bgIndex); iconSize: 120 }
                     Rectangle { anchors.fill: parent; gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: "transparent" } GradientStop { position: 1; color: Qt.rgba(0,0,0,0.7) } } }
                 }
             }
@@ -320,7 +320,7 @@ Item {
                     anchors.centerIn: parent
                     width: 220; height: 220; radius: 110   // = 半边长 → 正圆环形头像
                     border.width: 1; border.color: slide.style ? slide.style.faceBorderActive : "#ffffff33"
-                    Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
+                    GenerativeCover { anchors.fill: parent; style: slide.style; app: slide.protagApp(slide.slideData.bgIndex); iconSize: 120 }
                 }
                 Repeater {
                     model: slide.slideData.orbit
@@ -361,7 +361,7 @@ Item {
                 RoundedFrame {
                     width: 260; height: 360; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
-                    Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
+                    GenerativeCover { anchors.fill: parent; style: slide.style; app: slide.protagApp(slide.slideData.bgIndex); iconSize: 120 }
                 }
             }
         }
@@ -425,17 +425,24 @@ Item {
                 border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
                 clip: true
                 Canvas {
+                    id: trendCanvas
                     anchors.fill: parent
                     anchors.margins: 16
+                    // 接真实按天序列（0..1，1=当月最高日）；空/单点不画（断言守卫）。
+                    readonly property var series: (slide.slideData && slide.slideData.series) ? slide.slideData.series : []
+                    onSeriesChanged: requestPaint()
+                    onVisibleChanged: if (visible) requestPaint()
+                    Component.onCompleted: requestPaint()
                     onPaint: {
                         var ctx = getContext("2d");
                         ctx.reset();
-                        var pts = [0.78, 0.62, 0.66, 0.42, 0.46, 0.40, 0.36, 0.46, 0.30, 0.36, 0.26, 0.30, 0.20, 0.18];
+                        var pts = trendCanvas.series;
+                        if (!pts || pts.length < 2) return;
                         var w = width, h = height;
                         ctx.beginPath();
                         for (var i = 0; i < pts.length; i++) {
                             var x = (i / (pts.length - 1)) * w;
-                            var y = pts[i] * h;
+                            var y = (1 - pts[i]) * h;   // 高值 -> 靠顶（湖面水位）
                             if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                         }
                         var grad = ctx.createLinearGradient(0, 0, w, 0);
