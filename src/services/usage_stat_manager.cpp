@@ -598,7 +598,12 @@ QVariantList UsageStatManager::aggregateSoftware(
       }
     }
     item["category"] = topCategory;
-    item["iconColors"] = iconDominantColors(aggregate.path);
+    // 站点组（如 site:bilibili）的 path 是**浏览器 exe**，取图标色会错成浏览器色调
+    // （用户反馈：bilibili 背景显示成 Chrome 的色）。站点组留空 -> QML 退回 appColor
+    // 的站点品牌色（site:bilibili -> 粉色）。避免任何 site:* 组取到宿主浏览器色。
+    item["iconColors"] = aggregate.groupKey.startsWith("site:")
+                             ? QStringList()
+                             : iconDominantColors(aggregate.path);
     if (aggregate.groupKey == "site:bilibili") {
       item["siteDomain"] = "bilibili.com";
     }

@@ -156,7 +156,8 @@ QString periodForHour(int hour) {
   if (hour >= 11 && hour < 14) return QStringLiteral("中午");
   if (hour >= 14 && hour < 18) return QStringLiteral("下午");
   if (hour >= 18 && hour < 22) return QStringLiteral("傍晚");
-  return QStringLiteral("夜间");  // 22:00–05:00
+  if (hour >= 22 || hour < 2) return QStringLiteral("夜间");  // 22:00–02:00
+  return QStringLiteral("深夜");                              // 02:00–05:00
 }
 
 // 主要时段：按会话中点小时、以时长加权，取占比最高的时段；无会话返回空串。
@@ -182,77 +183,67 @@ QString dominantPeriod(const QVariantList& segments) {
   return top;
 }
 
-// 使用模式标签（仅凭可测信号）。注意：多次短段≠"碎片"——正常使用本就在多个 app
-// 间反复跳转，单个 app 被反复穿插用是中性的「穿插使用」，不带负面意味；"是否专注"
-// 改由"连续专注块"在 day 层判断（见 taskBlocks），不在单 app 上扣帽子。
-QString patternLabel(qint64 longestSec, int sessionCount, qint64 totalSec) {
-  if (totalSec < 5 * 60) return QStringLiteral("少量使用");
-  if (sessionCount <= 1 && totalSec < 15 * 60) return QStringLiteral("少量使用");
-  if (longestSec >= 30 * 60) return QStringLiteral("连续投入");
-  const qint64 avg = sessionCount > 0 ? totalSec / sessionCount : totalSec;
-  if (sessionCount >= 4 && avg < 8 * 60) return QStringLiteral("穿插使用");
-  return QStringLiteral("平稳使用");
+// 时段 -> 2 字代表词（"何时用它"是最有用户独特性的信号）。
+QString periodWord(const QString& period) {
+  if (period == QStringLiteral("清晨")) return QStringLiteral("清晨");
+  if (period == QStringLiteral("上午")) return QStringLiteral("上午");
+  if (period == QStringLiteral("中午")) return QStringLiteral("午间");
+  if (period == QStringLiteral("下午")) return QStringLiteral("午后");
+  if (period == QStringLiteral("傍晚")) return QStringLiteral("傍晚");
+  if (period == QStringLiteral("夜间")) return QStringLiteral("夜间");
+  if (period == QStringLiteral("深夜")) return QStringLiteral("深夜");
+  return QString();
 }
 
-// 心情词：类别 × 模式 查通用词表；任何类别都能落到模式兜底词。
-QString moodWord(const QString& category, qint64 longestSec, int sessionCount,
-                 qint64 totalSec) {
-  const QString p = patternLabel(longestSec, sessionCount, totalSec);
-  if (p == QStringLiteral("少量使用")) return QStringLiteral("短暂使用");
-  const bool isLong = p == QStringLiteral("连续投入");
-  const bool isWeave = p == QStringLiteral("穿插使用");
-  if (category == QStringLiteral("开发"))
-    return isLong ? QStringLiteral("专注开发")
-                  : (isWeave ? QStringLiteral("穿插编码")
-                             : QStringLiteral("平稳编码"));
-  if (category == QStringLiteral("游戏"))
-    return isLong ? QStringLiteral("沉浸游玩")
-                  : (isWeave ? QStringLiteral("穿插游玩")
-                             : QStringLiteral("平稳游玩"));
-  if (category == QStringLiteral("视频"))
-    return isLong ? QStringLiteral("连续观看")
-                  : (isWeave ? QStringLiteral("随手观看")
-                             : QStringLiteral("平稳观看"));
-  if (category == QStringLiteral("音乐")) return QStringLiteral("音乐陪伴");
-  if (category == QStringLiteral("社交"))
-    return isLong ? QStringLiteral("持续沟通")
-                  : (isWeave ? QStringLiteral("穿插沟通")
-                             : QStringLiteral("日常沟通"));
-  if (category == QStringLiteral("办公"))
-    return isLong ? QStringLiteral("专注处理")
-                  : (isWeave ? QStringLiteral("穿插处理")
-                             : QStringLiteral("平稳处理"));
-  if (category == QStringLiteral("创作"))
-    return isLong ? QStringLiteral("沉浸创作")
-                  : (isWeave ? QStringLiteral("穿插创作")
-                             : QStringLiteral("平稳创作"));
-  if (category == QStringLiteral("笔记"))
-    return isLong ? QStringLiteral("专注记录")
-                  : (isWeave ? QStringLiteral("随手记录")
-                             : QStringLiteral("平稳记录"));
-  if (category == QStringLiteral("浏览"))
-    return isLong ? QStringLiteral("沉浸浏览")
-                  : (isWeave ? QStringLiteral("随手浏览")
-                             : QStringLiteral("平稳浏览"));
-  return isLong ? QStringLiteral("连续投入")
-                : (isWeave ? QStringLiteral("穿插使用")
-                           : QStringLiteral("日常使用"));
+// 长会话的类别强度短词（2 字）。
+QString intensityShort(const QString& category) {
+  if (category == QStringLiteral("游戏")) return QStringLiteral("沉浸");
+  if (category == QStringLiteral("开发")) return QStringLiteral("专注");
+  if (category == QStringLiteral("视频")) return QStringLiteral("追剧");
+  if (category == QStringLiteral("创作")) return QStringLiteral("沉浸");
+  if (category == QStringLiteral("办公")) return QStringLiteral("专注");
+  if (category == QStringLiteral("笔记")) return QStringLiteral("专注");
+  if (category == QStringLiteral("浏览")) return QStringLiteral("深读");
+  if (category == QStringLiteral("社交")) return QStringLiteral("畅聊");
+  return QStringLiteral("沉浸");
 }
 
-// 分析句：带槽位拼装，填不上的从句整句省略（断言守卫）。
+// 心情词：只用**有代表性、有独特性**的信号——主要时段（何时）+ 单次时长强度（多投入）。
+// 刻意避开"穿插/平稳/日常/切换/碎片"这类人人用电脑都会触发、不够 specialized 的词。
+QString moodWord(const QString& category, const QString& period,
+                 qint64 longestSec, qint64 totalSec) {
+  if (totalSec < 5 * 60) return QStringLiteral("短暂一瞥");
+  const bool isLong = longestSec >= 30 * 60;
+  const QString pw = periodWord(period);
+
+  if (category == QStringLiteral("音乐"))
+    return isLong ? QStringLiteral("沉浸聆听")
+                  : (pw.isEmpty() ? QStringLiteral("聆听陪伴")
+                                  : pw + QStringLiteral("聆听"));
+
+  if (isLong) {  // 长单次会话本身就 distinctive：主要时段 + 强度
+    const QString is = intensityShort(category);
+    return pw.isEmpty() ? (QStringLiteral("长时") + is) : (pw + is);
+  }
+  // 非长会话：以"主要时段"立意（你主要在什么时候用它）。
+  if (!pw.isEmpty()) return pw + QStringLiteral("使用");
+  return QStringLiteral("零星使用");
+}
+
+// 分析句：只拼**可度量事实**（时长 / 主要时段 / 单次最长 / 打开次数），不下"穿插/平稳"
+// 这类通用判断；填不上的从句整句省略。
 QString analysisText(const QString& name, const QString& timeText,
                      const QString& period, qint64 longestSec, int sessionCount,
                      qint64 totalSec) {
-  const QString p = patternLabel(longestSec, sessionCount, totalSec);
-  if (p == QStringLiteral("少量使用")) {
-    return QStringLiteral("%1 今天只有少量使用。").arg(name);
+  if (totalSec < 5 * 60) {
+    return QStringLiteral("%1 今天只是短暂打开了一下。").arg(name);
   }
   QString s = QStringLiteral("%1 今天使用约 %2").arg(name, timeText);
-  if (!period.isEmpty()) s += QStringLiteral("，集中在%1").arg(period);
+  if (!period.isEmpty()) s += QStringLiteral("，主要在%1").arg(period);
   if (longestSec > 0)
     s += QStringLiteral("，单次最长 %1").arg(formatDuration(longestSec));
-  if (sessionCount > 0) s += QStringLiteral("，共 %1 次使用").arg(sessionCount);
-  s += QStringLiteral("。系统据连续性识别为「%1」。").arg(p);
+  if (sessionCount > 0) s += QStringLiteral("，共打开 %1 次").arg(sessionCount);
+  s += QStringLiteral("。");
   return s;
 }
 
@@ -389,7 +380,7 @@ QVariantList taskBlocks(const QVariantList& segments,
 
 QString themeTitle(const QString& cat) {
   if (cat.isEmpty() || cat == QStringLiteral("其他"))
-    return QStringLiteral("日常使用为主");
+    return QStringLiteral("今日无明显主线");
   return cat + QStringLiteral("为主");
 }
 
@@ -422,9 +413,14 @@ QString categoryKeyword(const QString& cat) {
   return QStringLiteral("日常");
 }
 
-QString majorKeyword(const QString& topCat, const QString& topPattern) {
-  if (topPattern == QStringLiteral("连续投入")) return QStringLiteral("沉浸");
-  if (topPattern == QStringLiteral("穿插使用")) return QStringLiteral("穿插");
+// 主关键词：优先**有代表性**的信号——夜间/深夜（最具分享性）> 长时沉浸 > 主要时段 > 类别。
+// 不再用"穿插"等通用词。peakPeriod 为原始时段串（清晨/.../深夜），topLongestSec 为月度最长单次。
+QString majorKeyword(const QString& peakPeriod, qint64 topLongestSec,
+                     const QString& topCat) {
+  const QString pw = periodWord(peakPeriod);
+  if (pw == QStringLiteral("夜间") || pw == QStringLiteral("深夜")) return pw;
+  if (topLongestSec >= 60 * 60) return QStringLiteral("沉浸");
+  if (!pw.isEmpty()) return pw;
   return categoryKeyword(topCat);
 }
 
@@ -925,7 +921,7 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
                                     static_cast<double>(topSeconds)
                               : 0.0);
     app.insert(QStringLiteral("mood"),
-               moodWord(category, longestSec, sessionCount, seconds));
+               moodWord(category, period, longestSec, seconds));
     app.insert(QStringLiteral("analysis"),
                analysisText(name, timeText, period, longestSec, sessionCount,
                             seconds));
@@ -1092,17 +1088,17 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
   const QString peakText = peakWindowText(hist);
   const QString peakPeriod = dominantPeriodFromHist(hist);
 
-  QString topPattern = QStringLiteral("平稳使用");
-  for (const QVariant& v : monthApps) {  // 取首个非系统 app 的模式做主关键词
+  qint64 topLongestSec = 0;
+  for (const QVariant& v : monthApps) {  // 首个非系统 app 的月度最长单次
     const QVariantMap a0 = v.toMap();
     if (catOf(a0) == QStringLiteral("系统")) continue;
-    const QVariantMap s0 = segByKey.value(a0.value(QStringLiteral("groupKey")).toString());
-    topPattern = patternLabel(s0.value(QStringLiteral("longestSec"), 0).toLongLong(),
-                              s0.value(QStringLiteral("sessionCount"), 0).toInt(),
-                              a0.value(QStringLiteral("seconds")).toLongLong());
+    topLongestSec =
+        segByKey.value(a0.value(QStringLiteral("groupKey")).toString())
+            .value(QStringLiteral("longestSec"), 0)
+            .toLongLong();
     break;
   }
-  const QString major = majorKeyword(topCat, topPattern);
+  const QString major = majorKeyword(peakPeriod, topLongestSec, topCat);
 
   QVariantList slides;
   int idx = 0;
@@ -1155,7 +1151,7 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
                         ? QStringLiteral("使用强度在月末明显抬升。")
                         : (dir == QStringLiteral("falling")
                                ? QStringLiteral("使用强度在月末逐渐回落。")
-                               : QStringLiteral("整月使用强度大致平稳。"));
+                               : QStringLiteral("整月使用强度起伏不大。"));
     QVariantMap s;
     s.insert(QStringLiteral("title"), title);
     s.insert(QStringLiteral("subtitle"),
@@ -1180,18 +1176,17 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
     const QString timeText = u.value(QStringLiteral("time")).toString();
     const QVariantMap seg = segByKey.value(u.value(QStringLiteral("groupKey")).toString());
     const qlonglong longestSec = seg.value(QStringLiteral("longestSec"), 0).toLongLong();
-    const int sessionCount = seg.value(QStringLiteral("sessionCount"), 0).toInt();
     const QVariantList segs = seg.value(QStringLiteral("segments")).toList();
     const QString period = dominantPeriod(segs);
-    const QString mood = moodWord(cat, longestSec, sessionCount, sec);
-    const QString pattern = patternLabel(longestSec, sessionCount, sec);
+    const QString mood = moodWord(cat, period, longestSec, sec);
+    const QString protagKw = majorKeyword(period, longestSec, cat);
 
     const QString title = QStringLiteral("%1：%2").arg(name, mood);
     QString subtitle = QStringLiteral("%1 本月使用约 %2").arg(name, timeText);
     if (!period.isEmpty()) subtitle += QStringLiteral("，多集中在%1").arg(period);
     if (longestSec > 0) subtitle += QStringLiteral("，最长连续 %1").arg(formatDuration(longestSec));
-    subtitle += QStringLiteral("。系统据连续性识别为「%1」。").arg(pattern);
-    const QString kw = QStringLiteral("%1 / %2").arg(categoryKeyword(cat), majorKeyword(cat, pattern));
+    subtitle += QStringLiteral("。");
+    const QString kw = QStringLiteral("%1 / %2").arg(categoryKeyword(cat), protagKw);
 
     QVariantList stats;
     stats.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("月度时长")}, {QStringLiteral("value"), timeText}});
@@ -1222,10 +1217,11 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
         orbit.append(QVariantMap{{QStringLiteral("a"), 35}, {QStringLiteral("value"), formatDuration(longestSec)}, {QStringLiteral("label"), QStringLiteral("最长连续")}});
       if (!period.isEmpty())
         orbit.append(QVariantMap{{QStringLiteral("a"), 105}, {QStringLiteral("value"), period}, {QStringLiteral("label"), QStringLiteral("主要时段")}});
-      orbit.append(QVariantMap{{QStringLiteral("a"), 185}, {QStringLiteral("value"), majorKeyword(cat, pattern)}, {QStringLiteral("label"), QStringLiteral("月度关键词")}});
+      orbit.append(QVariantMap{{QStringLiteral("a"), 185}, {QStringLiteral("value"), protagKw}, {QStringLiteral("label"), QStringLiteral("月度关键词")}});
       s.insert(QStringLiteral("orbit"), orbit);
     } else {  // article
-      s.insert(QStringLiteral("articleTitle"), QStringLiteral("%1，而不是爆发。").arg(pattern));
+      s.insert(QStringLiteral("articleTitle"),
+               period.isEmpty() ? mood : (periodWord(period) + QStringLiteral("时段的常客")));
       s.insert(QStringLiteral("articleBody"), subtitle);
     }
     addSlide(s, steps[proto], tmpl, i, QString::fromLatin1(trans[proto]));
@@ -1283,7 +1279,7 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
                         ? QStringLiteral("月末出现明显高峰。")
                         : (dir == QStringLiteral("falling")
                                ? QStringLiteral("使用在月末逐渐回落。")
-                               : QStringLiteral("整月使用大致平稳。"));
+                               : QStringLiteral("整月使用起伏不大。"));
     QVariantMap s;
     s.insert(QStringLiteral("title"), title);
     s.insert(QStringLiteral("subtitle"),
@@ -1305,9 +1301,7 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
       kws << categoryKeyword(c);
       ++kc;
     }
-    kws << (topPattern == QStringLiteral("连续投入") ? QStringLiteral("连续使用")
-            : topPattern == QStringLiteral("穿插使用") ? QStringLiteral("穿插切换")
-                                                       : QStringLiteral("平稳节奏"));
+    if (topLongestSec >= 60 * 60) kws << QStringLiteral("长时沉浸");
     QStringList uniq;
     for (const QString& k : kws)
       if (!k.isEmpty() && !uniq.contains(k)) uniq << k;

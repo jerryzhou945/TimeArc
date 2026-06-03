@@ -59,6 +59,21 @@ function ambientTone(c, night) {
     return Qt.hsla(h, ns, nl, 1.0);
 }
 
+// 封面色调：比 ambientTone **略保留鲜明度**（封面是焦点"专辑封面"），但仍明显压低
+// 饱和，去掉刺眼红/多色。淡化幅度约为背景的 80–90%（不与背景一样淡）。
+function coverTone(c, night) {
+    var col = Qt.lighter(c, 1.0);
+    var h = col.hslHue;
+    var s = col.hslSaturation;
+    var l = col.hslLightness;
+    if (h < 0 || isNaN(h)) {
+        return night ? Qt.hsla(0, 0, 0.40, 1.0) : Qt.hsla(0, 0, 0.84, 1.0);
+    }
+    var ns = Math.min(s * 0.55, night ? 0.30 : 0.38);
+    var nl = night ? (0.42 + l * 0.10) : (0.78 - (1 - l) * 0.06);
+    return Qt.hsla(h, ns, nl, 1.0);
+}
+
 // 系统小图标 source。site:bilibili 走内置 SVG；无 path 返回 ""（由调用方走 appColor 兜底）。
 function appIconSource(appId, path) {
     var identity = appId ? appId.toString() : "";
