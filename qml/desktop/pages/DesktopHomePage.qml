@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
+import "../components/AppVisual.js" as AppVisual
 
 Item {
     id: root
@@ -128,38 +129,13 @@ Item {
         return palette[hash % palette.length]
     }
 
+    // 共享实现见 qml/desktop/components/AppVisual.js（首页与记忆湖共用，杜绝漂移）。
     function appColor(appId, appName, path) {
-        var identity = appId ? appId.toString() : ""
-        var text = (identity + " " + (appName || "") + " " + (path || "")).toLowerCase()
-
-        if (identity === "site:bilibili" || containsAny(text, ["bilibili", "b23.tv"])) return '#fabecf'
-        if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D98E9F"
-        if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#BFD7EA"
-        if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#9FC7DE"
-        if (containsAny(text, ["discord"])) return "#D9D0F2"
-        if (containsAny(text, ["weixin", "wechat"])) return "#CFE8D8"
-        if (containsAny(text, ["qqmusic", "qqmusic.exe"])) return "#DDF1E5"
-        if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"])) return "#B9B5C8"
-        if (containsAny(text, ["msedge", "edge.exe"])) return "#A8D5C0"
-        if (containsAny(text, ["firefox"])) return "#EFDCC3"
-        if (containsAny(text, ["explorer.exe", "windows\\explorer"])) return "#F4E8C8"
-        if (containsAny(text, ["powershell", "windowsterminal", "cmd.exe"])) return "#BFD7EA"
-        if (containsAny(text, ["telegram"])) return "#BFD7EA"
-        if (containsAny(text, ["spotify"])) return "#CFE8D8"
-        if (containsAny(text, ["zoom.exe"])) return "#BFD7EA"
-
-        return hashedColor(text)
+        return AppVisual.appColor(appId, appName, path)
     }
 
     function appIconSource(appId, path) {
-        var identity = appId ? appId.toString() : ""
-        if (identity === "site:bilibili")
-            return Qt.resolvedUrl("../../../resources/icons/bilibili.svg")
-
-        var raw = path ? path.toString() : ""
-        if (raw.length === 0)
-            return ""
-        return "image://appicon/" + encodeURIComponent(raw)
+        return AppVisual.appIconSource(appId, path)
     }
 
     function refreshTodaySoftwareStats() {

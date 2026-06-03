@@ -13,7 +13,9 @@ set(TIME_ARC_QML_FILES
     qml/desktop/components/SoftPill.qml
     qml/desktop/components/SoftButton.qml
     qml/desktop/components/AchievementToast.qml
+    qml/desktop/components/AppVisual.js
     qml/desktop/memorylake/MemoryLakeMock.js
+    qml/desktop/memorylake/GenerativeCover.qml
     qml/desktop/memorylake/MemoryLakeStyle.qml
     qml/desktop/memorylake/GlassPanel.qml
     qml/desktop/memorylake/GlowCircle.qml

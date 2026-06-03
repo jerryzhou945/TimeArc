@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 import time_arc
+import "components/AppVisual.js" as AppVisual
 
 Item {
     id: root
@@ -37,10 +38,15 @@ Item {
     // 当前实际使用的背景图
     property string appBackgroundSource: nightMode ? nightBackgroundSource : dayBackgroundSource
 
-    // 记忆湖：把当前卡牌封面的模糊大图升级为整个 App 背景（Issue 1）
+    // 记忆湖：整个 App 背景改为当前 APP 的 appColor 色彩晕染（§4.4，取代游戏海报模糊大图）。
     readonly property bool onMemoryLake: selectedIndex === 2 && !showingTimerPage
-    readonly property url memoryLakeBackgroundSource:
-        (onMemoryLake && pageLoader.item && ("ambientSource" in pageLoader.item)) ? pageLoader.item.ambientSource : ""
+    readonly property bool memoryLakeHasAmbient:
+        onMemoryLake && pageLoader.item && ("hasAmbient" in pageLoader.item) && pageLoader.item.hasAmbient
+    readonly property color memoryLakeAmbientColor:
+        (onMemoryLake && pageLoader.item && ("ambientColor" in pageLoader.item)) ? pageLoader.item.ambientColor : "#9FE7EE"
+    // 当前 APP 图标主色数组（多色 blend 背景用）；缺失退回单色。
+    readonly property var memoryLakeAmbientColors:
+        (onMemoryLake && pageLoader.item && ("ambientColors" in pageLoader.item)) ? pageLoader.item.ambientColors : [memoryLakeAmbientColor]
 
     // 记忆湖时导航栏配色对齐记忆湖左右玻璃面板（MemoryLakeStyle 的 panel/accent 值）
     readonly property color mlNavGlass: nightMode ? Qt.rgba(0.055, 0.080, 0.130, 0.86) : Qt.rgba(1, 1, 1, 0.66)
@@ -222,57 +228,86 @@ Item {
                 opacity: nightMode ? 0.28 : 0.52
             }
 
-            // 记忆湖：当前卡牌封面的模糊大图作为整个 App 背景（Issue 1）
+            // 记忆湖：整个 App 背景 = 当前 APP **图标主色**的多色晕染（§4.4 / issue A7/B4）。
+            // 不再用游戏海报；改图标主色（2–3 色）渐变交叉淡入 + 两团模糊色块混入，仍重模糊。
             Item {
                 anchors.fill: parent
-                visible: onMemoryLake && memoryLakeBackgroundSource != ""
-                // 双图交叉淡入淡出：切换卡牌时背景柔和过渡，而非硬切
+                visible: onMemoryLake && memoryLakeHasAmbient
+                // 多色渐变交叉淡入淡出：保留原 A/B 乒乓 + 450ms Behavior（颜色数组驱动）。
                 Item {
                     id: mlBgSrc
                     anchors.fill: parent
-                    visible: false
-                    layer.enabled: true
-                    property url src: memoryLakeBackgroundSource
+                    property var cols: memoryLakeAmbientColors
                     property bool frontIsA: true
-                    onSrcChanged: {
-                        if (src == "")
-                            return
-                        if (frontIsA) { mlImgB.source = src; frontIsA = false }
-                        else { mlImgA.source = src; frontIsA = true }
+                    // 取色数组第 i 项（不足则取末项；空则兜底）。
+                    function col(arr, i) {
+                        return (arr && arr.length > 0) ? arr[Math.min(i, arr.length - 1)] : "#9FE7EE"
                     }
-                    Component.onCompleted: if (src != "") { mlImgA.source = src; frontIsA = true }
-                    Image {
-                        id: mlImgA
+                    onColsChanged: {
+                        if (frontIsA) { mlRectB.cols = cols; frontIsA = false }
+                        else { mlRectA.cols = cols; frontIsA = true }
+                    }
+                    Component.onCompleted: { mlRectA.cols = cols; frontIsA = true }
+                    Rectangle {
+                        id: mlRectA
                         anchors.fill: parent
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
+                        property var cols: mlBgSrc.cols
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: Qt.lighter(AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 0), nightMode), 1.06) }
+                            GradientStop { position: 0.5; color: AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 1), nightMode) }
+                            GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 2), nightMode), 1.16) }
+                        }
                         opacity: mlBgSrc.frontIsA ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
                     }
-                    Image {
-                        id: mlImgB
+                    Rectangle {
+                        id: mlRectB
                         anchors.fill: parent
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
+                        property var cols: mlBgSrc.cols
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: Qt.lighter(AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 0), nightMode), 1.06) }
+                            GradientStop { position: 0.5; color: AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 1), nightMode) }
+                            GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 2), nightMode), 1.16) }
+                        }
                         opacity: mlBgSrc.frontIsA ? 0 : 1
                         Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
                     }
                 }
-                MultiEffect {
-                    anchors.fill: parent
-                    source: mlBgSrc
-                    blurEnabled: true
-                    blur: 0.82
-                    blurMax: 64
-                    brightness: nightMode ? -0.18 : -0.06
-                    saturation: -0.06
-                    scale: 1.08
+                // 点缀色块：两团模糊圆，取图标主色的**淡化色调**错位摆放——模糊后柔和混入，不夸张。
+                Rectangle {
+                    id: mlBlobA
+                    width: Math.min(parent.width, parent.height) * 0.8
+                    height: width; radius: width / 2
+                    x: parent.width * 0.2 - width / 2
+                    y: parent.height * 0.26 - height / 2
+                    visible: false; layer.enabled: true
+                    color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 0), nightMode)
+                    Behavior on color { ColorAnimation { duration: 450 } }
                 }
-                // 整个 App 统一压成「记忆湖」暗色水面（避免中间黑、四周亮的不一致），
-                // 仍保留模糊封面的隐约色块。
+                MultiEffect {
+                    anchors.fill: mlBlobA; source: mlBlobA
+                    blurEnabled: true; blur: 1.0; blurMax: 64
+                    opacity: nightMode ? 0.16 : 0.24; autoPaddingEnabled: true
+                }
+                Rectangle {
+                    id: mlBlobB
+                    width: Math.min(parent.width, parent.height) * 0.74
+                    height: width; radius: width / 2
+                    x: parent.width * 0.8 - width / 2
+                    y: parent.height * 0.72 - height / 2
+                    visible: false; layer.enabled: true
+                    color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 1), nightMode)
+                    Behavior on color { ColorAnimation { duration: 450 } }
+                }
+                MultiEffect {
+                    anchors.fill: mlBlobB; source: mlBlobB
+                    blurEnabled: true; blur: 1.0; blurMax: 64
+                    opacity: nightMode ? 0.13 : 0.20; autoPaddingEnabled: true
+                }
+                // 轻压一层统一「水面」，淡淡的、保留清新色调（不再压成深色）。
                 Rectangle {
                     anchors.fill: parent
-                    color: nightMode ? Qt.rgba(0.02, 0.03, 0.06, 0.60) : Qt.rgba(0.10, 0.13, 0.20, 0.40)
+                    color: nightMode ? Qt.rgba(0.05, 0.07, 0.11, 0.26) : Qt.rgba(0.14, 0.16, 0.22, 0.12)
                 }
             }
         }
