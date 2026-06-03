@@ -7,6 +7,8 @@ set(TIME_ARC_RESOURCE_FILES
     resources/icons/calendar.svg
     resources/icons/stats.svg
     resources/icons/user.svg
+    resources/icons/settings.svg
+    resources/icons/recap.svg
     resources/memorylake/memory_bg.png
     resources/memorylake/memory_cat_1.png
     resources/memorylake/memory_cat_2.png

@@ -836,7 +836,48 @@ QVariantMap DailyCardService::buildFlipCard(const QString& isoDate) {
 }
 
 // 记忆湖·日视图模型：入参为 QML 取到的首页同源只读数据；本服务只做 classify +
-// 文案模板 + 聚合，产出与 MemoryLakeMock 同形的 {apps, overview, todayTheme}。
+// 当天前台用量按小时分桶，取峰值小时并向相邻 ≥45% 峰值的小时扩展，
+// 得到形如 "20:00–23:00" 的高峰区间（无数据返回空串）。
+static QString peakHourLabel(const QVariantList& segments, qint64 dayStart) {
+  double buckets[24] = {0};
+  for (const QVariant& gv : segments) {
+    const QVariantList segs =
+        gv.toMap().value(QStringLiteral("segments")).toList();
+    for (const QVariant& sv : segs) {
+      const QVariantMap s = sv.toMap();
+      const qint64 st = s.value(QStringLiteral("startUnixSec")).toLongLong();
+      const qint64 en = s.value(QStringLiteral("endUnixSec")).toLongLong();
+      if (en <= st) continue;
+      qint64 cur = std::max<qint64>(st, dayStart);
+      while (cur < en) {
+        const int h = static_cast<int>((cur - dayStart) / 3600);
+        if (h < 0 || h > 23) break;
+        const qint64 hourEnd = dayStart + static_cast<qint64>(h + 1) * 3600;
+        const qint64 chunkEnd = std::min(en, hourEnd);
+        buckets[h] += static_cast<double>(chunkEnd - cur);
+        cur = chunkEnd;
+      }
+    }
+  }
+  int peak = -1;
+  double best = 0.0;
+  for (int h = 0; h < 24; ++h)
+    if (buckets[h] > best) {
+      best = buckets[h];
+      peak = h;
+    }
+  if (peak < 0 || best <= 0.0) return QString();
+  int lo = peak, hi = peak;
+  const double thresh = best * 0.45;
+  while (lo - 1 >= 0 && buckets[lo - 1] >= thresh) --lo;
+  while (hi + 1 <= 23 && buckets[hi + 1] >= thresh) ++hi;
+  return QStringLiteral("%1:00–%2:00")
+      .arg(lo, 2, 10, QLatin1Char('0'))
+      .arg(hi + 1, 2, 10, QLatin1Char('0'));
+}
+
+// 文案模板 + 聚合，产出与 MemoryLakeMock 同形的
+// {apps, overview, todayTheme, usageShare, todayConclusion}。
 QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
                                             const QVariantList& segments) {
   QVariantMap model;
@@ -952,6 +993,10 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
                 .arg(totalSessions));
   model.insert(QStringLiteral("overview"), overview);
 
+  // 今日结论/饼图复用：头条类别与占比（在 theme 分支内赋值，函数级可见）。
+  QString topCat;
+  double ratio = 0.0;
+
   if (appsOut.isEmpty() || totalDaySec <= 0) {
     theme.insert(QStringLiteral("title"), QStringLiteral("今天还很安静"));
     theme.insert(QStringLiteral("desc"),
@@ -986,11 +1031,11 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
       }
       return c;
     };
-    QString topCat = pickTop(QStringLiteral("系统"), QStringLiteral("其他"));
+    topCat = pickTop(QStringLiteral("系统"), QStringLiteral("其他"));
     if (topCat.isEmpty()) topCat = pickTop(QStringLiteral("系统"), QString());
     QString cat2 = pickTop(QStringLiteral("系统"), topCat);
     if (cat2 == QStringLiteral("其他")) cat2.clear();
-    const double ratio =
+    ratio =
         (srcTotal > 0 && !topCat.isEmpty())
             ? std::min(1.0, static_cast<double>(headlineSrc.value(topCat, 0)) /
                                 srcTotal)
@@ -1015,6 +1060,96 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
     }
   }
   model.insert(QStringLiteral("todayTheme"), theme);
+
+  // —— Daily Usage Share：前 4 个 app 切片 + 其他（占全天总时长）——
+  {
+    QVariantList share;
+    const int topN = std::min<int>(4, static_cast<int>(appsOut.size()));
+    qlonglong shown = 0;
+    for (int i = 0; i < topN; ++i) {
+      const QVariantMap a = appsOut.at(i).toMap();
+      const qlonglong sec = a.value(QStringLiteral("seconds")).toLongLong();
+      shown += sec;
+      QVariantMap slice;
+      slice.insert(QStringLiteral("name"), a.value(QStringLiteral("name")));
+      slice.insert(QStringLiteral("appId"), a.value(QStringLiteral("appId")));
+      slice.insert(QStringLiteral("path"), a.value(QStringLiteral("path")));
+      slice.insert(QStringLiteral("iconColors"),
+                   a.value(QStringLiteral("iconColors")));
+      slice.insert(QStringLiteral("seconds"), sec);
+      slice.insert(QStringLiteral("percent"),
+                   totalDaySec > 0
+                       ? qRound(100.0 * static_cast<double>(sec) /
+                                static_cast<double>(totalDaySec))
+                       : 0);
+      slice.insert(QStringLiteral("isOther"), false);
+      share.append(slice);
+    }
+    const qlonglong rest = totalDaySec - shown;
+    if (rest > 0) {
+      QVariantMap other;
+      other.insert(QStringLiteral("name"), QStringLiteral("其他"));
+      other.insert(QStringLiteral("seconds"), rest);
+      other.insert(QStringLiteral("percent"),
+                   totalDaySec > 0
+                       ? qRound(100.0 * static_cast<double>(rest) /
+                                static_cast<double>(totalDaySec))
+                       : 0);
+      other.insert(QStringLiteral("isOther"), true);
+      share.append(other);
+    }
+    model.insert(QStringLiteral("usageShare"), share);
+  }
+
+  // —— Today Conclusion：复用 theme 头条 + 高峰时段 + 中立建议；
+  //    待办剩余数由 QML 从 calendarManager 叠加（DCS 不链接日历符号）。——
+  {
+    QVariantMap conclusion;
+    conclusion.insert(QStringLiteral("kicker"), QStringLiteral("今日结论"));
+    conclusion.insert(QStringLiteral("total"),
+                      overview.value(QStringLiteral("total")));
+    if (appsOut.isEmpty() || totalDaySec <= 0) {
+      conclusion.insert(QStringLiteral("title"), QStringLiteral("今天还很安静"));
+      conclusion.insert(
+          QStringLiteral("desc"),
+          QStringLiteral("还没有自动记录，开始使用后这里会生成今日结论。"));
+      conclusion.insert(QStringLiteral("chips"), QVariantList());
+    } else {
+      conclusion.insert(
+          QStringLiteral("title"),
+          QStringLiteral("今天的主要主题是：%1")
+              .arg(theme.value(QStringLiteral("title")).toString()));
+      conclusion.insert(QStringLiteral("desc"),
+                        theme.value(QStringLiteral("desc")).toString());
+      QVariantList chips;
+      const auto chip = [](const QString& label, const QString& value) {
+        QVariantMap c;
+        c.insert(QStringLiteral("label"), label);
+        c.insert(QStringLiteral("value"), value);
+        return c;
+      };
+      if (!topCat.isEmpty())
+        chips.append(chip(QStringLiteral("最高占比"),
+                          QStringLiteral("%1 %2%")
+                              .arg(topCat)
+                              .arg(qRound(ratio * 100.0))));
+      const QString peak = peakHourLabel(segments, dayStart);
+      if (!peak.isEmpty()) chips.append(chip(QStringLiteral("高峰时段"), peak));
+      QString suggestion = QStringLiteral("继续保持");
+      if (topCat == QStringLiteral("游戏") || topCat == QStringLiteral("娱乐"))
+        suggestion = QStringLiteral("先完成短任务");
+      else if (topCat == QStringLiteral("工作") ||
+               topCat == QStringLiteral("创作") ||
+               topCat == QStringLiteral("开发"))
+        suggestion = QStringLiteral("保持专注节奏");
+      else if (topCat == QStringLiteral("学习") ||
+               topCat == QStringLiteral("阅读"))
+        suggestion = QStringLiteral("注意适当休息");
+      chips.append(chip(QStringLiteral("建议"), suggestion));
+      conclusion.insert(QStringLiteral("chips"), chips);
+    }
+    model.insert(QStringLiteral("todayConclusion"), conclusion);
+  }
 
   return model;
 }

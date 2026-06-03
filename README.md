@@ -50,23 +50,33 @@ with day and night modes.
 - **Calendar of daily to-dos and photos** — persist per-date tasks and
   optional imagery, link to-dos to projects to merge into the timeline.
   Calendar to-dos are stored in the SQLite settings table.
-- **Desktop shell** — a Qt Quick interface with full day/night theming
-  across the Home, Chat, Memory Lake, Calendar, Stats, Profile, and Timer
-  pages.
+- **Desktop shell** — a Qt Quick interface with full day/night theming.
+  The left nav follows the design order **首页 (Memory Lake) · 日历 · 统计 ·
+  设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.
+  Memory Lake is the home/landing page; the Timer page is reached when a
+  calendar to-do starts timing.
 - **Local memo chat** — the desktop Chat page is a local self-recording
   memo surface, not an AI chat or cloud chat. Messages are stored in the
   SQLite settings repository and loaded back in timestamp order.
-- **Memory Lake usage-memory view** — the Memory Lake page is a three-panel
-  "记忆湖": an app usage ranking, a center flip-card carousel (3D flip, wheel/
-  click switching, flip-to-lock), and a right-side detail + "time river"
-  visualization, plus a full-screen monthly recap (story-mode slides with
-  transitions, autoplay, and an unlockable step directory). It follows the
-  day/night theme and uses glass/neon lighting and silky scrolling. The UI is a
-  1:1 port of the `MemoryLakeDesign/` prototype and currently renders demo data;
-  wiring it to real recorded usage is a tracked follow-up (see
-  `docs/memory-lake-implementation-plan.md`). The deterministic local daily-card
-  generator (`DailyCardService`, no AI, no persistence) remains available for
-  reuse when real data is wired in.
+- **Memory Lake home view** — the Memory Lake page is the **home page**, a
+  three-panel "记忆湖": a left panel with a **Today Conclusion** card (今日结论:
+  theme + chips for top share / remaining to-dos / peak hours / suggestion) above
+  the app usage ranking, a center flip-card carousel (3D flip, wheel/click
+  switching, flip-to-lock; **unchanged** by the home rework), and a right panel
+  with **Daily Usage Share** (今日软件使用占比 donut + legend), the "time river",
+  and **Calendar Sync** (今日事项, today's to-dos synced from the calendar). The
+  monthly recap is now its **own page** ("记忆湖 / Memory Recap" at the bottom of
+  the nav): a full-screen story-mode recap (slides with transitions, autoplay, an
+  unlockable step directory; 返回湖面 / Esc returns home). It renders **real
+  recorded usage** via the same read-only path as the Home page: the day view is
+  a cross-app focus-block task summary (e.g. "开发为主 · 今天有 N 段连续使用")
+  with per-app categories, generative covers tinted by the app icon's own colors
+  (no per-app artwork), and a time river; the monthly recap is built from real
+  month data (per-day trend, category share, month-on-month). All copy is local
+  deterministic templates (`DailyCardService`, no AI, no chat/screenshots/raw
+  audio); missing data falls back to honest empty states. It follows the
+  day/night theme with glass/neon lighting and silky scrolling. Per-surface
+  design: `docs/memory-lake-backend-integration-plan.md`.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 
@@ -215,8 +225,9 @@ Two executables are produced: `TimeArc` (the UI) and `time-arc-service`
 
 Launch `TimeArc`. On Windows it will auto-spawn `time-arc-service` from
 the same directory (detached); on macOS the service is not yet started
-by the UI. The UI shows seven pages on desktop (Home, Chat, Memory Lake,
-Calendar, Stats, Profile, Timer).
+by the UI. The desktop nav is **首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
+with **记忆湖 / Monthly Recap** pinned at the bottom; the Timer page opens when a
+calendar to-do starts timing. Memory Lake is the landing page.
 
 ### Data Location
 

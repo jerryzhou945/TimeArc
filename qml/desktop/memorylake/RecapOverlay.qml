@@ -17,6 +17,9 @@ Item {
     property int seenMax: 0
     property bool autoPlay: true
 
+    // 作为独立页面承载时：关闭（返回湖面 / Esc）请求退出回首页。
+    signal exitRequested()
+
     readonly property var slides: (model && model.slides) ? model.slides : []
     readonly property bool storyComplete: seenMax >= slides.length - 1
     readonly property int bgIndex: slides[index] ? slides[index].bgIndex : -1
@@ -35,7 +38,7 @@ Item {
         recap.forceActiveFocus()
         schedule()
     }
-    function close() { opened = false; autoTimer.stop() }
+    function close() { opened = false; autoTimer.stop(); recap.exitRequested() }
     function setSlide(i, fromAuto) {
         index = Math.max(0, Math.min(slides.length - 1, i))
         seenMax = Math.max(seenMax, index)

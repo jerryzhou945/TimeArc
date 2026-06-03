@@ -40,6 +40,15 @@ Item {
         : ({ kicker: "今日主题", title: "今天还很安静",
              desc: "还没有自动记录，开始使用后这里会生成今日主题。", ratio: 0 })
 
+    // 今日结论 / 今日占比：后端在 memoryLakeDay 里组装好，QML 只渲染。
+    readonly property var todayConclusion: (dayModel && dayModel.todayConclusion)
+        ? dayModel.todayConclusion : ({})
+    readonly property var usageShare: (dayModel && dayModel.usageShare)
+        ? dayModel.usageShare : []
+
+    // 请求切换导航页（shell 在 onLoaded 里连接；今日事项「日历」按钮用）。
+    signal requestNavigate(string pageKey)
+
     // 排行：apps 已按时长降序 -> 身份索引序列（喂 UsageRankList）。
     readonly property var ranking: {
         var r = [];
@@ -63,24 +72,7 @@ Item {
             usageStatManager.foregroundSegmentsForRange("day"));
     }
 
-    // 月度回顾模型：打开前用首页同款只读路径取当月+上月数据，交后端组装（QML 只渲染）。
-    property var recapModel: ({})
-    property var recapApps: []
-    function buildRecap() {
-        if (!usageStatManager || !dailyCardService) { root.recapModel = ({}); root.recapApps = []; return; }
-        usageStatManager.refresh();
-        var monthApps = usageStatManager.activeSoftwareForRange("month");
-        var monthSegs = usageStatManager.foregroundSegmentsForRange("month");
-        var now = new Date();
-        var y = now.getFullYear();
-        var m = now.getMonth() + 1;
-        var pm = m === 1 ? 12 : m - 1;
-        var py = m === 1 ? y - 1 : y;
-        var lastApps = usageStatManager.activeSoftwareForMonth(py, pm);
-        var series = usageStatManager.dailySecondsForMonth(y, m);
-        root.recapApps = monthApps;
-        root.recapModel = dailyCardService.memoryLakeRecap(monthApps, monthSegs, lastApps, series);
-    }
+    // 月度回顾已拆为独立页面 DesktopMonthlyRecapPage（菜单底部「记忆湖」）。
 
     Timer {
         interval: 5000; running: true; repeat: true
@@ -228,39 +220,19 @@ Item {
                     }
                 }
 
-                // 月度回顾 CTA
-                Rectangle {
-                    id: recapCta
+                // 今日结论（替换原月度回顾 CTA 位置；月度回顾已独立成页）
+                TodayConclusionCard {
                     width: parent.width
-                    height: 120
-                    radius: 19
-                    clip: true
-                    color: ctaHover.hovered ? Qt.rgba(1, 1, 1, ml.night ? 0.065 : 0.20) : ml.cardBg
-                    border.width: 1
-                    border.color: ctaHover.hovered ? Qt.rgba(0.62, 0.90, 0.93, 0.28) : Qt.rgba(0.62, 0.90, 0.93, 0.16)
-                    Behavior on color { ColorAnimation { duration: 180 } }
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 4
-                        Text { text: "MONTHLY RECAP"; color: ml.aqua; font.pixelSize: 11; opacity: 0.8 }
-                        Text { text: "查看月度记忆回顾"; color: ml.textPrimary; font.pixelSize: 18; font.bold: true }
-                        Text {
-                            width: parent.width
-                            text: "按顺序回放这个月的主要软件、趋势变化和关键词。"
-                            color: ml.textSecondary; font.pixelSize: 11; wrapMode: Text.WordWrap
-                            maximumLineCount: 2; elide: Text.ElideRight
-                        }
-                        Text { text: "开始回顾 →"; color: ml.accentText; font.pixelSize: 12; font.bold: true }
-                    }
-                    HoverHandler { id: ctaHover }
-                    TapHandler { onTapped: { root.buildRecap(); recap.open() } }
+                    height: 150
+                    style: ml
+                    model: root.todayConclusion
+                    todoRemaining: calendarSync.remaining
                 }
 
                 // 排行
                 Rectangle {
                     width: parent.width
-                    height: parent.height - 66 - 124 - 120 - 30
+                    height: parent.height - 66 - 124 - 150 - 30
                     radius: 22
                     clip: true
                     color: ml.cardBg
@@ -334,18 +306,19 @@ Item {
                 anchors.margins: 14
                 spacing: 14
 
-                // 详情卡
-                DetailPanel {
+                // 今日软件使用占比（饼图 + 图例）
+                DailyUsageShare {
                     width: parent.width
-                    height: 250
+                    height: 226
                     style: ml
-                    app: root.current
+                    share: root.usageShare
+                    total: root.overview.total
                 }
 
-                // 使用时间图 · 时间河流
+                // 使用时间图 · 时间河流（仍按当前选中 APP）
                 Rectangle {
                     width: parent.width
-                    height: parent.height - 250 - 76 - 28
+                    height: Math.max(120, parent.height - 226 - 196 - 28)
                     radius: 18
                     color: ml.cardBg
                     border.width: 1
@@ -358,33 +331,16 @@ Item {
                     }
                 }
 
-                // note
-                Rectangle {
+                // 今日事项（与日历同步）
+                CalendarSyncList {
+                    id: calendarSync
                     width: parent.width
-                    height: 76
-                    radius: 18
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
-                    Text {
-                        anchors.fill: parent
-                        anchors.margins: 14
-                        text: root.locked ? "当前记忆已翻面并锁定。再次点击卡牌取消翻面后即可切换。"
-                                          : "点击中心记忆查看分析。翻面后会暂时锁定当前记忆。"
-                        color: ml.textSecondary; font.pixelSize: 13; wrapMode: Text.WordWrap
-                    }
+                    height: 196
+                    style: ml
+                    onOpenCalendar: root.requestNavigate("calendar")
                 }
             }
         }
     }
 
-    // —— 月度回顾覆盖层（盖住三栏）——
-    // 接真实当月数据集：月级 Top apps + 后端组装的回顾模型（题材中立、动态屏数）。
-    RecapOverlay {
-        id: recap
-        anchors.fill: parent
-        style: ml
-        apps: root.recapApps
-        model: root.recapModel
-    }
 }
