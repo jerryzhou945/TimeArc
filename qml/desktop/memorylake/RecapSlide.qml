@@ -280,8 +280,8 @@ Item {
                 width: 430; spacing: 18
                 BigTitle { width: 430; text: slide.slideData.title; font.pixelSize: 44 }
                 SubText { width: 430; text: slide.slideData.subtitle }
-                Rectangle {
-                    width: 430; height: 250; radius: 28; clip: true
+                RoundedFrame {
+                    width: 430; height: 250; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
                     Image { anchors.fill: parent; source: slide.appImg(slide.slideData.bgIndex); fillMode: Image.PreserveAspectCrop }
                     Rectangle { anchors.fill: parent; gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: "transparent" } GradientStop { position: 1; color: Qt.rgba(0,0,0,0.7) } } }
