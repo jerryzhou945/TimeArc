@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 import time_arc
+import "components/AppVisual.js" as AppVisual
 
 Item {
     id: root
@@ -252,9 +253,9 @@ Item {
                         anchors.fill: parent
                         property var cols: mlBgSrc.cols
                         gradient: Gradient {
-                            GradientStop { position: 0.0; color: Qt.lighter(mlBgSrc.col(mlRectA.cols, 0), nightMode ? 0.85 : 1.06) }
-                            GradientStop { position: 0.5; color: mlBgSrc.col(mlRectA.cols, 1) }
-                            GradientStop { position: 1.0; color: Qt.darker(mlBgSrc.col(mlRectA.cols, 2), nightMode ? 2.4 : 1.30) }
+                            GradientStop { position: 0.0; color: Qt.lighter(AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 0), nightMode), 1.06) }
+                            GradientStop { position: 0.5; color: AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 1), nightMode) }
+                            GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 2), nightMode), 1.16) }
                         }
                         opacity: mlBgSrc.frontIsA ? 1 : 0
                         Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
@@ -264,49 +265,49 @@ Item {
                         anchors.fill: parent
                         property var cols: mlBgSrc.cols
                         gradient: Gradient {
-                            GradientStop { position: 0.0; color: Qt.lighter(mlBgSrc.col(mlRectB.cols, 0), nightMode ? 0.85 : 1.06) }
-                            GradientStop { position: 0.5; color: mlBgSrc.col(mlRectB.cols, 1) }
-                            GradientStop { position: 1.0; color: Qt.darker(mlBgSrc.col(mlRectB.cols, 2), nightMode ? 2.4 : 1.30) }
+                            GradientStop { position: 0.0; color: Qt.lighter(AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 0), nightMode), 1.06) }
+                            GradientStop { position: 0.5; color: AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 1), nightMode) }
+                            GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 2), nightMode), 1.16) }
                         }
                         opacity: mlBgSrc.frontIsA ? 0 : 1
                         Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
                     }
                 }
-                // 点缀色块：两团模糊圆，分别取图标第 1/2 主色，错位摆放——模糊后成"色块混入"。
+                // 点缀色块：两团模糊圆，取图标主色的**淡化色调**错位摆放——模糊后柔和混入，不夸张。
                 Rectangle {
                     id: mlBlobA
-                    width: Math.min(parent.width, parent.height) * 0.85
+                    width: Math.min(parent.width, parent.height) * 0.8
                     height: width; radius: width / 2
-                    x: parent.width * 0.18 - width / 2
-                    y: parent.height * 0.24 - height / 2
+                    x: parent.width * 0.2 - width / 2
+                    y: parent.height * 0.26 - height / 2
                     visible: false; layer.enabled: true
-                    color: mlBgSrc.col(memoryLakeAmbientColors, 0)
+                    color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 0), nightMode)
                     Behavior on color { ColorAnimation { duration: 450 } }
                 }
                 MultiEffect {
                     anchors.fill: mlBlobA; source: mlBlobA
                     blurEnabled: true; blur: 1.0; blurMax: 64
-                    opacity: nightMode ? 0.30 : 0.42; autoPaddingEnabled: true
+                    opacity: nightMode ? 0.16 : 0.24; autoPaddingEnabled: true
                 }
                 Rectangle {
                     id: mlBlobB
-                    width: Math.min(parent.width, parent.height) * 0.8
+                    width: Math.min(parent.width, parent.height) * 0.74
                     height: width; radius: width / 2
-                    x: parent.width * 0.82 - width / 2
-                    y: parent.height * 0.7 - height / 2
+                    x: parent.width * 0.8 - width / 2
+                    y: parent.height * 0.72 - height / 2
                     visible: false; layer.enabled: true
-                    color: mlBgSrc.col(memoryLakeAmbientColors, 1)
+                    color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 1), nightMode)
                     Behavior on color { ColorAnimation { duration: 450 } }
                 }
                 MultiEffect {
                     anchors.fill: mlBlobB; source: mlBlobB
                     blurEnabled: true; blur: 1.0; blurMax: 64
-                    opacity: nightMode ? 0.26 : 0.36; autoPaddingEnabled: true
+                    opacity: nightMode ? 0.13 : 0.20; autoPaddingEnabled: true
                 }
-                // 整个 App 统一压成「记忆湖」暗色水面（避免中间亮四周暗的不一致）。
+                // 轻压一层统一「水面」，淡淡的、保留清新色调（不再压成深色）。
                 Rectangle {
                     anchors.fill: parent
-                    color: nightMode ? Qt.rgba(0.02, 0.03, 0.06, 0.50) : Qt.rgba(0.10, 0.13, 0.20, 0.34)
+                    color: nightMode ? Qt.rgba(0.05, 0.07, 0.11, 0.26) : Qt.rgba(0.14, 0.16, 0.22, 0.12)
                 }
             }
         }

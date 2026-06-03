@@ -238,8 +238,11 @@ QString classifyActivity(const QString& groupKey, const QString& appId,
                          const QString& windowTitle) {
   if (groupKey == "site:bilibili") return QStringLiteral("视频");
 
+  // 关键：**类别关键词只匹配 exe 身份（id）**，不匹配窗口标题——否则泛词（game/
+  // excel/docker/powershell…）会被任意网页标题误命中（如 Chrome 标题含 "game" 被判
+  // 游戏）。窗口标题只用于"浏览器内站点细分"这一个高置信度场景。
   const QString id = (appId + " " + appName + " " + path).toLower();
-  const QString all = id + " " + windowTitle.toLower();
+  const QString title = windowTitle.toLower();
 
   if (containsAny(id, {"startmenuexperiencehost", "searchhost", "searchapp",
                        "shellexperiencehost", "lockapp", "applicationframehost",
@@ -249,57 +252,60 @@ QString classifyActivity(const QString& groupKey, const QString& appId,
                        "fontdrvhost", "wininit", "csrss", "smartscreen"}))
     return QStringLiteral("系统");
 
-  if (containsAny(all, {"code.exe", "visual studio code", "vscode", "devenv",
-                        "visual studio", "clion", "pycharm", "intellij",
-                        "idea64", "goland", "webstorm", "rider", "qtcreator",
-                        "android studio", "sublime_text", "notepad++", "neovim",
-                        "powershell", "windowsterminal", "cmd.exe", "conemu",
-                        "git-bash", "mingw", "docker", "datagrip", "dbeaver",
-                        "postman"}))
-    return QStringLiteral("开发");
-
-  if (containsAny(all, {"bilibili", "b23.tv", "youtube", "potplayer", "vlc.exe",
-                        "iqiyi", "youku", "netflix", "tencentvideo", "qqlive",
-                        "mpv.exe", "mpc-hc", "douyu", "huya", "twitch",
-                        "爱奇艺", "优酷", "腾讯视频"}))
-    return QStringLiteral("视频");
-
-  if (containsAny(all, {"qqmusic", "cloudmusic", "netease", "spotify", "kugou",
-                        "kuwo", "foobar", "apple music", "网易云"}))
-    return QStringLiteral("音乐");
-
-  if (containsAny(all, {"weixin", "wechat", "discord", "telegram", "slack",
-                        "qq.exe", "tim.exe", "dingtalk", "feishu", "lark",
-                        "teams", "whatsapp", "skype", "微信", "钉钉", "飞书"}))
-    return QStringLiteral("社交");
-
-  if (containsAny(all, {"steam", "epicgames", "riotclient", "leagueoflegends",
-                        "valorant", "genshin", "yuanshen", "starrail",
-                        "streetfighter", "wegame", "battle.net", "ubisoft",
-                        "gog galaxy", "原神", "game"}))
-    return QStringLiteral("游戏");
-
-  if (containsAny(all, {"winword", "excel", "powerpnt", "onenote", "outlook",
-                        "wps", "et.exe", "wpp.exe", "acrobat", "acrord32",
-                        "foxit", "sumatrapdf", " - word", " - excel",
-                        " - powerpoint", "microsoft word", "microsoft excel"}))
-    return QStringLiteral("办公");
-
-  if (containsAny(all, {"photoshop", "illustrator", "premiere", "afterfx",
-                        "lightroom", "figma", "blender", "obs64", "obs.exe",
-                        "capcut", "jianying", "剪映", "davinci", "resolve",
-                        "audition", "coreldraw", "3dsmax", "maya"}))
-    return QStringLiteral("创作");
-
-  if (containsAny(all, {"notion", "obsidian", "typora", "evernote", "youdao",
-                        "joplin", "logseq", "zotero", "calibre", "kindle",
-                        "有道", "印象笔记"}))
-    return QStringLiteral("笔记");
-
+  // 浏览器：先按 exe 认定，再**仅用站点专名标题词**细分到 视频/音乐，否则 浏览。
   if (containsAny(id, {"chrome.exe", "google\\chrome", "msedge", "edge.exe",
                        "firefox", "opera.exe", "brave", "vivaldi", "360se",
-                       "qqbrowser", "sogouexplorer", "ucbrowser"}))
+                       "qqbrowser", "sogouexplorer", "ucbrowser"})) {
+    if (containsAny(title, {"bilibili", "b23.tv", "youtube", "youku", "iqiyi",
+                            "netflix", "twitch", "douyu", "huya", "腾讯视频",
+                            "爱奇艺", "优酷"}))
+      return QStringLiteral("视频");
+    if (containsAny(title, {"music.163", "网易云音乐", "qq音乐", "spotify"}))
+      return QStringLiteral("音乐");
     return QStringLiteral("浏览");
+  }
+
+  if (containsAny(id, {"code.exe", "vscode", "devenv", "clion", "pycharm",
+                       "idea64", "goland", "webstorm", "rider", "qtcreator",
+                       "android studio", "sublime_text", "notepad++", "neovim",
+                       "powershell", "windowsterminal", "cmd.exe", "conemu",
+                       "git-bash", "mingw", "docker", "datagrip", "dbeaver",
+                       "postman"}))
+    return QStringLiteral("开发");
+
+  if (containsAny(id, {"bilibili", "potplayer", "vlc.exe", "tencentvideo",
+                       "qqlive", "mpv.exe", "mpc-hc", "iqiyi", "youku"}))
+    return QStringLiteral("视频");
+
+  if (containsAny(id, {"qqmusic", "cloudmusic", "netease", "spotify", "kugou",
+                       "kuwo", "foobar"}))
+    return QStringLiteral("音乐");
+
+  if (containsAny(id, {"weixin", "wechat", "discord", "telegram", "slack",
+                       "qq.exe", "tim.exe", "dingtalk", "feishu", "lark",
+                       "teams.exe", "whatsapp", "skype"}))
+    return QStringLiteral("社交");
+
+  if (containsAny(id, {"steam.exe", "steamwebhelper", "epicgames", "riotclient",
+                       "leagueoflegends", "valorant", "genshin", "yuanshen",
+                       "starrail", "streetfighter", "wegame", "battle.net",
+                       "ubisoft", "gog galaxy"}))
+    return QStringLiteral("游戏");
+
+  if (containsAny(id, {"winword", "excel.exe", "powerpnt", "onenote", "outlook",
+                       "wps.exe", "et.exe", "wpp.exe", "acrobat", "acrord32",
+                       "foxit", "sumatrapdf"}))
+    return QStringLiteral("办公");
+
+  if (containsAny(id, {"photoshop", "illustrator", "premiere", "afterfx",
+                       "lightroom", "figma", "blender", "obs64", "obs.exe",
+                       "capcut", "jianying", "davinci", "resolve.exe",
+                       "audition", "coreldraw", "3dsmax", "maya.exe"}))
+    return QStringLiteral("创作");
+
+  if (containsAny(id, {"notion", "obsidian", "typora", "evernote", "youdao",
+                       "joplin", "logseq", "zotero", "calibre", "kindle"}))
+    return QStringLiteral("笔记");
 
   return QStringLiteral("其他");
 }

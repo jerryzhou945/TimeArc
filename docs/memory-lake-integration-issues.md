@@ -130,6 +130,31 @@
   节点 y 用 0–100 百分比，轴 y 用 0–1 分数，**两套坐标系**，做动态轴时必须统一到同一时间窗（§3.6）。
 - 处置：阶段一统一时间窗并参数化轴；阶段二把 :433 写死曲线换按天序列。
 
+### [RESOLVED] B8 classifyActivity 泛词从窗口标题误命中（对抗式评审发现，major）
+- 日期：2026-06-03 ｜ 位置：§5 / `usage_stat_manager.cpp classifyActivity`
+- 实际：类别关键词原来匹配 `id + 窗口标题`，泛词如 "game"/"excel"/"powershell"/"docker"/"steam"/
+  "resolve"/"teams" 会被任意网页标题误命中（如 Chrome 标题含 "Game of Thrones" → 整个 Chrome 组按
+  时长加权判成「游戏」），并被当作事实写进"主要在游戏 / 游戏为主"和回顾主角关键词。
+- 影响：把"浏览/阅读"误断成"游戏"等，向用户展示**与事实不符的类别断言**（数据安全）。
+- 处置：重构——**类别关键词只匹配 exe 身份（id），不读窗口标题**；窗口标题仅用于"浏览器内站点
+  细分"这一高置信度场景（标题含 youtube/bilibili/youku… → 视频；music.163/qq音乐/spotify → 音乐），
+  且只认站点专名。泛词不再从网页标题误命中。已 `record_error` 关联评审。
+
+### [RESOLVED] B9 今日主题占比条把整块墙钟跨度都算给主类别（评审发现，minor）
+- 日期：2026-06-03 ｜ 位置：`daily_card_service.cpp` taskBlocks/headlineSrc + 进度条
+- 实际：头条占比用的是任务块的**整块跨度**（含 ≤12min 空闲桥接 + 块内其它类别的前台时间），
+  全记到该块主类别，进度条偏大、夸大"X 为主"的占比。
+- 处置：taskBlocks 额外输出 `topCatSec`（块内主类别真实前台秒数），headlineSrc 改累加 `topCatSec`，
+  占比条反映**真实前台占比**。"最长约 X"仍用整块跨度（语义本就是"最长连续使用"）。
+
+### [RESOLVED] B10 背景太深/vivid 色哗众取宠 → 强降饱和+提亮的清新色调（用户反馈）
+- 日期：2026-06-03 ｜ 位置：§4.4 / `AppVisual.ambientTone` + `DesktopAppShell` 记忆湖背景层
+- 实际（用户反馈）：图标主色直接 blend 后整体太深，越靠近红/深色越夸张（bilibili 粉、chrome 多色背景刺眼）。
+- 处置：新增 `ambientTone(c, night)`——把图标主色**强降饱和（夜≤0.18）+ 提亮（夜 l≈0.44–0.52）**到
+  清新淡雅范围；背景渐变/色块/统一水面都改用 tone 后的色 + 降低色块与暗罩强度。真机实测：QQ Music
+  背景由刺眼橄榄绿变为柔和雾霾绿；bilibili/chrome 等 vivid 色同样被压成淡雅色调。卡面封面暂保持鲜明
+  （焦点"专辑封面"，用户未反馈），如需一并调淡可跟进。
+
 ### [RESOLVED] B4 背景是预设单色、与图标真实色调不符 → 已接图标主色多色 blend
 > 2026-06-03 已落地：`usage_stat_manager.cpp` 新增 `iconDominantColors(path)`（QFileIconProvider 取图标
 > 位图、量化直方图取最多 3 主色、跳过透明/灰/黑白、按 path 缓存），item 输出 `iconColors`；放在 USM

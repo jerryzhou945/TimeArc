@@ -373,6 +373,9 @@ QVariantList taskBlocks(const QVariantList& segments,
     QVariantMap m;
     m.insert(QStringLiteral("category"), topCat);
     m.insert(QStringLiteral("span"), static_cast<qlonglong>(span));
+    // 该块主类别的**真实前台秒数**（非整块墙钟跨度）——给头条占比用，避免把空闲
+    // 桥接 + 其它类别的前台时间都算到主类别头上。
+    m.insert(QStringLiteral("topCatSec"), static_cast<qlonglong>(topCatSec));
     m.insert(QStringLiteral("apps"), names.join(QStringLiteral(" / ")));
     result.append(m);
   }
@@ -966,7 +969,7 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
       for (const QVariant& tv : tasks) {
         const QVariantMap t = tv.toMap();
         headlineSrc[t.value(QStringLiteral("category")).toString()] +=
-            t.value(QStringLiteral("span")).toLongLong();
+            t.value(QStringLiteral("topCatSec")).toLongLong();
       }
     } else {
       headlineSrc = catSec;

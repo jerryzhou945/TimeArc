@@ -44,6 +44,21 @@ function appColor(appId, appName, path) {
     return hashedColor(text);
 }
 
+// 背景色调：把图标主色**强力降饱和 + 提亮**到清新淡雅的范围，避免 vivid 红/多色
+// 背景哗众取宠（如 bilibili 粉、chrome 多色）。保留一点色相做区分，但整体淡、统一、高端。
+function ambientTone(c, night) {
+    var col = Qt.lighter(c, 1.0);   // 兼容字符串/颜色入参，coerce 成 color
+    var h = col.hslHue;
+    var s = col.hslSaturation;
+    var l = col.hslLightness;
+    if (h < 0 || isNaN(h)) {        // 无彩色（灰白黑）-> 中性淡色
+        return night ? Qt.hsla(0, 0, 0.42, 1.0) : Qt.hsla(0, 0, 0.88, 1.0);
+    }
+    var ns = Math.min(s * 0.40, night ? 0.18 : 0.24);            // 强降饱和 + 硬上限
+    var nl = night ? (0.44 + l * 0.08) : (0.82 - (1 - l) * 0.05); // 夜 ~0.44–0.52 / 日 ~0.78+
+    return Qt.hsla(h, ns, nl, 1.0);
+}
+
 // 系统小图标 source。site:bilibili 走内置 SVG；无 path 返回 ""（由调用方走 appColor 兜底）。
 function appIconSource(appId, path) {
     var identity = appId ? appId.toString() : "";
