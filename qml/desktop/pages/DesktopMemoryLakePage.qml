@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../memorylake"
 import "../memorylake/MemoryLakeMock.js" as Mock
+import "../components/AppVisual.js" as AppVisual
 
 // 记忆湖页面：1:1 复刻 MemoryLakeDesign/memory_lake_v25_win11_style.html 的窗口内部三栏。
 // 阶段 A：三栏静态排版 + 灯光底子 + 主题。后续阶段补卡牌交互 / 丝滑滚动 / 月度回顾。
@@ -23,12 +24,52 @@ Item {
     property int selectedIndex: 0
     property int flippedIndex: -1
     property int previewIndex: -1
-    readonly property var apps: Mock.apps
-    readonly property var current: apps[selectedIndex]
+
+    // 记忆湖·日视图模型：dailyCardService.memoryLakeDay 产出（后端组装，QML 只渲染）。
+    // 取数走首页同款只读路径（usageStatManager），无数据走空态，绝不用 Mock 假数据冒充。
+    property var dayModel: ({})
+    readonly property var apps: (dayModel && dayModel.apps) ? dayModel.apps : []
+    readonly property bool hasData: apps.length > 0
+    readonly property var current: apps.length > 0
+        ? apps[Math.max(0, Math.min(selectedIndex, apps.length - 1))] : null
     readonly property bool locked: flippedIndex >= 0
 
-    // 当前应作为「整个 App 背景」的模糊封面图（由 DesktopAppShell 读取，Issue 1）。
-    readonly property url ambientSource: Mock.imagePath(root.current.image)
+    readonly property var overview: (dayModel && dayModel.overview)
+        ? dayModel.overview : ({ total: "0m", sub: "暂无记录" })
+    readonly property var todayTheme: (dayModel && dayModel.todayTheme)
+        ? dayModel.todayTheme
+        : ({ kicker: "今日主题", title: "今天还很安静",
+             desc: "还没有自动记录，开始使用后这里会生成今日主题。", ratio: 0 })
+
+    // 排行：apps 已按时长降序 -> 身份索引序列（喂 UsageRankList）。
+    readonly property var ranking: {
+        var r = [];
+        for (var i = 0; i < apps.length; i++) r.push(i);
+        return r;
+    }
+
+    // 氛围大背景色：当前选中 APP 的 appColor（§4.4，DesktopAppShell 拉取做色彩晕染）。
+    readonly property color ambientColor: current
+        ? AppVisual.appColor(current.appId, current.name, current.path)
+        : (ml ? ml.aqua : "#9FE7EE")
+    readonly property bool hasAmbient: hasData
+
+    function recomputeDayModel() {
+        if (!usageStatManager || !dailyCardService) { root.dayModel = ({}); return; }
+        root.dayModel = dailyCardService.memoryLakeDay(
+            usageStatManager.activeSoftwareForRange("day"),
+            usageStatManager.foregroundSegmentsForRange("day"));
+    }
+
+    Timer {
+        interval: 5000; running: true; repeat: true
+        onTriggered: if (usageStatManager) usageStatManager.refresh()
+    }
+    Connections {
+        target: usageStatManager
+        function onUsageStatsChanged() { root.recomputeDayModel(); }
+    }
+    Component.onCompleted: root.recomputeDayModel()
 
     function selectCard(i) {
         if (root.locked && i !== root.selectedIndex) return;
@@ -122,8 +163,8 @@ Item {
                             anchors.margins: 12
                             spacing: 5
                             Text { text: "使用总览"; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
-                            Text { text: Mock.overview.total; color: ml.textPrimary; font.pixelSize: 27; font.bold: true }
-                            Text { text: Mock.overview.sub; color: ml.textTertiary; font.pixelSize: 11 }
+                            Text { text: root.overview.total; color: ml.textPrimary; font.pixelSize: 27; font.bold: true }
+                            Text { text: root.overview.sub; color: ml.textTertiary; font.pixelSize: 11 }
                         }
                     }
 
@@ -138,11 +179,11 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 5
-                            Text { text: Mock.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
-                            Text { text: Mock.todayTheme.title; color: ml.textPrimary; font.pixelSize: 17; font.bold: true }
+                            Text { text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
+                            Text { text: root.todayTheme.title; color: ml.textPrimary; font.pixelSize: 17; font.bold: true }
                             Text {
                                 width: parent.width
-                                text: Mock.todayTheme.desc
+                                text: root.todayTheme.desc
                                 color: ml.textSecondary
                                 font.pixelSize: 11
                                 wrapMode: Text.WordWrap
@@ -153,7 +194,7 @@ Item {
                                 width: parent.width; height: 6; radius: 3
                                 color: ml.trackBg
                                 Rectangle {
-                                    width: parent.width * Mock.todayTheme.ratio
+                                    width: parent.width * root.todayTheme.ratio
                                     height: parent.height; radius: 3
                                     gradient: Gradient {
                                         orientation: Gradient.Horizontal
@@ -209,7 +250,7 @@ Item {
                         anchors.margins: 13
                         style: ml
                         apps: root.apps
-                        ranking: Mock.ranking
+                        ranking: root.ranking
                         selectedIndex: root.selectedIndex
                         locked: root.locked
                         onRequestSelect: function(cardIndex) { root.selectCard(cardIndex) }
@@ -234,6 +275,27 @@ Item {
             onRequestToggleFlip: function(i) { root.toggleFlip(i) }
             onHoverCard: function(i) { root.previewIndex = i }
             onUnhoverCard: root.previewIndex = -1
+        }
+
+        // 中栏空态：今天还没有自动记录时给保守提示，不显假卡片。
+        Column {
+            anchors.centerIn: parent
+            z: 0
+            spacing: 8
+            visible: !root.hasData
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "今天还没有自动记录"
+                color: ml.textPrimary
+                font.pixelSize: 18
+                font.bold: true
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "开始使用电脑后，这里会浮现今天的记忆卡片。"
+                color: ml.textSecondary
+                font.pixelSize: 13
+            }
         }
 
         // ============ 右栏：浮在上层 ============
@@ -296,10 +358,11 @@ Item {
     }
 
     // —— 月度回顾覆盖层（盖住三栏）——
+    // 阶段一不触碰 Monthly Recap：仍用 Mock 演示数据（阶段二再接真实当月数据集）。
     RecapOverlay {
         id: recap
         anchors.fill: parent
         style: ml
-        apps: root.apps
+        apps: Mock.apps
     }
 }

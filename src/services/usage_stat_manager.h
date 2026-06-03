@@ -45,6 +45,13 @@ class UsageStatManager : public QObject {
   Q_INVOKABLE int audioSecondsForRange(const QString& range) const;
   Q_INVOKABLE QVariantMap currentSoftware() const;
 
+  // 记忆湖：把区间内每个 app 的前台记录（同首页只读路径的 m_records）按
+  // activity key 分组、相邻间隙 <= 60s 合并成"会话段"，用于推导 launches /
+  // longest / 时间河流。每项 {groupKey, appId, appName, path, sessionCount,
+  // longestSec, segments:[{startUnixSec,endUnixSec,seconds}]}。只组合自身记录，
+  // 不开新数据路径，安全面与首页一致。
+  Q_INVOKABLE QVariantList foregroundSegmentsForRange(const QString& range) const;
+
 signals:
   void usageStatsChanged();
 

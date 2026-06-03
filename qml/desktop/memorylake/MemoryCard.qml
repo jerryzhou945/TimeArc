@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Effects
-import "MemoryLakeMock.js" as Mock
+import "../components/AppVisual.js" as AppVisual
 
 // 单张记忆卡牌：3D 翻面（Flipable + Y 轴旋转，自带透视），选中放大，悬停预览。
 // 1:1 对应设计稿 .card / .face / 翻面 rotateY。
@@ -149,12 +149,12 @@ Item {
                         width: parent.width
                         height: card.selected ? 196 : 128
                         Behavior on height { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
-                        Image {
+                        // 生成式封面（§4.3）：appColor 渐变 + 居中系统图标，取代游戏海报。
+                        GenerativeCover {
                             anchors.fill: parent
-                            source: card.app ? Mock.imagePath(card.app.image) : ""
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            opacity: 0.88
+                            style: card.style
+                            app: card.app
+                            iconSize: card.selected ? 112 : 66
                         }
                         Rectangle {
                             anchors.fill: parent
@@ -283,13 +283,13 @@ Item {
                     anchors.fill: parent
                     color: card.style ? card.style.faceBg : "#0D121D"
                 }
-                // 淡背景图 + 暗罩
-                Image {
+                // 淡背景：APP 专属 appColor 低透明晕染（取代游戏海报），仍是 APP 专属色调。
+                Rectangle {
                     anchors.fill: parent
-                    source: card.app ? Mock.imagePath(card.app.image) : ""
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    opacity: 0.18
+                    color: AppVisual.appColor(card.app ? card.app.appId : "",
+                                              card.app ? card.app.name : "",
+                                              card.app ? card.app.path : "")
+                    opacity: 0.16
                 }
                 Rectangle {
                     anchors.fill: parent

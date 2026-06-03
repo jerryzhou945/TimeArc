@@ -581,6 +581,108 @@ QVariantMap UsageStatManager::currentSoftware() const {
   return recordToVariantMap(m_currentRecord);
 }
 
+QVariantList UsageStatManager::foregroundSegmentsForRange(
+    const QString& range) const {
+  // 只看前台记录（service 已按"同 exe+同窗口标题连续"切会话；浏览器换标签标题
+  // 会滚动新记录），按 activity key 分组，相邻间隙 <= 60s 合并成一次"会话段"，
+  // 既消除标题抖动，又保留真实再次访问（中间隔了别的 app -> 有真实间隙，不合并）。
+  struct AppSessions {
+    QString groupKey;
+    QString appId;
+    QString appName;
+    QString path;
+    QVector<UsageInterval> intervals;
+  };
+
+  QMap<QString, AppSessions> grouped;
+  const auto addRecord = [&](const UsageRecord& record) {
+    if (record.source == "audio") return;  // 仅前台
+    if (!matchesRange(record, range)) return;
+    if (record.durationSec == 0) return;
+
+    const qint64 endUnixSec =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
+
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    AppSessions& app = grouped[key];
+    if (app.groupKey.trimmed().isEmpty()) {
+      app.groupKey = key;
+      app.appId = !record.appId.trimmed().isEmpty() ? record.appId : key;
+      app.appName = !record.appName.trimmed().isEmpty()
+                        ? record.appName
+                        : QFileInfo(record.path).fileName();
+      app.path = record.path;
+    }
+    if (app.path.trimmed().isEmpty() && !record.path.trimmed().isEmpty()) {
+      app.path = record.path;
+    }
+    app.intervals.append({record.startUnixSec, endUnixSec});
+  };
+
+  for (const UsageRecord& record : m_records) addRecord(record);
+  if (m_hasCurrentRecord) addRecord(m_currentRecord);
+
+  // 相邻会话间隙 <= 60s 视为同一次连续使用。
+  constexpr qint64 kMergeGapSec = 60;
+
+  QVariantList result;
+  for (AppSessions& app : grouped) {
+    std::sort(app.intervals.begin(), app.intervals.end(),
+              [](const UsageInterval& a, const UsageInterval& b) {
+                return a.start < b.start;
+              });
+
+    QVariantList segments;
+    qint64 longestSec = 0;
+    qint64 curStart = 0;
+    qint64 curEnd = 0;
+    bool open = false;
+    const auto flush = [&]() {
+      if (!open) return;
+      const qint64 secs = curEnd - curStart;
+      QVariantMap seg;
+      seg["startUnixSec"] = static_cast<qlonglong>(curStart);
+      seg["endUnixSec"] = static_cast<qlonglong>(curEnd);
+      seg["seconds"] = static_cast<qlonglong>(secs);
+      segments.append(seg);
+      if (secs > longestSec) longestSec = secs;
+      open = false;
+    };
+
+    for (const UsageInterval& interval : app.intervals) {
+      if (!open) {
+        curStart = interval.start;
+        curEnd = interval.end;
+        open = true;
+        continue;
+      }
+      if (interval.start - curEnd <= kMergeGapSec) {
+        curEnd = std::max(curEnd, interval.end);
+      } else {
+        flush();
+        curStart = interval.start;
+        curEnd = interval.end;
+        open = true;
+      }
+    }
+    flush();
+
+    QVariantMap item;
+    item["groupKey"] = app.groupKey;
+    item["appId"] = app.appId;
+    item["appName"] = app.appName;
+    item["path"] = app.path;
+    item["sessionCount"] = segments.size();
+    item["longestSec"] = static_cast<qlonglong>(longestSec);
+    item["segments"] = segments;
+    result.append(item);
+  }
+
+  return result;
+}
+
 bool UsageStatManager::matchesRange(const UsageRecord& record,
                                     const QString& range) const {
   if (range == "all") return true;
