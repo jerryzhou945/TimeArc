@@ -12,6 +12,14 @@
 > 3. **做不到的必须如实记录**：凡 QML 无法 100% 还原 HTML 的地方，写进 `docs/memory-lake-fidelity-gaps.md`，
 >    说明差在哪、能到几成、折中方案——不许假装做到了。
 
+> **现状更新（2026-06-04，按新设计稿 `MemoryLakeDesign/TimeArcDesign_v88.html`）**：本计划描述的是 v25
+> 稿的**页内三栏 + 月度回顾覆盖层**形态；之后记忆湖**升为首页（首页 = Memory Lake）**，导航重排为
+> 首页/日历/统计/设置/备忘 + **底部独立「记忆湖」入口**。结构性变化（覆盖下文 §1.1 排版）：
+> ①月度回顾从**页内覆盖层**拆成**独立页** `DesktopMonthlyRecapPage`（菜单底部入口，返回湖面/Esc 回首页）；
+> ②左栏原「Monthly Recap CTA」位置改为**今日结论卡** `TodayConclusionCard`；
+> ③右栏从「详情卡 + 时间河流 + note」改为 **Daily Usage Share 饼图 + 使用时间图 + Calendar Sync 今日事项**（**详情卡移除**）；
+> ④中栏卡牌轮盘不变。用户可见行为见 `README.md`「Desktop shell / Memory Lake home view」。
+
 ## 实施进度（每阶段一个 commit）
 
 - [x] **Phase A** — 三栏静态排版 + 灯光底子 + 主题
@@ -19,7 +27,9 @@
 - [x] **Phase C** — 丝滑滚动（缓动 + 边界回弹 + 霓虹滚动条）
 - [x] **Phase D** — 月度回顾叙事（11 屏 + 五种转场 + 自动播放 + 目录解锁 + 键鼠导航）
 - [ ] **Phase E** — 真实数据接入（**跟进项**，依赖 4 个 C++ 扩展，见 `.harness/state/open-issues.md`；
-      本阶段按"先写死演示数据"约定暂缓）
+      本阶段按"先写死演示数据"约定暂缓）。**完整后端接入计划见
+      [`docs/memory-lake-backend-integration-plan.md`](memory-lake-backend-integration-plan.md)**
+      （逐处清单 + 图片替换 / 文案通用化 / 回顾防错配 + 优先级）。
 - [x] **Phase F** — 收尾（文档/README/journal/open-issues/harness_check）
 
 > 组件均在 `qml/desktop/memorylake/`。验证手段：`cmake --build build`（qmlcachegen 编译）+
@@ -121,6 +131,7 @@ qml/desktop/
     ├── TimeRiver.qml                     # 时间河流（轴/节点/涟漪/刻度）
     ├── RecapOverlay.qml                  # 回顾根（自动播放/进度/目录/键鼠）
     ├── RecapSlide.qml                    # 单屏壳（转场 + 内滚动 + has-scroll 提示）
+    ├── RoundedFrame.qml                  # 圆角裁切帧（MultiEffect 遮罩，复用 MemoryCard 配方；代替 clip:true）
     └── slides/…                          # 11 屏各自内容（封面/月历/主角/轨迹/趋势/关键词/对比/票根）
 ```
 
