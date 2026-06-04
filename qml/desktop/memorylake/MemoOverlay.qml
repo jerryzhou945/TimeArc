@@ -18,6 +18,33 @@ Item {
     // 开合状态（动作）。开合唯一动画 = opacity .26s ease（功能文 §2.1 / C0）。
     property bool open: false
 
+    // 当前选中对象下标（-1 = 无）。
+    property int selectedObject: -1
+
+    // —— 对象创建/删除（内存模型；持久化切片接 C++ MemoStore）——
+    function createSticky(px, py) {
+        var w = 310, h = 285;
+        var W = objectLayerHost.width, H = objectLayerHost.height;
+        var x = Math.max(8, Math.min(px - 110, W - w - 8));
+        var y = Math.max(84, Math.min(py - 22, H - h - 8));
+        objectModel.append({ otype: "sticky", ox: x, oy: y, ow: w, oh: h,
+                             otitle: "", ocontent: "", otext: "" });
+        memo.selectedObject = objectModel.count - 1;
+        memo.forceActiveFocus();
+    }
+    function createText(px, py) {
+        objectModel.append({ otype: "text", ox: px, oy: py, ow: 220, oh: 40,
+                             otitle: "", ocontent: "", otext: "输入文字" });
+        memo.selectedObject = objectModel.count - 1;
+        memo.forceActiveFocus();
+    }
+    function removeObject(i) {
+        if (i < 0 || i >= objectModel.count) return;
+        objectModel.remove(i);
+        if (memo.selectedObject === i) memo.selectedObject = -1;
+        else if (memo.selectedObject > i) memo.selectedObject -= 1;
+    }
+
     // 工具提示文案（逐字对齐 v88 setMemoTool 16301-16307）。
     readonly property var toolHints: ({
         "none": "已取消当前工具。点击上方工具图标重新选择。",
@@ -43,7 +70,18 @@ Item {
     }
 
     focus: open
-    Keys.onEscapePressed: memo.open = false
+    // Esc 关闭；Del/Backspace 删除选中对象——仅当覆盖层（非文本框）持焦时触发，
+    // 故编辑便签/文字时不劫持（焦点在 TextArea，键归它）。
+    Keys.onPressed: function (e) {
+        if (e.key === Qt.Key_Escape) {
+            memo.open = false;
+            e.accepted = true;
+        } else if ((e.key === Qt.Key_Delete || e.key === Qt.Key_Backspace)
+                   && memo.selectedObject >= 0) {
+            memo.removeObject(memo.selectedObject);
+            e.accepted = true;
+        }
+    }
 
     // 模态：拦截一切落向首页的输入。后续切片的工具/画布/对象层叠在此之上各自接管命中。
     MouseArea {
@@ -134,7 +172,84 @@ Item {
             tool: toolbar.currentTool
         }
     }
-    Item { id: objectLayerHost; anchors.fill: parent }   // F-B4/F-B5 便签 + 文字层落点
+    Item {
+        id: objectLayerHost
+        anchors.fill: parent
+
+        ListModel { id: objectModel }
+
+        // 创建/取消选中层（在对象之下、墨水之上）：note/text 工具点空白→建对象；none→点空白取消选中；
+        // pen/eraser 时禁用，让点击落到墨水层绘制。
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            enabled: toolbar.currentTool === "note" || toolbar.currentTool === "text"
+                     || toolbar.currentTool === "none"
+            onClicked: function (m) {
+                if (toolbar.currentTool === "note") memo.createSticky(m.x, m.y);
+                else if (toolbar.currentTool === "text") memo.createText(m.x, m.y);
+                else memo.selectedObject = -1;
+            }
+        }
+
+        Component {
+            id: stickyComp
+            StickyNote { style: memo.style }
+        }
+        Component {
+            id: textComp
+            TextLayer { style: memo.style }
+        }
+
+        Repeater {
+            id: objRepeater
+            model: objectModel
+            delegate: Loader {
+                id: ldr
+                required property int index
+                required property var model
+                anchors.fill: parent
+                sourceComponent: model.otype === "text" ? textComp : stickyComp
+                onLoaded: {
+                    item.x = model.ox;
+                    item.y = model.oy;
+                    if (model.otype === "sticky") {
+                        item.width = model.ow;
+                        item.height = model.oh;
+                        item.title = model.otitle;
+                        item.content = model.ocontent;
+                    } else {
+                        item.text = model.otext;
+                    }
+                    item.selected = Qt.binding(function () { return memo.selectedObject === ldr.index; });
+                }
+                Connections {
+                    target: ldr.item
+                    function onSelectRequested(grabFocus) {
+                        memo.selectedObject = ldr.index;
+                        if (grabFocus) memo.forceActiveFocus();
+                    }
+                    function onGeometryCommitted() {
+                        objectModel.setProperty(ldr.index, "ox", ldr.item.x);
+                        objectModel.setProperty(ldr.index, "oy", ldr.item.y);
+                        if (ldr.model.otype === "sticky") {
+                            objectModel.setProperty(ldr.index, "ow", ldr.item.width);
+                            objectModel.setProperty(ldr.index, "oh", ldr.item.height);
+                        }
+                    }
+                    function onContentCommitted() {
+                        if (ldr.model.otype === "sticky") {
+                            objectModel.setProperty(ldr.index, "otitle", ldr.item.title);
+                            objectModel.setProperty(ldr.index, "ocontent", ldr.item.content);
+                        } else {
+                            objectModel.setProperty(ldr.index, "otext", ldr.item.text);
+                        }
+                    }
+                    function onDeleteRequested() { memo.removeObject(ldr.index); }
+                }
+            }
+        }
+    }   // F-B4/F-B5 便签 + 文字层
 
     // ===== Chrome：工具条 + 提示胶囊 =====
     MemoToolbar {

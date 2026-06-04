@@ -58,10 +58,12 @@ with day and night modes.
 - **Memory Lake memo blackboard (备忘)** — the 「备忘」 nav opens a modal blackboard
   **overlay** over the home page (an action, **not** a page route): a near-black dotted
   board with a freehand chalk-ink canvas and a floating glass tool pill (note / text /
-  pen / eraser / exit), the home page re-blurred behind it. Sticky notes, editable text
-  layers, a 3D multi-page archive folder, and a pomodoro widget are being added slice by
-  slice, replicating the v88 prototype. Memo content is **UI-private local state**, kept
-  off the service↔UI disk contract. *(Replaces the former local Chat page.)*
+  pen / eraser / exit), the home page re-blurred behind it. Freehand chalk pen/eraser,
+  draggable + resizable **sticky notes** (with autosize + aqua selection ring + delete),
+  and editable **text layers** (Alt-drag) are in; a 3D multi-page archive folder and a
+  pomodoro widget are still being added slice by slice, replicating the v88 prototype.
+  Memo content is **UI-private local state**, kept off the service↔UI disk contract.
+  *(Replaces the former local Chat page.)*
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
   three-panel "记忆湖": a left panel with the app usage ranking, a **center column**
   that stacks the **Today Conclusion** briefing (今日结论: kicker/title/score box +

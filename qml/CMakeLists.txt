@@ -22,6 +22,8 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/MemoInkCanvas.qml
     qml/desktop/memorylake/MemoToolbar.qml
     qml/desktop/memorylake/MemoToolGlyph.qml
+    qml/desktop/memorylake/StickyNote.qml
+    qml/desktop/memorylake/TextLayer.qml
     qml/desktop/memorylake/GlassPanel.qml
     qml/desktop/memorylake/GlowCircle.qml
     qml/desktop/memorylake/GridTexture.qml
