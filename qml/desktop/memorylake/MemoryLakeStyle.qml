@@ -113,6 +113,24 @@ QtObject {
     readonly property color sharePink: "#FF7A9A"
     readonly property color shareOther: night ? "#6F7C91" : "#9AA1B0"   // slate「其它」
 
+    // ============================================================
+    // v88 首页霓虹/玻璃复刻令牌（今日结论 / 今日事项格纹+霓虹 / 占比甜甜圈霓虹 / 时间河流）
+    // ============================================================
+    // 霓虹辉光青：设计稿 rgba(142,223,255) 系（比 aqua #9FE7EE 略偏蓝），用于今日结论/今日事项/
+    // 占比面板的角向径向辉光、发丝边、甜甜圈 0 0 32px 外辉光。两主题同色，靠 glowStrength + 低 alpha 收昼。
+    readonly property color glowCyan: "#8EDFFF"
+    // 时间河流节点青：设计稿 rgba(130,239,255)。
+    readonly property color nodeCyan: "#82EFFF"
+    // .cards-zone 中栏卡区圆角暗箱底（设计稿 rgba(3,7,14,.28)）：半透，让 Shell 深度坡微透。
+    readonly property color cardsZoneBg: night ? Qt.rgba(0.012, 0.027, 0.055, 0.28)
+                                              : Qt.rgba(0.42, 0.46, 0.52, 0.10)
+    // 网格纸纹线色（设计稿白发丝 .022~.035 / 昼用极淡墨线）：今日结论/今日事项/占比/时间图共用。
+    readonly property color gridLine: night ? Qt.rgba(1, 1, 1, 0.032)
+                                           : Qt.rgba(0.20, 0.26, 0.34, 0.05)
+    // 甜甜圈中心孔暗填充（设计稿 rgba(20,24,34)→(10,13,21)）+ 顶部 aqua 高光；昼用浅瓷面。
+    readonly property color donutHoleTop: night ? "#141822" : "#EEF3F8"
+    readonly property color donutHoleBottom: night ? "#0A0D15" : "#DFE7EF"
+
     // 深色磨砂提示胶囊底（wheel-tip / 回顾 pill / mode-note 等半透黑底）
     readonly property color pillScrim: night ? Qt.rgba(0, 0, 0, 0.20) : Qt.rgba(0, 0, 0, 0.06)
 

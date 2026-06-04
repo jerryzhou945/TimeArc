@@ -19,9 +19,10 @@ Item {
     readonly property bool locked: flippedIndex >= 0
     property bool wheelLock: false
 
-    // 中央列（湖）区域：限定在左 300 / 右 310 玻璃面板之间，灯光/水位线不外溢（C1/C2）。
-    readonly property real laneLeft: 308
-    readonly property real laneRight: width - 318
+    // 中央列（湖）区域：现在卡牌区已是中栏独立暗箱（设计稿 .cards-zone），lane = 整个卡区，
+    // 灯光/水位线天然限定在卡区圆角内（不再需要避让左右面板的绝对偏移）。
+    readonly property real laneLeft: 0
+    readonly property real laneRight: width
     readonly property real laneCenter: (laneLeft + laneRight) / 2
     readonly property real laneWidth: Math.max(0, laneRight - laneLeft)
     // 悬停展开湖（C4）：指针进入中央卡区时轻微放大 + 一道扫光。
@@ -154,9 +155,9 @@ Item {
             }
         }
 
-        // wheel-tip（移到左面板右侧，避免被上层左栏遮住）
+        // wheel-tip（卡区左上角，设计稿 .wheel-tip）
         Rectangle {
-            x: 320; y: 22
+            x: 16; y: 14
             width: tipText.width + 22; height: 34; radius: 17
             color: carousel.locked ? (carousel.style ? carousel.style.lockBg : "#3c0a18")
                                     : (carousel.style ? carousel.style.pillScrim : Qt.rgba(0, 0, 0, 0.18))

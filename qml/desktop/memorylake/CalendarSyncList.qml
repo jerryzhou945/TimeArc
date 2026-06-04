@@ -1,12 +1,16 @@
 import QtQuick
 
 // Calendar Sync：今日事项（与日历页同步，读 calendarManager.savedTodos 的今天 key）。
+// v88 复刻（设计稿 .today-items-compact）：玻璃底 + 左上 aqua 径向底光 + 右上**蓝色霓虹照射** +
+// 24px「笔记本方格」底纹 + 右上角霓虹点；事项行为 v88 圆角行（霜底 + 发丝边 + 渐变勾选框）。
 // 只读展示 + 「日历」跳转按钮；不在此编辑，编辑仍在日历页。
 Rectangle {
     id: panel
 
     property MemoryLakeStyle style
     signal openCalendar()
+
+    readonly property real gs: style ? style.glowStrength : 1.0
 
     function pad2(n) { return (n < 10 ? "0" : "") + n }
     readonly property string todayKey: {
@@ -42,19 +46,49 @@ Rectangle {
         function onCalendarDataChanged() { panel.reload() }
     }
 
-    radius: style ? style.radiusCard : 18
-    color: style ? style.cardBg : "#16181f"
+    radius: 22
+    color: style ? (style.night ? Qt.rgba(1, 1, 1, 0.045) : Qt.rgba(1, 1, 1, 0.72)) : "#16181f"
     border.width: 1
-    border.color: style ? style.cardBorder : "#2a2d36"
+    border.color: style ? (style.night ? Qt.rgba(1, 1, 1, 0.085) : Qt.rgba(0.40, 0.34, 0.28, 0.18)) : "#2a2d36"
     clip: true
+    antialiasing: true
 
-    // 边缘光对（R4/L4）：顶沿内高光 + 更亮底沿，静止无投影。左右内缩半径，不越出圆角拐角。
+    // —— 左上 aqua 径向底光（设计稿 radial 12% 0% glowCyan .08）——
+    GlowCircle {
+        readonly property real d: panel.width * 0.72
+        width: d; height: d
+        x: panel.width * 0.10 - d / 2
+        y: -d / 2
+        glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
+        glowOpacity: 0.10 * panel.gs
+    }
+    // —— 右上**蓝色霓虹照射**（设计稿 ::before radial 88% 20% glowCyan .10；用户要求明显立体）——
+    // 中心偏上、偏角，避免大面积压住标题；保留明显的蓝色霓虹照射感。
+    GlowCircle {
+        readonly property real d: panel.width * 0.6
+        width: d; height: d
+        x: panel.width * 0.92 - d / 2
+        y: panel.height * 0.08 - d / 2
+        glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
+        glowOpacity: 0.16 * panel.gs
+    }
+
+    // —— 24px「笔记本方格」底纹（设计稿 ::before grid，整层不透明 .45；用户要求方格可见）——
+    GridTexture {
+        anchors.fill: parent
+        lineColor: panel.style && !panel.style.night ? Qt.rgba(0.20, 0.26, 0.34, 0.06)
+                                                      : Qt.rgba(1, 1, 1, 0.05)
+        cell: 24
+        textureOpacity: 0.6
+    }
+
+    // 顶沿内高光 + 更亮底沿（玻璃边缘光对）。左右内缩半径，不越圆角拐角。
     Rectangle {
         anchors { top: parent.top; left: parent.left; right: parent.right
                   topMargin: 1; leftMargin: panel.radius; rightMargin: panel.radius }
         height: 1
-        color: panel.style ? (panel.style.night ? Qt.rgba(1, 1, 1, 0.035) : Qt.rgba(1, 1, 1, 0.55))
-                           : Qt.rgba(1, 1, 1, 0.035)
+        color: panel.style ? (panel.style.night ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.55))
+                           : Qt.rgba(1, 1, 1, 0.05)
     }
     Rectangle {
         anchors { bottom: parent.bottom; left: parent.left; right: parent.right
@@ -63,103 +97,152 @@ Rectangle {
         color: panel.style ? panel.style.panelBorderStrong : Qt.rgba(1, 1, 1, 0.13)
     }
 
+    // —— 右上角霓虹点（设计稿 ::after 6px glowCyan + 0 0 16px 辉光，opacity .42）——
+    Item {
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.rightMargin: 14
+        anchors.topMargin: 14
+        width: 7; height: 7
+        visible: panel.style ? panel.style.night : true
+        opacity: 0.9
+        GlowCircle {
+            anchors.centerIn: parent
+            width: 34; height: 34
+            glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
+            glowOpacity: 0.55 * panel.gs
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: 7; height: 7; radius: 3.5
+            color: panel.style ? panel.style.glowCyan : "#8EDFFF"
+        }
+    }
+
     Column {
         anchors.fill: parent
-        anchors.margins: 14
-        spacing: 10
+        anchors.margins: 16
+        spacing: 12
 
-        // 标题行
+        // 标题行（v88 kicker / title / sub + 「日历」按钮）
         Item {
             width: parent.width
-            height: 40
+            height: 42
             Column {
                 anchors.left: parent.left
+                anchors.right: openBtn.left
+                anchors.rightMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 2
+                spacing: 4
                 Text {
                     text: "Calendar Sync"
-                    color: style ? style.aqua : "#9FE7EE"
+                    color: panel.style ? panel.style.glowCyan : "#8EDFFF"
                     font.pixelSize: 11
-                    opacity: 0.85
+                    font.weight: 800
+                    font.letterSpacing: 0.55
                     font.capitalization: Font.AllUppercase
-                    font.letterSpacing: 1.0
                 }
                 Text {
                     text: "今日事项"
-                    color: style ? style.textPrimary : "#fff"
-                    font.pixelSize: 15
-                    font.bold: true
+                    color: panel.style ? panel.style.textPrimary : "#fff"
+                    font.pixelSize: 18
+                    font.weight: 800
+                    font.letterSpacing: -0.35
                 }
                 Text {
                     text: "今天 · 与日历同步"
-                    color: style ? style.textTertiary : "#888"
-                    font.pixelSize: 10
+                    color: panel.style ? panel.style.textTertiary : "#888"
+                    font.pixelSize: 11
                 }
             }
             Rectangle {
                 id: openBtn
                 anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.top: parent.top
                 width: 48
-                height: 28
-                radius: 14
-                color: openHover.hovered ? (style ? style.accentSoft : "#22303a")
-                                         : "transparent"
+                height: 32
+                radius: 12
+                color: openHover.hovered
+                    ? (panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.14) : Qt.rgba(0.56, 0.87, 1, 0.14))
+                    : (panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.08) : Qt.rgba(0.56, 0.87, 1, 0.08))
                 border.width: 1
-                border.color: style ? style.accentSoftBorder : "#33505c"
+                border.color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.16) : Qt.rgba(0.56, 0.87, 1, 0.16)
                 Behavior on color { ColorAnimation { duration: 140 } }
                 Text {
                     anchors.centerIn: parent
                     text: "日历"
-                    color: style ? style.accentText : "#9ef1ff"
-                    font.pixelSize: 12
-                    font.bold: true
+                    color: panel.style ? panel.style.accentText : "#9ef1ff"
+                    font.pixelSize: 11
+                    font.weight: 800
                 }
                 HoverHandler { id: openHover }
                 TapHandler { onTapped: panel.openCalendar() }
             }
         }
 
-        // 事项列表
+        // 事项列表（v88 .todo-item：圆角行 + 渐变勾选框 + 划线完成态）
         Column {
             width: parent.width
             spacing: 8
 
             Repeater {
                 model: panel.items
-                delegate: Row {
+                delegate: Rectangle {
+                    id: rowBg
                     required property var modelData
                     width: parent.width
-                    spacing: 10
-                    Rectangle {
-                        width: 18
-                        height: 18
-                        radius: 6
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: modelData.done ? (style ? style.aqua : "#9FE7EE")
-                                              : "transparent"
-                        border.width: 1
-                        border.color: modelData.done
-                                      ? (style ? style.aqua : "#9FE7EE")
-                                      : (style ? style.cardBorder : "#444")
-                        Text {
-                            anchors.centerIn: parent
-                            visible: modelData.done
-                            text: "✓"
-                            color: style && style.night ? "#05070D" : "#fff"
-                            font.pixelSize: 11
-                            font.bold: true
+                    height: 50
+                    radius: 15
+                    color: rowHover.hovered
+                        ? (panel.style ? Qt.rgba(1, 1, 1, panel.style.night ? 0.055 : 0.5) : "#ffffff0e")
+                        : (panel.style ? (panel.style.night ? Qt.rgba(0, 0, 0, 0.16) : Qt.rgba(1, 1, 1, 0.5)) : "#00000028")
+                    border.width: 1
+                    border.color: panel.style ? (panel.style.night ? Qt.rgba(1, 1, 1, 0.065) : Qt.rgba(0.40, 0.34, 0.28, 0.14)) : "#ffffff10"
+                    Behavior on color { ColorAnimation { duration: 160 } }
+                    transform: Translate { y: rowHover.hovered ? -1 : 0 }
+                    HoverHandler { id: rowHover }
+
+                    Row {
+                        anchors.fill: parent
+                        anchors.margins: 9
+                        spacing: 10
+
+                        // 勾选框：未完成 = 发丝边空框（白 .06 底）；完成 = 135° aqua→violet 渐变 + ✓
+                        // （Rectangle 设了 gradient 时 color 被忽略，故未完成用 color、完成用 gradient 覆盖。）
+                        Rectangle {
+                            id: check
+                            width: 22; height: 22; radius: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: panel.style ? Qt.rgba(1, 1, 1, 0.06) : "#ffffff10"
+                            border.width: rowBg.modelData.done ? 0 : 1
+                            border.color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.22) : Qt.rgba(0.56, 0.87, 1, 0.22)
+                            gradient: rowBg.modelData.done ? doneGrad : null
+                            Gradient {
+                                id: doneGrad
+                                GradientStop { position: 0; color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.86) : Qt.rgba(0.56, 0.87, 1, 0.86) }
+                                GradientStop { position: 1; color: panel.style ? Qt.rgba(panel.style.violet.r, panel.style.violet.g, panel.style.violet.b, 0.82) : Qt.rgba(0.61, 0.55, 1, 0.82) }
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                visible: rowBg.modelData.done
+                                text: "✓"
+                                color: Qt.rgba(0.016, 0.031, 0.055, 0.92)
+                                font.pixelSize: 13
+                                font.weight: 900
+                            }
                         }
-                    }
-                    Text {
-                        width: parent.width - 18 - 10
-                        text: modelData.text
-                        color: modelData.done ? (style ? style.textTertiary : "#888")
-                                             : (style ? style.textPrimary : "#fff")
-                        font.pixelSize: 13
-                        font.strikeout: modelData.done
-                        elide: Text.ElideRight
-                        anchors.verticalCenter: parent.verticalCenter
+
+                        Text {
+                            width: parent.width - 22 - 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: rowBg.modelData.text
+                            color: rowBg.modelData.done
+                                ? (panel.style ? Qt.rgba(0.92, 0.96, 1, 0.54) : "#999")
+                                : (panel.style ? Qt.rgba(0.96, 0.98, 1, 0.90) : "#fff")
+                            font.pixelSize: 12
+                            font.strikeout: rowBg.modelData.done
+                            elide: Text.ElideRight
+                        }
                     }
                 }
             }
@@ -168,7 +251,7 @@ Rectangle {
                 visible: panel.items.length === 0
                 width: parent.width
                 text: "今天还没有事项 · 去日历添加"
-                color: style ? style.textTertiary : "#888"
+                color: panel.style ? panel.style.textTertiary : "#888"
                 font.pixelSize: 12
                 wrapMode: Text.WordWrap
             }
