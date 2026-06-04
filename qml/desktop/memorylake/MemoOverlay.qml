@@ -21,6 +21,45 @@ Item {
     // 当前选中对象下标（-1 = 无）。
     property int selectedObject: -1
 
+    // UI 私有持久化后端（Shell 注入 settingsRepository；通用 key-value，非服务磁盘契约）。
+    // 解耦：组件不直接引用全局 context property，store 为空时（如独立预览）静默跳过。
+    property var store: null
+    readonly property string docKey: "memoryLakeMemoDoc"
+    property bool _loaded: false
+
+    // 序列化整篇备忘（对象 + 墨迹 PNG dataURL）→ store。debounce 见 saveTimer。
+    function saveDoc() {
+        if (!store) return;
+        var objs = [];
+        for (var i = 0; i < objectModel.count; i++) {
+            var o = objectModel.get(i);
+            objs.push({ t: o.otype, x: o.ox, y: o.oy, w: o.ow, h: o.oh,
+                        ti: o.otitle, co: o.ocontent, tx: o.otext });
+        }
+        var doc = { v: 1, objects: objs, canvas: inkCanvas.exportDataURL() };
+        store.setValue(memo.docKey, JSON.stringify(doc));
+        saveStatus.flash("笔迹已保存");
+    }
+    function loadDoc() {
+        if (!store) return;
+        var raw = store.getValue(memo.docKey, "");
+        if (!raw || raw.length === 0) return;
+        var doc;
+        try { doc = JSON.parse(raw); } catch (e) { return; }
+        objectModel.clear();
+        var objs = doc.objects || [];
+        for (var i = 0; i < objs.length; i++) {
+            var o = objs[i];
+            objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
+                                 otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字" });
+        }
+        memo.selectedObject = -1;
+        if (doc.canvas) inkCanvas.loadFromDataURL(doc.canvas);
+    }
+    function scheduleSave() { if (store) saveTimer.restart(); }
+
+    Timer { id: saveTimer; interval: 600; repeat: false; onTriggered: memo.saveDoc() }
+
     // —— 对象创建/删除（内存模型；持久化切片接 C++ MemoStore）——
     function createSticky(px, py) {
         var w = 310, h = 285;
@@ -31,18 +70,21 @@ Item {
                              otitle: "", ocontent: "", otext: "" });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
+        memo.scheduleSave();
     }
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 220, oh: 40,
                              otitle: "", ocontent: "", otext: "输入文字" });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
+        memo.scheduleSave();
     }
     function removeObject(i) {
         if (i < 0 || i >= objectModel.count) return;
         objectModel.remove(i);
         if (memo.selectedObject === i) memo.selectedObject = -1;
         else if (memo.selectedObject > i) memo.selectedObject -= 1;
+        memo.scheduleSave();
     }
 
     // 工具提示文案（逐字对齐 v88 setMemoTool 16301-16307）。
@@ -64,8 +106,11 @@ Item {
         if (open) {
             if (homeShot.sourceItem)
                 homeShot.scheduleUpdate();
+            if (!memo._loaded) { memo.loadDoc(); memo._loaded = true; }   // 首次打开恢复存档
             toolbar.currentTool = "pen";   // 每次打开默认画笔（功能文 §2.1）
             memo.forceActiveFocus();
+        } else {
+            memo.saveDoc();   // 关闭前强存（不丢笔迹/便签）
         }
     }
 
@@ -170,6 +215,7 @@ Item {
             anchors.fill: parent
             style: memo.style
             tool: toolbar.currentTool
+            onStrokeEnded: memo.scheduleSave()
         }
     }
     Item {
@@ -236,6 +282,7 @@ Item {
                             objectModel.setProperty(ldr.index, "ow", ldr.item.width);
                             objectModel.setProperty(ldr.index, "oh", ldr.item.height);
                         }
+                        memo.scheduleSave();
                     }
                     function onContentCommitted() {
                         if (ldr.model.otype === "sticky") {
@@ -244,6 +291,7 @@ Item {
                         } else {
                             objectModel.setProperty(ldr.index, "otext", ldr.item.text);
                         }
+                        memo.scheduleSave();
                     }
                     function onDeleteRequested() { memo.removeObject(ldr.index); }
                 }
@@ -280,6 +328,35 @@ Item {
             text: memo.toolHints[toolbar.currentTool] || ""
             color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
             font.pixelSize: 13
+        }
+    }
+
+    // 保存状态胶囊（右上）。flash 后回落到 .72 走真实淡出（修 v88 硬切，C11）。
+    Rectangle {
+        id: saveStatus
+        property bool flashOn: false
+        function flash(t) { saveStatusText.text = t; flashOn = true; fadeTimer.restart(); }
+        anchors { top: parent.top; right: parent.right; topMargin: 30; rightMargin: 24 }
+        height: 30
+        width: saveStatusText.implicitWidth + 24
+        radius: 15
+        visible: memo.open && (memo.store !== null)
+        color: Qt.rgba(0, 0, 0, 0.30)
+        border.width: 1
+        border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.14)
+        opacity: memo.open ? (flashOn ? 1.0 : 0.72) : 0
+        Behavior on opacity { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+        Text {
+            id: saveStatusText
+            anchors.centerIn: parent
+            text: "笔迹会自动保存"
+            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
+            font.pixelSize: 12
+        }
+        Timer {
+            id: fadeTimer
+            interval: 1100
+            onTriggered: { saveStatus.flashOn = false; saveStatusText.text = "笔迹会自动保存"; }
         }
     }
 }

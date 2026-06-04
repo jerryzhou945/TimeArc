@@ -824,6 +824,7 @@ Item {
         anchors.fill: parent
         style: mlStyle
         backdropSource: desktopStage
+        store: settingsRepository    // UI 私有持久化（通用 key-value；非服务磁盘契约）
     }
 
     Connections {

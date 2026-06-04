@@ -46,6 +46,28 @@ Canvas {
         ink.markDirty(Qt.rect(0, 0, width, height));
     }
 
+    // 持久化：导出当前位图 dataURL（持久化切片存盘用）。
+    function exportDataURL() {
+        return ink.toDataURL("image/png");
+    }
+
+    // 持久化：从 dataURL 恢复本页墨迹（identity 拉伸到全幅，对齐 v88 loadMemoCanvasForPage）。
+    property string _pendingUrl: ""
+    function loadFromDataURL(url) {
+        clearAll();
+        if (!url || url.length === 0) return;
+        ink._pendingUrl = url;
+        ink.loadImage(url);
+    }
+    onImageLoaded: {
+        if (ink._pendingUrl.length > 0 && ink.isImageLoaded(ink._pendingUrl)) {
+            var ctx = getContext("2d");
+            ctx.globalCompositeOperation = "source-over";
+            ctx.drawImage(ink._pendingUrl, 0, 0, width, height);
+            ink.markDirty(Qt.rect(0, 0, width, height));
+        }
+    }
+
     MouseArea {
         anchors.fill: parent
         // 仅画笔/橡皮接管命中；其余工具禁用，让点击穿透到对象层（便签/文字创建）。
