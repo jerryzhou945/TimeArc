@@ -36,6 +36,8 @@ Rules:
 
 - First line <= 72 characters.
 - One commit should map to one session log.
+- After each completed feature implementation, create one focused commit once
+  verification has passed or documented blockers have been recorded.
 - Do not mix feature work, cleanup, and bug fixes.
 - Mention subtle rule/data-contract implications in the commit body.
 - Do not commit generated build output, local IDE state, or temporary files.

@@ -23,6 +23,8 @@ Rectangle {
         var out = [];
         for (var i = 0; i < share.length; i++) {
             var s = share[i];
+            // 主题分类切片按位次取调色板色（开发/社交/游戏/视频→aqua/violet/gold/pink，其它取 slate）。
+            // 上游为「按 app 切片」补的 brandColor/iconColors 取色对分类切片无意义（分类无品牌色），此处不取。
             var col = s.isOther ? (style ? style.shareOther : "#6F7C91")
                                 : sharePalette[Math.min(i, sharePalette.length - 1)];
             out.push({ name: s.name, percent: s.percent, color: col });

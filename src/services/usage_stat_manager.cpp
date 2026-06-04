@@ -23,6 +23,8 @@
 #include <initializer_list>
 #include <limits>
 
+#include "services/site_catalog.h"
+
 namespace {
 
 struct UsageInterval {
@@ -85,6 +87,27 @@ bool isBilibiliWindowTitle(const QString& windowTitle) {
   const QString lowerTitle = title.toLower();
   return title.contains(QStringLiteral("\u54D4\u54E9\u54D4\u54E9")) ||
          containsAny(lowerTitle, {"bilibili", "b23.tv", "bilibili.com"});
+}
+
+bool isBrowserApp(const QString& appId, const QString& appName,
+                  const QString& path) {
+  const QString text = (appId + " " + appName + " " + path).toLower();
+  return containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome",
+                            "msedge", "edge.exe", "firefox", "opera.exe",
+                            "brave", "vivaldi", "360se", "qqbrowser",
+                            "sogouexplorer", "ucbrowser"});
+}
+
+const TimeArcSiteCatalog::SiteDefinition* siteForGroupKey(
+    const QString& groupKey) {
+  return TimeArcSiteCatalog::findBySiteId(groupKey);
+}
+
+const TimeArcSiteCatalog::SiteDefinition* siteForBrowserWindow(
+    const QString& appId, const QString& appName, const QString& path,
+    const QString& windowTitle) {
+  if (!isBrowserApp(appId, appName, path)) return nullptr;
+  return TimeArcSiteCatalog::matchByWindowTitle(windowTitle);
 }
 
 quint64 mergedIntervalSeconds(QVector<UsageInterval> intervals) {
@@ -211,10 +234,9 @@ QString appGroupKey(const QString& appId, const QString& appName,
 
 QString activityGroupKey(const QString& appId, const QString& appName,
                          const QString& path, const QString& windowTitle) {
-  // activity key 比 app key 更细：Chrome 里的 B 站被提升成 site:bilibili，
-  // 这样 UI 统计里不会只显示“Google Chrome”。
-  if (isChromeApp(appId, appName, path) && isBilibiliWindowTitle(windowTitle)) {
-    return "site:bilibili";
+  if (const TimeArcSiteCatalog::SiteDefinition* site =
+          siteForBrowserWindow(appId, appName, path, windowTitle)) {
+    return site->siteId;
   }
 
   return appGroupKey(appId, appName, path);
@@ -222,8 +244,9 @@ QString activityGroupKey(const QString& appId, const QString& appName,
 
 QString activityDisplayName(const QString& groupKey, const QString& appId,
                             const QString& appName, const QString& path) {
-  if (groupKey == "site:bilibili") {
-    return bilibiliDisplayName();
+  if (const TimeArcSiteCatalog::SiteDefinition* site =
+          siteForGroupKey(groupKey)) {
+    return site->displayName;
   }
 
   return appDisplayName(appId, appName, path);
@@ -236,7 +259,10 @@ QString activityDisplayName(const QString& groupKey, const QString& appId,
 QString classifyActivity(const QString& groupKey, const QString& appId,
                          const QString& appName, const QString& path,
                          const QString& windowTitle) {
-  if (groupKey == "site:bilibili") return QStringLiteral("视频");
+  if (const TimeArcSiteCatalog::SiteDefinition* site =
+          siteForGroupKey(groupKey)) {
+    return site->category;
+  }
 
   // 关键：**类别关键词只匹配 exe 身份（id）**，不匹配窗口标题——否则泛词（game/
   // excel/docker/powershell…）会被任意网页标题误命中（如 Chrome 标题含 "game" 被判
@@ -584,7 +610,9 @@ QVariantList UsageStatManager::aggregateSoftware(
 
     QVariantMap item;
     item["groupKey"] = aggregate.groupKey;
-    item["appId"] = aggregate.appId;
+    item["appId"] = aggregate.groupKey.startsWith("site:")
+                        ? aggregate.groupKey
+                        : aggregate.appId;
     item["appName"] = aggregate.appName;
     item["name"] = displayName;
     item["path"] = aggregate.path;
@@ -604,8 +632,12 @@ QVariantList UsageStatManager::aggregateSoftware(
     item["iconColors"] = aggregate.groupKey.startsWith("site:")
                              ? QStringList()
                              : iconDominantColors(aggregate.path);
-    if (aggregate.groupKey == "site:bilibili") {
-      item["siteDomain"] = "bilibili.com";
+    if (const TimeArcSiteCatalog::SiteDefinition* site =
+            siteForGroupKey(aggregate.groupKey)) {
+      item["siteDomain"] = site->domain;
+      item["brandColor"] = site->brandColor;
+      item["iconLabel"] = site->iconLabel;
+      item["iconSource"] = site->iconSource;
     }
     item["source"] = sourceFilter.trimmed().isEmpty()
                          ? "active"
@@ -634,7 +666,7 @@ QVariantList UsageStatManager::aggregateSoftware(
       subtitle += " - Live";
     }
     const QString subtitleName =
-        aggregate.groupKey == "site:bilibili"
+        aggregate.groupKey.startsWith("site:")
             ? appDisplayName(aggregate.appId, aggregate.appName, aggregate.path)
             : aggregate.appName;
     item["note"] = subtitle;
@@ -727,8 +759,12 @@ QVariantMap UsageStatManager::recordToVariantMap(
   item["name"] = displayName;
   item["path"] = record.path;
   item["windowTitle"] = record.windowTitle;
-  if (groupKey == "site:bilibili") {
-    item["siteDomain"] = "bilibili.com";
+  if (const TimeArcSiteCatalog::SiteDefinition* site =
+          siteForGroupKey(groupKey)) {
+    item["siteDomain"] = site->domain;
+    item["brandColor"] = site->brandColor;
+    item["iconLabel"] = site->iconLabel;
+    item["iconSource"] = site->iconSource;
   }
   item["source"] = record.source;
   item["seconds"] = static_cast<qlonglong>(record.durationSec);
@@ -781,7 +817,9 @@ QVariantList UsageStatManager::foregroundSegmentsForRange(
     AppSessions& app = grouped[key];
     if (app.groupKey.trimmed().isEmpty()) {
       app.groupKey = key;
-      app.appId = !record.appId.trimmed().isEmpty() ? record.appId : key;
+      app.appId = key.startsWith("site:")
+                      ? key
+                      : (!record.appId.trimmed().isEmpty() ? record.appId : key);
       app.appName = !record.appName.trimmed().isEmpty()
                         ? record.appName
                         : QFileInfo(record.path).fileName();

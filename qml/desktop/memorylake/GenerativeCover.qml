@@ -19,8 +19,9 @@ Item {
                                                      : (app.appName ? app.appName.toString() : "")) : ""
     readonly property string _path: app ? (app.path ? app.path.toString() : "") : ""
     readonly property bool night: style ? style.night : true
-    readonly property color baseColor: AppVisual.appColor(_appId, _name, _path)
-    readonly property string iconSrc: AppVisual.appIconSource(_appId, _path)
+    readonly property color baseColor: app && app.brandColor ? app.brandColor : AppVisual.appColor(_appId, _name, _path)
+    readonly property string iconSrc: app && app.iconSource ? app.iconSource : AppVisual.appIconSource(_appId, _path)
+    readonly property string iconLabel: app && app.iconLabel ? app.iconLabel : AppVisual.appIconLabel(_appId, _name)
     readonly property int side: Math.round(Math.min(iconSize, Math.min(width, height) * 0.52))
 
     // 图标主色（最多 3 色，来自后端提取）；缺失退回 appColor 预设色。
@@ -80,7 +81,7 @@ Item {
     Text {
         anchors.centerIn: parent
         visible: genCover.iconSrc === ""
-        text: genCover._name.length > 0 ? genCover._name.charAt(0).toUpperCase() : "·"
+        text: genCover.iconLabel
         color: Qt.rgba(1, 1, 1, genCover.night ? 0.9 : 0.78)
         font.pixelSize: Math.max(18, genCover.side * 0.6)
         font.bold: true
