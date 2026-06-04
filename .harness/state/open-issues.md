@@ -46,13 +46,15 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 - **Third-party license page missing.** Main README TO-DO. Required by GPL +
   Qt LGPL combination; see
   [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.
-- **Memory Lake memo blackboard overlay (备忘) — in progress, sliced.** Greenfield modal
-  overlay replicating v88 `#memoOverlay` (ink canvas + sticky notes + text layers + 3D page
-  folder + pomodoro). Entry rewired from page route → overlay ACTION; backdrop (near-black
-  gradient + corner glows + dot lattice + 3-layer skeleton) shipped (Slice 0+1). **Still open:**
-  toolbar, ink canvas, sticky/text objects, page folder, UI-private persistence (C++ manager),
-  pomodoro + completion overlay. Specs: `docs/memory-lake-memo-functional-replication.md` +
-  `docs/memory-lake-memo-render-pipeline-replication.md`. §7-A product gaps deferred.
+- **Memory Lake memo blackboard overlay (备忘) — implemented (PR #14, sliced).** Greenfield
+  modal overlay replicating v88 `#memoOverlay`: entry-as-action + flip-guard; blackboard
+  backdrop (gradient + corner glows + dot lattice + re-blurred home); toolbar + freehand
+  pen/eraser; sticky notes + text layers; multi-page archive folder (per-page ink+objects);
+  UI-private auto-persistence via `SettingsRepository` (generic key-value, no new C++);
+  pomodoro widget (collapse-to-pixel-tomato) + full-screen completion overlay. **Pending:**
+  manual in-app QA pass (draw / drag / resize / page-switch / pomodoro end-to-end); §7-A
+  product gaps still deferred (undo/redo, pen color/width UI, page rename/reorder, pomodoro
+  persistence/sound/work-rest, conic-aura shader). Specs: `docs/memory-lake-memo-*`.
 
 ## Build / distribution
 

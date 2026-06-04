@@ -60,10 +60,11 @@ with day and night modes.
   board with a freehand chalk-ink canvas and a floating glass tool pill (note / text /
   pen / eraser / exit), the home page re-blurred behind it. Freehand chalk pen/eraser,
   draggable + resizable **sticky notes** (with autosize + aqua selection ring + delete),
-  editable **text layers** (Alt-drag), and a **multi-page archive folder** (switch / add /
-  delete, each page owns its own ink + objects) are in; everything **auto-persists** to a
-  UI-private store; a pomodoro widget is still being added, replicating the v88 prototype.
-  Memo content is **UI-private local state**, kept off the service↔UI disk contract.
+  editable **text layers** (Alt-drag), a **multi-page archive folder** (switch / add /
+  delete, each page owns its own ink + objects), and a **pomodoro widget** (collapses to a
+  pixel tomato while running, with a full-screen completion celebration) — all replicating
+  the v88 prototype, everything **auto-persisting** to a UI-private store. Memo content is
+  **UI-private local state**, kept off the service↔UI disk contract.
   *(Replaces the former local Chat page.)*
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
   three-panel "记忆湖": a left panel with the app usage ranking, a **center column**

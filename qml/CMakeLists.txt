@@ -25,6 +25,9 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/StickyNote.qml
     qml/desktop/memorylake/TextLayer.qml
     qml/desktop/memorylake/MemoPageFolder.qml
+    qml/desktop/memorylake/PixelTomato.qml
+    qml/desktop/memorylake/PomodoroWidget.qml
+    qml/desktop/memorylake/PomodoroCompleteOverlay.qml
     qml/desktop/memorylake/GlassPanel.qml
     qml/desktop/memorylake/GlowCircle.qml
     qml/desktop/memorylake/GridTexture.qml

@@ -11,6 +11,7 @@ Item {
     property bool shown: false            // overlay 开 → 滑入
     property string currentTool: "pen"
     signal exitRequested()
+    signal pomodoroRequested()
 
     function toggleTool(t) { currentTool = (currentTool === t) ? "none" : t; }
 
@@ -119,6 +120,34 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: bar.toggleTool(tbtn.kind)
                     }
+                }
+            }
+
+            // 更多工具（番茄钟）。
+            Item {
+                width: 38; height: 38
+                anchors.verticalCenter: parent.verticalCenter
+                Rectangle {
+                    anchors.fill: parent; radius: 8
+                    visible: moreHover.containsMouse
+                    color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10)
+                    border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.18)
+                }
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 3
+                    Repeater {
+                        model: 3
+                        delegate: Rectangle { width: 4; height: 4; radius: 2
+                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.86) }
+                    }
+                }
+                MouseArea {
+                    id: moreHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: bar.pomodoroRequested()
                 }
             }
 

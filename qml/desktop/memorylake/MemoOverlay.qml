@@ -364,6 +364,20 @@ Item {
         style: memo.style
         shown: memo.open
         onExitRequested: memo.open = false
+        onPomodoroRequested: pomodoro.shown = !pomodoro.shown
+    }
+
+    // 番茄钟浮窗 + 完成弹层。
+    PomodoroWidget {
+        id: pomodoro
+        style: memo.style
+        shown: false
+        onCompleted: function (v) { pomodoroComplete.variant = v; pomodoroComplete.shown = true; }
+    }
+    PomodoroCompleteOverlay {
+        id: pomodoroComplete
+        style: memo.style
+        onClosed: pomodoroComplete.shown = false
     }
 
     // 右上档案袋（多页切换）。

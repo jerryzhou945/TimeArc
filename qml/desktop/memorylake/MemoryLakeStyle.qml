@@ -177,4 +177,11 @@ QtObject {
     readonly property color memoSelectRing: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.58)
     // 工具条「更多/退出」破坏红（设计稿 .exit hover rgba(255,95,95,.22)）
     readonly property color memoDanger: Qt.rgba(255 / 255, 95 / 255, 95 / 255, 1.0)
+    // 番茄钟色族（设计稿 #FF5B5E 红 + 琥珀双闪 rgba(255,230,163)）；进度条 aqua→violet 复用既有色。
+    readonly property color pomodoroRed: "#FF5B5E"
+    readonly property color pomodoroRedDark: "#D8413F"
+    readonly property color pomodoroRedHi: "#FF9A8A"
+    readonly property color pomodoroLeaf: "#5FBF6B"
+    readonly property color pomodoroLeafDark: "#3E8F4E"
+    readonly property color pomodoroAmber: Qt.rgba(255 / 255, 230 / 255, 163 / 255, 1.0)
 }
