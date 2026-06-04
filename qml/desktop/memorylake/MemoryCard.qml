@@ -14,6 +14,9 @@ Item {
     property bool previewed: false
     property bool dimmed: false   // 翻面锁定时其它卡变暗
 
+    // 鼠标是否悬停在本卡上（设计稿 .card:hover）：霓虹底光 + 高光划过都只在悬停时醒来（§3.6）。
+    readonly property bool hovered: hover.hovered
+
     // 卡面圆角 / 边缘光（描边）几何 + 圆角遮罩裁切阈值，集中此处便于统一调参。
     // maskThresholdMin：把 MultiEffect 圆角遮罩的裁切位置卡在「50% 覆盖」等高线（= 几何圆角
     // 半径），而不是默认 0 让抗锯齿淡边（alpha≈0）也整幅透出——后者会让内容圆角实际半径比
@@ -67,8 +70,10 @@ Item {
         readonly property color restColor: card.style ? card.style.aqua : "#9FE7EE"
         readonly property color peakColor: card.style ? card.style.violet : "#9B8BFF"
 
-        // 选中淡入淡出走 baseGlow（带 Behavior）；翻面高光走 edgeOn（跟随 flipAngle 动画），两者相乘，互不干扰
-        property real baseGlow: card.selected ? 0.7 : 0.0
+        // 霓虹底光只在交互时醒来（设计稿 .card:hover drop-shadow aqua）：**悬停**任意卡即点亮底光；
+        // 选中卡翻面（locked，展示分析）时保持点亮以承载翻面透视高光。静止未悬停的卡无底光。
+        // 翻面高光走 edgeOn（跟随 flipAngle 动画），与 baseGlow 相乘，互不干扰。
+        property real baseGlow: (card.hovered || (card.selected && card.flipped)) ? 0.7 : 0.0
         Behavior on baseGlow { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
         opacity: baseGlow * (1.0 + 0.55 * edgeOn)
         visible: opacity > 0.01
@@ -367,6 +372,37 @@ Item {
                 maskSource: backArtMask
                 maskThresholdMin: card.maskThresholdMin
                 maskSpreadAtMin: card.maskSpreadAtMin
+            }
+        }
+    }
+
+    // 高光划过（设计稿 .card:hover 玻璃反光 / cookbook §3.6「扫光只在 :hover 时出现」）：
+    // 悬停时一道斜向高光反复扫过卡面（玻璃反光质感）。独立叠层 z:2，不进翻面合成；
+    // RoundedFrame round-clip 收在卡面圆角内（clip:true 只裁矩形会让斜光戳出圆角成方角）。仅正面、仅悬停时跑。
+    RoundedFrame {
+        id: sheen
+        anchors.fill: parent
+        radius: card.faceRadius
+        z: 2
+        visible: card.hovered && !card.flipped
+        Rectangle {
+            id: sheenBar
+            width: parent.width * 0.4
+            height: parent.height * 1.9
+            y: -parent.height * 0.45
+            rotation: 16
+            transformOrigin: Item.Center
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 0.5; color: card.style && !card.style.night ? Qt.rgba(1, 1, 1, 0.30) : Qt.rgba(1, 1, 1, 0.16) }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+            SequentialAnimation on x {
+                running: sheen.visible
+                loops: Animation.Infinite
+                NumberAnimation { from: -card.width * 0.5; to: card.width * 1.1; duration: 820; easing.type: Easing.InOutSine }
+                PauseAnimation { duration: 1700 }
             }
         }
     }

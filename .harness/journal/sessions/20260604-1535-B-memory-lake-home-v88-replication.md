@@ -50,3 +50,11 @@ briefing 折叠腾出的整高容纳（与 v88 `.cards-hovering/.force-card-expa
   三卡的方格/底光统一裹进 **RoundedFrame** round-clip；今日结论/占比**撤掉四角径向光斑**，今日事项改一团**居中均匀蓝霓虹**+小霓虹点。
 - **昼态对比**：今日事项行字 / 占比图例字改用 textPrimary/Secondary 令牌（原硬编码近白字在浅底不可读）。
 - 复验：build 干净、真机零告警、夜/昼双态四角干净无突出色块。
+
+## 三轮（用户反馈：卡牌 hover 动效复刻）
+设计稿 `.card:hover` = `drop-shadow(0 0 18px aqua .20)`（霓虹底光）+ face aqua 环/边；cookbook §3.6「发光只在交互时醒来」。
+- **霓虹底光改 hover 驱动**：MemoryCard `baseGlow` 由 `selected` 改 `hovered || (selected && flipped)`——
+  悬停任意卡点亮底光、翻面态保持（承载翻面透视高光），静止未悬停的卡无底光（用户：「仅鼠标在卡上时出现」）。
+- **高光划过**：新增独立叠层 sheen（RoundedFrame round-clip 收圆角）+ 斜 16° 白高光条，悬停时 820ms 扫过 + 1.7s 停、循环；
+  仅正面、仅悬停跑；z:2 不进翻面合成（不拖累 face FBO）。
+- 复验：build 干净、真机零告警；harness 出图确认静止无底光 / 翻面底光亮 / glint 斜光圆角不戳。MemoryCard 翻面/遮罩逻辑未动。
