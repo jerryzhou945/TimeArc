@@ -1,11 +1,12 @@
 import QtQuick
 import QtQuick.Effects
 
-// Daily Usage Share：今日软件使用占比（霓虹甜甜圈 + 图例 + 洞察）。
+// Daily Theme Share：今日主题使用占比（霓虹甜甜圈 + 图例 + 洞察）。
 // v88 复刻（设计稿 .daily-pie-panel）：玻璃底 + aqua/violet 双角径向辉光 + 26px 方格底纹；
 // 甜甜圈 = 真实占比 Canvas 扇区 + **0 0 32px 彩色霓虹外晕（MultiEffect）** + 呼吸光环 +
 // 雕刻暗色中心孔（aqua 顶光）+ 中心总时数发光；图例点带同色霓虹辉光；底部洞察胶囊。
-// 切片来自 dailyCardService.memoryLakeDay().usageShare（前 4 app + 其他），QML 只渲染（G10 不造假）。
+// 切片来自 dailyCardService.memoryLakeDay().usageShare：按本地分类器的**主题分类**(开发/社交/游戏/视频…)
+// 汇总，前 4 类 + 其他；QML 只渲染（G10 不造假）。
 Rectangle {
     id: panel
 
@@ -89,7 +90,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 3
                 Text {
-                    text: "Daily Usage Share"
+                    text: "Daily Theme Share"
                     color: panel.style ? panel.style.glowCyan : "#8EDFFF"
                     font.pixelSize: 11
                     font.weight: 800
@@ -97,7 +98,7 @@ Rectangle {
                     font.capitalization: Font.AllUppercase
                 }
                 Text {
-                    text: "今日软件使用占比"
+                    text: "今日主题使用占比"
                     color: panel.style ? panel.style.textPrimary : "#fff"
                     font.pixelSize: 16
                     font.weight: 800

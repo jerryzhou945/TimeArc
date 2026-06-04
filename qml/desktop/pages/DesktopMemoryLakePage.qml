@@ -165,72 +165,42 @@ Item {
                     }
                 }
 
-                // 概览 + 今日主题
-                Row {
+                // 今日主题（theme）：占满整行（使用总览已移除——其总时数信息今日结论已含）。
+                FrostCard {
                     width: parent.width
                     height: 124
-                    spacing: 10
-
-                    // 使用总览（overview，L3）：180° aqua→white 顶向染 + 总时数 900/负字距/tabular-nums
-                    FrostCard {
-                        width: (parent.width - 10) / 2
-                        height: parent.height
-                        style: ml
-                        radius: ml.radiusCard
-                        tintTop: Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.08 * ml.glowStrength)
-                        tintBottom: Qt.rgba(1, 1, 1, 0.025)
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 5
-                            Text {
-                                text: "使用总览"; color: ml.aqua; font.pixelSize: 11; opacity: 0.9
-                                font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
-                            }
-                            Text {
-                                text: root.overview.total; color: ml.textPrimary
-                                font.pixelSize: 27; font.weight: 900; font.letterSpacing: -1
-                                font.features: { "tnum": 1 }
-                            }
-                            Text { text: root.overview.sub; color: ml.textTertiary; font.pixelSize: 11 }
+                    style: ml
+                    radius: ml.radiusCard
+                    tintTop: Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.08 * ml.glowStrength)
+                    tintBottom: Qt.rgba(1, 1, 1, 0.025)
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        spacing: 7
+                        Text {
+                            text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.9
+                            font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
                         }
-                    }
-
-                    // 今日主题（theme，L4 纯霜膜）
-                    FrostCard {
-                        width: (parent.width - 10) / 2
-                        height: parent.height
-                        style: ml
-                        radius: ml.radiusCard
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 5
-                            Text {
-                                text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.9
-                                font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
-                            }
-                            Text { text: root.todayTheme.title; color: ml.textPrimary; font.pixelSize: 17; font.bold: true }
-                            Text {
-                                width: parent.width
-                                text: root.todayTheme.desc
-                                color: ml.textSecondary
-                                font.pixelSize: 11
-                                wrapMode: Text.WordWrap
-                                maximumLineCount: 2
-                                elide: Text.ElideRight
-                            }
+                        Text { text: root.todayTheme.title; color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            width: parent.width
+                            text: root.todayTheme.desc
+                            color: ml.textSecondary
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
+                        Rectangle {
+                            width: parent.width; height: 6; radius: 3
+                            color: ml.trackBg
                             Rectangle {
-                                width: parent.width; height: 6; radius: 3
-                                color: ml.trackBg
-                                Rectangle {
-                                    width: parent.width * root.todayTheme.ratio
-                                    height: parent.height; radius: 3
-                                    gradient: Gradient {
-                                        orientation: Gradient.Horizontal
-                                        GradientStop { position: 0; color: ml.aqua }
-                                        GradientStop { position: 1; color: ml.pink }
-                                    }
+                                width: parent.width * root.todayTheme.ratio
+                                height: parent.height; radius: 3
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0; color: ml.aqua }
+                                    GradientStop { position: 1; color: ml.pink }
                                 }
                             }
                         }

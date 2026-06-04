@@ -58,3 +58,11 @@ briefing 折叠腾出的整高容纳（与 v88 `.cards-hovering/.force-card-expa
 - **高光划过**：新增独立叠层 sheen（RoundedFrame round-clip 收圆角）+ 斜 16° 白高光条，悬停时 820ms 扫过 + 1.7s 停、循环；
   仅正面、仅悬停跑；z:2 不进翻面合成（不拖累 face FBO）。
 - 复验：build 干净、真机零告警；harness 出图确认静止无底光 / 翻面底光亮 / glint 斜光圆角不戳。MemoryCard 翻面/遮罩逻辑未动。
+
+## 四轮（用户反馈：去使用总览 / 占比改按主题分类）
+- **左栏去「使用总览」卡**：信息（总时数）今日结论已含；今日主题卡扩为整行占满原总览位（标题 17→19、留白放宽）。
+- **「今日软件使用占比」→「今日主题使用占比」**（service side 改动）：`daily_card_service.cpp memoryLakeDay` 的 usageShare
+  由「前 4 app」改为**按本地分类器主题分类汇总**（复用已算好的 catSec：类别→秒；排除 系统/其他 作具名切片，
+  前 4 类 + 其他滚动项，denominator 仍 totalDaySec）。QML 标题/kicker 改「今日主题使用占比 / Daily Theme Share」。
+- 数据真实（G10）：分类来自既有 classifyApp/category 字段，非 Mock。洞察自动变「今日主题：开发 占比最高（X%）」。
+- 复验：build（含 C++）干净、真机零告警；harness 出图确认全宽主题卡 + 甜甜圈按 开发/社交/游戏/视频/其他 分类。
