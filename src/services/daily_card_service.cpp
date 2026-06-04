@@ -953,6 +953,10 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
     app.insert(QStringLiteral("appName"), u.value(QStringLiteral("appName")));
     app.insert(QStringLiteral("path"), path);
     app.insert(QStringLiteral("iconColors"), u.value(QStringLiteral("iconColors")));
+    app.insert(QStringLiteral("brandColor"), u.value(QStringLiteral("brandColor")));
+    app.insert(QStringLiteral("iconLabel"), u.value(QStringLiteral("iconLabel")));
+    app.insert(QStringLiteral("iconSource"), u.value(QStringLiteral("iconSource")));
+    app.insert(QStringLiteral("siteDomain"), u.value(QStringLiteral("siteDomain")));
     app.insert(QStringLiteral("category"), category);
     app.insert(QStringLiteral("type"), category);
     app.insert(QStringLiteral("time"), timeText);
@@ -1076,6 +1080,14 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
       slice.insert(QStringLiteral("path"), a.value(QStringLiteral("path")));
       slice.insert(QStringLiteral("iconColors"),
                    a.value(QStringLiteral("iconColors")));
+      slice.insert(QStringLiteral("brandColor"),
+                   a.value(QStringLiteral("brandColor")));
+      slice.insert(QStringLiteral("iconLabel"),
+                   a.value(QStringLiteral("iconLabel")));
+      slice.insert(QStringLiteral("iconSource"),
+                   a.value(QStringLiteral("iconSource")));
+      slice.insert(QStringLiteral("siteDomain"),
+                   a.value(QStringLiteral("siteDomain")));
       slice.insert(QStringLiteral("seconds"), sec);
       slice.insert(QStringLiteral("percent"),
                    totalDaySec > 0

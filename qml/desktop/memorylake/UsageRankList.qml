@@ -110,6 +110,16 @@ Item {
                                     mipmap: true
                                     visible: source != ""
                                 }
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: AppVisual.appIconSource(row.app ? row.app.appId : "",
+                                                                     row.app ? row.app.path : "") === ""
+                                    text: AppVisual.appIconLabel(row.app ? row.app.appId : "",
+                                                                 row.app ? row.app.name : "")
+                                    color: rankRoot.style ? rankRoot.style.textPrimary : "#fff"
+                                    font.pixelSize: 15
+                                    font.bold: true
+                                }
                             }
 
                             Column {

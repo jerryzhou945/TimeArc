@@ -18,6 +18,8 @@ Rectangle {
             var col;
             if (s.isOther) {
                 col = style && style.night ? "#5C6577" : "#9AA1B0";
+            } else if (s.brandColor) {
+                col = s.brandColor;
             } else if (s.iconColors && s.iconColors.length > 0) {
                 col = s.iconColors[0];
             } else {
