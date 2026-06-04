@@ -25,20 +25,35 @@ Rectangle {
         width: parent.width
         height: parent.height
         radius: parent.radius
-        color: panel.style && panel.style.night ? "#05070D" : "#BFAE9D"
-        opacity: panel.style && panel.style.night ? 0.22 : 0.10
+        color: panel.style ? panel.style.shadowColor : "#05070D"
+        opacity: panel.style ? panel.style.shadowOpacity : 0.22
     }
 
-    // 顶部 1px 内高光，营造玻璃边缘
+    // 顶部 1px 内高光，营造玻璃边缘（主光打在上边缘斜面）。
+    // 左右内缩 = 圆角半径，只覆盖「直边段」，不越出圆角拐角（否则直线段会戳出圆角外成超界线条）。
     Rectangle {
         z: 1
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: 1
+        anchors.topMargin: 1
+        anchors.leftMargin: panel.radius
+        anchors.rightMargin: panel.radius
         height: 1
-        radius: 1
-        color: panel.style && panel.style.night ? Qt.rgba(1, 1, 1, 0.08)
-                                                : Qt.rgba(1, 1, 1, 0.45)
+        color: panel.style ? panel.style.edgeHighlight : Qt.rgba(1, 1, 1, 0.08)
+    }
+
+    // 更亮底沿 = --ml-border-strong（玻璃下唇接住环境反弹光，Cookbook §3.5 / 法规 X3）：
+    // 比四周 border(.075) 更亮(.13)，恒取更亮值；同样左右内缩半径，不越出圆角。
+    Rectangle {
+        z: 1
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottomMargin: 1
+        anchors.leftMargin: panel.radius
+        anchors.rightMargin: panel.radius
+        height: 1
+        color: panel.style ? panel.style.panelBorderStrong : Qt.rgba(1, 1, 1, 0.13)
     }
 }

@@ -31,11 +31,26 @@ Rectangle {
         return arr;
     }
 
-    radius: 19
+    radius: style ? style.radiusCard : 18
     color: style ? style.cardBg : "#16181f"
     border.width: 1
     border.color: style ? style.cardBorder : "#2a2d36"
     clip: true
+
+    // 边缘光对（L4）：顶沿 1px 内高光 + 更亮底沿（玻璃下唇），静止无投影。左右内缩半径，不越出圆角拐角。
+    Rectangle {
+        anchors { top: parent.top; left: parent.left; right: parent.right
+                  topMargin: 1; leftMargin: card.radius; rightMargin: card.radius }
+        height: 1
+        color: card.style ? (card.style.night ? Qt.rgba(1, 1, 1, 0.035) : Qt.rgba(1, 1, 1, 0.55))
+                          : Qt.rgba(1, 1, 1, 0.035)
+    }
+    Rectangle {
+        anchors { bottom: parent.bottom; left: parent.left; right: parent.right
+                  bottomMargin: 1; leftMargin: card.radius; rightMargin: card.radius }
+        height: 1
+        color: card.style ? card.style.panelBorderStrong : Qt.rgba(1, 1, 1, 0.13)
+    }
 
     Item {
         anchors.fill: parent
@@ -48,7 +63,9 @@ Rectangle {
             text: card.kicker
             color: style ? style.aqua : "#9FE7EE"
             font.pixelSize: 11
-            opacity: 0.85
+            opacity: 0.9
+            font.capitalization: Font.AllUppercase
+            font.letterSpacing: 1.0
         }
 
         Text {

@@ -127,14 +127,14 @@ Item {
                 anchors.margins: 14
                 spacing: 10
 
-                // 用户卡
-                Rectangle {
+                // 用户卡（profile，L2）：135° aqua→violet 斜染 + 头像顶沿内高光
+                FrostCard {
                     width: parent.width
                     height: 66
-                    radius: 19
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
+                    style: ml
+                    radius: ml.radiusCard
+                    tintTop: Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.08 * ml.glowStrength)
+                    tintBottom: Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0.045 * ml.glowStrength)
                     Row {
                         anchors.fill: parent
                         anchors.margins: 11
@@ -142,11 +142,14 @@ Item {
                         Rectangle {
                             width: 38; height: 38; radius: 14
                             anchors.verticalCenter: parent.verticalCenter
-                            border.width: 2
-                            border.color: Qt.rgba(1, 1, 1, 0.32)
                             gradient: Gradient {
                                 GradientStop { position: 0; color: ml.aqua }
                                 GradientStop { position: 1; color: ml.violet }
+                            }
+                            // 头像顶沿内高光 inset 0 1px 白 .2（一条 1px Rectangle，L2）
+                            Rectangle {
+                                anchors { top: parent.top; left: parent.left; right: parent.right; margins: 2 }
+                                height: 1; color: Qt.rgba(1, 1, 1, 0.2)
                             }
                         }
                         Column {
@@ -164,35 +167,45 @@ Item {
                     height: 124
                     spacing: 10
 
-                    Rectangle {
+                    // 使用总览（overview，L3）：180° aqua→white 顶向染 + 总时数 900/负字距/tabular-nums
+                    FrostCard {
                         width: (parent.width - 10) / 2
                         height: parent.height
-                        radius: 19
-                        color: ml.cardBg
-                        border.width: 1
-                        border.color: ml.cardBorder
+                        style: ml
+                        radius: ml.radiusCard
+                        tintTop: Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.08 * ml.glowStrength)
+                        tintBottom: Qt.rgba(1, 1, 1, 0.025)
                         Column {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 5
-                            Text { text: "使用总览"; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
-                            Text { text: root.overview.total; color: ml.textPrimary; font.pixelSize: 27; font.bold: true }
+                            Text {
+                                text: "使用总览"; color: ml.aqua; font.pixelSize: 11; opacity: 0.9
+                                font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
+                            }
+                            Text {
+                                text: root.overview.total; color: ml.textPrimary
+                                font.pixelSize: 27; font.weight: 900; font.letterSpacing: -1
+                                font.features: { "tnum": 1 }
+                            }
                             Text { text: root.overview.sub; color: ml.textTertiary; font.pixelSize: 11 }
                         }
                     }
 
-                    Rectangle {
+                    // 今日主题（theme，L4 纯霜膜）
+                    FrostCard {
                         width: (parent.width - 10) / 2
                         height: parent.height
-                        radius: 19
-                        color: ml.cardBg
-                        border.width: 1
-                        border.color: ml.cardBorder
+                        style: ml
+                        radius: ml.radiusCard
                         Column {
                             anchors.fill: parent
                             anchors.margins: 12
                             spacing: 5
-                            Text { text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
+                            Text {
+                                text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.9
+                                font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
+                            }
                             Text { text: root.todayTheme.title; color: ml.textPrimary; font.pixelSize: 17; font.bold: true }
                             Text {
                                 width: parent.width
@@ -229,26 +242,27 @@ Item {
                     todoRemaining: calendarSync.remaining
                 }
 
-                // 排行
-                Rectangle {
+                // 排行（L4 纯霜膜 + 边缘光对；列表自身在 clip 容器内滚动）
+                FrostCard {
                     width: parent.width
                     height: parent.height - 66 - 124 - 150 - 30
-                    radius: 22
-                    clip: true
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
-                    UsageRankList {
+                    style: ml
+                    radius: ml.radiusCard
+                    Item {
                         anchors.fill: parent
                         anchors.margins: 13
-                        style: ml
-                        apps: root.apps
-                        ranking: root.ranking
-                        selectedIndex: root.selectedIndex
-                        locked: root.locked
-                        onRequestSelect: function(cardIndex) { root.selectCard(cardIndex) }
-                        onHoverCard: function(cardIndex) { if (!root.locked) root.previewIndex = cardIndex }
-                        onUnhoverCard: root.previewIndex = -1
+                        clip: true
+                        UsageRankList {
+                            anchors.fill: parent
+                            style: ml
+                            apps: root.apps
+                            ranking: root.ranking
+                            selectedIndex: root.selectedIndex
+                            locked: root.locked
+                            onRequestSelect: function(cardIndex) { root.selectCard(cardIndex) }
+                            onHoverCard: function(cardIndex) { if (!root.locked) root.previewIndex = cardIndex }
+                            onUnhoverCard: root.previewIndex = -1
+                        }
                     }
                 }
             }
@@ -391,12 +405,10 @@ Item {
                     Component.onCompleted: opacity = active ? 1 : 0
                     onActiveChanged: active ? lockIn.restart() : lockOut.restart()
 
-                    Rectangle {
+                    FrostCard {
                         anchors.fill: parent
-                        radius: 18
-                        color: ml.cardBg
-                        border.width: 1
-                        border.color: ml.cardBorder
+                        style: ml
+                        radius: ml.radiusCard
                         TimeRiver {
                             anchors.fill: parent
                             anchors.margins: 16

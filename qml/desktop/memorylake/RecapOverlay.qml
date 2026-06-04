@@ -73,7 +73,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 24
-        color: recap.style && recap.style.night ? Qt.rgba(0.008, 0.02, 0.04, 1.0) : Qt.rgba(0.10, 0.12, 0.18, 0.97)
+        color: recap.style ? recap.style.recapBackdrop : Qt.rgba(0.008, 0.02, 0.04, 1.0)
     }
 
     // shell：铺满内容区、去掉外框（避免「框中框」），只留内部 stage 一层框
@@ -82,7 +82,7 @@ Item {
         anchors.fill: parent
         anchors.margins: 8
         radius: 28
-        color: recap.style && recap.style.night ? Qt.rgba(0.024, 0.04, 0.07, 1.0) : Qt.rgba(1, 1, 1, 0.92)
+        color: recap.style ? recap.style.recapShell : Qt.rgba(0.024, 0.04, 0.07, 1.0)
         border.width: 0
         clip: true
 
@@ -143,11 +143,12 @@ Item {
             opacity: recap.opened ? 0.34 : 0
             Behavior on scale { NumberAnimation { duration: 780; easing.type: Easing.Bezier; easing.bezierCurve: [0.16, 0.9, 0.2, 1, 1, 1] } }
             Behavior on opacity { NumberAnimation { duration: 550; easing.type: Easing.OutCubic } }
+            // 极光最终值（v25）：aqua .08 / violet .12 / white .08（近黑底低透叠加 ≈ screen，§5.4）
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: "transparent" }
-                GradientStop { position: 0.42; color: Qt.rgba(0.62, 0.90, 0.93, 0.08) }
-                GradientStop { position: 0.56; color: Qt.rgba(0.61, 0.55, 1.0, 0.12) }
+                GradientStop { position: 0.42; color: recap.style ? Qt.rgba(recap.style.aqua.r, recap.style.aqua.g, recap.style.aqua.b, 0.08) : Qt.rgba(0.62, 0.90, 0.93, 0.08) }
+                GradientStop { position: 0.56; color: recap.style ? Qt.rgba(recap.style.violet.r, recap.style.violet.g, recap.style.violet.b, 0.12) : Qt.rgba(0.61, 0.55, 1.0, 0.12) }
                 GradientStop { position: 0.66; color: Qt.rgba(1, 1, 1, 0.08) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
@@ -165,8 +166,7 @@ Item {
             x: shell.width / 2 - 460
             y: shell.height - 190
             glowColor: recap.style ? recap.style.violet : "#9B8BFF"
-            glowOpacity: (recap.style ? recap.style.glowStrength : 1) * 0.18
-            blurAmount: 1.0
+            glowOpacity: (recap.style ? recap.style.glowStrength : 1) * 0.26
             // .summary-glow-ring 入场：scale .82→1 (.72s) + opacity 0→1 (.52s)
             scale: recap.opened ? 1 : 0.82
             opacity: recap.opened ? 1 : 0
@@ -232,7 +232,7 @@ Item {
             anchors.left: parent.left
             anchors.leftMargin: 26
             width: noteT.width + 28; height: 34; radius: 17
-            color: Qt.rgba(0, 0, 0, 0.28)
+            color: recap.style ? recap.style.pillScrim : Qt.rgba(0, 0, 0, 0.20)
             border.width: 1; border.color: recap.style ? recap.style.panelBorder : "#ffffff14"
 
             // 错峰入场 ~.12s
@@ -289,8 +289,8 @@ Item {
                 width: parent.width - (recap.storyComplete ? 318 : 0)
                 Behavior on width { NumberAnimation { duration: 480; easing.type: Easing.OutCubic } }
                 radius: 28
-                color: recap.style ? Qt.rgba(0, 0, 0, recap.style.night ? 0.4 : 0.2) : "#00000066"
-                border.width: 1; border.color: recap.style ? recap.style.cardBorder : "#ffffff16"
+                color: recap.style ? recap.style.recapStage : "#00000066"
+                border.width: 1; border.color: recap.style ? recap.style.panelBorder : "#ffffff16"
                 clip: true
 
                 Repeater {
@@ -322,8 +322,8 @@ Item {
                 anchors.right: parent.right
                 width: 300
                 radius: 28
-                color: recap.style ? Qt.rgba(0, 0, 0, recap.style.night ? 0.3 : 0.16) : "#00000055"
-                border.width: 1; border.color: recap.style ? recap.style.cardBorder : "#ffffff16"
+                color: recap.style ? recap.style.recapStage : "#00000055"
+                border.width: 1; border.color: recap.style ? recap.style.panelBorder : "#ffffff16"
                 opacity: recap.storyComplete ? 1 : 0
                 visible: opacity > 0
                 Behavior on opacity { NumberAnimation { duration: 420 } }
@@ -392,12 +392,30 @@ Item {
                 }
             }
         }
+
+        // shell 边缘光对（Floating 档 §3.4 / 设计稿 .summary-shell inset 0 1px .055）：
+        // 顶沿内高光 + 更亮底沿，给全幅玻璃壳「浮起的下唇」质感（不加外框，避免框中框）。
+        Rectangle {
+            z: 50
+            anchors { top: parent.top; left: parent.left; right: parent.right
+                      topMargin: 1; leftMargin: shell.radius; rightMargin: shell.radius }
+            height: 1
+            color: recap.style ? (recap.style.night ? Qt.rgba(1, 1, 1, 0.055) : Qt.rgba(1, 1, 1, 0.62))
+                              : Qt.rgba(1, 1, 1, 0.055)
+        }
+        Rectangle {
+            z: 50
+            anchors { bottom: parent.bottom; left: parent.left; right: parent.right
+                      bottomMargin: 1; leftMargin: shell.radius; rightMargin: shell.radius }
+            height: 1
+            color: recap.style ? recap.style.panelBorderStrong : Qt.rgba(1, 1, 1, 0.13)
+        }
     }
 
     component RecapPill: Rectangle {
         property alias text: pt.text
         width: pt.width + 28; height: 34; radius: 17
-        color: Qt.rgba(0, 0, 0, 0.20)
+        color: recap.style ? recap.style.pillScrim : Qt.rgba(0, 0, 0, 0.20)
         border.width: 1; border.color: recap.style ? recap.style.panelBorder : "#ffffff14"
         Text { id: pt; anchors.centerIn: parent; color: recap.style ? recap.style.textSecondary : "#bbb"; font.pixelSize: 12 }
     }

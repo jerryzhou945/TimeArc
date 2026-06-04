@@ -42,11 +42,26 @@ Rectangle {
         function onCalendarDataChanged() { panel.reload() }
     }
 
-    radius: 18
+    radius: style ? style.radiusCard : 18
     color: style ? style.cardBg : "#16181f"
     border.width: 1
     border.color: style ? style.cardBorder : "#2a2d36"
     clip: true
+
+    // 边缘光对（R4/L4）：顶沿内高光 + 更亮底沿，静止无投影。左右内缩半径，不越出圆角拐角。
+    Rectangle {
+        anchors { top: parent.top; left: parent.left; right: parent.right
+                  topMargin: 1; leftMargin: panel.radius; rightMargin: panel.radius }
+        height: 1
+        color: panel.style ? (panel.style.night ? Qt.rgba(1, 1, 1, 0.035) : Qt.rgba(1, 1, 1, 0.55))
+                           : Qt.rgba(1, 1, 1, 0.035)
+    }
+    Rectangle {
+        anchors { bottom: parent.bottom; left: parent.left; right: parent.right
+                  bottomMargin: 1; leftMargin: panel.radius; rightMargin: panel.radius }
+        height: 1
+        color: panel.style ? panel.style.panelBorderStrong : Qt.rgba(1, 1, 1, 0.13)
+    }
 
     Column {
         anchors.fill: parent
@@ -66,6 +81,8 @@ Rectangle {
                     color: style ? style.aqua : "#9FE7EE"
                     font.pixelSize: 11
                     opacity: 0.85
+                    font.capitalization: Font.AllUppercase
+                    font.letterSpacing: 1.0
                 }
                 Text {
                     text: "今日事项"

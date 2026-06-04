@@ -75,8 +75,16 @@ with day and night modes.
   month data (per-day trend, category share, month-on-month). All copy is local
   deterministic templates (`DailyCardService`, no AI, no chat/screenshots/raw
   audio); missing data falls back to honest empty states. It follows the
-  day/night theme with glass/neon lighting and silky scrolling. Per-surface
-  design: `docs/memory-lake-backend-integration-plan.md`.
+  day/night theme with glass/neon lighting and silky scrolling. The Home and
+  Monthly Recap surfaces have a full **art-replication pass** to the v88 design:
+  a blue-black depth-ramp background with aqua/violet corner lights, tier-1/2
+  glass with top+bottom edge-light pairs (reusable `FrostCard` for frost cards),
+  a center "lake" up-light + water line + progress-dot pill, a category-palette
+  donut, and a recap shell with aurora wave + glow-ring + staggered slide entrances
+  — all colors/radii/easings sourced from the `MemoryLakeStyle` token singleton.
+  Per-surface design: `docs/memory-lake-backend-integration-plan.md`,
+  `docs/memory-lake-home-art-implementation-spec.md`,
+  `docs/memory-lake-art-lighting-qml-cookbook.md`.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 

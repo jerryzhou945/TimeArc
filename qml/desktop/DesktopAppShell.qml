@@ -3,11 +3,21 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 import time_arc
+import "memorylake"
 import "components/AppVisual.js" as AppVisual
 
 Item {
     id: root
     anchors.fill: parent
+
+    // 记忆湖统一色板（单一事实源，G1）：Shell 的记忆湖/回顾 chrome（蓝黑深度坡背景、
+    // 角落辅光对、导航 active 发光点、渐变 logo）全部取自这里，杜绝散落 hex/rgba。
+    MemoryLakeStyle {
+        id: mlStyle
+        night: root.nightMode
+        injectedTextPrimary: root.appTextPrimary
+        injectedTextSecondary: root.appTextSecondary
+    }
 
     // =========================
     // 页面切换状态
@@ -51,13 +61,13 @@ Item {
     readonly property var memoryLakeAmbientColors:
         (onMemoryLake && pageLoader.item && ("ambientColors" in pageLoader.item)) ? pageLoader.item.ambientColors : [memoryLakeAmbientColor]
 
-    // 记忆湖时导航栏配色对齐记忆湖左右玻璃面板（MemoryLakeStyle 的 panel/accent 值）
-    readonly property color mlNavGlass: nightMode ? Qt.rgba(0.055, 0.080, 0.130, 0.86) : Qt.rgba(1, 1, 1, 0.66)
-    readonly property color mlNavBorder: nightMode ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(0.40, 0.34, 0.28, 0.22)
-    readonly property color mlNavSelected: nightMode ? Qt.rgba(0.62, 0.90, 0.93, 0.12) : Qt.rgba(0.40, 0.55, 0.52, 0.16)
-    readonly property color mlNavSelectedBorder: nightMode ? Qt.rgba(0.62, 0.90, 0.93, 0.24) : Qt.rgba(0.40, 0.55, 0.52, 0.30)
+    // 记忆湖时导航栏配色对齐记忆湖左右玻璃面板（全部取自 mlStyle 单一事实源，G1/NAV6）
+    readonly property color mlNavGlass: mlStyle.panelBg
+    readonly property color mlNavBorder: mlStyle.panelBorder
+    readonly property color mlNavSelected: mlStyle.accentSoft
+    readonly property color mlNavSelectedBorder: mlStyle.accentSoftBorder
     readonly property color mlNavSoft: nightMode ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.45)
-    readonly property color mlNavAccent: nightMode ? "#9FE7EE" : "#CFE8D8"
+    readonly property color mlNavAccent: nightMode ? mlStyle.aqua : "#CFE8D8"
 
     // =========================
     // 全局主题颜色
@@ -217,7 +227,8 @@ Item {
                         color: nightMode ? "#3B4160" : "#FFF7ED"
                     }
                 }
-                opacity: nightMode ? 0.46 : 1.0
+                // 记忆湖/月度回顾页隐藏紫灰底，让蓝黑深度坡当家（BG1）；其它页不变。
+                opacity: fullBleedPage ? 0 : (nightMode ? 0.46 : 1.0)
             }
 
             Rectangle {
@@ -228,7 +239,42 @@ Item {
                     GradientStop { position: 0.70; color: nightMode ? "#303650" : "#F8EFE7" }
                     GradientStop { position: 1.0; color: nightMode ? "#24283D" : "#E7B7C3" }
                 }
-                opacity: nightMode ? 0.28 : 0.52
+                opacity: fullBleedPage ? 0 : (nightMode ? 0.28 : 0.52)
+            }
+
+            // ============================================================
+            // 记忆湖 / 月度回顾：蓝黑深度坡底（BG1）+ 角落 aqua/violet 辅光对（BG2/BG4）
+            // ============================================================
+            Item {
+                anchors.fill: parent
+                visible: fullBleedPage
+                // 蓝黑深度坡竖直渐变（夜 #05070D→#0D1320→#121A2A；昼暖坡）
+                Rectangle {
+                    anchors.fill: parent
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: mlStyle.bg0 }
+                        GradientStop { position: 0.52; color: mlStyle.bg2 }
+                        GradientStop { position: 1.0; color: mlStyle.bg3 }
+                    }
+                }
+                // 招牌角落辅光对：左上 aqua、右上 violet。圆心落在窗角附近、向内自然衰减。
+                // 用 GlowCircle（模糊实心圆）近似设计稿 radial（QML 渐变不支持辐射）。
+                GlowCircle {
+                    readonly property real d: Math.min(parent.width, parent.height) * 0.66
+                    width: d; height: d
+                    x: parent.width * 0.08 - d / 2
+                    y: -d * 0.42
+                    glowColor: mlStyle.aqua
+                    glowOpacity: mlStyle.glowStrength * 0.22   // 径向中心在角落、向内自然淡出（设计稿 8% 0% 角落光）
+                }
+                GlowCircle {
+                    readonly property real d: Math.min(parent.width, parent.height) * 0.64
+                    width: d; height: d
+                    x: parent.width * 0.95 - d / 2
+                    y: -d * 0.40
+                    glowColor: mlStyle.violet
+                    glowOpacity: mlStyle.glowStrength * 0.18
+                }
             }
 
             // 记忆湖：整个 App 背景 = 当前 APP **图标主色**的多色晕染（§4.4 / issue A7/B4）。
@@ -260,7 +306,8 @@ Item {
                             GradientStop { position: 0.5; color: AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 1), nightMode) }
                             GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectA.cols, 2), nightMode), 1.16) }
                         }
-                        opacity: mlBgSrc.frontIsA ? 1 : 0
+                        // BG3：层②压到 ambientImageOpacity(.34)，让蓝黑深度坡透出，不再盖过底。
+                        opacity: mlBgSrc.frontIsA ? mlStyle.ambientImageOpacity : 0
                         Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
                     }
                     Rectangle {
@@ -272,17 +319,18 @@ Item {
                             GradientStop { position: 0.5; color: AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 1), nightMode) }
                             GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 2), nightMode), 1.16) }
                         }
-                        opacity: mlBgSrc.frontIsA ? 0 : 1
+                        opacity: mlBgSrc.frontIsA ? 0 : mlStyle.ambientImageOpacity
                         Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
                     }
                 }
-                // 点缀色块：两团模糊圆，取图标主色的**淡化色调**错位摆放——模糊后柔和混入，不夸张。
+                // BG4：两团 APP 图标主色模糊圆重定位到上半角落带（左上 / 右上），为 aqua/violet
+                // 角落辅光注入当前 APP 的色彩；圆心内缩、不抢极角，保 BG2 四角青/紫主导。
                 Rectangle {
                     id: mlBlobA
-                    width: Math.min(parent.width, parent.height) * 0.8
+                    width: Math.min(parent.width, parent.height) * 0.72
                     height: width; radius: width / 2
-                    x: parent.width * 0.2 - width / 2
-                    y: parent.height * 0.26 - height / 2
+                    x: parent.width * 0.22 - width / 2
+                    y: parent.height * 0.20 - height / 2
                     visible: false; layer.enabled: true
                     color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 0), nightMode)
                     Behavior on color { ColorAnimation { duration: 450 } }
@@ -290,14 +338,14 @@ Item {
                 MultiEffect {
                     anchors.fill: mlBlobA; source: mlBlobA
                     blurEnabled: true; blur: 1.0; blurMax: 64
-                    opacity: nightMode ? 0.16 : 0.24; autoPaddingEnabled: true
+                    opacity: nightMode ? 0.14 : 0.22; autoPaddingEnabled: true
                 }
                 Rectangle {
                     id: mlBlobB
-                    width: Math.min(parent.width, parent.height) * 0.74
+                    width: Math.min(parent.width, parent.height) * 0.68
                     height: width; radius: width / 2
-                    x: parent.width * 0.8 - width / 2
-                    y: parent.height * 0.72 - height / 2
+                    x: parent.width * 0.80 - width / 2
+                    y: parent.height * 0.24 - height / 2
                     visible: false; layer.enabled: true
                     color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 1), nightMode)
                     Behavior on color { ColorAnimation { duration: 450 } }
@@ -305,12 +353,12 @@ Item {
                 MultiEffect {
                     anchors.fill: mlBlobB; source: mlBlobB
                     blurEnabled: true; blur: 1.0; blurMax: 64
-                    opacity: nightMode ? 0.13 : 0.20; autoPaddingEnabled: true
+                    opacity: nightMode ? 0.12 : 0.18; autoPaddingEnabled: true
                 }
-                // 轻压一层统一「水面」，淡淡的、保留清新色调（不再压成深色）。
+                // BG5：顶层薄霜 veil → 近黑薄膜 rgba(2,4,8,.12) 量级，统一磨光而不把色调压灰。
                 Rectangle {
                     anchors.fill: parent
-                    color: nightMode ? Qt.rgba(0.05, 0.07, 0.11, 0.26) : Qt.rgba(0.14, 0.16, 0.22, 0.12)
+                    color: nightMode ? Qt.rgba(0.008, 0.016, 0.031, 0.14) : Qt.rgba(0.14, 0.16, 0.22, 0.10)
                 }
             }
         }
@@ -328,7 +376,7 @@ Item {
             width: sidebarCollapsed ? 88 : 232
             Layout.preferredWidth: width
             Layout.fillHeight: true
-            radius: 30
+            radius: 28
             color: "transparent"
             border.width: 1
             border.color: appSidebarBorder
@@ -354,7 +402,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
-                radius: 29
+                radius: 27
                 color: appSidebarGlass
                 opacity: nightMode ? 0.88 : 0.92
                 z: -1
@@ -419,6 +467,28 @@ Item {
                         }
                     }
 
+                    // active 三重信号之三（NAV2）：右侧 5px 发光 aqua 点。
+                    // 叠 2 层低透圆 + 亮芯仿 box-shadow 0 0 14px aqua .65 柔晕（§3.6，不挂 MultiEffect）。
+                    Item {
+                        visible: isSel && onMemoryLake && !sidebarCollapsed
+                        width: 20; height: 20
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        anchors.rightMargin: 14
+                        Rectangle {
+                            anchors.centerIn: parent; width: 20; height: 20; radius: 10
+                            color: Qt.rgba(mlStyle.aqua.r, mlStyle.aqua.g, mlStyle.aqua.b, 0.16)
+                        }
+                        Rectangle {
+                            anchors.centerIn: parent; width: 12; height: 12; radius: 6
+                            color: Qt.rgba(mlStyle.aqua.r, mlStyle.aqua.g, mlStyle.aqua.b, 0.45)
+                        }
+                        Rectangle {
+                            anchors.centerIn: parent; width: 5; height: 5; radius: 2.5
+                            color: mlStyle.aqua
+                        }
+                    }
+
                     MouseArea {
                         id: navMouse
                         anchors.fill: parent
@@ -446,16 +516,28 @@ Item {
                     Rectangle {
                         width: 36
                         height: 36
-                        radius: 18
-                        color: appAccentWarm
+                        radius: onMemoryLake ? 14 : 18
+                        color: onMemoryLake ? "transparent" : appAccentWarm
                         anchors.verticalCenter: parent.verticalCenter
+
+                        // NAV3 / 配方#4：记忆湖品牌渐变方块 aqua→violet。竖直渐变近似 145°
+                        // （36px 尺度下与斜向差异可忽略，省去 Shapes/FBO 开销），上压暗墨「T」(900)。
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            visible: onMemoryLake
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: mlStyle.aqua }
+                                GradientStop { position: 1; color: mlStyle.violet }
+                            }
+                        }
 
                         Text {
                             anchors.centerIn: parent
                             text: "T"
                             color: appAccentWarmText
-                            font.pixelSize: 17
-                            font.bold: true
+                            font.pixelSize: 18
+                            font.weight: onMemoryLake ? 900 : Font.Bold
                         }
                     }
 
