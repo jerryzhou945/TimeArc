@@ -41,3 +41,12 @@ briefing 折叠腾出的整高容纳（与 v88 `.cards-hovering/.force-card-expa
 - 今日事项时间列不杜撰：savedTodos 仅 text/done，按真实字段渲染（行=勾选框+文本），不补假时间。
 - 甜甜圈外晕用 MultiEffect 模糊真实扇区（非硬编码 conic），保 G10 真实占比；夜开昼弱守 §8 模糊预算。
 - 卡牌轮盘/MemoryCard 翻面逻辑标杆未动（不回退）。
+
+## 二轮修复（用户反馈：毛玻璃 / 角落色块 / 中栏包裹板 / 阴影）
+- **中栏包裹板**：中栏改用 GlassPanel 包裹（与左右栏同款），内含今日结论 + 卡区暗箱（设计稿三栏皆有大板块）。
+- **去硬阴影**：GlassPanel 默认 `dropShadow:false`（删掉底部偏移暗带）+ 补磨砂顶沿柔光；Shell 侧栏（menubar）阴影 fullBleed 时关。
+- **毛玻璃**：今日结论改极淡白霜膜 + 顶沿柔光（均匀磨砂），不再暗块平涂。
+- **角落色块（两次反馈）**：根因 `clip:true` 只裁矩形包围盒，方格/辉光在圆角处戳出方角（[[timearc-ui-build-verify]] 已记 RoundedFrame）。
+  三卡的方格/底光统一裹进 **RoundedFrame** round-clip；今日结论/占比**撤掉四角径向光斑**，今日事项改一团**居中均匀蓝霓虹**+小霓虹点。
+- **昼态对比**：今日事项行字 / 占比图例字改用 textPrimary/Secondary 令牌（原硬编码近白字在浅底不可读）。
+- 复验：build 干净、真机零告警、夜/昼双态四角干净无突出色块。

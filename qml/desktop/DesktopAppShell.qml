@@ -381,6 +381,7 @@ Item {
             border.width: 1
             border.color: appSidebarBorder
 
+            // 记忆湖/月度回顾（设计稿）侧栏无生硬下沉阴影：fullBleed 时关掉这道偏移色块。
             Rectangle {
                 x: 0
                 y: 10
@@ -388,7 +389,7 @@ Item {
                 height: parent.height
                 radius: parent.radius
                 color: appShadowColor
-                opacity: nightMode ? 0.24 : 0.09
+                opacity: fullBleedPage ? 0 : (nightMode ? 0.24 : 0.09)
                 z: -2
             }
 

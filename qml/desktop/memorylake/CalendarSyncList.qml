@@ -50,36 +50,54 @@ Rectangle {
     color: style ? (style.night ? Qt.rgba(1, 1, 1, 0.045) : Qt.rgba(1, 1, 1, 0.72)) : "#16181f"
     border.width: 1
     border.color: style ? (style.night ? Qt.rgba(1, 1, 1, 0.085) : Qt.rgba(0.40, 0.34, 0.28, 0.18)) : "#2a2d36"
-    clip: true
+    // 圆角裁切交给下方 RoundedFrame；clip:true 只裁矩形会让方格/底光在圆角处戳出方角「色块」。
+    clip: false
     antialiasing: true
 
-    // —— 左上 aqua 径向底光（设计稿 radial 12% 0% glowCyan .08）——
-    GlowCircle {
-        readonly property real d: panel.width * 0.72
-        width: d; height: d
-        x: panel.width * 0.10 - d / 2
-        y: -d / 2
-        glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
-        glowOpacity: 0.10 * panel.gs
-    }
-    // —— 右上**蓝色霓虹照射**（设计稿 ::before radial 88% 20% glowCyan .10；用户要求明显立体）——
-    // 中心偏上、偏角，避免大面积压住标题；保留明显的蓝色霓虹照射感。
-    GlowCircle {
-        readonly property real d: panel.width * 0.6
-        width: d; height: d
-        x: panel.width * 0.92 - d / 2
-        y: panel.height * 0.08 - d / 2
-        glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
-        glowOpacity: 0.16 * panel.gs
-    }
-
-    // —— 24px「笔记本方格」底纹（设计稿 ::before grid，整层不透明 .45；用户要求方格可见）——
-    GridTexture {
+    // —— 圆角裁切的底光层（蓝色霓虹底光 + 笔记本方格 + 霓虹点）：round-clip 收在圆角内，杜绝角落方块。——
+    RoundedFrame {
         anchors.fill: parent
-        lineColor: panel.style && !panel.style.night ? Qt.rgba(0.20, 0.26, 0.34, 0.06)
-                                                      : Qt.rgba(1, 1, 1, 0.05)
-        cell: 24
-        textureOpacity: 0.6
+        radius: panel.radius
+
+        // 蓝色霓虹底光（设计稿 radial glowCyan「衬托照射」）：一团居上柔光，**居中均匀漫射**，不在角落扎块。
+        GlowCircle {
+            readonly property real d: panel.width * 1.15
+            width: d; height: d
+            x: panel.width * 0.5 - d / 2
+            y: -d * 0.5
+            glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
+            glowOpacity: 0.12 * panel.gs
+        }
+
+        // 24px「笔记本方格」底纹（设计稿 ::before grid；用户要求方格可见）。
+        GridTexture {
+            anchors.fill: parent
+            lineColor: panel.style && !panel.style.night ? Qt.rgba(0.20, 0.26, 0.34, 0.06)
+                                                          : Qt.rgba(1, 1, 1, 0.05)
+            cell: 24
+            textureOpacity: 0.6
+        }
+
+        // 右上角霓虹点（设计稿 ::after 6px glowCyan + 小柔晕）：小晕，收在圆角内。
+        Item {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.rightMargin: 16
+            anchors.topMargin: 16
+            width: 7; height: 7
+            visible: panel.style ? panel.style.night : true
+            GlowCircle {
+                anchors.centerIn: parent
+                width: 20; height: 20
+                glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
+                glowOpacity: 0.32 * panel.gs
+            }
+            Rectangle {
+                anchors.centerIn: parent
+                width: 7; height: 7; radius: 3.5
+                color: panel.style ? panel.style.glowCyan : "#8EDFFF"
+            }
+        }
     }
 
     // 顶沿内高光 + 更亮底沿（玻璃边缘光对）。左右内缩半径，不越圆角拐角。
@@ -95,28 +113,6 @@ Rectangle {
                   bottomMargin: 1; leftMargin: panel.radius; rightMargin: panel.radius }
         height: 1
         color: panel.style ? panel.style.panelBorderStrong : Qt.rgba(1, 1, 1, 0.13)
-    }
-
-    // —— 右上角霓虹点（设计稿 ::after 6px glowCyan + 0 0 16px 辉光，opacity .42）——
-    Item {
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.rightMargin: 14
-        anchors.topMargin: 14
-        width: 7; height: 7
-        visible: panel.style ? panel.style.night : true
-        opacity: 0.9
-        GlowCircle {
-            anchors.centerIn: parent
-            width: 34; height: 34
-            glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
-            glowOpacity: 0.55 * panel.gs
-        }
-        Rectangle {
-            anchors.centerIn: parent
-            width: 7; height: 7; radius: 3.5
-            color: panel.style ? panel.style.glowCyan : "#8EDFFF"
-        }
     }
 
     Column {
@@ -236,9 +232,10 @@ Rectangle {
                             width: parent.width - 22 - 10
                             anchors.verticalCenter: parent.verticalCenter
                             text: rowBg.modelData.text
+                            // 主题自适应：夜近白 / 昼深墨（用令牌，避免昼态白字压在浅底上不可读）。
                             color: rowBg.modelData.done
-                                ? (panel.style ? Qt.rgba(0.92, 0.96, 1, 0.54) : "#999")
-                                : (panel.style ? Qt.rgba(0.96, 0.98, 1, 0.90) : "#fff")
+                                ? (panel.style ? panel.style.textTertiary : "#999")
+                                : (panel.style ? panel.style.textPrimary : "#fff")
                             font.pixelSize: 12
                             font.strikeout: rowBg.modelData.done
                             elide: Text.ElideRight

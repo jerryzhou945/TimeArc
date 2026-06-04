@@ -265,9 +265,10 @@ Item {
             }
         }
 
-        // ============ 中栏：今日结论（上）+ 卡牌区（下半）= 设计稿 .main-panel（auto + 1fr）============
-        Item {
-            id: middleCol
+        // ============ 中栏：包裹板（设计稿 .main-panel，与左右栏同款 GlassPanel 包裹大板块）============
+        //               内含今日结论（上）+ 卡牌区暗箱（下半，翻面折叠让位）。
+        GlassPanel {
+            id: middlePanel
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.left: leftPanel.right
@@ -275,6 +276,12 @@ Item {
             anchors.leftMargin: 14
             anchors.rightMargin: 14
             z: 1
+            style: ml
+
+            Item {
+                id: middleInner
+                anchors.fill: parent
+                anchors.margins: 14
 
             // 今日结论（设计稿 .today-briefing）：翻面锁定时折叠（「今日结论暂时收起」），把空间让给卡区。
             TodayConclusionCard {
@@ -368,6 +375,7 @@ Item {
                         font.pixelSize: 13
                     }
                 }
+            }
             }
         }
 

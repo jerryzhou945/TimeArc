@@ -43,31 +43,21 @@ Rectangle {
     color: style ? (style.night ? Qt.rgba(1, 1, 1, 0.045) : Qt.rgba(1, 1, 1, 0.72)) : "#16181f"
     border.width: 1
     border.color: style ? (style.night ? Qt.rgba(1, 1, 1, 0.085) : Qt.rgba(0.40, 0.34, 0.28, 0.18)) : "#2a2d36"
-    clip: true
+    // 圆角裁切交给下方 RoundedFrame；clip:true 只裁矩形会让方格在圆角处戳出方角「色块」。
+    clip: false
     antialiasing: true
 
-    // 左上 aqua / 右上 violet 双角径向辉光（设计稿 radial 18%0% / 86%20%）
-    GlowCircle {
-        readonly property real d: panel.width * 0.7
-        width: d; height: d
-        x: panel.width * 0.16 - d / 2; y: -d / 2
-        glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
-        glowOpacity: 0.11 * panel.gs
-    }
-    GlowCircle {
-        readonly property real d: panel.width * 0.66
-        width: d; height: d
-        x: panel.width * 0.88 - d / 2; y: panel.height * 0.16 - d / 2
-        glowColor: panel.style ? panel.style.violet : "#9B8BFF"
-        glowOpacity: 0.11 * panel.gs
-    }
-
-    // 26px 方格底纹（设计稿 ::before grid，opacity .18）
-    GridTexture {
+    // 26px 方格底纹（设计稿 ::before grid）。霓虹质感由甜甜圈自身的彩色外晕承担，
+    // **面板四角不再放径向光斑**（泛光修复）；方格用 RoundedFrame round-clip 收在圆角内。
+    RoundedFrame {
         anchors.fill: parent
-        lineColor: panel.style ? panel.style.gridLine : Qt.rgba(1, 1, 1, 0.032)
-        cell: 26
-        textureOpacity: panel.style && !panel.style.night ? 0.45 : 0.2
+        radius: panel.radius
+        GridTexture {
+            anchors.fill: parent
+            lineColor: panel.style ? panel.style.gridLine : Qt.rgba(1, 1, 1, 0.032)
+            cell: 26
+            textureOpacity: panel.style && !panel.style.night ? 0.45 : 0.2
+        }
     }
 
     // 边缘光对：顶沿内高光 + 更亮底沿。左右内缩半径，不越圆角。
@@ -342,7 +332,7 @@ Rectangle {
                             Text {
                                 width: parent.width - 9 - 8 - pctText.implicitWidth - 8
                                 text: modelData.name
-                                color: panel.style ? Qt.rgba(0.96, 0.98, 1, 0.86) : "#fff"
+                                color: panel.style ? panel.style.textPrimary : "#fff"
                                 font.pixelSize: 11
                                 elide: Text.ElideRight
                                 anchors.verticalCenter: parent.verticalCenter
@@ -350,7 +340,7 @@ Rectangle {
                             Text {
                                 id: pctText
                                 text: modelData.percent + "%"
-                                color: panel.style ? Qt.rgba(0.92, 0.96, 1, 0.48) : "#bbb"
+                                color: panel.style ? panel.style.textSecondary : "#bbb"
                                 font.pixelSize: 10; font.weight: 700
                                 anchors.verticalCenter: parent.verticalCenter
                             }
@@ -390,7 +380,7 @@ Rectangle {
                 anchors.margins: 11
                 verticalAlignment: Text.AlignVCenter
                 text: panel.insightText
-                color: panel.style ? Qt.rgba(0.92, 0.96, 1, 0.62) : "#bbb"
+                color: panel.style ? panel.style.textSecondary : "#bbb"
                 font.pixelSize: 11
                 lineHeight: 1.4
                 wrapMode: Text.WordWrap

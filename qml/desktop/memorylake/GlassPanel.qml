@@ -7,7 +7,9 @@ Rectangle {
 
     property MemoryLakeStyle style
     property bool strong: false
-    property bool dropShadow: true
+    // 默认不挂硬偏移投影：设计稿三栏包裹板用的是柔和 backdrop 玻璃，没有这种「底部一道暗带」。
+    // （旧版每面板一个 y:10 偏移色块读作生硬下沉阴影，与 html 不符，已默认关闭。）
+    property bool dropShadow: false
 
     radius: style ? style.radiusPanel : 18
     color: style ? style.panelBg : "#0e1422"
@@ -15,8 +17,9 @@ Rectangle {
     border.color: style ? (strong ? style.panelBorderStrong : style.panelBorder)
                         : "#ffffff14"
     antialiasing: true
+    clip: true
 
-    // 轻投影（沿用 App 主壳的廉价偏移阴影做法，避免每面板挂 MultiEffect）
+    // 可选轻投影（默认关；仅在显式 dropShadow:true 时挂）
     Rectangle {
         visible: panel.dropShadow
         x: 0
@@ -27,6 +30,17 @@ Rectangle {
         radius: parent.radius
         color: panel.style ? panel.style.shadowColor : "#05070D"
         opacity: panel.style ? panel.style.shadowOpacity : 0.22
+    }
+
+    // 磨砂玻璃顶沿柔光（毛玻璃质感：顶部一抹极淡白漫射，使包裹板读作有厚度的玻璃而非平涂）。
+    Rectangle {
+        anchors.fill: parent
+        radius: parent.radius
+        z: 0
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: panel.style ? (panel.style.night ? Qt.rgba(1, 1, 1, 0.045) : Qt.rgba(1, 1, 1, 0.10)) : Qt.rgba(1, 1, 1, 0.045) }
+            GradientStop { position: 0.35; color: "transparent" }
+        }
     }
 
     // 顶部 1px 内高光，营造玻璃边缘（主光打在上边缘斜面）。

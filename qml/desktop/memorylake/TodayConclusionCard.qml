@@ -37,48 +37,38 @@ Rectangle {
     readonly property real gs: style ? style.glowStrength : 1.0
 
     radius: 24
-    color: style ? (style.night ? Qt.rgba(0.04, 0.06, 0.10, 0.66) : Qt.rgba(1, 1, 1, 0.80))
-                 : Qt.rgba(0.04, 0.06, 0.10, 0.66)
+    // 毛玻璃质感：极淡白霜膜叠在中栏包裹板的暗玻璃上（夜），昼为浅瓷膜。
+    // 靠「白霜 + 顶沿柔光 + 细边 + 方格」读作磨砂玻璃，而非平涂暗块或大面积泛光角落。
+    color: style ? (style.night ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.66))
+                 : Qt.rgba(1, 1, 1, 0.05)
     border.width: 1
     border.color: style ? Qt.rgba(style.glowCyan.r, style.glowCyan.g, style.glowCyan.b, 0.16 * (style.night ? 1 : 0.7))
                         : Qt.rgba(0.56, 0.87, 1, 0.16)
     antialiasing: true
-    clip: true
+    // 圆角裁切交给下方 RoundedFrame；clip:true 只裁矩形包围盒，会让方格/辉光在圆角处戳出方角「色块」。
+    clip: false
 
-    // —— 左上 aqua / 右上 violet 双角径向辉光（设计稿 radial 12%0% / 90%18%，clip 收在卡内）——
-    GlowCircle {
-        readonly property real d: card.width * 0.85
-        width: d; height: d
-        x: card.width * 0.12 - d / 2
-        y: -d / 2
-        glowColor: card.style ? card.style.glowCyan : "#8EDFFF"
-        glowOpacity: 0.17 * card.gs
-    }
-    GlowCircle {
-        readonly property real d: card.width * 0.80
-        width: d; height: d
-        x: card.width * 0.90 - d / 2
-        y: card.height * 0.18 - d / 2
-        glowColor: card.style ? card.style.violet : "#9B8BFF"
-        glowOpacity: 0.14 * card.gs
-    }
-
-    // —— 顶向白渐变（设计稿 linear 180° white .07 → .035），抬升玻璃顶部受光 ——
+    // —— 顶向白渐变（设计稿 linear 180° white .07 → .035），磨砂顶沿漫射受光（已圆角）——
     Rectangle {
         anchors.fill: parent
         radius: parent.radius
         gradient: Gradient {
-            GradientStop { position: 0.0; color: card.style && !card.style.night ? Qt.rgba(1, 1, 1, 0.5) : Qt.rgba(1, 1, 1, 0.07) }
-            GradientStop { position: 1.0; color: card.style && !card.style.night ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.035) }
+            GradientStop { position: 0.0; color: card.style && !card.style.night ? Qt.rgba(1, 1, 1, 0.5) : Qt.rgba(1, 1, 1, 0.08) }
+            GradientStop { position: 0.5; color: "transparent" }
         }
     }
 
-    // —— 28px 方格底纹（设计稿 ::before grid，opacity .18）——
-    GridTexture {
+    // —— 28px 方格底纹（设计稿 ::before grid）。今日结论按用户要求做「均匀毛玻璃质感」：
+    // 霜面 + 顶沿柔光 + 方格，**不放角落霓虹光斑**；方格用 RoundedFrame round-clip 收在圆角内，不留方角色块。
+    RoundedFrame {
         anchors.fill: parent
-        lineColor: card.style ? card.style.gridLine : Qt.rgba(1, 1, 1, 0.032)
-        cell: 28
-        textureOpacity: card.style && !card.style.night ? 0.5 : 0.22
+        radius: card.radius
+        GridTexture {
+            anchors.fill: parent
+            lineColor: card.style ? card.style.gridLine : Qt.rgba(1, 1, 1, 0.032)
+            cell: 28
+            textureOpacity: card.style && !card.style.night ? 0.5 : 0.22
+        }
     }
 
     // —— 顶沿 1px 内高光（玻璃上唇，inset 0 1px white .07）。左右内缩半径，不越圆角 ——
