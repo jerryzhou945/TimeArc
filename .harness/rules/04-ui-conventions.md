@@ -80,3 +80,17 @@ composable and testable.
 Both `ProjectManager` and `UsageStatManager` accept a `range` string in the
 set `{"day", "month", "year", "all"}`. Keep this vocabulary consistent. When
 a new range is needed (e.g., `"week"`), add it to both, not just one.
+
+## 8. Memory Lake memo overlay (备忘黑板)
+
+The 「备忘」 nav entry is a **modal overlay action**, not a page route: clicking it
+sets `memoOverlay.open` over the current page (no `selectedIndex` / `pageLoader`
+switch). Do not add a "memo page" or route it through the Loader. The overlay is
+desktop-only (`DesktopAppShell`); no mobile equivalent yet.
+
+Memo content (canvas ink, sticky notes, text layers, pages) is **UI-private local
+state**, outside the service↔UI disk contract — persist it via a C++ manager
+(`QObject` + `Q_PROPERTY`), never QML `localStorage`/`LocalStorage` (§4) and never
+JSONL/service paths. New memo components live in `qml/desktop/memorylake/`; all
+colors/easings come from `MemoryLakeStyle` (no inline hex). Specs:
+`docs/memory-lake-memo-functional-replication.md` + `…-memo-render-pipeline-replication.md`.

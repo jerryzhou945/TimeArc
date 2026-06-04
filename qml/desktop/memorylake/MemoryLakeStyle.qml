@@ -146,4 +146,24 @@ QtObject {
     readonly property color ticketRow: Qt.rgba(0, 0, 0, 0.08)   // 票根行底（墨色薄底，随票根固定）
     // 封面/海报媒体底部暗罩（白字压在生成式封面上保可读，两主题同为暗罩）
     readonly property color mediaScrim: Qt.rgba(0, 0, 0, 0.78)
+
+    // ============================================================
+    // v88 备忘黑板复刻令牌（memo overlay）。黑板**恒为暗**（G10：不分昼夜、点阵画在底层），
+    // 故以下令牌不随 night 切换。详见 docs/memory-lake-memo-render-pipeline-replication.md
+    // §1.1/§4.1/§4.2/§9。色/角辉复用既有 glowCyan(#8EDFFF)/violet。
+    // ============================================================
+    // 黑板近黑竖渐变（设计稿 .memo-overlay V41：rgba(9,11,18,.82) → rgba(6,8,14,.86)）
+    readonly property color memoBoardTop: Qt.rgba(9 / 255, 11 / 255, 18 / 255, 0.82)
+    readonly property color memoBoardBottom: Qt.rgba(6 / 255, 8 / 255, 14 / 255, 0.86)
+    // 整体压暗黑罩（::before rgba(0,0,0,.10)）
+    readonly property color memoScrim: Qt.rgba(0, 0, 0, 0.10)
+    // 黑板点阵（设计稿 radial 白点 10.5% / 1px 半径 / 24px 平铺）
+    readonly property color memoDotColor: Qt.rgba(1, 1, 1, 0.105)
+    readonly property int memoDotPitch: 24
+    readonly property real memoDotRadius: 1
+    // 角落辅光不透明度（设计稿 aqua 左上 18%,12% @6% / violet 右下 76%,72% @5.5%）
+    readonly property real memoGlowAquaOpacity: 0.06
+    readonly property real memoGlowVioletOpacity: 0.055
+    // 黑板磨砂：身后首页快照重模糊半径（M0 等效 backdrop-filter blur(10px)，QML 用更大值更糊）
+    readonly property real memoBackdropBlurMax: 40
 }

@@ -46,6 +46,13 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 - **Third-party license page missing.** Main README TO-DO. Required by GPL +
   Qt LGPL combination; see
   [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.
+- **Memory Lake memo blackboard overlay (备忘) — in progress, sliced.** Greenfield modal
+  overlay replicating v88 `#memoOverlay` (ink canvas + sticky notes + text layers + 3D page
+  folder + pomodoro). Entry rewired from page route → overlay ACTION; backdrop (near-black
+  gradient + corner glows + dot lattice + 3-layer skeleton) shipped (Slice 0+1). **Still open:**
+  toolbar, ink canvas, sticky/text objects, page folder, UI-private persistence (C++ manager),
+  pomodoro + completion overlay. Specs: `docs/memory-lake-memo-functional-replication.md` +
+  `docs/memory-lake-memo-render-pipeline-replication.md`. §7-A product gaps deferred.
 
 ## Build / distribution
 

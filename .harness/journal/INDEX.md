@@ -8,6 +8,12 @@ the harness line budget intact.
 
 | Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
 |----------------------|-----|--------------|-------------------------------------------------|--------|
+| 2026-06-04T14:18:27Z | L3 | build-env-missi... | build.py 失败但日志/错误报告无任何 g++ 诊断：根因是本会话 PowerShell 的 PATH 缺少... | [report](errors/20260604-141827-B-build-env-missing-mingw-path.md) |
+| 2026-06-04T14:11:37Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-141137-B-build-failure.md) |
+| 2026-06-04T14:08:04Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-140804-B-build-failure.md) |
+| 2026-06-04T09:43:31Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-094331-B-build-failure.md) |
+| 2026-06-04T09:12:19Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-091219-B-build-failure.md) |
+| 2026-06-04T09:06:13Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-090613-B-build-failure.md) |
 | 2026-06-04T06:43:38Z | L3 | memcard-glow-de... | Left MemoryCard ambientGlow底灯 on MultiEffect-blur-of-soli... | [report](errors/20260604-064338-B-memcard-glow-deferred.md) |
 | 2026-06-04T00:12:06Z | L2 | dailyshare-pale... | DailyUsageShare new 'palette' property collided with base... | [report](errors/20260604-001206-B-dailyshare-palette-override.md) |
 | 2026-06-04T00:11:57Z | L3 | qt5compat-froze... | Donut center glow first used import Qt5Compat.GraphicalEf... | [report](errors/20260604-001157-B-qt5compat-frozen-cmake.md) |
