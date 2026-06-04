@@ -1,8 +1,10 @@
 import QtQuick
-import QtQuick.Effects
 
-// 记忆窗口氛围层：底色 + 跟随当前 APP 的模糊大背景图 + 角向柔光。
-// 对应设计稿 .app-bg / .memory-window::before/::after 的灯光。
+// 记忆窗口氛围层（薄基底）。
+// 历史上这里有一处居中柔光，但「记忆湖」光场已上移为 Shell 窗口级（蓝黑深度坡 + 左上 aqua /
+// 右上 violet 角落辅光对）并由 CardCarousel 的中央列「上照湖光」承担中段升起的光。
+// 那处居中 GlowCircle 与二者重复，且每个 GlowCircle 都是一层 MultiEffect 模糊 FBO——为守 §8
+// 模糊层预算（实时高斯模糊层 ≤3），此处不再叠第三处大柔光，仅留透明基底让 Shell 背景透出。
 Item {
     id: ambient
 
@@ -10,18 +12,4 @@ Item {
     property url appImage
 
     clip: true
-
-    // 模糊大背景图已上移为「整个 App 背景」（见 DesktopAppShell，Issue 1）。
-    // 这里底色透明，让 App 背景透出；仅保留角向柔光与底部加深营造水面氛围。
-
-    // 居中柔光：原来的两个「角向」柔光会被方形裁切出硬边方角（伪影）。
-    // 改为一处居中、四周自然衰减、不触及边角的柔光，配合整 App 暗色水面。
-    GlowCircle {
-        anchors.centerIn: parent
-        width: parent.width * 0.66
-        height: parent.height * 0.72
-        glowColor: ambient.style ? ambient.style.aqua : "#9FE7EE"
-        glowOpacity: (ambient.style ? ambient.style.glowStrength : 1.0) * 0.10
-        blurAmount: 1.0
-    }
 }

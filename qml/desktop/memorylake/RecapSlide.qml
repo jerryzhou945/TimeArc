@@ -133,13 +133,15 @@ Item {
     }
 
     // —— 通用文本片段 ——
+    // .slide-title 有效最终值（v25）：weight 760 + letter-spacing -2.2 + line-height 1.02。
     component BigTitle: Text {
         width: parent.width
         color: slide.tPrimary
         font.pixelSize: 50
-        font.bold: true
-        font.letterSpacing: -2
-        lineHeight: 1.04
+        font.weight: 760
+        font.letterSpacing: -2.2
+        lineHeight: 1.02
+        lineHeightMode: Text.ProportionalHeight
         wrapMode: Text.WordWrap
     }
     component SubText: Text {
@@ -251,7 +253,7 @@ Item {
                     anchors.fill: parent
                     gradient: Gradient {
                         GradientStop { position: 0.4; color: "transparent" }
-                        GradientStop { position: 1; color: Qt.rgba(0, 0, 0, 0.78) }
+                        GradientStop { position: 1; color: slide.style ? slide.style.mediaScrim : Qt.rgba(0, 0, 0, 0.78) }
                     }
                 }
                 Column {
@@ -285,7 +287,7 @@ Item {
                     width: 430; height: 250; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
                     GenerativeCover { anchors.fill: parent; style: slide.style; app: slide.protagApp(slide.slideData.bgIndex); iconSize: 120 }
-                    Rectangle { anchors.fill: parent; gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: "transparent" } GradientStop { position: 1; color: Qt.rgba(0,0,0,0.7) } } }
+                    Rectangle { anchors.fill: parent; gradient: Gradient { orientation: Gradient.Horizontal; GradientStop { position: 0; color: "transparent" } GradientStop { position: 1; color: slide.style ? slide.style.mediaScrim : Qt.rgba(0, 0, 0, 0.78) } } }
                 }
             }
             Column {
@@ -421,7 +423,7 @@ Item {
             SubText { text: slide.slideData.subtitle }
             Rectangle {
                 width: parent.width; height: 230; radius: 28
-                color: slide.style ? Qt.rgba(0, 0, 0, 0.22) : Qt.rgba(1, 1, 1, 0.3)
+                color: slide.style ? slide.style.recapStage : Qt.rgba(1, 1, 1, 0.3)
                 border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
                 clip: true
                 Canvas {
@@ -446,7 +448,9 @@ Item {
                             if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                         }
                         var grad = ctx.createLinearGradient(0, 0, w, 0);
-                        grad.addColorStop(0, "#63eaff"); grad.addColorStop(0.55, "#7a7dff"); grad.addColorStop(1, "#ff67c8");
+                        grad.addColorStop(0, slide.style ? slide.style.aqua : "#63eaff");
+                        grad.addColorStop(0.55, slide.style ? slide.style.violet : "#7a7dff");
+                        grad.addColorStop(1, slide.style ? slide.style.pink : "#ff67c8");
                         ctx.strokeStyle = grad; ctx.lineWidth = 4; ctx.stroke();
                         ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
                         ctx.fillStyle = "rgba(104,143,255,0.16)"; ctx.fill();
@@ -502,7 +506,7 @@ Item {
                         Column {
                             anchors.fill: parent; anchors.margins: 20; spacing: 10
                             Text { text: modelData.label; color: slide.tSecondary; font.pixelSize: 14 }
-                            Text { text: modelData.change; color: modelData.down ? "#ff8fb5" : (slide.style ? slide.style.aqua : "#8df3ff"); font.pixelSize: 34; font.bold: true }
+                            Text { text: modelData.change; color: modelData.down ? (slide.style ? slide.style.changeDown : "#FF8FB5") : (slide.style ? slide.style.aqua : "#8df3ff"); font.pixelSize: 34; font.bold: true }
                             Text { width: parent.width; text: modelData.desc; color: slide.tTertiary; font.pixelSize: 12; wrapMode: Text.WordWrap }
                         }
                     }
@@ -522,18 +526,18 @@ Item {
                 width: 300; height: 360; radius: 22
                 rotation: -2
                 gradient: Gradient {
-                    GradientStop { position: 0; color: "#DED3BD" }
-                    GradientStop { position: 1; color: "#BFAE91" }
+                    GradientStop { position: 0; color: slide.style ? slide.style.ticketTop : "#DED3BD" }
+                    GradientStop { position: 1; color: slide.style ? slide.style.ticketBottom : "#BFAE91" }
                 }
                 Column {
                     anchors.fill: parent; anchors.margins: 24; spacing: 16
-                    Text { text: slide.slideData.ticket.title; color: "#1a130d"; font.pixelSize: 34; font.bold: true; lineHeight: 1.0 }
+                    Text { text: slide.slideData.ticket.title; color: slide.style ? slide.style.ticketInk : "#1A130D"; font.pixelSize: 34; font.bold: true; lineHeight: 1.0 }
                     Repeater {
                         model: slide.slideData.ticket.rows
                         delegate: Rectangle {
                             required property var modelData
-                            width: 252; height: 44; radius: 12; color: Qt.rgba(0, 0, 0, 0.08)
-                            Text { anchors.centerIn: parent; text: modelData; color: "#1a130d"; font.pixelSize: 15; font.bold: true }
+                            width: 252; height: 44; radius: 12; color: slide.style ? slide.style.ticketRow : Qt.rgba(0, 0, 0, 0.08)
+                            Text { anchors.centerIn: parent; text: modelData; color: slide.style ? slide.style.ticketInk : "#1A130D"; font.pixelSize: 15; font.bold: true }
                         }
                     }
                 }

@@ -59,12 +59,15 @@ with day and night modes.
   memo surface, not an AI chat or cloud chat. Messages are stored in the
   SQLite settings repository and loaded back in timestamp order.
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
-  three-panel "记忆湖": a left panel with a **Today Conclusion** card (今日结论:
-  theme + chips for top share / remaining to-dos / peak hours / suggestion) above
-  the app usage ranking, a center flip-card carousel (3D flip, wheel/click
-  switching, flip-to-lock; **unchanged** by the home rework), and a right panel
-  with **Daily Usage Share** (今日软件使用占比 donut + legend), the "time river",
-  and **Calendar Sync** (今日事项, today's to-dos synced from the calendar). The
+  three-panel "记忆湖": a left panel with the app usage ranking, a **center column**
+  that stacks the **Today Conclusion** briefing (今日结论: kicker/title/score box +
+  chips for top share / remaining to-dos / peak hours / suggestion) on top of the
+  flip-card carousel in a rounded "cards-zone" (the cards occupy the lower half;
+  the briefing **collapses on flip** — "今日结论暂时收起" — so the cards get room),
+  and a right panel with **Daily Usage Share** (今日软件使用占比 donut + legend),
+  the "time river", and **Calendar Sync** (今日事项, today's to-dos synced from the
+  calendar). The center 3D flip-card carousel (wheel/click switching, flip-to-lock)
+  is **unchanged**. The
   monthly recap is now its **own page** ("记忆湖 / Memory Recap" at the bottom of
   the nav): a full-screen story-mode recap (slides with transitions, autoplay, an
   unlockable step directory; 返回湖面 / Esc returns home). It renders **real
@@ -75,8 +78,19 @@ with day and night modes.
   month data (per-day trend, category share, month-on-month). All copy is local
   deterministic templates (`DailyCardService`, no AI, no chat/screenshots/raw
   audio); missing data falls back to honest empty states. It follows the
-  day/night theme with glass/neon lighting and silky scrolling. Per-surface
-  design: `docs/memory-lake-backend-integration-plan.md`.
+  day/night theme with glass/neon lighting and silky scrolling. The Home and
+  Monthly Recap surfaces have a full **art-replication pass** to the v88 design:
+  a blue-black depth-ramp background with aqua/violet corner lights, tier-1/2
+  glass with top+bottom edge-light pairs (reusable `FrostCard` for frost cards),
+  a center "lake" up-light + water line + progress-dot pill, and a recap shell with
+  aurora wave + glow-ring + staggered slide entrances. The Today Conclusion briefing,
+  the **notebook-grid + blue-neon** Calendar Sync panel, and the **3D neon donut**
+  (colored bloom + breathing ring + sculpted dark center hole) share a reusable
+  `GridTexture` grid-paper overlay and corner radial glows — all colors/radii/easings
+  sourced from the `MemoryLakeStyle` token singleton.
+  Per-surface design: `docs/memory-lake-backend-integration-plan.md`,
+  `docs/memory-lake-home-art-implementation-spec.md`,
+  `docs/memory-lake-art-lighting-qml-cookbook.md`.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 
