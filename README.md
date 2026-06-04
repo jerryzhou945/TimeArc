@@ -55,9 +55,13 @@ with day and night modes.
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.
   Memory Lake is the home/landing page; the Timer page is reached when a
   calendar to-do starts timing.
-- **Local memo chat** — the desktop Chat page is a local self-recording
-  memo surface, not an AI chat or cloud chat. Messages are stored in the
-  SQLite settings repository and loaded back in timestamp order.
+- **Memory Lake memo blackboard (备忘)** — the 「备忘」 nav opens a modal blackboard
+  **overlay** over the home page (an action, **not** a page route): a near-black dotted
+  board with a freehand chalk-ink canvas and a floating glass tool pill (note / text /
+  pen / eraser / exit), the home page re-blurred behind it. Sticky notes, editable text
+  layers, a 3D multi-page archive folder, and a pomodoro widget are being added slice by
+  slice, replicating the v88 prototype. Memo content is **UI-private local state**, kept
+  off the service↔UI disk contract. *(Replaces the former local Chat page.)*
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
   three-panel "记忆湖": a left panel with the app usage ranking, a **center column**
   that stacks the **Today Conclusion** briefing (今日结论: kicker/title/score box +
@@ -163,8 +167,9 @@ state. The main data loop is now closed for the desktop surfaces below:
   settings.
 - The Settings page stores night mode in SQLite settings and shows the real
   read-only SQLite database path from `databaseManager.getDatabasePath()`.
-- The Chat page is a local memo/self-recording chat. It is not an AI chat,
-  does not call cloud services, and does not provide smart replies.
+- The 备忘 entry opens a local blackboard memo overlay (freehand ink + notes),
+  not an AI chat or cloud service. Its content is user-authored UI-private state
+  and will persist through a UI-private store (in progress).
 
 Important limits remain:
 

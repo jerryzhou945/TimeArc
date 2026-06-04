@@ -18,6 +18,15 @@ Item {
     // 开合状态（动作）。开合唯一动画 = opacity .26s ease（功能文 §2.1 / C0）。
     property bool open: false
 
+    // 工具提示文案（逐字对齐 v88 setMemoTool 16301-16307）。
+    readonly property var toolHints: ({
+        "none": "已取消当前工具。点击上方工具图标重新选择。",
+        "note": "便签模式：点击画布创建白色便签，便签可拖动、可编辑、可左右上下拉伸。",
+        "text": "文字模式：点击画布添加文本，输入后可继续编辑。",
+        "pen": "画笔模式：按住鼠标在灰色蒙版上自由绘图。",
+        "eraser": "橡皮擦模式：按住鼠标擦除画笔痕迹。"
+    })
+
     anchors.fill: parent
     visible: opacity > 0.001
     opacity: open ? 1 : 0
@@ -28,6 +37,7 @@ Item {
         if (open) {
             if (homeShot.sourceItem)
                 homeShot.scheduleUpdate();
+            toolbar.currentTool = "pen";   // 每次打开默认画笔（功能文 §2.1）
             memo.forceActiveFocus();
         }
     }
@@ -40,6 +50,15 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
+        // 光标随工具（note→copy 近似 DragCopy / text→IBeam / none→Arrow / pen·eraser 由墨水层置 Cross）。
+        cursorShape: {
+            switch (toolbar.currentTool) {
+            case "text": return Qt.IBeamCursor;
+            case "note": return Qt.DragCopyCursor;
+            case "none": return Qt.ArrowCursor;
+            default: return Qt.CrossCursor;
+            }
+        }
         onClicked: memo.forceActiveFocus()
     }
 
@@ -104,8 +123,48 @@ Item {
     }
 
     // ===== 三层分离骨架（G3 / §5.2）=====
-    // 确立 z 次序：透明墨水层（画笔/橡皮 destination-out，只擦墨水不擦点阵/便签）→
-    // 对象层（便签 z 高于文字）。本切片留空 host，由后续切片填充。
-    Item { id: inkLayerHost; anchors.fill: parent }      // F-B3 MemoInkCanvas 落点
+    // z 次序：透明墨水层（画笔/橡皮 destination-out，只擦墨水不擦点阵/便签）→ 对象层（便签 z 高于文字）。
+    Item {
+        id: inkLayerHost
+        anchors.fill: parent
+        MemoInkCanvas {
+            id: inkCanvas
+            anchors.fill: parent
+            style: memo.style
+            tool: toolbar.currentTool
+        }
+    }
     Item { id: objectLayerHost; anchors.fill: parent }   // F-B4/F-B5 便签 + 文字层落点
+
+    // ===== Chrome：工具条 + 提示胶囊 =====
+    MemoToolbar {
+        id: toolbar
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: 22
+        style: memo.style
+        shown: memo.open
+        onExitRequested: memo.open = false
+    }
+
+    Rectangle {
+        id: hintPill
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 28
+        height: 34
+        width: hintText.implicitWidth + 28
+        radius: 17
+        color: Qt.rgba(0, 0, 0, 0.30)
+        border.width: 1
+        border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.14)
+        opacity: memo.open ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 240 } }
+        Text {
+            id: hintText
+            anchors.centerIn: parent
+            text: memo.toolHints[toolbar.currentTool] || ""
+            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
+            font.pixelSize: 13
+        }
+    }
 }

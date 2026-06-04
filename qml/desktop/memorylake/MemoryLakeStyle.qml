@@ -166,4 +166,15 @@ QtObject {
     readonly property real memoGlowVioletOpacity: 0.055
     // 黑板磨砂：身后首页快照重模糊半径（M0 等效 backdrop-filter blur(10px)，QML 用更大值更糊）
     readonly property real memoBackdropBlurMax: 40
+    // 粉笔墨水（设计稿 rgba(255,236,150,.96) 暖粉笔黄 #FFEC96）+ 笔宽 4 / 橡皮宽 28
+    readonly property color memoInk: Qt.rgba(255 / 255, 236 / 255, 150 / 255, 0.96)
+    readonly property real memoPenWidth: 4
+    readonly property real memoEraserWidth: 28
+    // 便签暖黄纸（设计稿 .sticky-note #FFE6A3，与 shareGold 同值、语义独立）+ 便签墨字
+    readonly property color stickyPaper: "#FFE6A3"
+    readonly property color stickyInk: "#1E1E1E"
+    // aqua 选中环（设计稿 rgba(142,223,255,.58)，复用 glowCyan 色 + alpha）
+    readonly property color memoSelectRing: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.58)
+    // 工具条「更多/退出」破坏红（设计稿 .exit hover rgba(255,95,95,.22)）
+    readonly property color memoDanger: Qt.rgba(255 / 255, 95 / 255, 95 / 255, 1.0)
 }
