@@ -27,17 +27,73 @@ Item {
     readonly property string docKey: "memoryLakeMemoDoc"
     property bool _loaded: false
 
-    // 序列化整篇备忘（对象 + 墨迹 PNG dataURL）→ store。debounce 见 saveTimer。
-    function saveDoc() {
-        if (!store) return;
+    // —— 多页模型：每页 owns 标签 + 对象 + 画布 PNG。pagesData 为纯数据，pageLabels 单独驱动 UI 绑定。
+    property var pagesData: [{ label: "Page 1", objects: [], canvas: "" }]
+    property int currentPage: 0
+    property int _pageSeq: 1
+    property var pageLabels: ["Page 1"]
+
+    function _refreshLabels() {
+        var ls = [];
+        for (var i = 0; i < pagesData.length; i++) ls.push(pagesData[i].label);
+        pageLabels = ls;
+    }
+    // 把当前 live 状态（对象 + 墨迹）写回当前页记录。
+    function _writeCurrent() {
         var objs = [];
         for (var i = 0; i < objectModel.count; i++) {
             var o = objectModel.get(i);
             objs.push({ t: o.otype, x: o.ox, y: o.oy, w: o.ow, h: o.oh,
                         ti: o.otitle, co: o.ocontent, tx: o.otext });
         }
-        var doc = { v: 1, objects: objs, canvas: inkCanvas.exportDataURL() };
-        store.setValue(memo.docKey, JSON.stringify(doc));
+        pagesData[currentPage] = { label: pagesData[currentPage].label,
+                                   objects: objs, canvas: inkCanvas.exportDataURL() };
+    }
+    // 把某页记录装载进 live 状态。
+    function _applyPage(p) {
+        objectModel.clear();
+        var objs = (p && p.objects) ? p.objects : [];
+        for (var i = 0; i < objs.length; i++) {
+            var o = objs[i];
+            objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
+                                 otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字" });
+        }
+        memo.selectedObject = -1;
+        inkCanvas.loadFromDataURL((p && p.canvas) ? p.canvas : "");
+    }
+
+    function switchPage(i) {
+        if (i === currentPage || i < 0 || i >= pagesData.length) return;
+        _writeCurrent();
+        currentPage = i;
+        _applyPage(pagesData[i]);
+        scheduleSave();
+    }
+    function addPage() {
+        _writeCurrent();
+        memo._pageSeq += 1;
+        pagesData.push({ label: "Page " + memo._pageSeq, objects: [], canvas: "" });
+        currentPage = pagesData.length - 1;
+        _refreshLabels();
+        _applyPage(pagesData[currentPage]);
+        scheduleSave();
+    }
+    function deletePage(i) {
+        if (pagesData.length <= 1 || i < 0 || i >= pagesData.length) return;   // 保底留 1 页
+        if (i !== currentPage) _writeCurrent();
+        pagesData.splice(i, 1);
+        if (currentPage === i) currentPage = Math.min(i, pagesData.length - 1);
+        else if (currentPage > i) currentPage -= 1;
+        _refreshLabels();
+        _applyPage(pagesData[currentPage]);
+        scheduleSave();
+    }
+
+    // 序列化整篇（多页）→ store。debounce 见 saveTimer。
+    function saveDoc() {
+        if (!store) return;
+        _writeCurrent();
+        store.setValue(memo.docKey, JSON.stringify({ v: 2, pages: pagesData, current: currentPage }));
         saveStatus.flash("笔迹已保存");
     }
     function loadDoc() {
@@ -46,15 +102,16 @@ Item {
         if (!raw || raw.length === 0) return;
         var doc;
         try { doc = JSON.parse(raw); } catch (e) { return; }
-        objectModel.clear();
-        var objs = doc.objects || [];
-        for (var i = 0; i < objs.length; i++) {
-            var o = objs[i];
-            objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
-                                 otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字" });
+        if (doc.pages && doc.pages.length > 0) {
+            pagesData = doc.pages;
+            currentPage = Math.max(0, Math.min(doc.current || 0, pagesData.length - 1));
+        } else {   // v1 单文档兼容
+            pagesData = [{ label: "Page 1", objects: doc.objects || [], canvas: doc.canvas || "" }];
+            currentPage = 0;
         }
-        memo.selectedObject = -1;
-        if (doc.canvas) inkCanvas.loadFromDataURL(doc.canvas);
+        memo._pageSeq = pagesData.length;
+        _refreshLabels();
+        _applyPage(pagesData[currentPage]);
     }
     function scheduleSave() { if (store) saveTimer.restart(); }
 
@@ -309,6 +366,21 @@ Item {
         onExitRequested: memo.open = false
     }
 
+    // 右上档案袋（多页切换）。
+    MemoPageFolder {
+        id: pageFolder
+        anchors { right: parent.right; top: parent.top; rightMargin: 18; topMargin: 18 }
+        style: memo.style
+        pageLabels: memo.pageLabels
+        currentIndex: memo.currentPage
+        visible: memo.open
+        opacity: memo.open ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 240 } }
+        onSwitchTo: function (i) { memo.switchPage(i); }
+        onAddPageRequested: memo.addPage()
+        onDeletePageRequested: function (i) { memo.deletePage(i); }
+    }
+
     Rectangle {
         id: hintPill
         anchors.horizontalCenter: parent.horizontalCenter
@@ -336,7 +408,7 @@ Item {
         id: saveStatus
         property bool flashOn: false
         function flash(t) { saveStatusText.text = t; flashOn = true; fadeTimer.restart(); }
-        anchors { top: parent.top; right: parent.right; topMargin: 30; rightMargin: 24 }
+        anchors { top: parent.top; left: parent.left; topMargin: 30; leftMargin: 24 }
         height: 30
         width: saveStatusText.implicitWidth + 24
         radius: 15

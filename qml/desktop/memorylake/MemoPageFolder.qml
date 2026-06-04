@@ -1,0 +1,187 @@
+import QtQuick
+
+// 右上「档案袋」多页切换器（v88 .memo-page-control）。前盖玻璃卡显示当前页名 + 雪佛龙；
+// 点击展开抽屉（长高 + 后仰 + 厚度层扇开 + 雪佛龙 180°），列出各页行（点切页 / × 删页）+ 新建页。
+// 每页 owns 自己的画布+对象（数据在 MemoOverlay 持有；本组件只发信号）。
+// 详见 docs/memory-lake-memo-render-pipeline-replication.md §1.5 / 功能文 §2.6。
+Item {
+    id: folder
+
+    property MemoryLakeStyle style
+    property var pageLabels: ["Page 1"]
+    property int currentIndex: 0
+    property bool openState: false
+
+    signal switchTo(int i)
+    signal addPageRequested()
+    signal deletePageRequested(int i)
+
+    readonly property int pageCount: pageLabels ? pageLabels.length : 1
+    readonly property string currentLabel: (pageLabels && currentIndex >= 0 && currentIndex < pageLabels.length)
+                                           ? pageLabels[currentIndex] : "Page 1"
+
+    width: 252
+    height: front.height + (openState ? tray.height + 8 : 0)
+    Behavior on height { NumberAnimation { duration: 340; easing.type: Easing.Bezier
+        easing.bezierCurve: folder.style ? folder.style.easeSnappy : [0.18, 0.9, 0.2, 1, 1, 1] } }
+
+    // 厚度层：每多一页加一片，向上/后扇开（3D 近似：阶梯上移 + 内缩 + 渐暗）。
+    Repeater {
+        model: Math.max(0, folder.pageCount - 1)
+        delegate: Rectangle {
+            required property int index
+            readonly property int up: index + 1
+            width: front.width - up * 6
+            height: 36
+            x: up * 3
+            y: -up * 4
+            radius: 10
+            color: Qt.rgba(34 / 255, 39 / 255, 50 / 255, 0.96 - up * 0.06)
+            border.width: 1
+            border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10)
+            opacity: folder.openState ? 1 : 0.0
+            Behavior on opacity { NumberAnimation { duration: 220 } }
+            Behavior on y { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+        }
+    }
+
+    // 前盖玻璃卡（当前页名 + 页数 + 雪佛龙）。
+    Rectangle {
+        id: front
+        width: parent.width
+        height: 48
+        radius: 12
+        gradient: Gradient {
+            GradientStop { position: 0; color: Qt.rgba(34 / 255, 39 / 255, 50 / 255, 0.96) }
+            GradientStop { position: 1; color: Qt.rgba(19 / 255, 23 / 255, 33 / 255, 0.94) }
+        }
+        border.width: 1
+        border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
+        antialiasing: true
+
+        Row {
+            anchors.fill: parent
+            anchors.leftMargin: 14; anchors.rightMargin: 12
+            spacing: 8
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width - 28
+                Text { text: folder.currentLabel; color: Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.92)
+                       font.pixelSize: 15; font.weight: Font.DemiBold; elide: Text.ElideRight; width: parent.width }
+                Text { text: folder.pageCount + " 页 · 备忘"; color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.45)
+                       font.pixelSize: 11 }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "⌄"
+                color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.8)
+                font.pixelSize: 18
+                rotation: folder.openState ? 180 : 0
+                Behavior on rotation { NumberAnimation { duration: 220 } }
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: folder.openState = !folder.openState
+        }
+    }
+
+    // 展开托盘：页面行列表 + 新建页。
+    Rectangle {
+        id: tray
+        anchors.top: front.bottom
+        anchors.topMargin: 8
+        width: parent.width
+        height: list.height + addRow.height + 12
+        radius: 12
+        visible: folder.openState && opacity > 0.01
+        opacity: folder.openState ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 220 } }
+        gradient: Gradient {
+            GradientStop { position: 0; color: Qt.rgba(28 / 255, 32 / 255, 42 / 255, 0.96) }
+            GradientStop { position: 1; color: Qt.rgba(16 / 255, 19 / 255, 28 / 255, 0.95) }
+        }
+        border.width: 1
+        border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.14)
+
+        Column {
+            id: list
+            width: parent.width
+            anchors.top: parent.top
+            anchors.topMargin: 6
+            Repeater {
+                model: folder.pageLabels
+                delegate: Rectangle {
+                    required property int index
+                    required property var modelData
+                    readonly property bool sel: index === folder.currentIndex
+                    width: tray.width - 12
+                    x: 6
+                    height: 34
+                    radius: 8
+                    color: sel ? "transparent" : (rowHover.containsMouse ? Qt.rgba(1, 1, 1, 0.05) : "transparent")
+                    gradient: sel ? selGrad : null
+                    Gradient {
+                        id: selGrad
+                        GradientStop { position: 0; color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20) }
+                        GradientStop { position: 1; color: Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.18) }
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left; anchors.leftMargin: 12
+                        text: modelData
+                        color: sel ? "#EAF6FF" : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.78)
+                        font.pixelSize: 13
+                    }
+                    // × 删页（>1 页时显示）
+                    Rectangle {
+                        visible: folder.pageCount > 1 && (rowHover.containsMouse || sel)
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right; anchors.rightMargin: 8
+                        width: 20; height: 20; radius: 10
+                        color: delH.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.5) : Qt.rgba(0, 0, 0, 0.25)
+                        Text { anchors.centerIn: parent; text: "×"; color: "#EAF2FF"; font.pixelSize: 13 }
+                        MouseArea {
+                            id: delH
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: folder.deletePageRequested(index)
+                        }
+                    }
+                    MouseArea {
+                        id: rowHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { folder.switchTo(index); folder.openState = false; }
+                    }
+                }
+            }
+        }
+
+        // 新建页
+        Rectangle {
+            id: addRow
+            anchors.top: list.bottom
+            anchors.topMargin: 4
+            x: 6
+            width: tray.width - 12
+            height: 32
+            radius: 8
+            color: addH.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10) : "transparent"
+            border.width: 1
+            border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
+            Text { anchors.centerIn: parent; text: "＋ 新建页"
+                   color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 13 }
+            MouseArea {
+                id: addH
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: folder.addPageRequested()
+            }
+        }
+    }
+}
