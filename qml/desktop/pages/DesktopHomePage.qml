@@ -138,6 +138,10 @@ Item {
         return AppVisual.appIconSource(appId, path)
     }
 
+    function appIconLabel(appId, appName) {
+        return AppVisual.appIconLabel(appId, appName)
+    }
+
     function refreshTodaySoftwareStats() {
         if (!usageStatManager) {
             todaySoftwareStats = []
@@ -694,6 +698,16 @@ Item {
                                                     asynchronous: true
                                                     smooth: true
                                                     mipmap: true
+                                                    visible: source != ""
+                                                }
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    visible: appIconSource(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.path) === ""
+                                                    text: appIconLabel(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.name)
+                                                    color: nightMode ? "#FFFFFF" : "#2D2724"
+                                                    font.pixelSize: 17
+                                                    font.bold: true
                                                 }
                                             }
 

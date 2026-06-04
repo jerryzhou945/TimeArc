@@ -27,6 +27,7 @@
 #include "services/stats_service.h"
 #include "services/calendar_manager.h"
 #include "services/project_manager.h"
+#include "services/site_catalog.h"
 
 namespace {
 
@@ -239,6 +240,53 @@ int main(int argc, char* argv[]) {
   QCoreApplication::setOrganizationName(QStringLiteral("TimeArc"));
   QCoreApplication::setApplicationName(QStringLiteral("TimeArc"));
   QStandardPaths::setTestModeEnabled(true);
+
+  const TimeArcSiteCatalog::SiteDefinition* bilibiliSite =
+      TimeArcSiteCatalog::matchByWindowTitle(
+          QStringLiteral("\u54D4\u54E9\u54D4\u54E9 - Google Chrome"));
+  if (bilibiliSite == nullptr ||
+      bilibiliSite->siteId != QStringLiteral("site:bilibili") ||
+      bilibiliSite->displayName != QStringLiteral("\u54D4\u54E9\u54D4\u54E9") ||
+      bilibiliSite->brandColor != QStringLiteral("#FABECF")) {
+    return fail(QStringLiteral("Bilibili site catalog match failed."));
+  }
+
+  const TimeArcSiteCatalog::SiteDefinition* taobaoSite =
+      TimeArcSiteCatalog::matchByWindowTitle(
+          QStringLiteral("\u6DD8\u5B9D\u7F51 - \u6DD8\uFF01\u6211\u559C\u6B22 - Google Chrome"));
+  if (taobaoSite == nullptr ||
+      taobaoSite->siteId != QStringLiteral("site:taobao") ||
+      taobaoSite->category != QStringLiteral("\u8D2D\u7269") ||
+      taobaoSite->iconLabel != QStringLiteral("\u6DD8")) {
+    return fail(QStringLiteral("Taobao site catalog match failed."));
+  }
+
+  const TimeArcSiteCatalog::SiteDefinition* zhihuSite =
+      TimeArcSiteCatalog::matchByWindowTitle(
+          QStringLiteral("\u77E5\u4E4E - Google Chrome"));
+  if (zhihuSite == nullptr ||
+      zhihuSite->siteId != QStringLiteral("site:zhihu") ||
+      zhihuSite->displayName != QStringLiteral("\u77E5\u4E4E") ||
+      zhihuSite->iconLabel != QStringLiteral("\u77E5")) {
+    return fail(QStringLiteral("Zhihu site catalog match failed."));
+  }
+
+  const TimeArcSiteCatalog::SiteDefinition* xiaohongshuSite =
+      TimeArcSiteCatalog::matchByWindowTitle(
+          QStringLiteral("\u5C0F\u7EA2\u4E66 - Google Chrome"));
+  if (xiaohongshuSite == nullptr ||
+      xiaohongshuSite->siteId != QStringLiteral("site:xiaohongshu") ||
+      xiaohongshuSite->brandColor != QStringLiteral("#FF2442") ||
+      xiaohongshuSite->iconLabel != QStringLiteral("\u7EA2")) {
+    return fail(QStringLiteral("Xiaohongshu site catalog match failed."));
+  }
+
+  const TimeArcSiteCatalog::SiteDefinition* unknownSite =
+      TimeArcSiteCatalog::matchByWindowTitle(
+          QStringLiteral("A normal documentation page - Google Chrome"));
+  if (unknownSite != nullptr) {
+    return fail(QStringLiteral("Unknown browser title matched a known site."));
+  }
 
   const QString testDataPath =
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);

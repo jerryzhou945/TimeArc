@@ -93,6 +93,10 @@ with day and night modes.
   `docs/memory-lake-art-lighting-qml-cookbook.md`.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
+- **Mainland China browser-site split** - common websites opened inside
+  Chrome, Edge, Firefox, and other supported browsers can be grouped as
+  independent `site:*` activities in the UI, with preset brand colors and
+  text/icon fallbacks for visual surfaces.
 
 ## Platform Support
 

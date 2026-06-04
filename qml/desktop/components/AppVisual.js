@@ -11,6 +11,31 @@ function containsAny(text, words) {
     return false;
 }
 
+function siteVisual(appId) {
+    var identity = appId ? appId.toString() : "";
+    switch (identity) {
+    case "site:bilibili": return { color: "#FABECF", label: "B", icon: Qt.resolvedUrl("../../../resources/icons/bilibili.svg") };
+    case "site:douyin": return { color: "#111111", label: "\u6296", icon: "" };
+    case "site:xiaohongshu": return { color: "#FF2442", label: "\u7EA2", icon: "" };
+    case "site:weibo": return { color: "#E6162D", label: "\u5FAE", icon: "" };
+    case "site:zhihu": return { color: "#1772F6", label: "\u77E5", icon: "" };
+    case "site:taobao": return { color: "#FF5000", label: "\u6DD8", icon: "" };
+    case "site:tmall": return { color: "#DD2727", label: "\u732B", icon: "" };
+    case "site:jd": return { color: "#E2231A", label: "\u4EAC", icon: "" };
+    case "site:pinduoduo": return { color: "#E02E24", label: "\u62FC", icon: "" };
+    case "site:baidu": return { color: "#2932E1", label: "\u767E", icon: "" };
+    case "site:iqiyi": return { color: "#00BE06", label: "\u7231", icon: "" };
+    case "site:youku": return { color: "#00A1D6", label: "\u4F18", icon: "" };
+    case "site:tencent-video": return { color: "#FFB000", label: "\u817E", icon: "" };
+    case "site:douban": return { color: "#007722", label: "\u8C46", icon: "" };
+    case "site:csdn": return { color: "#C92027", label: "C", icon: "" };
+    case "site:alipay": return { color: "#1677FF", label: "\u652F", icon: "" };
+    case "site:meituan": return { color: "#FFD100", label: "\u56E2", icon: "" };
+    case "site:dianping": return { color: "#FF7A00", label: "\u70B9", icon: "" };
+    default: return null;
+    }
+}
+
 // 未知 APP 走哈希取色：同一身份稳定得到同一柔和色，避免每次刷新跳色。
 function hashedColor(text) {
     var palette = ["#CFE8D8", "#D9D0F2", "#EFDCC3", "#EBC9CF", "#BFD7EA", "#DDF1E5", "#E7D4EA", "#D8D1CA"];
@@ -24,8 +49,11 @@ function hashedColor(text) {
 function appColor(appId, appName, path) {
     var identity = appId ? appId.toString() : "";
     var text = (identity + " " + (appName || "") + " " + (path || "")).toLowerCase();
+    var site = siteVisual(identity);
+    if (site)
+        return site.color;
 
-    if (identity === "site:bilibili" || containsAny(text, ["bilibili", "b23.tv"])) return '#fabecf';
+    if (containsAny(text, ["bilibili", "b23.tv"])) return "#FABECF";
     if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D98E9F";
     if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#BFD7EA";
     if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#9FC7DE";
@@ -77,11 +105,22 @@ function coverTone(c, night) {
 // 系统小图标 source。site:bilibili 走内置 SVG；无 path 返回 ""（由调用方走 appColor 兜底）。
 function appIconSource(appId, path) {
     var identity = appId ? appId.toString() : "";
-    if (identity === "site:bilibili")
-        return Qt.resolvedUrl("../../../resources/icons/bilibili.svg");
+    var site = siteVisual(identity);
+    if (site && site.icon)
+        return site.icon;
 
     var raw = path ? path.toString() : "";
     if (raw.length === 0)
         return "";
     return "image://appicon/" + encodeURIComponent(raw);
+}
+
+function appIconLabel(appId, appName) {
+    var identity = appId ? appId.toString() : "";
+    var site = siteVisual(identity);
+    if (site && site.label)
+        return site.label;
+
+    var name = appName ? appName.toString().trim() : "";
+    return name.length > 0 ? name.charAt(0).toUpperCase() : "\u00B7";
 }
