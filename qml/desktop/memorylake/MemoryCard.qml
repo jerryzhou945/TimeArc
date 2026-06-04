@@ -67,7 +67,7 @@ Item {
         readonly property color peakColor: card.style ? card.style.violet : "#9B8BFF"
 
         // 选中淡入淡出走 baseGlow（带 Behavior）；翻面高光走 edgeOn（跟随 flipAngle 动画），两者相乘，互不干扰
-        property real baseGlow: card.selected ? 0.55 : 0.0
+        property real baseGlow: card.selected ? 0.7 : 0.0
         Behavior on baseGlow { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
         opacity: baseGlow * (1.0 + 0.55 * edgeOn)
         visible: opacity > 0.01
@@ -79,26 +79,19 @@ Item {
             xScale: 0.14 + 0.86 * ambientGlow.foreshorten
         }
 
-        Rectangle {
-            id: glowSrc
+        // 底灯改用平滑径向渐变（GlowCircle），取代旧的「实心圆角矩形 + MultiEffect 高斯模糊」——
+        // 后者中心是平的实心块、模糊后仍能看出长方形轮廓、且大半径模糊出现一圈圈 banding（一层一层）。
+        // 径向渐变中心最亮→边缘透明，天然柔和、椭圆无方角；放大到卡片外缘，中心被卡身遮住、只透出
+        // 四周柔光晕（= 设计稿「向外散出、向内被卡身遮住」）。aqua→violet 折射偏移走 glowColor。
+        GlowCircle {
             anchors.fill: parent
-            radius: 30
-            // aqua → violet 折射偏移（峰值偏移 0.7）
-            color: Qt.rgba(
+            anchors.margins: -Math.round(Math.min(parent.width, parent.height) * 0.30)
+            glowColor: Qt.rgba(
                 ambientGlow.restColor.r + (ambientGlow.peakColor.r - ambientGlow.restColor.r) * ambientGlow.edgeOn * 0.7,
                 ambientGlow.restColor.g + (ambientGlow.peakColor.g - ambientGlow.restColor.g) * ambientGlow.edgeOn * 0.7,
                 ambientGlow.restColor.b + (ambientGlow.peakColor.b - ambientGlow.restColor.b) * ambientGlow.edgeOn * 0.7,
                 1.0)
-            visible: false
-            layer.enabled: true
-        }
-        MultiEffect {
-            anchors.fill: glowSrc
-            source: glowSrc
-            blurEnabled: true
-            blur: 1.0
-            blurMax: 48
-            autoPaddingEnabled: true
+            glowOpacity: 1.0
         }
     }
 

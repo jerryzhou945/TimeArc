@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
 |----------------------|-----|--------------|-------------------------------------------------|--------|
+| 2026-06-04T06:43:38Z | L3 | memcard-glow-de... | Left MemoryCard ambientGlow底灯 on MultiEffect-blur-of-soli... | [report](errors/20260604-064338-B-memcard-glow-deferred.md) |
 | 2026-06-04T00:12:06Z | L2 | dailyshare-pale... | DailyUsageShare new 'palette' property collided with base... | [report](errors/20260604-001206-B-dailyshare-palette-override.md) |
 | 2026-06-04T00:11:57Z | L3 | qt5compat-froze... | Donut center glow first used import Qt5Compat.GraphicalEf... | [report](errors/20260604-001157-B-qt5compat-frozen-cmake.md) |
 | 2026-06-03T17:25:32Z | L3 | verify-ignored-... | Visual-verify: forgot to recall existing [timearc-ui-buil... | [report](errors/20260603-172532-B-verify-ignored-known-launch-memory.md) |
