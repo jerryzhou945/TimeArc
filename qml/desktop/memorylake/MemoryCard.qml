@@ -35,14 +35,15 @@ Item {
     width: layoutW
     height: layoutH
 
-    Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
-    Behavior on height { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+    // 选中放大走品牌「柔落」缓动（与翻面同曲线，整卡运动一致），让选卡过渡更整体。
+    Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
+    Behavior on height { NumberAnimation { duration: 360; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
 
     // .card.is-selected{ scale(1.01) }；非选中 .88；锁定时其它卡 .25；预览微放大
     scale: selected ? 1.01 : (previewed ? 0.96 : 0.88)
     opacity: selected ? 1.0 : (dimmed ? 0.25 : (previewed ? 0.82 : 0.42))
-    Behavior on scale { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
-    Behavior on opacity { NumberAnimation { duration: 260 } }
+    Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
+    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
 
     // 翻面角度提升为卡片级属性：底灯据此做 3D 透视收束 + 高光绽放（见下方 ambientGlow）。
     property real flipAngle: flipped ? 180 : 0

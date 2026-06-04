@@ -53,8 +53,8 @@ Item {
             origin.x: zone.width / 2; origin.y: zone.height / 2
             xScale: carousel.laneHovered ? 1.012 : 1.0
             yScale: carousel.laneHovered ? 1.012 : 1.0
-            Behavior on xScale { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
-            Behavior on yScale { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
+            Behavior on xScale { NumberAnimation { duration: 300; easing.type: Easing.Bezier; easing.bezierCurve: carousel.style ? carousel.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
+            Behavior on yScale { NumberAnimation { duration: 300; easing.type: Easing.Bezier; easing.bezierCurve: carousel.style ? carousel.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
         }
 
         // 中央湖光：从下中升起的 aqua 上照光（C1，设计稿 radial 50% 68% aqua .055）。

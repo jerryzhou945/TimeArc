@@ -308,7 +308,7 @@ Item {
                         }
                         // BG3：层②压到 ambientImageOpacity(.34)，让蓝黑深度坡透出，不再盖过底。
                         opacity: mlBgSrc.frontIsA ? mlStyle.ambientImageOpacity : 0
-                        Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
+                        Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.InOutQuad } }
                     }
                     Rectangle {
                         id: mlRectB
@@ -320,7 +320,7 @@ Item {
                             GradientStop { position: 1.0; color: Qt.darker(AppVisual.ambientTone(mlBgSrc.col(mlRectB.cols, 2), nightMode), 1.16) }
                         }
                         opacity: mlBgSrc.frontIsA ? 0 : mlStyle.ambientImageOpacity
-                        Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.InOutQuad } }
+                        Behavior on opacity { NumberAnimation { duration: 350; easing.type: Easing.InOutQuad } }
                     }
                 }
                 // BG4：两团 APP 图标主色模糊圆重定位到上半角落带（左上 / 右上），为 aqua/violet
@@ -333,7 +333,7 @@ Item {
                     y: parent.height * 0.20 - height / 2
                     visible: false; layer.enabled: true
                     color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 0), nightMode)
-                    Behavior on color { ColorAnimation { duration: 450 } }
+                    Behavior on color { ColorAnimation { duration: 350 } }
                 }
                 MultiEffect {
                     anchors.fill: mlBlobA; source: mlBlobA
@@ -348,7 +348,7 @@ Item {
                     y: parent.height * 0.24 - height / 2
                     visible: false; layer.enabled: true
                     color: AppVisual.ambientTone(mlBgSrc.col(memoryLakeAmbientColors, 1), nightMode)
-                    Behavior on color { ColorAnimation { duration: 450 } }
+                    Behavior on color { ColorAnimation { duration: 350 } }
                 }
                 MultiEffect {
                     anchors.fill: mlBlobB; source: mlBlobB

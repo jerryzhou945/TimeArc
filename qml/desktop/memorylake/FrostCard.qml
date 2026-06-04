@@ -35,6 +35,17 @@ Item {
             }
         }
 
+        // 磨砂玻璃顶沿柔光（双重 frost 的「玻璃接住上方环境光」质感，纯静态合成）：
+        // 顶部一抹极淡白 → 40% 处淡出，模拟光从上方漫射进霜面，使卡读作有厚度的玻璃而非平涂。
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: frost.style ? (frost.style.night ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.12)) : Qt.rgba(1, 1, 1, 0.05) }
+                GradientStop { position: 0.4; color: "transparent" }
+            }
+        }
+
         // 顶沿 1px 内高光（夜 .035 / 昼瓷光）。左右内缩半径，只覆盖直边段，不越出圆角拐角。
         Rectangle {
             anchors { top: parent.top; left: parent.left; right: parent.right
