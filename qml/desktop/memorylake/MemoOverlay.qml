@@ -83,6 +83,7 @@ Item {
         memo.forceActiveFocus();     // 切页后仍可 Ctrl+V 粘贴到新页
     }
     function addPage() {
+        if (pagesData.length >= 10) return;   // 最多 10 页（与 MemoPageFolder.maxPages 一致）
         _writeCurrent();
         memo._pageSeq += 1;
         pagesData.push({ label: "Page " + memo._pageSeq, objects: [], canvas: "" });

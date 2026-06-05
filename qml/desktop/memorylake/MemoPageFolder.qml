@@ -11,6 +11,7 @@ Item {
     property var pageLabels: ["Page 1"]
     property int currentIndex: 0
     property bool openState: false
+    property int maxPages: 10
 
     signal switchTo(int i)
     signal addPageRequested()
@@ -134,9 +135,17 @@ Item {
                         color: sel ? "#EAF6FF" : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.78)
                         font.pixelSize: 13
                     }
-                    // × 删页（>1 页时显示）
+                    // 行点击（切页）——必须放在 × 之前，让 × 盖在它上面；否则 × 的点击被这层吞掉，删不了页。
+                    MouseArea {
+                        id: rowHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { folder.switchTo(index); folder.openState = false; }
+                    }
+                    // × 删页（>1 页时显示；置于行点击层之上，确保能命中删除）。
                     Rectangle {
-                        visible: folder.pageCount > 1 && (rowHover.containsMouse || sel)
+                        visible: folder.pageCount > 1 && (rowHover.containsMouse || delH.containsMouse || sel)
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right; anchors.rightMargin: 8
                         width: 20; height: 20; radius: 10
@@ -150,13 +159,6 @@ Item {
                             onClicked: folder.deletePageRequested(index)
                         }
                     }
-                    MouseArea {
-                        id: rowHover
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: { folder.switchTo(index); folder.openState = false; }
-                    }
                 }
             }
         }
@@ -164,20 +166,24 @@ Item {
         // 新建页
         Rectangle {
             id: addRow
+            readonly property bool canAdd: folder.pageCount < folder.maxPages
             anchors.top: list.bottom
             anchors.topMargin: 4
             x: 6
             width: tray.width - 12
             height: 32
             radius: 8
-            color: addH.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10) : "transparent"
+            opacity: canAdd ? 1 : 0.45            // 达上限：淡化 + 禁用
+            color: (addH.containsMouse && canAdd) ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10) : "transparent"
             border.width: 1
             border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
-            Text { anchors.centerIn: parent; text: "＋ 新建页"
+            Text { anchors.centerIn: parent
+                   text: addRow.canAdd ? "＋ 新建页" : ("已达 " + folder.maxPages + " 页上限")
                    color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 13 }
             MouseArea {
                 id: addH
                 anchors.fill: parent
+                enabled: addRow.canAdd
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: folder.addPageRequested()
