@@ -498,6 +498,31 @@ int main(int argc, char* argv[]) {
                                "inserted session."));
   }
 
+  const QString mediaTitle =
+      QStringLiteral("lofi study beats - Bilibili - Google Chrome");
+  const qint64 mediaStart = startUnixSec + 1;
+  const qint64 mediaEnd = qMax(mediaStart + 1, endUnixSec);
+  const int mediaDuration = static_cast<int>(mediaEnd - mediaStart);
+  if (!mediaRepository.addMediaSession(appIdentifier, QStringLiteral("audio"),
+                                       mediaTitle, mediaStart, mediaEnd,
+                                       mediaDuration)) {
+    return fail(QStringLiteral("Failed to insert smoke media session."));
+  }
+  const QVariantList mediaSessions =
+      mediaRepository.getSessionsByRange(mediaStart - 1, mediaEnd + 1);
+  bool sawMediaTitle = false;
+  for (const QVariant& item : mediaSessions) {
+    const QVariantMap session = item.toMap();
+    if (session.value(QStringLiteral("appIdentifier")).toString() ==
+            appIdentifier &&
+        session.value(QStringLiteral("mediaTitle")).toString() == mediaTitle) {
+      sawMediaTitle = true;
+    }
+  }
+  if (!sawMediaTitle) {
+    return fail(QStringLiteral("Media title was not persisted."));
+  }
+
   const int projectSignalsBeforeAdd = projectChangedCount;
   const QString projectName = QStringLiteral("Smoke Project");
   projectManager.addProject(projectName, QStringLiteral("工作"));

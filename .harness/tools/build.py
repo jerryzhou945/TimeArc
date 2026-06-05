@@ -25,6 +25,7 @@ from pathlib import Path
 HARNESS = Path(__file__).resolve().parent.parent
 PROJECT = HARNESS.parent
 LOG_DIR = HARNESS / "journal" / "build-logs"
+FALLBACK_LOG_DIR = HARNESS / "tmp" / "build-logs"
 RECORD = HARNESS / "tools" / "record_error.py"
 
 
@@ -44,15 +45,30 @@ def parse_args(argv):
 
 def main(argv):
     args, extra = parse_args(argv)
-    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    log_dir = LOG_DIR
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        log_dir = FALLBACK_LOG_DIR
+        log_dir.mkdir(parents=True, exist_ok=True)
     ts = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
-    log_path = LOG_DIR / f"{ts}-build.log"
+    log_path = log_dir / f"{ts}-build.log"
 
     cmd = ["cmake", "--build", args.build_dir] + extra
     print(f"build.py: {' '.join(cmd)}", file=sys.stderr)
     print(f"build.py: log -> {log_path}", file=sys.stderr)
 
-    with log_path.open("wb") as log:
+    try:
+        log = log_path.open("wb")
+    except OSError:
+        log_dir = FALLBACK_LOG_DIR
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / f"{ts}-build.log"
+        print(f"build.py: primary log unavailable; fallback -> {log_path}",
+              file=sys.stderr)
+        log = log_path.open("wb")
+
+    with log:
         proc = subprocess.run(cmd, cwd=str(PROJECT),
                               stdout=log, stderr=subprocess.STDOUT)
 

@@ -1,5 +1,7 @@
 #include "audio_win.h"
 
+#include "active_app_win.h"
+
 #define COBJMACROS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -268,7 +270,26 @@ static int session_is_audible(IAudioSessionControl* control) {
   return session_has_audio_peak(control);
 }
 
-static void fill_audio_app(AppInfo* app, DWORD pid, const char* path) {
+static const char* matching_foreground_title(const AppInfo* foreground,
+                                             DWORD pid,
+                                             const char* path) {
+  if (foreground == NULL || foreground->window_title[0] == '\0') {
+    return NULL;
+  }
+  if (foreground->process_id == (uint32_t)pid) {
+    return foreground->window_title;
+  }
+  if (path != NULL && path[0] != '\0' &&
+      strcmp(foreground->exec_path, path) == 0) {
+    return foreground->window_title;
+  }
+  return NULL;
+}
+
+static void fill_audio_app(AppInfo* app,
+                           DWORD pid,
+                           const char* path,
+                           const char* media_title) {
   // 音频会话没有前台窗口标题，所以用固定标题区分它是 audio 来源的记录。
   memset(app, 0, sizeof(*app));
   app->process_id = (uint32_t)pid;
@@ -277,7 +298,10 @@ static void fill_audio_app(AppInfo* app, DWORD pid, const char* path) {
   copy_string(app->exec_path, sizeof(app->exec_path), path);
   copy_string(app->app_name, sizeof(app->app_name), basename_from_path(path));
   copy_string(app->display_name, sizeof(app->display_name), app->app_name);
-  copy_string(app->window_title, sizeof(app->window_title), "Audio playback");
+  copy_string(app->window_title, sizeof(app->window_title),
+              media_title != NULL && media_title[0] != '\0'
+                  ? media_title
+                  : "Audio playback");
 }
 
 int timearc_win_get_audio_apps(AppInfo* out_apps,
@@ -293,6 +317,10 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
     return -1;
   }
 
+  AppInfo foreground_app;
+  AppInfo* foreground_ptr =
+      timearc_win_get_active_app(&foreground_app) == 0 ? &foreground_app : NULL;
+
   IMMDeviceEnumerator* device_enumerator = NULL;
   IMMDevice* device = NULL;
   IAudioSessionManager2* session_manager = NULL;
@@ -306,8 +334,17 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
     return -1;
   }
 
+  const ERole roles[] = {eConsole, eCommunications};
+  size_t added = 0;
+  for (size_t role_index = 0;
+       role_index < sizeof(roles) / sizeof(roles[0]) && added < max_apps;
+       ++role_index) {
+    device = NULL;
+    session_manager = NULL;
+    session_enumerator = NULL;
+
   hr = IMMDeviceEnumerator_GetDefaultAudioEndpoint(
-      device_enumerator, eRender, eConsole, &device);
+      device_enumerator, eRender, roles[role_index], &device);
   if (SUCCEEDED(hr) && device != NULL) {
     hr = IMMDevice_Activate(device, &IID_IAudioSessionManager2, CLSCTX_ALL,
                             NULL, (void**)&session_manager);
@@ -320,14 +357,12 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
   if (FAILED(hr) || session_enumerator == NULL) {
     if (session_manager != NULL) IAudioSessionManager2_Release(session_manager);
     if (device != NULL) IMMDevice_Release(device);
-    IMMDeviceEnumerator_Release(device_enumerator);
-    return -1;
+    continue;
   }
 
   int session_count = 0;
   IAudioSessionEnumerator_GetCount(session_enumerator, &session_count);
 
-  size_t added = 0;
   for (int i = 0; i < session_count && added < max_apps; ++i) {
     IAudioSessionControl* control = NULL;
     IAudioSessionControl2* control2 = NULL;
@@ -366,7 +401,8 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
     if (query_process_path(pid, path, sizeof(path)) == 0 &&
         !should_ignore_audio_process(path) &&
         !app_already_added(out_apps, added, path)) {
-      fill_audio_app(&out_apps[added], pid, path);
+      fill_audio_app(&out_apps[added], pid, path,
+                     matching_foreground_title(foreground_ptr, pid, path));
       ++added;
     }
 
@@ -377,6 +413,7 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
   IAudioSessionEnumerator_Release(session_enumerator);
   IAudioSessionManager2_Release(session_manager);
   IMMDevice_Release(device);
+  }
   IMMDeviceEnumerator_Release(device_enumerator);
 
   *out_count = added;
