@@ -76,10 +76,12 @@ were lost; (2) cross-page copy impossible (Ctrl+C did copy+paste atomically);
   renderStrategy Immediate -> **Threaded** (paint off GUI thread).
 - Toolbar hover highlight stuck (Dynamic-Island moves button off cursor): gate
   toolbar hoverEnabled on `revealed` (= chromeShown).
-- **Window-ratio breaks copy/ink**: ink canvas + object layer + dots are now a
-  **fixed logical board (1920x1080) at top-left**; window resize just shows
-  more/less of it (background/glows/chrome stay window-relative). Content coords
-  no longer depend on window size, so the canvas never reallocates/stretches.
+- **Window-ratio breaks copy/ink**: content (ink/objects/dots) lives in a
+  **1920x1080 logical board uniformly scaled to fit the window** (16:9, letterbox,
+  scales up on >1920 screens, whole board always visible). Coords + persistence
+  stay in logical space (all copy/select logic unchanged); mouse maps back
+  through the scale. Background/glows/chrome stay window-relative. (Superseded the
+  earlier fixed-board-clipped attempt.)
 
 ## Post-feedback 4 (the "infinite ghost" root cause)
 Move leaves the original ink behind / it self-replicates: `onImageLoaded` drew

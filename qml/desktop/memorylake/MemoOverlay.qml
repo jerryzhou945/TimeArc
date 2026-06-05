@@ -498,11 +498,22 @@ Item {
         color: memo.style ? memo.style.memoScrim : Qt.rgba(0, 0, 0, 0.10)
     }
 
-    // ===== 固定逻辑画板尺寸 =====
-    // 墨迹画布/对象层/点阵恒为此尺寸、钉在左上；窗口改大小只是看到更多/更少，内容坐标不随比例变。
-    // 这样绕开「改窗口比例 → 画布重建、坐标错位 → 复制/笔迹损坏」。背景/辉光/工具栏仍随窗口。
+    // ===== 逻辑画板（参考分辨率 1920x1080）+ 等比缩放铺满窗口 =====
+    // 内容（墨迹/对象/点阵）都在 1920x1080 逻辑坐标里绘制并存储（坐标稳定、可持久化、所有复制/选区
+    // 逻辑不变）；整块画板按 min(W/1920,H/1080) 等比缩放并居中——窗口越大画板越大（支持 >1920 全屏），
+    // 始终 16:9 不变形，非 16:9 窗口留黑边。鼠标事件经缩放变换自动映射回逻辑坐标，故逻辑无需改动。
     readonly property int boardW: 1920
     readonly property int boardH: 1080
+    readonly property real boardFit: Math.min(width / boardW, height / boardH)
+
+    Item {
+        id: board
+        width: memo.boardW
+        height: memo.boardH
+        transformOrigin: Item.TopLeft
+        scale: memo.boardFit
+        x: (memo.width - memo.boardW * memo.boardFit) / 2
+        y: (memo.height - memo.boardH * memo.boardFit) / 2
 
     // ===== L2 黑板点阵（白点 10.5% / 24px 平铺）=====
     MemoDotTexture {
@@ -776,6 +787,7 @@ Item {
             }
         }
     }   // F-B4/F-B5 便签 + 文字层
+    }   // board（逻辑画板：1920x1080 等比缩放居中）
 
     // ===== Chrome：工具条 + 档案袋（灵动岛：默认藏起只露小边，鼠标靠近顶部再冒出）=====
     // 顶栏是否展开：开启状态下，档案袋展开中、或鼠标靠近顶部（且非绘制/框选手势）时显示。
