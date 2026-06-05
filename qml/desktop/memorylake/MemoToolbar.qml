@@ -21,6 +21,8 @@ Item {
     property real eraserWidth: style ? style.memoEraserWidth : 28
     readonly property var penWidths: [2.5, 4, 7]
     readonly property var eraserWidths: [16, 28, 44]
+    // 笔色（gap #2）：默认暖粉笔黄，调板覆盖（橡皮无色）。
+    property color inkColor: style ? style.memoInk : Qt.rgba(1, 236 / 255, 150 / 255, 0.96)
 
     // 鼠标是否悬在工具条上（供 Shell 维持灵动岛展开；工具条需置于顶部感应区 topZone 之上才生效）。
     // 含子弹层(subPop)，否则从条上移到选项弹层时灵动岛会收起、把弹层抽走。
@@ -295,6 +297,39 @@ Item {
                         hoverEnabled: bar.revealed
                         cursorShape: Qt.PointingHandCursor
                         onClicked: { if (subPop.isPen) bar.penWidth = val; else bar.eraserWidth = val }
+                    }
+                }
+            }
+
+            // —— 笔色（仅画笔；橡皮 destination-out 无色，不显）——
+            Rectangle {
+                visible: subPop.isPen
+                width: 1; height: 24; radius: 1
+                anchors.verticalCenter: parent.verticalCenter
+                color: Qt.rgba(1, 1, 1, 0.10)
+            }
+            Repeater {
+                model: subPop.isPen ? (bar.style ? bar.style.memoInkPalette : [bar.inkColor]) : []
+                delegate: Rectangle {
+                    required property var modelData
+                    readonly property bool sel: Qt.colorEqual(bar.inkColor, modelData)
+                    width: 26; height: 26; radius: 13
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "transparent"
+                    border.width: sel ? 2 : 0
+                    border.color: bar.style ? bar.style.memoSelectRing : Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.58)
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 18; height: 18; radius: 9
+                        color: modelData
+                        border.width: 1
+                        border.color: Qt.rgba(0, 0, 0, 0.22)
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: bar.revealed
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: bar.inkColor = modelData
                     }
                 }
             }

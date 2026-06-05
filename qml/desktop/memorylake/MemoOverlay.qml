@@ -123,7 +123,8 @@ Item {
         if (_selDragging) return;   // 手势中画布暂缺一块（墨迹浮起），别存到缺口；提交后会再存
         _writeCurrent();
         store.setValue(memo.docKey, JSON.stringify({ v: 2, pages: pagesData, current: currentPage,
-                                                     pen: { pw: toolbar.penWidth, ew: toolbar.eraserWidth } }));
+                                                     pen: { pw: toolbar.penWidth, ew: toolbar.eraserWidth,
+                                                            color: "" + toolbar.inkColor } }));
         saveStatus.flash("笔迹已保存");
     }
     function loadDoc() {
@@ -146,6 +147,7 @@ Item {
         if (doc.pen) {
             if (typeof doc.pen.pw === "number") toolbar.penWidth = doc.pen.pw;
             if (typeof doc.pen.ew === "number") toolbar.eraserWidth = doc.pen.ew;
+            if (typeof doc.pen.color === "string" && doc.pen.color.length > 0) toolbar.inkColor = doc.pen.color;
         }
     }
     function scheduleSave() { if (store) saveTimer.restart(); }
@@ -557,7 +559,8 @@ Item {
             anchors.fill: parent
             style: memo.style
             tool: toolbar.currentTool
-            penWidth: toolbar.penWidth       // gap #3
+            penColor: toolbar.inkColor        // gap #2
+            penWidth: toolbar.penWidth        // gap #3
             eraserWidth: toolbar.eraserWidth  // gap #3
             onStrokeEnded: { memo.scheduleSave(); memo._histRecord(); }
         }

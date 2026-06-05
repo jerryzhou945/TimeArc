@@ -170,6 +170,15 @@ QtObject {
     readonly property color memoInk: Qt.rgba(255 / 255, 236 / 255, 150 / 255, 0.96)
     readonly property real memoPenWidth: 4
     readonly property real memoEraserWidth: 28
+    // 笔色调板（gap #2）：暖粉笔黄(默认) + 青/紫/粉/薄荷/白，统一 chalk 透明度。
+    readonly property var memoInkPalette: [
+        memoInk,
+        Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.94),
+        Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.94),
+        Qt.rgba(216 / 255, 138 / 255, 172 / 255, 0.94),
+        Qt.rgba(168 / 255, 240 / 255, 184 / 255, 0.94),
+        Qt.rgba(255 / 255, 255 / 255, 255 / 255, 0.92)
+    ]
     // 便签暖黄纸（设计稿 .sticky-note #FFE6A3，与 shareGold 同值、语义独立）+ 便签墨字
     readonly property color stickyPaper: "#FFE6A3"
     readonly property color stickyInk: "#1E1E1E"
