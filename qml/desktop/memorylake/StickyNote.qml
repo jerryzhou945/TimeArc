@@ -14,11 +14,14 @@ Item {
     property bool editing: false          // 正在编辑标题/正文 → 守卫键盘删除
     property string title: ""
     property string content: ""
+    property bool done: false             // 待办完成态（左上打勾），供后续日历待做事项消费
+    property double createdMs: 0          // 创建时间戳（epoch ms），0 = 旧便签无时间
 
     signal selectRequested(bool grabFocus)   // grabFocus=true（header/缩放）→ 让覆盖层接管键盘删除
     signal geometryCommitted()
     signal contentCommitted()
     signal deleteRequested()
+    signal doneToggled()                  // 勾选/取消勾选 → 覆盖层回写 odone
 
     z: 124
     width: 310
@@ -89,6 +92,7 @@ Item {
                 placeholderTextColor: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.4)
                 font.pixelSize: note.compact ? 19 : 24
                 font.weight: Font.ExtraBold
+                font.strikeout: note.done       // 完成态：标题划线
                 onActiveFocusChanged: { note.editing = activeFocus; if (activeFocus) note.selectRequested(false) }
                 onTextChanged: note.title = text
                 onEditingFinished: note.contentCommitted()
@@ -97,7 +101,7 @@ Item {
             // 正文
             ScrollView {
                 width: parent.width
-                height: parent.height - header.height - titleField.height - byline.height
+                height: parent.height - header.height - titleField.height - dateRow.height
                 clip: true
                 TextArea {
                     id: bodyArea
@@ -106,7 +110,8 @@ Item {
                     background: null
                     wrapMode: TextEdit.Wrap
                     textFormat: TextEdit.PlainText
-                    color: note.style ? note.style.stickyInk : "#1E1E1E"
+                    color: note.done ? Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.45)
+                                     : (note.style ? note.style.stickyInk : "#1E1E1E")
                     placeholderText: "写点什么…"
                     placeholderTextColor: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.4)
                     font.pixelSize: note.compact ? 15 : 18
@@ -116,17 +121,41 @@ Item {
                 }
             }
 
-            // 静态署名（v88 写死 "JusTin D"）。
+            // 创建日期与时间（取代 v88 "JusTin D" 署名）。供后续把便签同步成日历待做事项。
             Text {
-                id: byline
+                id: dateRow
                 width: parent.width
-                leftPadding: 16; bottomPadding: 10
-                text: "JusTin D"
+                leftPadding: 16; rightPadding: 16; bottomPadding: 10
+                text: note.createdMs > 0
+                      ? Qt.formatDateTime(new Date(note.createdMs), "yyyy-MM-dd  HH:mm")
+                      : ""
                 color: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.5)
                 font.pixelSize: 12
-                font.italic: true
-                horizontalAlignment: Text.AlignRight
-                rightPadding: 16
+                horizontalAlignment: Text.AlignLeft
+            }
+        }
+
+        // 完成打勾（左上角；始终可见，点击切换完成态）。完成 → 标题划线 + 正文淡化 + 绿勾。
+        Rectangle {
+            id: doneBox
+            width: 22; height: 22; radius: 6
+            anchors { top: parent.top; left: parent.left; topMargin: 7; leftMargin: 7 }
+            color: note.done ? (note.style ? note.style.pomodoroLeaf : "#5FBF6B")
+                             : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.10)
+            border.width: 1.5
+            border.color: note.done ? (note.style ? note.style.pomodoroLeafDark : "#3E8F4E")
+                                    : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.42)
+            Behavior on color { ColorAnimation { duration: 120 } }
+            Text {
+                anchors.centerIn: parent
+                text: "✓"; visible: note.done
+                color: "#FFFFFF"; font.pixelSize: 15; font.weight: Font.Bold
+            }
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: { note.done = !note.done; note.selectRequested(true); note.doneToggled(); }
             }
         }
 

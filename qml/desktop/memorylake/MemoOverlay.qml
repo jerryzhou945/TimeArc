@@ -44,7 +44,8 @@ Item {
         for (var i = 0; i < objectModel.count; i++) {
             var o = objectModel.get(i);
             objs.push({ t: o.otype, x: o.ox, y: o.oy, w: o.ow, h: o.oh,
-                        ti: o.otitle, co: o.ocontent, tx: o.otext });
+                        ti: o.otitle, co: o.ocontent, tx: o.otext,
+                        ts: o.ots || 0, done: o.odone === true });
         }
         pagesData[currentPage] = { label: pagesData[currentPage].label,
                                    objects: objs, canvas: inkCanvas.exportDataURL() };
@@ -56,7 +57,8 @@ Item {
         for (var i = 0; i < objs.length; i++) {
             var o = objs[i];
             objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
-                                 otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字" });
+                                 otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字",
+                                 ots: o.ts || 0, odone: o.done === true });
         }
         memo.selectedObject = -1;
         inkCanvas.loadFromDataURL((p && p.canvas) ? p.canvas : "");
@@ -124,14 +126,16 @@ Item {
         var x = Math.max(8, Math.min(px - 110, W - w - 8));
         var y = Math.max(84, Math.min(py - 22, H - h - 8));
         objectModel.append({ otype: "sticky", ox: x, oy: y, ow: w, oh: h,
-                             otitle: "", ocontent: "", otext: "" });
+                             otitle: "", ocontent: "", otext: "",
+                             ots: new Date().getTime(), odone: false });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
         memo.scheduleSave();
     }
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 220, oh: 40,
-                             otitle: "", ocontent: "", otext: "输入文字" });
+                             otitle: "", ocontent: "", otext: "输入文字",
+                             ots: 0, odone: false });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
         memo.scheduleSave();
@@ -336,6 +340,8 @@ Item {
                         it.height = model.oh;
                         it.title = model.otitle;
                         it.content = model.ocontent;
+                        it.createdMs = model.ots || 0;
+                        it.done = model.odone === true;
                     } else {
                         it.text = model.otext;
                     }
@@ -343,9 +349,14 @@ Item {
                 }
                 Connections {
                     target: ldr.obj
+                    ignoreUnknownSignals: true   // 文字层无 doneToggled，忽略以免告警
                     function onSelectRequested(grabFocus) {
                         memo.selectedObject = ldr.index;
                         if (grabFocus) memo.forceActiveFocus();
+                    }
+                    function onDoneToggled() {
+                        objectModel.setProperty(ldr.index, "odone", ldr.obj.done);
+                        memo.scheduleSave();
                     }
                     function onGeometryCommitted() {
                         objectModel.setProperty(ldr.index, "ox", ldr.obj.x);
