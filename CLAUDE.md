@@ -38,6 +38,8 @@ For card, AI, Memory Lake, or mobile planning work, read:
 - `docs/card-ai-development-spec.md`
 - `docs/future-coding-harness.md`
 - `.harness/rules/07-product-ai-cards.md`
+- 备忘黑板：`docs/memory-lake-memo-functional-replication.md` +
+  `docs/memory-lake-memo-render-pipeline-replication.md`（实现要点见 `.harness/rules/04` §8）
 
 Product principle:
 

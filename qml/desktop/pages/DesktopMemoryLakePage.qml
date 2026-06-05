@@ -24,6 +24,10 @@ Item {
     property int flippedIndex: -1
     property int previewIndex: -1
 
+    // 中栏今日结论（briefing）静止高度（设计稿 .today-briefing max-height 240，实测 ~200）；
+    // 翻面锁定时折叠为 0，把空间让给卡区。
+    readonly property real briefingH: 204
+
     // 记忆湖·日视图模型：dailyCardService.memoryLakeDay 产出（后端组装，QML 只渲染）。
     // 取数走首页同款只读路径（usageStatManager），无数据走空态，绝不用 Mock 假数据冒充。
     property var dayModel: ({})
@@ -127,14 +131,14 @@ Item {
                 anchors.margins: 14
                 spacing: 10
 
-                // 用户卡
-                Rectangle {
+                // 用户卡（profile，L2）：135° aqua→violet 斜染 + 头像顶沿内高光
+                FrostCard {
                     width: parent.width
                     height: 66
-                    radius: 19
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
+                    style: ml
+                    radius: ml.radiusCard
+                    tintTop: Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.08 * ml.glowStrength)
+                    tintBottom: Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0.045 * ml.glowStrength)
                     Row {
                         anchors.fill: parent
                         anchors.margins: 11
@@ -142,11 +146,14 @@ Item {
                         Rectangle {
                             width: 38; height: 38; radius: 14
                             anchors.verticalCenter: parent.verticalCenter
-                            border.width: 2
-                            border.color: Qt.rgba(1, 1, 1, 0.32)
                             gradient: Gradient {
                                 GradientStop { position: 0; color: ml.aqua }
                                 GradientStop { position: 1; color: ml.violet }
+                            }
+                            // 头像顶沿内高光 inset 0 1px 白 .2（一条 1px Rectangle，L2）
+                            Rectangle {
+                                anchors { top: parent.top; left: parent.left; right: parent.right; margins: 2 }
+                                height: 1; color: Qt.rgba(1, 1, 1, 0.2)
                             }
                         }
                         Column {
@@ -158,136 +165,187 @@ Item {
                     }
                 }
 
-                // 概览 + 今日主题
-                Row {
+                // 今日主题（theme）：占满整行（使用总览已移除——其总时数信息今日结论已含）。
+                FrostCard {
                     width: parent.width
                     height: 124
-                    spacing: 10
-
-                    Rectangle {
-                        width: (parent.width - 10) / 2
-                        height: parent.height
-                        radius: 19
-                        color: ml.cardBg
-                        border.width: 1
-                        border.color: ml.cardBorder
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 5
-                            Text { text: "使用总览"; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
-                            Text { text: root.overview.total; color: ml.textPrimary; font.pixelSize: 27; font.bold: true }
-                            Text { text: root.overview.sub; color: ml.textTertiary; font.pixelSize: 11 }
+                    style: ml
+                    radius: ml.radiusCard
+                    tintTop: Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.08 * ml.glowStrength)
+                    tintBottom: Qt.rgba(1, 1, 1, 0.025)
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 14
+                        spacing: 7
+                        Text {
+                            text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.9
+                            font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
                         }
-                    }
-
-                    Rectangle {
-                        width: (parent.width - 10) / 2
-                        height: parent.height
-                        radius: 19
-                        color: ml.cardBg
-                        border.width: 1
-                        border.color: ml.cardBorder
-                        Column {
-                            anchors.fill: parent
-                            anchors.margins: 12
-                            spacing: 5
-                            Text { text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.85 }
-                            Text { text: root.todayTheme.title; color: ml.textPrimary; font.pixelSize: 17; font.bold: true }
-                            Text {
-                                width: parent.width
-                                text: root.todayTheme.desc
-                                color: ml.textSecondary
-                                font.pixelSize: 11
-                                wrapMode: Text.WordWrap
-                                maximumLineCount: 2
-                                elide: Text.ElideRight
-                            }
+                        Text { text: root.todayTheme.title; color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            width: parent.width
+                            text: root.todayTheme.desc
+                            color: ml.textSecondary
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
+                        Rectangle {
+                            width: parent.width; height: 6; radius: 3
+                            color: ml.trackBg
                             Rectangle {
-                                width: parent.width; height: 6; radius: 3
-                                color: ml.trackBg
-                                Rectangle {
-                                    width: parent.width * root.todayTheme.ratio
-                                    height: parent.height; radius: 3
-                                    gradient: Gradient {
-                                        orientation: Gradient.Horizontal
-                                        GradientStop { position: 0; color: ml.aqua }
-                                        GradientStop { position: 1; color: ml.pink }
-                                    }
+                                width: parent.width * root.todayTheme.ratio
+                                height: parent.height; radius: 3
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0; color: ml.aqua }
+                                    GradientStop { position: 1; color: ml.pink }
                                 }
                             }
                         }
                     }
                 }
 
-                // 今日结论（替换原月度回顾 CTA 位置；月度回顾已独立成页）
-                TodayConclusionCard {
+                // 今日结论已移回中栏顶部（v88 .today-briefing）；左栏把腾出的空间给排行
+                // （设计稿 usage-list-panel「给排行榜更多空间」）。
+                // 排行（L4 纯霜膜 + 边缘光对；列表自身在 clip 容器内滚动）
+                FrostCard {
                     width: parent.width
-                    height: 150
+                    height: parent.height - 66 - 124 - 20
                     style: ml
-                    model: root.todayConclusion
-                    todoRemaining: calendarSync.remaining
-                }
-
-                // 排行
-                Rectangle {
-                    width: parent.width
-                    height: parent.height - 66 - 124 - 150 - 30
-                    radius: 22
-                    clip: true
-                    color: ml.cardBg
-                    border.width: 1
-                    border.color: ml.cardBorder
-                    UsageRankList {
+                    radius: ml.radiusCard
+                    Item {
                         anchors.fill: parent
                         anchors.margins: 13
-                        style: ml
-                        apps: root.apps
-                        ranking: root.ranking
-                        selectedIndex: root.selectedIndex
-                        locked: root.locked
-                        onRequestSelect: function(cardIndex) { root.selectCard(cardIndex) }
-                        onHoverCard: function(cardIndex) { if (!root.locked) root.previewIndex = cardIndex }
-                        onUnhoverCard: root.previewIndex = -1
+                        clip: true
+                        UsageRankList {
+                            anchors.fill: parent
+                            style: ml
+                            apps: root.apps
+                            ranking: root.ranking
+                            selectedIndex: root.selectedIndex
+                            locked: root.locked
+                            onRequestSelect: function(cardIndex) { root.selectCard(cardIndex) }
+                            onHoverCard: function(cardIndex) { if (!root.locked) root.previewIndex = cardIndex }
+                            onUnhoverCard: root.previewIndex = -1
+                        }
                     }
                 }
             }
         }
 
-        // ============ 中栏：卡牌轮盘 = 占位符背景层（铺满、无边框，在最底层）============
-        CardCarousel {
-            id: centerCarousel
-            anchors.fill: parent
-            z: 0
+        // ============ 中栏：包裹板（设计稿 .main-panel，与左右栏同款 GlassPanel 包裹大板块）============
+        //               内含今日结论（上）+ 卡牌区暗箱（下半，翻面折叠让位）。
+        GlassPanel {
+            id: middlePanel
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.left: leftPanel.right
+            anchors.right: rightPanel.left
+            anchors.leftMargin: 14
+            anchors.rightMargin: 14
+            z: 1
             style: ml
-            apps: root.apps
-            selectedIndex: root.selectedIndex
-            flippedIndex: root.flippedIndex
-            previewIndex: root.previewIndex
-            onRequestSelect: function(i) { root.selectCard(i) }
-            onRequestToggleFlip: function(i) { root.toggleFlip(i) }
-            onHoverCard: function(i) { root.previewIndex = i }
-            onUnhoverCard: root.previewIndex = -1
-        }
 
-        // 中栏空态：今天还没有自动记录时给保守提示，不显假卡片。
-        Column {
-            anchors.centerIn: parent
-            z: 0
-            spacing: 8
-            visible: !root.hasData
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "今天还没有自动记录"
-                color: ml.textPrimary
-                font.pixelSize: 18
-                font.bold: true
+            Item {
+                id: middleInner
+                anchors.fill: parent
+                anchors.margins: 14
+
+            // 今日结论（设计稿 .today-briefing）：翻面锁定时折叠（「今日结论暂时收起」），把空间让给卡区。
+            TodayConclusionCard {
+                id: briefing
+                x: 0; y: 0
+                width: parent.width
+                height: root.locked ? 0 : root.briefingH
+                opacity: root.locked ? 0 : 1
+                visible: opacity > 0.01
+                style: ml
+                model: root.todayConclusion
+                todoRemaining: calendarSync.remaining
+                transformOrigin: Item.Top
+                scale: root.locked ? 0.97 : 1.0
+                Behavior on height { NumberAnimation { duration: 440; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
+                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
             }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "开始使用电脑后，这里会浮现今天的记忆卡片。"
-                color: ml.textSecondary
-                font.pixelSize: 13
+
+            // 卡牌区（设计稿 .cards-zone）：圆角暗箱；折叠时上移填满（容纳翻面 616 高卡）。
+            Rectangle {
+                id: cardsZone
+                x: 0
+                width: parent.width
+                y: root.locked ? 0 : (root.briefingH + 14)
+                height: parent.height - y
+                radius: 26
+                color: ml.cardsZoneBg
+                border.width: 1
+                border.color: root.locked
+                    ? Qt.rgba(ml.glowCyan.r, ml.glowCyan.g, ml.glowCyan.b, 0.22)
+                    : Qt.rgba(1, 1, 1, ml.night ? 0.08 : 0.04)
+                antialiasing: true
+                clip: true
+                Behavior on y { NumberAnimation { duration: 440; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
+                Behavior on border.color { ColorAnimation { duration: 300 } }
+
+                // 顶沿 1px 内高光（玻璃上唇）。左右内缩半径，不越圆角。
+                Rectangle {
+                    anchors { top: parent.top; left: parent.left; right: parent.right
+                              topMargin: 1; leftMargin: parent.radius; rightMargin: parent.radius }
+                    height: 1
+                    color: ml.edgeHighlight
+                }
+
+                // 50% 处 aqua 装饰中线（设计稿 .cards-zone::before，左右内缩 58）。
+                Rectangle {
+                    x: 58; width: parent.width - 116
+                    y: Math.round(parent.height * 0.5)
+                    height: 1
+                    visible: parent.width > 140
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: "transparent" }
+                        GradientStop { position: 0.5; color: Qt.rgba(ml.glowCyan.r, ml.glowCyan.g, ml.glowCyan.b, 0.22) }
+                        GradientStop { position: 1; color: "transparent" }
+                    }
+                }
+
+                // 卡牌轮盘（铺满卡区；lane = 整个卡区，灯光/水位线限定卡区内）。
+                CardCarousel {
+                    id: centerCarousel
+                    anchors.fill: parent
+                    style: ml
+                    apps: root.apps
+                    selectedIndex: root.selectedIndex
+                    flippedIndex: root.flippedIndex
+                    previewIndex: root.previewIndex
+                    onRequestSelect: function(i) { root.selectCard(i) }
+                    onRequestToggleFlip: function(i) { root.toggleFlip(i) }
+                    onHoverCard: function(i) { root.previewIndex = i }
+                    onUnhoverCard: root.previewIndex = -1
+                }
+
+                // 卡区空态：今天还没有自动记录时给保守提示，不显假卡片。
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 8
+                    visible: !root.hasData
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "今天还没有自动记录"
+                        color: ml.textPrimary
+                        font.pixelSize: 18
+                        font.bold: true
+                    }
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "开始使用电脑后，这里会浮现今天的记忆卡片。"
+                        color: ml.textSecondary
+                        font.pixelSize: 13
+                    }
+                }
+            }
             }
         }
 
@@ -333,15 +391,15 @@ Item {
                         CalendarSyncList {
                             id: calendarSync
                             width: parent.width
-                            height: Math.max(140, parent.height - 226 - 14)
+                            height: Math.max(160, parent.height - 298 - 14)
                             style: ml
                             onOpenCalendar: root.requestNavigate("calendar")
                         }
 
-                        // 顺序二：今日软件使用占比（饼图 + 图例）
+                        // 顺序二：今日软件使用占比（霓虹甜甜圈 + 图例 + 洞察）
                         DailyUsageShare {
                             width: parent.width
-                            height: 226
+                            height: 298
                             style: ml
                             share: root.usageShare
                             total: root.overview.total
@@ -391,12 +449,10 @@ Item {
                     Component.onCompleted: opacity = active ? 1 : 0
                     onActiveChanged: active ? lockIn.restart() : lockOut.restart()
 
-                    Rectangle {
+                    FrostCard {
                         anchors.fill: parent
-                        radius: 18
-                        color: ml.cardBg
-                        border.width: 1
-                        border.color: ml.cardBorder
+                        style: ml
+                        radius: ml.radiusCard
                         TimeRiver {
                             anchors.fill: parent
                             anchors.margins: 16

@@ -14,6 +14,9 @@ Item {
     property bool previewed: false
     property bool dimmed: false   // 翻面锁定时其它卡变暗
 
+    // 鼠标是否悬停在本卡上（设计稿 .card:hover）：霓虹底光 + 高光划过都只在悬停时醒来（§3.6）。
+    readonly property bool hovered: hover.hovered
+
     // 卡面圆角 / 边缘光（描边）几何 + 圆角遮罩裁切阈值，集中此处便于统一调参。
     // maskThresholdMin：把 MultiEffect 圆角遮罩的裁切位置卡在「50% 覆盖」等高线（= 几何圆角
     // 半径），而不是默认 0 让抗锯齿淡边（alpha≈0）也整幅透出——后者会让内容圆角实际半径比
@@ -35,14 +38,15 @@ Item {
     width: layoutW
     height: layoutH
 
-    Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
-    Behavior on height { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+    // 选中放大走品牌「柔落」缓动（与翻面同曲线，整卡运动一致），让选卡过渡更整体。
+    Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
+    Behavior on height { NumberAnimation { duration: 360; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
 
     // .card.is-selected{ scale(1.01) }；非选中 .88；锁定时其它卡 .25；预览微放大
     scale: selected ? 1.01 : (previewed ? 0.96 : 0.88)
     opacity: selected ? 1.0 : (dimmed ? 0.25 : (previewed ? 0.82 : 0.42))
-    Behavior on scale { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
-    Behavior on opacity { NumberAnimation { duration: 260 } }
+    Behavior on scale { NumberAnimation { duration: 300; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
+    Behavior on opacity { NumberAnimation { duration: 280; easing.type: Easing.OutCubic } }
 
     // 翻面角度提升为卡片级属性：底灯据此做 3D 透视收束 + 高光绽放（见下方 ambientGlow）。
     property real flipAngle: flipped ? 180 : 0
@@ -66,8 +70,10 @@ Item {
         readonly property color restColor: card.style ? card.style.aqua : "#9FE7EE"
         readonly property color peakColor: card.style ? card.style.violet : "#9B8BFF"
 
-        // 选中淡入淡出走 baseGlow（带 Behavior）；翻面高光走 edgeOn（跟随 flipAngle 动画），两者相乘，互不干扰
-        property real baseGlow: card.selected ? 0.55 : 0.0
+        // 霓虹底光只在交互时醒来（设计稿 .card:hover drop-shadow aqua）：**悬停**任意卡即点亮底光；
+        // 选中卡翻面（locked，展示分析）时保持点亮以承载翻面透视高光。静止未悬停的卡无底光。
+        // 翻面高光走 edgeOn（跟随 flipAngle 动画），与 baseGlow 相乘，互不干扰。
+        property real baseGlow: (card.hovered || (card.selected && card.flipped)) ? 0.7 : 0.0
         Behavior on baseGlow { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
         opacity: baseGlow * (1.0 + 0.55 * edgeOn)
         visible: opacity > 0.01
@@ -79,26 +85,19 @@ Item {
             xScale: 0.14 + 0.86 * ambientGlow.foreshorten
         }
 
-        Rectangle {
-            id: glowSrc
+        // 底灯改用平滑径向渐变（GlowCircle），取代旧的「实心圆角矩形 + MultiEffect 高斯模糊」——
+        // 后者中心是平的实心块、模糊后仍能看出长方形轮廓、且大半径模糊出现一圈圈 banding（一层一层）。
+        // 径向渐变中心最亮→边缘透明，天然柔和、椭圆无方角；放大到卡片外缘，中心被卡身遮住、只透出
+        // 四周柔光晕（= 设计稿「向外散出、向内被卡身遮住」）。aqua→violet 折射偏移走 glowColor。
+        GlowCircle {
             anchors.fill: parent
-            radius: 30
-            // aqua → violet 折射偏移（峰值偏移 0.7）
-            color: Qt.rgba(
+            anchors.margins: -Math.round(Math.min(parent.width, parent.height) * 0.30)
+            glowColor: Qt.rgba(
                 ambientGlow.restColor.r + (ambientGlow.peakColor.r - ambientGlow.restColor.r) * ambientGlow.edgeOn * 0.7,
                 ambientGlow.restColor.g + (ambientGlow.peakColor.g - ambientGlow.restColor.g) * ambientGlow.edgeOn * 0.7,
                 ambientGlow.restColor.b + (ambientGlow.peakColor.b - ambientGlow.restColor.b) * ambientGlow.edgeOn * 0.7,
                 1.0)
-            visible: false
-            layer.enabled: true
-        }
-        MultiEffect {
-            anchors.fill: glowSrc
-            source: glowSrc
-            blurEnabled: true
-            blur: 1.0
-            blurMax: 48
-            autoPaddingEnabled: true
+            glowOpacity: 1.0
         }
     }
 
@@ -373,6 +372,37 @@ Item {
                 maskSource: backArtMask
                 maskThresholdMin: card.maskThresholdMin
                 maskSpreadAtMin: card.maskSpreadAtMin
+            }
+        }
+    }
+
+    // 高光划过（设计稿 .card:hover 玻璃反光 / cookbook §3.6「扫光只在 :hover 时出现」）：
+    // 悬停时一道斜向高光反复扫过卡面（玻璃反光质感）。独立叠层 z:2，不进翻面合成；
+    // RoundedFrame round-clip 收在卡面圆角内（clip:true 只裁矩形会让斜光戳出圆角成方角）。仅正面、仅悬停时跑。
+    RoundedFrame {
+        id: sheen
+        anchors.fill: parent
+        radius: card.faceRadius
+        z: 2
+        visible: card.hovered && !card.flipped
+        Rectangle {
+            id: sheenBar
+            width: parent.width * 0.4
+            height: parent.height * 1.9
+            y: -parent.height * 0.45
+            rotation: 16
+            transformOrigin: Item.Center
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 0.5; color: card.style && !card.style.night ? Qt.rgba(1, 1, 1, 0.30) : Qt.rgba(1, 1, 1, 0.16) }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+            SequentialAnimation on x {
+                running: sheen.visible
+                loops: Animation.Infinite
+                NumberAnimation { from: -card.width * 0.5; to: card.width * 1.1; duration: 820; easing.type: Easing.InOutSine }
+                PauseAnimation { duration: 1700 }
             }
         }
     }

@@ -55,16 +55,42 @@ with day and night modes.
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.
   Memory Lake is the home/landing page; the Timer page is reached when a
   calendar to-do starts timing.
-- **Local memo chat** — the desktop Chat page is a local self-recording
-  memo surface, not an AI chat or cloud chat. Messages are stored in the
-  SQLite settings repository and loaded back in timestamp order.
+- **Frameless window chrome** — the desktop window drops the native OS title
+  bar for an immersive custom chrome (QQ-Music style): a brand app icon
+  top-left and minimize / maximize / close controls top-right, floating over a
+  page background that bleeds to the top edge. Drag the top bar to move (native
+  edge-snap preserved), double-click to maximize/restore, drag any edge to
+  resize. Glyph color adapts to the surface (light on the dark Memory Lake /
+  night pages) and the chrome steps aside while the memo blackboard is open.
+  On Windows 11 the window gets **native rounded corners and drop shadow** via
+  DWM (`DWMWA_WINDOW_CORNER_PREFERENCE`). Mobile preview keeps the native frame.
+  *(A fuller native custom-frame pass — Win11 snap-layouts fly-out — is still
+  planned.)*
+- **Memory Lake memo blackboard (备忘)** — the 「备忘」 nav opens a modal blackboard
+  **overlay** over the home page (an action, **not** a page route): a near-black dotted
+  board with a freehand chalk-ink canvas and a floating glass tool pill (note / text /
+  pen / eraser / exit), the home page re-blurred behind it. Freehand chalk pen/eraser with a
+  **color palette + width presets** and a **clear-canvas** button (confirm + Ctrl+Z undoable),
+  draggable + resizable **sticky notes** (autosize, aqua selection ring, a **due date/time**
+  picker, a done checkbox and an editable **signature**), editable + resizable **text layers**
+  (Alt-drag), a **multi-page archive folder** (switch / add / delete / **rename** / drag-**reorder**,
+  max 10, each page owns its own ink + objects and shows a **row thumbnail**), a marquee
+  **select tool** (copy / delete / move / scale across ink *and* objects, with a clipboard —
+  **Ctrl+C / Ctrl+V** across pages — and **Ctrl+Z** undo), and a **persisted pomodoro widget**
+  (editable title, collapses to a pixel tomato while running, full-screen completion celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
+  1920×1080 logical canvas uniformly scaled to fit the window (16:9). Everything
+  **auto-persists** to a UI-private store (`SettingsRepository`), kept **off the service↔UI
+  disk contract**. *(Replaces the former local Chat page.)*
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
-  three-panel "记忆湖": a left panel with a **Today Conclusion** card (今日结论:
-  theme + chips for top share / remaining to-dos / peak hours / suggestion) above
-  the app usage ranking, a center flip-card carousel (3D flip, wheel/click
-  switching, flip-to-lock; **unchanged** by the home rework), and a right panel
-  with **Daily Usage Share** (今日软件使用占比 donut + legend), the "time river",
-  and **Calendar Sync** (今日事项, today's to-dos synced from the calendar). The
+  three-panel "记忆湖": a left panel with the app usage ranking, a **center column**
+  that stacks the **Today Conclusion** briefing (今日结论: kicker/title/score box +
+  chips for top share / remaining to-dos / peak hours / suggestion) on top of the
+  flip-card carousel in a rounded "cards-zone" (the cards occupy the lower half;
+  the briefing **collapses on flip** — "今日结论暂时收起" — so the cards get room),
+  and a right panel with **Daily Usage Share** (今日软件使用占比 donut + legend),
+  the "time river", and **Calendar Sync** (今日事项, today's to-dos synced from the
+  calendar). The center 3D flip-card carousel (wheel/click switching, flip-to-lock)
+  is **unchanged**. The
   monthly recap is now its **own page** ("记忆湖 / Memory Recap" at the bottom of
   the nav): a full-screen story-mode recap (slides with transitions, autoplay, an
   unlockable step directory; 返回湖面 / Esc returns home). It renders **real
@@ -75,8 +101,19 @@ with day and night modes.
   month data (per-day trend, category share, month-on-month). All copy is local
   deterministic templates (`DailyCardService`, no AI, no chat/screenshots/raw
   audio); missing data falls back to honest empty states. It follows the
-  day/night theme with glass/neon lighting and silky scrolling. Per-surface
-  design: `docs/memory-lake-backend-integration-plan.md`.
+  day/night theme with glass/neon lighting and silky scrolling. The Home and
+  Monthly Recap surfaces have a full **art-replication pass** to the v88 design:
+  a blue-black depth-ramp background with aqua/violet corner lights, tier-1/2
+  glass with top+bottom edge-light pairs (reusable `FrostCard` for frost cards),
+  a center "lake" up-light + water line + progress-dot pill, and a recap shell with
+  aurora wave + glow-ring + staggered slide entrances. The Today Conclusion briefing,
+  the **notebook-grid + blue-neon** Calendar Sync panel, and the **3D neon donut**
+  (colored bloom + breathing ring + sculpted dark center hole) share a reusable
+  `GridTexture` grid-paper overlay and corner radial glows — all colors/radii/easings
+  sourced from the `MemoryLakeStyle` token singleton.
+  Per-surface design: `docs/memory-lake-backend-integration-plan.md`,
+  `docs/memory-lake-home-art-implementation-spec.md`,
+  `docs/memory-lake-art-lighting-qml-cookbook.md`.
 - **Native app icons in statistics** — the usage UI surfaces each
   tracked app's system icon via a Qt image provider.
 - **Mainland China browser-site split** - common websites opened inside
@@ -127,8 +164,8 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   source, and the JSONL history plus live JSON snapshot still remain in use.
 - Current desktop data split: automatic foreground-app and media usage
   still come from the real service capture path and journal/database session
-  readers; manual projects, timer sessions, calendar todos, night mode, and
-  local memo chat are routed through SQLite-backed repositories/settings.
+  readers; manual projects, timer sessions, calendar todos, night mode, and the
+  memo blackboard doc are routed through SQLite-backed repositories/settings.
   Legacy QSettings data for those UI-owned items is migrated into SQLite on
   startup without deleting the old QSettings keys.
 
@@ -141,16 +178,19 @@ state. The main data loop is now closed for the desktop surfaces below:
   today's manual-project totals, project rankings, recent activity, and range
   aggregation.
 - Project creation, timer session submission, project deletion, calendar
-  todos, night mode, and local memo chat are persisted through SQLite-backed
-  repositories/settings.
+  todos, night mode, and the memo blackboard doc are persisted through
+  SQLite-backed repositories/settings.
 - Project deletion is conservative: projects are archived/hidden from active
   lists, while historical sessions and stats remain queryable.
 - Calendar todos persist date, title, and completion state through SQLite
   settings.
 - The Settings page stores night mode in SQLite settings and shows the real
   read-only SQLite database path from `databaseManager.getDatabasePath()`.
-- The Chat page is a local memo/self-recording chat. It is not an AI chat,
-  does not call cloud services, and does not provide smart replies.
+- The 备忘 entry opens a local blackboard memo overlay (freehand ink + notes,
+  sticky/text objects, multi-page, select tool, pomodoro), not an AI chat or
+  cloud service. Its content is user-authored UI-private state, persisted through
+  a UI-private store (`SettingsRepository` key `memoryLakeMemoDoc`), off the
+  service↔UI disk contract.
 
 Important limits remain:
 
@@ -251,9 +291,9 @@ The SQLite file is separate from the usage directory. It uses Qt's
 `%APPDATA%\TimeArc\TimeArc\timearc.db`. It is being introduced alongside
 JSONL and is not yet the sole primary data source.
 
-Desktop manual projects, timer sessions, calendar to-dos, night mode, and
-local memo chat now read/write this SQLite database. Existing QSettings data
-for projects/sessions, calendar todos, local memo chat, and night mode is
+Desktop manual projects, timer sessions, calendar to-dos, night mode, and the
+memo blackboard doc now read/write this SQLite database. Existing QSettings data
+for projects/sessions, calendar todos, and night mode is
 migrated once on startup when possible. The migration is idempotent and keeps
 the legacy QSettings data in place; it does not make SQLite the only source
 for automatic foreground/media usage yet.

@@ -1065,33 +1065,31 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
   }
   model.insert(QStringLiteral("todayTheme"), theme);
 
-  // —— Daily Usage Share：前 4 个 app 切片 + 其他（占全天总时长）——
+  // —— Daily Theme Share（今日主题使用占比）：按本地分类器的「主题分类」(开发/社交/游戏/视频…)
+  //    汇总，前 4 个主题类切片 + 其他。复用上面 catSec（类别→秒）；系统/其他不作具名切片，
+  //    统一并入「其他」滚动项。denominator 仍取 totalDaySec，使各切片 % 加总≈100。——
   {
+    struct CatSlice { QString cat; qint64 sec; };
+    QVector<CatSlice> cats;
+    for (auto it = catSec.constBegin(); it != catSec.constEnd(); ++it) {
+      if (it.key() == QStringLiteral("系统") || it.key() == QStringLiteral("其他"))
+        continue;
+      cats.append({it.key(), it.value()});
+    }
+    std::sort(cats.begin(), cats.end(),
+              [](const CatSlice& a, const CatSlice& b) { return a.sec > b.sec; });
+
     QVariantList share;
-    const int topN = std::min<int>(4, static_cast<int>(appsOut.size()));
+    const int topN = std::min<int>(4, static_cast<int>(cats.size()));
     qlonglong shown = 0;
     for (int i = 0; i < topN; ++i) {
-      const QVariantMap a = appsOut.at(i).toMap();
-      const qlonglong sec = a.value(QStringLiteral("seconds")).toLongLong();
-      shown += sec;
+      shown += cats.at(i).sec;
       QVariantMap slice;
-      slice.insert(QStringLiteral("name"), a.value(QStringLiteral("name")));
-      slice.insert(QStringLiteral("appId"), a.value(QStringLiteral("appId")));
-      slice.insert(QStringLiteral("path"), a.value(QStringLiteral("path")));
-      slice.insert(QStringLiteral("iconColors"),
-                   a.value(QStringLiteral("iconColors")));
-      slice.insert(QStringLiteral("brandColor"),
-                   a.value(QStringLiteral("brandColor")));
-      slice.insert(QStringLiteral("iconLabel"),
-                   a.value(QStringLiteral("iconLabel")));
-      slice.insert(QStringLiteral("iconSource"),
-                   a.value(QStringLiteral("iconSource")));
-      slice.insert(QStringLiteral("siteDomain"),
-                   a.value(QStringLiteral("siteDomain")));
-      slice.insert(QStringLiteral("seconds"), sec);
+      slice.insert(QStringLiteral("name"), cats.at(i).cat);
+      slice.insert(QStringLiteral("seconds"), cats.at(i).sec);
       slice.insert(QStringLiteral("percent"),
                    totalDaySec > 0
-                       ? qRound(100.0 * static_cast<double>(sec) /
+                       ? qRound(100.0 * static_cast<double>(cats.at(i).sec) /
                                 static_cast<double>(totalDaySec))
                        : 0);
       slice.insert(QStringLiteral("isOther"), false);
