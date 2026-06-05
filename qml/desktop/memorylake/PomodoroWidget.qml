@@ -36,9 +36,10 @@ Item {
     readonly property string timeText: _two(mm) + ":" + _two(ss)
     readonly property real progress: total > 0 ? (1 - remain / total) : 0
 
-    function _clampMin(v) { return Math.max(1, Math.min(180, v)); }
+    function _clampMin(v) { return Math.max(0, Math.min(180, v)); }   // 允许 0 分（配合秒做短计时）
     function _clampSec(v) { return Math.max(0, Math.min(59, v)); }
-    function startTimer() { if (running) return; if (remain <= 0) remain = total; running = true; }
+    // 总时长为 0（0 分 0 秒）时拒绝开始，避免秒针刚跑就判定完成。
+    function startTimer() { if (running) return; if (total <= 0) return; if (remain <= 0) remain = total; running = true; }
     function pauseTimer() { running = false; }
     function resetTimer() { running = false; compact = false; remain = total; }
     function setMinutes(m) { var s = remain % 60; total = _clampMin(m) * 60 + (running ? 0 : _clampSec(s)); if (!running) remain = total; }
@@ -46,6 +47,69 @@ Item {
     function _pickVariant() {
         var v = ["FOCUS COMPLETE", "GOOD SESSION", "MEMORY SAVED", "WELL DONE"];
         return v[Math.floor(Math.random() * v.length)];
+    }
+
+    // 深色数字输入（对齐 v88 .pomodoro-number：bg rgba(255,255,255,.055)、边 rgba(142,223,255,.12)、
+    // 字 rgba(245,250,255,.92)、r11/h36）。Windows 原生 Controls 风格不支持定制 SpinBox（背景/指示器
+    // 被忽略 → 白框），故自绘一个不依赖 Controls 风格的步进输入：可键入、可点 +/−，单向回流。
+    component NumberField: Rectangle {
+        id: nf
+        property int from: 0
+        property int to: 99
+        property int value: 0
+        signal valueModified(int v)
+        function _clamp(v) { return Math.max(from, Math.min(to, v)); }
+        function _commit(v) { var c = _clamp(isNaN(v) ? from : v); nf.valueModified(c); input.text = c; }
+
+        implicitWidth: 92; implicitHeight: 36
+        radius: 11
+        color: Qt.rgba(1, 1, 1, 0.055)
+        border.width: 1
+        border.color: input.activeFocus ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.45)
+                                         : Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.12)
+        onValueChanged: if (!input.activeFocus) input.text = nf.value
+
+        TextInput {
+            id: input
+            anchors { left: parent.left; right: stepCol.left; top: parent.top; bottom: parent.bottom
+                      leftMargin: 10; rightMargin: 2 }
+            color: Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.92)
+            selectionColor: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.5)
+            horizontalAlignment: Qt.AlignHCenter
+            verticalAlignment: Qt.AlignVCenter
+            font.pixelSize: 14
+            selectByMouse: true
+            inputMethodHints: Qt.ImhDigitsOnly
+            validator: IntValidator { bottom: nf.from; top: nf.to }
+            Component.onCompleted: text = nf.value
+            onEditingFinished: nf._commit(parseInt(input.text))
+        }
+        Column {
+            id: stepCol
+            anchors { right: parent.right; top: parent.top; bottom: parent.bottom
+                      rightMargin: 4; topMargin: 3; bottomMargin: 3 }
+            width: 20; spacing: 2
+            Rectangle {
+                width: 20; height: (parent.height - 2) / 2; radius: 6
+                color: upMa.pressed ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.22)
+                      : upMa.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.12)
+                                           : Qt.rgba(1, 1, 1, 0.06)
+                Text { anchors.centerIn: parent; text: "+"
+                       color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.85); font.pixelSize: 13 }
+                MouseArea { id: upMa; anchors.fill: parent; hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor; onClicked: nf._commit(nf.value + 1) }
+            }
+            Rectangle {
+                width: 20; height: (parent.height - 2) / 2; radius: 6
+                color: dnMa.pressed ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.22)
+                      : dnMa.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.12)
+                                           : Qt.rgba(1, 1, 1, 0.06)
+                Text { anchors.centerIn: parent; text: "−"
+                       color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.85); font.pixelSize: 13 }
+                MouseArea { id: dnMa; anchors.fill: parent; hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor; onClicked: nf._commit(nf.value - 1) }
+            }
+        }
     }
 
     Timer {
@@ -191,10 +255,10 @@ Item {
                     spacing: 4
                     Text { anchors.verticalCenter: parent.verticalCenter; text: "分"
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12 }
-                    SpinBox {
+                    NumberField {
                         id: minBox
-                        from: 1; to: 180; value: Math.floor(pomo.total / 60)
-                        onValueModified: pomo.setMinutes(value)
+                        from: 0; to: 180; value: Math.floor(pomo.total / 60)
+                        onValueModified: (v) => pomo.setMinutes(v)
                         implicitWidth: 92
                     }
                 }
@@ -202,10 +266,10 @@ Item {
                     spacing: 4
                     Text { anchors.verticalCenter: parent.verticalCenter; text: "秒"
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12 }
-                    SpinBox {
+                    NumberField {
                         id: secBox
                         from: 0; to: 59; value: pomo.total % 60
-                        onValueModified: pomo.setSeconds(value)
+                        onValueModified: (v) => pomo.setSeconds(v)
                         implicitWidth: 92
                     }
                 }
@@ -217,6 +281,9 @@ Item {
                 bottomPadding: 4
                 Rectangle {
                     width: 96; height: 34; radius: 10
+                    // 0 分 0 秒不可开始：按钮淡化、点击失效。
+                    readonly property bool canStart: pomo.running || pomo.total > 0
+                    opacity: canStart ? 1.0 : 0.45
                     gradient: Gradient {
                         GradientStop { position: 0; color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.94) }
                         GradientStop { position: 1; color: Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.92) }
@@ -224,7 +291,9 @@ Item {
                     Text { anchors.centerIn: parent; text: pomo.running ? "进行中" : "开始"
                            color: Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.94); font.pixelSize: 14; font.weight: Font.DemiBold }
                     MouseArea {
-                        anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        anchors.fill: parent
+                        enabled: parent.canStart
+                        cursorShape: Qt.PointingHandCursor
                         onClicked: pomo.running ? pomo.pauseTimer() : pomo.startTimer()
                     }
                 }

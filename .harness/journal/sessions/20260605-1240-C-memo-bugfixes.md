@@ -20,8 +20,13 @@ edits are UI-private QML under `qml/desktop/memorylake/`.
    corner resize handles; height auto until first manual resize, then fixed and
    persisted (`oh>0`). Default create size 240×48.
 4. **Pomodoro: allow 0 minutes + restyle the white inputs.** Min minute 0 (start
-   still refuses total 0). SpinBoxes restyled to v88 `.pomodoro-number` art:
-   bg rgba(255,255,255,.055), border rgba(142,223,255,.12), light text, r11/h36.
+   still refuses total 0; start button dims at 0:00). The inputs were white
+   because the app uses the native Windows Controls style, which silently
+   ignores `SpinBox` background/contentItem/indicator customization. Rather than
+   force a non-native style app-wide, replaced the two SpinBoxes with a custom
+   `NumberField` (Rectangle + TextInput + +/- steppers) matching v88
+   `.pomodoro-number` (bg rgba(255,255,255,.055), border rgba(142,223,255,.12),
+   light text, r11/h36). NOTE: qml.exe probe also renders the native style.
 5. **Ctrl+Z undo (+ Ctrl+Shift+Z redo).** Per-page snapshot history (objects +
    ink dataURL), guarded restore, capped at 40. Records after each committed
    mutation (create/delete/move/resize/edit/stroke); resets on open + page op.
