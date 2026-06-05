@@ -38,9 +38,24 @@ Rules:
 - One commit should map to one session log.
 - After each completed feature implementation, create one focused commit once
   verification has passed or documented blockers have been recorded.
+- Every completed feature must also update docs with what is implemented,
+  what is not implemented yet, and future adjustment directions.
 - Do not mix feature work, cleanup, and bug fixes.
 - Mention subtle rule/data-contract implications in the commit body.
 - Do not commit generated build output, local IDE state, or temporary files.
+
+## Branch And PR Rules
+
+Prefer feature branches over pushing directly to `dev`.
+
+- Create a short-lived branch for each feature or workflow change.
+- Push the branch and open a pull request for review/merge.
+- Keep `dev` as the integration branch so completed work can be reverted more
+  easily.
+- After the pull request is merged, delete the short-lived local and remote
+  branch.
+- Direct pushes to `dev` are reserved for explicit user requests or emergency
+  recovery work.
 
 ## Product Gates
 
