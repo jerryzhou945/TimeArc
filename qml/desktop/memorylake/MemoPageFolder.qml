@@ -20,6 +20,7 @@ Item {
     signal addPageRequested()
     signal deletePageRequested(int i)
     signal renamePageRequested(int i, string name)
+    signal movePageRequested(int from, int to)   // gap #6：拖拽重排页
 
     // 重命名当前编辑文本（输入框实时回传），便于「点别处也提交」——MouseArea 不抢键焦点，
     // 不能靠输入框自身失焦，故由前盖/行/新建等点击主动调 commitEdit()。
@@ -164,7 +165,7 @@ Item {
                         visible: folder.editingIndex !== index
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left; anchors.leftMargin: 56
-                        anchors.right: parent.right; anchors.rightMargin: 58
+                        anchors.right: parent.right; anchors.rightMargin: 80
                         text: modelData
                         color: sel ? "#EAF6FF" : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.78)
                         font.pixelSize: 13
@@ -234,6 +235,48 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: { folder.commitEdit(); folder.deletePageRequested(index) }
+                        }
+                    }
+                    // 拖拽排序手柄（gap #6）：>1 页 + 非编辑态显示，置于行点击层之上。
+                    // 点（不拖）落到下层 rowHover = 切页；拖动越过阈值被 gripDrag 抢走 = 重排。
+                    Rectangle {
+                        id: dragGrip
+                        visible: folder.editingIndex !== index && folder.pageCount > 1
+                                 && (rowHover.containsMouse || sel || gripMa.containsMouse || gripMa.pressed)
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right; anchors.rightMargin: 58
+                        width: 20; height: 24; radius: 5
+                        color: gripMa.pressed ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20)
+                              : gripMa.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
+                        Row {
+                            anchors.centerIn: parent; spacing: 3
+                            Repeater {
+                                model: 2
+                                delegate: Column {
+                                    spacing: 3
+                                    Repeater {
+                                        model: 3
+                                        delegate: Rectangle { width: 2.5; height: 2.5; radius: 1.25
+                                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.50) }
+                                    }
+                                }
+                            }
+                        }
+                        // 用 MouseArea（非 DragHandler）：抢住命中(preventStealing)不被行点击吞，
+                        // 松手按指针净位移算目标位次。无行内位移反馈（避免命中区随行移动的自激）。
+                        MouseArea {
+                            id: gripMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            preventStealing: true
+                            cursorShape: Qt.SizeVerCursor
+                            property real _pressY: 0
+                            onPressed: function (m) { gripMa._pressY = gripMa.mapToItem(list, m.x, m.y).y }
+                            onReleased: function (m) {
+                                var dy = gripMa.mapToItem(list, m.x, m.y).y - gripMa._pressY;
+                                var target = Math.max(0, Math.min(folder.pageCount - 1, index + Math.round(dy / 34)));
+                                if (target !== index) folder.movePageRequested(index, target);
+                            }
                         }
                     }
                 }

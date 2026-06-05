@@ -124,6 +124,20 @@ Item {
         _refreshLabels();
         scheduleSave();
     }
+    // gap #6：把第 from 页移到第 to 位。顺序即持久化顺序（pagesData 数组序），无 schema 变更。
+    function movePage(from, to) {
+        if (from < 0 || from >= pagesData.length) return;
+        to = Math.max(0, Math.min(pagesData.length - 1, to));
+        if (to === from) return;
+        _writeCurrent();   // 先把当前页 live 状态落回 pagesData[currentPage]，再重排
+        var moved = pagesData.splice(from, 1)[0];
+        pagesData.splice(to, 0, moved);
+        if (currentPage === from) currentPage = to;                 // 移的是当前页 → 跟到新位
+        else if (from < currentPage && currentPage <= to) currentPage -= 1;
+        else if (to <= currentPage && currentPage < from) currentPage += 1;
+        _refreshLabels();
+        scheduleSave();
+    }
 
     // 序列化整篇（多页）→ store。debounce 见 saveTimer。
     function saveDoc() {
@@ -982,6 +996,7 @@ Item {
         onAddPageRequested: memo.addPage()
         onDeletePageRequested: function (i) { memo.deletePage(i); }
         onRenamePageRequested: function (i, name) { memo.renamePage(i, name); }
+        onMovePageRequested: function (from, to) { memo.movePage(from, to); }
     }
 
     Rectangle {
