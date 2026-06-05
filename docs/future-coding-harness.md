@@ -38,9 +38,49 @@ Rules:
 - One commit should map to one session log.
 - After each completed feature implementation, create one focused commit once
   verification has passed or documented blockers have been recorded.
+- Every completed feature must also update docs with what is implemented,
+  what is not implemented yet, and future adjustment directions.
 - Do not mix feature work, cleanup, and bug fixes.
 - Mention subtle rule/data-contract implications in the commit body.
 - Do not commit generated build output, local IDE state, or temporary files.
+
+## Branch And PR Rules
+
+Prefer feature branches over pushing directly to `dev`.
+
+- Create a short-lived branch for each feature or workflow change.
+- Push the branch and open a pull request for review/merge.
+- Keep `dev` as the integration branch so completed work can be reverted more
+  easily.
+- After the pull request is merged, delete the short-lived local and remote
+  branch.
+- Remote short-lived branch cleanup is automated by
+  `.github/workflows/cleanup-merged-branch.yml` for merged same-repository pull
+  requests.
+- Direct pushes to `dev` are reserved for explicit user requests or emergency
+  recovery work.
+
+## Delivery Workflow Automation
+
+Implemented:
+
+- Completed feature work must include docs that describe implemented behavior,
+  missing pieces, and future adjustment directions.
+- Short-lived feature branches are preferred over direct `dev` pushes.
+- Merged same-repository pull requests automatically delete their remote head
+  branch unless it is `dev`, `main`, `master`, or under `release/`.
+
+Not implemented yet:
+
+- Local branch cleanup after merge is still manual on each developer machine.
+- Fork pull request branches are not deleted by this repository's workflow.
+- PR template enforcement for the documentation checklist is not automated yet.
+
+Future adjustment directions:
+
+- Add a pull request template with implemented/not-implemented/future sections.
+- Add CI checks that warn when feature PRs do not update docs.
+- Add a local helper script to prune merged branches after syncing `dev`.
 
 ## Product Gates
 
