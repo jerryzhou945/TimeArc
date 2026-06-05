@@ -44,7 +44,7 @@ Item {
         for (var i = 0; i < objectModel.count; i++) {
             var o = objectModel.get(i);
             objs.push({ t: o.otype, x: o.ox, y: o.oy, w: o.ow, h: o.oh,
-                        ti: o.otitle, co: o.ocontent, tx: o.otext,
+                        ti: o.otitle, co: o.ocontent, tx: o.otext, sg: o.osign || "",
                         ts: o.ots || 0, done: o.odone === true, due: o.odue || 0 });
         }
         return objs;
@@ -57,6 +57,7 @@ Item {
             var o = a[i];
             objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
                                  otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字",
+                                 osign: o.sg || "",
                                  ots: o.ts || 0, odone: o.done === true, odue: o.due || 0 });
         }
         memo.selectedObject = -1;
@@ -188,7 +189,7 @@ Item {
         var x = Math.max(8, Math.min(px - 110, W - w - 8));
         var y = Math.max(8, Math.min(py - 22, H - h - 8));   // 顶部开放（灵动岛顶栏）
         objectModel.append({ otype: "sticky", ox: x, oy: y, ow: w, oh: h,
-                             otitle: "", ocontent: "", otext: "",
+                             otitle: "", ocontent: "", otext: "", osign: "",
                              ots: new Date().getTime(), odone: false, odue: 0 });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
@@ -197,7 +198,7 @@ Item {
     }
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 240, oh: 0,
-                             otitle: "", ocontent: "", otext: "输入文字",
+                             otitle: "", ocontent: "", otext: "输入文字", osign: "",
                              ots: 0, odone: false, odue: 0 });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
@@ -653,6 +654,7 @@ Item {
                         it.height = model.oh;
                         it.title = model.otitle;
                         it.content = model.ocontent;
+                        it.author = model.osign || "";
                         it.createdMs = model.ots || 0;
                         it.done = model.odone === true;
                         it.due = model.odue || 0;
@@ -695,6 +697,7 @@ Item {
                         if (ldr.model.otype === "sticky") {
                             objectModel.setProperty(ldr.index, "otitle", ldr.obj.title);
                             objectModel.setProperty(ldr.index, "ocontent", ldr.obj.content);
+                            objectModel.setProperty(ldr.index, "osign", ldr.obj.author);
                         } else {
                             objectModel.setProperty(ldr.index, "otext", ldr.obj.text);
                         }

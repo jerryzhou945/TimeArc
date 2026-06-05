@@ -17,6 +17,7 @@ Item {
     property bool done: false             // 待办完成态（左上打勾），供后续日历待做事项消费
     property double createdMs: 0          // 创建时间戳（epoch ms），0 = 旧便签无时间
     property double due: 0                 // 用户自选截止日期/时间（epoch ms），0 = 未设
+    property string author: ""            // 署名（可编辑，逐页持久化 osign；默认空，v88 写死"JusTin D"未复刻）
 
     signal selectRequested(bool grabFocus)   // grabFocus=true（header/缩放）→ 让覆盖层接管键盘删除
     signal geometryCommitted()
@@ -144,6 +145,27 @@ Item {
                     onClicked: { note.selectRequested(true); note.dueEditRequested(); }
                 }
             }
+        }
+
+        // 署名（可编辑、逐页持久化）：右下角，叠在日期行右半空白处（日期左对齐，互不挡）。
+        // 默认空 → 淡斜体「署名」提示；点右下即可改名。
+        TextField {
+            id: signField
+            anchors { right: parent.right; bottom: parent.bottom; rightMargin: 14; bottomMargin: 7 }
+            width: parent.width * 0.5
+            background: null
+            padding: 0
+            horizontalAlignment: Text.AlignRight
+            text: note.author
+            placeholderText: "署名"
+            color: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.55)
+            placeholderTextColor: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.30)
+            font.pixelSize: 12
+            font.italic: true
+            maximumLength: 24
+            onActiveFocusChanged: { note.editing = activeFocus; if (activeFocus) note.selectRequested(false) }
+            onTextChanged: note.author = text
+            onEditingFinished: note.contentCommitted()
         }
 
         // 完成打勾（左上角；始终可见，点击切换完成态）。完成 → 标题划线 + 正文淡化 + 绿勾。
