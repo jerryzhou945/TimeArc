@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
 |----------------------|-----|--------------|-------------------------------------------------|--------|
+| 2026-06-05T09:53:35Z | L3 | parallel-git-qu... | Parallel git remote/head query failed with windows sandbo... | [report](errors/20260605-095335-B-parallel-git-query-sandbox.md) |
 | 2026-06-05T09:51:50Z | L3 | combined-git-co... | Combined git add and commit command failed with windows s... | [report](errors/20260605-095150-B-combined-git-command-sandbox.md) |
 | 2026-06-05T09:48:06Z | L3 | list-docs-super... | Get-ChildItem recursive docs/superpowers listing failed w... | [report](errors/20260605-094806-B-list-docs-superpowers-sandbox.md) |
 | 2026-06-05T09:39:18Z | L3 | audio-indent-pa... | Attempted indentation-only patch in audio_win.c failed be... | [report](errors/20260605-093918-B-audio-indent-patch-miss.md) |
