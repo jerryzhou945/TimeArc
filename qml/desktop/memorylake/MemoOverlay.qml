@@ -841,6 +841,7 @@ Item {
         id: pomodoro
         z: 4540               // 叠在工具条(z4520)之上
         style: memo.style
+        store: memo.store     // gap #10：番茄状态持久化（单独键 memoryLakeMemoPomodoro）
         shown: false
         onCompleted: function (v) { pomodoroComplete.variant = v; pomodoroComplete.shown = true; }
     }

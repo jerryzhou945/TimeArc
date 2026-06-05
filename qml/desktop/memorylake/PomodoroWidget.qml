@@ -9,6 +9,7 @@ Item {
     id: pomo
 
     property MemoryLakeStyle style
+    property var store: null               // UI 私有持久化后端（Shell→MemoOverlay 注入）
     property bool shown: false
     property int total: 25 * 60
     property int remain: 25 * 60
@@ -17,6 +18,35 @@ Item {
     property string title: "专注一会儿"
 
     signal completed(string variant)
+
+    // —— 持久化（gap #10）：番茄是全局（非按页），单独存键；重启恢复为暂停态
+    // （无跨重启墙钟锚点，不自动续跑）。标题/分秒/进度都存。
+    readonly property string _storeKey: "memoryLakeMemoPomodoro"
+    property bool _loaded: false
+    function _save() {
+        if (!store || !_loaded) return;
+        store.setValue(_storeKey, JSON.stringify({ total: total, remain: remain, title: title }));
+    }
+    function _load() {
+        if (store) {
+            var raw = store.getValue(_storeKey, "");
+            if (raw && raw.length > 0) {
+                try {
+                    var d = JSON.parse(raw);
+                    if (typeof d.total === "number" && d.total > 0) total = d.total;
+                    if (typeof d.title === "string" && d.title.length > 0) title = d.title;
+                    var rm = (typeof d.remain === "number") ? d.remain : total;
+                    remain = Math.max(0, Math.min(total, rm > 0 ? rm : total));
+                    running = false; compact = false;
+                } catch (e) {}
+            }
+        }
+        _loaded = true;
+    }
+    Component.onCompleted: _load()
+    Timer { id: _saveT; interval: 500; onTriggered: pomo._save() }
+    onTotalChanged: if (_loaded) _saveT.restart()
+    onTitleChanged: if (_loaded) _saveT.restart()
 
     width: compact ? 104 : 278
     height: compact ? 116 : bodyCol.implicitHeight + 28
@@ -40,8 +70,8 @@ Item {
     function _clampSec(v) { return Math.max(0, Math.min(59, v)); }
     // 总时长为 0（0 分 0 秒）时拒绝开始，避免秒针刚跑就判定完成。
     function startTimer() { if (running) return; if (total <= 0) return; if (remain <= 0) remain = total; running = true; }
-    function pauseTimer() { running = false; }
-    function resetTimer() { running = false; compact = false; remain = total; }
+    function pauseTimer() { running = false; _save(); }
+    function resetTimer() { running = false; compact = false; remain = total; _save(); }
     function setMinutes(m) { var s = remain % 60; total = _clampMin(m) * 60 + (running ? 0 : _clampSec(s)); if (!running) remain = total; }
     function setSeconds(s) { var mnt = Math.floor((running ? total : remain) / 60); total = mnt * 60 + _clampSec(s); if (!running) remain = total; }
     function _pickVariant() {
@@ -119,6 +149,7 @@ Item {
             if (pomo.remain === 0) {
                 pomo.running = false;
                 pomo.compact = false;
+                pomo._save();
                 pomo.completed(pomo._pickVariant());   // 单一探测器（功能文 G7/C13）
             }
         }
@@ -216,12 +247,18 @@ Item {
                       leftMargin: 16; rightMargin: 16; topMargin: 14 }
             spacing: 10
 
-            Text {
+            // 标题：可编辑（gap #10：改名即存）。background:null 避开原生 Controls 白框。
+            TextField {
                 width: parent.width
                 text: pomo.title
+                background: null
+                padding: 0
                 color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.62)
+                placeholderText: "专注什么？"
+                placeholderTextColor: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.30)
                 font.pixelSize: 12
-                elide: Text.ElideRight
+                maximumLength: 30
+                onTextChanged: pomo.title = text
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
