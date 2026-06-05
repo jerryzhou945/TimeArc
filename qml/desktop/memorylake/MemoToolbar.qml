@@ -14,6 +14,7 @@ Item {
     property string currentTool: "pen"
     signal exitRequested()
     signal pomodoroRequested()
+    signal clearRequested()                // gap #4：清空本页墨迹（由覆盖层弹确认）
 
     // 鼠标是否悬在工具条上（供 Shell 维持灵动岛展开；工具条需置于顶部感应区 topZone 之上才生效）。
     readonly property bool barHovered: pillHover.hovered
@@ -166,6 +167,30 @@ Item {
                     hoverEnabled: bar.revealed
                     cursorShape: Qt.PointingHandCursor
                     onClicked: bar.pomodoroRequested()
+                }
+            }
+
+            // 清空本页墨迹（gap #4）：危险动作，红色悬停；点击由覆盖层弹确认。
+            Item {
+                width: 38; height: 38
+                anchors.verticalCenter: parent.verticalCenter
+                Rectangle {
+                    anchors.fill: parent; radius: 8
+                    visible: clearHover.containsMouse
+                    color: Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.22)
+                }
+                MemoToolGlyph {
+                    anchors.centerIn: parent
+                    kind: "clear"
+                    glyphColor: clearHover.containsMouse ? "#FFD2D2"
+                                                         : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
+                }
+                MouseArea {
+                    id: clearHover
+                    anchors.fill: parent
+                    hoverEnabled: bar.revealed
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: bar.clearRequested()
                 }
             }
 

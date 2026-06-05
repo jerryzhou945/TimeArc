@@ -213,6 +213,13 @@ Item {
         memo.scheduleSave();
         memo._histRecord();
     }
+    // gap #4：清空本页墨迹（仅手绘层；便签/文字保留）。存盘 + 入撤销栈（Ctrl+Z 可恢复）。
+    function clearCurrentCanvas() {
+        memo._clearSelection();
+        inkCanvas.clearAll();
+        memo.scheduleSave();
+        memo._histRecord();
+    }
 
     // —— 选择工具：框选区域（笔迹 + 便签 + 文字）→ 复制 / 删除（移动/缩放见后续切片）——
     property var selObjs: []                       // 选中的对象下标
@@ -833,6 +840,7 @@ Item {
         revealed: memo.chromeShown
         onExitRequested: memo.open = false
         onPomodoroRequested: pomodoro.shown = !pomodoro.shown
+        onClearRequested: clearConfirm.open = true
         onCurrentToolChanged: if (currentTool !== "select") memo._clearSelection()
     }
 
@@ -870,6 +878,69 @@ Item {
         onDueSelected: function (ms) { _setDue(ms); }
         onDueCleared: _setDue(0)
         onDismissed: open = false
+    }
+
+    // 清空确认（gap #4）：危险动作二次确认（撤销可恢复，仍给一道保险）。
+    Item {
+        id: clearConfirm
+        anchors.fill: parent
+        z: 4570
+        property bool open: false
+        visible: open || opacity > 0.01
+        opacity: open ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+        Rectangle {
+            anchors.fill: parent
+            color: Qt.rgba(0, 0, 0, 0.34)
+            MouseArea { anchors.fill: parent; onClicked: clearConfirm.open = false }
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: 300; height: 150; radius: 16
+            gradient: Gradient {
+                GradientStop { position: 0; color: memo.style ? memo.style.memoBoardTop : Qt.rgba(0.035, 0.043, 0.07, 0.97) }
+                GradientStop { position: 1; color: memo.style ? memo.style.memoBoardBottom : Qt.rgba(0.024, 0.031, 0.055, 0.98) }
+            }
+            border.width: 1
+            border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
+            MouseArea { anchors.fill: parent }   // 拦截穿透
+            Column {
+                anchors.centerIn: parent
+                width: parent.width - 40
+                spacing: 14
+                Text {
+                    width: parent.width; horizontalAlignment: Text.AlignHCenter
+                    text: "清空本页墨迹？"
+                    color: Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.94)
+                    font.pixelSize: 16; font.weight: Font.DemiBold
+                }
+                Text {
+                    width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
+                    text: "仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。"
+                    color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12
+                }
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 12
+                    Rectangle {
+                        width: 96; height: 34; radius: 10
+                        color: cancelH.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
+                        border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
+                        Text { anchors.centerIn: parent; text: "取消"; color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
+                        MouseArea { id: cancelH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: clearConfirm.open = false }
+                    }
+                    Rectangle {
+                        width: 96; height: 34; radius: 10
+                        color: clearGoH.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.85) : Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.55)
+                        Text { anchors.centerIn: parent; text: "清空"; color: "#FFFFFF"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        MouseArea { id: clearGoH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: { memo.clearCurrentCanvas(); clearConfirm.open = false } }
+                    }
+                }
+            }
+        }
     }
 
     // 右上档案袋（多页切换）。

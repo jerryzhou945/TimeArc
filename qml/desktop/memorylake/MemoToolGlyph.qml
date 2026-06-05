@@ -80,6 +80,17 @@ Item {
                 ctx.lineTo(w * 0.60, h * 0.60);
                 ctx.lineTo(w * 0.60, h * 0.78);
                 ctx.stroke();
+            } else if (g.kind === "clear") {
+                // 垃圾桶（清空本页墨迹）。
+                ctx.beginPath(); ctx.moveTo(w * 0.26, h * 0.30); ctx.lineTo(w * 0.74, h * 0.30); ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(w * 0.42, h * 0.30); ctx.lineTo(w * 0.44, h * 0.21);
+                ctx.lineTo(w * 0.56, h * 0.21); ctx.lineTo(w * 0.58, h * 0.30); ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(w * 0.30, h * 0.35); ctx.lineTo(w * 0.345, h * 0.78);
+                ctx.lineTo(w * 0.655, h * 0.78); ctx.lineTo(w * 0.70, h * 0.35); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(w * 0.44, h * 0.41); ctx.lineTo(w * 0.455, h * 0.72); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(w * 0.56, h * 0.41); ctx.lineTo(w * 0.545, h * 0.72); ctx.stroke();
             }
         }
         Component.onCompleted: requestPaint()
