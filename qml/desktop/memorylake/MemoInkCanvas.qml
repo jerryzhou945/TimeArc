@@ -63,12 +63,16 @@ Canvas {
         ctx.drawImage(s.url, s.sx, s.sy, s.sw, s.sh, s.dx, s.dy, s.dw, s.dh);
         ink.markDirty(Qt.rect(0, 0, width, height));
     }
-    function copyRegionTo(sx, sy, sw, sh, dx, dy, dw, dh) {
-        if (sw < 1 || sh < 1) return;
-        var url = ink.toDataURL("image/png");
+    // 从指定全幅快照 url 的源矩形贴到目标矩形（移动/缩放回贴用：源是抬起前的快照）。
+    function stampRegion(url, sx, sy, sw, sh, dx, dy, dw, dh) {
+        if (!url || sw < 1 || sh < 1) return;
         var s = { url: url, sx: sx, sy: sy, sw: sw, sh: sh, dx: dx, dy: dy, dw: dw, dh: dh };
         if (ink.isImageLoaded(url)) _drawStamp(s);
         else { ink._pendingStamps.push(s); ink.loadImage(url); }
+    }
+    // 复制：以当前全幅快照为源。
+    function copyRegionTo(sx, sy, sw, sh, dx, dy, dw, dh) {
+        stampRegion(ink.toDataURL("image/png"), sx, sy, sw, sh, dx, dy, dw, dh);
     }
 
     // 持久化：导出当前位图 dataURL（持久化切片存盘用）。

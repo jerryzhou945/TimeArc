@@ -249,10 +249,72 @@ Item {
         scheduleSave(); _histRecord();
     }
 
+    // —— 选区移动 / 缩放（含浮动墨迹：抬起→拖动→回贴）——
+    property bool _selDragging: false
+    property string _floatUrl: ""                  // 抬起前全幅快照（贴回用）
+    property rect _floatSrc: Qt.rect(0, 0, 0, 0)   // 抬起的源矩形
+    property rect _boxStart: Qt.rect(0, 0, 0, 0)   // 手势起始盒子
+    property var _objStart: []                     // 起始各对象几何
+    function _liveObj(idx) { var it = objRepeater.itemAt(idx); return (it && it.obj) ? it.obj : null; }
+    function _beginSelGesture() {
+        if (!selActive) return;
+        _boxStart = Qt.rect(selRect.x, selRect.y, selRect.width, selRect.height);
+        _objStart = [];
+        for (var i = 0; i < selObjs.length; i++) {
+            var o = objectModel.get(selObjs[i]);
+            _objStart.push({ idx: selObjs[i], ox: o.ox, oy: o.oy, ow: o.ow, oh: o.oh });
+        }
+        _floatSrc = Qt.rect(selRect.x, selRect.y, selRect.width, selRect.height);
+        _floatUrl = inkCanvas.exportDataURL();     // 抬起前快照，清掉源区让墨迹"浮起"
+        inkCanvas.clearRegion(_floatSrc.x, _floatSrc.y, _floatSrc.width, _floatSrc.height);
+        _selDragging = true;
+    }
+    function _applyMove(dgx, dgy) {
+        memo.selRect = Qt.rect(_boxStart.x + dgx, _boxStart.y + dgy, _boxStart.width, _boxStart.height);
+        for (var i = 0; i < _objStart.length; i++) {
+            var s = _objStart[i], ob = _liveObj(s.idx);
+            if (ob) { ob.x = s.ox + dgx; ob.y = s.oy + dgy; }
+        }
+    }
+    function _applyScale(nw, nh) {
+        nw = Math.max(40, nw); nh = Math.max(40, nh);
+        var fx = nw / _boxStart.width, fy = nh / _boxStart.height;
+        memo.selRect = Qt.rect(_boxStart.x, _boxStart.y, nw, nh);
+        for (var i = 0; i < _objStart.length; i++) {
+            var s = _objStart[i], ob = _liveObj(s.idx);
+            if (!ob) continue;
+            ob.x = _boxStart.x + (s.ox - _boxStart.x) * fx;
+            ob.y = _boxStart.y + (s.oy - _boxStart.y) * fy;
+            ob.width = Math.max(60, s.ow * fx);
+            if (ob.heightFixed !== undefined) { ob.heightFixed = true; ob.height = Math.max(36, s.oh * fy); }
+            else ob.height = Math.max(48, s.oh * fy);
+        }
+    }
+    function _commitSelGesture() {
+        if (!_selDragging) return;
+        if (_floatUrl.length > 0 && _floatSrc.width > 1 && _floatSrc.height > 1)
+            inkCanvas.stampRegion(_floatUrl, _floatSrc.x, _floatSrc.y, _floatSrc.width, _floatSrc.height,
+                                  selRect.x, selRect.y, selRect.width, selRect.height);
+        for (var i = 0; i < selObjs.length; i++) {
+            var ob = _liveObj(selObjs[i]);
+            if (!ob) continue;
+            objectModel.setProperty(selObjs[i], "ox", ob.x);
+            objectModel.setProperty(selObjs[i], "oy", ob.y);
+            objectModel.setProperty(selObjs[i], "ow", ob.width);
+            if (objectModel.get(selObjs[i]).otype === "text")
+                objectModel.setProperty(selObjs[i], "oh", ob.heightFixed ? ob.height : 0);
+            else
+                objectModel.setProperty(selObjs[i], "oh", ob.height);
+        }
+        _selDragging = false;
+        _floatUrl = "";
+        scheduleSave(); _histRecord();
+    }
+
     // 工具提示文案（逐字对齐 v88 setMemoTool 16301-16307）。
     readonly property var toolHints: ({
         "none": "已取消当前工具。点击上方工具图标重新选择。",
-        "select": "选择模式：在空白处拖出方框，框选笔迹/便签/文字；可一键复制、删除（移动/缩放后续支持）。",
+        "select": "选择模式：在空白处拖出方框框选笔迹/便签/文字；拖选框移动、拖右下角缩放，可一键复制、删除。",
         "note": "便签模式：点击画布创建白色便签，便签可拖动、可编辑、可左右上下拉伸。",
         "text": "文字模式：点击画布添加文本，输入后可继续编辑。",
         "pen": "画笔模式：按住鼠标在灰色蒙版上自由绘图。",
@@ -439,6 +501,18 @@ Item {
             onCanceled: marquee.visible = false
         }
 
+        // 浮动墨迹：移动/缩放选区时显示被抬起的那块（在对象之下，与真实墨迹同层级）。
+        Image {
+            id: floatInk
+            visible: memo._selDragging
+            source: memo._floatUrl
+            sourceClipRect: memo._floatSrc
+            x: memo.selRect.x; y: memo.selRect.y
+            width: memo.selRect.width; height: memo.selRect.height
+            smooth: true
+            cache: false
+        }
+
         // 包一层填充壳：Loader 把「壳」拉满覆盖层（壳是普通 Item，被拉伸无副作用），真正的
         // 便签/文字作为壳的子项、用自身 x/y/w/h 定位，不被 Loader 强制改尺寸。
         // 修 bug：有显式尺寸的 Loader 会把被加载项也拉成同尺寸 → 全屏/退全屏时便签暴涨、
@@ -556,6 +630,47 @@ Item {
                 color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.07)
                 border.width: 1.5
                 border.color: memo.style ? memo.style.glowCyan : "#8EDFFF"
+            }
+
+            // 移动：拖盒子主体（带着选中对象 + 浮动墨迹一起走）。
+            MouseArea {
+                id: moveMa
+                anchors.fill: parent
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.SizeAllCursor
+                property real gx0: 0
+                property real gy0: 0
+                onPressed: function (m) {
+                    var p = mapToItem(objectLayerHost, m.x, m.y);
+                    gx0 = p.x; gy0 = p.y;
+                    memo._beginSelGesture();
+                }
+                onPositionChanged: function (m) {
+                    var p = mapToItem(objectLayerHost, m.x, m.y);
+                    memo._applyMove(p.x - gx0, p.y - gy0);
+                }
+                onReleased: memo._commitSelGesture()
+                onCanceled: memo._commitSelGesture()
+            }
+            // 缩放：右下角把手（对象 + 浮动墨迹按比例缩放）。
+            MouseArea {
+                width: 22; height: 22
+                anchors { right: parent.right; bottom: parent.bottom }
+                acceptedButtons: Qt.LeftButton
+                cursorShape: Qt.SizeFDiagCursor
+                onPressed: function (m) { memo._beginSelGesture(); }
+                onPositionChanged: function (m) {
+                    var p = mapToItem(objectLayerHost, m.x, m.y);
+                    memo._applyScale(p.x - memo._boxStart.x, p.y - memo._boxStart.y);
+                }
+                onReleased: memo._commitSelGesture()
+                onCanceled: memo._commitSelGesture()
+                Rectangle {
+                    anchors.fill: parent
+                    radius: 4
+                    color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.92)
+                    border.width: 1; border.color: Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.5)
+                }
             }
             Row {
                 anchors { bottom: parent.top; bottomMargin: 8; right: parent.right }

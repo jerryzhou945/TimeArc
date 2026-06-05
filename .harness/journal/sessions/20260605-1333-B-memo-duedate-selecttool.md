@@ -19,9 +19,22 @@ deadline todos (later consumed by the calendar rebuild + home 今日事项).
   obj on 确定/清除, schedules save + records undo.
 - Registered MemoDatePicker in qml/CMakeLists.txt; rules/04 §8 updated.
 
-## Feature 1 — transform / select tool (in progress)
-Marquee-select **ink region + stickies + text**, then delete / copy / move /
-scale the selection (no whole-board zoom — chosen scope). See follow-up commits.
+## Feature 1 — transform / select tool (done)
+New "选择" toolbar tool. Marquee on empty canvas selects ink region + stickies +
+text (geometry intersect). Selection box with 复制/删除 + drag-to-move +
+corner-scale. No whole-board zoom (chosen scope).
+
+- Ink ops (MemoInkCanvas): clearRegion (delete); copyRegionTo / stampRegion via
+  full-canvas toDataURL snapshot + drawImage(source-rect) — NOT getImageData
+  (reads blank on the FBO canvas). drawImage source-rect composites source-over
+  and scales, so copy + move + scale all reuse it.
+- Move/scale: on gesture start, snapshot + clear the source region (ink "lifts"
+  into a floating Image with sourceClipRect); objects + float follow live;
+  on release, restamp ink at the final rect and write back object geometry.
+- Keys: Ctrl+C copy, Del delete, Esc clears selection (then closes). Records one
+  undo frame per op; switching tool clears the selection.
+- Verified via probes: ink 1:1 + scaled copy, ink move (lift→clear→restamp),
+  object multi-select + copy (sticky+text), object scale (×1.35).
 
 ## Verify
 `build.py` green; date picker checked via qml.exe probe (lands on the right

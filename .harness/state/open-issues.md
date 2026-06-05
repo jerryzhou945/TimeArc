@@ -55,7 +55,9 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   fixes (track C):** object scale blow-up on fullscreen toggle (sized-Loader force-resize);
   sticky drops "JusTin D", gains date/time + done checkbox; text layers resizable; pomodoro
   allows 0 min + dark NumberField inputs (native Controls style ignores SpinBox custom);
-  **Ctrl+Z undo / Ctrl+Shift+Z redo** added. **Pending:** manual in-app QA pass (draw /
+  **Ctrl+Z undo / Ctrl+Shift+Z redo** added. **Features (track B):** sticky due date/time
+  picker (`MemoDatePicker` mini calendar + 24h, role `odue`); **select tool** (marquee
+  ink + objects → copy / delete / move / scale). **Pending:** manual in-app QA pass (draw /
   drag / resize / page-switch / pomodoro end-to-end). Still deferred: pen color/width UI,
   page rename/reorder, pomodoro persistence/sound/work-rest, conic-aura shader.
   Specs: `docs/memory-lake-memo-*`.
