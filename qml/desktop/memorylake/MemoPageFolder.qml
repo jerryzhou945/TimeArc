@@ -12,10 +12,23 @@ Item {
     property int currentIndex: 0
     property bool openState: false
     property int maxPages: 10
+    // 正在重命名的页行下标（-1 = 无）。点行内 ✎ 进入；提交/取消归 -1。
+    property int editingIndex: -1
 
     signal switchTo(int i)
     signal addPageRequested()
     signal deletePageRequested(int i)
+    signal renamePageRequested(int i, string name)
+
+    // 重命名当前编辑文本（输入框实时回传），便于「点别处也提交」——MouseArea 不抢键焦点，
+    // 不能靠输入框自身失焦，故由前盖/行/新建等点击主动调 commitEdit()。
+    property string _editText: ""
+    function commitEdit() {
+        if (editingIndex < 0) return;
+        var i = editingIndex;
+        editingIndex = -1;                 // 先收态再发信号（避免重入）
+        renamePageRequested(i, _editText);
+    }
 
     readonly property int pageCount: pageLabels ? pageLabels.length : 1
     readonly property string currentLabel: (pageLabels && currentIndex >= 0 && currentIndex < pageLabels.length)
@@ -84,7 +97,7 @@ Item {
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            onClicked: folder.openState = !folder.openState
+            onClicked: { folder.commitEdit(); folder.openState = !folder.openState }
         }
     }
 
@@ -129,23 +142,68 @@ Item {
                         GradientStop { position: 1; color: Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.18) }
                     }
                     Text {
+                        visible: folder.editingIndex !== index
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.left: parent.left; anchors.leftMargin: 12
+                        anchors.right: parent.right; anchors.rightMargin: 58
                         text: modelData
                         color: sel ? "#EAF6FF" : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.78)
                         font.pixelSize: 13
+                        elide: Text.ElideRight
                     }
-                    // 行点击（切页）——必须放在 × 之前，让 × 盖在它上面；否则 × 的点击被这层吞掉，删不了页。
+                    // 行点击（切页）——必须放在 ✎/× 之前，让它们盖在上面；否则其点击被这层吞掉。
                     MouseArea {
                         id: rowHover
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: { folder.switchTo(index); folder.openState = false; }
+                        onClicked: { folder.commitEdit(); folder.switchTo(index); folder.openState = false; }
+                    }
+                    // 重命名输入框（编辑此行时覆盖标题；置于行点击层之上以抢输入）。
+                    TextInput {
+                        id: nameEdit
+                        visible: folder.editingIndex === index
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left; anchors.leftMargin: 12
+                        anchors.right: parent.right; anchors.rightMargin: 12
+                        color: "#EAF6FF"
+                        font.pixelSize: 13
+                        selectByMouse: true
+                        clip: true
+                        maximumLength: 24
+                        // 进入编辑：填入当前名、回传、抢焦点、全选。
+                        onVisibleChanged: if (visible) { text = modelData; folder._editText = modelData; forceActiveFocus(); selectAll(); }
+                        onTextChanged: if (folder.editingIndex === index) folder._editText = text
+                        onAccepted: folder.commitEdit()                        // 回车提交（信号路径）
+                        // 回车提交（按键路径，兜底 onAccepted）；accept 阻止冒泡到 memo 的全局键处理。
+                        Keys.onReturnPressed: function (e) { folder.commitEdit(); e.accepted = true; }
+                        Keys.onEnterPressed: function (e) { folder.commitEdit(); e.accepted = true; }
+                        // 输入框真失焦也提交（兜底）。
+                        onActiveFocusChanged: if (!activeFocus && folder.editingIndex === index) folder.commitEdit()
+                        // Esc 取消（不提交）；accept 阻止冒泡，否则 memo 全局 Esc 会顺手关掉黑板。
+                        Keys.onEscapePressed: function (e) { folder.editingIndex = -1; e.accepted = true; }
+                    }
+                    // ✎ 重命名（hover/选中时显示；点开进入编辑态）。
+                    Rectangle {
+                        visible: folder.editingIndex !== index && (rowHover.containsMouse || editH.containsMouse || sel)
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right
+                        anchors.rightMargin: folder.pageCount > 1 ? 34 : 8
+                        width: 20; height: 20; radius: 10
+                        color: editH.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.32) : Qt.rgba(0, 0, 0, 0.25)
+                        Text { anchors.centerIn: parent; text: "✎"; color: "#EAF2FF"; font.pixelSize: 12 }
+                        MouseArea {
+                            id: editH
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: folder.editingIndex = index
+                        }
                     }
                     // × 删页（>1 页时显示；置于行点击层之上，确保能命中删除）。
                     Rectangle {
-                        visible: folder.pageCount > 1 && (rowHover.containsMouse || delH.containsMouse || sel)
+                        visible: folder.editingIndex !== index && folder.pageCount > 1
+                                 && (rowHover.containsMouse || delH.containsMouse || sel)
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right; anchors.rightMargin: 8
                         width: 20; height: 20; radius: 10
@@ -156,7 +214,7 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: folder.deletePageRequested(index)
+                            onClicked: { folder.commitEdit(); folder.deletePageRequested(index) }
                         }
                     }
                 }
@@ -186,7 +244,7 @@ Item {
                 enabled: addRow.canAdd
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: folder.addPageRequested()
+                onClicked: { folder.commitEdit(); folder.addPageRequested() }
             }
         }
     }

@@ -15,6 +15,9 @@ Item {
     signal exitRequested()
     signal pomodoroRequested()
 
+    // 鼠标是否悬在工具条上（供 Shell 维持灵动岛展开；工具条需置于顶部感应区 topZone 之上才生效）。
+    readonly property bool barHovered: pillHover.hovered
+
     function toggleTool(t) { currentTool = (currentTool === t) ? "none" : t; }
 
     readonly property var tools: [
@@ -52,6 +55,9 @@ Item {
         border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.14)
         antialiasing: true
 
+        // 整条悬停感应（被动，不拦子按钮 hover）：维持灵动岛展开 + 解释为何工具条要在 topZone 之上。
+        HoverHandler { id: pillHover }
+
         // 顶沿 1px 内高光（玻璃斜面）。
         Rectangle {
             anchors { top: parent.top; left: parent.left; right: parent.right
@@ -73,53 +79,62 @@ Item {
                     required property var modelData
                     readonly property string kind: modelData.kind
                     readonly property bool active: bar.currentTool === kind
+                    readonly property bool hovered: tHover.containsMouse
                     width: 38; height: 38
                     anchors.verticalCenter: parent.verticalCenter
 
-                    // hover 抬升 + 放大
-                    transform: [
-                        Translate { y: tHover.containsMouse ? -6 : 0
-                            Behavior on y { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } } },
-                        Scale {
-                            origin.x: 19; origin.y: 19
-                            xScale: tHover.containsMouse ? 1.06 : 1.0
-                            yScale: tHover.containsMouse ? 1.06 : 1.0
-                            Behavior on xScale { NumberAnimation { duration: 140 } }
-                            Behavior on yScale { NumberAnimation { duration: 140 } }
-                        }
-                    ]
-
-                    Rectangle {
-                        id: tbg
+                    // hover 抬升 + 放大 **只作用在视觉层** tvisual：传感器 MouseArea 必须留在原位不被位移，
+                    // 否则抬升把命中区从指针下移走、又收不到 hoverLeave → containsMouse 卡死 true，
+                    // 点击后「抬升 + aqua 洗背」就印在按钮上不退（用户反馈的鬼影）。
+                    Item {
+                        id: tvisual
                         anchors.fill: parent
-                        radius: 8
-                        antialiasing: true
-                        visible: tbtn.active || tHover.containsMouse
-                        gradient: tbtn.active ? activeGrad : null
-                        color: tbtn.active ? "transparent"
-                                           : Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10)
-                        border.width: tbtn.active ? 0 : 1
-                        border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.18)
-                        Gradient {
-                            id: activeGrad
-                            // 招牌 aqua→violet（竖直近似 135°，38px 尺度可忽略斜向差）
-                            GradientStop { position: 0; color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.94) }
-                            GradientStop { position: 1; color: Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.92) }
+                        transform: [
+                            Translate { y: tbtn.hovered ? -6 : 0
+                                Behavior on y { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } } },
+                            Scale {
+                                origin.x: 19; origin.y: 19
+                                xScale: tbtn.hovered ? 1.06 : 1.0
+                                yScale: tbtn.hovered ? 1.06 : 1.0
+                                Behavior on xScale { NumberAnimation { duration: 140 } }
+                                Behavior on yScale { NumberAnimation { duration: 140 } }
+                            }
+                        ]
+
+                        Rectangle {
+                            id: tbg
+                            anchors.fill: parent
+                            radius: 8
+                            antialiasing: true
+                            visible: tbtn.active || tbtn.hovered
+                            gradient: tbtn.active ? activeGrad : null
+                            color: tbtn.active ? "transparent"
+                                               : Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10)
+                            border.width: tbtn.active ? 0 : 1
+                            border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.18)
+                            Gradient {
+                                id: activeGrad
+                                // 招牌 aqua→violet（竖直近似 135°，38px 尺度可忽略斜向差）
+                                GradientStop { position: 0; color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.94) }
+                                GradientStop { position: 1; color: Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.92) }
+                            }
+                        }
+
+                        MemoToolGlyph {
+                            anchors.centerIn: parent
+                            kind: tbtn.kind
+                            // active 时近黑图标压在亮渐变上；否则亮灰。
+                            glyphColor: tbtn.active ? Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.94)
+                                                    : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.86)
                         }
                     }
 
-                    MemoToolGlyph {
-                        anchors.centerIn: parent
-                        kind: tbtn.kind
-                        // active 时近黑图标压在亮渐变上；否则亮灰。
-                        glyphColor: tbtn.active ? Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.94)
-                                                : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.86)
-                    }
-
+                    // 传感器留在 tbtn 原位（不随 tvisual 的抬升 transform 位移）：命中区恒定，
+                    // 抬升不再把命中区从指针下移走 → 不卡高亮（用户反馈的「按下后印在上面」鬼影）。
                     MouseArea {
                         id: tHover
                         anchors.fill: parent
-                        hoverEnabled: bar.revealed   // 收起时关闭→containsMouse 复位，不卡高亮
+                        hoverEnabled: bar.revealed
                         cursorShape: Qt.PointingHandCursor
                         onClicked: bar.toggleTool(tbtn.kind)
                     }

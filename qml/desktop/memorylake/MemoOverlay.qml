@@ -106,6 +106,15 @@ Item {
         scheduleSave();
         memo._histReset();
     }
+    // 重命名某页（只改标签，不动该页对象/墨迹；空名忽略）。当前页的 label 由 _writeCurrent 透传保留。
+    function renamePage(i, name) {
+        if (i < 0 || i >= pagesData.length) return;
+        var n = ("" + name).trim();
+        if (n.length === 0 || n === pagesData[i].label) return;
+        pagesData[i].label = n;
+        _refreshLabels();
+        scheduleSave();
+    }
 
     // 序列化整篇（多页）→ store。debounce 见 saveTimer。
     function saveDoc() {
@@ -792,8 +801,11 @@ Item {
 
     // ===== Chrome：工具条 + 档案袋（灵动岛：默认藏起只露小边，鼠标靠近顶部再冒出）=====
     // 顶栏是否展开：开启状态下，档案袋展开中、或鼠标靠近顶部（且非绘制/框选手势）时显示。
+    // topHover = 顶部空白感应区；toolbar.barHovered = 悬在工具条本身（工具条现置于 topZone 之上，
+    // 移到条上时 topZone 收不到 hover，需 barHovered 维持展开，否则一靠近按钮就收起）。
     readonly property bool chromeShown: open && (pageFolder.openState
-                                        || (topHover.hovered && !inkCanvas.drawing && !_selDragging))
+                                        || ((topHover.hovered || toolbar.barHovered)
+                                            && !inkCanvas.drawing && !_selDragging))
 
     // 顶部悬停感应区：被动 HoverHandler，不拦点击/拖动，让顶部空间仍可画/拖。
     Item {
@@ -806,6 +818,9 @@ Item {
 
     MemoToolbar {
         id: toolbar
+        // 置于顶部感应区 topZone(z4500) 之上：否则 topZone 接管 hover，按钮收不到 → 悬停无高光
+        // （历史 bug：悬停无动效、按下才显且卡死）。弹层(番茄/日期)再叠到工具条之上。
+        z: 4520
         anchors.horizontalCenter: parent.horizontalCenter
         // 收起时上移、只露 10px 提示边；靠近顶部冒出到 y=14。
         y: memo.chromeShown ? 14 : -(height - 10)
@@ -821,12 +836,14 @@ Item {
     // 番茄钟浮窗 + 完成弹层。
     PomodoroWidget {
         id: pomodoro
+        z: 4540               // 叠在工具条(z4520)之上
         style: memo.style
         shown: false
         onCompleted: function (v) { pomodoroComplete.variant = v; pomodoroComplete.shown = true; }
     }
     PomodoroCompleteOverlay {
         id: pomodoroComplete
+        z: 4560               // 全屏庆祝，必须盖过工具条
         style: memo.style
         onClosed: pomodoroComplete.shown = false
     }
@@ -834,6 +851,7 @@ Item {
     // 便签截止日期选择器（单例；由便签截止行触发，居中弹出）。
     MemoDatePicker {
         id: duePicker
+        z: 4560               // 居中弹层，盖过工具条
         style: memo.style
         property int targetIndex: -1
         function _setDue(ms) {
@@ -853,6 +871,7 @@ Item {
     // 右上档案袋（多页切换）。
     MemoPageFolder {
         id: pageFolder
+        z: 4520               // 同工具条，置于 topZone 之上，hover/点击不被顶部感应区吞掉
         anchors { right: parent.right; rightMargin: 18 }
         // 灵动岛：收起时上移只露 10px（前盖 48 高 → -38），展开/靠近顶部时落到 y=18。
         y: memo.chromeShown ? 18 : -38
@@ -866,6 +885,7 @@ Item {
         onSwitchTo: function (i) { memo.switchPage(i); }
         onAddPageRequested: memo.addPage()
         onDeletePageRequested: function (i) { memo.deletePage(i); }
+        onRenamePageRequested: function (i, name) { memo.renamePage(i, name); }
     }
 
     Rectangle {
