@@ -8,6 +8,13 @@ the harness line budget intact.
 
 | Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
 |----------------------|-----|--------------|-------------------------------------------------|--------|
+| 2026-06-05T04:51:13Z | L2 | memo-loader-aut... | Object delegate Loader had anchors.fill:parent; a sized L... | [report](errors/20260605-045113-C-memo-loader-autosize.md) |
+| 2026-06-04T14:18:27Z | L3 | build-env-missi... | build.py 失败但日志/错误报告无任何 g++ 诊断：根因是本会话 PowerShell 的 PATH 缺少... | [report](errors/20260604-141827-B-build-env-missing-mingw-path.md) |
+| 2026-06-04T14:11:37Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-141137-B-build-failure.md) |
+| 2026-06-04T14:08:04Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-140804-B-build-failure.md) |
+| 2026-06-04T09:43:31Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-094331-B-build-failure.md) |
+| 2026-06-04T09:12:19Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-091219-B-build-failure.md) |
+| 2026-06-04T09:06:13Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-090613-B-build-failure.md) |
 | 2026-06-04T06:43:38Z | L3 | memcard-glow-de... | Left MemoryCard ambientGlow底灯 on MultiEffect-blur-of-soli... | [report](errors/20260604-064338-B-memcard-glow-deferred.md) |
 | 2026-06-04T00:12:06Z | L2 | dailyshare-pale... | DailyUsageShare new 'palette' property collided with base... | [report](errors/20260604-001206-B-dailyshare-palette-override.md) |
 | 2026-06-04T00:11:57Z | L3 | qt5compat-froze... | Donut center glow first used import Qt5Compat.GraphicalEf... | [report](errors/20260604-001157-B-qt5compat-frozen-cmake.md) |
@@ -42,7 +49,7 @@ the harness line budget intact.
 | 2026-06-02T17:53:47Z | L2 | qt-warning-ec85... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-ec8507cbf3.md) |
 | 2026-06-02T17:53:47Z | L2 | qt-warning-046f... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-046f2409e1.md) |
 | 2026-06-02T17:53:47Z | L2 | qt-warning-3e4a... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-3e4a5adc0d.md) |
-| 2026-06-02T17:53:46Z | L2 | qt-warning-09ad... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175346-C-qt-warning-09ad6e004f.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |

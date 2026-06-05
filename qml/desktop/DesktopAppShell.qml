@@ -61,6 +61,11 @@ Item {
     readonly property var memoryLakeAmbientColors:
         (onMemoryLake && pageLoader.item && ("ambientColors" in pageLoader.item)) ? pageLoader.item.ambientColors : [memoryLakeAmbientColor]
 
+    // 备忘黑板入口守卫：当前记忆卡处于翻面态时不可打开（功能文 §2.1 / C0）。
+    // 翻面状态由记忆湖页暴露（DesktopMemoryLakePage.locked = flippedIndex >= 0）。
+    readonly property bool memoLocked:
+        onMemoryLake && pageLoader.item && ("locked" in pageLoader.item) && pageLoader.item.locked
+
     // 记忆湖时导航栏配色对齐记忆湖左右玻璃面板（全部取自 mlStyle 单一事实源，G1/NAV6）
     readonly property color mlNavGlass: mlStyle.panelBg
     readonly property color mlNavBorder: mlStyle.panelBorder
@@ -122,7 +127,9 @@ Item {
           icon: Qt.resolvedUrl("../../resources/icons/stats.svg") },
         { title: "设置", subtitle: "Settings", page: "settings",
           icon: Qt.resolvedUrl("../../resources/icons/settings.svg") },
-        { title: "备忘", subtitle: "Notes", page: "notes",
+        // 「备忘」= 动作（打开黑板模态覆盖层），不是页面路由：无 page 键，点击触发
+        // memoOverlay.open，不切 selectedIndex（功能文 §2.1 / C0）。
+        { title: "备忘", subtitle: "Notes", action: "memo",
           icon: Qt.resolvedUrl("../../resources/icons/chat.svg") },
         { title: "记忆湖", subtitle: "Memory Recap", page: "recap", bottom: true,
           icon: Qt.resolvedUrl("../../resources/icons/recap.svg") }
@@ -155,7 +162,6 @@ Item {
         case "calendar":   return Qt.resolvedUrl("pages/DesktopCalenderPage.qml");
         case "stats":      return Qt.resolvedUrl("pages/DesktopStatsPage.qml");
         case "settings":   return Qt.resolvedUrl("pages/DesktopProfilePage.qml");
-        case "notes":      return Qt.resolvedUrl("pages/DesktopChatPage.qml");
         case "recap":      return Qt.resolvedUrl("pages/DesktopMonthlyRecapPage.qml");
         }
         return "";
@@ -416,15 +422,23 @@ Item {
                     required property var modelData
                     readonly property int navIndex: root.indexOfPage(modelData.page)
                     readonly property bool isSel: selectedIndex === navIndex && !showingTimerPage
+                    // 「备忘」是动作项（无 page）：点击开黑板覆盖层；翻面锁定时置禁用态。
+                    readonly property bool isMemoAction: modelData.action === "memo"
+                    readonly property bool memoDisabled: isMemoAction && root.memoLocked
 
                     width: parent ? parent.width : 0
                     height: 56
                     radius: 18
+                    opacity: memoDisabled ? 0.4 : 1.0
                     color: isSel ? appSelectedItem
                                  : navMouse.containsMouse ? (nightMode ? "#4B526F" : "#F4E8C8")
                                                           : "transparent"
                     border.width: isSel ? 1 : 0
                     border.color: appSelectedItemBorder
+
+                    // 翻面锁定时的禁用提示（对齐 v88：title「当前卡牌翻面时不可打开备忘录」）。
+                    ToolTip.visible: navMouse.containsMouse && memoDisabled
+                    ToolTip.text: "当前卡牌翻面时不可打开备忘录"
 
                     Behavior on color {
                         ColorAnimation { duration: 140 }
@@ -494,8 +508,14 @@ Item {
                         id: navMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: memoDisabled ? Qt.ForbiddenCursor : Qt.PointingHandCursor
                         onClicked: {
+                            // 动作项：打开黑板模态覆盖层（不切页、不动 selectedIndex）。
+                            if (isMemoAction) {
+                                if (!root.memoLocked)
+                                    memoOverlay.open = true;
+                                return;
+                            }
                             showingTimerPage = false;
                             selectedIndex = navIndex;
                         }
@@ -795,6 +815,16 @@ Item {
         id: achievementToast
         anchors.fill: parent
         nightMode: root.nightMode
+    }
+
+    // 备忘黑板·模态覆盖层（入口=动作）：盖在首页+导航之上、z 最高，关闭退回底层原页。
+    // backdropSource = desktopStage：进入时截一张首页快照重模糊作黑板磨砂底（M0）。
+    MemoOverlay {
+        id: memoOverlay
+        anchors.fill: parent
+        style: mlStyle
+        backdropSource: desktopStage
+        store: settingsRepository    // UI 私有持久化（通用 key-value；非服务磁盘契约）
     }
 
     Connections {

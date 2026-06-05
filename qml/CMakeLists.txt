@@ -2,7 +2,6 @@ set(TIME_ARC_QML_FILES
     qml/main.qml
     qml/desktop/DesktopAppShell.qml
     qml/desktop/pages/DesktopHomePage.qml
-    qml/desktop/pages/DesktopChatPage.qml
     qml/desktop/pages/DesktopMemoryLakePage.qml
     qml/desktop/pages/DesktopCalenderPage.qml
     qml/desktop/pages/DesktopTimerPage.qml
@@ -18,6 +17,18 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/MemoryLakeMock.js
     qml/desktop/memorylake/GenerativeCover.qml
     qml/desktop/memorylake/MemoryLakeStyle.qml
+    qml/desktop/memorylake/MemoOverlay.qml
+    qml/desktop/memorylake/MemoDotTexture.qml
+    qml/desktop/memorylake/MemoInkCanvas.qml
+    qml/desktop/memorylake/MemoToolbar.qml
+    qml/desktop/memorylake/MemoToolGlyph.qml
+    qml/desktop/memorylake/StickyNote.qml
+    qml/desktop/memorylake/TextLayer.qml
+    qml/desktop/memorylake/MemoPageFolder.qml
+    qml/desktop/memorylake/PixelTomato.qml
+    qml/desktop/memorylake/PomodoroWidget.qml
+    qml/desktop/memorylake/PomodoroCompleteOverlay.qml
+    qml/desktop/memorylake/MemoDatePicker.qml
     qml/desktop/memorylake/GlassPanel.qml
     qml/desktop/memorylake/GlowCircle.qml
     qml/desktop/memorylake/GridTexture.qml

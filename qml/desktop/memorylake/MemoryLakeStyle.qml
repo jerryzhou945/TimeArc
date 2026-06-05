@@ -146,4 +146,42 @@ QtObject {
     readonly property color ticketRow: Qt.rgba(0, 0, 0, 0.08)   // 票根行底（墨色薄底，随票根固定）
     // 封面/海报媒体底部暗罩（白字压在生成式封面上保可读，两主题同为暗罩）
     readonly property color mediaScrim: Qt.rgba(0, 0, 0, 0.78)
+
+    // ============================================================
+    // v88 备忘黑板复刻令牌（memo overlay）。黑板**恒为暗**（G10：不分昼夜、点阵画在底层），
+    // 故以下令牌不随 night 切换。详见 docs/memory-lake-memo-render-pipeline-replication.md
+    // §1.1/§4.1/§4.2/§9。色/角辉复用既有 glowCyan(#8EDFFF)/violet。
+    // ============================================================
+    // 黑板近黑竖渐变（设计稿 .memo-overlay V41：rgba(9,11,18,.82) → rgba(6,8,14,.86)）
+    readonly property color memoBoardTop: Qt.rgba(9 / 255, 11 / 255, 18 / 255, 0.82)
+    readonly property color memoBoardBottom: Qt.rgba(6 / 255, 8 / 255, 14 / 255, 0.86)
+    // 整体压暗黑罩（::before rgba(0,0,0,.10)）
+    readonly property color memoScrim: Qt.rgba(0, 0, 0, 0.10)
+    // 黑板点阵（设计稿 radial 白点 10.5% / 1px 半径 / 24px 平铺）
+    readonly property color memoDotColor: Qt.rgba(1, 1, 1, 0.105)
+    readonly property int memoDotPitch: 24
+    readonly property real memoDotRadius: 1
+    // 角落辅光不透明度（设计稿 aqua 左上 18%,12% @6% / violet 右下 76%,72% @5.5%）
+    readonly property real memoGlowAquaOpacity: 0.06
+    readonly property real memoGlowVioletOpacity: 0.055
+    // 黑板磨砂：身后首页快照重模糊半径（M0 等效 backdrop-filter blur(10px)，QML 用更大值更糊）
+    readonly property real memoBackdropBlurMax: 40
+    // 粉笔墨水（设计稿 rgba(255,236,150,.96) 暖粉笔黄 #FFEC96）+ 笔宽 4 / 橡皮宽 28
+    readonly property color memoInk: Qt.rgba(255 / 255, 236 / 255, 150 / 255, 0.96)
+    readonly property real memoPenWidth: 4
+    readonly property real memoEraserWidth: 28
+    // 便签暖黄纸（设计稿 .sticky-note #FFE6A3，与 shareGold 同值、语义独立）+ 便签墨字
+    readonly property color stickyPaper: "#FFE6A3"
+    readonly property color stickyInk: "#1E1E1E"
+    // aqua 选中环（设计稿 rgba(142,223,255,.58)，复用 glowCyan 色 + alpha）
+    readonly property color memoSelectRing: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.58)
+    // 工具条「更多/退出」破坏红（设计稿 .exit hover rgba(255,95,95,.22)）
+    readonly property color memoDanger: Qt.rgba(255 / 255, 95 / 255, 95 / 255, 1.0)
+    // 番茄钟色族（设计稿 #FF5B5E 红 + 琥珀双闪 rgba(255,230,163)）；进度条 aqua→violet 复用既有色。
+    readonly property color pomodoroRed: "#FF5B5E"
+    readonly property color pomodoroRedDark: "#D8413F"
+    readonly property color pomodoroRedHi: "#FF9A8A"
+    readonly property color pomodoroLeaf: "#5FBF6B"
+    readonly property color pomodoroLeafDark: "#3E8F4E"
+    readonly property color pomodoroAmber: Qt.rgba(255 / 255, 230 / 255, 163 / 255, 1.0)
 }
