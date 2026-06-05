@@ -75,7 +75,7 @@ Item {
                     drag.axis: Drag.XAndYAxis
                     drag.minimumX: 8
                     drag.maximumX: (note.parent ? note.parent.width : note.width) - note.width - 8
-                    drag.minimumY: 84
+                    drag.minimumY: 8        // 顶栏改为灵动岛自动隐藏，顶部空间开放可拖
                     drag.maximumY: (note.parent ? note.parent.height : note.height) - note.height - 8
                     onPressed: note.selectRequested(true)
                     onReleased: note.geometryCommitted()

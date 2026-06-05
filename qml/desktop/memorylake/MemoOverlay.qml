@@ -172,7 +172,7 @@ Item {
         var w = 310, h = 285;
         var W = objectLayerHost.width, H = objectLayerHost.height;
         var x = Math.max(8, Math.min(px - 110, W - w - 8));
-        var y = Math.max(84, Math.min(py - 22, H - h - 8));
+        var y = Math.max(8, Math.min(py - 22, H - h - 8));   // 顶部开放（灵动岛顶栏）
         objectModel.append({ otype: "sticky", ox: x, oy: y, ow: w, oh: h,
                              otitle: "", ocontent: "", otext: "",
                              ots: new Date().getTime(), odone: false, odue: 0 });
@@ -721,11 +721,26 @@ Item {
         }
     }   // F-B4/F-B5 便签 + 文字层
 
-    // ===== Chrome：工具条 + 提示胶囊 =====
+    // ===== Chrome：工具条 + 档案袋（灵动岛：默认藏起只露小边，鼠标靠近顶部再冒出）=====
+    // 顶栏是否展开：开启状态下，档案袋展开中、或鼠标靠近顶部（且非绘制/框选手势）时显示。
+    readonly property bool chromeShown: open && (pageFolder.openState
+                                        || (topHover.hovered && !inkCanvas.drawing && !_selDragging))
+
+    // 顶部悬停感应区：被动 HoverHandler，不拦点击/拖动，让顶部空间仍可画/拖。
+    Item {
+        id: topZone
+        anchors { top: parent.top; left: parent.left; right: parent.right }
+        height: 78
+        z: 4500
+        HoverHandler { id: topHover }
+    }
+
     MemoToolbar {
         id: toolbar
         anchors.horizontalCenter: parent.horizontalCenter
-        y: 22
+        // 收起时上移、只露 10px 提示边；靠近顶部冒出到 y=14。
+        y: memo.chromeShown ? 14 : -(height - 10)
+        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
         style: memo.style
         shown: memo.open
         onExitRequested: memo.open = false
@@ -768,7 +783,10 @@ Item {
     // 右上档案袋（多页切换）。
     MemoPageFolder {
         id: pageFolder
-        anchors { right: parent.right; top: parent.top; rightMargin: 18; topMargin: 18 }
+        anchors { right: parent.right; rightMargin: 18 }
+        // 灵动岛：收起时上移只露 10px（前盖 48 高 → -38），展开/靠近顶部时落到 y=18。
+        y: memo.chromeShown ? 18 : -38
+        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
         style: memo.style
         pageLabels: memo.pageLabels
         currentIndex: memo.currentPage

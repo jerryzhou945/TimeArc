@@ -36,6 +36,23 @@ corner-scale. No whole-board zoom (chosen scope).
 - Verified via probes: ink 1:1 + scaled copy, ink move (lift→clear→restamp),
   object multi-select + copy (sticky+text), object scale (×1.35).
 
+## Feature 3 — top chrome as Dynamic Island (done)
+Toolbar + page folder were always-on and blocked the top strip (sticky drag was
+clamped to y>=84). Now:
+- Top opened for dragging: sticky `drag.minimumY` + createSticky clamp 84 -> 8.
+- Chrome auto-hides to a ~10px peek; a passive top `HoverHandler` zone
+  (acceptedButtons-free, doesn't block draw/drag) reveals them on mouse-approach
+  (`chromeShown`), staying open while the folder is expanded; hidden while a
+  pen/select gesture is active so drawing at the top doesn't pop it.
+
+## Select-tool fix (post-feedback)
+Ink could vanish on drag (clear-before-float-load + cache:false eviction) and
+copy dragged the original (overlapping +28 offset). Fixed: preload snapshot +
+clear only when float Ready + synchronous restamp; copy placed fully beside
+(non-overlapping). Objects were already identity-moved.
+
 ## Verify
-`build.py` green; date picker checked via qml.exe probe (lands on the right
-day + time, weekday alignment correct). Manual in-app QA still the user's pass.
+`build.py` green; probes: date picker (right day/time), ink copy/move
+(1:1 + scaled + lift-clear-restamp), object multi-select/copy/scale, copy
+non-overlap, chrome auto-hidden peek. Hover-reveal + real mouse drag/marquee =
+manual in-app QA.
