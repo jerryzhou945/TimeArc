@@ -69,14 +69,15 @@ with day and night modes.
 - **Memory Lake memo blackboard (备忘)** — the 「备忘」 nav opens a modal blackboard
   **overlay** over the home page (an action, **not** a page route): a near-black dotted
   board with a freehand chalk-ink canvas and a floating glass tool pill (note / text /
-  pen / eraser / exit), the home page re-blurred behind it. Freehand chalk pen/eraser,
+  pen / eraser / exit), the home page re-blurred behind it. Freehand chalk pen/eraser with a
+  **color palette + width presets** and a **clear-canvas** button (confirm + Ctrl+Z undoable),
   draggable + resizable **sticky notes** (autosize, aqua selection ring, a **due date/time**
-  picker and a done checkbox), editable + resizable **text layers** (Alt-drag), a
-  **multi-page archive folder** (switch / add / delete / **rename**, max 10, each page owns its
-  own ink + objects), a marquee **select tool** (copy / delete / move / scale across ink *and* objects,
-  with a clipboard — **Ctrl+C / Ctrl+V** across pages — and **Ctrl+Z** undo), and a
-  **pomodoro widget** (collapses to a pixel tomato while running, full-screen completion
-  celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
+  picker, a done checkbox and an editable **signature**), editable + resizable **text layers**
+  (Alt-drag), a **multi-page archive folder** (switch / add / delete / **rename** / drag-**reorder**,
+  max 10, each page owns its own ink + objects and shows a **row thumbnail**), a marquee
+  **select tool** (copy / delete / move / scale across ink *and* objects, with a clipboard —
+  **Ctrl+C / Ctrl+V** across pages — and **Ctrl+Z** undo), and a **persisted pomodoro widget**
+  (editable title, collapses to a pixel tomato while running, full-screen completion celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
   1920×1080 logical canvas uniformly scaled to fit the window (16:9). Everything
   **auto-persists** to a UI-private store (`SettingsRepository`), kept **off the service↔UI
   disk contract**. *(Replaces the former local Chat page.)*
