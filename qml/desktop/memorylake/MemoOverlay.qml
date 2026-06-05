@@ -198,9 +198,61 @@ Item {
         memo._histRecord();
     }
 
+    // —— 选择工具：框选区域（笔迹 + 便签 + 文字）→ 复制 / 删除（移动/缩放见后续切片）——
+    property var selObjs: []                       // 选中的对象下标
+    property rect selRect: Qt.rect(0, 0, 0, 0)     // 选区矩形（对象层坐标）
+    property bool selActive: false
+    function _clearSelection() { selObjs = []; selActive = false; }
+    function _rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+        return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+    }
+    function _selectRegion(x, y, w, h) {
+        var idxs = [];
+        for (var i = 0; i < objectModel.count; i++) {
+            var o = objectModel.get(i);
+            if (_rectsOverlap(x, y, w, h, o.ox, o.oy, o.ow, o.oh)) idxs.push(i);
+        }
+        memo.selRect = Qt.rect(x, y, w, h);
+        memo.selObjs = idxs;
+        memo.selActive = true;
+        memo.selectedObject = -1;                  // 单选与框选互斥
+    }
+    function _deleteSelection() {
+        if (!selActive) return;
+        if (selRect.width > 1 && selRect.height > 1)
+            inkCanvas.clearRegion(selRect.x, selRect.y, selRect.width, selRect.height);
+        var idxs = selObjs.slice().sort(function (a, b) { return b - a; });   // 降序删，下标不串
+        for (var i = 0; i < idxs.length; i++) objectModel.remove(idxs[i]);
+        memo.selectedObject = -1;
+        _clearSelection();
+        scheduleSave(); _histRecord();
+    }
+    function _copySelection() {
+        if (!selActive) return;
+        var dx = 28, dy = 28;
+        var copies = [];                            // 先快照（append 会改下标/count）
+        for (var k = 0; k < selObjs.length; k++) {
+            var o = objectModel.get(selObjs[k]);
+            copies.push({ otype: o.otype, ox: o.ox + dx, oy: o.oy + dy, ow: o.ow, oh: o.oh,
+                          otitle: o.otitle, ocontent: o.ocontent, otext: o.otext,
+                          ots: o.ots, odone: o.odone, odue: o.odue });
+        }
+        if (selRect.width > 1 && selRect.height > 1)     // 墨迹：选区像素 source-over 贴到偏移处
+            inkCanvas.copyRegionTo(selRect.x, selRect.y, selRect.width, selRect.height,
+                                   selRect.x + dx, selRect.y + dy, selRect.width, selRect.height);
+        var base = objectModel.count;
+        for (var j = 0; j < copies.length; j++) objectModel.append(copies[j]);
+        var newIdxs = [];                            // 选区移到副本
+        for (var n = 0; n < copies.length; n++) newIdxs.push(base + n);
+        memo.selObjs = newIdxs;
+        memo.selRect = Qt.rect(selRect.x + dx, selRect.y + dy, selRect.width, selRect.height);
+        scheduleSave(); _histRecord();
+    }
+
     // 工具提示文案（逐字对齐 v88 setMemoTool 16301-16307）。
     readonly property var toolHints: ({
         "none": "已取消当前工具。点击上方工具图标重新选择。",
+        "select": "选择模式：在空白处拖出方框，框选笔迹/便签/文字；可一键复制、删除（移动/缩放后续支持）。",
         "note": "便签模式：点击画布创建白色便签，便签可拖动、可编辑、可左右上下拉伸。",
         "text": "文字模式：点击画布添加文本，输入后可继续编辑。",
         "pen": "画笔模式：按住鼠标在灰色蒙版上自由绘图。",
@@ -231,7 +283,8 @@ Item {
     // 故编辑便签/文字时不劫持（焦点在 TextArea，键归它）。
     Keys.onPressed: function (e) {
         if (e.key === Qt.Key_Escape) {
-            memo.open = false;
+            if (memo.selActive) memo._clearSelection();   // 先清框选，再次 Esc 才关闭
+            else memo.open = false;
             e.accepted = true;
         } else if (e.key === Qt.Key_Z && (e.modifiers & Qt.ControlModifier)) {
             // Ctrl+Z 撤回 / Ctrl+Shift+Z 重做（编辑文本框时此处不触发，归 TextArea 自身撤销）。
@@ -240,10 +293,12 @@ Item {
         } else if (e.key === Qt.Key_Y && (e.modifiers & Qt.ControlModifier)) {
             memo.redo();
             e.accepted = true;
-        } else if ((e.key === Qt.Key_Delete || e.key === Qt.Key_Backspace)
-                   && memo.selectedObject >= 0) {
-            memo.removeObject(memo.selectedObject);
+        } else if (e.key === Qt.Key_C && (e.modifiers & Qt.ControlModifier) && memo.selActive) {
+            memo._copySelection();
             e.accepted = true;
+        } else if (e.key === Qt.Key_Delete || e.key === Qt.Key_Backspace) {
+            if (memo.selActive) { memo._deleteSelection(); e.accepted = true; }
+            else if (memo.selectedObject >= 0) { memo.removeObject(memo.selectedObject); e.accepted = true; }
         }
     }
 
@@ -257,6 +312,7 @@ Item {
             switch (toolbar.currentTool) {
             case "text": return Qt.IBeamCursor;
             case "note": return Qt.DragCopyCursor;
+            case "select": return Qt.ArrowCursor;
             case "none": return Qt.ArrowCursor;
             default: return Qt.CrossCursor;
             }
@@ -357,6 +413,32 @@ Item {
             }
         }
 
+        // 选择工具：空白处拖出框选矩形（起点落在对象上则归对象自身手势；命中靠几何相交）。
+        MouseArea {
+            id: marqueeArea
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            enabled: toolbar.currentTool === "select"
+            property real sx: 0
+            property real sy: 0
+            onPressed: function (m) {
+                memo._clearSelection();
+                sx = m.x; sy = m.y;
+                marquee.x = m.x; marquee.y = m.y; marquee.width = 0; marquee.height = 0;
+                marquee.visible = true;
+            }
+            onPositionChanged: function (m) {
+                marquee.x = Math.min(sx, m.x); marquee.y = Math.min(sy, m.y);
+                marquee.width = Math.abs(m.x - sx); marquee.height = Math.abs(m.y - sy);
+            }
+            onReleased: function (m) {
+                marquee.visible = false;
+                if (marquee.width < 6 || marquee.height < 6) { memo._clearSelection(); return; }
+                memo._selectRegion(marquee.x, marquee.y, marquee.width, marquee.height);
+            }
+            onCanceled: marquee.visible = false
+        }
+
         // 包一层填充壳：Loader 把「壳」拉满覆盖层（壳是普通 Item，被拉伸无副作用），真正的
         // 便签/文字作为壳的子项、用自身 x/y/w/h 定位，不被 Loader 强制改尺寸。
         // 修 bug：有显式尺寸的 Loader 会把被加载项也拉成同尺寸 → 全屏/退全屏时便签暴涨、
@@ -450,6 +532,56 @@ Item {
                 }
             }
         }
+
+        // 框选橡皮筋（仅视觉；命中在 marqueeArea）。
+        Rectangle {
+            id: marquee
+            visible: false
+            z: 400
+            color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10)
+            border.width: 1
+            border.color: memo.style ? memo.style.glowCyan : "#8EDFFF"
+        }
+
+        // 选区框 + 复制/删除动作条。
+        Item {
+            id: selectionBox
+            visible: memo.selActive && toolbar.currentTool === "select"
+            x: memo.selRect.x; y: memo.selRect.y
+            width: memo.selRect.width; height: memo.selRect.height
+            z: 401
+
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.07)
+                border.width: 1.5
+                border.color: memo.style ? memo.style.glowCyan : "#8EDFFF"
+            }
+            Row {
+                anchors { bottom: parent.top; bottomMargin: 8; right: parent.right }
+                spacing: 6
+                Rectangle {
+                    width: copyT.implicitWidth + 22; height: 30; radius: 8
+                    color: copyMa.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20)
+                                                : Qt.rgba(0, 0, 0, 0.45)
+                    border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.22)
+                    Text { id: copyT; anchors.centerIn: parent; text: "复制"
+                           color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.92); font.pixelSize: 13 }
+                    MouseArea { id: copyMa; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor; onClicked: memo._copySelection() }
+                }
+                Rectangle {
+                    width: delT.implicitWidth + 22; height: 30; radius: 8
+                    color: delMa.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.75)
+                                               : Qt.rgba(0, 0, 0, 0.45)
+                    border.width: 1; border.color: Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.40)
+                    Text { id: delT; anchors.centerIn: parent; text: "删除"
+                           color: Qt.rgba(255 / 255, 235 / 255, 235 / 255, 0.95); font.pixelSize: 13 }
+                    MouseArea { id: delMa; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor; onClicked: memo._deleteSelection() }
+                }
+            }
+        }
     }   // F-B4/F-B5 便签 + 文字层
 
     // ===== Chrome：工具条 + 提示胶囊 =====
@@ -461,6 +593,7 @@ Item {
         shown: memo.open
         onExitRequested: memo.open = false
         onPomodoroRequested: pomodoro.shown = !pomodoro.shown
+        onCurrentToolChanged: if (currentTool !== "select") memo._clearSelection()
     }
 
     // 番茄钟浮窗 + 完成弹层。

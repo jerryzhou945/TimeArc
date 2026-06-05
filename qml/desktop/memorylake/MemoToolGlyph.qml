@@ -6,7 +6,7 @@ import QtQuick
 Item {
     id: g
 
-    property string kind: "pen"          // pen | eraser | note | text
+    property string kind: "pen"          // select | pen | eraser | note | text
     property color glyphColor: "white"
 
     width: 20; height: 20
@@ -54,6 +54,18 @@ Item {
                 ctx.translate(-w * 0.5, -h * 0.5);
                 ctx.strokeRect(w * 0.26, h * 0.36, w * 0.48, h * 0.28);
                 ctx.restore();
+            } else if (g.kind === "select") {
+                // 虚线框选 + 一支小箭头（“当鼠标框选”）。
+                ctx.setLineDash([2.6, 2.2]);
+                ctx.strokeRect(w * 0.20, h * 0.20, w * 0.46, h * 0.46);
+                ctx.setLineDash([]);
+                ctx.beginPath();
+                ctx.moveTo(w * 0.50, h * 0.50);
+                ctx.lineTo(w * 0.50, h * 0.86);
+                ctx.lineTo(w * 0.59, h * 0.72);
+                ctx.lineTo(w * 0.78, h * 0.74);
+                ctx.closePath();
+                ctx.stroke();
             } else if (g.kind === "note") {
                 ctx.beginPath();
                 ctx.moveTo(w * 0.24, h * 0.22);

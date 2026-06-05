@@ -46,6 +46,31 @@ Canvas {
         ink.markDirty(Qt.rect(0, 0, width, height));
     }
 
+    // —— 选择工具：矩形区域操作（删除 / 复制；移动缩放复用回贴）——
+    // 清除一块矩形区域的墨迹（一键删除选区）。
+    function clearRegion(x, y, w, h) {
+        var ctx = getContext("2d");
+        ctx.clearRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+        ink.markDirty(Qt.rect(0, 0, width, height));
+    }
+    // 把全幅快照的源矩形 (sx,sy,sw,sh) 以 source-over 贴到目标矩形 (dx,dy,dw,dh)（可缩放）。
+    // 关键：用 toDataURL 全幅快照 + drawImage 取源矩形，而非 getImageData——FBO 上 getImageData
+    // 读不到 GPU 像素（实测返回空），但 toDataURL 能（与存档同路径）。
+    property var _pendingStamps: []
+    function _drawStamp(s) {
+        var ctx = getContext("2d");
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(s.url, s.sx, s.sy, s.sw, s.sh, s.dx, s.dy, s.dw, s.dh);
+        ink.markDirty(Qt.rect(0, 0, width, height));
+    }
+    function copyRegionTo(sx, sy, sw, sh, dx, dy, dw, dh) {
+        if (sw < 1 || sh < 1) return;
+        var url = ink.toDataURL("image/png");
+        var s = { url: url, sx: sx, sy: sy, sw: sw, sh: sh, dx: dx, dy: dy, dw: dw, dh: dh };
+        if (ink.isImageLoaded(url)) _drawStamp(s);
+        else { ink._pendingStamps.push(s); ink.loadImage(url); }
+    }
+
     // 持久化：导出当前位图 dataURL（持久化切片存盘用）。
     function exportDataURL() {
         return ink.toDataURL("image/png");
@@ -65,6 +90,16 @@ Canvas {
             ctx.globalCompositeOperation = "source-over";
             ctx.drawImage(ink._pendingUrl, 0, 0, width, height);
             ink.markDirty(Qt.rect(0, 0, width, height));
+        }
+        // 待贴图（复制/移动/缩放回贴）。
+        if (ink._pendingStamps.length > 0) {
+            var remain = [];
+            for (var i = 0; i < ink._pendingStamps.length; i++) {
+                var s = ink._pendingStamps[i];
+                if (ink.isImageLoaded(s.url)) _drawStamp(s);
+                else remain.push(s);
+            }
+            ink._pendingStamps = remain;
         }
     }
 

@@ -16,6 +16,7 @@ Item {
     function toggleTool(t) { currentTool = (currentTool === t) ? "none" : t; }
 
     readonly property var tools: [
+        { kind: "select", label: "选择" },
         { kind: "note",   label: "创建便签" },
         { kind: "text",   label: "文字" },
         { kind: "pen",    label: "画笔" },
