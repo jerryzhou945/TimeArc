@@ -38,8 +38,8 @@ Item {
         for (var i = 0; i < pagesData.length; i++) ls.push(pagesData[i].label);
         pageLabels = ls;
     }
-    // 把当前 live 状态（对象 + 墨迹）写回当前页记录。
-    function _writeCurrent() {
+    // 当前对象层序列化为纯数组（供存档 + 撤回快照共用）。
+    function _snapshotObjects() {
         var objs = [];
         for (var i = 0; i < objectModel.count; i++) {
             var o = objectModel.get(i);
@@ -47,20 +47,28 @@ Item {
                         ti: o.otitle, co: o.ocontent, tx: o.otext,
                         ts: o.ots || 0, done: o.odone === true });
         }
-        pagesData[currentPage] = { label: pagesData[currentPage].label,
-                                   objects: objs, canvas: inkCanvas.exportDataURL() };
+        return objs;
     }
-    // 把某页记录装载进 live 状态。
-    function _applyPage(p) {
+    // 把对象数组装回模型（供装载页 + 撤回还原共用）。
+    function _applyRecords(objs) {
         objectModel.clear();
-        var objs = (p && p.objects) ? p.objects : [];
-        for (var i = 0; i < objs.length; i++) {
-            var o = objs[i];
+        var a = objs || [];
+        for (var i = 0; i < a.length; i++) {
+            var o = a[i];
             objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
                                  otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字",
                                  ots: o.ts || 0, odone: o.done === true });
         }
         memo.selectedObject = -1;
+    }
+    // 把当前 live 状态（对象 + 墨迹）写回当前页记录。
+    function _writeCurrent() {
+        pagesData[currentPage] = { label: pagesData[currentPage].label,
+                                   objects: _snapshotObjects(), canvas: inkCanvas.exportDataURL() };
+    }
+    // 把某页记录装载进 live 状态。
+    function _applyPage(p) {
+        _applyRecords((p && p.objects) ? p.objects : []);
         inkCanvas.loadFromDataURL((p && p.canvas) ? p.canvas : "");
     }
 
@@ -70,6 +78,7 @@ Item {
         currentPage = i;
         _applyPage(pagesData[i]);
         scheduleSave();
+        memo._histReset();
     }
     function addPage() {
         _writeCurrent();
@@ -79,6 +88,7 @@ Item {
         _refreshLabels();
         _applyPage(pagesData[currentPage]);
         scheduleSave();
+        memo._histReset();
     }
     function deletePage(i) {
         if (pagesData.length <= 1 || i < 0 || i >= pagesData.length) return;   // 保底留 1 页
@@ -89,6 +99,7 @@ Item {
         _refreshLabels();
         _applyPage(pagesData[currentPage]);
         scheduleSave();
+        memo._histReset();
     }
 
     // 序列化整篇（多页）→ store。debounce 见 saveTimer。
@@ -119,6 +130,42 @@ Item {
 
     Timer { id: saveTimer; interval: 600; repeat: false; onTriggered: memo.saveDoc() }
 
+    // —— 撤回 / 重做（Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y）——
+    // 按当前页做线性快照历史（对象数组 + 墨迹 dataURL）。每次提交型变更后记一帧；切页/打开重置。
+    // 编辑文本框时 Ctrl+Z 归 TextArea 自身撤销（覆盖层未持焦，不会走到这里）。
+    property var _hist: []
+    property int _histAt: -1
+    property bool _restoring: false
+    readonly property int _histMax: 40
+
+    function _snapshot() { return { objects: _snapshotObjects(), canvas: inkCanvas.exportDataURL() }; }
+    function _histReset() { _hist = [_snapshot()]; _histAt = 0; }
+    function _histRecord() {
+        if (_restoring) return;
+        if (_histAt < _hist.length - 1) _hist = _hist.slice(0, _histAt + 1);   // 丢弃 redo 尾
+        _hist.push(_snapshot());
+        if (_hist.length > _histMax) _hist.shift();
+        _histAt = _hist.length - 1;
+    }
+    function _histApply(s) {
+        _restoring = true;
+        _applyRecords(s.objects);
+        inkCanvas.loadFromDataURL(s.canvas || "");
+        _restoring = false;
+    }
+    function undo() {
+        if (_histAt <= 0) return;
+        _histAt -= 1;
+        _histApply(_hist[_histAt]);
+        scheduleSave();
+    }
+    function redo() {
+        if (_histAt >= _hist.length - 1) return;
+        _histAt += 1;
+        _histApply(_hist[_histAt]);
+        scheduleSave();
+    }
+
     // —— 对象创建/删除（内存模型；持久化切片接 C++ MemoStore）——
     function createSticky(px, py) {
         var w = 310, h = 285;
@@ -131,6 +178,7 @@ Item {
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
         memo.scheduleSave();
+        memo._histRecord();
     }
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 240, oh: 0,
@@ -139,6 +187,7 @@ Item {
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
         memo.scheduleSave();
+        memo._histRecord();
     }
     function removeObject(i) {
         if (i < 0 || i >= objectModel.count) return;
@@ -146,6 +195,7 @@ Item {
         if (memo.selectedObject === i) memo.selectedObject = -1;
         else if (memo.selectedObject > i) memo.selectedObject -= 1;
         memo.scheduleSave();
+        memo._histRecord();
     }
 
     // 工具提示文案（逐字对齐 v88 setMemoTool 16301-16307）。
@@ -170,6 +220,7 @@ Item {
             if (!memo._loaded) { memo.loadDoc(); memo._loaded = true; }   // 首次打开恢复存档
             toolbar.currentTool = "pen";   // 每次打开默认画笔（功能文 §2.1）
             memo.forceActiveFocus();
+            memo._histReset();   // 以当前页 live 状态作为撤回基线
         } else {
             memo.saveDoc();   // 关闭前强存（不丢笔迹/便签）
         }
@@ -181,6 +232,13 @@ Item {
     Keys.onPressed: function (e) {
         if (e.key === Qt.Key_Escape) {
             memo.open = false;
+            e.accepted = true;
+        } else if (e.key === Qt.Key_Z && (e.modifiers & Qt.ControlModifier)) {
+            // Ctrl+Z 撤回 / Ctrl+Shift+Z 重做（编辑文本框时此处不触发，归 TextArea 自身撤销）。
+            if (e.modifiers & Qt.ShiftModifier) memo.redo(); else memo.undo();
+            e.accepted = true;
+        } else if (e.key === Qt.Key_Y && (e.modifiers & Qt.ControlModifier)) {
+            memo.redo();
             e.accepted = true;
         } else if ((e.key === Qt.Key_Delete || e.key === Qt.Key_Backspace)
                    && memo.selectedObject >= 0) {
@@ -276,7 +334,7 @@ Item {
             anchors.fill: parent
             style: memo.style
             tool: toolbar.currentTool
-            onStrokeEnded: memo.scheduleSave()
+            onStrokeEnded: { memo.scheduleSave(); memo._histRecord(); }
         }
     }
     Item {
@@ -359,6 +417,7 @@ Item {
                     function onDoneToggled() {
                         objectModel.setProperty(ldr.index, "odone", ldr.obj.done);
                         memo.scheduleSave();
+                        memo._histRecord();
                     }
                     function onGeometryCommitted() {
                         objectModel.setProperty(ldr.index, "ox", ldr.obj.x);
@@ -369,6 +428,7 @@ Item {
                         else
                             objectModel.setProperty(ldr.index, "oh", ldr.obj.height);
                         memo.scheduleSave();
+                        memo._histRecord();
                     }
                     function onContentCommitted() {
                         if (ldr.model.otype === "sticky") {
@@ -378,6 +438,7 @@ Item {
                             objectModel.setProperty(ldr.index, "otext", ldr.obj.text);
                         }
                         memo.scheduleSave();
+                        memo._histRecord();
                     }
                     function onDeleteRequested() { memo.removeObject(ldr.index); }
                 }

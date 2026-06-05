@@ -51,10 +51,14 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   backdrop (gradient + corner glows + dot lattice + re-blurred home); toolbar + freehand
   pen/eraser; sticky notes + text layers; multi-page archive folder (per-page ink+objects);
   UI-private auto-persistence via `SettingsRepository` (generic key-value, no new C++);
-  pomodoro widget (collapse-to-pixel-tomato) + full-screen completion overlay. **Pending:**
-  manual in-app QA pass (draw / drag / resize / page-switch / pomodoro end-to-end); §7-A
-  product gaps still deferred (undo/redo, pen color/width UI, page rename/reorder, pomodoro
-  persistence/sound/work-rest, conic-aura shader). Specs: `docs/memory-lake-memo-*`.
+  pomodoro widget (collapse-to-pixel-tomato) + full-screen completion overlay. **Post-QA
+  fixes (track C):** object scale blow-up on fullscreen toggle (sized-Loader force-resize);
+  sticky drops "JusTin D", gains date/time + done checkbox; text layers resizable; pomodoro
+  allows 0 min + dark NumberField inputs (native Controls style ignores SpinBox custom);
+  **Ctrl+Z undo / Ctrl+Shift+Z redo** added. **Pending:** manual in-app QA pass (draw /
+  drag / resize / page-switch / pomodoro end-to-end). Still deferred: pen color/width UI,
+  page rename/reorder, pomodoro persistence/sound/work-rest, conic-aura shader.
+  Specs: `docs/memory-lake-memo-*`.
 
 ## Build / distribution
 
