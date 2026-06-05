@@ -16,8 +16,15 @@ Item {
     signal pomodoroRequested()
     signal clearRequested()                // gap #4：清空本页墨迹（由覆盖层弹确认）
 
+    // 笔宽（gap #3）：默认取 style，工具条选档覆盖；笔/橡皮各一组「细/中/粗」预设。
+    property real penWidth: style ? style.memoPenWidth : 4
+    property real eraserWidth: style ? style.memoEraserWidth : 28
+    readonly property var penWidths: [2.5, 4, 7]
+    readonly property var eraserWidths: [16, 28, 44]
+
     // 鼠标是否悬在工具条上（供 Shell 维持灵动岛展开；工具条需置于顶部感应区 topZone 之上才生效）。
-    readonly property bool barHovered: pillHover.hovered
+    // 含子弹层(subPop)，否则从条上移到选项弹层时灵动岛会收起、把弹层抽走。
+    readonly property bool barHovered: pillHover.hovered || subPopHover.hovered
 
     function toggleTool(t) { currentTool = (currentTool === t) ? "none" : t; }
 
@@ -224,6 +231,71 @@ Item {
                     hoverEnabled: bar.revealed
                     cursorShape: Qt.PointingHandCursor
                     onClicked: bar.exitRequested()
+                }
+            }
+        }
+    }
+
+    // 画笔/橡皮工具选项弹层（gap #3 粗细 + gap #2 笔色）：pen/eraser 时从 pill 下方滑出。
+    Rectangle {
+        id: subPop
+        readonly property bool isPen: bar.currentTool === "pen"
+        readonly property bool active: bar.currentTool === "pen" || bar.currentTool === "eraser"
+        anchors.top: pill.bottom
+        anchors.topMargin: 8
+        anchors.horizontalCenter: pill.horizontalCenter
+        width: subRow.width + 24
+        height: 46
+        radius: 12
+        visible: active && opacity > 0.01
+        opacity: active ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.Bezier
+            easing.bezierCurve: bar.style ? bar.style.easeSnappy : [0.18, 0.9, 0.2, 1, 1, 1] } }
+        gradient: Gradient {
+            GradientStop { position: 0; color: Qt.rgba(28 / 255, 32 / 255, 42 / 255, 0.94) }
+            GradientStop { position: 1; color: Qt.rgba(16 / 255, 19 / 255, 28 / 255, 0.92) }
+        }
+        border.width: 1
+        border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.14)
+        antialiasing: true
+        HoverHandler { id: subPopHover }   // 让 barHovered 覆盖弹层，移上去不收灵动岛
+
+        Row {
+            id: subRow
+            anchors.centerIn: parent
+            spacing: 8
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "粗细"
+                color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.5)
+                font.pixelSize: 12
+            }
+            // 三档粗细（细/中/粗）：点子设置笔/橡皮宽度，选中高亮。
+            Repeater {
+                model: 3
+                delegate: Rectangle {
+                    required property int index
+                    readonly property real val: (subPop.isPen ? bar.penWidths : bar.eraserWidths)[index]
+                    readonly property bool sel: Math.abs((subPop.isPen ? bar.penWidth : bar.eraserWidth) - val) < 0.01
+                    width: 30; height: 30; radius: 8
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: sel ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
+                               : wHover.containsMouse ? Qt.rgba(1, 1, 1, 0.06) : "transparent"
+                    border.width: sel ? 1 : 0
+                    border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.40)
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: [6, 11, 17][index]; height: width; radius: width / 2
+                        color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.86)
+                    }
+                    MouseArea {
+                        id: wHover
+                        anchors.fill: parent
+                        hoverEnabled: bar.revealed
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { if (subPop.isPen) bar.penWidth = val; else bar.eraserWidth = val }
+                    }
                 }
             }
         }

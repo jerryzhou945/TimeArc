@@ -11,6 +11,9 @@ Canvas {
 
     property MemoryLakeStyle style
     property string tool: "pen"      // pen | eraser | note | text | none
+    // 笔宽（gap #3）：默认取 style 令牌，由工具条覆盖（笔/橡皮各自一档）。
+    property real penWidth: style ? style.memoPenWidth : 4
+    property real eraserWidth: style ? style.memoEraserWidth : 28
     // 一次落笔→抬笔算一笔；抬笔时发信号（持久化切片接：节流存 PNG）。
     signal strokeEnded()
 
@@ -31,8 +34,7 @@ Canvas {
         ctx.globalCompositeOperation = (tool === "eraser") ? "destination-out" : "source-over";
         var c = style ? style.memoInk : Qt.rgba(1, 236 / 255, 150 / 255, 0.96);
         ctx.strokeStyle = (tool === "eraser") ? "rgba(0,0,0,1)" : Qt.rgba(c.r, c.g, c.b, c.a);
-        ctx.lineWidth = (tool === "eraser") ? (style ? style.memoEraserWidth : 28)
-                                            : (style ? style.memoPenWidth : 4);
+        ctx.lineWidth = (tool === "eraser") ? eraserWidth : penWidth;
         ctx.beginPath();
         ctx.moveTo(lastX, lastY);
         ctx.lineTo(x, y);
