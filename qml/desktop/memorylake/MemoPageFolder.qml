@@ -9,6 +9,7 @@ Item {
 
     property MemoryLakeStyle style
     property var pageLabels: ["Page 1"]
+    property var pageThumbs: [""]          // gap #8：每页墨迹 PNG dataURL（行内缩略图）
     property int currentIndex: 0
     property bool openState: false
     property int maxPages: 10
@@ -141,10 +142,28 @@ Item {
                         GradientStop { position: 0; color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20) }
                         GradientStop { position: 1; color: Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.18) }
                     }
+                    // 缩略图（gap #8）：本页墨迹 PNG 缩放预览（空页 = 空框）。
+                    Rectangle {
+                        id: thumb
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left; anchors.leftMargin: 8
+                        width: 40; height: 24; radius: 5
+                        color: Qt.rgba(1, 1, 1, 0.04)
+                        border.width: 1
+                        border.color: sel ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.30) : Qt.rgba(1, 1, 1, 0.08)
+                        clip: true
+                        Image {
+                            anchors.fill: parent; anchors.margins: 1
+                            source: (folder.pageThumbs && index < folder.pageThumbs.length) ? folder.pageThumbs[index] : ""
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true; cache: false; smooth: true
+                            visible: source != ""
+                        }
+                    }
                     Text {
                         visible: folder.editingIndex !== index
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left; anchors.leftMargin: 12
+                        anchors.left: parent.left; anchors.leftMargin: 56
                         anchors.right: parent.right; anchors.rightMargin: 58
                         text: modelData
                         color: sel ? "#EAF6FF" : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.78)
@@ -164,7 +183,7 @@ Item {
                         id: nameEdit
                         visible: folder.editingIndex === index
                         anchors.verticalCenter: parent.verticalCenter
-                        anchors.left: parent.left; anchors.leftMargin: 12
+                        anchors.left: parent.left; anchors.leftMargin: 56
                         anchors.right: parent.right; anchors.rightMargin: 12
                         color: "#EAF6FF"
                         font.pixelSize: 13

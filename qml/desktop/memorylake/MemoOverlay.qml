@@ -32,11 +32,19 @@ Item {
     property int currentPage: 0
     property int _pageSeq: 1
     property var pageLabels: ["Page 1"]
+    property var pageThumbs: [""]           // gap #8：每页墨迹 PNG dataURL（档案袋行内缩略图）
 
     function _refreshLabels() {
         var ls = [];
         for (var i = 0; i < pagesData.length; i++) ls.push(pagesData[i].label);
         pageLabels = ls;
+        _refreshThumbs();
+    }
+    // gap #8：从 pagesData[i].canvas 重建缩略图数组（结构变更 + 存盘时调用）。
+    function _refreshThumbs() {
+        var ts = [];
+        for (var i = 0; i < pagesData.length; i++) ts.push(pagesData[i].canvas || "");
+        pageThumbs = ts;
     }
     // 当前对象层序列化为纯数组（供存档 + 撤回快照共用）。
     function _snapshotObjects() {
@@ -122,6 +130,7 @@ Item {
         if (!store) return;
         if (_selDragging) return;   // 手势中画布暂缺一块（墨迹浮起），别存到缺口；提交后会再存
         _writeCurrent();
+        _refreshThumbs();           // gap #8：当前页墨迹变了 → 刷新该页缩略图
         store.setValue(memo.docKey, JSON.stringify({ v: 2, pages: pagesData, current: currentPage,
                                                      pen: { pw: toolbar.penWidth, ew: toolbar.eraserWidth,
                                                             color: "" + toolbar.inkColor } }));
@@ -964,6 +973,7 @@ Item {
         Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
         style: memo.style
         pageLabels: memo.pageLabels
+        pageThumbs: memo.pageThumbs          // gap #8
         currentIndex: memo.currentPage
         visible: memo.open
         opacity: memo.open ? 1 : 0
