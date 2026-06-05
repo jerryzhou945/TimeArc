@@ -59,13 +59,16 @@ with day and night modes.
   **overlay** over the home page (an action, **not** a page route): a near-black dotted
   board with a freehand chalk-ink canvas and a floating glass tool pill (note / text /
   pen / eraser / exit), the home page re-blurred behind it. Freehand chalk pen/eraser,
-  draggable + resizable **sticky notes** (with autosize + aqua selection ring + delete),
-  editable **text layers** (Alt-drag), a **multi-page archive folder** (switch / add /
-  delete, each page owns its own ink + objects), and a **pomodoro widget** (collapses to a
-  pixel tomato while running, with a full-screen completion celebration) — all replicating
-  the v88 prototype, everything **auto-persisting** to a UI-private store. Memo content is
-  **UI-private local state**, kept off the service↔UI disk contract.
-  *(Replaces the former local Chat page.)*
+  draggable + resizable **sticky notes** (autosize, aqua selection ring, a **due date/time**
+  picker and a done checkbox), editable + resizable **text layers** (Alt-drag), a
+  **multi-page archive folder** (switch / add / delete, max 10, each page owns its own ink +
+  objects), a marquee **select tool** (copy / delete / move / scale across ink *and* objects,
+  with a clipboard — **Ctrl+C / Ctrl+V** across pages — and **Ctrl+Z** undo), and a
+  **pomodoro widget** (collapses to a pixel tomato while running, full-screen completion
+  celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
+  1920×1080 logical canvas uniformly scaled to fit the window (16:9). Everything
+  **auto-persists** to a UI-private store (`SettingsRepository`), kept **off the service↔UI
+  disk contract**. *(Replaces the former local Chat page.)*
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
   three-panel "记忆湖": a left panel with the app usage ranking, a **center column**
   that stacks the **Today Conclusion** briefing (今日结论: kicker/title/score box +
@@ -149,8 +152,8 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   source, and the JSONL history plus live JSON snapshot still remain in use.
 - Current desktop data split: automatic foreground-app and media usage
   still come from the real service capture path and journal/database session
-  readers; manual projects, timer sessions, calendar todos, night mode, and
-  local memo chat are routed through SQLite-backed repositories/settings.
+  readers; manual projects, timer sessions, calendar todos, night mode, and the
+  memo blackboard doc are routed through SQLite-backed repositories/settings.
   Legacy QSettings data for those UI-owned items is migrated into SQLite on
   startup without deleting the old QSettings keys.
 
@@ -163,17 +166,19 @@ state. The main data loop is now closed for the desktop surfaces below:
   today's manual-project totals, project rankings, recent activity, and range
   aggregation.
 - Project creation, timer session submission, project deletion, calendar
-  todos, night mode, and local memo chat are persisted through SQLite-backed
-  repositories/settings.
+  todos, night mode, and the memo blackboard doc are persisted through
+  SQLite-backed repositories/settings.
 - Project deletion is conservative: projects are archived/hidden from active
   lists, while historical sessions and stats remain queryable.
 - Calendar todos persist date, title, and completion state through SQLite
   settings.
 - The Settings page stores night mode in SQLite settings and shows the real
   read-only SQLite database path from `databaseManager.getDatabasePath()`.
-- The 备忘 entry opens a local blackboard memo overlay (freehand ink + notes),
-  not an AI chat or cloud service. Its content is user-authored UI-private state
-  and will persist through a UI-private store (in progress).
+- The 备忘 entry opens a local blackboard memo overlay (freehand ink + notes,
+  sticky/text objects, multi-page, select tool, pomodoro), not an AI chat or
+  cloud service. Its content is user-authored UI-private state, persisted through
+  a UI-private store (`SettingsRepository` key `memoryLakeMemoDoc`), off the
+  service↔UI disk contract.
 
 Important limits remain:
 
@@ -274,9 +279,9 @@ The SQLite file is separate from the usage directory. It uses Qt's
 `%APPDATA%\TimeArc\TimeArc\timearc.db`. It is being introduced alongside
 JSONL and is not yet the sole primary data source.
 
-Desktop manual projects, timer sessions, calendar to-dos, night mode, and
-local memo chat now read/write this SQLite database. Existing QSettings data
-for projects/sessions, calendar todos, local memo chat, and night mode is
+Desktop manual projects, timer sessions, calendar to-dos, night mode, and the
+memo blackboard doc now read/write this SQLite database. Existing QSettings data
+for projects/sessions, calendar todos, and night mode is
 migrated once on startup when possible. The migration is idempotent and keeps
 the legacy QSettings data in place; it does not make SQLite the only source
 for automatic foreground/media usage yet.

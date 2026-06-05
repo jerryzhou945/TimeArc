@@ -46,21 +46,18 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 - **Third-party license page missing.** Main README TO-DO. Required by GPL +
   Qt LGPL combination; see
   [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.
-- **Memory Lake memo blackboard overlay (备忘) — implemented (PR #14, sliced).** Greenfield
-  modal overlay replicating v88 `#memoOverlay`: entry-as-action + flip-guard; blackboard
-  backdrop (gradient + corner glows + dot lattice + re-blurred home); toolbar + freehand
-  pen/eraser; sticky notes + text layers; multi-page archive folder (per-page ink+objects);
-  UI-private auto-persistence via `SettingsRepository` (generic key-value, no new C++);
-  pomodoro widget (collapse-to-pixel-tomato) + full-screen completion overlay. **Post-QA
-  fixes (track C):** object scale blow-up on fullscreen toggle (sized-Loader force-resize);
-  sticky drops "JusTin D", gains date/time + done checkbox; text layers resizable; pomodoro
-  allows 0 min + dark NumberField inputs (native Controls style ignores SpinBox custom);
-  **Ctrl+Z undo / Ctrl+Shift+Z redo** added. **Features (track B):** sticky due date/time
-  picker (`MemoDatePicker` mini calendar + 24h, role `odue`); **select tool** (marquee
-  ink + objects → copy / delete / move / scale). **Pending:** manual in-app QA pass (draw /
-  drag / resize / page-switch / pomodoro end-to-end). Still deferred: pen color/width UI,
-  page rename/reorder, pomodoro persistence/sound/work-rest, conic-aura shader.
-  Specs: `docs/memory-lake-memo-*`.
+- **Memory Lake memo blackboard overlay (备忘) — implemented (PR #14, not yet merged).**
+  Modal overlay (entry-as-action + flip-guard) replicating v88 `#memoOverlay`: freehand
+  pen/eraser ink; sticky notes (due date/time picker + done checkbox) + resizable text
+  layers; multi-page archive folder (per-page ink+objects, **max 10**); marquee **select
+  tool** (ink + objects → copy/delete/move/scale, clipboard **Ctrl+C/V cross-page**, **Ctrl+Z
+  undo**); pomodoro + completion overlay; **Dynamic-Island** auto-hide chrome. Content drawn
+  in a fixed **1920×1080 logical board scaled-to-fit (16:9)**, persisted UI-private via
+  `SettingsRepository` (`memoryLakeMemoDoc`, no new C++; off the disk contract). Canvas
+  pitfalls + patterns recorded in agent memory `timearc-qml-canvas-memo`. **Pending:** manual
+  in-app QA (draw / drag / marquee / hover-reveal / fullscreen-scale / pomodoro). Deferred:
+  pen color/width UI, page rename/reorder, pomodoro persistence/sound/work-rest, conic-aura
+  shader. Specs `docs/memory-lake-memo-*`; build log `.harness/journal/sessions/20260605-*`.
 
 ## Build / distribution
 
