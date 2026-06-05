@@ -212,6 +212,13 @@ Item {
         return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
     }
     function _selectRegion(x, y, w, h) {
+        // 钳进画布：靠边或把框拉出边缘时，越界的快照/清除/贴图会采样到图像外 → 出现"原本没有的笔迹"。
+        var W = objectLayerHost.width, H = objectLayerHost.height;
+        if (x < 0) { w += x; x = 0; }
+        if (y < 0) { h += y; y = 0; }
+        if (x + w > W) w = W - x;
+        if (y + h > H) h = H - y;
+        if (w < 1 || h < 1) { _clearSelection(); return; }
         var idxs = [];
         for (var i = 0; i < objectModel.count; i++) {
             var o = objectModel.get(i);
@@ -310,14 +317,21 @@ Item {
         _selDragging = true;
     }
     function _applyMove(dgx, dgy) {
-        memo.selRect = Qt.rect(_boxStart.x + dgx, _boxStart.y + dgy, _boxStart.width, _boxStart.height);
+        // 钳制盒子留在画布内（不让墨迹被拖出边缘 → 越界回贴产生伪影）；对象按实际位移走。
+        var W = objectLayerHost.width, H = objectLayerHost.height;
+        var nx = Math.max(0, Math.min(_boxStart.x + dgx, Math.max(0, W - _boxStart.width)));
+        var ny = Math.max(0, Math.min(_boxStart.y + dgy, Math.max(0, H - _boxStart.height)));
+        var adx = nx - _boxStart.x, ady = ny - _boxStart.y;
+        memo.selRect = Qt.rect(nx, ny, _boxStart.width, _boxStart.height);
         for (var i = 0; i < _objStart.length; i++) {
             var s = _objStart[i], ob = _liveObj(s.idx);
-            if (ob) { ob.x = s.ox + dgx; ob.y = s.oy + dgy; }
+            if (ob) { ob.x = s.ox + adx; ob.y = s.oy + ady; }
         }
     }
     function _applyScale(nw, nh) {
-        nw = Math.max(40, nw); nh = Math.max(40, nh);
+        var W = objectLayerHost.width, H = objectLayerHost.height;
+        nw = Math.max(40, Math.min(nw, W - _boxStart.x));   // 不越右/下边
+        nh = Math.max(40, Math.min(nh, H - _boxStart.y));
         var fx = nw / _boxStart.width, fy = nh / _boxStart.height;
         memo.selRect = Qt.rect(_boxStart.x, _boxStart.y, nw, nh);
         for (var i = 0; i < _objStart.length; i++) {
@@ -779,6 +793,7 @@ Item {
         Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
         style: memo.style
         shown: memo.open
+        revealed: memo.chromeShown
         onExitRequested: memo.open = false
         onPomodoroRequested: pomodoro.shown = !pomodoro.shown
         onCurrentToolChanged: if (currentTool !== "select") memo._clearSelection()

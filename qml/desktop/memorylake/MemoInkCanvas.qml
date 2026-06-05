@@ -14,9 +14,10 @@ Canvas {
     // 一次落笔→抬笔算一笔；抬笔时发信号（持久化切片接：节流存 PNG）。
     signal strokeEnded()
 
-    // Image 渲染目标（CPU）：toDataURL / getImageData 快且可靠（FBO 上前者慢会卡 GUI、后者读空）。
+    // Image 渲染目标（CPU）：toDataURL 快且可靠（FBO 上 GPU 回读慢会卡 GUI）。
+    // Threaded：在渲染线程绘制，避免每次重绘（含失焦再聚焦的重新曝光）阻塞 GUI 线程导致顶栏卡死。
     renderTarget: Canvas.Image
-    renderStrategy: Canvas.Immediate
+    renderStrategy: Canvas.Threaded
     antialiasing: true
 
     property real lastX: 0
@@ -86,8 +87,17 @@ Canvas {
     function loadFromDataURL(url) {
         clearAll();
         if (!url || url.length === 0) return;
-        ink._pendingUrl = url;
-        ink.loadImage(url);
+        // 已缓存（切回未改动的页时同一 dataURL）→ onImageLoaded 不会再触发，必须同步绘制，
+        // 否则该页墨迹"消失"，直到后续某次 loadImage 触发 onImageLoaded 才把它补画出来（错位重现）。
+        if (ink.isImageLoaded(url)) {
+            var ctx = getContext("2d");
+            ctx.globalCompositeOperation = "source-over";
+            ctx.drawImage(url, 0, 0, width, height);
+            ink.markDirty(Qt.rect(0, 0, width, height));
+        } else {
+            ink._pendingUrl = url;
+            ink.loadImage(url);
+        }
     }
     onImageLoaded: {
         if (ink._pendingUrl.length > 0 && ink.isImageLoaded(ink._pendingUrl)) {

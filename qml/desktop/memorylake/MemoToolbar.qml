@@ -9,6 +9,8 @@ Item {
 
     property MemoryLakeStyle style
     property bool shown: false            // overlay 开 → 滑入
+    property bool revealed: true          // 灵动岛是否展开；收起时关闭悬停跟踪，
+                                          // 避免栏体动画移出指针（无 hoverLeave）导致次高亮/抬升卡住
     property string currentTool: "pen"
     signal exitRequested()
     signal pomodoroRequested()
@@ -117,7 +119,7 @@ Item {
                     MouseArea {
                         id: tHover
                         anchors.fill: parent
-                        hoverEnabled: true
+                        hoverEnabled: bar.revealed   // 收起时关闭→containsMouse 复位，不卡高亮
                         cursorShape: Qt.PointingHandCursor
                         onClicked: bar.toggleTool(tbtn.kind)
                     }
@@ -146,7 +148,7 @@ Item {
                 MouseArea {
                     id: moreHover
                     anchors.fill: parent
-                    hoverEnabled: true
+                    hoverEnabled: bar.revealed
                     cursorShape: Qt.PointingHandCursor
                     onClicked: bar.pomodoroRequested()
                 }
@@ -179,7 +181,7 @@ Item {
                 MouseArea {
                     id: eHover
                     anchors.fill: parent
-                    hoverEnabled: true
+                    hoverEnabled: bar.revealed
                     cursorShape: Qt.PointingHandCursor
                     onClicked: bar.exitRequested()
                 }
