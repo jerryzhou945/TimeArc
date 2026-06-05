@@ -10,27 +10,11 @@ REM  Any arguments are forwarded to TimeArc.exe.
 REM ============================================================
 setlocal
 
-REM --- Locate the Qt/MinGW/Ninja toolchain (drive-independent) ---
-REM Probe known toolchain roots in order; the first that exists wins.
-REM Add your own root to this list if you install Qt elsewhere.
-set "QTROOT="
-for %%R in ("C:\Qt" "D:\TimeArc\QT") do (
-    if not defined QTROOT if exist "%%~R\Tools\mingw1310_64\bin\g++.exe" set "QTROOT=%%~R"
-)
-if not defined QTROOT (
-    echo [run] No Qt toolchain found. Add your toolchain root to the candidate list in run.cmd.
-    exit /b 1
-)
-set "QT="
-for /d %%V in ("%QTROOT%\6.*") do if exist "%%~V\mingw_64\bin\qmake.exe" set "QT=%%~V\mingw_64"
-if not defined QT (
-    echo [run] No Qt mingw_64 build found under "%QTROOT%".
-    exit /b 1
-)
-set "MINGW=%QTROOT%\Tools\mingw1310_64\bin"
-set "NINJA=%QTROOT%\Tools\Ninja"
-set "CMAKE=%QTROOT%\Tools\CMake_64\bin"
-if exist "%CMAKE%\cmake.exe" (set "PATH=%QT%\bin;%MINGW%;%NINJA%;%CMAKE%;%PATH%") else (set "PATH=%QT%\bin;%MINGW%;%NINJA%;%PATH%")
+set "QT=D:\TimeArc\QT\6.11.0\mingw_64"
+set "MINGW=D:\TimeArc\QT\Tools\mingw1310_64\bin"
+set "NINJA=D:\TimeArc\QT\Tools\Ninja"
+set "CMAKE=D:\TimeArc\QT\Tools\CMake_64\bin"
+set "PATH=%QT%\bin;%MINGW%;%NINJA%;%CMAKE%;%PATH%"
 
 REM Project root = folder this script lives in (no trailing backslash)
 set "ROOT=%~dp0"
@@ -39,7 +23,7 @@ set "ROOT=%ROOT:~0,-1%"
 REM --- Configure once (creates build\build.ninja) ---
 if not exist "%ROOT%\build\build.ninja" (
     echo [run] First-time configure...
-    cmake -S "%ROOT%" -B "%ROOT%\build" -G Ninja ^
+    "%CMAKE%\cmake.exe" -S "%ROOT%" -B "%ROOT%\build" -G Ninja ^
         -DCMAKE_BUILD_TYPE=Release ^
         -DCMAKE_PREFIX_PATH="%QT%" ^
         -DCMAKE_C_COMPILER="%MINGW%\gcc.exe" ^
@@ -57,7 +41,7 @@ taskkill /IM time-arc-service.exe /F >nul 2>&1
 
 REM --- Build (incremental; no-op when up to date) ---
 echo [run] Building...
-cmake --build "%ROOT%\build"
+"%CMAKE%\cmake.exe" --build "%ROOT%\build"
 if errorlevel 1 (
     echo [run] Build FAILED.
     exit /b 1
