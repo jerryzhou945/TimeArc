@@ -67,6 +67,20 @@ were lost; (2) cross-page copy impossible (Ctrl+C did copy+paste atomically);
   (Canvas commands flush only on next paint), so region copy stays on the
   full-snapshot + drawImage(source-rect) path.
 
+## Post-feedback 3 (edge / page / focus / hover / window-ratio)
+- Edge artifacts + "drag-to-edge then re-select corrupts": clamp selection rect
+  to canvas in select/move/scale → no out-of-bounds drawImage.
+- Ink vanishes after page switch, reappears on next copy: `loadFromDataURL` now
+  draws synchronously when the URL is already cached (onImageLoaded won't refire).
+- Menubar/animation freeze on refocus + after ink copy: ink Canvas
+  renderStrategy Immediate -> **Threaded** (paint off GUI thread).
+- Toolbar hover highlight stuck (Dynamic-Island moves button off cursor): gate
+  toolbar hoverEnabled on `revealed` (= chromeShown).
+- **Window-ratio breaks copy/ink**: ink canvas + object layer + dots are now a
+  **fixed logical board (1920x1080) at top-left**; window resize just shows
+  more/less of it (background/glows/chrome stay window-relative). Content coords
+  no longer depend on window size, so the canvas never reallocates/stretches.
+
 ## Verify
 `build.py` green; probes: date picker (right day/time), ink copy/move
 (1:1 + scaled + lift-clear-restamp), object multi-select/copy/scale, copy

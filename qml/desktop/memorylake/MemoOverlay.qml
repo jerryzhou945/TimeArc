@@ -498,9 +498,15 @@ Item {
         color: memo.style ? memo.style.memoScrim : Qt.rgba(0, 0, 0, 0.10)
     }
 
+    // ===== 固定逻辑画板尺寸 =====
+    // 墨迹画布/对象层/点阵恒为此尺寸、钉在左上；窗口改大小只是看到更多/更少，内容坐标不随比例变。
+    // 这样绕开「改窗口比例 → 画布重建、坐标错位 → 复制/笔迹损坏」。背景/辉光/工具栏仍随窗口。
+    readonly property int boardW: 1920
+    readonly property int boardH: 1080
+
     // ===== L2 黑板点阵（白点 10.5% / 24px 平铺）=====
     MemoDotTexture {
-        anchors.fill: parent
+        x: 0; y: 0; width: memo.boardW; height: memo.boardH
         dotColor: memo.style ? memo.style.memoDotColor : Qt.rgba(1, 1, 1, 0.105)
         pitch: memo.style ? memo.style.memoDotPitch : 24
         dotRadius: memo.style ? memo.style.memoDotRadius : 1
@@ -510,7 +516,7 @@ Item {
     // z 次序：透明墨水层（画笔/橡皮 destination-out，只擦墨水不擦点阵/便签）→ 对象层（便签 z 高于文字）。
     Item {
         id: inkLayerHost
-        anchors.fill: parent
+        x: 0; y: 0; width: memo.boardW; height: memo.boardH
         MemoInkCanvas {
             id: inkCanvas
             anchors.fill: parent
@@ -521,7 +527,7 @@ Item {
     }
     Item {
         id: objectLayerHost
-        anchors.fill: parent
+        x: 0; y: 0; width: memo.boardW; height: memo.boardH
 
         ListModel { id: objectModel }
 
