@@ -54,8 +54,33 @@ Prefer feature branches over pushing directly to `dev`.
   easily.
 - After the pull request is merged, delete the short-lived local and remote
   branch.
+- Remote short-lived branch cleanup is automated by
+  `.github/workflows/cleanup-merged-branch.yml` for merged same-repository pull
+  requests.
 - Direct pushes to `dev` are reserved for explicit user requests or emergency
   recovery work.
+
+## Delivery Workflow Automation
+
+Implemented:
+
+- Completed feature work must include docs that describe implemented behavior,
+  missing pieces, and future adjustment directions.
+- Short-lived feature branches are preferred over direct `dev` pushes.
+- Merged same-repository pull requests automatically delete their remote head
+  branch unless it is `dev`, `main`, `master`, or under `release/`.
+
+Not implemented yet:
+
+- Local branch cleanup after merge is still manual on each developer machine.
+- Fork pull request branches are not deleted by this repository's workflow.
+- PR template enforcement for the documentation checklist is not automated yet.
+
+Future adjustment directions:
+
+- Add a pull request template with implemented/not-implemented/future sections.
+- Add CI checks that warn when feature PRs do not update docs.
+- Add a local helper script to prune merged branches after syncing `dev`.
 
 ## Product Gates
 
