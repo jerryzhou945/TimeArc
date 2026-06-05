@@ -32,11 +32,19 @@ Item {
     property int currentPage: 0
     property int _pageSeq: 1
     property var pageLabels: ["Page 1"]
+    property var pageThumbs: [""]           // gap #8：每页墨迹 PNG dataURL（档案袋行内缩略图）
 
     function _refreshLabels() {
         var ls = [];
         for (var i = 0; i < pagesData.length; i++) ls.push(pagesData[i].label);
         pageLabels = ls;
+        _refreshThumbs();
+    }
+    // gap #8：从 pagesData[i].canvas 重建缩略图数组（结构变更 + 存盘时调用）。
+    function _refreshThumbs() {
+        var ts = [];
+        for (var i = 0; i < pagesData.length; i++) ts.push(pagesData[i].canvas || "");
+        pageThumbs = ts;
     }
     // 当前对象层序列化为纯数组（供存档 + 撤回快照共用）。
     function _snapshotObjects() {
@@ -44,7 +52,7 @@ Item {
         for (var i = 0; i < objectModel.count; i++) {
             var o = objectModel.get(i);
             objs.push({ t: o.otype, x: o.ox, y: o.oy, w: o.ow, h: o.oh,
-                        ti: o.otitle, co: o.ocontent, tx: o.otext,
+                        ti: o.otitle, co: o.ocontent, tx: o.otext, sg: o.osign || "",
                         ts: o.ots || 0, done: o.odone === true, due: o.odue || 0 });
         }
         return objs;
@@ -57,6 +65,7 @@ Item {
             var o = a[i];
             objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
                                  otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字",
+                                 osign: o.sg || "",
                                  ots: o.ts || 0, odone: o.done === true, odue: o.due || 0 });
         }
         memo.selectedObject = -1;
@@ -106,13 +115,39 @@ Item {
         scheduleSave();
         memo._histReset();
     }
+    // 重命名某页（只改标签，不动该页对象/墨迹；空名忽略）。当前页的 label 由 _writeCurrent 透传保留。
+    function renamePage(i, name) {
+        if (i < 0 || i >= pagesData.length) return;
+        var n = ("" + name).trim();
+        if (n.length === 0 || n === pagesData[i].label) return;
+        pagesData[i].label = n;
+        _refreshLabels();
+        scheduleSave();
+    }
+    // gap #6：把第 from 页移到第 to 位。顺序即持久化顺序（pagesData 数组序），无 schema 变更。
+    function movePage(from, to) {
+        if (from < 0 || from >= pagesData.length) return;
+        to = Math.max(0, Math.min(pagesData.length - 1, to));
+        if (to === from) return;
+        _writeCurrent();   // 先把当前页 live 状态落回 pagesData[currentPage]，再重排
+        var moved = pagesData.splice(from, 1)[0];
+        pagesData.splice(to, 0, moved);
+        if (currentPage === from) currentPage = to;                 // 移的是当前页 → 跟到新位
+        else if (from < currentPage && currentPage <= to) currentPage -= 1;
+        else if (to <= currentPage && currentPage < from) currentPage += 1;
+        _refreshLabels();
+        scheduleSave();
+    }
 
     // 序列化整篇（多页）→ store。debounce 见 saveTimer。
     function saveDoc() {
         if (!store) return;
         if (_selDragging) return;   // 手势中画布暂缺一块（墨迹浮起），别存到缺口；提交后会再存
         _writeCurrent();
-        store.setValue(memo.docKey, JSON.stringify({ v: 2, pages: pagesData, current: currentPage }));
+        _refreshThumbs();           // gap #8：当前页墨迹变了 → 刷新该页缩略图
+        store.setValue(memo.docKey, JSON.stringify({ v: 2, pages: pagesData, current: currentPage,
+                                                     pen: { pw: toolbar.penWidth, ew: toolbar.eraserWidth,
+                                                            color: "" + toolbar.inkColor } }));
         saveStatus.flash("笔迹已保存");
     }
     function loadDoc() {
@@ -131,6 +166,12 @@ Item {
         memo._pageSeq = pagesData.length;
         _refreshLabels();
         _applyPage(pagesData[currentPage]);
+        // 笔宽（gap #3）：恢复用户选档（缺省保持 style 默认）。
+        if (doc.pen) {
+            if (typeof doc.pen.pw === "number") toolbar.penWidth = doc.pen.pw;
+            if (typeof doc.pen.ew === "number") toolbar.eraserWidth = doc.pen.ew;
+            if (typeof doc.pen.color === "string" && doc.pen.color.length > 0) toolbar.inkColor = doc.pen.color;
+        }
     }
     function scheduleSave() { if (store) saveTimer.restart(); }
 
@@ -179,7 +220,7 @@ Item {
         var x = Math.max(8, Math.min(px - 110, W - w - 8));
         var y = Math.max(8, Math.min(py - 22, H - h - 8));   // 顶部开放（灵动岛顶栏）
         objectModel.append({ otype: "sticky", ox: x, oy: y, ow: w, oh: h,
-                             otitle: "", ocontent: "", otext: "",
+                             otitle: "", ocontent: "", otext: "", osign: "",
                              ots: new Date().getTime(), odone: false, odue: 0 });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
@@ -188,7 +229,7 @@ Item {
     }
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 240, oh: 0,
-                             otitle: "", ocontent: "", otext: "输入文字",
+                             otitle: "", ocontent: "", otext: "输入文字", osign: "",
                              ots: 0, odone: false, odue: 0 });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
@@ -200,6 +241,13 @@ Item {
         objectModel.remove(i);
         if (memo.selectedObject === i) memo.selectedObject = -1;
         else if (memo.selectedObject > i) memo.selectedObject -= 1;
+        memo.scheduleSave();
+        memo._histRecord();
+    }
+    // gap #4：清空本页墨迹（仅手绘层；便签/文字保留）。存盘 + 入撤销栈（Ctrl+Z 可恢复）。
+    function clearCurrentCanvas() {
+        memo._clearSelection();
+        inkCanvas.clearAll();
         memo.scheduleSave();
         memo._histRecord();
     }
@@ -534,6 +582,9 @@ Item {
             anchors.fill: parent
             style: memo.style
             tool: toolbar.currentTool
+            penColor: toolbar.inkColor        // gap #2
+            penWidth: toolbar.penWidth        // gap #3
+            eraserWidth: toolbar.eraserWidth  // gap #3
             onStrokeEnded: { memo.scheduleSave(); memo._histRecord(); }
         }
     }
@@ -644,6 +695,7 @@ Item {
                         it.height = model.oh;
                         it.title = model.otitle;
                         it.content = model.ocontent;
+                        it.author = model.osign || "";
                         it.createdMs = model.ots || 0;
                         it.done = model.odone === true;
                         it.due = model.odue || 0;
@@ -686,6 +738,7 @@ Item {
                         if (ldr.model.otype === "sticky") {
                             objectModel.setProperty(ldr.index, "otitle", ldr.obj.title);
                             objectModel.setProperty(ldr.index, "ocontent", ldr.obj.content);
+                            objectModel.setProperty(ldr.index, "osign", ldr.obj.author);
                         } else {
                             objectModel.setProperty(ldr.index, "otext", ldr.obj.text);
                         }
@@ -792,8 +845,11 @@ Item {
 
     // ===== Chrome：工具条 + 档案袋（灵动岛：默认藏起只露小边，鼠标靠近顶部再冒出）=====
     // 顶栏是否展开：开启状态下，档案袋展开中、或鼠标靠近顶部（且非绘制/框选手势）时显示。
+    // topHover = 顶部空白感应区；toolbar.barHovered = 悬在工具条本身（工具条现置于 topZone 之上，
+    // 移到条上时 topZone 收不到 hover，需 barHovered 维持展开，否则一靠近按钮就收起）。
     readonly property bool chromeShown: open && (pageFolder.openState
-                                        || (topHover.hovered && !inkCanvas.drawing && !_selDragging))
+                                        || ((topHover.hovered || toolbar.barHovered)
+                                            && !inkCanvas.drawing && !_selDragging))
 
     // 顶部悬停感应区：被动 HoverHandler，不拦点击/拖动，让顶部空间仍可画/拖。
     Item {
@@ -806,6 +862,9 @@ Item {
 
     MemoToolbar {
         id: toolbar
+        // 置于顶部感应区 topZone(z4500) 之上：否则 topZone 接管 hover，按钮收不到 → 悬停无高光
+        // （历史 bug：悬停无动效、按下才显且卡死）。弹层(番茄/日期)再叠到工具条之上。
+        z: 4520
         anchors.horizontalCenter: parent.horizontalCenter
         // 收起时上移、只露 10px 提示边；靠近顶部冒出到 y=14。
         y: memo.chromeShown ? 14 : -(height - 10)
@@ -815,18 +874,22 @@ Item {
         revealed: memo.chromeShown
         onExitRequested: memo.open = false
         onPomodoroRequested: pomodoro.shown = !pomodoro.shown
+        onClearRequested: clearConfirm.open = true
         onCurrentToolChanged: if (currentTool !== "select") memo._clearSelection()
     }
 
     // 番茄钟浮窗 + 完成弹层。
     PomodoroWidget {
         id: pomodoro
+        z: 4540               // 叠在工具条(z4520)之上
         style: memo.style
+        store: memo.store     // gap #10：番茄状态持久化（单独键 memoryLakeMemoPomodoro）
         shown: false
         onCompleted: function (v) { pomodoroComplete.variant = v; pomodoroComplete.shown = true; }
     }
     PomodoroCompleteOverlay {
         id: pomodoroComplete
+        z: 4560               // 全屏庆祝，必须盖过工具条
         style: memo.style
         onClosed: pomodoroComplete.shown = false
     }
@@ -834,6 +897,7 @@ Item {
     // 便签截止日期选择器（单例；由便签截止行触发，居中弹出）。
     MemoDatePicker {
         id: duePicker
+        z: 4560               // 居中弹层，盖过工具条
         style: memo.style
         property int targetIndex: -1
         function _setDue(ms) {
@@ -850,15 +914,80 @@ Item {
         onDismissed: open = false
     }
 
+    // 清空确认（gap #4）：危险动作二次确认（撤销可恢复，仍给一道保险）。
+    Item {
+        id: clearConfirm
+        anchors.fill: parent
+        z: 4570
+        property bool open: false
+        visible: open || opacity > 0.01
+        opacity: open ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+        Rectangle {
+            anchors.fill: parent
+            color: Qt.rgba(0, 0, 0, 0.34)
+            MouseArea { anchors.fill: parent; onClicked: clearConfirm.open = false }
+        }
+        Rectangle {
+            anchors.centerIn: parent
+            width: 300; height: 150; radius: 16
+            gradient: Gradient {
+                GradientStop { position: 0; color: memo.style ? memo.style.memoBoardTop : Qt.rgba(0.035, 0.043, 0.07, 0.97) }
+                GradientStop { position: 1; color: memo.style ? memo.style.memoBoardBottom : Qt.rgba(0.024, 0.031, 0.055, 0.98) }
+            }
+            border.width: 1
+            border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
+            MouseArea { anchors.fill: parent }   // 拦截穿透
+            Column {
+                anchors.centerIn: parent
+                width: parent.width - 40
+                spacing: 14
+                Text {
+                    width: parent.width; horizontalAlignment: Text.AlignHCenter
+                    text: "清空本页墨迹？"
+                    color: Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.94)
+                    font.pixelSize: 16; font.weight: Font.DemiBold
+                }
+                Text {
+                    width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
+                    text: "仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。"
+                    color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12
+                }
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 12
+                    Rectangle {
+                        width: 96; height: 34; radius: 10
+                        color: cancelH.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
+                        border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
+                        Text { anchors.centerIn: parent; text: "取消"; color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
+                        MouseArea { id: cancelH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: clearConfirm.open = false }
+                    }
+                    Rectangle {
+                        width: 96; height: 34; radius: 10
+                        color: clearGoH.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.85) : Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.55)
+                        Text { anchors.centerIn: parent; text: "清空"; color: "#FFFFFF"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        MouseArea { id: clearGoH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: { memo.clearCurrentCanvas(); clearConfirm.open = false } }
+                    }
+                }
+            }
+        }
+    }
+
     // 右上档案袋（多页切换）。
     MemoPageFolder {
         id: pageFolder
+        z: 4520               // 同工具条，置于 topZone 之上，hover/点击不被顶部感应区吞掉
         anchors { right: parent.right; rightMargin: 18 }
         // 灵动岛：收起时上移只露 10px（前盖 48 高 → -38），展开/靠近顶部时落到 y=18。
         y: memo.chromeShown ? 18 : -38
         Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
         style: memo.style
         pageLabels: memo.pageLabels
+        pageThumbs: memo.pageThumbs          // gap #8
         currentIndex: memo.currentPage
         visible: memo.open
         opacity: memo.open ? 1 : 0
@@ -866,6 +995,8 @@ Item {
         onSwitchTo: function (i) { memo.switchPage(i); }
         onAddPageRequested: memo.addPage()
         onDeletePageRequested: function (i) { memo.deletePage(i); }
+        onRenamePageRequested: function (i, name) { memo.renamePage(i, name); }
+        onMovePageRequested: function (from, to) { memo.movePage(from, to); }
     }
 
     Rectangle {

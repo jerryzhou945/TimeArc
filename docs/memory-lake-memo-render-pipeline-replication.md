@@ -147,7 +147,8 @@ hover 转**破坏红** `rgba(255,95,95,.22)`（6163）。"更多工具"弹层 `.
 × 删除键在终态 `display:none`**（4180），删除靠键盘 Backspace/Delete。
 
 > `.sticky-title`/`.sticky-subtitle`/`.sticky-close` 是死选择器（display:none + 不在
-> 模板里）；署名 "JusTin D" 写死且**不持久化**。详见功能文 §2.4 与 GAPS。
+> 模板里）；署名 "JusTin D" 在 v88 写死且不持久化——**QML 已改为可编辑 + 逐页持久化、默认空**
+> （`StickyNote.author` / objectModel `osign`，见功能文 §A #9）。详见功能文 §2.4。
 
 ### §1.4 文字层 `.memo-text-layer`（终值 V52，行 6412–6426）
 
@@ -376,7 +377,8 @@ Canvas {
 ```
 墨水色 `rgba(255,236,150,.96)`（暖粉笔黄 #FFEC96）+ 黑板暗底 = 字面意义的"粉笔黑板"。
 **橡皮 destination-out 只擦墨水层、不擦点阵底**（点阵是独立背景层，正确）。墨水色/笔宽
-进 `MemoryLakeStyle`（`memoInk`/`memoPenWidth=4`/`memoEraserWidth=28`）。栈式栅格的缩放
+进 `MemoryLakeStyle`（`memoInk`/`memoPenWidth=4`/`memoEraserWidth=28`）作默认；**QML 已加工具条覆盖**
+（`MemoInkCanvas.penColor`/`penWidth`/`eraserWidth`，6 色调板 `memoInkPalette`，见功能文 §A #2/#3）。栈式栅格的缩放
 重采样软化是 v88 既有行为（§7）；要更脆可加矢量 stroke 模型（v88 没有，属增强）。
 
 ### §4.4 干净辉光（M3）—— 同首页 §4.4

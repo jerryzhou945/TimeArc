@@ -46,7 +46,13 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 - **Third-party license page missing.** Main README TO-DO. Required by GPL +
   Qt LGPL combination; see
   [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.
-- **Memory Lake memo blackboard overlay (备忘) — implemented (PR #14, not yet merged).**
+- **Frameless window — native snap-layouts fly-out deferred (Step 2).** PR #18
+  shipped pure-QML frameless chrome (`qml/desktop/components/WindowChrome.qml`)
+  + Win11 DWM rounded corners/shadow (`main.cpp::applyWin11RoundedCorners`). The
+  Win11 hover-maximize **snap-layouts fly-out** and maximize-over-taskbar
+  precision need a native `WM_NCCALCSIZE`/`WM_NCHITTEST` pass in `main.cpp`; not
+  done. See agent memory `timearc-frameless-window`.
+- **Memory Lake memo blackboard overlay (备忘) — implemented (merged PR #14).**
   Modal overlay (entry-as-action + flip-guard) replicating v88 `#memoOverlay`: freehand
   pen/eraser ink; sticky notes (due date/time picker + done checkbox) + resizable text
   layers; multi-page archive folder (per-page ink+objects, **max 10**); marquee **select
@@ -55,9 +61,12 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   in a fixed **1920×1080 logical board scaled-to-fit (16:9)**, persisted UI-private via
   `SettingsRepository` (`memoryLakeMemoDoc`, no new C++; off the disk contract). Canvas
   pitfalls + patterns recorded in agent memory `timearc-qml-canvas-memo`. **Pending:** manual
-  in-app QA (draw / drag / marquee / hover-reveal / fullscreen-scale / pomodoro). Deferred:
-  pen color/width UI, page rename/reorder, pomodoro persistence/sound/work-rest, conic-aura
-  shader. Specs `docs/memory-lake-memo-*`; build log `.harness/journal/sessions/20260605-*`.
+  in-app QA (draw / drag / marquee / hover-reveal / fullscreen-scale / pomodoro). PR #18
+  (2026-06-05/06) added: toolbar hover fix (topZone hover-block), page rename, and the 7
+  functional-gap features — pen color palette, pen/eraser width, clear-canvas (+confirm),
+  page drag-reorder, page thumbnails, sticky-note signature, pomodoro persistence (functional
+  doc §A #1–#10 now all done). Still deferred (§A #11–#14): pomodoro sound + work-rest cycle +
+  progress-ring, keyboard tool-switch, conic-aura shader. Specs `docs/memory-lake-memo-*`.
 
 ## Build / distribution
 

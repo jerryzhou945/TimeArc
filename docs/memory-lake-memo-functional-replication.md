@@ -22,8 +22,8 @@
 - **黑板画布**：画笔自由手绘（暖粉笔黄墨水）、橡皮擦（destination-out）；逐页持久化。
 - **便签**：点画布生成，可拖动、编辑（标题 + 正文）、四向缩放、键盘删除、逐页持久化。
 - **文字层**：点画布生成，可直接编辑、Alt 拖动、× 删除、逐页持久化。
-- **右上档案袋**（top-right bar）：**页面管理**——切换 / 新增 / 删除备忘页，每页 owns
-  自己的画布 + 对象；开合是 3D 抽屉动画。
+- **右上档案袋**（top-right bar）：**页面管理**——切换 / 新增 / 删除 / 重命名备忘页，每页
+  owns 自己的画布 + 对象；开合是 3D 抽屉动画。
 - **番茄钟**（浮窗）：标题 + 分/秒自定义，开始/暂停/重置，运行时**自动收缩成像素番茄**
   + 大量运行光效动画，完成时全屏庆祝弹层。
 
@@ -230,6 +230,10 @@ hint 文本、光标；更多弹层用 `Popup`/自管 `open` + 点击外部关�
   （删"Page 2"得 `["Page 1","Page 3"]`，"Page 3"名留、仅 index/键移）。
 - **键盘删页**（16940）：仅"备忘开 + 档案袋开 + 非输入态 + Backspace/Delete"→
   `deleteMemoPage(memoSelectedPageForDelete)`，捕获相。
+- **重命名**（QML 扩展，2026-06-05，设计稿无）：每页行 ✎ → 内联 `TextInput` 改标签
+  （进入即 selectAll；回车 / 失焦 / 点前盖·行·新建 提交，Esc 取消）→ `MemoOverlay.renamePage(i,name)`
+  改 `pagesData[i].label`（空 / 未变忽略）+ `scheduleSave()`。提交集中在 `folder.commitEdit()`，
+  由各点击主动调（`MouseArea` 不抢键焦点，靠输入框自身失焦会丢改名）。
 
 **复刻标准**：
 - 【必须】每页隔离画布 + 对象；切页正确存旧/载新（七步序）。
@@ -413,18 +417,29 @@ MemoDoc    { list<MemoPage> pages; string currentPageId }
 > 排查出的**确切缺口与 bug**，分"功能缺失（需产品决策补）"与"实现 bug（复刻时应修正）"。
 
 **A. 功能缺失（设计稿没做，待用户补产品决策）**
-1. **手绘无撤销/重做**——栈式栅格无 stroke 历史，唯一"撤销"是橡皮。需 QML 显式快照/命令栈。
-2. **画笔无调色**——墨水写死 #FFEC96（16571），无色板 UI。
-3. **画笔/橡皮无笔宽 UI**——宽 4/28 写死（16572），无滑块。
-4. **无"清空画布"按钮**——`clearMemoCanvasOnly` 只内部调用，无 UI 入口。
-5. **页面无重命名**——标签只 `Page N`；`.memo-page-more`("···") 渲染了却**零处理器**
-   （视觉暗示一个不存在的右键菜单）。
-6. **页面无重排序**——只 push(尾加)/splice(删)，无拖拽排序（扇出的标签是装饰、不可拖）。
-7. **无页数上限**——`memoAddPage` 无界 push；档案袋长高 calc 无 clamp，`nth-child(3n)` 标签
-   位只 3 档，>3 层标签重叠。
-8. **无页面缩略图**——层片/行只显缩写文字标签，不生成画布预览。
-9. **便签署名"JusTin D"写死且不持久化**（16390，serialize 不含 author）——重载又变回。
-10. **番茄无持久化**——total/remain/running 是内存 `let`，重载回 25:00 idle；标题/分秒也不存。
+_（2026-06-06 校对：#1–#10 已全部在 QML 落地，逐条标 ✅；剩 #11 番茄音效 / #12 工作-休息循环 / #13 环形进度环 / #14 键盘快捷切换 仍待办。）_
+1. ✅ **已实现（QML）**——快照式撤销/重做（`_hist`/`undo()`/`redo()`，Ctrl+Z / Ctrl+Shift+Z）。
+   〔原设计稿缺口：栈式栅格无 stroke 历史，唯一"撤销"是橡皮。〕
+2. ✅ **已实现（QML，2026-06-06）**——画笔工具弹层 6 色粉笔调板（`MemoryLakeStyle.memoInkPalette`
+   → `MemoInkCanvas.penColor`），存 `pen.color`。〔原缺口：墨水写死 #FFEC96，无色板。〕
+3. ✅ **已实现（QML，2026-06-06）**——同弹层细/中/粗三档（笔 2.5/4/7、橡皮 16/28/44；
+   `penWidth`/`eraserWidth`），存 `pen.pw/ew`。〔原缺口：宽 4/28 写死，无滑块。〕
+4. ✅ **已实现（QML，2026-06-06）**——工具条垃圾桶按钮 → 确认弹层 → `clearCurrentCanvas()`
+   （clearAll + 存盘 + 入撤销栈，Ctrl+Z 可恢复）。〔原缺口：`clearMemoCanvasOnly` 仅内部调用，无 UI。〕
+5. ✅ **已实现（QML，2026-06-05）**——档案袋每页行 ✎ 内联改名（`MemoOverlay.renamePage`，
+   存 `memoryLakeMemoDoc`；回车/失焦/点别处提交、Esc 取消）。〔原设计稿缺口：标签只 `Page N`，
+   `.memo-page-more`("···") 渲染却零处理器。〕
+6. ✅ **已实现（QML，2026-06-06）**——档案袋每行 ⠿ 手柄拖拽重排（`MemoOverlay.movePage`，
+   顺序即 pagesData 数组序，自动持久化；修正 currentPage）。〔原缺口：只 push/splice，无拖拽。〕
+7. ✅ **上限已加（QML）**——10 页（`addPage` 守卫 + `MemoPageFolder.maxPages:10`）。〔原设计稿
+   缺口：`memoAddPage` 无界 push；档案袋 `nth-child(3n)` 标签位只 3 档、>3 层重叠——QML 厚度层改用
+   连续偏移。〕
+8. ✅ **已实现（QML，2026-06-06）**——每页行内 40×24 墨迹缩略图（`MemoOverlay.pageThumbs` 取自
+   每页 canvas PNG，`MemoPageFolder` 行内 `Image`）。〔原缺口：只显文字标签，无预览。〕
+9. ✅ **已实现（QML，2026-06-06）**——便签右下可编辑署名，逐页持久化（objectModel `osign` 经
+   _snapshotObjects/_applyRecords 往返；默认空，不复刻 v88 写死的"JusTin D"）。〔原缺口：写死且不持久化。〕
+10. ✅ **已实现（QML，2026-06-06）**——番茄 total/remain/title 存单独键 `memoryLakeMemoPomodoro`，
+   重启恢复为暂停态（无跨重启墙钟锚点）；标题可编辑。〔原缺口：内存 let，重载回 25:00 idle。〕
 11. **番茄无音效**——完成纯视觉 + 文字 toast，无 audio/beep。
 12. **番茄无工作-休息循环**——无短/长休、无轮次计数，单次倒计时。
 13. **番茄无环形进度环**——只有横向填充条；若要环须新设计。
@@ -470,4 +485,4 @@ MemoDoc    { list<MemoPage> pages; string currentPageId }
 
 实施总流程：**本文 §5 验收口径定"做到什么" → cookbook 查技法 → 美术文查合成与 shader →
 本文 §2/§3 查行为与状态**。§7 的缺口清单是与用户协作的接口：B 类 bug 复刻时直接修正，
-A 类功能缺失等用户进一步填充产品决策后再落地。
+A 类功能缺失中 #1–#10 已于 2026-06-06 落地（详见各条 ✅），#11–#14 等用户进一步填充产品决策后再做。

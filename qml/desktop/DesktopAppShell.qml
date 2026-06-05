@@ -10,6 +10,13 @@ Item {
     id: root
     anchors.fill: parent
 
+    // 无边框窗口：顶部为自绘标题栏（main.qml 的 WindowChrome）预留的高度。背景层仍铺满全窗
+    // （沉浸式：暗色水面/渐变铺到窗口顶边），只把交互内容 RowLayout 下移这一段，避免被标题栏遮挡。
+    property int topReserve: 0
+    // 暴露给 WindowChrome：备忘黑板开启时让位隐藏；深底页（记忆湖/夜晚）时标题栏改用浅色线条。
+    readonly property bool memoOpen: memoOverlay.open
+    readonly property bool prefersLightChrome: nightMode || fullBleedPage
+
     // 记忆湖统一色板（单一事实源，G1）：Shell 的记忆湖/回顾 chrome（蓝黑深度坡背景、
     // 角落辅光对、导航 active 发光点、渐变 logo）全部取自这里，杜绝散落 hex/rgba。
     MemoryLakeStyle {
@@ -372,6 +379,8 @@ Item {
         RowLayout {
             anchors.fill: parent
             anchors.margins: 20
+            // 顶部为无边框标题栏让出空间（背景由 desktopStage 继续铺满至窗口顶边）。
+            anchors.topMargin: 20 + root.topReserve
             spacing: 20
 
             // =========================

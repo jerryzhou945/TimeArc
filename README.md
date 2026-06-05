@@ -55,17 +55,29 @@ with day and night modes.
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.
   Memory Lake is the home/landing page; the Timer page is reached when a
   calendar to-do starts timing.
+- **Frameless window chrome** — the desktop window drops the native OS title
+  bar for an immersive custom chrome (QQ-Music style): a brand app icon
+  top-left and minimize / maximize / close controls top-right, floating over a
+  page background that bleeds to the top edge. Drag the top bar to move (native
+  edge-snap preserved), double-click to maximize/restore, drag any edge to
+  resize. Glyph color adapts to the surface (light on the dark Memory Lake /
+  night pages) and the chrome steps aside while the memo blackboard is open.
+  On Windows 11 the window gets **native rounded corners and drop shadow** via
+  DWM (`DWMWA_WINDOW_CORNER_PREFERENCE`). Mobile preview keeps the native frame.
+  *(A fuller native custom-frame pass — Win11 snap-layouts fly-out — is still
+  planned.)*
 - **Memory Lake memo blackboard (备忘)** — the 「备忘」 nav opens a modal blackboard
   **overlay** over the home page (an action, **not** a page route): a near-black dotted
   board with a freehand chalk-ink canvas and a floating glass tool pill (note / text /
-  pen / eraser / exit), the home page re-blurred behind it. Freehand chalk pen/eraser,
+  pen / eraser / exit), the home page re-blurred behind it. Freehand chalk pen/eraser with a
+  **color palette + width presets** and a **clear-canvas** button (confirm + Ctrl+Z undoable),
   draggable + resizable **sticky notes** (autosize, aqua selection ring, a **due date/time**
-  picker and a done checkbox), editable + resizable **text layers** (Alt-drag), a
-  **multi-page archive folder** (switch / add / delete, max 10, each page owns its own ink +
-  objects), a marquee **select tool** (copy / delete / move / scale across ink *and* objects,
-  with a clipboard — **Ctrl+C / Ctrl+V** across pages — and **Ctrl+Z** undo), and a
-  **pomodoro widget** (collapses to a pixel tomato while running, full-screen completion
-  celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
+  picker, a done checkbox and an editable **signature**), editable + resizable **text layers**
+  (Alt-drag), a **multi-page archive folder** (switch / add / delete / **rename** / drag-**reorder**,
+  max 10, each page owns its own ink + objects and shows a **row thumbnail**), a marquee
+  **select tool** (copy / delete / move / scale across ink *and* objects, with a clipboard —
+  **Ctrl+C / Ctrl+V** across pages — and **Ctrl+Z** undo), and a **persisted pomodoro widget**
+  (editable title, collapses to a pixel tomato while running, full-screen completion celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
   1920×1080 logical canvas uniformly scaled to fit the window (16:9). Everything
   **auto-persists** to a UI-private store (`SettingsRepository`), kept **off the service↔UI
   disk contract**. *(Replaces the former local Chat page.)*
