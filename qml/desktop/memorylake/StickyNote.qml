@@ -16,12 +16,14 @@ Item {
     property string content: ""
     property bool done: false             // 待办完成态（左上打勾），供后续日历待做事项消费
     property double createdMs: 0          // 创建时间戳（epoch ms），0 = 旧便签无时间
+    property double due: 0                 // 用户自选截止日期/时间（epoch ms），0 = 未设
 
     signal selectRequested(bool grabFocus)   // grabFocus=true（header/缩放）→ 让覆盖层接管键盘删除
     signal geometryCommitted()
     signal contentCommitted()
     signal deleteRequested()
     signal doneToggled()                  // 勾选/取消勾选 → 覆盖层回写 odone
+    signal dueEditRequested()             // 点截止行 → 覆盖层弹出日期选择器
 
     z: 124
     width: 310
@@ -121,17 +123,26 @@ Item {
                 }
             }
 
-            // 创建日期与时间（取代 v88 "JusTin D" 署名）。供后续把便签同步成日历待做事项。
+            // 截止日期与时间（点开小日历自选；供日历 / 首页今日事项后续同步）。
             Text {
                 id: dateRow
                 width: parent.width
                 leftPadding: 16; rightPadding: 16; bottomPadding: 10
-                text: note.createdMs > 0
-                      ? Qt.formatDateTime(new Date(note.createdMs), "yyyy-MM-dd  HH:mm")
-                      : ""
-                color: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.5)
+                text: note.due > 0
+                      ? "截止 " + Qt.formatDateTime(new Date(note.due), "yyyy-MM-dd  HH:mm")
+                      : "＋ 设置截止时间"
+                color: note.due > 0 ? Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.66)
+                                    : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.42)
                 font.pixelSize: 12
+                font.underline: dateMa.containsMouse
                 horizontalAlignment: Text.AlignLeft
+                MouseArea {
+                    id: dateMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { note.selectRequested(true); note.dueEditRequested(); }
+                }
             }
         }
 

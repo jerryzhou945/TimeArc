@@ -28,6 +28,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/PixelTomato.qml
     qml/desktop/memorylake/PomodoroWidget.qml
     qml/desktop/memorylake/PomodoroCompleteOverlay.qml
+    qml/desktop/memorylake/MemoDatePicker.qml
     qml/desktop/memorylake/GlassPanel.qml
     qml/desktop/memorylake/GlowCircle.qml
     qml/desktop/memorylake/GridTexture.qml

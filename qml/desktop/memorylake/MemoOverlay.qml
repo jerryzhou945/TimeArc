@@ -45,7 +45,7 @@ Item {
             var o = objectModel.get(i);
             objs.push({ t: o.otype, x: o.ox, y: o.oy, w: o.ow, h: o.oh,
                         ti: o.otitle, co: o.ocontent, tx: o.otext,
-                        ts: o.ots || 0, done: o.odone === true });
+                        ts: o.ots || 0, done: o.odone === true, due: o.odue || 0 });
         }
         return objs;
     }
@@ -57,7 +57,7 @@ Item {
             var o = a[i];
             objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
                                  otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字",
-                                 ots: o.ts || 0, odone: o.done === true });
+                                 ots: o.ts || 0, odone: o.done === true, odue: o.due || 0 });
         }
         memo.selectedObject = -1;
     }
@@ -174,7 +174,7 @@ Item {
         var y = Math.max(84, Math.min(py - 22, H - h - 8));
         objectModel.append({ otype: "sticky", ox: x, oy: y, ow: w, oh: h,
                              otitle: "", ocontent: "", otext: "",
-                             ots: new Date().getTime(), odone: false });
+                             ots: new Date().getTime(), odone: false, odue: 0 });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
         memo.scheduleSave();
@@ -183,7 +183,7 @@ Item {
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 240, oh: 0,
                              otitle: "", ocontent: "", otext: "输入文字",
-                             ots: 0, odone: false });
+                             ots: 0, odone: false, odue: 0 });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
         memo.scheduleSave();
@@ -400,6 +400,7 @@ Item {
                         it.content = model.ocontent;
                         it.createdMs = model.ots || 0;
                         it.done = model.odone === true;
+                        it.due = model.odue || 0;
                     } else {
                         it.text = model.otext;
                         if (model.ow > 0) it.width = model.ow;
@@ -418,6 +419,11 @@ Item {
                         objectModel.setProperty(ldr.index, "odone", ldr.obj.done);
                         memo.scheduleSave();
                         memo._histRecord();
+                    }
+                    function onDueEditRequested() {
+                        duePicker.targetIndex = ldr.index;
+                        duePicker.initialMs = ldr.obj.due;
+                        duePicker.open = true;
                     }
                     function onGeometryCommitted() {
                         objectModel.setProperty(ldr.index, "ox", ldr.obj.x);
@@ -468,6 +474,25 @@ Item {
         id: pomodoroComplete
         style: memo.style
         onClosed: pomodoroComplete.shown = false
+    }
+
+    // 便签截止日期选择器（单例；由便签截止行触发，居中弹出）。
+    MemoDatePicker {
+        id: duePicker
+        style: memo.style
+        property int targetIndex: -1
+        function _setDue(ms) {
+            if (targetIndex < 0) return;
+            objectModel.setProperty(targetIndex, "odue", ms);
+            var d = objRepeater.itemAt(targetIndex);
+            if (d && d.obj) d.obj.due = ms;
+            memo.scheduleSave();
+            memo._histRecord();
+            open = false;
+        }
+        onDueSelected: function (ms) { _setDue(ms); }
+        onDueCleared: _setDue(0)
+        onDismissed: open = false
     }
 
     // 右上档案袋（多页切换）。

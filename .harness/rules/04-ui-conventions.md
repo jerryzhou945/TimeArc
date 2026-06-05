@@ -94,3 +94,7 @@ state**, outside the service↔UI disk contract — persist it via a C++ manager
 JSONL/service paths. New memo components live in `qml/desktop/memorylake/`; all
 colors/easings come from `MemoryLakeStyle` (no inline hex). Specs:
 `docs/memory-lake-memo-functional-replication.md` + `…-memo-render-pipeline-replication.md`.
+
+Added in the memo QA/feature round: `MemoDatePicker` (self-drawn calendar + 24h
+time, no `Qt.labs`) for sticky due dates (`odue`), and a marquee **select tool**
+(ink region + objects: delete / copy / move / scale). Native style ignores SpinBox custom.
