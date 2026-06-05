@@ -81,6 +81,13 @@ were lost; (2) cross-page copy impossible (Ctrl+C did copy+paste atomically);
   more/less of it (background/glows/chrome stay window-relative). Content coords
   no longer depend on window size, so the canvas never reallocates/stretches.
 
+## Post-feedback 4 (the "infinite ghost" root cause)
+Move leaves the original ink behind / it self-replicates: `onImageLoaded` drew
+`_pendingUrl` (the page snapshot) but never cleared it. Since onImageLoaded fires
+on **every** loadImage (each move/copy preloads a snapshot), the stale old-page
+snapshot was re-drawn over the canvas on every drag → original-position ink kept
+resurrecting. Fix: clear `_pendingUrl` after its one-shot draw.
+
 ## Verify
 `build.py` green; probes: date picker (right day/time), ink copy/move
 (1:1 + scaled + lift-clear-restamp), object multi-select/copy/scale, copy

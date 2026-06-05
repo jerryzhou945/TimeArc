@@ -105,7 +105,8 @@ Canvas {
             ctx.globalCompositeOperation = "source-over";
             ctx.drawImage(ink._pendingUrl, 0, 0, width, height);
             ink.markDirty(Qt.rect(0, 0, width, height));
-        }
+            ink._pendingUrl = "";   // 一次性！否则之后每次 loadImage(移动/复制预载)都会重绘这张旧页快照
+        }                           // → 原位墨迹被反复"复活"（用户报告的拖动后原位鬼影 / 无限自我复制根因）
         // 待贴图（复制/移动/缩放回贴）。
         if (ink._pendingStamps.length > 0) {
             var remain = [];
