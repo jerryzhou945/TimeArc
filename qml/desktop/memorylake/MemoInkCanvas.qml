@@ -14,8 +14,9 @@ Canvas {
     // 一次落笔→抬笔算一笔；抬笔时发信号（持久化切片接：节流存 PNG）。
     signal strokeEnded()
 
-    renderTarget: Canvas.FramebufferObject
-    renderStrategy: Canvas.Cooperative
+    // Image 渲染目标（CPU）：toDataURL / getImageData 快且可靠（FBO 上前者慢会卡 GUI、后者读空）。
+    renderTarget: Canvas.Image
+    renderStrategy: Canvas.Immediate
     antialiasing: true
 
     property real lastX: 0
@@ -54,8 +55,8 @@ Canvas {
         ink.markDirty(Qt.rect(0, 0, width, height));
     }
     // 把全幅快照的源矩形 (sx,sy,sw,sh) 以 source-over 贴到目标矩形 (dx,dy,dw,dh)（可缩放）。
-    // 关键：用 toDataURL 全幅快照 + drawImage 取源矩形，而非 getImageData——FBO 上 getImageData
-    // 读不到 GPU 像素（实测返回空），但 toDataURL 能（与存档同路径）。
+    // 用全幅 toDataURL 快照 + drawImage 取源矩形（getImageData/putImageData 因 Canvas 命令需等下一帧
+    // paint 才落盘，同帧读/写为空，故不走那条路）。剪贴板存「全幅快照 + 源矩形」，跨页粘贴亦可。
     property var _pendingStamps: []
     function _drawStamp(s) {
         var ctx = getContext("2d");

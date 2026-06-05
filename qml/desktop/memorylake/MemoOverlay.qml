@@ -77,8 +77,10 @@ Item {
         _writeCurrent();
         currentPage = i;
         _applyPage(pagesData[i]);
+        _clearSelection();           // 选区是按页的；切页清掉（剪贴板 _clip 保留，供跨页粘贴）
         scheduleSave();
         memo._histReset();
+        memo.forceActiveFocus();     // 切页后仍可 Ctrl+V 粘贴到新页
     }
     function addPage() {
         _writeCurrent();
@@ -87,6 +89,7 @@ Item {
         currentPage = pagesData.length - 1;
         _refreshLabels();
         _applyPage(pagesData[currentPage]);
+        _clearSelection();
         scheduleSave();
         memo._histReset();
     }
@@ -98,6 +101,7 @@ Item {
         else if (currentPage > i) currentPage -= 1;
         _refreshLabels();
         _applyPage(pagesData[currentPage]);
+        _clearSelection();
         scheduleSave();
         memo._histReset();
     }
@@ -228,31 +232,60 @@ Item {
         _clearSelection();
         scheduleSave(); _histRecord();
     }
-    function _copySelection() {
+    // —— 剪贴板：复制(Ctrl+C)与粘贴(Ctrl+V)分离，可跨页；复制按钮 = 复制+就地粘贴 ——
+    // 存「全幅墨迹快照 + 源矩形 + 对象(相对选区原点)」。跨页因 MemoOverlay 常驻而保留。
+    property var _clip: null
+
+    function _copyToClipboard() {
         if (!selActive) return;
-        // 副本放在原内容**旁边、不重叠**（默认右侧，放不下则下方）。重叠会让下次拖动副本时
-        // 连原墨迹一起抬起（用户反馈的"复制前后一起拖动/消失"根因）。
-        var gap = 24;
-        var dx = selRect.width + gap, dy = 0;
-        if (selRect.x + dx + selRect.width > objectLayerHost.width) { dx = 0; dy = selRect.height + gap; }
-        var copies = [];                            // 先快照（append 会改下标/count）
-        for (var k = 0; k < selObjs.length; k++) {
-            var o = objectModel.get(selObjs[k]);
-            copies.push({ otype: o.otype, ox: o.ox + dx, oy: o.oy + dy, ow: o.ow, oh: o.oh,
-                          otitle: o.otitle, ocontent: o.ocontent, otext: o.otext,
-                          ots: o.ots, odone: o.odone, odue: o.odue });
+        var objs = [];
+        for (var i = 0; i < selObjs.length; i++) {
+            var o = objectModel.get(selObjs[i]);
+            objs.push({ otype: o.otype, dx: o.ox - selRect.x, dy: o.oy - selRect.y, ow: o.ow, oh: o.oh,
+                        otitle: o.otitle, ocontent: o.ocontent, otext: o.otext,
+                        ots: o.ots, odone: o.odone, odue: o.odue });
         }
-        if (selRect.width > 1 && selRect.height > 1)     // 墨迹：选区像素 source-over 贴到旁边
-            inkCanvas.copyRegionTo(selRect.x, selRect.y, selRect.width, selRect.height,
-                                   selRect.x + dx, selRect.y + dy, selRect.width, selRect.height);
+        var hasInk = selRect.width > 1 && selRect.height > 1;
+        memo._clip = { objs: objs, inkUrl: hasInk ? inkCanvas.exportDataURL() : "",
+                       sx: selRect.x, sy: selRect.y, sw: selRect.width, sh: selRect.height };
+        if (store) saveStatus.flash("已复制 " + objs.length + " 项");
+    }
+
+    // 选一个不出界的落点：右→下→左→上 依次试，都放不下再钳进画布。
+    function _pasteOrigin(w, h, sX, sY) {
+        var W = objectLayerHost.width, H = objectLayerHost.height, gap = 24;
+        var cands = [ { x: sX + w + gap, y: sY }, { x: sX, y: sY + h + gap },
+                      { x: sX - w - gap, y: sY }, { x: sX, y: sY - h - gap } ];
+        for (var i = 0; i < cands.length; i++) {
+            var c = cands[i];
+            if (c.x >= 8 && c.y >= 8 && c.x + w <= W - 8 && c.y + h <= H - 8) return c;
+        }
+        return { x: Math.max(8, Math.min(sX + gap, W - w - 8)),
+                 y: Math.max(8, Math.min(sY + gap, H - h - 8)) };
+    }
+    function _pasteClipboard() {
+        if (!_clip) return;
+        var w = _clip.sw, h = _clip.sh;
+        var dst = _pasteOrigin(w, h, _clip.sx, _clip.sy);
+        if (_clip.inkUrl && _clip.inkUrl.length > 0 && w > 1 && h > 1)   // 墨迹：源矩形 source-over 贴到落点
+            inkCanvas.stampRegion(_clip.inkUrl, _clip.sx, _clip.sy, w, h, dst.x, dst.y, w, h);
         var base = objectModel.count;
-        for (var j = 0; j < copies.length; j++) objectModel.append(copies[j]);
-        var newIdxs = [];                            // 选区移到副本（拖动的是副本这组对象，不是原内容）
-        for (var n = 0; n < copies.length; n++) newIdxs.push(base + n);
+        for (var j = 0; j < _clip.objs.length; j++) {
+            var ob = _clip.objs[j];
+            objectModel.append({ otype: ob.otype, ox: dst.x + ob.dx, oy: dst.y + ob.dy, ow: ob.ow, oh: ob.oh,
+                                 otitle: ob.otitle, ocontent: ob.ocontent, otext: ob.otext,
+                                 ots: ob.ots, odone: ob.odone, odue: ob.odue });
+        }
+        var newIdxs = [];                            // 选区落到新粘贴的这组对象（拖动的是它们，不是原内容）
+        for (var n = 0; n < _clip.objs.length; n++) newIdxs.push(base + n);
         memo.selObjs = newIdxs;
-        memo.selRect = Qt.rect(selRect.x + dx, selRect.y + dy, selRect.width, selRect.height);
+        memo.selRect = Qt.rect(dst.x, dst.y, w, h);
+        memo.selActive = true;
+        memo.selectedObject = -1;
         scheduleSave(); _histRecord();
     }
+    // 复制按钮 = 复制 + 立即粘贴（就地、不丢、不重叠）。
+    function _copySelection() { if (selActive) { _copyToClipboard(); _pasteClipboard(); } }
 
     // —— 选区移动 / 缩放（含浮动墨迹：抬起→拖动→回贴）——
     property bool _selDragging: false
@@ -328,7 +361,7 @@ Item {
     // 工具提示文案（逐字对齐 v88 setMemoTool 16301-16307）。
     readonly property var toolHints: ({
         "none": "已取消当前工具。点击上方工具图标重新选择。",
-        "select": "选择模式：在空白处拖出方框框选笔迹/便签/文字；拖选框移动、拖右下角缩放，可一键复制、删除。",
+        "select": "选择模式：框选笔迹/便签/文字；拖选框移动、拖右下角缩放；复制键就地复制，Ctrl+C 复制 / Ctrl+V 粘贴(可跨页)，Del 删除。",
         "note": "便签模式：点击画布创建白色便签，便签可拖动、可编辑、可左右上下拉伸。",
         "text": "文字模式：点击画布添加文本，输入后可继续编辑。",
         "pen": "画笔模式：按住鼠标在灰色蒙版上自由绘图。",
@@ -370,7 +403,10 @@ Item {
             memo.redo();
             e.accepted = true;
         } else if (e.key === Qt.Key_C && (e.modifiers & Qt.ControlModifier) && memo.selActive) {
-            memo._copySelection();
+            memo._copyToClipboard();   // 仅复制，不粘贴
+            e.accepted = true;
+        } else if (e.key === Qt.Key_V && (e.modifiers & Qt.ControlModifier) && memo._clip) {
+            memo._pasteClipboard();    // 粘贴（可跨页）
             e.accepted = true;
         } else if (e.key === Qt.Key_Delete || e.key === Qt.Key_Backspace) {
             if (memo.selActive) { memo._deleteSelection(); e.accepted = true; }

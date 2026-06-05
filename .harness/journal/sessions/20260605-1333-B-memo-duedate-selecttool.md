@@ -51,6 +51,22 @@ copy dragged the original (overlapping +28 offset). Fixed: preload snapshot +
 clear only when float Ready + synchronous restamp; copy placed fully beside
 (non-overlapping). Objects were already identity-moved.
 
+## Copy rework (post-feedback 2)
+Three more copy bugs: (1) copies near the bottom/right edge went off-canvas and
+were lost; (2) cross-page copy impossible (Ctrl+C did copy+paste atomically);
+(3) menubar/animations froze after an ink copy.
+- Clipboard: `_clip` holds objects (relative) + full-canvas ink snapshot + src
+  rect, outliving page switches. **Ctrl+C = copy only**, **Ctrl+V = paste**
+  (cross-page), **复制 button = copy+paste**. Selection cleared + focus kept on
+  page switch.
+- Paste origin tries right→down→left→up for an on-canvas, non-overlapping spot,
+  clamps as last resort → bottom-right copies now land left/up, never lost.
+- Freeze root cause: `toDataURL` on the **FBO** canvas is a slow GPU readback
+  that stalls the GUI thread. Switched MemoInkCanvas to **Image render target**
+  (CPU toDataURL, fast/reliable). getImageData/putImageData still unusable
+  (Canvas commands flush only on next paint), so region copy stays on the
+  full-snapshot + drawImage(source-rect) path.
+
 ## Verify
 `build.py` green; probes: date picker (right day/time), ink copy/move
 (1:1 + scaled + lift-clear-restamp), object multi-select/copy/scale, copy
