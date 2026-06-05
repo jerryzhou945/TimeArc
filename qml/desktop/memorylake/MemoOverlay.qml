@@ -105,6 +105,7 @@ Item {
     // 序列化整篇（多页）→ store。debounce 见 saveTimer。
     function saveDoc() {
         if (!store) return;
+        if (_selDragging) return;   // 手势中画布暂缺一块（墨迹浮起），别存到缺口；提交后会再存
         _writeCurrent();
         store.setValue(memo.docKey, JSON.stringify({ v: 2, pages: pagesData, current: currentPage }));
         saveStatus.flash("笔迹已保存");
@@ -229,7 +230,11 @@ Item {
     }
     function _copySelection() {
         if (!selActive) return;
-        var dx = 28, dy = 28;
+        // 副本放在原内容**旁边、不重叠**（默认右侧，放不下则下方）。重叠会让下次拖动副本时
+        // 连原墨迹一起抬起（用户反馈的"复制前后一起拖动/消失"根因）。
+        var gap = 24;
+        var dx = selRect.width + gap, dy = 0;
+        if (selRect.x + dx + selRect.width > objectLayerHost.width) { dx = 0; dy = selRect.height + gap; }
         var copies = [];                            // 先快照（append 会改下标/count）
         for (var k = 0; k < selObjs.length; k++) {
             var o = objectModel.get(selObjs[k]);
@@ -237,12 +242,12 @@ Item {
                           otitle: o.otitle, ocontent: o.ocontent, otext: o.otext,
                           ots: o.ots, odone: o.odone, odue: o.odue });
         }
-        if (selRect.width > 1 && selRect.height > 1)     // 墨迹：选区像素 source-over 贴到偏移处
+        if (selRect.width > 1 && selRect.height > 1)     // 墨迹：选区像素 source-over 贴到旁边
             inkCanvas.copyRegionTo(selRect.x, selRect.y, selRect.width, selRect.height,
                                    selRect.x + dx, selRect.y + dy, selRect.width, selRect.height);
         var base = objectModel.count;
         for (var j = 0; j < copies.length; j++) objectModel.append(copies[j]);
-        var newIdxs = [];                            // 选区移到副本
+        var newIdxs = [];                            // 选区移到副本（拖动的是副本这组对象，不是原内容）
         for (var n = 0; n < copies.length; n++) newIdxs.push(base + n);
         memo.selObjs = newIdxs;
         memo.selRect = Qt.rect(selRect.x + dx, selRect.y + dy, selRect.width, selRect.height);
@@ -251,6 +256,7 @@ Item {
 
     // —— 选区移动 / 缩放（含浮动墨迹：抬起→拖动→回贴）——
     property bool _selDragging: false
+    property bool _floatCleared: false             // 源区是否已清（待浮层 Ready 才清，避免拖动瞬间消失）
     property string _floatUrl: ""                  // 抬起前全幅快照（贴回用）
     property rect _floatSrc: Qt.rect(0, 0, 0, 0)   // 抬起的源矩形
     property rect _boxStart: Qt.rect(0, 0, 0, 0)   // 手势起始盒子
@@ -265,8 +271,9 @@ Item {
             _objStart.push({ idx: selObjs[i], ox: o.ox, oy: o.oy, ow: o.ow, oh: o.oh });
         }
         _floatSrc = Qt.rect(selRect.x, selRect.y, selRect.width, selRect.height);
-        _floatUrl = inkCanvas.exportDataURL();     // 抬起前快照，清掉源区让墨迹"浮起"
-        inkCanvas.clearRegion(_floatSrc.x, _floatSrc.y, _floatSrc.width, _floatSrc.height);
+        _floatUrl = inkCanvas.exportDataURL();     // 抬起前快照
+        inkCanvas.loadImage(_floatUrl);            // 预载：提交时同步贴回，且不依赖浮层缓存
+        _floatCleared = false;                     // 源区等浮层 Ready 再清（见 floatInk.onStatusChanged）
         _selDragging = true;
     }
     function _applyMove(dgx, dgy) {
@@ -292,7 +299,13 @@ Item {
     }
     function _commitSelGesture() {
         if (!_selDragging) return;
-        if (_floatUrl.length > 0 && _floatSrc.width > 1 && _floatSrc.height > 1)
+        // 浮层若未及时触发清源但快照已载，则此刻同步完成"抬起"（修极快拖动时墨迹不动/丢失）。
+        if (!_floatCleared && _floatUrl.length > 0 && _floatSrc.width > 1
+                && inkCanvas.isImageLoaded(_floatUrl)) {
+            inkCanvas.clearRegion(_floatSrc.x, _floatSrc.y, _floatSrc.width, _floatSrc.height);
+            _floatCleared = true;
+        }
+        if (_floatCleared && _floatSrc.width > 1 && selRect.width > 1)   // 同步贴回（已预载）
             inkCanvas.stampRegion(_floatUrl, _floatSrc.x, _floatSrc.y, _floatSrc.width, _floatSrc.height,
                                   selRect.x, selRect.y, selRect.width, selRect.height);
         for (var i = 0; i < selObjs.length; i++) {
@@ -307,6 +320,7 @@ Item {
                 objectModel.setProperty(selObjs[i], "oh", ob.height);
         }
         _selDragging = false;
+        _floatCleared = false;
         _floatUrl = "";
         scheduleSave(); _histRecord();
     }
@@ -504,13 +518,21 @@ Item {
         // 浮动墨迹：移动/缩放选区时显示被抬起的那块（在对象之下，与真实墨迹同层级）。
         Image {
             id: floatInk
-            visible: memo._selDragging
+            visible: memo._selDragging && memo._floatUrl.length > 0
             source: memo._floatUrl
             sourceClipRect: memo._floatSrc
             x: memo.selRect.x; y: memo.selRect.y
             width: memo.selRect.width; height: memo.selRect.height
             smooth: true
             cache: false
+            // 浮层就绪后才清源区：拖动瞬间画布仍有墨迹、浮层无缝盖上，避免"消失"。
+            onStatusChanged: {
+                if (status === Image.Ready && memo._selDragging && !memo._floatCleared) {
+                    inkCanvas.clearRegion(memo._floatSrc.x, memo._floatSrc.y,
+                                          memo._floatSrc.width, memo._floatSrc.height);
+                    memo._floatCleared = true;
+                }
+            }
         }
 
         // 包一层填充壳：Loader 把「壳」拉满覆盖层（壳是普通 Item，被拉伸无副作用），真正的
