@@ -133,7 +133,7 @@ Item {
         memo.scheduleSave();
     }
     function createText(px, py) {
-        objectModel.append({ otype: "text", ox: px, oy: py, ow: 220, oh: 40,
+        objectModel.append({ otype: "text", ox: px, oy: py, ow: 240, oh: 0,
                              otitle: "", ocontent: "", otext: "输入文字",
                              ots: 0, odone: false });
         memo.selectedObject = objectModel.count - 1;
@@ -344,6 +344,8 @@ Item {
                         it.done = model.odone === true;
                     } else {
                         it.text = model.otext;
+                        if (model.ow > 0) it.width = model.ow;
+                        if (model.oh > 0) { it.heightFixed = true; it.height = model.oh; }
                     }
                     it.selected = Qt.binding(function () { return memo.selectedObject === ldr.index; });
                 }
@@ -362,7 +364,10 @@ Item {
                         objectModel.setProperty(ldr.index, "ox", ldr.obj.x);
                         objectModel.setProperty(ldr.index, "oy", ldr.obj.y);
                         objectModel.setProperty(ldr.index, "ow", ldr.obj.width);
-                        objectModel.setProperty(ldr.index, "oh", ldr.obj.height);
+                        if (ldr.model.otype === "text")
+                            objectModel.setProperty(ldr.index, "oh", ldr.obj.heightFixed ? ldr.obj.height : 0);
+                        else
+                            objectModel.setProperty(ldr.index, "oh", ldr.obj.height);
                         memo.scheduleSave();
                     }
                     function onContentCommitted() {
