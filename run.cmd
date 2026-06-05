@@ -10,10 +10,11 @@ REM  Any arguments are forwarded to TimeArc.exe.
 REM ============================================================
 setlocal
 
-set "QT=C:\Qt\6.11.1\mingw_64"
-set "MINGW=C:\Qt\Tools\mingw1310_64\bin"
-set "NINJA=C:\Qt\Tools\Ninja"
-set "PATH=%QT%\bin;%MINGW%;%NINJA%;%PATH%"
+set "QT=D:\TimeArc\QT\6.11.0\mingw_64"
+set "MINGW=D:\TimeArc\QT\Tools\mingw1310_64\bin"
+set "NINJA=D:\TimeArc\QT\Tools\Ninja"
+set "CMAKE=D:\TimeArc\QT\Tools\CMake_64\bin"
+set "PATH=%QT%\bin;%MINGW%;%NINJA%;%CMAKE%;%PATH%"
 
 REM Project root = folder this script lives in (no trailing backslash)
 set "ROOT=%~dp0"
@@ -22,7 +23,7 @@ set "ROOT=%ROOT:~0,-1%"
 REM --- Configure once (creates build\build.ninja) ---
 if not exist "%ROOT%\build\build.ninja" (
     echo [run] First-time configure...
-    cmake -S "%ROOT%" -B "%ROOT%\build" -G Ninja ^
+    "%CMAKE%\cmake.exe" -S "%ROOT%" -B "%ROOT%\build" -G Ninja ^
         -DCMAKE_BUILD_TYPE=Release ^
         -DCMAKE_PREFIX_PATH="%QT%" ^
         -DCMAKE_C_COMPILER="%MINGW%\gcc.exe" ^
@@ -40,7 +41,7 @@ taskkill /IM time-arc-service.exe /F >nul 2>&1
 
 REM --- Build (incremental; no-op when up to date) ---
 echo [run] Building...
-cmake --build "%ROOT%\build"
+"%CMAKE%\cmake.exe" --build "%ROOT%\build"
 if errorlevel 1 (
     echo [run] Build FAILED.
     exit /b 1

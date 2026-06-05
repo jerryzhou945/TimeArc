@@ -11,9 +11,9 @@ REM  Any arguments are forwarded to TimeArc.exe.
 REM ============================================================
 setlocal
 
-set "QT=C:\Qt\6.11.1\mingw_64"
-set "MINGW=C:\Qt\Tools\mingw1310_64\bin"
-set "NINJA=C:\Qt\Tools\Ninja"
+set "QT=D:\TimeArc\QT\6.11.0\mingw_64"
+set "MINGW=D:\TimeArc\QT\Tools\mingw1310_64\bin"
+set "NINJA=D:\TimeArc\QT\Tools\Ninja"
 set "PATH=%QT%\bin;%MINGW%;%NINJA%;%PATH%"
 
 set "ROOT=%~dp0"
