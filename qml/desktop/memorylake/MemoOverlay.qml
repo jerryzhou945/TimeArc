@@ -295,13 +295,25 @@ Item {
             }
         }
 
+        // 包一层填充壳：Loader 把「壳」拉满覆盖层（壳是普通 Item，被拉伸无副作用），真正的
+        // 便签/文字作为壳的子项、用自身 x/y/w/h 定位，不被 Loader 强制改尺寸。
+        // 修 bug：有显式尺寸的 Loader 会把被加载项也拉成同尺寸 → 全屏/退全屏时便签暴涨、
+        // 文字框创建即铺满。壳吸收拉伸后，对象保留自身几何，便签的 parent 仍是覆盖层级（钳制不变）。
         Component {
             id: stickyComp
-            StickyNote { style: memo.style }
+            Item {
+                anchors.fill: parent
+                property alias inner: stickyInner
+                StickyNote { id: stickyInner; style: memo.style }
+            }
         }
         Component {
             id: textComp
-            TextLayer { style: memo.style }
+            Item {
+                anchors.fill: parent
+                property alias inner: textInner
+                TextLayer { id: textInner; style: memo.style }
+            }
         }
 
         Repeater {
@@ -313,40 +325,41 @@ Item {
                 required property var model
                 anchors.fill: parent
                 sourceComponent: model.otype === "text" ? textComp : stickyComp
+                // 真正的对象（壳内子项）；Connections/回写都走它，不走 Loader 自身。
+                readonly property var obj: item ? item.inner : null
                 onLoaded: {
-                    item.x = model.ox;
-                    item.y = model.oy;
+                    var it = item.inner;
+                    it.x = model.ox;
+                    it.y = model.oy;
                     if (model.otype === "sticky") {
-                        item.width = model.ow;
-                        item.height = model.oh;
-                        item.title = model.otitle;
-                        item.content = model.ocontent;
+                        it.width = model.ow;
+                        it.height = model.oh;
+                        it.title = model.otitle;
+                        it.content = model.ocontent;
                     } else {
-                        item.text = model.otext;
+                        it.text = model.otext;
                     }
-                    item.selected = Qt.binding(function () { return memo.selectedObject === ldr.index; });
+                    it.selected = Qt.binding(function () { return memo.selectedObject === ldr.index; });
                 }
                 Connections {
-                    target: ldr.item
+                    target: ldr.obj
                     function onSelectRequested(grabFocus) {
                         memo.selectedObject = ldr.index;
                         if (grabFocus) memo.forceActiveFocus();
                     }
                     function onGeometryCommitted() {
-                        objectModel.setProperty(ldr.index, "ox", ldr.item.x);
-                        objectModel.setProperty(ldr.index, "oy", ldr.item.y);
-                        if (ldr.model.otype === "sticky") {
-                            objectModel.setProperty(ldr.index, "ow", ldr.item.width);
-                            objectModel.setProperty(ldr.index, "oh", ldr.item.height);
-                        }
+                        objectModel.setProperty(ldr.index, "ox", ldr.obj.x);
+                        objectModel.setProperty(ldr.index, "oy", ldr.obj.y);
+                        objectModel.setProperty(ldr.index, "ow", ldr.obj.width);
+                        objectModel.setProperty(ldr.index, "oh", ldr.obj.height);
                         memo.scheduleSave();
                     }
                     function onContentCommitted() {
                         if (ldr.model.otype === "sticky") {
-                            objectModel.setProperty(ldr.index, "otitle", ldr.item.title);
-                            objectModel.setProperty(ldr.index, "ocontent", ldr.item.content);
+                            objectModel.setProperty(ldr.index, "otitle", ldr.obj.title);
+                            objectModel.setProperty(ldr.index, "ocontent", ldr.obj.content);
                         } else {
-                            objectModel.setProperty(ldr.index, "otext", ldr.item.text);
+                            objectModel.setProperty(ldr.index, "otext", ldr.obj.text);
                         }
                         memo.scheduleSave();
                     }
