@@ -11,10 +11,27 @@ REM  Any arguments are forwarded to TimeArc.exe.
 REM ============================================================
 setlocal
 
-set "QT=D:\TimeArc\QT\6.11.0\mingw_64"
-set "MINGW=D:\TimeArc\QT\Tools\mingw1310_64\bin"
-set "NINJA=D:\TimeArc\QT\Tools\Ninja"
-set "PATH=%QT%\bin;%MINGW%;%NINJA%;%PATH%"
+REM --- Locate the Qt/MinGW/Ninja toolchain (drive-independent) ---
+REM Probe known toolchain roots in order; the first that exists wins.
+REM Add your own root to this list if you install Qt elsewhere.
+set "QTROOT="
+for %%R in ("C:\Qt" "D:\TimeArc\QT") do (
+    if not defined QTROOT if exist "%%~R\Tools\mingw1310_64\bin\g++.exe" set "QTROOT=%%~R"
+)
+if not defined QTROOT (
+    echo [launch] No Qt toolchain found. Add your toolchain root to the candidate list in launch.cmd.
+    exit /b 1
+)
+set "QT="
+for /d %%V in ("%QTROOT%\6.*") do if exist "%%~V\mingw_64\bin\qmake.exe" set "QT=%%~V\mingw_64"
+if not defined QT (
+    echo [launch] No Qt mingw_64 build found under "%QTROOT%".
+    exit /b 1
+)
+set "MINGW=%QTROOT%\Tools\mingw1310_64\bin"
+set "NINJA=%QTROOT%\Tools\Ninja"
+set "CMAKE=%QTROOT%\Tools\CMake_64\bin"
+if exist "%CMAKE%\cmake.exe" (set "PATH=%QT%\bin;%MINGW%;%NINJA%;%CMAKE%;%PATH%") else (set "PATH=%QT%\bin;%MINGW%;%NINJA%;%PATH%")
 
 set "ROOT=%~dp0"
 set "ROOT=%ROOT:~0,-1%"
