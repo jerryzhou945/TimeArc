@@ -10,14 +10,17 @@
 - 当“正在发声的进程”和“当前前台窗口”是同一个进程，或 exe path 相同时，audio record 会复用前台窗口标题。
   - 例如 B 站/YouTube/网页播放器在前台播放时，`window_title` 不再只能是 `Audio playback`。
   - 现有 SQLite writer 会把 audio record 的 `window_title` 写入 `media_sessions.media_title`。
+- 当发声进程在后台，但它仍有可见顶层窗口标题时，Windows audio 采样会按 PID 枚举该进程窗口，并把有用标题写入 audio record。
+  - 这能覆盖一部分后台播放器、浏览器窗口、视频客户端仍暴露标题的场景。
+  - 如果标题为空、只是 exe 名、或没有可见窗口，仍回退到 `Audio playback`。
 - DB smoke 源码增加了 `mediaTitle` 持久化断言，锁住 repository 层读取能力。
 - `.harness/tools/build.py` 增加 fallback 日志目录：当 `.harness/journal/build-logs` 因 ACL 不可写时，会写到 `.harness/tmp/build-logs`，仍然保持 harness wrapper 构建。
 
 ## 未完成
 
-- 还不能稳定拿到后台播放的真实歌曲名。
-  - 当前方案只在发声进程就是前台窗口时借用窗口标题。
-  - Spotify、网易云、后台浏览器标签页等如果不在前台，仍可能只有 `Audio playback`。
+- 还不能保证所有后台播放都有真实歌曲名。
+  - 当前已支持“后台进程可见窗口标题”采集，但它依赖应用自己把歌曲/视频名暴露到窗口标题。
+  - 如果播放器只通过系统媒体控件暴露曲目信息，普通窗口标题仍可能只是应用名。
 - 还没有接入 Windows Global System Media Transport Controls。
   - GSMTC 是后续拿歌名、艺术家、专辑等系统媒体元数据的主要方向。
 - 还没有浏览器标签级采集。
@@ -31,6 +34,7 @@
 
 - 通过：`.local-python\Python312\python.exe .harness/tools/build.py -- --target time_arc_service`
   - 说明 Windows service 目标已在现有 MinGW build 中成功编译。
+  - 2026-06-05 17:50 重新验证了后台窗口标题采集后的 service 构建。
 - 通过：`build\timearc_db_smoke.exe`
   - 说明既有 DB smoke 二进制仍能运行。
 - 阻塞：完整 `build` 目录构建。

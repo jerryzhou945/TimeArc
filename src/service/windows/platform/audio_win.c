@@ -286,6 +286,75 @@ static const char* matching_foreground_title(const AppInfo* foreground,
   return NULL;
 }
 
+typedef struct WindowTitleLookup {
+  DWORD pid;
+  const char* app_name;
+  char* out_title;
+  size_t out_title_size;
+  int found;
+} WindowTitleLookup;
+
+static int useful_media_title(const char* title, const char* app_name) {
+  if (title == NULL || title[0] == '\0') {
+    return 0;
+  }
+  if (strcmp(title, "Audio playback") == 0) {
+    return 0;
+  }
+  if (app_name != NULL && app_name[0] != '\0' && strcmp(title, app_name) == 0) {
+    return 0;
+  }
+  return 1;
+}
+
+static BOOL CALLBACK collect_window_title_for_pid(HWND hwnd, LPARAM param) {
+  WindowTitleLookup* lookup = (WindowTitleLookup*)param;
+  if (lookup == NULL || lookup->found || !IsWindowVisible(hwnd)) {
+    return TRUE;
+  }
+
+  DWORD window_pid = 0;
+  GetWindowThreadProcessId(hwnd, &window_pid);
+  if (window_pid != lookup->pid) {
+    return TRUE;
+  }
+
+  int title_len = GetWindowTextLengthW(hwnd);
+  if (title_len <= 0) {
+    return TRUE;
+  }
+
+  wchar_t title_w[TA_MAX_TITLE_BYTES];
+  if (GetWindowTextW(hwnd, title_w,
+                     (int)(sizeof(title_w) / sizeof(title_w[0]))) <= 0) {
+    return TRUE;
+  }
+
+  char title[TA_MAX_TITLE_BYTES];
+  if (wide_to_utf8(title_w, title, sizeof(title)) != 0 ||
+      !useful_media_title(title, lookup->app_name)) {
+    return TRUE;
+  }
+
+  copy_string(lookup->out_title, lookup->out_title_size, title);
+  lookup->found = 1;
+  return FALSE;
+}
+
+static int query_process_window_title(DWORD pid,
+                                      const char* app_name,
+                                      char* out_title,
+                                      size_t out_title_size) {
+  if (pid == 0 || out_title == NULL || out_title_size == 0) {
+    return -1;
+  }
+
+  out_title[0] = '\0';
+  WindowTitleLookup lookup = {pid, app_name, out_title, out_title_size, 0};
+  EnumWindows(collect_window_title_for_pid, (LPARAM)&lookup);
+  return lookup.found ? 0 : -1;
+}
+
 static void fill_audio_app(AppInfo* app,
                            DWORD pid,
                            const char* path,
@@ -401,8 +470,14 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
     if (query_process_path(pid, path, sizeof(path)) == 0 &&
         !should_ignore_audio_process(path) &&
         !app_already_added(out_apps, added, path)) {
-      fill_audio_app(&out_apps[added], pid, path,
-                     matching_foreground_title(foreground_ptr, pid, path));
+      char media_title[TA_MAX_TITLE_BYTES];
+      const char* title = matching_foreground_title(foreground_ptr, pid, path);
+      if (title == NULL &&
+          query_process_window_title(pid, basename_from_path(path), media_title,
+                                     sizeof(media_title)) == 0) {
+        title = media_title;
+      }
+      fill_audio_app(&out_apps[added], pid, path, title);
       ++added;
     }
 
