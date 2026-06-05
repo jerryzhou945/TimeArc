@@ -8,6 +8,8 @@ Rectangle {
     color: mobileTheme.bg
 
     property string currentTab: "home"
+    // 无边框窗口顶部预留高度（移动预览默认保留原生边框 ⇒ 0；防御性接收，便于未来移动端 chrome）。
+    property int topReserve: 0
 
     MobileTheme {
         id: mobileTheme
@@ -18,6 +20,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
+        anchors.topMargin: root.topReserve
         anchors.bottom: tabBar.top
         sourceComponent: {
             if (root.currentTab === "stats")

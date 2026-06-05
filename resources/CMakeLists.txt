@@ -1,6 +1,7 @@
 set(TIME_ARC_RESOURCE_FILES
     resources/background.png
     resources/background_night.png
+    resources/icons/app_icon.svg
     resources/icons/home.svg
     resources/icons/chat.svg
     resources/icons/bilibili.svg
