@@ -609,42 +609,33 @@ Item {
 
     onNightModeChanged: refreshCalendar()
 
-    // v88 暗玻璃整页基底（M-B1）：竖直近黑渐变（不透明替代 backdrop-filter）+ 42px 蓝图栅格
-    // + 双角晕（aqua 左上 / violet 右上，圆心近角顶）。圆角 r26 由 RoundedFrame 的 FBO+mask 裁剪，
-    // 内部栅格/角晕不漏方角（G7：禁 clip:true 当圆角裁剪）。
-    RoundedFrame {
+    // 沉浸式整页底（M-B1，与首页/回顾同源）：整页近黑深度坡 + 双角晕由 Shell 的 fullBleed 层提供
+    // （DesktopAppShell `selectedPage==='calendar' → fullBleedPage`：隐藏旧奶油背景、关内容区外框、
+    // 露蓝黑深度坡）。本页只透明叠 v88 42px 蓝图栅格 + 自有 aqua/violet 角晕，蓝黑底自然透出，
+    // 不再「框中框」、不再外露旧背景。透明叠层无需圆角裁剪。
+    Item {
         id: pageBase
         anchors.fill: parent
-        radius: 26
-        border { width: 1; color: ml.panelBorder }
-
-        Rectangle {
-            anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: ml.calPageTop }
-                GradientStop { position: 1.0; color: ml.calPageBottom }
-            }
-        }
 
         GridTexture {
             anchors.fill: parent
             cell: 42
             lineColor: ml.gridLine
-            textureOpacity: 0.24
+            textureOpacity: 0.5
         }
 
         GlowCircle {
             width: 520; height: 520
-            x: pageBase.width * 0.15 - width / 2
+            x: pageBase.width * 0.12 - width / 2
             y: -height / 2
             glowColor: ml.aqua
-            glowOpacity: 0.10 * ml.glowStrength
+            glowOpacity: 0.13 * ml.glowStrength
         }
 
         GlowCircle {
-            width: 520; height: 520
-            x: pageBase.width * 0.88 - width / 2
-            y: pageBase.height * 0.18 - height / 2
+            width: 480; height: 480
+            x: pageBase.width * 0.9 - width / 2
+            y: pageBase.height * 0.14 - height / 2
             glowColor: ml.violet
             glowOpacity: 0.12 * ml.glowStrength
         }

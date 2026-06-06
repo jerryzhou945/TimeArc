@@ -59,7 +59,7 @@ Item {
     readonly property bool onMemoryLake: selectedPage === "memorylake" && !showingTimerPage
     // 记忆湖首页 + 月度回顾页都铺满内容区（去外框/玻璃，让暗色水面铺满整窗）。
     readonly property bool fullBleedPage:
-        (selectedPage === "memorylake" || selectedPage === "recap") && !showingTimerPage
+        (selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "calendar") && !showingTimerPage
     readonly property bool memoryLakeHasAmbient:
         onMemoryLake && pageLoader.item && ("hasAmbient" in pageLoader.item) && pageLoader.item.hasAmbient
     readonly property color memoryLakeAmbientColor:
