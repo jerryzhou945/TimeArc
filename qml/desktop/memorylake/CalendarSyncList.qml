@@ -198,46 +198,69 @@ Rectangle {
                     transform: Translate { y: rowHover.hovered ? -1 : 0 }
                     HoverHandler { id: rowHover }
 
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: 9
-                        spacing: 10
-
-                        // 勾选框：未完成 = 发丝边空框（白 .06 底）；完成 = 135° aqua→violet 渐变 + ✓
-                        // （Rectangle 设了 gradient 时 color 被忽略，故未完成用 color、完成用 gradient 覆盖。）
-                        Rectangle {
-                            id: check
-                            width: 22; height: 22; radius: 8
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: panel.style ? Qt.rgba(1, 1, 1, 0.06) : "#ffffff10"
-                            border.width: rowBg.modelData.done ? 0 : 1
-                            border.color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.22) : Qt.rgba(0.56, 0.87, 1, 0.22)
-                            gradient: rowBg.modelData.done ? doneGrad : null
-                            Gradient {
-                                id: doneGrad
-                                GradientStop { position: 0; color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.86) : Qt.rgba(0.56, 0.87, 1, 0.86) }
-                                GradientStop { position: 1; color: panel.style ? Qt.rgba(panel.style.violet.r, panel.style.violet.g, panel.style.violet.b, 0.82) : Qt.rgba(0.61, 0.55, 1, 0.82) }
-                            }
-                            Text {
-                                anchors.centerIn: parent
-                                visible: rowBg.modelData.done
-                                text: "✓"
-                                color: Qt.rgba(0.016, 0.031, 0.055, 0.92)
-                                font.pixelSize: 13
-                                font.weight: 900
-                            }
+                    // v88 .todo-item 三栏：[勾选框 | 文案(标题+副标) | 时间]。
+                    // 勾选框（左）：未完成 = 发丝边空框（白 .06 底）；完成 = 135° aqua→violet 渐变 + ✓。
+                    Rectangle {
+                        id: check
+                        anchors.left: parent.left
+                        anchors.leftMargin: 9
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 22; height: 22; radius: 8
+                        color: panel.style ? Qt.rgba(1, 1, 1, 0.06) : "#ffffff10"
+                        border.width: rowBg.modelData.done ? 0 : 1
+                        border.color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.22) : Qt.rgba(0.56, 0.87, 1, 0.22)
+                        gradient: rowBg.modelData.done ? doneGrad : null
+                        Gradient {
+                            id: doneGrad
+                            GradientStop { position: 0; color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.86) : Qt.rgba(0.56, 0.87, 1, 0.86) }
+                            GradientStop { position: 1; color: panel.style ? Qt.rgba(panel.style.violet.r, panel.style.violet.g, panel.style.violet.b, 0.82) : Qt.rgba(0.61, 0.55, 1, 0.82) }
                         }
-
                         Text {
-                            width: parent.width - 22 - 10
-                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.centerIn: parent
+                            visible: rowBg.modelData.done
+                            text: "✓"
+                            color: Qt.rgba(0.016, 0.031, 0.055, 0.92)
+                            font.pixelSize: 13
+                            font.weight: 900
+                        }
+                    }
+
+                    // 时间（右，aqua；无则 --:--，对齐 v88 .todo-time）
+                    Text {
+                        id: rowTime
+                        anchors.right: parent.right
+                        anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (rowBg.modelData.time && rowBg.modelData.time !== "") ? rowBg.modelData.time : "--:--"
+                        color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.78) : Qt.rgba(0.62, 0.90, 0.93, 0.78)
+                        font.pixelSize: 10
+                        font.weight: 760
+                    }
+
+                    // 文案（中，填满 check↔time）：标题 + 副标(tag，对齐 v88 .todo-copy small)
+                    Column {
+                        anchors.left: check.right
+                        anchors.right: rowTime.left
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 3
+                        Text {
+                            width: parent.width
                             text: rowBg.modelData.text
-                            // 主题自适应：夜近白 / 昼深墨（用令牌，避免昼态白字压在浅底上不可读）。
                             color: rowBg.modelData.done
                                 ? (panel.style ? panel.style.textTertiary : "#999")
                                 : (panel.style ? panel.style.textPrimary : "#fff")
                             font.pixelSize: 12
+                            font.weight: 700
                             font.strikeout: rowBg.modelData.done
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            width: parent.width
+                            text: rowBg.modelData.tag ? rowBg.modelData.tag : "待办"
+                            color: panel.style ? panel.style.textTertiary : "#888"
+                            font.pixelSize: 10
                             elide: Text.ElideRight
                         }
                     }
