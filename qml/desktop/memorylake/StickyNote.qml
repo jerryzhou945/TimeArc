@@ -234,22 +234,76 @@ Item {
                     }
                 }
 
-                // 截止日期与时间（点开小日历自选）。
-                Text {
+                // 截止日期与时间（点开小日历自选）。原为 12px 灰字、太不显眼；升级为「自绘小时钟 + 较深墨字」
+                // 胶囊：设了截止＝紫调时钟 + 0.84 深墨日期（DemiBold 13），明显但不刺眼全黑；未设＝淡墨 CTA。
+                // 色全部由便签墨色 stickyInk / violet 令牌派生（§8，不引新硬编码 hex）。置于 56 高底栏下半，
+                // 不与上方 标签/待办 行（顶 4、高 22）相撞。
+                Item {
                     id: dateRow
-                    anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                    leftPadding: 16; rightPadding: 16; bottomPadding: 10
-                    text: note.due > 0
-                          ? "截止 " + Qt.formatDateTime(new Date(note.due), "yyyy-MM-dd  HH:mm")
-                          : "＋ 设置截止时间"
-                    color: note.due > 0 ? Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.66)
-                                        : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.42)
-                    font.pixelSize: 12
-                    font.underline: dateMa.containsMouse
-                    horizontalAlignment: Text.AlignLeft
+                    anchors { left: parent.left; bottom: parent.bottom; leftMargin: 16; bottomMargin: 4 }
+                    height: 24
+                    width: duePill.width
+
+                    readonly property bool hasDue: note.due > 0
+                    readonly property color inkBase: note.style ? note.style.stickyInk : "#1E1E1E"
+                    readonly property color accent: note.style ? note.style.violet : "#9B8BFF"
+
+                    Rectangle {
+                        id: duePill
+                        height: parent.height
+                        width: dueRow.implicitWidth + 22
+                        radius: 12
+                        color: Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b,
+                                       dateRow.hasDue ? (dateMa.containsMouse ? 0.15 : 0.11)
+                                                      : (dateMa.containsMouse ? 0.09 : 0.05))
+                        border.width: 1
+                        border.color: Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b,
+                                              dateRow.hasDue ? 0.24 : 0.16)
+                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                        Row {
+                            id: dueRow
+                            anchors.centerIn: parent
+                            spacing: 7
+
+                            // 自绘小时钟（圆框 + 时分针）。设了截止＝紫调强调；未设＝淡墨。
+                            Canvas {
+                                id: clockGlyph
+                                width: 15; height: 15
+                                anchors.verticalCenter: parent.verticalCenter
+                                onPaint: {
+                                    var ctx = getContext("2d"); ctx.reset();
+                                    var c = dateRow.hasDue ? dateRow.accent
+                                          : Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b, 0.5);
+                                    var cx = width / 2, cy = height / 2, r = 6.2;
+                                    ctx.strokeStyle = c; ctx.lineWidth = 1.5; ctx.lineCap = "round";
+                                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+                                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - 3.4); ctx.stroke();        // 时针
+                                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + 3.0, cy + 1.4); ctx.stroke();  // 分针
+                                }
+                                Connections {
+                                    target: dateRow
+                                    function onHasDueChanged() { clockGlyph.requestPaint() }
+                                }
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: dateRow.hasDue
+                                      ? Qt.formatDateTime(new Date(note.due), "M月d日  HH:mm")
+                                      : "设置截止时间"
+                                color: Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b,
+                                               dateRow.hasDue ? 0.84 : 0.52)
+                                font.pixelSize: dateRow.hasDue ? 13 : 12
+                                font.weight: dateRow.hasDue ? Font.DemiBold : Font.Normal
+                            }
+                        }
+                    }
+
                     MouseArea {
                         id: dateMa
                         anchors.fill: parent
+                        anchors.margins: -3
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: { note.selectRequested(true); note.dueEditRequested(); }

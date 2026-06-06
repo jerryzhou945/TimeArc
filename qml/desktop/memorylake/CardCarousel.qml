@@ -28,6 +28,14 @@ Item {
     // 悬停展开湖（C4）：指针进入中央卡区时轻微放大 + 一道扫光。
     property bool laneHovered: false
 
+    // 自适应缩放：最小窗口下卡区很矮（~339），而选中卡固定 440（翻面 616）高、会撑满/溢出卡区
+    // （撑着整页都是卡片）。按可用高度等比缩小整条卡轨，使卡牌连同字号/底灯一起缩到卡区内、留出呼吸位。
+    // 直接绑定不挂 Behavior：拖拽改窗时即时跟随、不橡皮筋；翻面 440→616 时随卡尺寸动画一并过渡。大窗口=1（不缩）。
+    readonly property real fitScale: {
+        var need = (locked ? 616 : 440) + 72;   // 卡高 + 上下呼吸位（含底部进度点的落位空间）
+        return height > 0 ? Math.min(1, height / need) : 1;
+    }
+
     // 选中卡中心在卡轨内的偏移（用最终宽度解析计算，让宽度与位移动画同步推进）
     function centerOffset() {
         var spacing = 18;
@@ -73,8 +81,9 @@ Item {
         // 水位线（C2）：约 64% 高度一条 aqua 三停渐变 1px 线，宽度限定中央列、左右内缩，
         // 避免横贯整屏割裂画面（现状注释已证实全宽中线的问题）。
         Rectangle {
-            x: carousel.laneLeft
-            width: carousel.laneWidth
+            readonly property real lineW: Math.min(carousel.laneWidth, 440)
+            x: carousel.laneCenter - lineW / 2
+            width: lineW
             y: Math.round(carousel.height * 0.64)
             height: 1
             visible: carousel.laneWidth > 0
@@ -112,6 +121,15 @@ Item {
                 spacing: 18
                 x: viewport.width / 2 - carousel.centerOffset()
                 Behavior on x { NumberAnimation { duration: 420; easing.type: Easing.Bezier; easing.bezierCurve: carousel.style ? carousel.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
+
+                // 整轨等比缩放（fitScale）。轴心锁在视口中心（= 选中卡中心）：origin.x 绑活动中的 track.x，
+                // 切卡滑动时轴心随动画平移、选中卡始终居中不跑偏；origin.y 取卡轨竖直中心（卡牌即居中于此）。
+                transform: Scale {
+                    origin.x: viewport.width / 2 - track.x
+                    origin.y: track.height / 2
+                    xScale: carousel.fitScale
+                    yScale: carousel.fitScale
+                }
 
                 Repeater {
                     model: carousel.apps
@@ -182,11 +200,14 @@ Item {
         // 底部进度点胶囊（C3）：N 点对应 N 卡；active 点 morph 成 32px 青胶囊 + 外发光 + 内高光 + 横扫高光 1.4s。
         Row {
             id: progressPill
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 72
+            // 落位取两者较低（较靠下）：① 原设计「离卡区底 72」——大窗口下卡区高、圆点照旧落在底部空档；
+            // ② 缩放卡牌底缘下方 12（卡心 + 半卡高 220×fitScale + 12）——最小窗口卡区矮、固定底距会让圆点
+            // 压到卡面进度条/提示上，改取卡底下方。max() 使大窗口维持原观感、最小窗口紧贴缩小卡下方不再叠压。
+            y: Math.max(carousel.height - 72, carousel.height / 2 + 220 * carousel.fitScale + 12)
             x: carousel.laneCenter - width / 2
             spacing: 8
-            visible: carousel.apps.length > 1 && carousel.laneWidth > 0
+            // 翻面锁定时不可切卡，隐藏位置点（避免压在放大的翻面卡上）。
+            visible: carousel.apps.length > 1 && carousel.laneWidth > 0 && !carousel.locked
             Repeater {
                 model: carousel.apps.length
                 delegate: Item {

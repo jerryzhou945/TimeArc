@@ -36,6 +36,11 @@ Rectangle {
 
     readonly property real gs: style ? style.glowStrength : 1.0
 
+    // 自适应高度：窄宽下标题/描述换行、chips 折行会撑高内容；据此增高，杜绝「今日结论文字与 tags 叠印」。
+    // = 18 上内边距 + topRow 高 + （有 chips 时）14 间距 + chipFlow 高 + 18 下内边距（即 36 + …）。
+    // 页面以 Math.max(briefingH, implicitHeight) 取用并下移卡区，使底栏 chips 永远落在文本之下。
+    implicitHeight: 36 + topRow.height + (chipFlow.height > 0 ? chipFlow.height + 14 : 0)
+
     radius: 24
     // 毛玻璃质感：极淡白霜膜叠在中栏包裹板的暗玻璃上（夜），昼为浅瓷膜。
     // 靠「白霜 + 顶沿柔光 + 细边 + 方格」读作磨砂玻璃，而非平涂暗块或大面积泛光角落。
