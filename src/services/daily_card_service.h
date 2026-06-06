@@ -31,7 +31,7 @@ class DailyCardService : public QObject {
   // 记忆湖·日视图模型（本地确定性）。入参是 QML 从 UsageStatManager 取到的
   // 同首页只读数据：usmApps = activeSoftwareForRange("day")，
   // segments = foregroundSegmentsForRange("day")。本服务只做 classify + 文案
-  // 模板 + 聚合，产出与 MemoryLakeMock 同形的结构，QML 只渲染：
+  // 模板 + 聚合，产出 QML 渲染所需同形的结构，QML 只渲染：
   //   { apps:[{appId,name,path,category,type,time,seconds,progress,mood,
   //            analysis,launches,longest,times,sessionCount}],
   //     overview:{total,sub}, todayTheme:{kicker,title,desc,ratio} }

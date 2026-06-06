@@ -71,26 +71,17 @@ Item {
     property var weekFocusModel: []
     property int weekMaxFocusSeconds: 1
     property string sidePanelMode: "tasks"
-    // 左栏视图 tab：仅 month 真渲染；week/today/focus 为诚实占位（§2.5 / B1）。
+    // 左栏视图 tab：month/week/today/focus 四视图均已实装（§2.5）。
     property string activeView: "month"
 
     // 安排事项表单状态（自绘下拉 + 时间选择器，避开原生 Controls 白边/白底弹窗）。
-    property string eventType: "todo"           // event / todo / focus
     property string todoTag: fixedTags[0]
-    property string todoProject: "不关联"
     property string annType: "纪念日"            // 纪念日 / 倒计时日
     property bool createOpen: false              // 创建弹出界面（独立浮层）开合
     property string createTime: ""               // 创建时选定的时间 HH:MM（空=未选）
     property bool timePickerOpen: false          // 时间选择浮层开合
     property int pickHour: 9
     property int pickMinute: 0
-    property double pendingEventMs: 0            // 时间选择器选定的「日期+时间」（0=未选）
-    // 自绘下拉菜单（根层 overlay，避免被面板裁剪、无原生弹窗）状态。
-    property string menuTarget: ""               // "" / type / tag / project / anntype
-    property var menuOptions: []
-    property real menuX: 0
-    property real menuY: 0
-    property real menuW: 160
 
     // 记忆湖统一色板（接 AppShell.applyThemeToLoadedPage 注入的主题契约）。
     MemoryLakeStyle {
@@ -318,15 +309,11 @@ Item {
     function eventSpine(type) {
         return type === "event" ? ml.aqua : type === "focus" ? ml.violet : ml.shareGold
     }
-    function typeFromLabel(label) {
-        return label === "事件" ? "event" : label === "专注" ? "focus" : "todo"
-    }
     function typeLabel(type) {
         return type === "event" ? "事件" : type === "focus" ? "专注" : "待办"
     }
 
-    // 左栏统计芯片（§2.7 / A5）：今日事项 / 完成率 = 真值（绑 calendarManager.savedTodos）；
-    // 专注块 / 本周任务 = 诚实静态占位（待重构出最终效果后由用户选择性补真值）。
+    // 左栏统计芯片（§2.7）：今日事项 / 完成率 / 专注块(今日 focus 数) / 本周任务(本周周一起事项总数) 均为真值。
     function todayItemCount() {
         return todosForDate(dateKey(todayDate)).length
     }
@@ -371,9 +358,6 @@ Item {
              : key === "week" ? "" + weekTaskCount()
              : "—"
     }
-    function viewLabel(key) {
-        return key === "week" ? "周计划" : key === "today" ? "今日议程" : key === "focus" ? "专注记录" : "月视图"
-    }
 
     // 底中变更反馈胶囊（v88 §1.11 showCalendarToast）。净增反馈，低风险。
     function showCalToast(msg) {
@@ -382,35 +366,7 @@ Item {
         toastTimer.restart()
     }
 
-    // 自绘下拉菜单：在根层定位弹出（不被面板裁剪），无原生白边/白底。
-    function openSelectMenu(target, options, item, w) {
-        var p = item.mapToItem(root, 0, item.height + 6)
-        root.menuOptions = options
-        root.menuX = p.x
-        root.menuY = p.y
-        root.menuW = w
-        root.menuTarget = target
-    }
-    function applySelectMenu(index) {
-        if (root.menuTarget === "type")
-            root.eventType = typeFromLabel(root.menuOptions[index])
-        else if (root.menuTarget === "tag") {
-            root.todoTag = root.menuOptions[index]
-            root.todoProject = "不关联"
-        } else if (root.menuTarget === "project")
-            root.todoProject = root.menuOptions[index]
-        else if (root.menuTarget === "anntype")
-            root.annType = root.menuOptions[index]
-        root.menuTarget = ""
-    }
 
-    // 时间选择器（复用便签 MemoDatePicker）：选定日期+时间 → 安排到该日。
-    function pendingEventLabel() {
-        if (root.pendingEventMs <= 0)
-            return ""
-        var d = new Date(root.pendingEventMs)
-        return (d.getMonth() + 1) + "月" + d.getDate() + "日 " + pad2(d.getHours()) + ":" + pad2(d.getMinutes())
-    }
     // 跳到任意日期（切月 + 选中 + 重渲染），供时间选择器「安排到他日」用。
     function goToDate(key) {
         var d = dateFromKey(key)
@@ -1000,7 +956,7 @@ Item {
                         }
                     }
 
-                    // 4 视图 Tab：仅 month 真渲染，其余诚实占位（点击切 active；toast 在 F-B5 接）。
+                    // 4 视图 Tab：month/week/today/focus 均真渲染（点击切 activeView）。
                     ColumnLayout {
                         Layout.fillWidth: true
                         spacing: 8
@@ -1057,7 +1013,7 @@ Item {
 
                     Item { Layout.fillHeight: true }
 
-                    // 2×2 统计芯片（今日事项/完成率 真值；专注块/本周任务 诚实占位，A5）
+                    // 2×2 统计芯片（今日事项/完成率/专注块/本周任务，均为真值）
                     GridLayout {
                         Layout.fillWidth: true
                         columns: 2
@@ -1088,16 +1044,6 @@ Item {
                                     Text { text: modelData.label; color: ml.textTertiary; font.pixelSize: 10 }
                                     Text { text: statValue(modelData.key); color: ml.textPrimary
                                            font.pixelSize: 21; font.weight: Font.Bold }
-                                }
-                                Text {
-                                    visible: !modelData.real
-                                    anchors.right: parent.right
-                                    anchors.top: parent.top
-                                    anchors.rightMargin: 8
-                                    anchors.topMargin: 7
-                                    text: "占位"
-                                    color: ml.textTertiary
-                                    font.pixelSize: 8
                                 }
                             }
                         }
@@ -2078,219 +2024,6 @@ Item {
                         spacing: 12
                         visible: sidePanelMode === "tasks"
 
-                        // event-form（已停用：创建移到底部「新建」→ 独立弹出界面 createPopup）
-                        Rectangle {
-                            visible: false
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 0
-                            radius: 16
-                            color: ml.calSunkBg
-                            border.width: 1
-                            border.color: ml.cardBorder
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 8
-
-                                TextField {
-                                    id: todoInput
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 38
-                                    placeholderText: "添加这一天的事项"
-                                    placeholderTextColor: ml.textTertiary
-                                    color: ml.textPrimary
-                                    font.pixelSize: 14
-                                    selectByMouse: true
-                                    leftPadding: 12
-                                    rightPadding: 12
-                                    background: Rectangle {
-                                        radius: 12
-                                        color: ml.calSunkBg
-                                        border.width: 1
-                                        border.color: ml.calInputBorder
-                                    }
-                                    Keys.onReturnPressed: addTodo()
-                                }
-
-                                // 时间（点开便签同款 MemoDatePicker）+ 类型（自绘下拉）。
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 36
-                                        radius: 12
-                                        color: ml.calSunkBg
-                                        border.width: 1
-                                        border.color: ml.calInputBorder
-                                        Text {
-                                            anchors.left: parent.left
-                                            anchors.right: timeGlyph.left
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.leftMargin: 12
-                                            anchors.rightMargin: 6
-                                            text: root.pendingEventMs > 0 ? pendingEventLabel() : "选择时间安排"
-                                            color: root.pendingEventMs > 0 ? ml.textPrimary : ml.textTertiary
-                                            font.pixelSize: 13
-                                            elide: Text.ElideRight
-                                        }
-                                        Text {
-                                            id: timeGlyph
-                                            anchors.right: parent.right
-                                            anchors.rightMargin: 10
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: "⧗"
-                                            color: ml.aqua
-                                            font.pixelSize: 13
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                eventDatePicker.initialMs = root.pendingEventMs > 0 ? root.pendingEventMs
-                                                              : dateFromKey(selectedDateKey).getTime() + 9 * 3600000
-                                                eventDatePicker.open = true
-                                            }
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        Layout.preferredWidth: 92
-                                        Layout.preferredHeight: 36
-                                        radius: 12
-                                        color: ml.calSunkBg
-                                        border.width: 1
-                                        border.color: root.menuTarget === "type" ? ml.chipEventBd : ml.calInputBorder
-                                        Text {
-                                            anchors.left: parent.left
-                                            anchors.right: typeChev.left
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.leftMargin: 12
-                                            anchors.rightMargin: 4
-                                            text: typeLabel(root.eventType)
-                                            color: ml.textPrimary
-                                            font.pixelSize: 13
-                                            elide: Text.ElideRight
-                                        }
-                                        Text {
-                                            id: typeChev
-                                            anchors.right: parent.right
-                                            anchors.rightMargin: 9
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: "▾"
-                                            color: ml.textTertiary
-                                            font.pixelSize: 10
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: openSelectMenu("type", ["待办", "事件", "专注"], parent, parent.width)
-                                        }
-                                    }
-                                }
-
-                                // 标签 + 项目（自绘下拉，保留 tag/linkedProject → 计时回路）+ 添加。
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    Rectangle {
-                                        Layout.preferredWidth: 82
-                                        Layout.preferredHeight: 36
-                                        radius: 12
-                                        color: ml.calSunkBg
-                                        border.width: 1
-                                        border.color: root.menuTarget === "tag" ? ml.chipEventBd : ml.calInputBorder
-                                        Text {
-                                            anchors.left: parent.left
-                                            anchors.right: tagChev.left
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.leftMargin: 12
-                                            anchors.rightMargin: 2
-                                            text: root.todoTag
-                                            color: ml.textPrimary
-                                            font.pixelSize: 12
-                                            font.bold: true
-                                            elide: Text.ElideRight
-                                        }
-                                        Text {
-                                            id: tagChev
-                                            anchors.right: parent.right
-                                            anchors.rightMargin: 8
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: "▾"
-                                            color: ml.textTertiary
-                                            font.pixelSize: 10
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: openSelectMenu("tag", fixedTags, parent, parent.width)
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 36
-                                        radius: 12
-                                        color: ml.calSunkBg
-                                        border.width: 1
-                                        border.color: root.menuTarget === "project" ? ml.chipEventBd : ml.calInputBorder
-                                        Text {
-                                            anchors.left: parent.left
-                                            anchors.right: projChev.left
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.leftMargin: 12
-                                            anchors.rightMargin: 2
-                                            text: root.todoProject
-                                            color: ml.textPrimary
-                                            font.pixelSize: 12
-                                            elide: Text.ElideRight
-                                        }
-                                        Text {
-                                            id: projChev
-                                            anchors.right: parent.right
-                                            anchors.rightMargin: 8
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: "▾"
-                                            color: ml.textTertiary
-                                            font.pixelSize: 10
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: openSelectMenu("project", projectChoicesForTag(root.todoTag), parent, parent.width)
-                                        }
-                                    }
-
-                                    // 添加（aqua→violet 主键）
-                                    Rectangle {
-                                        Layout.preferredWidth: 58
-                                        Layout.preferredHeight: 36
-                                        radius: 12
-                                        gradient: Gradient {
-                                            orientation: Gradient.Horizontal
-                                            GradientStop { position: 0; color: ml.aqua }
-                                            GradientStop { position: 1; color: ml.violet }
-                                        }
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "添加"
-                                            color: ml.calBtnInk
-                                            font.pixelSize: 13
-                                            font.weight: Font.DemiBold
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: addTodo()
-                                        }
-                                    }
-                                }
-                            }
-                        }
 
                         // 当天议程（SilkyFlickable，丝滑滚动）
                         SilkyFlickable {
@@ -2599,105 +2332,6 @@ Item {
                         spacing: 12
                         visible: sidePanelMode === "anniversaries"
 
-                        // 纪念日表单（已停用：创建移到底部「新建」→ 独立弹出界面 createPopup）
-                        Rectangle {
-                            visible: false
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 0
-                            radius: 16
-                            color: ml.calSunkBg
-                            border.width: 1
-                            border.color: ml.cardBorder
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 12
-                                spacing: 8
-
-                                TextField {
-                                    id: anniversaryTitleInput
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 38
-                                    placeholderText: "添加纪念日名称"
-                                    placeholderTextColor: ml.textTertiary
-                                    color: ml.textPrimary
-                                    font.pixelSize: 14
-                                    selectByMouse: true
-                                    leftPadding: 12
-                                    rightPadding: 12
-                                    background: Rectangle {
-                                        radius: 12
-                                        color: ml.calSunkBg
-                                        border.width: 1
-                                        border.color: ml.calInputBorder
-                                    }
-                                    Keys.onReturnPressed: addAnniversary()
-                                }
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 36
-                                        radius: 12
-                                        color: ml.calSunkBg
-                                        border.width: 1
-                                        border.color: root.menuTarget === "anntype" ? ml.chipEventBd : ml.calInputBorder
-                                        Text {
-                                            anchors.left: parent.left
-                                            anchors.right: annChev.left
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            anchors.leftMargin: 12
-                                            anchors.rightMargin: 4
-                                            text: root.annType
-                                            color: ml.textPrimary
-                                            font.pixelSize: 13
-                                            font.bold: true
-                                            elide: Text.ElideRight
-                                        }
-                                        Text {
-                                            id: annChev
-                                            anchors.right: parent.right
-                                            anchors.rightMargin: 9
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            text: "▾"
-                                            color: ml.textTertiary
-                                            font.pixelSize: 10
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: openSelectMenu("anntype", ["纪念日", "倒计时日"], parent, parent.width)
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        Layout.preferredWidth: 64
-                                        Layout.preferredHeight: 36
-                                        radius: 12
-                                        gradient: Gradient {
-                                            orientation: Gradient.Horizontal
-                                            GradientStop { position: 0; color: ml.aqua }
-                                            GradientStop { position: 1; color: ml.violet }
-                                        }
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "保存"
-                                            color: ml.calBtnInk
-                                            font.pixelSize: 13
-                                            font.weight: Font.DemiBold
-                                        }
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: addAnniversary()
-                                        }
-                                    }
-                                }
-                            }
-                        }
 
                         SilkyFlickable {
                             Layout.fillWidth: true
@@ -2884,84 +2518,7 @@ Item {
         Timer { id: toastTimer; interval: 1600; onTriggered: calToast.shown = false }
     }
 
-    // 时间选择器（复用便签 MemoDatePicker）：日期网格 + 时:分步进 → dueSelected(ms) 安排到该日。
-    MemoDatePicker {
-        id: eventDatePicker
-        anchors.fill: parent
-        z: 4000
-        style: ml
-        onDueSelected: (ms) => { root.pendingEventMs = ms; eventDatePicker.open = false }
-        onDueCleared: { root.pendingEventMs = 0; eventDatePicker.open = false }
-        onDismissed: eventDatePicker.open = false
-    }
 
-    // 自绘下拉菜单 overlay（根层，z 高于内容；点遮罩外关闭；暗玻璃、无原生白边/白底弹窗）。
-    Item {
-        id: selectMenu
-        anchors.fill: parent
-        visible: root.menuTarget !== ""
-        z: 4600
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.menuTarget = ""
-        }
-
-        Rectangle {
-            x: Math.max(8, Math.min(root.menuX, root.width - width - 8))
-            y: root.menuY
-            width: root.menuW
-            height: Math.min(root.menuOptions.length * 36 + 8, 300)
-            radius: 12
-            color: ml.calToastBg
-            border.width: 1
-            border.color: ml.chipEventBd
-            clip: true
-
-            Flickable {
-                anchors.fill: parent
-                anchors.margins: 4
-                contentHeight: menuCol.height
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-
-                Column {
-                    id: menuCol
-                    width: parent.width
-
-                    Repeater {
-                        model: root.menuOptions
-                        delegate: Rectangle {
-                            required property int index
-                            required property var modelData
-                            width: menuCol.width
-                            height: 36
-                            radius: 9
-                            color: optMa.containsMouse ? ml.calGhostHover : "transparent"
-                            Text {
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: 12
-                                anchors.right: parent.right
-                                anchors.rightMargin: 12
-                                text: modelData
-                                color: ml.textPrimary
-                                font.pixelSize: 13
-                                elide: Text.ElideRight
-                            }
-                            MouseArea {
-                                id: optMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: applySelectMenu(index)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     // 创建弹出界面（参考时间选择浮层）：把「创建待办 / 纪念日」从主面板移进独立浮层。
     // 字段：标题 + tag（待办，固定色小标）/ 类型（纪念）+ 时间（待办，可选）+ 详情。本日 = 当前选中日。
