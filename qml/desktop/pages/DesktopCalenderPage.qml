@@ -73,6 +73,7 @@ Item {
     property string todoTag: fixedTags[0]
     property string todoProject: "不关联"
     property string annType: "纪念日"            // 纪念日 / 倒计时日
+    property bool createOpen: false              // 创建弹出界面（独立浮层）开合
     property double pendingEventMs: 0            // 时间选择器选定的「日期+时间」（0=未选）
     // 自绘下拉菜单（根层 overlay，避免被面板裁剪、无原生弹窗）状态。
     property string menuTarget: ""               // "" / type / tag / project / anntype
@@ -441,22 +442,7 @@ Item {
         return item.type === "countdown" || item.type === "yearly" ? "countdown" : "since"
     }
 
-    function addAnniversary() {
-        var title = anniversaryTitleInput.text.trim()
-        if (title.length === 0)
-            return
-
-        var list = allAnniversaries()
-        list.push({
-            id: selectedDateKey + "-" + Date.now() + "-" + Math.floor(Math.random() * 10000),
-            title: title,
-            dateKey: selectedDateKey,
-            type: anniversaryTypeFromText(root.annType)
-        })
-        anniversaryTitleInput.text = ""
-        saveAnniversaries(list)
-        showCalToast("已保存纪念日")
-    }
+    // 创建纪念日已并入创建弹层（见 addAnniversaryFromPopup / submitCreate）。
 
     function removeAnniversaryById(id) {
         var list = allAnniversaries()
@@ -533,7 +519,8 @@ Item {
                 tag: item.tag ? item.tag : fixedTags[0],
                 linkedProject: item.linkedProject ? item.linkedProject : "",
                 time: item.time ? item.time : "",
-                type: item.type ? item.type : "todo"
+                type: item.type ? item.type : "todo",
+                desc: item.desc ? item.desc : ""
             })
         }
         map[selectedDateKey] = arr
@@ -552,7 +539,8 @@ Item {
                 tag: arr[i].tag ? arr[i].tag : fixedTags[0],
                 linkedProject: arr[i].linkedProject ? arr[i].linkedProject : "",
                 time: arr[i].time ? arr[i].time : "",
-                type: arr[i].type ? arr[i].type : "todo"
+                type: arr[i].type ? arr[i].type : "todo",
+                desc: arr[i].desc ? arr[i].desc : ""
             })
         }
     }
@@ -595,34 +583,56 @@ Item {
         return "•"
     }
 
+    // 创建从独立弹出界面提交（参考时间选择浮层）。本日 = 当前选中日，无需选日期。
     function addTodo() {
-        var text = todoInput.text.trim()
+        var text = createTitleInput.text.trim()
         if (text.length === 0)
             return
-
-        // 时间选择器选了「日期+时间」→ 安排到该日（跨日则先切过去）；否则用当前选中日、无时间。
-        var targetKey = selectedDateKey
-        var timeStr = ""
-        if (root.pendingEventMs > 0) {
-            var dt = new Date(root.pendingEventMs)
-            targetKey = dateKey(dt)
-            timeStr = pad2(dt.getHours()) + ":" + pad2(dt.getMinutes())
-        }
-        if (targetKey !== selectedDateKey)
-            goToDate(targetKey)
-
         todoModel.append({
             text: text,
             done: false,
             tag: root.todoTag,
-            linkedProject: linkedProjectFromChoice(root.todoProject),
-            time: timeStr,
-            type: root.eventType
+            linkedProject: "",
+            time: createTimeInput.text.trim(),
+            type: "todo",
+            desc: createDescEdit.text.trim()
         })
-        todoInput.text = ""
-        root.pendingEventMs = 0
         saveTodosForSelectedDate()
-        showCalToast("已添加事项")
+        showCalToast("已创建待办")
+    }
+
+    function addAnniversaryFromPopup() {
+        var title = createTitleInput.text.trim()
+        if (title.length === 0)
+            return
+        var list = allAnniversaries()
+        list.push({
+            id: selectedDateKey + "-" + Date.now() + "-" + Math.floor(Math.random() * 10000),
+            title: title,
+            dateKey: selectedDateKey,
+            type: anniversaryTypeFromText(root.annType),
+            desc: createDescEdit.text.trim()
+        })
+        saveAnniversaries(list)
+        showCalToast("已创建纪念日")
+    }
+
+    function openCreate() {
+        createTitleInput.text = ""
+        createTimeInput.text = ""
+        createDescEdit.text = ""
+        root.createOpen = true
+        createTitleInput.forceActiveFocus()
+    }
+    function closeCreate() {
+        root.createOpen = false
+    }
+    function submitCreate() {
+        if (sidePanelMode === "anniversaries")
+            addAnniversaryFromPopup()
+        else
+            addTodo()
+        closeCreate()
     }
 
     // 议程项操作走 root 函数：在 delegate 被 remove 销毁的同一帧里，后续 save 仍在 root 作用域执行，
@@ -1417,10 +1427,11 @@ Item {
                         spacing: 12
                         visible: sidePanelMode === "tasks"
 
-                        // event-form
+                        // event-form（已停用：创建移到底部「新建」→ 独立弹出界面 createPopup）
                         Rectangle {
+                            visible: false
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 174
+                            Layout.preferredHeight: 0
                             radius: 16
                             color: ml.calSunkBg
                             border.width: 1
@@ -1652,9 +1663,10 @@ Item {
                                         required property string linkedProject
                                         required property string time
                                         required property string type
+                                        required property string desc
 
                                         width: parent.width
-                                        height: 56
+                                        height: 60
                                         radius: 13
                                         color: ml.calSunkBg
                                         border.width: 1
@@ -1705,13 +1717,35 @@ Item {
                                                     elide: Text.ElideRight
                                                 }
 
-                                                Text {
+                                                RowLayout {
                                                     Layout.fillWidth: true
-                                                    text: typeLabel(agendaItem.type) + " · " + agendaItem.tag
-                                                          + (agendaItem.linkedProject !== "" ? " · " + agendaItem.linkedProject : "")
-                                                    color: ml.textTertiary
-                                                    font.pixelSize: 10
-                                                    elide: Text.ElideRight
+                                                    spacing: 6
+
+                                                    // tag 小标（固定色）
+                                                    Rectangle {
+                                                        Layout.preferredWidth: tagTxt.implicitWidth + 12
+                                                        Layout.preferredHeight: 16
+                                                        radius: 8
+                                                        color: Qt.rgba(tagColor(agendaItem.tag).r, tagColor(agendaItem.tag).g, tagColor(agendaItem.tag).b, 0.22)
+                                                        Text {
+                                                            id: tagTxt
+                                                            anchors.centerIn: parent
+                                                            text: agendaItem.tag
+                                                            color: tagColor(agendaItem.tag)
+                                                            font.pixelSize: 9
+                                                            font.bold: true
+                                                        }
+                                                    }
+
+                                                    // 详情（无则回退到关联项目）
+                                                    Text {
+                                                        Layout.fillWidth: true
+                                                        text: agendaItem.desc !== "" ? agendaItem.desc
+                                                              : (agendaItem.linkedProject !== "" ? agendaItem.linkedProject : "")
+                                                        color: ml.textTertiary
+                                                        font.pixelSize: 10
+                                                        elide: Text.ElideRight
+                                                    }
                                                 }
                                             }
 
@@ -1874,9 +1908,11 @@ Item {
                         spacing: 12
                         visible: sidePanelMode === "anniversaries"
 
+                        // 纪念日表单（已停用：创建移到底部「新建」→ 独立弹出界面 createPopup）
                         Rectangle {
+                            visible: false
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 108
+                            Layout.preferredHeight: 0
                             radius: 16
                             color: ml.calSunkBg
                             border.width: 1
@@ -2038,7 +2074,7 @@ Item {
                                                 }
                                                 Text {
                                                     Layout.fillWidth: true
-                                                    text: anniversarySubtitle(modelData)
+                                                    text: (modelData.desc && modelData.desc !== "") ? modelData.desc : anniversarySubtitle(modelData)
                                                     color: ml.textTertiary
                                                     font.pixelSize: 10
                                                     elide: Text.ElideRight
@@ -2089,6 +2125,31 @@ Item {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    // 底部「新建」bar：独立创建入口。待办/纪念可见；记录（自动计时）隐藏。
+                    Rectangle {
+                        visible: sidePanelMode !== "records"
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 44
+                        radius: 14
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0; color: ml.aqua }
+                            GradientStop { position: 1; color: ml.violet }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            text: sidePanelMode === "anniversaries" ? "＋ 新建纪念日" : "＋ 新建待办"
+                            color: ml.calBtnInk
+                            font.pixelSize: 14
+                            font.weight: Font.Bold
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: openCreate()
                         }
                     }
                 }
@@ -2204,6 +2265,206 @@ Item {
                                 onClicked: applySelectMenu(index)
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // 创建弹出界面（参考时间选择浮层）：把「创建待办 / 纪念日」从主面板移进独立浮层。
+    // 字段：标题 + tag（待办，固定色小标）/ 类型（纪念）+ 时间（待办，可选）+ 详情。本日 = 当前选中日。
+    Item {
+        id: createPopup
+        anchors.fill: parent
+        visible: root.createOpen
+        z: 5000
+
+        Rectangle { anchors.fill: parent; color: Qt.rgba(0, 0, 0, 0.5) }
+        MouseArea { anchors.fill: parent; onClicked: closeCreate() }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 360
+            height: createCol.implicitHeight + 32
+            radius: 18
+            gradient: Gradient {
+                GradientStop { position: 0; color: ml.calPageTop }
+                GradientStop { position: 1; color: ml.calPageBottom }
+            }
+            border.width: 1
+            border.color: ml.chipEventBd
+            antialiasing: true
+            MouseArea { anchors.fill: parent }   // 吞卡内点击，不穿到遮罩关闭
+
+            Column {
+                id: createCol
+                anchors { left: parent.left; right: parent.right; top: parent.top
+                          leftMargin: 18; rightMargin: 18; topMargin: 16 }
+                spacing: 12
+
+                // 头部：标题 + 本日 + 关闭
+                Item {
+                    width: parent.width
+                    height: 40
+                    Column {
+                        anchors.left: parent.left
+                        anchors.right: createClose.left
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+                        Text { text: sidePanelMode === "anniversaries" ? "新建纪念日" : "新建待办"
+                               color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.Bold }
+                        Text { text: "本日 · " + selectedDateLabel(); color: ml.textTertiary; font.pixelSize: 11 }
+                    }
+                    Rectangle {
+                        id: createClose
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 28; height: 28; radius: 9
+                        color: closeMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                        border.width: 1; border.color: ml.calGhostBorder
+                        Text { anchors.centerIn: parent; text: "×"; color: ml.calGlyph; font.pixelSize: 16; font.bold: true }
+                        MouseArea { id: closeMa; anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor; onClicked: closeCreate() }
+                    }
+                }
+
+                // 标题
+                Rectangle {
+                    width: parent.width; height: 40; radius: 12
+                    color: ml.calSunkBg; border.width: 1
+                    border.color: createTitleInput.activeFocus ? ml.chipEventBd : ml.calInputBorder
+                    TextInput {
+                        id: createTitleInput
+                        anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
+                        verticalAlignment: Text.AlignVCenter
+                        color: ml.textPrimary; font.pixelSize: 14; selectByMouse: true; clip: true
+                        Keys.onReturnPressed: submitCreate()
+                    }
+                    Text { anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
+                           visible: createTitleInput.text === ""
+                           text: sidePanelMode === "anniversaries" ? "纪念日名称" : "标题"
+                           color: ml.textTertiary; font.pixelSize: 14 }
+                }
+
+                // 标签（待办）：固定色小标，可选
+                Flow {
+                    width: parent.width
+                    spacing: 6
+                    visible: sidePanelMode !== "anniversaries"
+                    Repeater {
+                        model: fixedTags
+                        delegate: Rectangle {
+                            required property string modelData
+                            implicitWidth: tagPillTxt.implicitWidth + 18
+                            height: 28; radius: 14
+                            color: root.todoTag === modelData
+                                   ? Qt.rgba(tagColor(modelData).r, tagColor(modelData).g, tagColor(modelData).b, 0.30)
+                                   : ml.calGhostBg
+                            border.width: 1
+                            border.color: root.todoTag === modelData ? tagColor(modelData) : ml.calGhostBorder
+                            Text { id: tagPillTxt; anchors.centerIn: parent; text: modelData
+                                   color: root.todoTag === modelData ? tagColor(modelData) : ml.textSecondary
+                                   font.pixelSize: 12; font.bold: root.todoTag === modelData }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.todoTag = modelData }
+                        }
+                    }
+                }
+
+                // 类型（纪念）：纪念日 / 倒计时日
+                Row {
+                    width: parent.width
+                    spacing: 8
+                    visible: sidePanelMode === "anniversaries"
+                    Repeater {
+                        model: ["纪念日", "倒计时日"]
+                        delegate: Rectangle {
+                            required property string modelData
+                            width: (parent.width - 8) / 2; height: 36; radius: 12
+                            gradient: root.annType === modelData ? annTypeGrad : null
+                            color: root.annType === modelData ? "transparent" : ml.calGhostBg
+                            border.width: 1
+                            border.color: root.annType === modelData ? "transparent" : ml.calGhostBorder
+                            Gradient { id: annTypeGrad; orientation: Gradient.Horizontal
+                                       GradientStop { position: 0; color: ml.aqua }
+                                       GradientStop { position: 1; color: ml.violet } }
+                            Text { anchors.centerIn: parent; text: modelData
+                                   color: root.annType === modelData ? ml.calBtnInk : ml.textSecondary
+                                   font.pixelSize: 13; font.bold: true }
+                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.annType = modelData }
+                        }
+                    }
+                }
+
+                // 时间（待办，可选）
+                Rectangle {
+                    width: parent.width; height: 38; radius: 12
+                    visible: sidePanelMode !== "anniversaries"
+                    color: ml.calSunkBg; border.width: 1
+                    border.color: createTimeInput.activeFocus ? ml.chipEventBd : ml.calInputBorder
+                    Text { id: createTimeGlyph; anchors.left: parent.left; anchors.leftMargin: 12
+                           anchors.verticalCenter: parent.verticalCenter; text: "⧗"; color: ml.aqua; font.pixelSize: 13 }
+                    TextInput {
+                        id: createTimeInput
+                        anchors.left: createTimeGlyph.right; anchors.right: parent.right
+                        anchors.top: parent.top; anchors.bottom: parent.bottom
+                        anchors.leftMargin: 8; anchors.rightMargin: 12
+                        verticalAlignment: Text.AlignVCenter
+                        color: ml.textPrimary; font.pixelSize: 13; selectByMouse: true; clip: true
+                        inputMethodHints: Qt.ImhPreferNumbers
+                        Keys.onReturnPressed: submitCreate()
+                    }
+                    Text { anchors.left: createTimeGlyph.right; anchors.leftMargin: 8
+                           anchors.verticalCenter: parent.verticalCenter
+                           visible: createTimeInput.text === ""
+                           text: "时间（可选，如 14:30）"; color: ml.textTertiary; font.pixelSize: 13 }
+                }
+
+                // 详情（多行，可选）
+                Rectangle {
+                    width: parent.width; height: 84; radius: 12
+                    color: ml.calSunkBg; border.width: 1
+                    border.color: createDescEdit.activeFocus ? ml.chipEventBd : ml.calInputBorder
+                    clip: true
+                    Flickable {
+                        anchors.fill: parent; anchors.margins: 10
+                        contentHeight: createDescEdit.implicitHeight; clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        TextEdit {
+                            id: createDescEdit
+                            width: parent.width
+                            color: ml.textPrimary; font.pixelSize: 13
+                            wrapMode: TextEdit.Wrap; selectByMouse: true
+                        }
+                    }
+                    Text { anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 11
+                           visible: createDescEdit.text === ""
+                           text: "详情（可选）"; color: ml.textTertiary; font.pixelSize: 13 }
+                }
+
+                // 底部：取消 / 创建
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    Rectangle {
+                        width: (parent.width - 10) / 2; height: 40; radius: 12
+                        color: createCancelMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                        border.width: 1; border.color: ml.calGhostBorder
+                        Text { anchors.centerIn: parent; text: "取消"; color: ml.textSecondary; font.pixelSize: 14 }
+                        MouseArea { id: createCancelMa; anchors.fill: parent; hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor; onClicked: closeCreate() }
+                    }
+                    Rectangle {
+                        width: (parent.width - 10) / 2; height: 40; radius: 12
+                        gradient: Gradient { orientation: Gradient.Horizontal
+                                             GradientStop { position: 0; color: ml.aqua }
+                                             GradientStop { position: 1; color: ml.violet } }
+                        Text { anchors.centerIn: parent; text: "创建"; color: ml.calBtnInk
+                               font.pixelSize: 14; font.weight: Font.Bold }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                    onClicked: submitCreate() }
                     }
                 }
             }
