@@ -402,8 +402,11 @@ don't have to remember:
   ```powershell
   pwsh -File tools/contribute-to-upstream.ps1
   ```
-- **A pre-push guard** rejects pushing any `sync/*` branch whose `run.cmd` /
-  `launch.cmd` still differ from `upstream/dev`. Install it once per clone:
+- **A pre-push guard** rejects pushing a *contribution* branch (`sync/contribution-*`,
+  or any other `sync/*` / `*contribution*` name) whose `run.cmd` / `launch.cmd`
+  still differ from `upstream/dev`. Down-sync branches (`sync/upstream-dev-*`,
+  `merge/upstream-dev-*`) are exempt — they intentionally keep your scripts.
+  Install it once per clone:
   ```powershell
   pwsh -File tools/install-hooks.ps1
   ```
