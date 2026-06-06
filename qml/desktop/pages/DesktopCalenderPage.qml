@@ -625,6 +625,22 @@ Item {
         showCalToast("已添加事项")
     }
 
+    // 议程项操作走 root 函数：在 delegate 被 remove 销毁的同一帧里，后续 save 仍在 root 作用域执行，
+    // 不会因 delegate 析构而断流（曾导致「删不掉」）。
+    function removeTodoAt(idx) {
+        if (idx < 0 || idx >= todoModel.count)
+            return
+        todoModel.remove(idx)
+        saveTodosForSelectedDate()
+        showCalToast("已删除")
+    }
+    function toggleTodoDoneAt(idx) {
+        if (idx < 0 || idx >= todoModel.count)
+            return
+        todoModel.setProperty(idx, "done", !todoModel.get(idx).done)
+        saveTodosForSelectedDate()
+    }
+
     function dayProjects() {
         projectRefreshKey
         if (!projectManager)
@@ -1670,10 +1686,8 @@ Item {
                                                     anchors.fill: parent
                                                     anchors.margins: -6
                                                     cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        todoModel.setProperty(agendaItem.index, "done", !agendaItem.done)
-                                                        saveTodosForSelectedDate()
-                                                    }
+                                                    preventStealing: true
+                                                    onClicked: toggleTodoDoneAt(agendaItem.index)
                                                 }
                                             }
 
@@ -1716,6 +1730,7 @@ Item {
                                                     anchors.fill: parent
                                                     hoverEnabled: true
                                                     cursorShape: Qt.PointingHandCursor
+                                                    preventStealing: true
                                                     onClicked: startTodoProject(agendaItem.text, agendaItem.tag, selectedDateKey, agendaItem.linkedProject)
                                                 }
                                             }
@@ -1740,10 +1755,8 @@ Item {
                                                     anchors.fill: parent
                                                     hoverEnabled: true
                                                     cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        todoModel.remove(agendaItem.index)
-                                                        saveTodosForSelectedDate()
-                                                    }
+                                                    preventStealing: true
+                                                    onClicked: removeTodoAt(agendaItem.index)
                                                 }
                                             }
                                         }
@@ -2056,6 +2069,7 @@ Item {
                                                     anchors.fill: parent
                                                     hoverEnabled: true
                                                     cursorShape: Qt.PointingHandCursor
+                                                    preventStealing: true
                                                     onClicked: removeAnniversaryById(modelData.id)
                                                 }
                                             }
