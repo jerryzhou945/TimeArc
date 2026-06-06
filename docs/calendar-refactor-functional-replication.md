@@ -4,7 +4,13 @@
 > 本文只管「日历做什么、状态怎么流、数据存哪、法规是什么、怎么验收」。美术在配套文档。
 > 设计稿真值：`MemoryLakeDesign/TimeArcDesign_v88.stripped.html`：日历标记 **14167–14241**，
 > 日历 JS **18015–18362**（页面逻辑）、**14977–15229**（备忘→日历工具）。
-> 重构目标：`qml/desktop/pages/DesktopCalenderPage.qml`（1520 行，注意拼写 `Calender`）。
+> 重构目标：`qml/desktop/pages/DesktopCalenderPage.qml`（注意拼写 `Calender`）。
+
+> **实现进展（2026-06-06，commit 8616b48 等）— 本规范是首切片计划，下列原「占位/暂缓」项现已实装，读 §2.5 / A4 / A5 / B1 / B2 / C9 / C12 时以此为准：**
+> - **周计划 / 今日议程 / 专注记录** 三视图已真渲染（不再是 toast 占位）：周=选中周周一起始 7 列（复用月格，点列选日）；今日=只读时间线（纪念全天置顶 + 定时/未定待办 + 专注，按时间合并排序）；专注=本周 7 柱（weekFocusModel 缓存）+ 逐项目计时条 + 按标签聚合。
+> - **专注块 / 本周任务** 2×2 统计芯片现绑真值（model 全 `real:true`，`占位` 徽标不再出现）。
+> - 同期另加（超出本 v88 复刻范围）：便签「成为待办」投影进 `savedTodos`、tag 语义色系（`TagPalette`/`TagChip`）、侧栏 v88 配色对齐。
+> - 实装细节与踩坑见记忆 `timearc-calendar-refactor.md`。
 
 ---
 

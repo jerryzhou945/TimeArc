@@ -436,8 +436,7 @@ _（2026-06-06 校对：#1–#10 已全部在 QML 落地，逐条标 ✅；剩 #
    连续偏移。〕
 8. ✅ **已实现（QML，2026-06-06）**——每页行内 40×24 墨迹缩略图（`MemoOverlay.pageThumbs` 取自
    每页 canvas PNG，`MemoPageFolder` 行内 `Image`）。〔原缺口：只显文字标签，无预览。〕
-9. ✅ **已实现（QML，2026-06-06）**——便签右下可编辑署名，逐页持久化（objectModel `osign` 经
-   _snapshotObjects/_applyRecords 往返；默认空，不复刻 v88 写死的"JusTin D"）。〔原缺口：写死且不持久化。〕
+9. ⚠️ **署名 UI 已下线（2026-06-06，PR #22 f26afa0）**——原便签右下可编辑署名（`osign`）的**位置已让给「成为待办事项」勾选**（便签升为待办的 note→todo 功能；用户判定署名对 app 几乎无用）。`osign` 短键仍保留在序列化里做旧档兼容，但**界面不再有署名输入**。便签现含 `tag`/`isTodo`/`nid` 字段（见 `StickyNote.qml` + `MemoOverlay.qml` 的 note→todo 桥）。〔历史：此项曾按 v88 复刻为可编辑署名，现被有意取代。〕
 10. ✅ **已实现（QML，2026-06-06）**——番茄 total/remain/title 存单独键 `memoryLakeMemoPomodoro`，
    重启恢复为暂停态（无跨重启墙钟锚点）；标题可编辑。〔原缺口：内存 let，重载回 25:00 idle。〕
 11. **番茄无音效**——完成纯视觉 + 文字 toast，无 audio/beep。
