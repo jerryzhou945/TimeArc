@@ -244,4 +244,10 @@ QtObject {
                                                   : Qt.rgba(255 / 255, 255 / 255, 255 / 255, 0.94)
     // event-add / 主按钮亮渐变上的近黑墨字（设计稿 rgba(4,8,14,.92)）
     readonly property color calBtnInk:      Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.92)
+    // 顶栏/导航 ghost 玻璃按钮（设计稿 nav 按钮 rgba(255,255,255,.065) bg / .10 边 / hover .11）
+    readonly property color calGhostBg:     night ? Qt.rgba(1, 1, 1, 0.065) : Qt.rgba(0, 0, 0, 0.035)
+    readonly property color calGhostHover:  night ? Qt.rgba(1, 1, 1, 0.11)  : Qt.rgba(0, 0, 0, 0.06)
+    readonly property color calGhostBorder: night ? Qt.rgba(1, 1, 1, 0.10)  : Qt.rgba(0.40, 0.34, 0.28, 0.18)
+    readonly property color calGlyph:       night ? Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.86)
+                                                  : Qt.rgba(0.18, 0.22, 0.28, 0.86)
 }

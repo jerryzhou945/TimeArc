@@ -100,7 +100,8 @@ Item {
         var cells = []
         var first = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth(), 1)
         var start = new Date(first)
-        start.setDate(first.getDate() - first.getDay())
+        // 周一为每周起始列（与 v88 + MemoDatePicker 一致）：偏移 (getDay()+6)%7。
+        start.setDate(first.getDate() - ((first.getDay() + 6) % 7))
 
         for (var i = 0; i < 42; i++) {
             var d = new Date(start)
@@ -473,6 +474,16 @@ Item {
         loadTodosForSelectedDate()
     }
 
+    // 点 cell：跨月（上/下月溢出格）则先切到该月再选中并重渲染。
+    function selectCellDate(cell) {
+        if (!cell.inMonth) {
+            var d = dateFromKey(cell.dateKey)
+            viewedMonth = new Date(d.getFullYear(), d.getMonth(), 1)
+        }
+        selectDate(cell.dateKey)
+        refreshCalendar()
+    }
+
     onNightModeChanged: refreshCalendar()
 
     // v88 暗玻璃整页基底（M-B1）：竖直近黑渐变（不透明替代 backdrop-filter）+ 42px 蓝图栅格
@@ -521,113 +532,95 @@ Item {
         anchors.margins: 6
         spacing: 16
 
-        Rectangle {
+        // v88 中栏顶栏（M-B2，§1.7）：玻璃面板（无投影，仅 inset 缝）+ 月标题 + ‹/今天/› 导航。
+        GlassPanel {
             Layout.fillWidth: true
-            Layout.preferredHeight: 112
-            radius: 32
-            color: "transparent"
-            border.width: 1
-            border.color: nightMode ? "#697195" : "#D8E7DC"
-
-            Rectangle {
-                x: 0
-                y: 9
-                width: parent.width
-                height: parent.height
-                radius: parent.radius
-                color: shadowColor
-                opacity: nightMode ? 0.16 : 0.08
-                z: -2
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                anchors.margins: 1
-                radius: 31
-                gradient: Gradient {
-                    GradientStop { position: 0.0; color: nightMode ? "#495170" : "#CFE8D8" }
-                    GradientStop { position: 1.0; color: nightMode ? "#383E57" : "#F4E8C8" }
-                }
-                opacity: nightMode ? 0.88 : 0.96
-                z: -1
-            }
+            Layout.preferredHeight: 84
+            style: ml
+            color: ml.calPanelBg
+            dropShadow: false
+            radius: 22
 
             RowLayout {
                 anchors.fill: parent
-                anchors.margins: 22
-                spacing: 16
+                anchors.leftMargin: 20
+                anchors.rightMargin: 16
+                spacing: 12
 
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: 6
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: 3
 
                     Text {
-                        text: "日历"
+                        text: "日历 · CALENDAR"
+                        color: ml.glowCyan
+                        font.pixelSize: 11
+                        font.weight: Font.Black
+                        font.letterSpacing: 0.6
+                    }
+
+                    Text {
+                        text: monthTitle()
                         color: textPrimary
-                        font.pixelSize: 34
-                        font.bold: true
+                        font.pixelSize: 23
+                        font.weight: Font.Bold
+                        font.letterSpacing: -0.4
                     }
 
                     Text {
                         Layout.fillWidth: true
-                        text: "按日期整理待办、照片和计时记录"
+                        text: "按日期整理待办、照片与计时记录"
                         color: textSecondary
-                        font.pixelSize: 14
+                        font.pixelSize: 12
                         elide: Text.ElideRight
                     }
                 }
 
-                SoftButton {
-                    text: "‹"
-                    implicitWidth: 44
-                    implicitHeight: 42
-                    radius: 16
-                    fillColor: nightMode ? "#4A526F" : "#FFFDF9"
-                    hoverColor: nightMode ? "#596184" : "#F7F3EE"
-                    strokeColor: softBorder
-                    strokeWidth: 1
-                    textColor: textPrimary
-                    fontSize: 20
-                    onClicked: previousMonth()
+                // ‹ 上一月
+                Rectangle {
+                    Layout.preferredWidth: 40; Layout.preferredHeight: 40
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 13
+                    color: prevMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                    border.width: 1; border.color: ml.calGhostBorder
+                    Text { anchors.centerIn: parent; text: "‹"; color: ml.calGlyph
+                           font.pixelSize: 19; font.weight: Font.DemiBold }
+                    MouseArea { id: prevMa; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor; onClicked: previousMonth() }
                 }
 
-                Text {
-                    Layout.preferredWidth: 158
-                    horizontalAlignment: Text.AlignHCenter
-                    text: monthTitle()
-                    color: textPrimary
-                    font.pixelSize: 20
-                    font.bold: true
-                }
-
-                SoftButton {
-                    text: "›"
-                    implicitWidth: 44
-                    implicitHeight: 42
-                    radius: 16
-                    fillColor: nightMode ? "#4A526F" : "#FFFDF9"
-                    hoverColor: nightMode ? "#596184" : "#F7F3EE"
-                    strokeColor: softBorder
-                    strokeWidth: 1
-                    textColor: textPrimary
-                    fontSize: 20
-                    onClicked: nextMonth()
-                }
-
-                SoftButton {
-                    text: "今天"
-                    implicitWidth: 74
-                    implicitHeight: 42
-                    radius: 16
-                    fillColor: primaryButton
-                    hoverColor: primaryButtonHover
-                    textColor: "#FFFDF9"
-                    fontSize: 14
-                    onClicked: {
-                        viewedMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)
-                        selectDate(dateKey(todayDate))
-                        refreshCalendar()
+                // 今天（aqua→violet 主键）
+                Rectangle {
+                    Layout.preferredWidth: 72; Layout.preferredHeight: 40
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 13
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: ml.aqua }
+                        GradientStop { position: 1; color: ml.violet }
                     }
+                    Text { anchors.centerIn: parent; text: "今天"; color: ml.calBtnInk
+                           font.pixelSize: 14; font.weight: Font.DemiBold }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    viewedMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)
+                                    selectDate(dateKey(todayDate))
+                                    refreshCalendar()
+                                } }
+                }
+
+                // › 下一月
+                Rectangle {
+                    Layout.preferredWidth: 40; Layout.preferredHeight: 40
+                    Layout.alignment: Qt.AlignVCenter
+                    radius: 13
+                    color: nextMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                    border.width: 1; border.color: ml.calGhostBorder
+                    Text { anchors.centerIn: parent; text: "›"; color: ml.calGlyph
+                           font.pixelSize: 19; font.weight: Font.DemiBold }
+                    MouseArea { id: nextMa; anchors.fill: parent; hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor; onClicked: nextMonth() }
                 }
             }
         }
@@ -637,182 +630,133 @@ Item {
             Layout.fillHeight: true
             spacing: 16
 
-            SoftCard {
+            // v88 月视图（M-B2，§1.8）：玻璃底 + 周一表头 + 发丝账本栅格。
+            // RoundedFrame 裁圆角（G7：内部满铺栅格在圆角处不漏方角）。
+            RoundedFrame {
+                id: monthView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredWidth: 780
-                radius: 30
-                padding: 20
-                fillColor: cardColor
-                fillOpacity: nightMode ? 0.74 : 0.86
-                strokeColor: borderColor
-                shadowColor: shadowColor
-                shadowOpacity: nightMode ? 0.16 : 0.08
+                radius: 22
+                border { width: 1; color: ml.panelBorder }
+
+                Rectangle { anchors.fill: parent; color: ml.calPanelBg }
 
                 ColumnLayout {
                     anchors.fill: parent
-                    spacing: 14
+                    spacing: 0
 
-                    GridLayout {
+                    // 周一表头（一..日）
+                    RowLayout {
                         Layout.fillWidth: true
-                        columns: 7
-                        columnSpacing: 8
-                        rowSpacing: 8
+                        Layout.preferredHeight: 42
+                        spacing: 0
 
                         Repeater {
-                            model: ["日", "一", "二", "三", "四", "五", "六"]
+                            model: ["一", "二", "三", "四", "五", "六", "日"]
 
-                            delegate: Text {
+                            delegate: Item {
                                 required property string modelData
-
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 22
-                                text: modelData
-                                color: textSecondary
-                                font.pixelSize: 13
-                                font.bold: true
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
+                                Layout.fillHeight: true
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData
+                                    color: ml.textTertiary
+                                    font.pixelSize: 11
+                                    font.weight: Font.Bold
+                                    font.letterSpacing: 1
+                                }
                             }
                         }
                     }
 
+                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: ml.cellHair }
+
+                    // 42 格发丝账本（无间距 → 右/下 1px 发丝线连成账本网；仅光态，无填充块）
                     GridLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         columns: 7
-                        columnSpacing: 8
-                        rowSpacing: 8
+                        columnSpacing: 0
+                        rowSpacing: 0
 
                         Repeater {
                             model: calendarCells
 
-                            delegate: Rectangle {
+                            delegate: Item {
                                 required property var modelData
 
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                Layout.minimumHeight: 62
-                                radius: 18
-                                color: modelData.hasPhoto
-                                       ? cardSoft
-                                       : (modelData.dateKey === selectedDateKey
-                                          ? lightMint
-                                          : (modelData.isToday ? cream : cardSoft))
-                                opacity: modelData.inMonth ? 1.0 : 0.42
-                                border.width: modelData.dateKey === selectedDateKey || modelData.isToday ? 1 : 0
-                                border.color: modelData.dateKey === selectedDateKey ? "#BFDCCB" : softBorder
-                                clip: true
+                                Layout.minimumHeight: 84
+                                opacity: modelData.inMonth ? 1.0 : 0.35
 
-                                Image {
-                                    id: dayPhotoSource
-                                    anchors.fill: parent
-                                    source: backgroundForDate(modelData.dateKey)
-                                    fillMode: Image.PreserveAspectCrop
-                                    visible: false
-                                    smooth: true
-                                    asynchronous: true
+                                // 右/下发丝线
+                                Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: ml.cellHair }
+                                Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: ml.cellHair }
+
+                                // 今日底洗 + 角晕
+                                Rectangle { anchors.fill: parent; visible: modelData.isToday; color: ml.todayWash }
+                                GlowCircle {
+                                    visible: modelData.isToday
+                                    width: 130; height: 130
+                                    x: parent.width * 0.8 - width / 2
+                                    y: parent.height * 0.12 - height / 2
+                                    glowColor: ml.aqua
+                                    glowOpacity: 0.16 * ml.glowStrength
                                 }
 
+                                // hover 洗（选中态不叠）
                                 Rectangle {
-                                    id: dayPhotoMask
                                     anchors.fill: parent
-                                    radius: parent.radius
-                                    visible: false
-                                    layer.enabled: true
+                                    visible: cellMouse.containsMouse && modelData.dateKey !== selectedDateKey
+                                    color: ml.cellHover
                                 }
 
-                                MultiEffect {
-                                    anchors.fill: parent
-                                    source: dayPhotoSource
-                                    visible: modelData.hasPhoto
-                                    maskEnabled: true
-                                    maskSource: dayPhotoMask
-                                    opacity: nightMode ? 0.82 : 0.96
-                                }
-
+                                // 选中 2px 内描边环（outline-offset:-2）
                                 Rectangle {
-                                    visible: modelData.hasPhoto
-                                    anchors.fill: parent
-                                    radius: parent.radius
-                                    gradient: Gradient {
-                                        GradientStop {
-                                            position: 0.0
-                                            color: nightMode ? "#2230364D" : "#12FFFDF9"
-                                        }
-                                        GradientStop {
-                                            position: 0.48
-                                            color: modelData.dateKey === selectedDateKey
-                                                   ? (nightMode ? "#334A526F" : "#26DDF1E5")
-                                                   : (nightMode ? "#2A3E465F" : "#22FBF8F4")
-                                        }
-                                        GradientStop {
-                                            position: 1.0
-                                            color: nightMode ? "#5530364D" : "#3AF7F3EE"
-                                        }
-                                    }
-                                }
-
-                                Rectangle {
-                                    visible: modelData.hasPhoto && (modelData.dateKey === selectedDateKey || modelData.isToday)
                                     anchors.fill: parent
                                     anchors.margins: 1
-                                    radius: parent.radius - 1
+                                    visible: modelData.dateKey === selectedDateKey
                                     color: "transparent"
-                                    border.width: 1
-                                    border.color: modelData.dateKey === selectedDateKey ? "#99BFDCCB" : "#99F4E8C8"
+                                    border.width: 2
+                                    border.color: ml.selectedRing
                                 }
 
-                                Rectangle {
-                                    visible: dayMouse.containsMouse
-                                    anchors.fill: parent
-                                    radius: parent.radius
-                                    color: "#FFFFFF"
-                                    opacity: nightMode ? 0.05 : 0.24
-                                }
-
-                                Rectangle {
-                                    anchors.left: dayNumber.left
-                                    anchors.right: dayNumber.right
-                                    anchors.top: dayNumber.top
-                                    anchors.bottom: dayNumber.bottom
-                                    anchors.margins: -5
-                                    radius: 9
-                                    color: modelData.hasPhoto ? (nightMode ? "#AA30364D" : "#CCFFFDF9") : "transparent"
-                                    border.width: modelData.hasPhoto ? 1 : 0
-                                    border.color: nightMode ? "#33596084" : "#66E8E0D8"
-                                }
-
+                                // 日号
                                 Text {
-                                    id: dayNumber
                                     anchors.left: parent.left
                                     anchors.top: parent.top
-                                    anchors.leftMargin: 11
-                                    anchors.topMargin: 9
+                                    anchors.leftMargin: 10
+                                    anchors.topMargin: 8
                                     text: modelData.day
-                                    color: textPrimary
-                                    font.pixelSize: 17
-                                    font.bold: modelData.dateKey === selectedDateKey || modelData.isToday
+                                    color: modelData.isToday ? ml.aqua : ml.cellDateText
+                                    font.pixelSize: 13
+                                    font.weight: (modelData.isToday || modelData.dateKey === selectedDateKey)
+                                                 ? Font.Bold : Font.DemiBold
                                 }
 
+                                // 保留徽标（待办计数 + 倒/纪 + 照片点）。事件胶囊在 F-B3 接入。
                                 Row {
                                     anchors.right: parent.right
                                     anchors.bottom: parent.bottom
-                                    anchors.rightMargin: 9
-                                    anchors.bottomMargin: 9
+                                    anchors.rightMargin: 8
+                                    anchors.bottomMargin: 8
                                     spacing: 5
 
                                     Rectangle {
                                         visible: modelData.todoCount > 0
-                                        width: 18
-                                        height: 18
-                                        radius: 9
-                                        color: modelData.doneCount === modelData.todoCount ? mint : blush
-
+                                        width: 18; height: 18; radius: 9
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        color: modelData.doneCount === modelData.todoCount ? ml.accentSoft : ml.chipTodoBg
+                                        border.width: 1
+                                        border.color: modelData.doneCount === modelData.todoCount ? ml.accentSoftBorder : ml.chipTodoBd
                                         Text {
                                             anchors.centerIn: parent
                                             text: modelData.todoCount
-                                            color: textPrimary
+                                            color: ml.chipText
                                             font.pixelSize: 10
                                             font.bold: true
                                         }
@@ -820,18 +764,15 @@ Item {
 
                                     Rectangle {
                                         visible: modelData.anniversaryCount > 0
-                                        width: 22
-                                        height: 18
-                                        radius: 9
-                                        color: modelData.countdownCount > 0 ? lavender : blush
-                                        border.width: 1
-                                        border.color: nightMode ? "#668E93D8" : "#99FFFFFF"
+                                        width: 22; height: 18; radius: 9
                                         anchors.verticalCenter: parent.verticalCenter
-
+                                        color: modelData.countdownCount > 0 ? ml.chipFocusBg : ml.chipTodoBg
+                                        border.width: 1
+                                        border.color: modelData.countdownCount > 0 ? ml.chipFocusBd : ml.chipTodoBd
                                         Text {
                                             anchors.centerIn: parent
                                             text: modelData.countdownCount > 0 ? "倒" : "纪"
-                                            color: textPrimary
+                                            color: ml.chipText
                                             font.pixelSize: 10
                                             font.bold: true
                                         }
@@ -839,22 +780,18 @@ Item {
 
                                     Rectangle {
                                         visible: modelData.hasPhoto
-                                        width: 8
-                                        height: 8
-                                        radius: 4
-                                        color: nightMode ? "#AA596184" : "#CCFFFDF9"
-                                        border.width: 1
-                                        border.color: nightMode ? "#809AA0E7" : "#D8E8E0D8"
+                                        width: 7; height: 7; radius: 3.5
                                         anchors.verticalCenter: parent.verticalCenter
+                                        color: ml.glowCyan
                                     }
                                 }
 
                                 MouseArea {
-                                    id: dayMouse
+                                    id: cellMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: selectDate(modelData.dateKey)
+                                    onClicked: selectCellDate(modelData)
                                 }
                             }
                         }
