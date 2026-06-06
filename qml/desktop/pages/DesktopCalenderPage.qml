@@ -938,26 +938,31 @@ Item {
 
             // ===== 中栏：月视图（仅 activeView==="month" 真渲染）=====
             // v88 月视图（M-B2，§1.8）：玻璃底 + 周一表头 + 发丝账本栅格。
-            // RoundedFrame 裁圆角（G7：内部满铺栅格在圆角处不漏方角）。
-            RoundedFrame {
+            // 用圆角 Rectangle（非 RoundedFrame）承载：RoundedFrame 把内容合成进 FBO（holder
+            // visible:false）会吞掉 cell 的鼠标点选、并使栅格相对表头有微位移；圆角处「不画最外圈
+            // 发丝线」即可避免方角外露（见 cell delegate 的 visible 条件）。
+            Rectangle {
                 id: monthView
                 visible: activeView === "month"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 radius: 22
-                border { width: 1; color: ml.panelBorder }
-
-                Rectangle { anchors.fill: parent; color: ml.panelBg }
+                color: ml.panelBg
+                border.width: 1
+                border.color: ml.panelBorder
 
                 ColumnLayout {
                     anchors.fill: parent
+                    anchors.margins: 1
                     spacing: 0
 
-                    // 周一表头（一..日）
-                    RowLayout {
+                    // 周一表头（一..日）— 用 GridLayout(7 列) 与下方格栅同一套列分配，保证逐列对齐。
+                    GridLayout {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 42
-                        spacing: 0
+                        columns: 7
+                        columnSpacing: 0
+                        rowSpacing: 0
 
                         Repeater {
                             model: ["一", "二", "三", "四", "五", "六", "日"]
@@ -994,15 +999,16 @@ Item {
 
                             delegate: Item {
                                 required property var modelData
+                                required property int index
 
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
                                 Layout.minimumHeight: 84
                                 opacity: modelData.inMonth ? 1.0 : 0.35
 
-                                // 右/下发丝线
-                                Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: ml.cellHair }
-                                Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: ml.cellHair }
+                                // 右/下发丝线（最右列/最底行不画 → 圆角处无方角发丝外露）
+                                Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: ml.cellHair; visible: (index % 7) !== 6 }
+                                Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: ml.cellHair; visible: index < 35 }
 
                                 // 今日底洗 + 角晕
                                 Rectangle { anchors.fill: parent; visible: modelData.isToday; color: ml.todayWash }
@@ -1179,43 +1185,47 @@ Item {
                     anchors.margins: 18
                     spacing: 14
 
-                    // v88 选中日卡（§1.10）：aqua 斜染暗玻璃 + 可选照片 hero（RoundedFrame 裁圆角，G7
-                    // 不漏方角）+ 渐变压暗保可读 + 日期 / 计时 pill / 加照片 / 待办计数。
-                    RoundedFrame {
+                    // v88 选中日卡（§1.10）：外层 Item 承载（让「加照片」按钮可点）；内层 RoundedFrame
+                    // 只裁视觉（底/角晕/照片/压暗，无 MouseArea，G7 不漏方角）；内容(含按钮)放其外、在上。
+                    Item {
                         id: selDayCard
                         property string selPhoto: selectedPhotoSource()
                         Layout.fillWidth: true
                         Layout.preferredHeight: 150
-                        radius: 20
-                        border { width: 1; color: ml.chipEventBd }
 
-                        Rectangle { anchors.fill: parent; color: ml.calSunkBg }
-
-                        GlowCircle {
-                            visible: selDayCard.selPhoto === ""
-                            width: 240; height: 240
-                            x: -70; y: -100
-                            glowColor: ml.aqua
-                            glowOpacity: 0.16 * ml.glowStrength
-                        }
-
-                        Image {
+                        RoundedFrame {
                             anchors.fill: parent
-                            source: selDayCard.selPhoto
-                            fillMode: Image.PreserveAspectCrop
-                            visible: selDayCard.selPhoto !== ""
-                            opacity: ml.night ? 0.55 : 0.5
-                            smooth: true
-                            asynchronous: true
-                        }
+                            radius: 20
+                            border { width: 1; color: ml.chipEventBd }
 
-                        // 照片可读压暗（顶透 → 底实 calPageBottom）
-                        Rectangle {
-                            visible: selDayCard.selPhoto !== ""
-                            anchors.fill: parent
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: "transparent" }
-                                GradientStop { position: 1.0; color: ml.calPageBottom }
+                            Rectangle { anchors.fill: parent; color: ml.calSunkBg }
+
+                            GlowCircle {
+                                visible: selDayCard.selPhoto === ""
+                                width: 240; height: 240
+                                x: -70; y: -100
+                                glowColor: ml.aqua
+                                glowOpacity: 0.16 * ml.glowStrength
+                            }
+
+                            Image {
+                                anchors.fill: parent
+                                source: selDayCard.selPhoto
+                                fillMode: Image.PreserveAspectCrop
+                                visible: selDayCard.selPhoto !== ""
+                                opacity: ml.night ? 0.55 : 0.5
+                                smooth: true
+                                asynchronous: true
+                            }
+
+                            // 照片可读压暗（顶透 → 底实 calPageBottom）
+                            Rectangle {
+                                visible: selDayCard.selPhoto !== ""
+                                anchors.fill: parent
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: "transparent" }
+                                    GradientStop { position: 1.0; color: ml.calPageBottom }
+                                }
                             }
                         }
 
