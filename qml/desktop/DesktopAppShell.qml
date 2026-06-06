@@ -91,30 +91,30 @@ Item {
     property color appTextPrimary: nightMode ? "#F3F0FF" : "#2D2724"
     property color appTextSecondary: nightMode ? "#C9C4DD" : "#7C746D"
 
-    // 侧边栏玻璃层与边框（记忆湖时对齐左右玻璃面板）
-    property color appSidebarGlass: onMemoryLake ? mlNavGlass : (nightMode ? "#34394F" : "#FBF8F4")
-    property color appSidebarBorder: onMemoryLake ? mlNavBorder : (nightMode ? "#5F6687" : "#E8E0D8")
+    // 侧边栏玻璃层与边框（v88 暗底全幅页——记忆湖/日历/月度回顾——统一对齐 v88 玻璃面板，消除日历侧栏色差）
+    property color appSidebarGlass: fullBleedPage ? mlNavGlass : (nightMode ? "#34394F" : "#FBF8F4")
+    property color appSidebarBorder: fullBleedPage ? mlNavBorder : (nightMode ? "#5F6687" : "#E8E0D8")
 
     // 主内容区玻璃层与边框
     property color appPanelGlass: nightMode ? "#3C425C" : "#FBF8F4"
     property color appPanelBorder: nightMode ? "#626A90" : "#E8E0D8"
 
     // 当前选中的导航项
-    property color appSelectedItem: onMemoryLake ? mlNavSelected : (nightMode ? "#596184" : "#DDF1E5")
-    property color appSelectedItemBorder: onMemoryLake ? mlNavSelectedBorder : (nightMode ? "#8188B1" : "#BFDCCB")
+    property color appSelectedItem: fullBleedPage ? mlNavSelected : (nightMode ? "#596184" : "#DDF1E5")
+    property color appSelectedItemBorder: fullBleedPage ? mlNavSelectedBorder : (nightMode ? "#8188B1" : "#BFDCCB")
 
     // 收起侧栏按钮
-    property color appCollapseButton: onMemoryLake ? mlNavSoft : (nightMode ? "#4B526F" : "#F4E8C8")
-    property color appCollapseButtonBorder: onMemoryLake ? mlNavBorder : (nightMode ? "#767DA7" : "#E8D9BC")
+    property color appCollapseButton: fullBleedPage ? mlNavSoft : (nightMode ? "#4B526F" : "#F4E8C8")
+    property color appCollapseButtonBorder: fullBleedPage ? mlNavBorder : (nightMode ? "#767DA7" : "#E8D9BC")
 
     // 强调色（logo 圆点 / 强调按钮）
     // 白天偏奶茶，夜晚偏柔和蓝紫；记忆湖偏霓虹 aqua
-    property color appAccentWarm: onMemoryLake ? mlNavAccent : (nightMode ? "#8E93D8" : "#CFE8D8")
-    property color appAccentWarmText: onMemoryLake ? "#05070D" : (nightMode ? "#F8F7FF" : "#2D2724")
+    property color appAccentWarm: fullBleedPage ? mlNavAccent : (nightMode ? "#8E93D8" : "#CFE8D8")
+    property color appAccentWarmText: fullBleedPage ? "#05070D" : (nightMode ? "#F8F7FF" : "#2D2724")
 
     // 左下角陪伴卡片
-    property color appBottomCardBorder: onMemoryLake ? mlNavBorder : (nightMode ? "#7078A5" : "#E8E0D8")
-    property color appBottomCardGlass: onMemoryLake ? mlNavSoft : (nightMode ? "#444B67" : "#FFFDF9")
+    property color appBottomCardBorder: fullBleedPage ? mlNavBorder : (nightMode ? "#7078A5" : "#E8E0D8")
+    property color appBottomCardGlass: fullBleedPage ? mlNavSoft : (nightMode ? "#444B67" : "#FFFDF9")
 
     // 夜晚模式下的小高光文字
     property color appNightAccentText: "#BFC7FF"
@@ -531,7 +531,7 @@ Item {
                     // active 三重信号之三（NAV2）：右侧 5px 发光 aqua 点。
                     // 叠 2 层低透圆 + 亮芯仿 box-shadow 0 0 14px aqua .65 柔晕（§3.6，不挂 MultiEffect）。
                     Item {
-                        visible: isSel && onMemoryLake && !sidebarCollapsed
+                        visible: isSel && fullBleedPage && !sidebarCollapsed
                         width: 20; height: 20
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.right: parent.right
@@ -583,16 +583,17 @@ Item {
                     Rectangle {
                         width: 36
                         height: 36
-                        radius: onMemoryLake ? 14 : 18
-                        color: onMemoryLake ? "transparent" : appAccentWarm
+                        radius: fullBleedPage ? 14 : 18
+                        color: fullBleedPage ? "transparent" : appAccentWarm
                         anchors.verticalCenter: parent.verticalCenter
 
                         // NAV3 / 配方#4：记忆湖品牌渐变方块 aqua→violet。竖直渐变近似 145°
                         // （36px 尺度下与斜向差异可忽略，省去 Shapes/FBO 开销），上压暗墨「T」(900)。
+                        // 暗底全幅页（记忆湖/日历/月度回顾）统一用渐变品牌方块，侧栏与首页一致。
                         Rectangle {
                             anchors.fill: parent
                             radius: parent.radius
-                            visible: onMemoryLake
+                            visible: fullBleedPage
                             gradient: Gradient {
                                 GradientStop { position: 0; color: mlStyle.aqua }
                                 GradientStop { position: 1; color: mlStyle.violet }
@@ -604,7 +605,7 @@ Item {
                             text: "T"
                             color: appAccentWarmText
                             font.pixelSize: 18
-                            font.weight: onMemoryLake ? 900 : Font.Bold
+                            font.weight: fullBleedPage ? 900 : Font.Bold
                         }
                     }
 
