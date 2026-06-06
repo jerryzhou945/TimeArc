@@ -4,6 +4,11 @@
 // ink 直接用作 chip 文字 + 导色点；chip 底/边由 ink 低透明度派生（见 TagChip.qml）。
 .pragma library
 
+// 固定标签序列（单一来源）：便签 tag 选择器 / 日历 fixedTags 等共享，杜绝各处自带一份。
+function tagList() {
+    return ["学习", "工作", "运动", "娱乐", "阅读", "社交", "生活", "其他"];
+}
+
 function tagColor(tag) {
     if (tag === "学习") return "#B6A2FF"   // 紫罗兰：专注/智识
     if (tag === "工作") return "#F7C56A"   // 琥珀金：工作/产出

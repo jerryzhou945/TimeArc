@@ -64,6 +64,8 @@ Item {
     property string selectedDateKey: initialSelectedDateKey()
     property var calendarCells: []
     property var fixedTags: ["学习", "工作", "运动", "娱乐", "阅读", "社交", "生活", "其他"]
+    // 备忘黑板覆盖层引用（Shell 在 pageLoader.onLoaded 注入）：议程上「便签待办行」的勾选/删除回写到便签。
+    property var memoOverlayRef: null
     property int projectRefreshKey: 0
     property string sidePanelMode: "tasks"
     // 左栏视图 tab：仅 month 真渲染；week/today/focus 为诚实占位（§2.5 / B1）。
@@ -525,7 +527,10 @@ Item {
                 linkedProject: item.linkedProject ? item.linkedProject : "",
                 time: item.time ? item.time : "",
                 type: item.type ? item.type : "todo",
-                desc: item.desc ? item.desc : ""
+                desc: item.desc ? item.desc : "",
+                // 便签投影行的来源标记 + nid：原样回写，使「同日原生编辑」不把便签行抹掉/转为原生（投影桥唯一权威仍是便签）。
+                src: item.src ? item.src : "",
+                nid: item.nid ? item.nid : ""
             })
         }
         map[selectedDateKey] = arr
@@ -545,7 +550,9 @@ Item {
                 linkedProject: arr[i].linkedProject ? arr[i].linkedProject : "",
                 time: arr[i].time ? arr[i].time : "",
                 type: arr[i].type ? arr[i].type : "todo",
-                desc: arr[i].desc ? arr[i].desc : ""
+                desc: arr[i].desc ? arr[i].desc : "",
+                src: arr[i].src ? arr[i].src : "",      // "memo" = 由便签投影；"" = 原生待办
+                nid: arr[i].nid ? arr[i].nid : ""
             })
         }
     }
@@ -582,7 +589,9 @@ Item {
             linkedProject: "",
             time: root.createTime,
             type: "todo",
-            desc: createDescEdit.text.trim()
+            desc: createDescEdit.text.trim(),
+            src: "",                         // 原生待办（非便签投影）：补齐 src/nid 角色，满足 delegate required 属性
+            nid: ""
         })
         saveTodosForSelectedDate()
         showCalToast("已创建待办")
@@ -1668,6 +1677,8 @@ Item {
                                         required property string time
                                         required property string type
                                         required property string desc
+                                        required property string src     // "memo" = 便签投影行
+                                        required property string nid     // 便签 id（反向回写定位）
 
                                         width: parent.width
                                         height: 60
@@ -1709,7 +1720,15 @@ Item {
                                                     anchors.margins: -6
                                                     cursorShape: Qt.PointingHandCursor
                                                     preventStealing: true
-                                                    onClicked: toggleTodoDoneAt(agendaItem.index)
+                                                    // 便签投影行：完成态回写到便签（单一来源 odone）；原生行走 todoModel。
+                                                    onClicked: {
+                                                        if (agendaItem.src === "memo") {
+                                                            if (memoOverlayRef)
+                                                                memoOverlayRef.setNoteDoneByNid(agendaItem.nid, !agendaItem.done)
+                                                        } else {
+                                                            toggleTodoDoneAt(agendaItem.index)
+                                                        }
+                                                    }
                                                 }
                                             }
 
@@ -1737,6 +1756,25 @@ Item {
                                                         style: ml
                                                     }
 
+                                                    // 便签来源标记（紫，呼应便签上的「待办」勾色）：提示该行来自备忘黑板便签。
+                                                    Rectangle {
+                                                        visible: agendaItem.src === "memo"
+                                                        Layout.preferredWidth: memoMk.implicitWidth + 12
+                                                        Layout.preferredHeight: 16
+                                                        radius: 8
+                                                        color: Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0.16)
+                                                        border.width: 1
+                                                        border.color: Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0.40)
+                                                        Text {
+                                                            id: memoMk
+                                                            anchors.centerIn: parent
+                                                            text: "便签"
+                                                            color: ml.violet
+                                                            font.pixelSize: 9
+                                                            font.bold: true
+                                                        }
+                                                    }
+
                                                     Text {
                                                         visible: agendaItem.time && agendaItem.time !== ""
                                                         text: agendaItem.time
@@ -1756,11 +1794,11 @@ Item {
                                                 }
                                             }
 
-                                            // 开始（计时）
+                                            // 开始（计时）—— 便签投影行隐藏（completeTodo 按文本匹配会被下次投影覆盖）。
                                             Rectangle {
                                                 Layout.preferredWidth: 50
                                                 Layout.preferredHeight: 30
-                                                visible: !agendaItem.done
+                                                visible: !agendaItem.done && agendaItem.src !== "memo"
                                                 radius: 10
                                                 color: startMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                                                 border.width: 1
@@ -1797,7 +1835,15 @@ Item {
                                                     hoverEnabled: true
                                                     cursorShape: Qt.PointingHandCursor
                                                     preventStealing: true
-                                                    onClicked: removeTodoAt(agendaItem.index)
+                                                    // 便签投影行：删除=把便签降级（便签本身保留，不会被下次编辑复活）；原生行才真删。
+                                                    onClicked: {
+                                                        if (agendaItem.src === "memo") {
+                                                            if (memoOverlayRef)
+                                                                memoOverlayRef.demoteNoteByNid(agendaItem.nid)
+                                                        } else {
+                                                            removeTodoAt(agendaItem.index)
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }

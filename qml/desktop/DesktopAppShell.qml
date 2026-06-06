@@ -825,6 +825,10 @@ Item {
                                 item.nightMode = nightMode;
                         }
 
+                        // 日历页：注入备忘覆盖层引用，使议程上「便签待办行」的勾选/删除能回写到便签。
+                        if (selectedPage === "calendar" && ("memoOverlayRef" in item))
+                            item.memoOverlayRef = memoOverlay;
+
                         // 日历页：待办计时。
                         if (selectedPage === "calendar" && item.startTodoProject) {
                             item.startTodoProject.connect(function (projectName, tagName, dateKey, linkedProjectName) {
