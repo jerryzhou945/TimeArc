@@ -1,18 +1,18 @@
-# Error Report - qt-warning-2890b9f402
+# Error Report - backfilled-report-trailing-whitespace
 
 ## Metadata
 
 - Level: **L2**
 - Track: **C**
-- Topic: qt-warning-2890b9f402
-- Recorded: 2026-05-31T03:32:30Z
+- Topic: backfilled-report-trailing-whitespace
+- Recorded: 2026-06-06T11:09:49Z
 - Session: (unknown)
 - Platform: n-a
 - Tooling: (fill in)
 
 ## 1. What happened
 
-[WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopCalenderPage.qml:1324 - qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopCalenderPage.qml:1324:49: QML QQuickRectangle: The current style does not
+PR preflight git diff --check found trailing whitespace in backfilled historical harness warning reports.
 
 ## 2. Evidence
 
