@@ -12,6 +12,23 @@ Item {
     anchors.fill: parent
     clip: true
 
+    // 路由页开合动效（M-B5，§4.4，easeSnappy）：opacity + 上移 + 微缩；Component.onCompleted 触发。
+    opacity: 0
+    transform: [
+        Translate { id: openTranslate; y: 18 },
+        Scale { id: openScale; origin.x: root.width / 2; origin.y: root.height / 2; xScale: 0.985; yScale: 0.985 }
+    ]
+    ParallelAnimation {
+        id: openAnim
+        NumberAnimation { target: root; property: "opacity"; to: 1; duration: 240 }
+        NumberAnimation { target: openTranslate; property: "y"; to: 0; duration: 300
+                          easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy }
+        NumberAnimation { target: openScale; property: "xScale"; to: 1; duration: 300
+                          easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy }
+        NumberAnimation { target: openScale; property: "yScale"; to: 1; duration: 300
+                          easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy }
+    }
+
     signal startTodoProject(string projectName, string tagName, string dateKey, string linkedProjectName)
 
     property bool nightMode: false
@@ -195,6 +212,7 @@ Item {
         if (calendarManager)
             calendarManager.setDayPhotos(JSON.stringify(map))
         refreshCalendar()
+        showCalToast("已更新照片")
     }
 
     function allTodosMap() {
@@ -307,6 +325,13 @@ Item {
         return key === "week" ? "周计划" : key === "today" ? "今日议程" : key === "focus" ? "专注记录" : "月视图"
     }
 
+    // 底中变更反馈胶囊（v88 §1.11 showCalendarToast）。净增反馈，低风险。
+    function showCalToast(msg) {
+        calToast.message = msg
+        calToast.shown = true
+        toastTimer.restart()
+    }
+
     // 一次性构建 dateKey→照片路径 查找表（手动优先，回退当天首张 chat 图）。
     // 取代 buildCalendarCells 内每格重新解析整段 chat JSON（42× 解析 → 1×）。
     function buildPhotoLookup() {
@@ -354,6 +379,7 @@ Item {
         })
         anniversaryTitleInput.text = ""
         saveAnniversaries(list)
+        showCalToast("已保存纪念日")
     }
 
     function removeAnniversaryById(id) {
@@ -364,6 +390,7 @@ Item {
                 result.push(list[i])
         }
         saveAnniversaries(result)
+        showCalToast("已删除")
     }
 
     function normalizedDate(value) {
@@ -509,6 +536,7 @@ Item {
         eventTimeInput.text = ""
         todoProjectBox.currentIndex = 0
         saveTodosForSelectedDate()
+        showCalToast("已添加事项")
     }
 
     function dayProjects() {
@@ -800,7 +828,10 @@ Item {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: activeView = modelData.key
+                                    onClicked: {
+                                        activeView = modelData.key
+                                        showCalToast("已切换到" + modelData.label)
+                                    }
                                 }
                             }
                         }
@@ -1099,100 +1130,147 @@ Item {
                     anchors.margins: 18
                     spacing: 14
 
-                    Rectangle {
+                    // v88 选中日卡（§1.10）：aqua 斜染暗玻璃 + 可选照片 hero（RoundedFrame 裁圆角，G7
+                    // 不漏方角）+ 渐变压暗保可读 + 日期 / 计时 pill / 加照片 / 待办计数。
+                    RoundedFrame {
+                        id: selDayCard
+                        property string selPhoto: selectedPhotoSource()
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 154
-                        radius: 24
-                        color: cardSoft
-                        border.width: 1
-                        border.color: softBorder
-                        clip: true
+                        Layout.preferredHeight: 150
+                        radius: 20
+                        border { width: 1; color: ml.chipEventBd }
+
+                        Rectangle { anchors.fill: parent; color: ml.calSunkBg }
+
+                        GlowCircle {
+                            visible: selDayCard.selPhoto === ""
+                            width: 240; height: 240
+                            x: -70; y: -100
+                            glowColor: ml.aqua
+                            glowOpacity: 0.16 * ml.glowStrength
+                        }
 
                         Image {
                             anchors.fill: parent
-                            source: selectedPhotoSource()
+                            source: selDayCard.selPhoto
                             fillMode: Image.PreserveAspectCrop
-                            visible: selectedPhotoSource() !== ""
-                            opacity: nightMode ? 0.56 : 0.48
+                            visible: selDayCard.selPhoto !== ""
+                            opacity: ml.night ? 0.55 : 0.5
                             smooth: true
                             asynchronous: true
                         }
 
+                        // 照片可读压暗（顶透 → 底实 calPageBottom）
                         Rectangle {
+                            visible: selDayCard.selPhoto !== ""
                             anchors.fill: parent
                             gradient: Gradient {
-                                GradientStop { position: 0.0; color: nightMode ? "#66454D68" : "#22FFFFFF" }
-                                GradientStop { position: 1.0; color: nightMode ? "#DD30364D" : "#EEFFFDF9" }
+                                GradientStop { position: 0.0; color: "transparent" }
+                                GradientStop { position: 1.0; color: ml.calPageBottom }
                             }
                         }
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 18
-                            spacing: 8
+                            anchors.margins: 16
+                            spacing: 6
 
                             RowLayout {
                                 Layout.fillWidth: true
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
-                                    spacing: 4
+                                    spacing: 2
 
+                                    Text {
+                                        text: "SELECTED"
+                                        color: ml.glowCyan
+                                        font.pixelSize: 10
+                                        font.weight: Font.Black
+                                        font.letterSpacing: 0.7
+                                    }
                                     Text {
                                         text: selectedDateLabel()
-                                        color: textPrimary
-                                        font.pixelSize: 24
-                                        font.bold: true
+                                        color: ml.textPrimary
+                                        font.pixelSize: 22
+                                        font.weight: Font.Bold
                                     }
-
                                     Text {
                                         text: selectedDateKey
-                                        color: textSecondary
-                                        font.pixelSize: 12
+                                        color: ml.textTertiary
+                                        font.pixelSize: 11
                                     }
                                 }
 
-                                SoftPill {
-                                    compact: true
-                                    title: ""
-                                    value: secondsToDisplay(selectedDateTotalSeconds())
-                                    iconText: "T"
-                                    fillColor: nightMode ? "#4A526F" : "#FFFDF9"
-                                    strokeColor: softBorder
-                                    accentColor: mint
-                                    valueColor: textPrimary
+                                // 计时 pill
+                                Rectangle {
+                                    Layout.alignment: Qt.AlignTop
+                                    implicitWidth: timeRow.width + 18
+                                    implicitHeight: 28
+                                    radius: 14
+                                    color: ml.calGhostBg
+                                    border.width: 1
+                                    border.color: ml.calGhostBorder
+                                    Row {
+                                        id: timeRow
+                                        anchors.centerIn: parent
+                                        spacing: 5
+                                        Text { anchors.verticalCenter: parent.verticalCenter; text: "⧗"
+                                               color: ml.aqua; font.pixelSize: 12 }
+                                        Text { anchors.verticalCenter: parent.verticalCenter
+                                               text: secondsToDisplay(selectedDateTotalSeconds())
+                                               color: ml.textPrimary; font.pixelSize: 12; font.bold: true }
+                                    }
                                 }
                             }
+
+                            Item { Layout.fillHeight: true }
 
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 8
 
-                                SoftButton {
+                                // 加 / 换照片（ghost）
+                                Rectangle {
                                     Layout.fillWidth: true
-                                    text: selectedPhotoSource() === "" ? "添加照片" : "更换照片"
-                                    iconText: "+"
-                                    implicitHeight: 38
-                                    radius: 15
-                                    fillColor: nightMode ? "#4A526F" : "#FFFDF9"
-                                    hoverColor: nightMode ? "#596184" : "#F7F3EE"
-                                    strokeColor: softBorder
-                                    strokeWidth: 1
-                                    textColor: textPrimary
-                                    fontSize: 13
-                                    onClicked: dayPhotoDialog.open()
+                                    Layout.preferredHeight: 34
+                                    radius: 12
+                                    color: photoMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                                    border.width: 1
+                                    border.color: ml.calGhostBorder
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: selDayCard.selPhoto === "" ? "+ 添加照片" : "+ 更换照片"
+                                        color: ml.calGlyph
+                                        font.pixelSize: 13
+                                    }
+                                    MouseArea {
+                                        id: photoMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: dayPhotoDialog.open()
+                                    }
                                 }
 
-                                SoftPill {
-                                    compact: true
-                                    title: "待办"
-                                    value: doneCountForDate(selectedDateKey) + "/" + todoModel.count
-                                    iconText: "✓"
-                                    fillColor: nightMode ? "#4A526F" : "#FFFDF9"
-                                    strokeColor: softBorder
-                                    accentColor: lightMint
-                                    titleColor: textSecondary
-                                    valueColor: textPrimary
+                                // 待办计数 pill
+                                Rectangle {
+                                    implicitWidth: cntRow.width + 18
+                                    Layout.preferredHeight: 34
+                                    radius: 12
+                                    color: ml.calGhostBg
+                                    border.width: 1
+                                    border.color: ml.calGhostBorder
+                                    Row {
+                                        id: cntRow
+                                        anchors.centerIn: parent
+                                        spacing: 5
+                                        Text { anchors.verticalCenter: parent.verticalCenter; text: "✓"
+                                               color: ml.aqua; font.pixelSize: 12; font.bold: true }
+                                        Text { anchors.verticalCenter: parent.verticalCenter
+                                               text: doneCountForDate(selectedDateKey) + "/" + todoModel.count
+                                               color: ml.textPrimary; font.pixelSize: 12; font.bold: true }
+                                    }
                                 }
                             }
                         }
@@ -1578,86 +1656,95 @@ Item {
                         }
                     }
 
+                    // 记录模式 = calendar_todo 计时条（projectManager 拥有，与用量管线无关）。
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         spacing: 12
                         visible: sidePanelMode === "records"
 
-                        ListView {
+                        SilkyFlickable {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            clip: true
-                            spacing: 10
-                            model: dayProjects()
+                            style: ml
 
-                            delegate: Rectangle {
-                                required property var modelData
+                            Column {
+                                width: parent.width
+                                spacing: 10
 
-                                width: ListView.view.width
-                                height: 76
-                                radius: 20
-                                color: cardSoft
-                                border.width: 1
-                                border.color: softBorder
+                                Repeater {
+                                    model: dayProjects()
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        width: parent.width
+                                        height: 72
+                                        radius: 13
+                                        color: ml.calSunkBg
+                                        border.width: 1
+                                        border.color: ml.cardBorder
 
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 13
-                                    spacing: 7
+                                        ColumnLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 13
+                                            spacing: 7
 
-                                    RowLayout {
-                                        Layout.fillWidth: true
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                Text {
+                                                    Layout.fillWidth: true
+                                                    text: modelData.title ? modelData.title : modelData.name
+                                                    color: ml.textPrimary
+                                                    font.pixelSize: 14
+                                                    font.bold: true
+                                                    elide: Text.ElideRight
+                                                }
+                                                Text {
+                                                    text: secondsToDisplay(modelData.seconds)
+                                                    color: ml.accentText
+                                                    font.pixelSize: 12
+                                                    font.bold: true
+                                                }
+                                            }
 
-                                        Text {
-                                            Layout.fillWidth: true
-                                            text: modelData.title ? modelData.title : modelData.name
-                                            color: textPrimary
-                                            font.pixelSize: 14
-                                            font.bold: true
-                                            elide: Text.ElideRight
-                                        }
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 7
+                                                radius: 4
+                                                color: ml.trackBg
+                                                clip: true
 
-                                        Text {
-                                            text: secondsToDisplay(modelData.seconds)
-                                            color: accentText
-                                            font.pixelSize: 12
-                                            font.bold: true
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 7
-                                        radius: 4
-                                        color: nightMode ? "#596184" : "#EFE7DE"
-                                        clip: true
-
-                                        Rectangle {
-                                            width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxDaySeconds()))
-                                            height: parent.height
-                                            radius: 4
-                                            color: tagColor(modelData.tag)
+                                                Rectangle {
+                                                    width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxDaySeconds()))
+                                                    height: parent.height
+                                                    radius: 4
+                                                    gradient: Gradient {
+                                                        orientation: Gradient.Horizontal
+                                                        GradientStop { position: 0; color: ml.aqua }
+                                                        GradientStop { position: 1; color: ml.violet }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            footer: Item {
-                                width: ListView.view ? ListView.view.width : 0
-                                height: dayProjects().length === 0 ? 120 : 0
-
-                                Text {
-                                    anchors.centerIn: parent
+                                Item {
+                                    width: parent.width
+                                    height: dayProjects().length === 0 ? 110 : 0
                                     visible: dayProjects().length === 0
-                                    text: "这一天还没有计时记录"
-                                    color: textSecondary
-                                    font.pixelSize: 14
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "这一天还没有计时记录"
+                                        color: ml.textTertiary
+                                        font.pixelSize: 13
+                                    }
                                 }
                             }
                         }
                     }
 
+                    // 纪念模式 = 纪念日 / 倒数日（QtCore Settings 类目 DesktopCalendarAnniversaryData，
+                    // 字节不变；v88 无对应视觉 → 按 ml 自拟暗霓虹纪念卡）。
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -1666,31 +1753,33 @@ Item {
 
                         Rectangle {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 112
-                            radius: 22
-                            color: cardSoft
+                            Layout.preferredHeight: 108
+                            radius: 16
+                            color: ml.calSunkBg
                             border.width: 1
-                            border.color: softBorder
+                            border.color: ml.cardBorder
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 14
-                                spacing: 10
+                                anchors.margins: 12
+                                spacing: 8
 
                                 TextField {
                                     id: anniversaryTitleInput
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
+                                    Layout.preferredHeight: 38
                                     placeholderText: "添加纪念日名称"
-                                    placeholderTextColor: textSecondary
-                                    color: textPrimary
+                                    placeholderTextColor: ml.textTertiary
+                                    color: ml.textPrimary
                                     font.pixelSize: 14
                                     selectByMouse: true
+                                    leftPadding: 12
+                                    rightPadding: 12
                                     background: Rectangle {
-                                        radius: 15
-                                        color: fieldColor
+                                        radius: 12
+                                        color: ml.calSunkBg
                                         border.width: 1
-                                        border.color: softBorder
+                                        border.color: ml.calInputBorder
                                     }
                                     Keys.onReturnPressed: addAnniversary()
                                 }
@@ -1702,147 +1791,166 @@ Item {
                                     ComboBox {
                                         id: anniversaryTypeBox
                                         Layout.fillWidth: true
-                                        Layout.preferredHeight: 38
+                                        Layout.preferredHeight: 36
                                         model: ["纪念日", "倒计时日"]
-
                                         contentItem: Text {
                                             leftPadding: 12
                                             rightPadding: 26
                                             text: anniversaryTypeBox.displayText
-                                            color: textPrimary
+                                            color: ml.textPrimary
                                             font.pixelSize: 13
                                             font.bold: true
                                             verticalAlignment: Text.AlignVCenter
                                             elide: Text.ElideRight
                                         }
-
                                         background: Rectangle {
-                                            radius: 15
-                                            color: fieldColor
+                                            radius: 12
+                                            color: ml.calSunkBg
                                             border.width: 1
-                                            border.color: softBorder
+                                            border.color: ml.calInputBorder
                                         }
                                     }
 
-                                    SoftButton {
-                                        text: "保存"
-                                        implicitWidth: 70
-                                        implicitHeight: 38
-                                        radius: 15
-                                        fillColor: primaryButton
-                                        hoverColor: primaryButtonHover
-                                        textColor: "#FFFDF9"
-                                        fontSize: 13
-                                        onClicked: addAnniversary()
+                                    Rectangle {
+                                        Layout.preferredWidth: 64
+                                        Layout.preferredHeight: 36
+                                        radius: 12
+                                        gradient: Gradient {
+                                            orientation: Gradient.Horizontal
+                                            GradientStop { position: 0; color: ml.aqua }
+                                            GradientStop { position: 1; color: ml.violet }
+                                        }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "保存"
+                                            color: ml.calBtnInk
+                                            font.pixelSize: 13
+                                            font.weight: Font.DemiBold
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: addAnniversary()
+                                        }
                                     }
                                 }
                             }
                         }
 
-                        ListView {
+                        SilkyFlickable {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            clip: true
-                            spacing: 10
-                            model: sortedAnniversaries()
+                            style: ml
 
-                            delegate: Rectangle {
-                                required property var modelData
+                            Column {
+                                width: parent.width
+                                spacing: 10
 
-                                width: ListView.view.width
-                                height: 78
-                                radius: 20
-                                color: cardSoft
-                                border.width: 1
-                                border.color: softBorder
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        var targetDate = dateFromKey(modelData.dateKey)
-                                        viewedMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
-                                        selectDate(modelData.dateKey)
-                                        refreshCalendar()
-                                    }
-                                }
-
-                                RowLayout {
-                                    z: 1
-                                    anchors.fill: parent
-                                    anchors.margins: 13
-                                    spacing: 10
-
-                                    Rectangle {
-                                        Layout.preferredWidth: 40
-                                        Layout.preferredHeight: 40
-                                        radius: 20
-                                        color: anniversaryColor(modelData.type)
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: anniversaryKind(modelData) === "countdown" ? "倒" : "纪"
-                                            color: textPrimary
-                                            font.pixelSize: 13
-                                            font.bold: true
-                                        }
-                                    }
-
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 4
-
-                                        Text {
-                                            Layout.fillWidth: true
-                                            text: modelData.title
-                                            color: textPrimary
-                                            font.pixelSize: 15
-                                            font.bold: true
-                                            elide: Text.ElideRight
-                                        }
-
-                                        Text {
-                                            Layout.fillWidth: true
-                                            text: anniversarySubtitle(modelData)
-                                            color: textSecondary
-                                            font.pixelSize: 11
-                                            elide: Text.ElideRight
-                                        }
-                                    }
-
-                                    Text {
-                                        text: anniversaryStatus(modelData)
-                                        color: accentText
-                                        font.pixelSize: 13
-                                        font.bold: true
-                                    }
-
-                                    Text {
-                                        text: "×"
-                                        color: textSecondary
-                                        font.pixelSize: 18
-                                        font.bold: true
+                                Repeater {
+                                    model: sortedAnniversaries()
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        width: parent.width
+                                        height: 70
+                                        radius: 13
+                                        color: ml.calSunkBg
+                                        border.width: 1
+                                        border.color: ml.cardBorder
 
                                         MouseArea {
                                             anchors.fill: parent
                                             cursorShape: Qt.PointingHandCursor
-                                            onClicked: removeAnniversaryById(modelData.id)
+                                            onClicked: {
+                                                var t = dateFromKey(modelData.dateKey)
+                                                viewedMonth = new Date(t.getFullYear(), t.getMonth(), 1)
+                                                selectDate(modelData.dateKey)
+                                                refreshCalendar()
+                                            }
+                                        }
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.leftMargin: 12
+                                            anchors.rightMargin: 12
+                                            spacing: 10
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 36
+                                                Layout.preferredHeight: 36
+                                                radius: 11
+                                                color: anniversaryKind(modelData) === "countdown" ? ml.chipFocusBg : ml.chipTodoBg
+                                                border.width: 1
+                                                border.color: anniversaryKind(modelData) === "countdown" ? ml.chipFocusBd : ml.chipTodoBd
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: anniversaryKind(modelData) === "countdown" ? "倒" : "纪"
+                                                    color: anniversaryKind(modelData) === "countdown" ? ml.violet : ml.shareGold
+                                                    font.pixelSize: 13
+                                                    font.bold: true
+                                                }
+                                            }
+
+                                            ColumnLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 3
+                                                Text {
+                                                    Layout.fillWidth: true
+                                                    text: modelData.title
+                                                    color: ml.textPrimary
+                                                    font.pixelSize: 14
+                                                    font.bold: true
+                                                    elide: Text.ElideRight
+                                                }
+                                                Text {
+                                                    Layout.fillWidth: true
+                                                    text: anniversarySubtitle(modelData)
+                                                    color: ml.textTertiary
+                                                    font.pixelSize: 10
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+
+                                            Text {
+                                                text: anniversaryStatus(modelData)
+                                                color: ml.accentText
+                                                font.pixelSize: 12
+                                                font.bold: true
+                                            }
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 24
+                                                Layout.preferredHeight: 24
+                                                radius: 8
+                                                color: annDelMa.containsMouse ? ml.calDangerWash : "transparent"
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "×"
+                                                    color: annDelMa.containsMouse ? ml.chipText : ml.textTertiary
+                                                    font.pixelSize: 15
+                                                    font.bold: true
+                                                }
+                                                MouseArea {
+                                                    id: annDelMa
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: removeAnniversaryById(modelData.id)
+                                                }
+                                            }
                                         }
                                     }
                                 }
 
-                            }
-
-                            footer: Item {
-                                width: ListView.view ? ListView.view.width : 0
-                                height: sortedAnniversaries().length === 0 ? 120 : 0
-
-                                Text {
-                                    anchors.centerIn: parent
+                                Item {
+                                    width: parent.width
+                                    height: sortedAnniversaries().length === 0 ? 110 : 0
                                     visible: sortedAnniversaries().length === 0
-                                    text: "还没有纪念日或倒计时"
-                                    color: textSecondary
-                                    font.pixelSize: 14
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "还没有纪念日或倒计时"
+                                        color: ml.textTertiary
+                                        font.pixelSize: 13
+                                    }
                                 }
                             }
                         }
@@ -1850,6 +1958,41 @@ Item {
                 }
             }
         }
+    }
+
+    // v88 底中变更反馈胶囊（§1.11）。z 高于内容；showCalToast 触发，1.6s 自动隐藏。
+    Rectangle {
+        id: calToast
+        property string message: ""
+        property bool shown: false
+        z: 300
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 24
+        implicitWidth: Math.max(180, toastLabel.implicitWidth + 36)
+        height: 40
+        radius: 20
+        color: ml.calToastBg
+        border.width: 1
+        border.color: ml.chipEventBd
+        opacity: shown ? 1 : 0
+        visible: opacity > 0.01
+        transform: Translate {
+            y: calToast.shown ? 0 : 10
+            Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
+        }
+        Behavior on opacity { NumberAnimation { duration: 200 } }
+
+        Text {
+            id: toastLabel
+            anchors.centerIn: parent
+            text: calToast.message
+            color: ml.textPrimary
+            font.pixelSize: 13
+            font.weight: Font.DemiBold
+        }
+
+        Timer { id: toastTimer; interval: 1600; onTriggered: calToast.shown = false }
     }
 
     FileDialog {
@@ -1886,5 +2029,6 @@ Item {
             viewedMonth = new Date(selected.getFullYear(), selected.getMonth(), 1)
         loadTodosForSelectedDate()
         refreshCalendar()
+        openAnim.start()
     }
 }
