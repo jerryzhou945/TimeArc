@@ -67,6 +67,9 @@ Item {
     // 备忘黑板覆盖层引用（Shell 在 pageLoader.onLoaded 注入）：议程上「便签待办行」的勾选/删除回写到便签。
     property var memoOverlayRef: null
     property int projectRefreshKey: 0
+    // 专注记录·本周 7 天专注时长缓存（避免每帧 7×DB 扫描）：由 refreshWeekFocus() 重建。
+    property var weekFocusModel: []
+    property int weekMaxFocusSeconds: 1
     property string sidePanelMode: "tasks"
     // 左栏视图 tab：仅 month 真渲染；week/today/focus 为诚实占位（§2.5 / B1）。
     property string activeView: "month"
@@ -665,20 +668,7 @@ Item {
     }
 
     function dayProjects() {
-        projectRefreshKey
-        if (!projectManager)
-            return []
-
-        var list = projectManager.timeEntriesForDate(selectedDateKey)
-        var filtered = []
-        for (var i = 0; i < list.length; i++) {
-            if (list[i].source === "calendar_todo" && (list[i].seconds ? list[i].seconds : 0) > 0)
-                filtered.push(list[i])
-        }
-        filtered.sort(function(a, b) {
-            return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0)
-        })
-        return filtered
+        return dayProjectsFor(selectedDateKey)
     }
 
     function maxDaySeconds() {
@@ -705,6 +695,145 @@ Item {
         return total
     }
 
+    // ===== 三视图（周计划 / 今日议程 / 专注记录）数据助手 —— 全部复用既有数据，零新增 C++ =====
+
+    // 任意日的 calendar_todo 计时条（dayProjects 的按 key 版本；dayProjects 锁定 selectedDateKey）。
+    function dayProjectsFor(key) {
+        projectRefreshKey
+        if (!projectManager)
+            return []
+        var list = projectManager.timeEntriesForDate(key)
+        var filtered = []
+        for (var i = 0; i < list.length; i++) {
+            if (list[i].source === "calendar_todo" && (list[i].seconds ? list[i].seconds : 0) > 0)
+                filtered.push(list[i])
+        }
+        filtered.sort(function (a, b) { return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0) })
+        return filtered
+    }
+
+    // 选中日所在周的周一（周一起始：偏移 (getDay()+6)%7，与月视图/MemoDatePicker 一致）。
+    function weekStartDate(key) {
+        var d = dateFromKey(key)
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7))
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    }
+
+    // 周计划：选中周 7 天（一→日），每天带当天待办/事件。一次性解析 savedTodos（不逐格重析）。
+    function weekDays(key) {
+        var labels = ["一", "二", "三", "四", "五", "六", "日"]
+        var map = allTodosMap()
+        var todayKey = dateKey(todayDate)
+        var start = weekStartDate(key)
+        var out = []
+        for (var i = 0; i < 7; i++) {
+            var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
+            var k = dateKey(d)
+            var evs = map[k] ? map[k] : []
+            var done = 0
+            for (var j = 0; j < evs.length; j++)
+                if (evs[j].done) done += 1
+            out.push({ dateKey: k, day: d.getDate(), weekdayLabel: labels[i],
+                       isToday: k === todayKey, isSelected: k === selectedDateKey,
+                       events: evs, doneCount: done, total: evs.length })
+        }
+        return out
+    }
+
+    function weekRangeLabel(key) {
+        var s = weekStartDate(key)
+        var e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6)
+        return (s.getMonth() + 1) + "月" + s.getDate() + "日 – " + (e.getMonth() + 1) + "月" + e.getDate() + "日"
+    }
+
+    function weekViewTaskCount(key) {
+        var days = weekDays(key)
+        var n = 0
+        for (var i = 0; i < days.length; i++)
+            n += days[i].total
+        return n
+    }
+
+    // 今日议程：'HH:mm' → 自零点分钟数（排序用）；空/非法 → 大哨兵（排到最后）。
+    function minutesOf(hhmm) {
+        if (!hhmm || hhmm.indexOf(":") < 0)
+            return 100000
+        var p = hhmm.split(":")
+        var h = parseInt(p[0]), m = parseInt(p[1])
+        if (isNaN(h) || isNaN(m))
+            return 100000
+        return h * 60 + m
+    }
+
+    // 今日议程：选中日「纪念(全天置顶) + 定时待办 + 未定待办 + 专注记录」按时间合并排序的只读时间线。
+    function dayAgenda(key) {
+        var rows = []
+        var anns = anniversariesForDate(key)
+        for (var a = 0; a < anns.length; a++)
+            rows.push({ sort: -1, time: "", label: anns[a].title, type: "event",
+                        tag: "", done: false, subtitle: anniversarySubtitle(anns[a]), seconds: 0 })
+        var todos = todosForDate(key)
+        for (var t = 0; t < todos.length; t++) {
+            var it = todos[t]
+            var timed = it.time && it.time !== ""
+            rows.push({ sort: timed ? minutesOf(it.time) : 90000, time: timed ? it.time : "",
+                        label: it.text, type: (it.type ? it.type : "todo"),
+                        tag: it.tag ? it.tag : "", done: it.done === true,
+                        subtitle: it.desc ? it.desc : "", seconds: 0 })
+        }
+        var foc = dayProjectsFor(key)
+        for (var f = 0; f < foc.length; f++)
+            rows.push({ sort: 99000, time: "", label: foc[f].name ? foc[f].name : "专注",
+                        type: "focus", tag: foc[f].tag ? foc[f].tag : "", done: false,
+                        subtitle: "", seconds: foc[f].seconds ? foc[f].seconds : 0 })
+        rows.sort(function (x, y) {
+            if (x.sort !== y.sort) return x.sort - y.sort
+            return x.time < y.time ? -1 : (x.time > y.time ? 1 : 0)
+        })
+        return rows
+    }
+
+    // 专注记录：任意日专注总秒数（按 key）。
+    function dayFocusSeconds(key) {
+        var list = dayProjectsFor(key)
+        var total = 0
+        for (var i = 0; i < list.length; i++)
+            total += list[i].seconds ? list[i].seconds : 0
+        return total
+    }
+
+    // 专注记录：重建本周 7 柱缓存（7×timeEntriesForDate，仅在选中日/数据变更时算一次）。
+    function refreshWeekFocus() {
+        var days = weekDays(selectedDateKey)
+        var model = []
+        var mx = 1
+        for (var i = 0; i < days.length; i++) {
+            var s = dayFocusSeconds(days[i].dateKey)
+            if (s > mx) mx = s
+            model.push({ dateKey: days[i].dateKey, weekdayLabel: days[i].weekdayLabel,
+                         seconds: s, isSelected: days[i].isSelected, isToday: days[i].isToday })
+        }
+        weekFocusModel = model
+        weekMaxFocusSeconds = mx
+    }
+
+    // 专注记录：选中日按标签聚合专注时长（降序）。
+    function dayTagSummary(key) {
+        var list = dayProjectsFor(key)
+        var sums = {}
+        var order = []
+        for (var i = 0; i < list.length; i++) {
+            var tg = list[i].tag && list[i].tag !== "" ? list[i].tag : "其他"
+            if (sums[tg] === undefined) { sums[tg] = 0; order.push(tg) }
+            sums[tg] += list[i].seconds ? list[i].seconds : 0
+        }
+        var out = []
+        for (var j = 0; j < order.length; j++)
+            out.push({ tag: order[j], seconds: sums[order[j]] })
+        out.sort(function (a, b) { return b.seconds - a.seconds })
+        return out
+    }
+
     function previousMonth() {
         viewedMonth = new Date(viewedMonth.getFullYear(), viewedMonth.getMonth() - 1, 1)
         refreshCalendar()
@@ -720,6 +849,7 @@ Item {
         if (calendarManager)
             calendarManager.setSelectedDateKey(key)
         loadTodosForSelectedDate()
+        refreshWeekFocus()
     }
 
     // 点 cell：跨月（上/下月溢出格）则先切到该月再选中并重渲染。
@@ -1181,31 +1311,539 @@ Item {
                 }
             }
 
-            // 非 month 视图 = 诚实占位（不伪装真实周/议程/专注视图，§2.5）。
-            RoundedFrame {
-                visible: activeView !== "month"
+            // ===== 中栏：周计划（activeView==="week"）=====
+            // 选中周 7 列；复用月视图栅格配方（纯 Rectangle 承载——RoundedFrame 的 FBO holder
+            // visible:false 会吞列点击/微移栅格，故此处禁用 RoundedFrame）。点列头/列即选当天。
+            Rectangle {
+                id: weekView
+                visible: activeView === "week"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 radius: 22
-                border { width: 1; color: ml.panelBorder }
+                color: ml.panelBg
+                border.width: 1
+                border.color: ml.panelBorder
 
-                Rectangle { anchors.fill: parent; color: ml.panelBg }
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 1
+                    spacing: 0
 
-                Column {
-                    anchors.centerIn: parent
-                    spacing: 8
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: viewLabel(activeView)
-                        color: ml.textPrimary
-                        font.pixelSize: 18
-                        font.weight: Font.Bold
+                    // 表头：本周区间 + 本周任务数（跟随选中日，区别于左栏锚定今日的统计芯片）
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 46
+                        Layout.leftMargin: 16
+                        Layout.rightMargin: 16
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 1
+                            Text {
+                                text: weekRangeLabel(selectedDateKey)
+                                color: ml.textPrimary
+                                font.pixelSize: 14
+                                font.weight: Font.DemiBold
+                            }
+                            Text { text: "本周计划"; color: ml.textTertiary; font.pixelSize: 10 }
+                        }
+                        Text {
+                            text: weekViewTaskCount(selectedDateKey) + " 项"
+                            color: ml.textTertiary
+                            font.pixelSize: 11
+                        }
                     }
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: "视图开发中 · 仅月视图已实现"
-                        color: ml.textTertiary
-                        font.pixelSize: 12
+
+                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: ml.cellHair }
+
+                    // 7 列（周一→周日）
+                    GridLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        columns: 7
+                        columnSpacing: 0
+                        rowSpacing: 0
+
+                        Repeater {
+                            model: weekDays(selectedDateKey)
+
+                            delegate: Item {
+                                id: weekCol
+                                required property var modelData
+                                required property int index
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.minimumHeight: 84
+
+                                // 右发丝线（最后一列不画）
+                                Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: ml.cellHair; visible: weekCol.index !== 6 }
+
+                                // 今日底洗 + 角晕
+                                Rectangle { anchors.fill: parent; visible: weekCol.modelData.isToday; color: ml.todayWash }
+                                GlowCircle {
+                                    visible: weekCol.modelData.isToday
+                                    width: 130; height: 130
+                                    x: parent.width * 0.8 - width / 2
+                                    y: parent.height * 0.12 - height / 2
+                                    glowColor: ml.aqua
+                                    glowOpacity: 0.16 * ml.glowStrength
+                                }
+                                // hover 洗（非选中态）
+                                Rectangle {
+                                    anchors.fill: parent
+                                    visible: weekColMouse.containsMouse && weekCol.modelData.dateKey !== selectedDateKey
+                                    color: ml.cellHover
+                                }
+                                // 选中 2px 内环
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+                                    visible: weekCol.modelData.dateKey === selectedDateKey
+                                    color: "transparent"
+                                    border.width: 2
+                                    border.color: ml.selectedRing
+                                }
+
+                                // 列头：星期 + 日号 + 完成数
+                                Column {
+                                    id: weekColHead
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.topMargin: 8
+                                    spacing: 1
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: weekCol.modelData.weekdayLabel
+                                        color: ml.textTertiary
+                                        font.pixelSize: 11
+                                        font.weight: Font.Bold
+                                        font.letterSpacing: 1
+                                    }
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: weekCol.modelData.day
+                                        color: weekCol.modelData.isToday ? ml.aqua : ml.cellDateText
+                                        font.pixelSize: 15
+                                        font.weight: (weekCol.modelData.isToday || weekCol.modelData.isSelected) ? Font.Bold : Font.DemiBold
+                                    }
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        visible: weekCol.modelData.total > 0
+                                        text: weekCol.modelData.doneCount + "/" + weekCol.modelData.total
+                                        color: ml.textTertiary
+                                        font.pixelSize: 10
+                                    }
+                                }
+
+                                // 空日占位
+                                Text {
+                                    visible: weekCol.modelData.events.length === 0
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    anchors.top: weekColHead.bottom
+                                    anchors.topMargin: 18
+                                    text: "—"
+                                    color: ml.textTertiary
+                                    font.pixelSize: 14
+                                }
+
+                                // 事件 chips（展示态，裁切溢出；whole-column 点选交给上面的 MouseArea）
+                                Item {
+                                    anchors.top: weekColHead.bottom
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    anchors.topMargin: 6
+                                    anchors.leftMargin: 6
+                                    anchors.rightMargin: 6
+                                    anchors.bottomMargin: 6
+                                    clip: true
+                                    Column {
+                                        width: parent.width
+                                        spacing: 3
+                                        Repeater {
+                                            model: weekCol.modelData.events
+                                            delegate: Rectangle {
+                                                required property var modelData
+                                                width: parent.width
+                                                height: 16
+                                                radius: 8
+                                                color: eventChipBg(modelData.type)
+                                                border.width: 1
+                                                border.color: eventChipBd(modelData.type)
+                                                Text {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 6
+                                                    anchors.rightMargin: 6
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    elide: Text.ElideRight
+                                                    text: (modelData.time && modelData.time !== "" ? modelData.time + " " : "") + modelData.text
+                                                    color: ml.chipText
+                                                    font.pixelSize: 9
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 整列点选（在最上层；chips 为展示态、无自身命中）
+                                MouseArea {
+                                    id: weekColMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: selectCellDate({ dateKey: weekCol.modelData.dateKey,
+                                                                inMonth: dateFromKey(weekCol.modelData.dateKey).getMonth() === viewedMonth.getMonth() })
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ===== 中栏：今日议程（activeView==="today"）=====
+            // 选中日的「纪念(全天置顶) + 定时待办 + 未定待办 + 专注记录」按时间合并的只读时间线。
+            // 只读（无勾选/开始/删除）：保持唯一写路径在右栏 + 创建弹层，与右栏列表区分为「时间线视角」。
+            Rectangle {
+                id: todayView
+                visible: activeView === "today"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                radius: 22
+                color: ml.panelBg
+                border.width: 1
+                border.color: ml.panelBorder
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 12
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            Layout.fillWidth: true
+                            text: selectedDateLabel()
+                            color: ml.textPrimary
+                            font.pixelSize: 16
+                            font.weight: Font.Bold
+                        }
+                        Text {
+                            text: "专注 " + secondsToDisplay(selectedDateTotalSeconds())
+                            color: ml.accentText
+                            font.pixelSize: 12
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: ml.cellHair }
+
+                    SilkyFlickable {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        style: ml
+
+                        Column {
+                            width: parent.width
+                            spacing: 8
+
+                            Repeater {
+                                id: agendaRepeater
+                                model: dayAgenda(selectedDateKey)
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: parent.width
+                                    height: 50
+                                    radius: 13
+                                    color: ml.calSunkBg
+                                    border.width: 1
+                                    border.color: ml.cardBorder
+
+                                    RowLayout {
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 12
+                                        anchors.rightMargin: 10
+                                        spacing: 10
+
+                                        // 左：时间轨（脊柱色 + 时间/标记）
+                                        RowLayout {
+                                            Layout.preferredWidth: 52
+                                            Layout.fillHeight: true
+                                            spacing: 6
+                                            Rectangle {
+                                                Layout.alignment: Qt.AlignVCenter
+                                                Layout.preferredWidth: 3
+                                                Layout.preferredHeight: 28
+                                                radius: 1.5
+                                                color: eventSpine(modelData.type)
+                                            }
+                                            Text {
+                                                Layout.fillWidth: true
+                                                Layout.alignment: Qt.AlignVCenter
+                                                text: modelData.type === "event" ? "全天"
+                                                      : (modelData.time && modelData.time !== "" ? modelData.time
+                                                      : (modelData.type === "focus" ? "专注" : "未定"))
+                                                color: (modelData.time && modelData.time !== "") ? ml.glowCyan : ml.textTertiary
+                                                font.pixelSize: (modelData.time && modelData.time !== "") ? 11 : 10
+                                                font.bold: (modelData.time && modelData.time !== "")
+                                            }
+                                        }
+
+                                        // 中：标题 + 副行
+                                        ColumnLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 2
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.label
+                                                color: modelData.done ? ml.textSecondary : ml.textPrimary
+                                                font.pixelSize: 13
+                                                font.bold: true
+                                                font.strikeout: modelData.done
+                                                elide: Text.ElideRight
+                                            }
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 6
+                                                TagChip {
+                                                    visible: modelData.type !== "event" && modelData.type !== "focus" && modelData.tag !== ""
+                                                    tag: modelData.tag
+                                                    style: ml
+                                                }
+                                                Text {
+                                                    Layout.fillWidth: true
+                                                    visible: text !== ""
+                                                    text: modelData.type === "focus" ? secondsToDisplay(modelData.seconds)
+                                                          : (modelData.subtitle ? modelData.subtitle : "")
+                                                    color: modelData.type === "focus" ? ml.accentText : ml.textTertiary
+                                                    font.pixelSize: 10
+                                                    font.bold: modelData.type === "focus"
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+                                        }
+
+                                        // 右：类型 pill
+                                        Rectangle {
+                                            Layout.preferredWidth: typeMk.implicitWidth + 14
+                                            Layout.preferredHeight: 18
+                                            radius: 9
+                                            color: eventChipBg(modelData.type)
+                                            border.width: 1
+                                            border.color: eventChipBd(modelData.type)
+                                            Text {
+                                                id: typeMk
+                                                anchors.centerIn: parent
+                                                text: typeLabel(modelData.type)
+                                                color: ml.chipText
+                                                font.pixelSize: 9
+                                                font.bold: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Item {
+                                width: parent.width
+                                height: 120
+                                visible: agendaRepeater.count === 0
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "这一天还没有安排"
+                                    color: ml.textTertiary
+                                    font.pixelSize: 13
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ===== 中栏：专注记录（activeView==="focus"）=====
+            // 本周 7 柱（跟随选中日） + 选中日总计 + 逐项目计时条 + 按标签聚合。右栏「记录」仅单日条，
+            // 此处多了「跨天对比」与「按标签」两条轴。本周柱可点选当天。
+            Rectangle {
+                id: focusView
+                visible: activeView === "focus"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                radius: 22
+                color: ml.panelBg
+                border.width: 1
+                border.color: ml.panelBorder
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 14
+
+                    Text { text: "本周专注"; color: ml.textPrimary; font.pixelSize: 13; font.bold: true }
+
+                    // 本周 7 柱
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 120
+                        spacing: 8
+                        Repeater {
+                            model: weekFocusModel
+                            delegate: ColumnLayout {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                spacing: 4
+                                Item {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    Layout.preferredWidth: 30
+                                    Layout.preferredHeight: 90
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: 6
+                                        color: ml.trackBg
+                                        border.width: modelData.isSelected ? 1 : 0
+                                        border.color: ml.selectedRing
+                                    }
+                                    Rectangle {
+                                        anchors.bottom: parent.bottom
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: parent.width
+                                        height: parent.height * (modelData.seconds / Math.max(1, weekMaxFocusSeconds))
+                                        radius: 6
+                                        gradient: Gradient {
+                                            GradientStop { position: 0; color: ml.aqua }
+                                            GradientStop { position: 1; color: ml.violet }
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: selectCellDate({ dateKey: modelData.dateKey,
+                                                                    inMonth: dateFromKey(modelData.dateKey).getMonth() === viewedMonth.getMonth() })
+                                    }
+                                }
+                                Text {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: modelData.weekdayLabel
+                                    color: modelData.isToday ? ml.aqua : ml.textTertiary
+                                    font.pixelSize: 10
+                                }
+                                Text {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: secondsToDisplay(modelData.seconds)
+                                    color: ml.accentText
+                                    font.pixelSize: 9
+                                }
+                            }
+                        }
+                    }
+
+                    // 选中日总计
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Text { text: selectedDateLabel(); color: ml.textPrimary; font.pixelSize: 13; font.bold: true }
+                        Text { text: secondsToDisplay(selectedDateTotalSeconds()); color: ml.accentText; font.pixelSize: 18; font.bold: true }
+                        Text { Layout.fillWidth: true; text: "(" + dayProjects().length + " 个项目)"; color: ml.textTertiary; font.pixelSize: 11 }
+                    }
+
+                    // 逐项目计时条 + 按标签（同一滚动列）
+                    SilkyFlickable {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        style: ml
+
+                        Column {
+                            width: parent.width
+                            spacing: 10
+
+                            Repeater {
+                                model: dayProjects()
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: parent.width
+                                    height: 72
+                                    radius: 13
+                                    color: ml.calSunkBg
+                                    border.width: 1
+                                    border.color: ml.cardBorder
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 13
+                                        spacing: 7
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: modelData.title ? modelData.title : modelData.name
+                                                color: ml.textPrimary
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                elide: Text.ElideRight
+                                            }
+                                            Text {
+                                                text: secondsToDisplay(modelData.seconds)
+                                                color: ml.accentText
+                                                font.pixelSize: 12
+                                                font.bold: true
+                                            }
+                                        }
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: 7
+                                            radius: 4
+                                            color: ml.trackBg
+                                            clip: true
+                                            Rectangle {
+                                                width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxDaySeconds()))
+                                                height: parent.height
+                                                radius: 4
+                                                gradient: Gradient {
+                                                    orientation: Gradient.Horizontal
+                                                    GradientStop { position: 0; color: ml.aqua }
+                                                    GradientStop { position: 1; color: ml.violet }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Item {
+                                width: parent.width
+                                height: 80
+                                visible: dayProjects().length === 0
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "这一天还没有专注记录"
+                                    color: ml.textTertiary
+                                    font.pixelSize: 13
+                                }
+                            }
+
+                            Text {
+                                visible: dayTagSummary(selectedDateKey).length > 0
+                                text: "按标签"
+                                color: ml.textTertiary
+                                font.pixelSize: 11
+                                topPadding: 4
+                            }
+                            Flow {
+                                width: parent.width
+                                spacing: 8
+                                Repeater {
+                                    model: dayTagSummary(selectedDateKey)
+                                    delegate: Row {
+                                        required property var modelData
+                                        spacing: 5
+                                        TagChip { tag: modelData.tag; style: ml }
+                                        Text {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: secondsToDisplay(modelData.seconds)
+                                            color: ml.textSecondary
+                                            font.pixelSize: 11
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -2652,6 +3290,7 @@ Item {
         function onProjectsChanged() {
             projectRefreshKey += 1
             refreshCalendar()
+            refreshWeekFocus()
         }
     }
 
@@ -2670,6 +3309,7 @@ Item {
             viewedMonth = new Date(selected.getFullYear(), selected.getMonth(), 1)
         loadTodosForSelectedDate()
         refreshCalendar()
+        refreshWeekFocus()
         openAnim.start()
     }
 }
