@@ -11,6 +11,15 @@
 branch=$(git symbolic-ref --short HEAD 2>/dev/null)
 
 case "$branch" in
+  # Down-sync branches MERGE upstream INTO this fork and DELIBERATELY keep the
+  # fork-local launch scripts, so the guard must NOT fire on them (otherwise it
+  # blocks the very down-sync that sync-from-upstream.ps1 performs). Exempt the
+  # down-sync naming conventions before the contribution arm below.
+  sync/upstream-dev-*|merge/upstream-dev-*)
+    : # legitimate down-sync; nothing to guard
+    ;;
+  # Contribution branches go OUT to upstream and MUST carry a zero launch-script
+  # diff (fork-local scripts pinned to upstream/dev).
   sync/*|*contribution*)
     if git rev-parse --verify -q upstream/dev >/dev/null 2>&1; then
       if ! git diff --quiet upstream/dev HEAD -- run.cmd launch.cmd 2>/dev/null; then
