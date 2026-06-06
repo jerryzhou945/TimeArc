@@ -48,6 +48,8 @@ Item {
     property var fixedTags: ["学习", "工作", "运动", "娱乐", "阅读", "社交", "生活", "其他"]
     property int projectRefreshKey: 0
     property string sidePanelMode: "tasks"
+    // 左栏视图 tab：仅 month 真渲染；week/today/focus 为诚实占位（§2.5 / B1）。
+    property string activeView: "month"
 
     // 记忆湖统一色板（接 AppShell.applyThemeToLoadedPage 注入的主题契约）。
     MemoryLakeStyle {
@@ -279,6 +281,30 @@ Item {
     }
     function typeLabel(type) {
         return type === "event" ? "事件" : type === "focus" ? "专注" : "待办"
+    }
+
+    // 左栏统计芯片（§2.7 / A5）：今日事项 / 完成率 = 真值（绑 calendarManager.savedTodos）；
+    // 专注块 / 本周任务 = 诚实静态占位（待重构出最终效果后由用户选择性补真值）。
+    function todayItemCount() {
+        return todosForDate(dateKey(todayDate)).length
+    }
+    function todayDoneRate() {
+        var arr = todosForDate(dateKey(todayDate))
+        if (arr.length === 0)
+            return "—"
+        var d = 0
+        for (var i = 0; i < arr.length; i++)
+            if (arr[i].done)
+                d += 1
+        return Math.round(d / arr.length * 100) + "%"
+    }
+    function statValue(key) {
+        return key === "items" ? "" + todayItemCount()
+             : key === "rate" ? todayDoneRate()
+             : "—"
+    }
+    function viewLabel(key) {
+        return key === "week" ? "周计划" : key === "today" ? "今日议程" : key === "focus" ? "专注记录" : "月视图"
     }
 
     // 一次性构建 dateKey→照片路径 查找表（手动优先，回退当天首张 chat 图）。
@@ -622,14 +648,6 @@ Item {
                     spacing: 3
 
                     Text {
-                        text: "日历 · CALENDAR"
-                        color: ml.glowCyan
-                        font.pixelSize: 11
-                        font.weight: Font.Black
-                        font.letterSpacing: 0.6
-                    }
-
-                    Text {
                         text: monthTitle()
                         color: textPrimary
                         font.pixelSize: 23
@@ -699,13 +717,153 @@ Item {
             Layout.fillHeight: true
             spacing: 16
 
+            // ===== 左栏：品牌卡 + 4 视图 Tab + 2×2 统计芯片（M-B4，§1.4–1.6）=====
+            GlassPanel {
+                Layout.preferredWidth: 280
+                Layout.fillHeight: true
+                style: ml
+                color: ml.calPanelBg
+                dropShadow: false
+                radius: 22
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 16
+                    spacing: 12
+
+                    // 品牌卡（aqua 斜染）
+                    FrostCard {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 96
+                        style: ml
+                        radius: 18
+                        tintTop: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
+
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 16
+                            spacing: 5
+                            Text { text: "CALENDAR"; color: ml.glowCyan; font.pixelSize: 11
+                                   font.weight: Font.Black; font.letterSpacing: 0.7 }
+                            Text { text: "日历"; color: ml.textPrimary; font.pixelSize: 26
+                                   font.weight: Font.Bold; font.letterSpacing: -0.6 }
+                            Text { text: "按日期整理时间上下文"; color: ml.textTertiary; font.pixelSize: 11 }
+                        }
+                    }
+
+                    // 4 视图 Tab：仅 month 真渲染，其余诚实占位（点击切 active；toast 在 F-B5 接）。
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Repeater {
+                            model: [
+                                { key: "month", label: "月视图",   glyph: "▦" },
+                                { key: "week",  label: "周计划",   glyph: "▤" },
+                                { key: "today", label: "今日议程", glyph: "▣" },
+                                { key: "focus", label: "专注记录", glyph: "◴" }
+                            ]
+                            delegate: Rectangle {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 44
+                                radius: 13
+                                color: activeView === modelData.key ? ml.accentSoft
+                                       : (tabMa.containsMouse ? ml.calGhostHover : "transparent")
+                                border.width: 1
+                                border.color: activeView === modelData.key ? ml.accentSoftBorder : "transparent"
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    spacing: 10
+                                    Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 28; height: 28; radius: 9
+                                        color: ml.calGhostBg
+                                        Text { anchors.centerIn: parent; text: modelData.glyph
+                                               color: activeView === modelData.key ? ml.aqua : ml.calGlyph
+                                               font.pixelSize: 13 }
+                                    }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: modelData.label
+                                        color: activeView === modelData.key ? ml.textPrimary : ml.textSecondary
+                                        font.pixelSize: 13
+                                        font.weight: activeView === modelData.key ? Font.DemiBold : Font.Normal
+                                    }
+                                }
+                                MouseArea {
+                                    id: tabMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: activeView = modelData.key
+                                }
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    // 2×2 统计芯片（今日事项/完成率 真值；专注块/本周任务 诚实占位，A5）
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: 2
+                        columnSpacing: 10
+                        rowSpacing: 10
+                        Repeater {
+                            model: [
+                                { label: "今日事项", key: "items", real: true },
+                                { label: "完成率",   key: "rate",  real: true },
+                                { label: "专注块",   key: "focus", real: false },
+                                { label: "本周任务", key: "week",  real: false }
+                            ]
+                            delegate: Rectangle {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 62
+                                radius: 14
+                                color: ml.calSunkBg
+                                border.width: 1
+                                border.color: ml.cardBorder
+
+                                Column {
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    anchors.leftMargin: 12
+                                    anchors.topMargin: 10
+                                    spacing: 6
+                                    Text { text: modelData.label; color: ml.textTertiary; font.pixelSize: 10 }
+                                    Text { text: statValue(modelData.key); color: ml.textPrimary
+                                           font.pixelSize: 21; font.weight: Font.Bold }
+                                }
+                                Text {
+                                    visible: !modelData.real
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.rightMargin: 8
+                                    anchors.topMargin: 7
+                                    text: "占位"
+                                    color: ml.textTertiary
+                                    font.pixelSize: 8
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ===== 中栏：月视图（仅 activeView==="month" 真渲染）=====
             // v88 月视图（M-B2，§1.8）：玻璃底 + 周一表头 + 发丝账本栅格。
             // RoundedFrame 裁圆角（G7：内部满铺栅格在圆角处不漏方角）。
             RoundedFrame {
                 id: monthView
+                visible: activeView === "month"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.preferredWidth: 780
                 radius: 22
                 border { width: 1; color: ml.panelBorder }
 
@@ -898,8 +1056,38 @@ Item {
                 }
             }
 
+            // 非 month 视图 = 诚实占位（不伪装真实周/议程/专注视图，§2.5）。
+            RoundedFrame {
+                visible: activeView !== "month"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                radius: 22
+                border { width: 1; color: ml.panelBorder }
+
+                Rectangle { anchors.fill: parent; color: ml.calPanelBg }
+
+                Column {
+                    anchors.centerIn: parent
+                    spacing: 8
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: viewLabel(activeView)
+                        color: ml.textPrimary
+                        font.pixelSize: 18
+                        font.weight: Font.Bold
+                    }
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "视图开发中 · 仅月视图已实现"
+                        color: ml.textTertiary
+                        font.pixelSize: 12
+                    }
+                }
+            }
+
+            // ===== 右栏：选中日卡 + 模式（待办/记录/纪念）=====
             GlassPanel {
-                Layout.preferredWidth: 372
+                Layout.preferredWidth: 310
                 Layout.fillHeight: true
                 style: ml
                 color: ml.calPanelBg
