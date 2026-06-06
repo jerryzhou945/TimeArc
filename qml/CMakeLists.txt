@@ -16,7 +16,6 @@ set(TIME_ARC_QML_FILES
     qml/desktop/components/AchievementToast.qml
     qml/desktop/components/AppVisual.js
     qml/desktop/components/TagPalette.js
-    qml/desktop/memorylake/MemoryLakeMock.js
     qml/desktop/memorylake/GenerativeCover.qml
     qml/desktop/memorylake/MemoryLakeStyle.qml
     qml/desktop/memorylake/MemoOverlay.qml
