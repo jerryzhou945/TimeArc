@@ -288,6 +288,43 @@ Item {
                     glowColor: mlStyle.violet
                     glowOpacity: mlStyle.glowStrength * 0.18
                 }
+
+                // 日历页专属：整 App v88 42px 蓝图栅格纹（仅日历选中时铺满全窗）。边缘用羽化
+                // 白圆角矩形作 MultiEffect 遮罩 → 渐隐不硬切；窗口 DWM 圆角再裁四角，无方角外露。
+                Item {
+                    anchors.fill: parent
+                    visible: selectedPage === "calendar"
+
+                    GridTexture {
+                        anchors.fill: parent
+                        cell: 42
+                        lineColor: mlStyle.gridLine
+                        textureOpacity: 0.95
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            maskEnabled: true
+                            maskSource: calGridFeather
+                            maskThresholdMin: 0.40
+                            maskSpreadAtMin: 0.34
+                        }
+                    }
+
+                    Rectangle {
+                        id: calGridFeather
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        radius: 64
+                        color: "#FFFFFF"
+                        visible: false
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            blurEnabled: true
+                            blur: 1.0
+                            blurMax: 64
+                            autoPaddingEnabled: false
+                        }
+                    }
+                }
             }
 
             // 记忆湖：整个 App 背景 = 当前 APP **图标主色**的多色晕染（§4.4 / issue A7/B4）。

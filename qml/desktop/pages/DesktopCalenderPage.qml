@@ -635,37 +635,9 @@ Item {
 
     onNightModeChanged: refreshCalendar()
 
-    // 沉浸式整页底（M-B1，与首页/回顾同源）：整页近黑深度坡 + 双角晕由 Shell 的 fullBleed 层提供
-    // （DesktopAppShell `selectedPage==='calendar' → fullBleedPage`：隐藏旧奶油背景、关内容区外框、
-    // 露蓝黑深度坡）。本页只透明叠 v88 42px 蓝图栅格 + 自有 aqua/violet 角晕，蓝黑底自然透出，
-    // 不再「框中框」、不再外露旧背景。透明叠层无需圆角裁剪。
-    Item {
-        id: pageBase
-        anchors.fill: parent
-
-        GridTexture {
-            anchors.fill: parent
-            cell: 42
-            lineColor: ml.gridLine
-            textureOpacity: 0.5
-        }
-
-        GlowCircle {
-            width: 520; height: 520
-            x: pageBase.width * 0.12 - width / 2
-            y: -height / 2
-            glowColor: ml.aqua
-            glowOpacity: 0.13 * ml.glowStrength
-        }
-
-        GlowCircle {
-            width: 480; height: 480
-            x: pageBase.width * 0.9 - width / 2
-            y: pageBase.height * 0.14 - height / 2
-            glowColor: ml.violet
-            glowOpacity: 0.12 * ml.glowStrength
-        }
-    }
+    // 沉浸式整页底完全由 Shell 的 fullBleed 层提供（DesktopAppShell `selectedPage==='calendar'`）：
+    // 蓝黑深度坡 + 双角晕 + 整 App 42px 蓝图栅格纹（边缘羽化渐隐、窗口 DWM 圆角裁角）。本页只放
+    // 内容，蓝黑底自然透出 —— 不再「框中框」、不外露旧背景、栅格也不在内容区内硬切方角。
 
     ColumnLayout {
         anchors.fill: parent
