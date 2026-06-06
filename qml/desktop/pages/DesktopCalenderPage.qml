@@ -316,9 +316,35 @@ Item {
                 d += 1
         return Math.round(d / arr.length * 100) + "%"
     }
+    // 本周（周一起）所有事项总数。
+    function weekTaskCount() {
+        var map = allTodosMap()
+        var monday = new Date(todayDate)
+        monday.setDate(todayDate.getDate() - ((todayDate.getDay() + 6) % 7))
+        var n = 0
+        for (var i = 0; i < 7; i++) {
+            var day = new Date(monday)
+            day.setDate(monday.getDate() + i)
+            var arr = map[dateKey(day)]
+            if (arr)
+                n += arr.length
+        }
+        return n
+    }
+    // 今日 focus 类型事项数（专注块）。
+    function focusBlockCount() {
+        var arr = todosForDate(dateKey(todayDate))
+        var n = 0
+        for (var i = 0; i < arr.length; i++)
+            if (arr[i].type === "focus")
+                n += 1
+        return n
+    }
     function statValue(key) {
         return key === "items" ? "" + todayItemCount()
              : key === "rate" ? todayDoneRate()
+             : key === "focus" ? "" + focusBlockCount()
+             : key === "week" ? "" + weekTaskCount()
              : "—"
     }
     function viewLabel(key) {
@@ -840,8 +866,8 @@ Item {
                             model: [
                                 { label: "今日事项", key: "items", real: true },
                                 { label: "完成率",   key: "rate",  real: true },
-                                { label: "专注块",   key: "focus", real: false },
-                                { label: "本周任务", key: "week",  real: false }
+                                { label: "专注块",   key: "focus", real: true },
+                                { label: "本周任务", key: "week",  real: true }
                             ]
                             delegate: Rectangle {
                                 required property var modelData
