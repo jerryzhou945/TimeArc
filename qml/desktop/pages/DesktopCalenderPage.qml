@@ -74,6 +74,10 @@ Item {
     property string todoProject: "不关联"
     property string annType: "纪念日"            // 纪念日 / 倒计时日
     property bool createOpen: false              // 创建弹出界面（独立浮层）开合
+    property string createTime: ""               // 创建时选定的时间 HH:MM（空=未选）
+    property bool timePickerOpen: false          // 时间选择浮层开合
+    property int pickHour: 9
+    property int pickMinute: 0
     property double pendingEventMs: 0            // 时间选择器选定的「日期+时间」（0=未选）
     // 自绘下拉菜单（根层 overlay，避免被面板裁剪、无原生弹窗）状态。
     property string menuTarget: ""               // "" / type / tag / project / anntype
@@ -593,7 +597,7 @@ Item {
             done: false,
             tag: root.todoTag,
             linkedProject: "",
-            time: createTimeInput.text.trim(),
+            time: root.createTime,
             type: "todo",
             desc: createDescEdit.text.trim()
         })
@@ -619,7 +623,7 @@ Item {
 
     function openCreate() {
         createTitleInput.text = ""
-        createTimeInput.text = ""
+        root.createTime = ""
         createDescEdit.text = ""
         root.createOpen = true
         createTitleInput.forceActiveFocus()
@@ -633,6 +637,23 @@ Item {
         else
             addTodo()
         closeCreate()
+    }
+
+    // 时间选择浮层：点时间格 → 时:分步进选择（无需手打）。
+    function openTimePicker() {
+        var t = root.createTime
+        if (t && t.indexOf(":") > 0) {
+            root.pickHour = Math.max(0, Math.min(23, parseInt(t.split(":")[0]) || 0))
+            root.pickMinute = Math.max(0, Math.min(59, parseInt(t.split(":")[1]) || 0))
+        } else {
+            root.pickHour = 9
+            root.pickMinute = 0
+        }
+        root.timePickerOpen = true
+    }
+    function commitTimePick() {
+        root.createTime = pad2(root.pickHour) + ":" + pad2(root.pickMinute)
+        root.timePickerOpen = false
     }
 
     // 议程项操作走 root 函数：在 delegate 被 remove 销毁的同一帧里，后续 save 仍在 root 作用域执行，
@@ -2398,28 +2419,26 @@ Item {
                     }
                 }
 
-                // 时间（待办，可选）
+                // 时间（待办，可选）：点开时间选择浮层（时:分步进），不用手打。
                 Rectangle {
                     width: parent.width; height: 38; radius: 12
                     visible: sidePanelMode !== "anniversaries"
                     color: ml.calSunkBg; border.width: 1
-                    border.color: createTimeInput.activeFocus ? ml.chipEventBd : ml.calInputBorder
+                    border.color: root.timePickerOpen ? ml.chipEventBd : ml.calInputBorder
                     Text { id: createTimeGlyph; anchors.left: parent.left; anchors.leftMargin: 12
                            anchors.verticalCenter: parent.verticalCenter; text: "⧗"; color: ml.aqua; font.pixelSize: 13 }
-                    TextInput {
-                        id: createTimeInput
-                        anchors.left: createTimeGlyph.right; anchors.right: parent.right
-                        anchors.top: parent.top; anchors.bottom: parent.bottom
-                        anchors.leftMargin: 8; anchors.rightMargin: 12
-                        verticalAlignment: Text.AlignVCenter
-                        color: ml.textPrimary; font.pixelSize: 13; selectByMouse: true; clip: true
-                        inputMethodHints: Qt.ImhPreferNumbers
-                        Keys.onReturnPressed: submitCreate()
+                    Text {
+                        anchors.left: createTimeGlyph.right; anchors.right: timePickChev.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 8; anchors.rightMargin: 6
+                        text: root.createTime !== "" ? root.createTime : "选择时间（可选）"
+                        color: root.createTime !== "" ? ml.textPrimary : ml.textTertiary
+                        font.pixelSize: 13
+                        elide: Text.ElideRight
                     }
-                    Text { anchors.left: createTimeGlyph.right; anchors.leftMargin: 8
-                           anchors.verticalCenter: parent.verticalCenter
-                           visible: createTimeInput.text === ""
-                           text: "时间（可选，如 14:30）"; color: ml.textTertiary; font.pixelSize: 13 }
+                    Text { id: timePickChev; anchors.right: parent.right; anchors.rightMargin: 12
+                           anchors.verticalCenter: parent.verticalCenter; text: "▾"; color: ml.textTertiary; font.pixelSize: 10 }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: openTimePicker() }
                 }
 
                 // 详情（多行，可选）
@@ -2465,6 +2484,125 @@ Item {
                                font.pixelSize: 14; font.weight: Font.Bold }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                     onClicked: submitCreate() }
+                    }
+                }
+            }
+        }
+    }
+
+    // 时间选择浮层（时:分步进）：点创建弹层的时间格打开；确定回填 createTime。
+    Item {
+        id: timePicker
+        anchors.fill: parent
+        visible: root.timePickerOpen
+        z: 5200
+
+        Rectangle { anchors.fill: parent; color: Qt.rgba(0, 0, 0, 0.5) }
+        MouseArea { anchors.fill: parent; onClicked: root.timePickerOpen = false }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: 260
+            height: tpCol.implicitHeight + 32
+            radius: 18
+            gradient: Gradient {
+                GradientStop { position: 0; color: ml.calPageTop }
+                GradientStop { position: 1; color: ml.calPageBottom }
+            }
+            border.width: 1
+            border.color: ml.chipEventBd
+            antialiasing: true
+            MouseArea { anchors.fill: parent }
+
+            Column {
+                id: tpCol
+                anchors { left: parent.left; right: parent.right; top: parent.top
+                          leftMargin: 18; rightMargin: 18; topMargin: 16 }
+                spacing: 14
+
+                Text { text: "选择时间"; color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.Bold }
+
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: 12
+
+                    // 时
+                    Column {
+                        spacing: 6
+                        Rectangle {
+                            width: 64; height: 30; radius: 9
+                            color: hUpMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                            border.width: 1; border.color: ml.calGhostBorder
+                            Text { anchors.centerIn: parent; text: "▲"; color: ml.aqua; font.pixelSize: 12 }
+                            MouseArea { id: hUpMa; anchors.fill: parent; hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor; onClicked: root.pickHour = (root.pickHour + 1) % 24 }
+                        }
+                        Rectangle {
+                            width: 64; height: 48; radius: 12
+                            color: ml.calSunkBg; border.width: 1; border.color: ml.calInputBorder
+                            Text { anchors.centerIn: parent; text: pad2(root.pickHour); color: ml.textPrimary
+                                   font.pixelSize: 22; font.weight: Font.Bold }
+                        }
+                        Rectangle {
+                            width: 64; height: 30; radius: 9
+                            color: hDnMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                            border.width: 1; border.color: ml.calGhostBorder
+                            Text { anchors.centerIn: parent; text: "▼"; color: ml.aqua; font.pixelSize: 12 }
+                            MouseArea { id: hDnMa; anchors.fill: parent; hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor; onClicked: root.pickHour = (root.pickHour + 23) % 24 }
+                        }
+                    }
+
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: ":"; color: ml.textPrimary
+                           font.pixelSize: 22; font.bold: true }
+
+                    // 分（步进 5）
+                    Column {
+                        spacing: 6
+                        Rectangle {
+                            width: 64; height: 30; radius: 9
+                            color: mUpMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                            border.width: 1; border.color: ml.calGhostBorder
+                            Text { anchors.centerIn: parent; text: "▲"; color: ml.aqua; font.pixelSize: 12 }
+                            MouseArea { id: mUpMa; anchors.fill: parent; hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor; onClicked: root.pickMinute = (root.pickMinute + 5) % 60 }
+                        }
+                        Rectangle {
+                            width: 64; height: 48; radius: 12
+                            color: ml.calSunkBg; border.width: 1; border.color: ml.calInputBorder
+                            Text { anchors.centerIn: parent; text: pad2(root.pickMinute); color: ml.textPrimary
+                                   font.pixelSize: 22; font.weight: Font.Bold }
+                        }
+                        Rectangle {
+                            width: 64; height: 30; radius: 9
+                            color: mDnMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                            border.width: 1; border.color: ml.calGhostBorder
+                            Text { anchors.centerIn: parent; text: "▼"; color: ml.aqua; font.pixelSize: 12 }
+                            MouseArea { id: mDnMa; anchors.fill: parent; hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor; onClicked: root.pickMinute = (root.pickMinute + 55) % 60 }
+                        }
+                    }
+                }
+
+                Row {
+                    width: parent.width
+                    spacing: 10
+                    Rectangle {
+                        width: (parent.width - 10) / 2; height: 38; radius: 12
+                        color: tpClearMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                        border.width: 1; border.color: ml.calGhostBorder
+                        Text { anchors.centerIn: parent; text: "清除"; color: ml.textSecondary; font.pixelSize: 13 }
+                        MouseArea { id: tpClearMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                    onClicked: { root.createTime = ""; root.timePickerOpen = false } }
+                    }
+                    Rectangle {
+                        width: (parent.width - 10) / 2; height: 38; radius: 12
+                        gradient: Gradient { orientation: Gradient.Horizontal
+                                             GradientStop { position: 0; color: ml.aqua }
+                                             GradientStop { position: 1; color: ml.violet } }
+                        Text { anchors.centerIn: parent; text: "确定"; color: ml.calBtnInk
+                               font.pixelSize: 13; font.weight: Font.DemiBold }
+                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: commitTimePick() }
                     }
                 }
             }
