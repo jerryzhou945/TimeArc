@@ -8,6 +8,8 @@ the harness line budget intact.
 
 | Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
 |----------------------|-----|--------------|-------------------------------------------------|--------|
+| 2026-06-06T16:23:09Z | L2 | memorylake-resp... | Memory Lake 首页 min/max layout: sidebar 备忘/记忆湖 overlap, briefing text/chip o... | [report](errors/20260606-162309-C-memorylake-responsive-minmax.md) |
+| 2026-06-06T11:58:52Z | L1 | memo-sticky-dup... | StickyNote: custom 'signal tagChanged()' collided with th... | [report](errors/20260606-115852-B-memo-sticky-dup-signal.md) |
 | 2026-06-06T11:09:49Z | L2 | backfilled-repo... | PR preflight git diff --check found trailing whitespace i... | [report](errors/20260606-110949-C-backfilled-report-trailing-whitespace.md) |
 | 2026-06-06T11:01:45Z | L2 | f-workspace-arc... | Archiving F:\TimeArc\time-arc failed because Windows repo... | [report](errors/20260606-110145-C-f-workspace-archive-locked.md) |
 | 2026-06-05T04:51:13Z | L2 | memo-loader-aut... | Object delegate Loader had anchors.fill:parent; a sized L... | [report](errors/20260605-045113-C-memo-loader-autosize.md) |

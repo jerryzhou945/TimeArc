@@ -876,7 +876,7 @@ static QString peakHourLabel(const QVariantList& segments, qint64 dayStart) {
       .arg(hi + 1, 2, 10, QLatin1Char('0'));
 }
 
-// 文案模板 + 聚合，产出与 MemoryLakeMock 同形的
+// 文案模板 + 聚合，产出 QML 渲染所需同形的
 // {apps, overview, todayTheme, usageShare, todayConclusion}。
 QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
                                             const QVariantList& segments) {

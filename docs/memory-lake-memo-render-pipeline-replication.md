@@ -142,13 +142,17 @@ hover 转**破坏红** `rgba(255,95,95,.22)`（6163）。"更多工具"弹层 `.
 ```
 
 结构（终态模板 16382）：隐藏的拖拽 header（`opacity:0`，hover/选中时升到 .22）、
-3 行 grid 字段（大标题 input `font-size:24px/820`、正文 textarea `18px/500`、静态署名
-"JusTin D"）、4 个自绘缩放把手（左/右/下/右下角，**无上把手**，3920–3968）。**便签的
+大标题 input（`font-size:24px/820`）、正文 textarea（`18px/500`）、底栏、
+4 个自绘缩放把手（左/右/下/右下角，**无上把手**，3920–3968）。**便签的
 × 删除键在终态 `display:none`**（4180），删除靠键盘 Backspace/Delete。
 
-> `.sticky-title`/`.sticky-subtitle`/`.sticky-close` 是死选择器（display:none + 不在
-> 模板里）；署名 "JusTin D" 在 v88 写死且不持久化——**QML 已改为可编辑 + 逐页持久化、默认空**
-> （`StickyNote.author` / objectModel `osign`，见功能文 §A #9）。详见功能文 §2.4。
+> ⚠️ QML 底栏已偏离 v88（功能演进，非 1:1 复刻）：v88 的静态署名 "JusTin D" 槽位**已让给
+> 「成为待办」勾选**（PR #22 f26afa0；`osign` 仍序列化做旧档兼容、UI 下线，见功能文 §A #9）。
+> QML 底栏现为：标签 `tag`（左）+ 成为待办 `isTodo`（右，占原署名位）+ **截止日期行**（底）。
+> 截止行 2026-06-07 由原 12px 灰字升级为「自绘小时钟 + 较深墨字」胶囊（设了截止＝紫调时钟 + 0.84
+> 深墨日期 DemiBold 13；色取自 `MemoryLakeStyle.stickyInk`/`violet`，无新硬编码 hex），点开
+> `MemoDatePicker` 自选 `odue`。详见功能文 §2.4。
+> （`.sticky-title`/`.sticky-subtitle`/`.sticky-close` 仍是死选择器：display:none + 不在模板里。）
 
 ### §1.4 文字层 `.memo-text-layer`（终值 V52，行 6412–6426）
 

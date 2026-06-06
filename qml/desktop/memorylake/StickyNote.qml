@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import "../components/TagPalette.js" as TagPalette
 
 // 便签（v88 .sticky-note）。扁平暖黄纸 #FFE6A3 + 接触软阴影；隐藏拖拽 header（hover/选中升起）；
 // 标题 + 正文可编辑；4 把手缩放（左/右/下/右下角，**无上把手**，高度只向下长、顶边钉死）；
@@ -17,7 +18,10 @@ Item {
     property bool done: false             // 待办完成态（左上打勾），供后续日历待做事项消费
     property double createdMs: 0          // 创建时间戳（epoch ms），0 = 旧便签无时间
     property double due: 0                 // 用户自选截止日期/时间（epoch ms），0 = 未设
-    property string author: ""            // 署名（可编辑，逐页持久化 osign；默认空，v88 写死"JusTin D"未复刻）
+    property string author: ""            // 署名（已停用 UI，仍逐页持久化 osign 以兼容旧档；位置让给「成为待办」）
+    property string tag: ""               // 标签（学习/工作/…；空=未设）→ 升为待办时带入待办 tag
+    property bool isTodo: false           // 「成为待办事项」勾选：true → 投影到日历 / 首页今日事项
+    property string nid: ""               // 稳定便签 id：升为待办后用于在 savedTodos 里定位/更新/移除该投影行
 
     signal selectRequested(bool grabFocus)   // grabFocus=true（header/缩放）→ 让覆盖层接管键盘删除
     signal geometryCommitted()
@@ -25,6 +29,17 @@ Item {
     signal deleteRequested()
     signal doneToggled()                  // 勾选/取消勾选 → 覆盖层回写 odone
     signal dueEditRequested()             // 点截止行 → 覆盖层弹出日期选择器
+    signal isTodoToggled()                // 「成为待办」切换 → 覆盖层回写 oisTodo 并同步投影
+    signal tagPicked()                    // 标签变更（自定义名，避开 tag 属性自动信号 tagChanged 冲突）→ 覆盖层回写 otag
+
+    // 点击标签：在固定标签序列里循环（空 → 学习 → 工作 → … → 其他 → 学习）。
+    function cycleTag() {
+        var list = TagPalette.tagList();
+        var i = list.indexOf(note.tag);
+        note.tag = (i < 0) ? list[0] : list[(i + 1) % list.length];
+        note.selectRequested(true);
+        note.tagPicked();
+    }
 
     z: 124
     width: 310
@@ -104,7 +119,7 @@ Item {
             // 正文
             ScrollView {
                 width: parent.width
-                height: parent.height - header.height - titleField.height - dateRow.height
+                height: parent.height - header.height - titleField.height - footer.height
                 clip: true
                 TextArea {
                     id: bodyArea
@@ -124,48 +139,177 @@ Item {
                 }
             }
 
-            // 截止日期与时间（点开小日历自选；供日历 / 首页今日事项后续同步）。
-            Text {
-                id: dateRow
+            // 底栏：标签（左）＋「成为待办事项」（右，占署名旧位）＋ 截止行（底）。
+            Item {
+                id: footer
                 width: parent.width
-                leftPadding: 16; rightPadding: 16; bottomPadding: 10
-                text: note.due > 0
-                      ? "截止 " + Qt.formatDateTime(new Date(note.due), "yyyy-MM-dd  HH:mm")
-                      : "＋ 设置截止时间"
-                color: note.due > 0 ? Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.66)
-                                    : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.42)
-                font.pixelSize: 12
-                font.underline: dateMa.containsMouse
-                horizontalAlignment: Text.AlignLeft
-                MouseArea {
-                    id: dateMa
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: { note.selectRequested(true); note.dueEditRequested(); }
+                height: 56
+
+                // 标签：点击在固定序列里循环；空时显示「＋ 标签」提示。
+                Item {
+                    id: tagPick
+                    anchors { left: parent.left; leftMargin: 16; top: parent.top; topMargin: 4 }
+                    width: note.tag !== "" ? tagChip.width : addTagPill.width
+                    height: 22
+                    TagChip {
+                        id: tagChip
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: note.tag !== ""
+                        tag: note.tag
+                        style: note.style
+                    }
+                    Rectangle {
+                        id: addTagPill
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: note.tag === ""
+                        width: addTagText.implicitWidth + 16
+                        height: 20
+                        radius: 8
+                        color: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.06)
+                        border.width: 1
+                        border.color: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.22)
+                        Text {
+                            id: addTagText
+                            anchors.centerIn: parent
+                            text: "＋ 标签"
+                            color: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.5)
+                            font.pixelSize: 11
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: note.cycleTag()
+                    }
+                }
+
+                // 「成为待办事项」勾选（右上，原署名位）：勾上 → 投影到日历/今日事项。
+                Item {
+                    id: todoToggle
+                    anchors { right: parent.right; rightMargin: 14; top: parent.top; topMargin: 4 }
+                    width: todoRow.implicitWidth
+                    height: 22
+                    Row {
+                        id: todoRow
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 20; height: 20; radius: 6
+                            color: note.isTodo ? (note.style ? note.style.violet : "#9B8BFF")
+                                               : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.08)
+                            border.width: 1.5
+                            border.color: note.isTodo ? (note.style ? note.style.violet : "#9B8BFF")
+                                                      : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.42)
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Text {
+                                anchors.centerIn: parent
+                                text: "✓"; visible: note.isTodo
+                                color: "#FFFFFF"; font.pixelSize: 13; font.weight: Font.Bold
+                            }
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "待办"
+                            color: note.isTodo ? (note.style ? note.style.violet : "#6A5AE0")
+                                               : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.55)
+                            font.pixelSize: 12
+                            font.weight: note.isTodo ? Font.DemiBold : Font.Normal
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            note.isTodo = !note.isTodo;
+                            note.selectRequested(true);
+                            // 升为待办且未设截止 → 顺手弹日期选择器，让投影行带上真实日期/时间。
+                            if (note.isTodo && note.due === 0) note.dueEditRequested();
+                            note.isTodoToggled();
+                        }
+                    }
+                }
+
+                // 截止日期与时间（点开小日历自选）。原为 12px 灰字、太不显眼；升级为「自绘小时钟 + 较深墨字」
+                // 胶囊：设了截止＝紫调时钟 + 0.84 深墨日期（DemiBold 13），明显但不刺眼全黑；未设＝淡墨 CTA。
+                // 色全部由便签墨色 stickyInk / violet 令牌派生（§8，不引新硬编码 hex）。置于 56 高底栏下半，
+                // 不与上方 标签/待办 行（顶 4、高 22）相撞。
+                Item {
+                    id: dateRow
+                    anchors { left: parent.left; bottom: parent.bottom; leftMargin: 16; bottomMargin: 4 }
+                    height: 24
+                    width: duePill.width
+
+                    readonly property bool hasDue: note.due > 0
+                    readonly property color inkBase: note.style ? note.style.stickyInk : "#1E1E1E"
+                    readonly property color accent: note.style ? note.style.violet : "#9B8BFF"
+
+                    Rectangle {
+                        id: duePill
+                        height: parent.height
+                        width: dueRow.implicitWidth + 22
+                        radius: 12
+                        color: Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b,
+                                       dateRow.hasDue ? (dateMa.containsMouse ? 0.15 : 0.11)
+                                                      : (dateMa.containsMouse ? 0.09 : 0.05))
+                        border.width: 1
+                        border.color: Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b,
+                                              dateRow.hasDue ? 0.24 : 0.16)
+                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                        Row {
+                            id: dueRow
+                            anchors.centerIn: parent
+                            spacing: 7
+
+                            // 自绘小时钟（圆框 + 时分针）。设了截止＝紫调强调；未设＝淡墨。
+                            Canvas {
+                                id: clockGlyph
+                                width: 15; height: 15
+                                anchors.verticalCenter: parent.verticalCenter
+                                onPaint: {
+                                    var ctx = getContext("2d"); ctx.reset();
+                                    var c = dateRow.hasDue ? dateRow.accent
+                                          : Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b, 0.5);
+                                    var cx = width / 2, cy = height / 2, r = 6.2;
+                                    ctx.strokeStyle = c; ctx.lineWidth = 1.5; ctx.lineCap = "round";
+                                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+                                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx, cy - 3.4); ctx.stroke();        // 时针
+                                    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + 3.0, cy + 1.4); ctx.stroke();  // 分针
+                                }
+                                Connections {
+                                    target: dateRow
+                                    function onHasDueChanged() { clockGlyph.requestPaint() }
+                                }
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: dateRow.hasDue
+                                      ? Qt.formatDateTime(new Date(note.due), "M月d日  HH:mm")
+                                      : "设置截止时间"
+                                color: Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b,
+                                               dateRow.hasDue ? 0.84 : 0.52)
+                                font.pixelSize: dateRow.hasDue ? 13 : 12
+                                font.weight: dateRow.hasDue ? Font.DemiBold : Font.Normal
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: dateMa
+                        anchors.fill: parent
+                        anchors.margins: -3
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: { note.selectRequested(true); note.dueEditRequested(); }
+                    }
                 }
             }
-        }
-
-        // 署名（可编辑、逐页持久化）：右下角，叠在日期行右半空白处（日期左对齐，互不挡）。
-        // 默认空 → 淡斜体「署名」提示；点右下即可改名。
-        TextField {
-            id: signField
-            anchors { right: parent.right; bottom: parent.bottom; rightMargin: 14; bottomMargin: 7 }
-            width: parent.width * 0.5
-            background: null
-            padding: 0
-            horizontalAlignment: Text.AlignRight
-            text: note.author
-            placeholderText: "署名"
-            color: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.55)
-            placeholderTextColor: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.30)
-            font.pixelSize: 12
-            font.italic: true
-            maximumLength: 24
-            onActiveFocusChanged: { note.editing = activeFocus; if (activeFocus) note.selectRequested(false) }
-            onTextChanged: note.author = text
-            onEditingFinished: note.contentCommitted()
         }
 
         // 完成打勾（左上角；始终可见，点击切换完成态）。完成 → 标题划线 + 正文淡化 + 绿勾。

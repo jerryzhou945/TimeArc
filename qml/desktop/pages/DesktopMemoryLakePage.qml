@@ -27,6 +27,14 @@ Item {
     // 中栏今日结论（briefing）静止高度（设计稿 .today-briefing max-height 240，实测 ~200）；
     // 翻面锁定时折叠为 0，把空间让给卡区。
     readonly property real briefingH: 204
+    // 实际占高 = 内容撑开后的高度（不低于 briefingH）。窄宽（最小窗口）下今日结论文本换行变高，
+    // 卡区据此下移——配合 TodayConclusionCard.implicitHeight，底栏 chips 永不与上方文字叠印。
+    readonly property real briefingActualH: Math.max(briefingH, briefing.implicitHeight)
+    // 今日结论折叠系数（0=展开 / 1=翻面收起）。只对「翻面收起」缓动；内容驱动的高度变化（5s 刷新可能
+    // 改文案）即时生效、不抖动——故 briefing 的 height/opacity/scale 与卡区 y 全由本系数线性插值，
+    // 不再各自挂 Behavior（避免每次刷新触发 440ms 重排抖动）。
+    property real briefCollapse: root.locked ? 1 : 0
+    Behavior on briefCollapse { NumberAnimation { duration: 440; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
 
     // 记忆湖·日视图模型：dailyCardService.memoryLakeDay 产出（后端组装，QML 只渲染）。
     // 取数走首页同款只读路径（usageStatManager），无数据走空态，绝不用 Mock 假数据冒充。
@@ -258,17 +266,15 @@ Item {
                 id: briefing
                 x: 0; y: 0
                 width: parent.width
-                height: root.locked ? 0 : root.briefingH
-                opacity: root.locked ? 0 : 1
+                // height/opacity/scale 由 briefCollapse 线性驱动：展开=实际内容高(briefingActualH)，翻面收起→0。
+                height: (1 - root.briefCollapse) * root.briefingActualH
+                opacity: 1 - root.briefCollapse
                 visible: opacity > 0.01
                 style: ml
                 model: root.todayConclusion
                 todoRemaining: calendarSync.remaining
                 transformOrigin: Item.Top
-                scale: root.locked ? 0.97 : 1.0
-                Behavior on height { NumberAnimation { duration: 440; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
-                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
+                scale: 1 - 0.03 * root.briefCollapse
             }
 
             // 卡牌区（设计稿 .cards-zone）：圆角暗箱；折叠时上移填满（容纳翻面 616 高卡）。
@@ -276,7 +282,8 @@ Item {
                 id: cardsZone
                 x: 0
                 width: parent.width
-                y: root.locked ? 0 : (root.briefingH + 14)
+                // 跟随 briefCollapse 与今日结论实际高一起插值（展开=briefingActualH+14，收起→0）。
+                y: (1 - root.briefCollapse) * (root.briefingActualH + 14)
                 height: parent.height - y
                 radius: 26
                 color: ml.cardsZoneBg
@@ -286,7 +293,6 @@ Item {
                     : Qt.rgba(1, 1, 1, ml.night ? 0.08 : 0.04)
                 antialiasing: true
                 clip: true
-                Behavior on y { NumberAnimation { duration: 440; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
                 Behavior on border.color { ColorAnimation { duration: 300 } }
 
                 // 顶沿 1px 内高光（玻璃上唇）。左右内缩半径，不越圆角。
@@ -297,9 +303,11 @@ Item {
                     color: ml.edgeHighlight
                 }
 
-                // 50% 处 aqua 装饰中线（设计稿 .cards-zone::before，左右内缩 58）。
+                // 50% 处 aqua 装饰中线（设计稿 .cards-zone::before）。宽度钳到中心一小段并居中，
+                // 避免大窗口下横贯空旷卡区、与卡牌一道读作扎眼「光线条」（左右内缩规避割裂画面）。
                 Rectangle {
-                    x: 58; width: parent.width - 116
+                    readonly property real lineW: Math.min(parent.width - 116, 420)
+                    x: (parent.width - lineW) / 2; width: lineW
                     y: Math.round(parent.height * 0.5)
                     height: 1
                     visible: parent.width > 140
