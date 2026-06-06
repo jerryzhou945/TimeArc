@@ -84,3 +84,9 @@ CMakeLists.txt.user*
 .uic/
 /build*/
 /.build*/
+
+# Per-machine, fork-local toolchain overrides for run.cmd / launch.cmd.
+# Never committed; each developer pins their own Qt root without editing
+# the tracked launch scripts. See the README "Quick run on Windows" section.
+/run.local.cmd
+/launch.local.cmd

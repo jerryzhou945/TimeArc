@@ -1,0 +1,37 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# TimeArc pre-push guard.
+# A contribution/sync branch must keep run.cmd / launch.cmd identical to
+# upstream/dev: these are fork-local (per-machine toolchain) and are NEVER
+# contributed upstream. This blocks the "forgot to pin" mistake mechanically.
+#
+# Install:  pwsh -File tools/install-hooks.ps1
+#       or: cp tools/git-hooks/pre-push .git/hooks/pre-push   (chmod +x on *nix)
+# ----------------------------------------------------------------------------
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+case "$branch" in
+  # Down-sync branches MERGE upstream INTO this fork and DELIBERATELY keep the
+  # fork-local launch scripts, so the guard must NOT fire on them (otherwise it
+  # blocks the very down-sync that sync-from-upstream.ps1 performs). Exempt the
+  # down-sync naming conventions before the contribution arm below.
+  sync/upstream-dev-*|merge/upstream-dev-*)
+    : # legitimate down-sync; nothing to guard
+    ;;
+  # Contribution branches go OUT to upstream and MUST carry a zero launch-script
+  # diff (fork-local scripts pinned to upstream/dev).
+  sync/*|*contribution*)
+    if git rev-parse --verify -q upstream/dev >/dev/null 2>&1; then
+      if ! git diff --quiet upstream/dev HEAD -- run.cmd launch.cmd 2>/dev/null; then
+        echo "pre-push BLOCKED: '$branch' is a contribution branch but run.cmd/launch.cmd differ from upstream/dev." 1>&2
+        echo "  These are fork-local and must never be contributed. Pin them first:" 1>&2
+        echo "    git fetch upstream && git checkout upstream/dev -- run.cmd launch.cmd && git commit -m 'pin launch scripts'" 1>&2
+        echo "  or just run:  pwsh -File tools/contribute-to-upstream.ps1" 1>&2
+        exit 1
+      fi
+    else
+      echo "pre-push WARNING: no local upstream/dev ref -- run 'git fetch upstream' to enable the launch-script guard." 1>&2
+    fi
+    ;;
+esac
+exit 0

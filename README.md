@@ -263,6 +263,35 @@ Two executables are produced: `TimeArc` (the UI) and `time-arc-service`
 (the background sampler). Both land under the install prefix's `bin/`
 (or `.app` bundle on macOS).
 
+### Quick run on Windows (`run.cmd` / `launch.cmd`)
+
+Two convenience launchers live at the repo root:
+
+- **`run.cmd`** — puts the Qt/MinGW/Ninja toolchain on `PATH`, configures the
+  build the first time (`-G Ninja`), closes any running instance, builds
+  incrementally, then launches. Use `run` (cmd) or `.\run` (PowerShell);
+  `.\run --mobile-preview` opens the mobile window. Args pass through to `TimeArc.exe`.
+- **`launch.cmd`** — toolchain + launch an *already-built* `TimeArc.exe`, no build
+  (use it to open a second window alongside one started by `run.cmd`).
+
+**Toolchain auto-detect + override.** Both resolve the Qt *root* in this order
+(first hit wins), so the same committed script runs on different machines with no
+edits:
+
+1. `run.local.cmd` / `launch.local.cmd` — **gitignored, per-machine**; a one-liner
+   like `set "QTROOT=C:\Qt"`.
+2. the `TIMEARC_QT_ROOT` environment variable.
+3. a built-in probe of common roots (`C:\Qt`, `D:\TimeArc\QT`, `D:\Qt`, …).
+
+Everything else (Qt `6.x\mingw_64`, MinGW, Ninja, bundled CMake) is derived from
+that root. If your Qt lives elsewhere, set `run.local.cmd` or `TIMEARC_QT_ROOT` —
+**do not hardcode a path into the tracked `run.cmd`/`launch.cmd`.**
+
+> ⚠️ **`run.cmd` / `launch.cmd` are fork-local.** Every fork (including upstream)
+> keeps its own copy with its own toolchain paths; they are **never synced across
+> forks**. See [Contributing](#contributing) for how a contribution is kept from
+> ever overwriting another fork's launch scripts.
+
 ## Usage
 
 ### Basic Usage
@@ -357,6 +386,44 @@ Open a pull request against `main`. Follow the existing file structure
 when adding code, and write a descriptive commit message in the
 imperative mood. Keep diffs focused; prefer two small commits over
 one mixed commit.
+
+### Launch scripts are fork-local — never contributed
+
+`run.cmd` / `launch.cmd` hold per-machine toolchain paths and **differ between
+forks** (upstream's Qt is under `D:\TimeArc\QT`, another fork's under `C:\Qt`).
+A contribution must **never** carry them, or it overwrites the other side's
+working launcher and forces a manual re-fix. This is enforced mechanically — you
+don't have to remember:
+
+- **Contribute upstream** with the helper. It pins the launch scripts to
+  upstream's version (zero diff for those two files) and opens the PR with an
+  explicit `--repo`/`--base`/`--head`. Always contribute from a throwaway
+  `sync/…` branch, **not** from `dev`:
+  ```powershell
+  pwsh -File tools/contribute-to-upstream.ps1
+  ```
+- **A pre-push guard** rejects pushing a *contribution* branch (`sync/contribution-*`,
+  or any other `sync/*` / `*contribution*` name) whose `run.cmd` / `launch.cmd`
+  still differ from `upstream/dev`. Down-sync branches (`sync/upstream-dev-*`,
+  `merge/upstream-dev-*`) are exempt — they intentionally keep your scripts.
+  Install it once per clone:
+  ```powershell
+  pwsh -File tools/install-hooks.ps1
+  ```
+- **Down-sync** (pulling upstream into your fork) keeps *your* launch scripts:
+  ```powershell
+  pwsh -File tools/sync-from-upstream.ps1
+  ```
+  (A `.gitattributes merge=ours` does **not** reliably do this — when only
+  upstream changed the file, git fast-forwards to their version — so the helper
+  re-pins your copy after the merge instead.)
+
+If you ever bypass the helper, the manual pin is:
+```bash
+git fetch upstream
+git checkout upstream/dev -- run.cmd launch.cmd            # pin to upstream => zero diff
+git diff --name-only upstream/dev -- run.cmd launch.cmd    # MUST print nothing
+```
 
 ### Contributing with AI Agents
 
