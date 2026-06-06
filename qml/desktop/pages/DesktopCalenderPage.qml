@@ -1699,14 +1699,20 @@ Item {
                                             anchors.rightMargin: 10
                                             spacing: 10
 
-                                            // 类型脊柱 + 完成切换（点切 done；色=类型语义色）
+                                            // 完成切换（aqua→violet 渐变勾选框 + ✓，与首页今日事项一致）
                                             Rectangle {
                                                 Layout.preferredWidth: 22
                                                 Layout.preferredHeight: 22
-                                                radius: 11
-                                                color: agendaItem.done ? eventSpine(agendaItem.type) : "transparent"
+                                                radius: 8
+                                                color: Qt.rgba(1, 1, 1, 0.06)
                                                 border.width: agendaItem.done ? 0 : 1
-                                                border.color: eventSpine(agendaItem.type)
+                                                border.color: Qt.rgba(ml.glowCyan.r, ml.glowCyan.g, ml.glowCyan.b, 0.22)
+                                                gradient: agendaItem.done ? agDoneGrad : null
+                                                Gradient {
+                                                    id: agDoneGrad
+                                                    GradientStop { position: 0; color: Qt.rgba(ml.glowCyan.r, ml.glowCyan.g, ml.glowCyan.b, 0.86) }
+                                                    GradientStop { position: 1; color: Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0.82) }
+                                                }
                                                 Text {
                                                     anchors.centerIn: parent
                                                     visible: agendaItem.done
@@ -1730,7 +1736,7 @@ Item {
 
                                                 Text {
                                                     Layout.fillWidth: true
-                                                    text: (agendaItem.time && agendaItem.time !== "" ? agendaItem.time + "  " : "") + agendaItem.text
+                                                    text: agendaItem.text
                                                     color: agendaItem.done ? ml.textSecondary : ml.textPrimary
                                                     font.pixelSize: 13
                                                     font.bold: true
@@ -1738,11 +1744,11 @@ Item {
                                                     elide: Text.ElideRight
                                                 }
 
+                                                // 副标：tag 小标 + 时间(aqua) + 详情（对齐 v88/首页 .todo-copy small）
                                                 RowLayout {
                                                     Layout.fillWidth: true
                                                     spacing: 6
 
-                                                    // tag 小标（固定色）
                                                     Rectangle {
                                                         Layout.preferredWidth: tagTxt.implicitWidth + 12
                                                         Layout.preferredHeight: 16
@@ -1758,7 +1764,14 @@ Item {
                                                         }
                                                     }
 
-                                                    // 详情（无则回退到关联项目）
+                                                    Text {
+                                                        visible: agendaItem.time && agendaItem.time !== ""
+                                                        text: agendaItem.time
+                                                        color: Qt.rgba(ml.glowCyan.r, ml.glowCyan.g, ml.glowCyan.b, 0.85)
+                                                        font.pixelSize: 10
+                                                        font.bold: true
+                                                    }
+
                                                     Text {
                                                         Layout.fillWidth: true
                                                         text: agendaItem.desc !== "" ? agendaItem.desc
@@ -2095,7 +2108,8 @@ Item {
                                                 }
                                                 Text {
                                                     Layout.fillWidth: true
-                                                    text: (modelData.desc && modelData.desc !== "") ? modelData.desc : anniversarySubtitle(modelData)
+                                                    text: anniversarySubtitle(modelData)
+                                                          + ((modelData.desc && modelData.desc !== "") ? "  ·  " + modelData.desc : "")
                                                     color: ml.textTertiary
                                                     font.pixelSize: 10
                                                     elide: Text.ElideRight
