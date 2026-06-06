@@ -250,4 +250,6 @@ QtObject {
     readonly property color calGhostBorder: night ? Qt.rgba(1, 1, 1, 0.10)  : Qt.rgba(0.40, 0.34, 0.28, 0.18)
     readonly property color calGlyph:       night ? Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.86)
                                                   : Qt.rgba(0.18, 0.22, 0.28, 0.86)
+    // 议程删除 hover 破坏红薄洗（设计稿 .agenda-delete:hover rgba(255,95,95,.18)）
+    readonly property color calDangerWash:  Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.18)
 }

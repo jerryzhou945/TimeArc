@@ -103,20 +103,40 @@ Item {
         // 周一为每周起始列（与 v88 + MemoDatePicker 一致）：偏移 (getDay()+6)%7。
         start.setDate(first.getDate() - ((first.getDay() + 6) % 7))
 
+        // 一次性取数（避免每格重新解析整段 JSON）。
+        var todosMap = allTodosMap()
+        var anns = allAnniversaries()
+        var photoMap = buildPhotoLookup()
+        var todayKey = dateKey(todayDate)
+
         for (var i = 0; i < 42; i++) {
             var d = new Date(start)
             d.setDate(start.getDate() + i)
             var key = dateKey(d)
+            var dayTodos = todosMap[key] ? todosMap[key] : []
+            var doneN = 0
+            for (var t = 0; t < dayTodos.length; t++)
+                if (dayTodos[t].done)
+                    doneN += 1
+            var annN = 0, cdN = 0
+            for (var a = 0; a < anns.length; a++) {
+                if (anns[a].dateKey === key) {
+                    annN += 1
+                    if (anniversaryKind(anns[a]) === "countdown")
+                        cdN += 1
+                }
+            }
             cells.push({
                 dateKey: key,
                 day: d.getDate(),
                 inMonth: d.getMonth() === viewedMonth.getMonth(),
-                isToday: key === dateKey(todayDate),
-                hasPhoto: backgroundForDate(key) !== "",
-                todoCount: todoCountForDate(key),
-                doneCount: doneCountForDate(key),
-                anniversaryCount: anniversaryCountForDate(key),
-                countdownCount: countdownCountForDate(key)
+                isToday: key === todayKey,
+                hasPhoto: photoMap[key] ? true : false,
+                events: dayTodos,
+                todoCount: dayTodos.length,
+                doneCount: doneN,
+                anniversaryCount: annN,
+                countdownCount: cdN
             })
         }
         return cells
@@ -244,6 +264,48 @@ Item {
         return count
     }
 
+    // 事件类型（event/todo/focus）→ 胶囊/脊柱固定语义色（三种，v88 §1.9）。
+    function eventChipBg(type) {
+        return type === "event" ? ml.chipEventBg : type === "focus" ? ml.chipFocusBg : ml.chipTodoBg
+    }
+    function eventChipBd(type) {
+        return type === "event" ? ml.chipEventBd : type === "focus" ? ml.chipFocusBd : ml.chipTodoBd
+    }
+    function eventSpine(type) {
+        return type === "event" ? ml.aqua : type === "focus" ? ml.violet : ml.shareGold
+    }
+    function typeFromLabel(label) {
+        return label === "事件" ? "event" : label === "专注" ? "focus" : "todo"
+    }
+    function typeLabel(type) {
+        return type === "event" ? "事件" : type === "focus" ? "专注" : "待办"
+    }
+
+    // 一次性构建 dateKey→照片路径 查找表（手动优先，回退当天首张 chat 图）。
+    // 取代 buildCalendarCells 内每格重新解析整段 chat JSON（42× 解析 → 1×）。
+    function buildPhotoLookup() {
+        var result = {}
+        var savedChats = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
+        if (savedChats && savedChats !== "") {
+            try {
+                var chats = JSON.parse(savedChats)
+                for (var i = 0; i < chats.length; i++) {
+                    var item = chats[i]
+                    if (item.imagePath && item.imagePath !== "" && item.timeText) {
+                        var k = item.timeText.substring(0, 10)
+                        if (!result[k])
+                            result[k] = item.imagePath
+                    }
+                }
+            } catch (e) {}
+        }
+        var manual = manualPhotoMap()
+        for (var key in manual)
+            if (manual[key] && manual[key] !== "")
+                result[key] = manual[key]
+        return result
+    }
+
     function anniversaryTypeFromText(text) {
         return text.indexOf("倒计时") >= 0 ? "countdown" : "since"
     }
@@ -340,7 +402,9 @@ Item {
                 text: item.text,
                 done: item.done,
                 tag: item.tag ? item.tag : fixedTags[0],
-                linkedProject: item.linkedProject ? item.linkedProject : ""
+                linkedProject: item.linkedProject ? item.linkedProject : "",
+                time: item.time ? item.time : "",
+                type: item.type ? item.type : "todo"
             })
         }
         map[selectedDateKey] = arr
@@ -357,7 +421,9 @@ Item {
                 text: arr[i].text,
                 done: arr[i].done ? true : false,
                 tag: arr[i].tag ? arr[i].tag : fixedTags[0],
-                linkedProject: arr[i].linkedProject ? arr[i].linkedProject : ""
+                linkedProject: arr[i].linkedProject ? arr[i].linkedProject : "",
+                time: arr[i].time ? arr[i].time : "",
+                type: arr[i].type ? arr[i].type : "todo"
             })
         }
     }
@@ -409,9 +475,12 @@ Item {
             text: text,
             done: false,
             tag: todoTagBox.currentText,
-            linkedProject: linkedProjectFromChoice(todoProjectBox.currentText)
+            linkedProject: linkedProjectFromChoice(todoProjectBox.currentText),
+            time: eventTimeInput.text.trim(),
+            type: typeFromLabel(eventTypeBox.currentText)
         })
         todoInput.text = ""
+        eventTimeInput.text = ""
         todoProjectBox.currentIndex = 0
         saveTodosForSelectedDate()
     }
@@ -727,6 +796,7 @@ Item {
 
                                 // 日号
                                 Text {
+                                    id: cellDayNum
                                     anchors.left: parent.left
                                     anchors.top: parent.top
                                     anchors.leftMargin: 10
@@ -738,33 +808,17 @@ Item {
                                                  ? Font.Bold : Font.DemiBold
                                 }
 
-                                // 保留徽标（待办计数 + 倒/纪 + 照片点）。事件胶囊在 F-B3 接入。
+                                // 保留徽标（倒/纪 + 照片点）右上角，与日号同排（D-KEEP）。
                                 Row {
                                     anchors.right: parent.right
-                                    anchors.bottom: parent.bottom
+                                    anchors.top: parent.top
                                     anchors.rightMargin: 8
-                                    anchors.bottomMargin: 8
-                                    spacing: 5
-
-                                    Rectangle {
-                                        visible: modelData.todoCount > 0
-                                        width: 18; height: 18; radius: 9
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        color: modelData.doneCount === modelData.todoCount ? ml.accentSoft : ml.chipTodoBg
-                                        border.width: 1
-                                        border.color: modelData.doneCount === modelData.todoCount ? ml.accentSoftBorder : ml.chipTodoBd
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: modelData.todoCount
-                                            color: ml.chipText
-                                            font.pixelSize: 10
-                                            font.bold: true
-                                        }
-                                    }
+                                    anchors.topMargin: 8
+                                    spacing: 4
 
                                     Rectangle {
                                         visible: modelData.anniversaryCount > 0
-                                        width: 22; height: 18; radius: 9
+                                        width: 17; height: 16; radius: 8
                                         anchors.verticalCenter: parent.verticalCenter
                                         color: modelData.countdownCount > 0 ? ml.chipFocusBg : ml.chipTodoBg
                                         border.width: 1
@@ -773,7 +827,7 @@ Item {
                                             anchors.centerIn: parent
                                             text: modelData.countdownCount > 0 ? "倒" : "纪"
                                             color: ml.chipText
-                                            font.pixelSize: 10
+                                            font.pixelSize: 9
                                             font.bold: true
                                         }
                                     }
@@ -783,6 +837,51 @@ Item {
                                         width: 7; height: 7; radius: 3.5
                                         anchors.verticalCenter: parent.verticalCenter
                                         color: ml.glowCyan
+                                    }
+                                }
+
+                                // 事件胶囊（前 3 条 time+title，类型色 event/todo/focus；超出 +N more，v88 §1.9）。
+                                Column {
+                                    id: chipCol
+                                    property var evs: modelData.events
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.top: cellDayNum.bottom
+                                    anchors.leftMargin: 7
+                                    anchors.rightMargin: 7
+                                    anchors.topMargin: 6
+                                    spacing: 3
+
+                                    Repeater {
+                                        model: Math.min(3, chipCol.evs.length)
+                                        delegate: Rectangle {
+                                            required property int index
+                                            property var ev: chipCol.evs[index]
+                                            width: parent.width
+                                            height: 16
+                                            radius: 8
+                                            color: eventChipBg(ev.type)
+                                            border.width: 1
+                                            border.color: eventChipBd(ev.type)
+                                            Text {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 6
+                                                anchors.rightMargin: 6
+                                                verticalAlignment: Text.AlignVCenter
+                                                elide: Text.ElideRight
+                                                text: (ev.time && ev.time !== "" ? ev.time + " " : "") + ev.text
+                                                color: ml.chipText
+                                                font.pixelSize: 9
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        visible: chipCol.evs.length > 3
+                                        leftPadding: 4
+                                        text: "+" + (chipCol.evs.length - 3) + " more"
+                                        color: ml.textTertiary
+                                        font.pixelSize: 9
                                     }
                                 }
 
@@ -799,19 +898,17 @@ Item {
                 }
             }
 
-            SoftCard {
+            GlassPanel {
                 Layout.preferredWidth: 372
                 Layout.fillHeight: true
-                radius: 30
-                padding: 20
-                fillColor: cardColor
-                fillOpacity: nightMode ? 0.76 : 0.88
-                strokeColor: borderColor
-                shadowColor: shadowColor
-                shadowOpacity: nightMode ? 0.16 : 0.08
+                style: ml
+                color: ml.calPanelBg
+                dropShadow: false
+                radius: 22
 
                 ColumnLayout {
                     anchors.fill: parent
+                    anchors.margins: 18
                     spacing: 14
 
                     Rectangle {
@@ -913,18 +1010,19 @@ Item {
                         }
                     }
 
+                    // 模式分段控件（待办/记录/纪念）— v88 暗霓虹（active = aqua→violet 渐变 + 近黑墨字）。
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 48
-                        radius: 18
-                        color: cardSoft
+                        Layout.preferredHeight: 44
+                        radius: 14
+                        color: ml.calSunkBg
                         border.width: 1
-                        border.color: softBorder
+                        border.color: ml.cardBorder
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.margins: 5
-                            spacing: 5
+                            anchors.margins: 4
+                            spacing: 4
 
                             Repeater {
                                 model: [
@@ -938,19 +1036,31 @@ Item {
 
                                     Layout.fillWidth: true
                                     Layout.fillHeight: true
-                                    radius: 14
-                                    color: sidePanelMode === modelData.key ? primaryButton : "transparent"
+                                    radius: 11
+                                    gradient: sidePanelMode === modelData.key ? segGrad : null
+                                    color: sidePanelMode === modelData.key
+                                           ? "transparent"
+                                           : (segMa.containsMouse ? ml.calGhostHover : "transparent")
+
+                                    Gradient {
+                                        id: segGrad
+                                        orientation: Gradient.Horizontal
+                                        GradientStop { position: 0; color: ml.aqua }
+                                        GradientStop { position: 1; color: ml.violet }
+                                    }
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: modelData.label
-                                        color: sidePanelMode === modelData.key ? "#FFFDF9" : textSecondary
-                                        font.pixelSize: 14
-                                        font.bold: sidePanelMode === modelData.key
+                                        color: sidePanelMode === modelData.key ? ml.calBtnInk : ml.textSecondary
+                                        font.pixelSize: 13
+                                        font.weight: sidePanelMode === modelData.key ? Font.Bold : Font.DemiBold
                                     }
 
                                     MouseArea {
+                                        id: segMa
                                         anchors.fill: parent
+                                        hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: sidePanelMode = modelData.key
                                     }
@@ -959,228 +1069,322 @@ Item {
                         }
                     }
 
+                    // 待办模式 = v88 加日程表单（标题 / 时间·类型 / 标签·项目·添加）+ 当天议程。
                     ColumnLayout {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         spacing: 12
                         visible: sidePanelMode === "tasks"
 
+                        // event-form
                         Rectangle {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 136
-                            radius: 22
-                            color: cardSoft
+                            Layout.preferredHeight: 174
+                            radius: 16
+                            color: ml.calSunkBg
                             border.width: 1
-                            border.color: softBorder
+                            border.color: ml.cardBorder
 
                             ColumnLayout {
                                 anchors.fill: parent
-                                anchors.margins: 14
-                                spacing: 10
+                                anchors.margins: 12
+                                spacing: 8
 
                                 TextField {
                                     id: todoInput
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 40
-                                    placeholderText: "添加这一天的待办"
-                                    placeholderTextColor: textSecondary
-                                    color: textPrimary
+                                    Layout.preferredHeight: 38
+                                    placeholderText: "添加这一天的事项"
+                                    placeholderTextColor: ml.textTertiary
+                                    color: ml.textPrimary
                                     font.pixelSize: 14
                                     selectByMouse: true
+                                    leftPadding: 12
+                                    rightPadding: 12
                                     background: Rectangle {
-                                        radius: 15
-                                        color: fieldColor
+                                        radius: 12
+                                        color: ml.calSunkBg
                                         border.width: 1
-                                        border.color: softBorder
+                                        border.color: ml.calInputBorder
                                     }
                                     Keys.onReturnPressed: addTodo()
                                 }
 
+                                // 时间 + 类型（v88 event-form-row）
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    TextField {
+                                        id: eventTimeInput
+                                        Layout.preferredWidth: 92
+                                        Layout.preferredHeight: 36
+                                        placeholderText: "时间"
+                                        placeholderTextColor: ml.textTertiary
+                                        color: ml.textPrimary
+                                        font.pixelSize: 13
+                                        selectByMouse: true
+                                        leftPadding: 12
+                                        inputMethodHints: Qt.ImhPreferNumbers
+                                        background: Rectangle {
+                                            radius: 12
+                                            color: ml.calSunkBg
+                                            border.width: 1
+                                            border.color: ml.calInputBorder
+                                        }
+                                        Keys.onReturnPressed: addTodo()
+                                    }
+
+                                    ComboBox {
+                                        id: eventTypeBox
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 36
+                                        model: ["待办", "事件", "专注"]
+                                        currentIndex: 0
+                                        contentItem: Text {
+                                            leftPadding: 12
+                                            rightPadding: 26
+                                            text: eventTypeBox.displayText
+                                            color: ml.textPrimary
+                                            font.pixelSize: 13
+                                            verticalAlignment: Text.AlignVCenter
+                                            elide: Text.ElideRight
+                                        }
+                                        background: Rectangle {
+                                            radius: 12
+                                            color: ml.calSunkBg
+                                            border.width: 1
+                                            border.color: ml.calInputBorder
+                                        }
+                                    }
+                                }
+
+                                // 标签 + 项目 + 添加（保留 tag/linkedProject → 计时回路）
                                 RowLayout {
                                     Layout.fillWidth: true
                                     spacing: 8
 
                                     ComboBox {
                                         id: todoTagBox
-                                        Layout.preferredWidth: 88
-                                        Layout.preferredHeight: 38
+                                        Layout.preferredWidth: 82
+                                        Layout.preferredHeight: 36
                                         model: fixedTags
                                         currentIndex: 0
                                         onCurrentTextChanged: todoProjectBox.currentIndex = 0
-
                                         contentItem: Text {
                                             leftPadding: 12
-                                            rightPadding: 26
+                                            rightPadding: 20
                                             text: todoTagBox.displayText
-                                            color: textPrimary
-                                            font.pixelSize: 13
+                                            color: ml.textPrimary
+                                            font.pixelSize: 12
                                             font.bold: true
                                             verticalAlignment: Text.AlignVCenter
                                             elide: Text.ElideRight
                                         }
-
                                         background: Rectangle {
-                                            radius: 15
-                                            color: fieldColor
+                                            radius: 12
+                                            color: ml.calSunkBg
                                             border.width: 1
-                                            border.color: softBorder
+                                            border.color: ml.calInputBorder
                                         }
                                     }
 
                                     ComboBox {
                                         id: todoProjectBox
                                         Layout.fillWidth: true
-                                        Layout.preferredHeight: 38
+                                        Layout.preferredHeight: 36
                                         model: projectChoicesForTag(todoTagBox.currentText)
-
                                         contentItem: Text {
                                             leftPadding: 12
-                                            rightPadding: 26
+                                            rightPadding: 20
                                             text: todoProjectBox.displayText
-                                            color: textPrimary
-                                            font.pixelSize: 13
+                                            color: ml.textPrimary
+                                            font.pixelSize: 12
                                             verticalAlignment: Text.AlignVCenter
                                             elide: Text.ElideRight
                                         }
-
                                         background: Rectangle {
-                                            radius: 15
-                                            color: fieldColor
+                                            radius: 12
+                                            color: ml.calSunkBg
                                             border.width: 1
-                                            border.color: softBorder
+                                            border.color: ml.calInputBorder
                                         }
                                     }
 
-                                    SoftButton {
-                                        text: "添加"
-                                        implicitWidth: 70
-                                        implicitHeight: 38
-                                        radius: 15
-                                        fillColor: primaryButton
-                                        hoverColor: primaryButtonHover
-                                        textColor: "#FFFDF9"
-                                        fontSize: 13
-                                        onClicked: addTodo()
+                                    // 添加（aqua→violet 主键）
+                                    Rectangle {
+                                        Layout.preferredWidth: 58
+                                        Layout.preferredHeight: 36
+                                        radius: 12
+                                        gradient: Gradient {
+                                            orientation: Gradient.Horizontal
+                                            GradientStop { position: 0; color: ml.aqua }
+                                            GradientStop { position: 1; color: ml.violet }
+                                        }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "添加"
+                                            color: ml.calBtnInk
+                                            font.pixelSize: 13
+                                            font.weight: Font.DemiBold
+                                        }
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: addTodo()
+                                        }
                                     }
                                 }
                             }
                         }
 
-                        ListView {
+                        // 当天议程（SilkyFlickable，丝滑滚动）
+                        SilkyFlickable {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            clip: true
-                            spacing: 9
-                            model: todoModel
+                            style: ml
 
-                            delegate: Rectangle {
-                                id: todoDelegate
+                            Column {
+                                width: parent.width
+                                spacing: 8
 
-                                required property int index
-                                required property string text
-                                required property bool done
-                                required property string tag
-                                required property string linkedProject
+                                Repeater {
+                                    model: todoModel
 
-                                width: ListView.view.width
-                                height: 64
-                                radius: 20
-                                color: cardSoft
-                                border.width: 1
-                                border.color: softBorder
+                                    delegate: Rectangle {
+                                        id: agendaItem
+                                        required property int index
+                                        required property string text
+                                        required property bool done
+                                        required property string tag
+                                        required property string linkedProject
+                                        required property string time
+                                        required property string type
 
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 10
-                                    spacing: 8
-
-                                    CheckBox {
-                                        checked: todoDelegate.done
-                                        onToggled: {
-                                            todoModel.setProperty(todoDelegate.index, "done", checked)
-                                            saveTodosForSelectedDate()
-                                        }
-                                    }
-
-                                    Rectangle {
-                                        Layout.preferredWidth: 30
-                                        Layout.preferredHeight: 30
-                                        radius: 15
-                                        color: tagColor(todoDelegate.tag)
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: tagIcon(todoDelegate.tag)
-                                            color: textPrimary
-                                            font.pixelSize: 11
-                                            font.bold: true
-                                        }
-                                    }
-
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 3
-
-                                        Text {
-                                            Layout.fillWidth: true
-                                            text: todoDelegate.text
-                                            color: todoDelegate.done ? textSecondary : textPrimary
-                                            font.pixelSize: 14
-                                            font.bold: true
-                                            elide: Text.ElideRight
-                                            font.strikeout: todoDelegate.done
-                                        }
-
-                                        Text {
-                                            Layout.fillWidth: true
-                                            text: todoDelegate.tag + (todoDelegate.linkedProject !== "" ? " · " + todoDelegate.linkedProject : "")
-                                            color: textSecondary
-                                            font.pixelSize: 11
-                                            elide: Text.ElideRight
-                                        }
-                                    }
-
-                                    SoftButton {
-                                        visible: !todoDelegate.done
-                                        text: "开始"
-                                        implicitWidth: 58
-                                        implicitHeight: 32
+                                        width: parent.width
+                                        height: 56
                                         radius: 13
-                                        fillColor: primaryButton
-                                        hoverColor: primaryButtonHover
-                                        textColor: "#FFFDF9"
-                                        fontSize: 12
-                                        onClicked: startTodoProject(todoDelegate.text, todoDelegate.tag, selectedDateKey, todoDelegate.linkedProject)
-                                    }
+                                        color: ml.calSunkBg
+                                        border.width: 1
+                                        border.color: ml.cardBorder
 
-                                    Text {
-                                        text: "×"
-                                        color: textSecondary
-                                        font.pixelSize: 18
-                                        font.bold: true
-
-                                        MouseArea {
+                                        RowLayout {
                                             anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: {
-                                                todoModel.remove(todoDelegate.index)
-                                                saveTodosForSelectedDate()
+                                            anchors.leftMargin: 12
+                                            anchors.rightMargin: 10
+                                            spacing: 10
+
+                                            // 类型脊柱 + 完成切换（点切 done；色=类型语义色）
+                                            Rectangle {
+                                                Layout.preferredWidth: 22
+                                                Layout.preferredHeight: 22
+                                                radius: 11
+                                                color: agendaItem.done ? eventSpine(agendaItem.type) : "transparent"
+                                                border.width: agendaItem.done ? 0 : 1
+                                                border.color: eventSpine(agendaItem.type)
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    visible: agendaItem.done
+                                                    text: "✓"
+                                                    color: ml.calBtnInk
+                                                    font.pixelSize: 12
+                                                    font.bold: true
+                                                }
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    anchors.margins: -6
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        todoModel.setProperty(agendaItem.index, "done", !agendaItem.done)
+                                                        saveTodosForSelectedDate()
+                                                    }
+                                                }
+                                            }
+
+                                            ColumnLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 2
+
+                                                Text {
+                                                    Layout.fillWidth: true
+                                                    text: (agendaItem.time && agendaItem.time !== "" ? agendaItem.time + "  " : "") + agendaItem.text
+                                                    color: agendaItem.done ? ml.textSecondary : ml.textPrimary
+                                                    font.pixelSize: 13
+                                                    font.bold: true
+                                                    font.strikeout: agendaItem.done
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                Text {
+                                                    Layout.fillWidth: true
+                                                    text: typeLabel(agendaItem.type) + " · " + agendaItem.tag
+                                                          + (agendaItem.linkedProject !== "" ? " · " + agendaItem.linkedProject : "")
+                                                    color: ml.textTertiary
+                                                    font.pixelSize: 10
+                                                    elide: Text.ElideRight
+                                                }
+                                            }
+
+                                            // 开始（计时）
+                                            Rectangle {
+                                                Layout.preferredWidth: 50
+                                                Layout.preferredHeight: 30
+                                                visible: !agendaItem.done
+                                                radius: 10
+                                                color: startMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                                                border.width: 1
+                                                border.color: ml.calGhostBorder
+                                                Text { anchors.centerIn: parent; text: "开始"; color: ml.calGlyph; font.pixelSize: 12 }
+                                                MouseArea {
+                                                    id: startMa
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: startTodoProject(agendaItem.text, agendaItem.tag, selectedDateKey, agendaItem.linkedProject)
+                                                }
+                                            }
+
+                                            // 删除
+                                            Rectangle {
+                                                Layout.preferredWidth: 26
+                                                Layout.preferredHeight: 26
+                                                radius: 9
+                                                color: delMa.containsMouse ? ml.calDangerWash : ml.calGhostBg
+                                                border.width: 1
+                                                border.color: ml.calGhostBorder
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "×"
+                                                    color: delMa.containsMouse ? ml.chipText : ml.calGlyph
+                                                    font.pixelSize: 16
+                                                    font.bold: true
+                                                }
+                                                MouseArea {
+                                                    id: delMa
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        todoModel.remove(agendaItem.index)
+                                                        saveTodosForSelectedDate()
+                                                    }
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
 
-                            footer: Item {
-                                width: ListView.view ? ListView.view.width : 0
-                                height: todoModel.count === 0 ? 96 : 0
-
-                                Text {
-                                    anchors.centerIn: parent
+                                // 空态（v88 一条「暂无日程」占位）
+                                Item {
+                                    width: parent.width
+                                    height: todoModel.count === 0 ? 90 : 0
                                     visible: todoModel.count === 0
-                                    text: "还没有待办"
-                                    color: textSecondary
-                                    font.pixelSize: 14
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "暂无日程"
+                                        color: ml.textTertiary
+                                        font.pixelSize: 13
+                                    }
                                 }
                             }
                         }
