@@ -309,6 +309,7 @@ SELECT
     COALESCE(NULLIF(a.display_name, ''), a.app_name, ms.app_identifier) AS display_name,
     a.app_icon_path,
     ms.media_type,
+    ms.media_title,
     SUM(ms.playback_sec) AS total_sec
 FROM media_sessions ms
 LEFT JOIN apps a ON a.app_identifier = ms.app_identifier
@@ -317,6 +318,7 @@ WHERE ms.start_unix_sec < :end_unix_sec
 GROUP BY
     ms.app_identifier,
     ms.media_type,
+    ms.media_title,
     a.display_name,
     a.app_name,
     a.app_icon_path
@@ -338,11 +340,12 @@ ORDER BY total_sec DESC;
 
   while (query.next()) {
     QVariantMap item;
-    const int playbackSec = query.value(4).toInt();
+    const int playbackSec = query.value(5).toInt();
     item.insert(QStringLiteral("appIdentifier"), query.value(0).toString());
     item.insert(QStringLiteral("displayName"), query.value(1).toString());
     item.insert(QStringLiteral("appIconPath"), query.value(2).toString());
     item.insert(QStringLiteral("mediaType"), query.value(3).toString());
+    item.insert(QStringLiteral("mediaTitle"), query.value(4).toString());
     item.insert(QStringLiteral("playbackSec"), playbackSec);
     item.insert(QStringLiteral("durationText"), formatDuration(playbackSec));
     ranking.append(item);
