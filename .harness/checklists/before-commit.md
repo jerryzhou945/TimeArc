@@ -45,6 +45,11 @@ in the commit message body.
 
 - [ ] If you changed the UI, the app launches, navigates to your changed
       page, and does not emit QML warnings to the console.
+- [ ] If you changed a **full-bleed page** (记忆湖/日历/回顾), check it at the
+      **window minimum (1280×720) and maximized** — these pages use fixed pixel
+      sizes and have overlapped/overflowed at the extremes (see error report
+      `20260606-162309-C-memorylake-responsive-minmax`). Capture both via the
+      non-intrusive PrintWindow harness (own instance, by PID).
 - [ ] If you changed the service, it starts, writes at least one record to
       `usage_records.jsonl`, and exits cleanly on Ctrl+C.
 - [ ] If runtime assertions or QML warnings fire, record them via
