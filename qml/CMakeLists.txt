@@ -15,6 +15,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/components/SoftButton.qml
     qml/desktop/components/AchievementToast.qml
     qml/desktop/components/AppVisual.js
+    qml/desktop/components/TagPalette.js
     qml/desktop/memorylake/MemoryLakeMock.js
     qml/desktop/memorylake/GenerativeCover.qml
     qml/desktop/memorylake/MemoryLakeStyle.qml
@@ -44,6 +45,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/TodayConclusionCard.qml
     qml/desktop/memorylake/DailyUsageShare.qml
     qml/desktop/memorylake/CalendarSyncList.qml
+    qml/desktop/memorylake/TagChip.qml
     qml/desktop/memorylake/SilkyFlickable.qml
     qml/desktop/memorylake/RecapSlide.qml
     qml/desktop/memorylake/RecapOverlay.qml

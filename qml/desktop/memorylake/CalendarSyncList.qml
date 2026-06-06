@@ -256,12 +256,9 @@ Rectangle {
                             font.strikeout: rowBg.modelData.done
                             elide: Text.ElideRight
                         }
-                        Text {
-                            width: parent.width
-                            text: rowBg.modelData.tag ? rowBg.modelData.tag : "待办"
-                            color: panel.style ? panel.style.textTertiary : "#888"
-                            font.pixelSize: 10
-                            elide: Text.ElideRight
+                        TagChip {
+                            tag: rowBg.modelData.tag ? rowBg.modelData.tag : "其他"
+                            style: panel.style
                         }
                     }
                 }

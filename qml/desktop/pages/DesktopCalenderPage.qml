@@ -6,6 +6,7 @@ import QtQuick.Effects
 import QtCore
 import "../components"
 import "../memorylake"
+import "../components/TagPalette.js" as TagPalette
 
 Item {
     id: root
@@ -565,27 +566,9 @@ Item {
         return choice === "不关联" ? "" : choice
     }
 
-    function tagColor(tag) {
-        if (tag === "学习") return "#D9D0F2"
-        if (tag === "工作") return "#EFDCC3"
-        if (tag === "运动") return "#CFE8D8"
-        if (tag === "娱乐") return "#EBC9CF"
-        if (tag === "阅读") return "#BFD7EA"
-        if (tag === "社交") return "#E7D4EA"
-        if (tag === "生活") return "#DDF1E5"
-        return "#D8D1CA"
-    }
-
-    function tagIcon(tag) {
-        if (tag === "学习") return "✦"
-        if (tag === "工作") return "▣"
-        if (tag === "运动") return "●"
-        if (tag === "娱乐") return "★"
-        if (tag === "阅读") return "✎"
-        if (tag === "社交") return "♥"
-        if (tag === "生活") return "☀"
-        return "•"
-    }
+    // 调色板与图标统一委托到 TagPalette.js（单一来源，杜绝多页色表漂移）。
+    function tagColor(tag) { return TagPalette.tagColor(tag) }
+    function tagIcon(tag) { return TagPalette.tagIcon(tag) }
 
     // 创建从独立弹出界面提交（参考时间选择浮层）。本日 = 当前选中日，无需选日期。
     function addTodo() {
@@ -1749,19 +1732,9 @@ Item {
                                                     Layout.fillWidth: true
                                                     spacing: 6
 
-                                                    Rectangle {
-                                                        Layout.preferredWidth: tagTxt.implicitWidth + 12
-                                                        Layout.preferredHeight: 16
-                                                        radius: 8
-                                                        color: Qt.rgba(tagColor(agendaItem.tag).r, tagColor(agendaItem.tag).g, tagColor(agendaItem.tag).b, 0.22)
-                                                        Text {
-                                                            id: tagTxt
-                                                            anchors.centerIn: parent
-                                                            text: agendaItem.tag
-                                                            color: tagColor(agendaItem.tag)
-                                                            font.pixelSize: 9
-                                                            font.bold: true
-                                                        }
+                                                    TagChip {
+                                                        tag: agendaItem.tag
+                                                        style: ml
                                                     }
 
                                                     Text {
@@ -2382,25 +2355,19 @@ Item {
                            color: ml.textTertiary; font.pixelSize: 14 }
                 }
 
-                // 标签（待办）：固定色小标，可选
+                // 标签（待办）：真·标签 chip 选择器（选中=语义色，未选=中性灰）
                 Flow {
                     width: parent.width
                     spacing: 6
                     visible: sidePanelMode !== "anniversaries"
                     Repeater {
                         model: fixedTags
-                        delegate: Rectangle {
+                        delegate: TagChip {
                             required property string modelData
-                            implicitWidth: tagPillTxt.implicitWidth + 18
-                            height: 28; radius: 14
-                            color: root.todoTag === modelData
-                                   ? Qt.rgba(tagColor(modelData).r, tagColor(modelData).g, tagColor(modelData).b, 0.30)
-                                   : ml.calGhostBg
-                            border.width: 1
-                            border.color: root.todoTag === modelData ? tagColor(modelData) : ml.calGhostBorder
-                            Text { id: tagPillTxt; anchors.centerIn: parent; text: modelData
-                                   color: root.todoTag === modelData ? tagColor(modelData) : ml.textSecondary
-                                   font.pixelSize: 12; font.bold: root.todoTag === modelData }
+                            tag: modelData
+                            style: ml
+                            big: true
+                            selected: root.todoTag === modelData
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                         onClicked: root.todoTag = modelData }
                         }

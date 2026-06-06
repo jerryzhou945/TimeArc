@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
 import "../components/AppVisual.js" as AppVisual
+import "../components/TagPalette.js" as TagPalette
 
 Item {
     id: root
@@ -70,27 +71,9 @@ Item {
         }
     }
 
-    function tagColor(tag) {
-        if (tag === "学习") return "#D9D0F2"
-        if (tag === "工作") return "#EFDCC3"
-        if (tag === "运动") return "#CFE8D8"
-        if (tag === "娱乐") return "#EBC9CF"
-        if (tag === "阅读") return "#BFD7EA"
-        if (tag === "社交") return "#E7D4EA"
-        if (tag === "生活") return "#DDF1E5"
-        return "#D8D1CA"
-    }
-
-    function tagIcon(tag) {
-        if (tag === "学习") return "✦"
-        if (tag === "工作") return "▣"
-        if (tag === "运动") return "●"
-        if (tag === "娱乐") return "★"
-        if (tag === "阅读") return "✎"
-        if (tag === "社交") return "♥"
-        if (tag === "生活") return ""
-        return "•"
-    }
+    // 调色板与图标统一委托到 TagPalette.js（单一来源，杜绝多页色表漂移）。
+    function tagColor(tag) { return TagPalette.tagColor(tag) }
+    function tagIcon(tag) { return TagPalette.tagIcon(tag) }
 
     function minutesToDisplay(minutes) {
         var total = Math.max(0, Math.floor(minutes ? minutes : 0))
