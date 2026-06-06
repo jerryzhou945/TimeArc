@@ -5,6 +5,7 @@ import QtQuick.Dialogs
 import QtQuick.Effects
 import QtCore
 import "../components"
+import "../memorylake"
 
 Item {
     id: root
@@ -20,23 +21,25 @@ Item {
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
 
-    property color textPrimary: themeTextPrimary
-    property color textSecondary: themeTextSecondary
-    property color cardColor: nightMode ? "#3E465F" : "#FFFDF9"
-    property color cardSoft: nightMode ? "#454D68" : "#F7F3EE"
-    property color panelColor: nightMode ? "#353C55" : "#FBF8F4"
-    property color mint: nightMode ? "#7780B5" : "#CFE8D8"
-    property color lightMint: nightMode ? "#596184" : "#DDF1E5"
-    property color cream: nightMode ? "#555A78" : "#F4E8C8"
-    property color blush: nightMode ? "#65536A" : "#EBC9CF"
-    property color lavender: nightMode ? "#60668C" : "#D9D0F2"
-    property color borderColor: nightMode ? "#626A90" : "#E8E0D8"
-    property color softBorder: nightMode ? "#737BA4" : "#EFE7DE"
-    property color shadowColor: nightMode ? "#05070D" : "#BFAE9D"
-    property color fieldColor: nightMode ? "#4A526F" : "#FFFDF9"
-    property color primaryButton: nightMode ? "#8E93D8" : "#1F1A17"
-    property color primaryButtonHover: nightMode ? "#9AA0E7" : "#332C27"
-    property color accentText: nightMode ? "#DADDFD" : "#2F7A5B"
+    // 颜色全部走 memory-lake token（G1 单源）。夜=暗玻璃霓虹，昼=浅瓷，由 ml.night 切换。
+    // 旧布局（Soft* 卡）在 F-B1 仍在，但已被 token 染成暗霓虹（可跑切片）；F-B2+ 重构结构。
+    property color textPrimary: ml.textPrimary
+    property color textSecondary: ml.textSecondary
+    property color cardColor: ml.faceBg
+    property color cardSoft: ml.bg2
+    property color panelColor: ml.panelBg
+    property color mint: ml.aqua
+    property color lightMint: ml.accentSoft
+    property color cream: ml.shareGold
+    property color blush: ml.sharePink
+    property color lavender: ml.violet
+    property color borderColor: ml.panelBorder
+    property color softBorder: ml.cardBorder
+    property color shadowColor: ml.shadowColor
+    property color fieldColor: ml.calSunkBg
+    property color primaryButton: ml.violet
+    property color primaryButtonHover: ml.aqua
+    property color accentText: ml.accentText
 
     property date todayDate: new Date()
     property date viewedMonth: new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)
@@ -45,6 +48,14 @@ Item {
     property var fixedTags: ["学习", "工作", "运动", "娱乐", "阅读", "社交", "生活", "其他"]
     property int projectRefreshKey: 0
     property string sidePanelMode: "tasks"
+
+    // 记忆湖统一色板（接 AppShell.applyThemeToLoadedPage 注入的主题契约）。
+    MemoryLakeStyle {
+        id: ml
+        night: root.nightMode
+        injectedTextPrimary: root.themeTextPrimary
+        injectedTextSecondary: root.themeTextSecondary
+    }
 
     Settings {
         id: anniversarySettings
@@ -464,15 +475,45 @@ Item {
 
     onNightModeChanged: refreshCalendar()
 
-    Rectangle {
+    // v88 暗玻璃整页基底（M-B1）：竖直近黑渐变（不透明替代 backdrop-filter）+ 42px 蓝图栅格
+    // + 双角晕（aqua 左上 / violet 右上，圆心近角顶）。圆角 r26 由 RoundedFrame 的 FBO+mask 裁剪，
+    // 内部栅格/角晕不漏方角（G7：禁 clip:true 当圆角裁剪）。
+    RoundedFrame {
+        id: pageBase
         anchors.fill: parent
-        radius: 28
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: nightMode ? "#30364D" : "#E8F4EC" }
-            GradientStop { position: 0.58; color: nightMode ? "#353C55" : "#F7F3EE" }
-            GradientStop { position: 1.0; color: nightMode ? "#3E465F" : "#F4E8C8" }
+        radius: 26
+        border { width: 1; color: ml.panelBorder }
+
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: ml.calPageTop }
+                GradientStop { position: 1.0; color: ml.calPageBottom }
+            }
         }
-        opacity: nightMode ? 0.24 : 0.44
+
+        GridTexture {
+            anchors.fill: parent
+            cell: 42
+            lineColor: ml.gridLine
+            textureOpacity: 0.24
+        }
+
+        GlowCircle {
+            width: 520; height: 520
+            x: pageBase.width * 0.15 - width / 2
+            y: -height / 2
+            glowColor: ml.aqua
+            glowOpacity: 0.10 * ml.glowStrength
+        }
+
+        GlowCircle {
+            width: 520; height: 520
+            x: pageBase.width * 0.88 - width / 2
+            y: pageBase.height * 0.18 - height / 2
+            glowColor: ml.violet
+            glowOpacity: 0.12 * ml.glowStrength
+        }
     }
 
     ColumnLayout {
