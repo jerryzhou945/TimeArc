@@ -46,6 +46,20 @@ Item {
         for (var i = 0; i < pagesData.length; i++) ts.push(pagesData[i].canvas || "");
         pageThumbs = ts;
     }
+    // 稳定便签 id（升为待办后用于在 savedTodos 里定位投影行）。
+    function _generateNoteId() {
+        return "" + Date.now() + "-" + Math.floor(Math.random() * 1000000);
+    }
+    // 旧档便签缺 id → 装载时一次性补 id（写回 pagesData，id 稳定，投影定位才可靠）。
+    function _backfillNoteIds() {
+        for (var p = 0; p < pagesData.length; p++) {
+            var objs = pagesData[p].objects || [];
+            for (var i = 0; i < objs.length; i++) {
+                if (objs[i].t === "sticky" && (!objs[i].id || objs[i].id === ""))
+                    objs[i].id = _generateNoteId();
+            }
+        }
+    }
     // 当前对象层序列化为纯数组（供存档 + 撤回快照共用）。
     function _snapshotObjects() {
         var objs = [];
@@ -53,7 +67,8 @@ Item {
             var o = objectModel.get(i);
             objs.push({ t: o.otype, x: o.ox, y: o.oy, w: o.ow, h: o.oh,
                         ti: o.otitle, co: o.ocontent, tx: o.otext, sg: o.osign || "",
-                        ts: o.ots || 0, done: o.odone === true, due: o.odue || 0 });
+                        ts: o.ots || 0, done: o.odone === true, due: o.odue || 0,
+                        tg: o.otag || "", td: o.oisTodo === true, id: o.onid || "" });
         }
         return objs;
     }
@@ -66,7 +81,9 @@ Item {
             objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
                                  otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字",
                                  osign: o.sg || "",
-                                 ots: o.ts || 0, odone: o.done === true, odue: o.due || 0 });
+                                 ots: o.ts || 0, odone: o.done === true, odue: o.due || 0,
+                                 otag: o.tg || "", oisTodo: o.td === true,
+                                 onid: o.id || memo._generateNoteId() });
         }
         memo.selectedObject = -1;
     }
@@ -163,6 +180,7 @@ Item {
             pagesData = [{ label: "Page 1", objects: doc.objects || [], canvas: doc.canvas || "" }];
             currentPage = 0;
         }
+        memo._backfillNoteIds();   // 旧档便签补 id（在任何投影扫描之前，id 才稳定）
         memo._pageSeq = pagesData.length;
         _refreshLabels();
         _applyPage(pagesData[currentPage]);
@@ -221,7 +239,8 @@ Item {
         var y = Math.max(8, Math.min(py - 22, H - h - 8));   // 顶部开放（灵动岛顶栏）
         objectModel.append({ otype: "sticky", ox: x, oy: y, ow: w, oh: h,
                              otitle: "", ocontent: "", otext: "", osign: "",
-                             ots: new Date().getTime(), odone: false, odue: 0 });
+                             ots: new Date().getTime(), odone: false, odue: 0,
+                             otag: "", oisTodo: false, onid: memo._generateNoteId() });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
         memo.scheduleSave();
@@ -230,7 +249,8 @@ Item {
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 240, oh: 0,
                              otitle: "", ocontent: "", otext: "输入文字", osign: "",
-                             ots: 0, odone: false, odue: 0 });
+                             ots: 0, odone: false, odue: 0,
+                             otag: "", oisTodo: false, onid: "" });
         memo.selectedObject = objectModel.count - 1;
         memo.forceActiveFocus();
         memo.scheduleSave();
@@ -238,6 +258,8 @@ Item {
     }
     function removeObject(i) {
         if (i < 0 || i >= objectModel.count) return;
+        var ro = objectModel.get(i);
+        if (ro.otype === "sticky" && ro.oisTodo === true) memo._removeMemoTodoByNid(ro.onid);  // 同步清投影
         objectModel.remove(i);
         if (memo.selectedObject === i) memo.selectedObject = -1;
         else if (memo.selectedObject > i) memo.selectedObject -= 1;
@@ -250,6 +272,108 @@ Item {
         inkCanvas.clearAll();
         memo.scheduleSave();
         memo._histRecord();
+    }
+
+    // ===== 便签 → 待办投影桥（note 为源；勾「成为待办」即投影到 calendarManager.savedTodos）=====
+    // calendarManager 是全局 context property（C++ 权威）。每次同步**现读现写**、不缓存。
+    // ⚠️ 本组件**不**监听 calendarDataChanged：我们写 savedTodos 会触发它，监听即写回环。
+    function _readTodoMap() {
+        if (!calendarManager || !calendarManager.savedTodos || calendarManager.savedTodos === "")
+            return {};
+        try { return JSON.parse(calendarManager.savedTodos); } catch (e) { return {}; }
+    }
+    function _writeTodoMap(map) {
+        if (calendarManager) calendarManager.setSavedTodos(JSON.stringify(map));
+    }
+    function _pad2(n) { return (n < 10 ? "0" : "") + n; }
+    // 投影行落在哪个日期键：due>0 → 截止当天（本地时区，与日历 dateKey/todayKey 同式）；due==0 → 今天。
+    function _dueKeyFor(due) {
+        var d = (due && due > 0) ? new Date(due) : new Date();
+        return d.getFullYear() + "-" + _pad2(d.getMonth() + 1) + "-" + _pad2(d.getDate());
+    }
+    function _dueTimeFor(due) {
+        if (!due || due <= 0) return "";
+        var d = new Date(due);
+        return _pad2(d.getHours()) + ":" + _pad2(d.getMinutes());
+    }
+    function _noteToTodoRow(title, content, tag, done, due, nid) {
+        return { text: (title && title !== "") ? title : "(无标题便签)",
+                 done: done === true,
+                 tag: (tag && tag !== "") ? tag : "学习",
+                 linkedProject: "",
+                 time: _dueTimeFor(due),
+                 type: "todo",
+                 desc: content || "",
+                 src: "memo",
+                 nid: nid };
+    }
+    // 核心：把某便签投影进 savedTodos。先按 nid 跨所有日期键清旧行（src==='memo'），再按 isTodo 决定是否插新行。
+    // 幂等 + 自愈：改截止日期 = 移动而非重复；取消勾选 / 删除便签 = 只清不插。
+    function _applyNoteToCalendar(nid, isTodo, title, content, tag, done, due) {
+        if (!calendarManager || !nid || nid === "") return;
+        var map = _readTodoMap();
+        for (var k in map) {
+            var arr = map[k];
+            if (!arr || !arr.length) continue;
+            var kept = [];
+            for (var i = 0; i < arr.length; i++) {
+                if (arr[i] && arr[i].src === "memo" && arr[i].nid === nid) continue;
+                kept.push(arr[i]);
+            }
+            if (kept.length) map[k] = kept; else delete map[k];
+        }
+        if (isTodo) {
+            var key = _dueKeyFor(due);
+            if (!map[key]) map[key] = [];
+            map[key].push(_noteToTodoRow(title, content, tag, done, due, nid));
+        }
+        _writeTodoMap(map);
+    }
+    // 前向：从当前页 live 模型同步（idx = objectModel 下标；仅当前页可被交互，故总是 live）。
+    function _syncNoteByIndex(idx) {
+        if (idx < 0 || idx >= objectModel.count) return;
+        var o = objectModel.get(idx);
+        if (o.otype !== "sticky") return;
+        _applyNoteToCalendar(o.onid, o.oisTodo === true, o.otitle, o.ocontent, o.otag,
+                             o.odone === true, o.odue || 0);
+    }
+    // 仅按 nid 清投影行（便签被硬删除时用）。
+    function _removeMemoTodoByNid(nid) {
+        if (!nid || nid === "") return;
+        _applyNoteToCalendar(nid, false, "", "", "", false, 0);
+    }
+
+    // ===== 反向流：日历议程上对「便签待办行」的勾选 / 删除回写到便签本身 =====
+    // 直接改**持久化 doc** 的便签短键（绕开 live 画布，避免重导出墨迹丢失），并令 _loaded=false 使下次开黑板重载。
+    // 只可能在黑板**关闭**时触发（开启时模态盖住日历，点不到议程）→ 此刻 store 即权威，内存态作废即可。
+    function _reverseMutateNote(nid, apply) {
+        if (!store || !nid || nid === "") { _removeMemoTodoByNid(nid); return; }
+        var raw = store.getValue(memo.docKey, "");
+        if (!raw || raw.length === 0) { _removeMemoTodoByNid(nid); return; }
+        var doc;
+        try { doc = JSON.parse(raw); } catch (e) { return; }
+        var pages = doc.pages || [];
+        var found = null;
+        for (var p = 0; p < pages.length && !found; p++) {
+            var objs = pages[p].objects || [];
+            for (var i = 0; i < objs.length; i++) {
+                if (objs[i].t === "sticky" && objs[i].id === nid) { found = objs[i]; break; }
+            }
+        }
+        if (!found) { _removeMemoTodoByNid(nid); return; }
+        apply(found);                                   // 改 found.done / found.td 短键
+        store.setValue(memo.docKey, JSON.stringify(doc));
+        memo._loaded = false;                           // 内存态作废 → 下次开黑板从 store 重载
+        _applyNoteToCalendar(found.id, found.td === true, found.ti, found.co, found.tg,
+                             found.done === true, found.due || 0);
+    }
+    // 议程勾选完成 → 回写便签 odone（便签自身的勾也会随之一致）。
+    function setNoteDoneByNid(nid, done) {
+        _reverseMutateNote(nid, function (o) { o.done = (done === true); });
+    }
+    // 议程「删除」便签待办行 → 把便签降级（td=false，便签本身保留，不会被下次编辑复活）。
+    function demoteNoteByNid(nid) {
+        _reverseMutateNote(nid, function (o) { o.td = false; });
     }
 
     // —— 选择工具：框选区域（笔迹 + 便签 + 文字）→ 复制 / 删除（移动/缩放见后续切片）——
@@ -282,6 +406,10 @@ Item {
         if (!selActive) return;
         if (selRect.width > 1 && selRect.height > 1)
             inkCanvas.clearRegion(selRect.x, selRect.y, selRect.width, selRect.height);
+        for (var j = 0; j < selObjs.length; j++) {        // 删前先清掉选中的「待办便签」投影行
+            var so = objectModel.get(selObjs[j]);
+            if (so && so.otype === "sticky" && so.oisTodo === true) memo._removeMemoTodoByNid(so.onid);
+        }
         var idxs = selObjs.slice().sort(function (a, b) { return b - a; });   // 降序删，下标不串
         for (var i = 0; i < idxs.length; i++) objectModel.remove(idxs[i]);
         memo.selectedObject = -1;
@@ -299,7 +427,7 @@ Item {
             var o = objectModel.get(selObjs[i]);
             objs.push({ otype: o.otype, dx: o.ox - selRect.x, dy: o.oy - selRect.y, ow: o.ow, oh: o.oh,
                         otitle: o.otitle, ocontent: o.ocontent, otext: o.otext,
-                        ots: o.ots, odone: o.odone, odue: o.odue });
+                        ots: o.ots, odone: o.odone, odue: o.odue, otag: o.otag || "" });
         }
         var hasInk = selRect.width > 1 && selRect.height > 1;
         memo._clip = { objs: objs, inkUrl: hasInk ? inkCanvas.exportDataURL() : "",
@@ -330,7 +458,8 @@ Item {
             var ob = _clip.objs[j];
             objectModel.append({ otype: ob.otype, ox: dst.x + ob.dx, oy: dst.y + ob.dy, ow: ob.ow, oh: ob.oh,
                                  otitle: ob.otitle, ocontent: ob.ocontent, otext: ob.otext,
-                                 ots: ob.ots, odone: ob.odone, odue: ob.odue });
+                                 ots: ob.ots, odone: ob.odone, odue: ob.odue,
+                                 otag: ob.otag || "", oisTodo: false, onid: memo._generateNoteId() });
         }
         var newIdxs = [];                            // 选区落到新粘贴的这组对象（拖动的是它们，不是原内容）
         for (var n = 0; n < _clip.objs.length; n++) newIdxs.push(base + n);
@@ -699,6 +828,9 @@ Item {
                         it.createdMs = model.ots || 0;
                         it.done = model.odone === true;
                         it.due = model.odue || 0;
+                        it.tag = model.otag || "";
+                        it.isTodo = model.oisTodo === true;
+                        it.nid = model.onid || "";
                     } else {
                         it.text = model.otext;
                         if (model.ow > 0) it.width = model.ow;
@@ -715,6 +847,19 @@ Item {
                     }
                     function onDoneToggled() {
                         objectModel.setProperty(ldr.index, "odone", ldr.obj.done);
+                        if (ldr.obj.isTodo) memo._syncNoteByIndex(ldr.index);   // 待办：完成态反映到投影行
+                        memo.scheduleSave();
+                        memo._histRecord();
+                    }
+                    function onIsTodoToggled() {
+                        objectModel.setProperty(ldr.index, "oisTodo", ldr.obj.isTodo);
+                        memo._syncNoteByIndex(ldr.index);                       // 勾上=投影 / 取消=清投影
+                        memo.scheduleSave();
+                        memo._histRecord();
+                    }
+                    function onTagPicked() {
+                        objectModel.setProperty(ldr.index, "otag", ldr.obj.tag);
+                        if (ldr.obj.isTodo) memo._syncNoteByIndex(ldr.index);
                         memo.scheduleSave();
                         memo._histRecord();
                     }
@@ -739,6 +884,8 @@ Item {
                             objectModel.setProperty(ldr.index, "otitle", ldr.obj.title);
                             objectModel.setProperty(ldr.index, "ocontent", ldr.obj.content);
                             objectModel.setProperty(ldr.index, "osign", ldr.obj.author);
+                            objectModel.setProperty(ldr.index, "otag", ldr.obj.tag);
+                            if (ldr.obj.isTodo) memo._syncNoteByIndex(ldr.index);   // 待办内容变 → 刷新投影
                         } else {
                             objectModel.setProperty(ldr.index, "otext", ldr.obj.text);
                         }
@@ -905,6 +1052,7 @@ Item {
             objectModel.setProperty(targetIndex, "odue", ms);
             var d = objRepeater.itemAt(targetIndex);
             if (d && d.obj) d.obj.due = ms;
+            if (objectModel.get(targetIndex).oisTodo === true) memo._syncNoteByIndex(targetIndex);  // 改截止 → 移动投影行
             memo.scheduleSave();
             memo._histRecord();
             open = false;

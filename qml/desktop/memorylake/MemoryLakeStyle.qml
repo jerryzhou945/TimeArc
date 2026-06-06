@@ -193,4 +193,63 @@ QtObject {
     readonly property color pomodoroLeaf: "#5FBF6B"
     readonly property color pomodoroLeafDark: "#3E8F4E"
     readonly property color pomodoroAmber: Qt.rgba(255 / 255, 230 / 255, 163 / 255, 1.0)
+
+    // ============================================================
+    // v88 日历页复刻令牌（calendar）。夜 = 设计稿 .calendar-* 暗玻璃原值（1:1）；
+    // 昼 = light 覆盖（~13289 / 13524 / 13632）派生浅瓷映射。事件类型固定语义色三种。
+    // 详见 docs/calendar-refactor-render-pipeline-replication.md §1。
+    // ============================================================
+    // 整页基底竖直近黑渐变（不透明替代 backdrop-filter：设计稿 rgba(20,24,34,.94)→rgba(8,11,18,.94)）
+    readonly property color calPageTop:     night ? "#141822" : "#FCFDFE"
+    readonly property color calPageBottom:  night ? "#080B12" : "#F1F6FA"
+    // .calendar-panel 玻璃底（设计稿 rgba(255,255,255,.045)）— 供非 GlassPanel 处复用
+    readonly property color calPanelBg:     night ? Qt.rgba(1, 1, 1, 0.045) : Qt.rgba(1, 1, 1, 0.86)
+    // 下沉小卡 / 表单输入 / 选中日卡底（设计稿 rgba(0,0,0,.16~.18)）
+    readonly property color calSunkBg:      night ? Qt.rgba(0, 0, 0, 0.16) : Qt.rgba(0.40, 0.46, 0.54, 0.06)
+    // 表单输入 aqua 描边（设计稿 rgba(142,223,255,.12)；昼用墨青）
+    readonly property color calInputBorder: night ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.12)
+                                                  : Qt.rgba(8 / 255, 145 / 255, 178 / 255, 0.20)
+    // cell 发丝分隔线（右/下 1px，设计稿 rgba(255,255,255,.055)；昼 rgba(24,42,62,.10)）
+    readonly property color cellHair:       night ? Qt.rgba(1, 1, 1, 0.055)
+                                                  : Qt.rgba(24 / 255, 42 / 255, 62 / 255, 0.10)
+    // 今日 cell 底洗（设计稿 aqua .04）
+    readonly property color todayWash:      night ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.04)
+                                                  : Qt.rgba(8 / 255, 145 / 255, 178 / 255, 0.06)
+    // cell hover 洗（设计稿 aqua .055）
+    readonly property color cellHover:      night ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.055)
+                                                  : Qt.rgba(8 / 255, 145 / 255, 178 / 255, 0.05)
+    // 选中日 2px 描边环（设计稿 aqua .32）
+    readonly property color selectedRing:   night ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.32)
+                                                  : Qt.rgba(8 / 255, 145 / 255, 178 / 255, 0.42)
+    // cell 日号字（设计稿 rgba(245,250,255,.78)；今日转 aqua 由用处给）
+    readonly property color cellDateText:   night ? Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.78)
+                                                  : Qt.rgba(0.18, 0.22, 0.28, 0.82)
+    // 事件胶囊三类型色（event=aqua / todo=琥珀 / focus=violet）+ 胶囊墨字
+    readonly property color chipEventBg:    night ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.12)
+                                                  : Qt.rgba(8 / 255, 145 / 255, 178 / 255, 0.12)
+    readonly property color chipEventBd:    night ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.14)
+                                                  : Qt.rgba(8 / 255, 145 / 255, 178 / 255, 0.22)
+    readonly property color chipTodoBg:     night ? Qt.rgba(255 / 255, 230 / 255, 163 / 255, 0.10)
+                                                  : Qt.rgba(176 / 255, 132 / 255, 24 / 255, 0.12)
+    readonly property color chipTodoBd:     night ? Qt.rgba(255 / 255, 230 / 255, 163 / 255, 0.16)
+                                                  : Qt.rgba(176 / 255, 132 / 255, 24 / 255, 0.24)
+    readonly property color chipFocusBg:    night ? Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.12)
+                                                  : Qt.rgba(109 / 255, 91 / 255, 208 / 255, 0.14)
+    readonly property color chipFocusBd:    night ? Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.16)
+                                                  : Qt.rgba(109 / 255, 91 / 255, 208 / 255, 0.26)
+    readonly property color chipText:       night ? Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.88)
+                                                  : Qt.rgba(0.16, 0.20, 0.26, 0.92)
+    // toast 磨砂底（设计稿 rgba(14,18,26,.86)）
+    readonly property color calToastBg:     night ? Qt.rgba(14 / 255, 18 / 255, 26 / 255, 0.86)
+                                                  : Qt.rgba(255 / 255, 255 / 255, 255 / 255, 0.94)
+    // event-add / 主按钮亮渐变上的近黑墨字（设计稿 rgba(4,8,14,.92)）
+    readonly property color calBtnInk:      Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.92)
+    // 顶栏/导航 ghost 玻璃按钮（设计稿 nav 按钮 rgba(255,255,255,.065) bg / .10 边 / hover .11）
+    readonly property color calGhostBg:     night ? Qt.rgba(1, 1, 1, 0.065) : Qt.rgba(0, 0, 0, 0.035)
+    readonly property color calGhostHover:  night ? Qt.rgba(1, 1, 1, 0.11)  : Qt.rgba(0, 0, 0, 0.06)
+    readonly property color calGhostBorder: night ? Qt.rgba(1, 1, 1, 0.10)  : Qt.rgba(0.40, 0.34, 0.28, 0.18)
+    readonly property color calGlyph:       night ? Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.86)
+                                                  : Qt.rgba(0.18, 0.22, 0.28, 0.86)
+    // 议程删除 hover 破坏红薄洗（设计稿 .agenda-delete:hover rgba(255,95,95,.18)）
+    readonly property color calDangerWash:  Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.18)
 }

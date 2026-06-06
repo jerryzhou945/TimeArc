@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
 import "../components/AppVisual.js" as AppVisual
+import "../components/TagPalette.js" as TagPalette
 
 Item {
     id: root
@@ -192,16 +193,8 @@ Item {
         return list[0].seconds ? list[0].seconds : 1
     }
 
-    function tagColor(tag) {
-        if (tag === "学习") return "#D9D0F2"
-        if (tag === "工作") return "#EFDCC3"
-        if (tag === "运动") return "#CFE8D8"
-        if (tag === "娱乐") return "#EBC9CF"
-        if (tag === "阅读") return "#BFD7EA"
-        if (tag === "社交") return "#E7D4EA"
-        if (tag === "生活") return "#DDF1E5"
-        return "#D8D1CA"
-    }
+    // 调色板统一委托到 TagPalette.js（单一来源，杜绝多页色表漂移）。
+    function tagColor(tag) { return TagPalette.tagColor(tag) }
 
     function containsAny(text, words) {
         for (var i = 0; i < words.length; i++) {
