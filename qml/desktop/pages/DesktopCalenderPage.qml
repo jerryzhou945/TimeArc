@@ -709,7 +709,7 @@ Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 84
             style: ml
-            color: ml.calPanelBg
+            color: ml.panelBg
             dropShadow: false
             radius: 22
 
@@ -799,7 +799,7 @@ Item {
                 Layout.preferredWidth: 280
                 Layout.fillHeight: true
                 style: ml
-                color: ml.calPanelBg
+                color: ml.panelBg
                 dropShadow: false
                 radius: 22
 
@@ -947,7 +947,7 @@ Item {
                 radius: 22
                 border { width: 1; color: ml.panelBorder }
 
-                Rectangle { anchors.fill: parent; color: ml.calPanelBg }
+                Rectangle { anchors.fill: parent; color: ml.panelBg }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -1144,7 +1144,7 @@ Item {
                 radius: 22
                 border { width: 1; color: ml.panelBorder }
 
-                Rectangle { anchors.fill: parent; color: ml.calPanelBg }
+                Rectangle { anchors.fill: parent; color: ml.panelBg }
 
                 Column {
                     anchors.centerIn: parent
@@ -1170,7 +1170,7 @@ Item {
                 Layout.preferredWidth: 310
                 Layout.fillHeight: true
                 style: ml
-                color: ml.calPanelBg
+                color: ml.panelBg
                 dropShadow: false
                 radius: 22
 
