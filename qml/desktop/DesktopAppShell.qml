@@ -697,9 +697,12 @@ Item {
                     delegate: navItemDelegate
                 }
 
-                // 左下角状态卡片
+                // 左下角状态卡片（纯装饰）。窗口压到最小（1280×720）时侧栏放不下「顶部导航列 +
+                // 底部 记忆湖 + 这张陪伴卡」，两栏会顶撞（备忘 ⟷ 记忆湖 文字叠印）。故侧栏过矮时隐藏本卡，
+                // 把高度让回去，底部的 记忆湖 入口下沉、不再与上方 备忘 重叠。阈值 740 留足余量
+                // （顶部列底沿 ~472 + 底部带含本卡 ~221 + 余量）。
                 Rectangle {
-                    visible: !sidebarCollapsed
+                    visible: !sidebarCollapsed && sidebar.height >= 740
                     width: parent.width
                     height: 122
                     radius: 22
