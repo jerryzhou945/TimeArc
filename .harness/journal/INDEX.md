@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
 |----------------------|-----|--------------|-------------------------------------------------|--------|
+| 2026-06-07T08:15:05Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260607-081505-B-build-failure.md) |
+| 2026-06-07T07:23:13Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260607-072313-B-build-failure.md) |
+| 2026-06-07T05:46:39Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260607-054639-B-build-failure.md) |
 | 2026-06-06T16:23:09Z | L2 | memorylake-resp... | Memory Lake 首页 min/max layout: sidebar 备忘/记忆湖 overlap, briefing text/chip o... | [report](errors/20260606-162309-C-memorylake-responsive-minmax.md) |
 | 2026-06-06T11:58:52Z | L1 | memo-sticky-dup... | StickyNote: custom 'signal tagChanged()' collided with th... | [report](errors/20260606-115852-B-memo-sticky-dup-signal.md) |
 | 2026-06-06T11:09:49Z | L2 | backfilled-repo... | PR preflight git diff --check found trailing whitespace i... | [report](errors/20260606-110949-C-backfilled-report-trailing-whitespace.md) |
@@ -50,7 +53,7 @@ the harness line budget intact.
 | 2026-06-02T17:53:47Z | L2 | qt-warning-2cc7... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-2cc7858c7f.md) |
 | 2026-06-02T17:53:47Z | L2 | qt-warning-2c53... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-2c536eb360.md) |
 | 2026-06-02T17:53:47Z | L2 | qt-warning-13bf... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-13bf1bee7e.md) |
-| 2026-06-02T17:53:47Z | L2 | qt-warning-ec85... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-ec8507cbf3.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
