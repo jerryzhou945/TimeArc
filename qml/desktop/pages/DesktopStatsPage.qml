@@ -38,6 +38,7 @@ Item {
     // 状态
     // ============================================================
     property string range: "week"        // 默认周（§2.2 必须）；week 由 G-1 后端支持
+    property int periodOffset: 0          // 期次偏移（0=本期，负=过去；不超过本期）
     property int refreshTick: 0           // bump 触发派生绑定重算
 
     // 缓存视图模型（rebuild() 重算，避免在绑定里反复调用后端聚合）
@@ -54,21 +55,21 @@ Item {
     property string vmInsight: ""
     property var vmRecs: []
     property var vmKeywords: []
+    property string vmPeriodLabel: ""     // 顶栏期次标签（周/月/年窗口）
 
     readonly property bool hasData: vmTotalSec > 0 || (vmApps && vmApps.length > 0)
     readonly property bool sideCollapsed: root.width < 1200   // ≤1200 左栏折叠（C10）
+    readonly property bool atCurrentPeriod: periodOffset >= 0 // 已是本期/无更新一期（禁「下一期」）
 
-    onRangeChanged: rebuild()
+    // 切范围回到本期；offset 非 0 时复位会触发 onPeriodOffsetChanged→rebuild（单次）。
+    onRangeChanged: { if (periodOffset !== 0) periodOffset = 0; else rebuild() }
+    onPeriodOffsetChanged: rebuild()
 
     // ============================================================
     // 工具：时间格式 / 范围文案
     // ============================================================
-    function curYear() { return new Date().getFullYear() }
-    function curMonth() { return new Date().getMonth() + 1 }
-
     function rangeWord(r) { return r === "week" ? "周" : r === "month" ? "月" : "年" }
     function rangeLabel(r) { return r === "week" ? "本周" : r === "month" ? "本月" : "本年" }
-    function rangeEnLabel(r) { return r === "week" ? "Week" : r === "month" ? "Month" : "Year" }
 
     function secondsToDisplay(seconds) {
         var total = Math.max(0, Math.floor(seconds ? seconds : 0))
@@ -112,13 +113,45 @@ Item {
         return best
     }
 
-    // 当周窗口（周一为首，含两端）——与 C++ matchesRange("week") 同口径。
-    function weekBounds() {
+    // 期次窗口（任意周/月/年；offset：0=本期、负=过去）。end 取末秒（闭区间，
+    // 与 C++ matchesRange 当前周期 / dailySecondsForRange / *ForWindow 同口径）。
+    function periodWindow(r, off) {
         var now = new Date()
-        var dow = (now.getDay() + 6) % 7   // 0=周一 … 6=周日
-        var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow, 0, 0, 0, 0)
-        var start = Math.floor(monday.getTime() / 1000)
-        return { start: start, end: start + 7 * 86400 - 1, dow: dow }
+        if (r === "week") {
+            var dow = (now.getDay() + 6) % 7
+            var mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + off * 7, 0, 0, 0, 0)
+            var s = Math.floor(mon.getTime() / 1000)
+            var sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6)
+            // end 由真实「下周一本地零点」推得（非固定 7*86400 秒），DST 周也与 month/年同 DST-safe，
+            // 与 C++ matchesRange("week") 按日窗口对齐。
+            var nextMon = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 7, 0, 0, 0, 0)
+            return { start: s, end: Math.floor(nextMon.getTime() / 1000) - 1, label: fmtMD(mon) + " – " + fmtMD(sun), kind: "week" }
+        } else if (r === "month") {
+            var d0 = new Date(now.getFullYear(), now.getMonth() + off, 1, 0, 0, 0, 0)
+            var d1 = new Date(now.getFullYear(), now.getMonth() + off + 1, 1, 0, 0, 0, 0)
+            return { start: Math.floor(d0.getTime() / 1000), end: Math.floor(d1.getTime() / 1000) - 1,
+                     y: d0.getFullYear(), m: d0.getMonth() + 1,
+                     label: d0.getFullYear() + "年" + (d0.getMonth() + 1) + "月", kind: "month" }
+        } else {
+            var y = now.getFullYear() + off
+            var y0 = new Date(y, 0, 1, 0, 0, 0, 0), y1 = new Date(y + 1, 0, 1, 0, 0, 0, 0)
+            return { start: Math.floor(y0.getTime() / 1000), end: Math.floor(y1.getTime() / 1000) - 1,
+                     y: y, label: y + "年", kind: "year" }
+        }
+    }
+    function fmtMD(d) { return (d.getMonth() + 1) + "月" + d.getDate() + "日" }
+    // 已过天数（本期到今天为止；过去期 = 整窗），供日均。
+    function periodElapsedDays(win) {
+        var nowSec = Math.floor(Date.now() / 1000)
+        var endSec = Math.min(win.end, nowSec)
+        if (endSec < win.start) return 0
+        return Math.floor((endSec - win.start) / 86400) + 1
+    }
+    // 环比字串（升=绿/降=粉）；无上一周期真实数据→空（不显示假箭头 C6/A-7）。
+    function changeStr(curSec, prevSec, hasPrev) {
+        if (!hasPrev) return { change: "", down: false }
+        var d = curSec - prevSec
+        return { change: (d >= 0 ? "+" : "") + (Math.round((d / 3600) * 10) / 10).toFixed(1) + "h", down: d < 0 }
     }
 
     // 切换次数（A-4 / G-4 QML 派生）：摊平所有前台会话段、按起始排序、相邻 groupKey 不同计数。
@@ -145,11 +178,11 @@ Item {
         return best
     }
 
-    // 周 7 柱（G-1：dailySecondsForRange 真实逐日 active 秒数，周一→周日）。
-    function computeWeekBars() {
+    // 周 7 柱：dailySecondsForRange(窗口) 真实逐日 active（周一→周日；任意周）。
+    function computeWindowDailyBars(win) {
         if (!usageStatManager || !usageStatManager.dailySecondsForRange) return []
-        var wb = weekBounds()
-        var series = usageStatManager.dailySecondsForRange(wb.start, wb.end)
+        var series = usageStatManager.dailySecondsForRange(win.start, win.end)
+        if (!series) series = []
         var labels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
         var maxSec = 1
         for (var i = 0; i < series.length; i++)
@@ -162,29 +195,25 @@ Item {
         return bars
     }
 
-    // 年 12 柱（G-7 临时 QML：循环 activeSoftwareForMonth；未来的月不查询、留 0）。
-    function computeYearBars() {
-        if (!usageStatManager) return []
-        var now = new Date()
-        var y = now.getFullYear()
+    // 年 12 柱（G-7）：monthlySecondsForYear 单遍聚合（替代 12 次 activeSoftwareForMonth）。
+    function computeYearBars(year) {
+        if (!usageStatManager || !usageStatManager.monthlySecondsForYear) return []
+        var series = usageStatManager.monthlySecondsForYear(year)
+        if (!series) series = []
         var labels = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
-        var secs = [], maxSec = 1
-        for (var m = 1; m <= 12; m++) {
-            var sec = 0
-            if (m <= now.getMonth() + 1) {
-                var apps = usageStatManager.activeSoftwareForMonth(y, m)
-                for (var i = 0; i < apps.length; i++) sec += apps[i].seconds ? apps[i].seconds : 0
-            }
-            secs.push(sec)
-            if (sec > maxSec) maxSec = sec
-        }
+        var maxSec = 1
+        for (var i = 0; i < series.length; i++)
+            if ((series[i].seconds ? series[i].seconds : 0) > maxSec) maxSec = series[i].seconds
         var bars = []
-        for (var mm = 0; mm < 12; mm++)
-            bars.push({ label: labels[mm], ratio: secs[mm] / maxSec, valueText: secondsToDisplay(secs[mm]), seconds: secs[mm] })
+        for (var m = 0; m < 12 && m < series.length; m++) {
+            var sec = series[m].seconds ? series[m].seconds : 0
+            bars.push({ label: labels[m], ratio: sec / maxSec, valueText: secondsToDisplay(sec), seconds: sec })
+        }
         return bars
     }
 
     // 月热力（A-2：按当月最大单日秒数分 5 级 0/≤25/≤50/≤75/>75）。
+    // daily 来自 dailySecondsForRange（dayStartUnix）；兼容旧 .day 字段。
     function computeHeat(daily) {
         var maxSec = 0
         for (var i = 0; i < daily.length; i++)
@@ -197,21 +226,21 @@ Item {
                 var r = sec / maxSec
                 lv = r > 0.75 ? 4 : r > 0.50 ? 3 : r > 0.25 ? 2 : 1
             }
-            cells.push({ level: lv, day: daily[j].day, seconds: sec })
+            var day = daily[j].day !== undefined ? daily[j].day
+                      : new Date((daily[j].dayStartUnix ? daily[j].dayStartUnix : 0) * 1000).getDate()
+            cells.push({ level: lv, day: day, seconds: sec })
         }
         return cells
     }
 
-    // 月周趋势（按周一为首的周分桶求每周总秒，归一化为折线点）。
-    function computeWeekTrend(daily) {
-        var now = new Date()
-        var y = now.getFullYear(), mo = now.getMonth()
+    // 月周趋势（按周一为首分桶求每周总秒，归一化折线）。daily 用 dayStartUnix 还原日期。
+    function computeWeekTrendFromDaily(daily) {
         var buckets = {}, order = []
         for (var i = 0; i < daily.length; i++) {
-            var dt = new Date(y, mo, daily[i].day)
+            var dt = new Date((daily[i].dayStartUnix ? daily[i].dayStartUnix : 0) * 1000)
             var dow = (dt.getDay() + 6) % 7
-            var monday = new Date(y, mo, daily[i].day - dow)
-            var key = monday.getTime()
+            var mon = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() - dow)
+            var key = mon.getTime()
             if (buckets[key] === undefined) { buckets[key] = 0; order.push(key) }
             buckets[key] += daily[i].seconds ? daily[i].seconds : 0
         }
@@ -224,32 +253,11 @@ Item {
         return pts
     }
 
-    function monthActiveDays(daily) {
-        var c = 0
-        for (var i = 0; i < daily.length; i++) if ((daily[i].seconds ? daily[i].seconds : 0) > 0) c++
-        return c
-    }
-
-    // 环比上月（真实：本月总秒 vs 上月聚合总秒）。无上月数据→honest 不显示箭头。
-    function computeMoM() {
-        if (!usageStatManager) return { thisSec: 0, lastSec: 0, hasLast: false }
-        var y = curYear(), m = curMonth()
-        var py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1
-        var lastApps = usageStatManager.activeSoftwareForMonth(py, pm)
-        var lastSec = 0
-        for (var i = 0; i < lastApps.length; i++) lastSec += lastApps[i].seconds ? lastApps[i].seconds : 0
-        return { thisSec: usageStatManager.activeSoftwareSecondsForRange("month"),
-                 lastSec: lastSec, hasLast: lastApps.length > 0 && lastSec > 0 }
-    }
-
     // 月关键词（memoryLakeRecap 真实 keywords slide；数据由本页传入，维持 db_smoke 契约）。
-    function monthKeywords(monthApps, monthSegs) {
+    function monthKeywords(monthApps, monthSegs, prevApps, dailySeries) {
         if (typeof dailyCardService === "undefined" || !dailyCardService) return []
-        var y = curYear(), m = curMonth()
-        var py = m === 1 ? y - 1 : y, pm = m === 1 ? 12 : m - 1
-        var lastApps = usageStatManager.activeSoftwareForMonth(py, pm)
-        var dailySeries = usageStatManager.dailySecondsForMonth(y, m)
-        var recap = dailyCardService.memoryLakeRecap(monthApps, monthSegs, lastApps, dailySeries)
+        var recap = dailyCardService.memoryLakeRecap(monthApps, monthSegs,
+                                                     prevApps ? prevApps : [], dailySeries ? dailySeries : [])
         var slides = (recap && recap.slides) ? recap.slides : []
         for (var i = 0; i < slides.length; i++)
             if (slides[i].type === "keywords") return slides[i].keywords ? slides[i].keywords : []
@@ -276,13 +284,14 @@ Item {
     }
 
     // ====== 指标卡模型（每范围 4 张；缺真实环比→change:"" 不显示假箭头 C6）======
-    function weekMetrics(total, segs) {
-        var wb = weekBounds()
-        var elapsed = Math.max(1, wb.dow + 1)
+    function weekMetrics(total, segs, win, prevSec, hasPrev) {
+        var elapsed = Math.max(1, periodElapsedDays(win))
         var lu = longestUse(segs)
         var sw = computeSwitchCount(segs)
+        var chg = changeStr(total, prevSec, hasPrev)
         return [
-            { title: "本周总使用", sub: "本周累计", badge: "周", value: hoursText(total), change: "", changeDown: false },
+            { title: "本周总使用", sub: "较上周", badge: "周", value: hoursText(total),
+              change: chg.change ? (chg.change + " 较上周") : "", changeDown: chg.down },
             { title: "日均使用", sub: "按已过天数", badge: "周", value: hoursText(total / elapsed), change: "", changeDown: false },
             { title: "最长连续使用", sub: lu ? (lu.appName ? lu.appName : "—") : "—", badge: "周",
               value: lu ? hoursText(lu.longestSec) : "—", change: "", changeDown: false },
@@ -290,33 +299,30 @@ Item {
         ]
     }
 
-    function monthMetrics(total, apps, cat, daily) {
-        var mom = computeMoM()
-        var change = "", down = false
-        if (mom.hasLast) {
-            var d = mom.thisSec - mom.lastSec
-            change = (d >= 0 ? "+" : "") + (Math.round((d / 3600) * 10) / 10).toFixed(1) + "h"
-            down = d < 0
-        }
+    function monthMetrics(total, apps, cat, focusDays, prevSec, hasPrev) {
+        var chg = changeStr(total, prevSec, hasPrev)
         var ent = total > 0 ? Math.round(100 * ((cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)) / total) : 0
         var crt = total > 0 ? Math.round(100 * ((cat["创作"] ? cat["创作"] : 0) + (cat["笔记"] ? cat["笔记"] : 0)) / total) : 0
         return [
-            { title: "本月总使用", sub: "较上月", badge: "月", value: hoursText(total), change: change, changeDown: down },
-            { title: "活跃天数", sub: "有记录的天", badge: "月", value: monthActiveDays(daily) + " 天", change: "", changeDown: false },
+            { title: "本月总使用", sub: "较上月", badge: "月", value: hoursText(total),
+              change: chg.change ? (chg.change + " 较上月") : "", changeDown: chg.down },
+            { title: "专注天数", sub: "开发/办公/笔记", badge: "月", value: focusDays + " 天", change: "", changeDown: false },
             { title: "娱乐占比", sub: "游戏 + 视频", badge: "月", value: total > 0 ? (ent + "%") : "—", change: "", changeDown: false },
             { title: "创作占比", sub: "创作 + 笔记", badge: "月", value: total > 0 ? (crt + "%") : "—", change: "", changeDown: false }
         ]
     }
 
-    function yearMetrics(total, apps, bars) {
+    function yearMetrics(total, apps, bars, focusSeconds, prevSec, hasPrev) {
         var peakIdx = -1, peak = 0
         for (var i = 0; i < bars.length; i++)
             if ((bars[i].seconds ? bars[i].seconds : 0) > peak) { peak = bars[i].seconds; peakIdx = i }
+        var chg = changeStr(total, prevSec, hasPrev)
         return [
-            { title: "年度总使用", sub: "本年累计", badge: "年", value: hoursText(total), change: "", changeDown: false },
+            { title: "年度总使用", sub: "较上年", badge: "年", value: hoursText(total),
+              change: chg.change ? (chg.change + " 较上年") : "", changeDown: chg.down },
             { title: "最活跃月份", sub: "按月度时长", badge: "年", value: (peakIdx >= 0 && peak > 0) ? bars[peakIdx].label : "—", change: "", changeDown: false },
-            { title: "年度专注", sub: "待支持 · 阶段三", badge: "年", value: "—", change: "", changeDown: false },
-            { title: "打开应用", sub: "本年使用过", badge: "年", value: apps.length > 0 ? (apps.length + " 个") : "—", change: "", changeDown: false }
+            { title: "年度专注", sub: "开发/办公/笔记", badge: "年", value: focusSeconds > 0 ? hoursText(focusSeconds) : "—", change: "", changeDown: false },
+            { title: "打开应用", sub: "使用过的应用", badge: "年", value: apps.length > 0 ? (apps.length + " 个") : "—", change: "", changeDown: false }
         ]
     }
 
@@ -355,11 +361,15 @@ Item {
     function rebuild() {
         if (!usageStatManager) return
         var r = range
-        var apps = usageStatManager.activeSoftwareForRange(r)
-        var segs = usageStatManager.foregroundSegmentsForRange(r)
+        var win = periodWindow(r, periodOffset)
+        vmPeriodLabel = win.label
+        var apps = usageStatManager.activeSoftwareForWindow(win.start, win.end)
+        var segs = usageStatManager.foregroundSegmentsForWindow(win.start, win.end)
         if (!apps) apps = []
         if (!segs) segs = []
-        var total = usageStatManager.activeSoftwareSecondsForRange(r)
+        // 总秒由已取 apps 求和（口径同 activeSoftwareSecondsForWindow，省一次全量重聚合 / 5s）。
+        var total = 0
+        for (var ti = 0; ti < apps.length; ti++) total += apps[ti].seconds ? apps[ti].seconds : 0
         vmApps = apps; vmSegments = segs; vmTotalSec = total
 
         var share = []
@@ -373,27 +383,66 @@ Item {
         var cat = categorySums(apps)
         vmRanking = buildRanking(apps, segs, 6)
 
+        // 上一周期环比（WoW/MoM/YoY）+ 专注聚合（焦点类目连续块）。
+        var prevWin = periodWindow(r, periodOffset - 1)
+        var prevApps = usageStatManager.activeSoftwareForWindow(prevWin.start, prevWin.end)
+        if (!prevApps) prevApps = []
+        var prevSec = 0
+        for (var pi = 0; pi < prevApps.length; pi++) prevSec += prevApps[pi].seconds ? prevApps[pi].seconds : 0
+        var hasPrev = prevApps.length > 0 && prevSec > 0
+        var focus = usageStatManager.focusStatsForWindow ? usageStatManager.focusStatsForWindow(win.start, win.end) : {}
+        if (!focus) focus = {}
+        var focusSeconds = focus.focusSeconds ? focus.focusSeconds : 0
+        var focusDays = focus.focusDays ? focus.focusDays : 0
+
         if (r === "week") {
-            vmBars = computeWeekBars()
+            vmBars = computeWindowDailyBars(win)
             vmHeat = []; vmLine = []; vmKeywords = []
-            vmMetrics = weekMetrics(total, segs)
+            vmMetrics = weekMetrics(total, segs, win, prevSec, hasPrev)
         } else if (r === "year") {
-            vmBars = computeYearBars()
+            vmBars = computeYearBars(win.y)
             vmHeat = []; vmLine = []; vmKeywords = []
-            vmMetrics = yearMetrics(total, apps, vmBars)
+            vmMetrics = yearMetrics(total, apps, vmBars, focusSeconds, prevSec, hasPrev)
         } else {
-            var daily = usageStatManager.dailySecondsForMonth(curYear(), curMonth())
+            var daily = usageStatManager.dailySecondsForRange(win.start, win.end)
             if (!daily) daily = []
             vmBars = []
             vmHeat = computeHeat(daily)
-            vmLine = computeWeekTrend(daily)
-            vmKeywords = monthKeywords(apps, segs)
-            vmMetrics = monthMetrics(total, apps, cat, daily)
+            vmLine = computeWeekTrendFromDaily(daily)
+            vmKeywords = monthKeywords(apps, segs, prevApps, daily)
+            vmMetrics = monthMetrics(total, apps, cat, focusDays, prevSec, hasPrev)
         }
 
         vmInsight = buildInsight(r, share, total, cat)
         vmRecs = buildRecs(r, share, total, cat)
         refreshTick++
+    }
+
+    // 导出报告（G-10）：UI 组装真实视图模型为 JSON，C++ 写到下载/文档目录（命名 TimeArc，A-6）。
+    function buildExportJson() {
+        try {
+            var win = periodWindow(range, periodOffset)
+            var obj = {
+                app: "TimeArc", reportKind: "stats", range: range, period: vmPeriodLabel,
+                windowStartUnix: win.start, windowEndUnix: win.end,
+                generatedUnix: Math.floor(Date.now() / 1000), aiGenerated: false,
+                totalSeconds: vmTotalSec, totalText: hoursText(vmTotalSec),
+                metrics: vmMetrics, categoryShare: vmShare, ranking: vmRanking,
+                insight: vmInsight, recommendations: vmRecs
+            }
+            if (range === "week" || range === "year") obj.bars = vmBars
+            if (range === "month") { obj.heatmap = vmHeat; obj.weekTrend = vmLine; obj.keywords = vmKeywords }
+            return JSON.stringify(obj, null, 2)
+        } catch (e) {
+            return ""   // 序列化异常→空串，doExport 据此报失败（不假装成功）
+        }
+    }
+    function doExport() {
+        if (!usageStatManager || !usageStatManager.exportReport) { showToast("导出暂不可用"); return }
+        var json = buildExportJson()
+        if (!json || json.length === 0) { showToast("导出失败：数据序列化错误"); return }
+        var path = usageStatManager.exportReport("timearc-" + range + "-stats", json)
+        showToast(path && path.length > 0 ? ("已导出：" + path) : "导出失败")
     }
 
     Connections {
@@ -670,22 +719,32 @@ Item {
                         }
                     }
 
-                    // 期次切换（诚实占位：阶段三实装任意窗口；当前点了提示，不改数据）
+                    // 期次切换（真实任意窗口 G-9）：‹ 上一期、› 下一期（不超过本期）。
                     Row {
                         spacing: 6
                         Layout.alignment: Qt.AlignVCenter
-                        StatsGhostButton { glyph: "‹"; tip: true; onTapped: root.showToast("期次切换将在阶段三支持") }
+                        StatsGhostButton { glyph: "‹"; onTapped: root.periodOffset -= 1 }
                         Rectangle {
-                            width: 64; height: 38; radius: 13
+                            width: Math.max(96, periodText.implicitWidth + 22); height: 38; radius: 13
+                            anchors.verticalCenter: parent.verticalCenter
                             color: ml.calGhostBg
                             border.width: 1; border.color: ml.calGhostBorder
-                            Text { anchors.centerIn: parent; text: "本期"; color: ml.calGlyph; font.pixelSize: 13; font.weight: Font.DemiBold }
+                            Text {
+                                id: periodText
+                                anchors.centerIn: parent
+                                text: root.vmPeriodLabel + (root.periodOffset === 0 ? " · 本期" : "")
+                                color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold
+                            }
                         }
-                        StatsGhostButton { glyph: "›"; tip: true; onTapped: root.showToast("期次切换将在阶段三支持") }
+                        StatsGhostButton {
+                            glyph: "›"
+                            dim: root.atCurrentPeriod
+                            onTapped: { if (!root.atCurrentPeriod) root.periodOffset += 1; else root.showToast("已是最新一期") }
+                        }
                     }
 
-                    // 导出（诚实占位）
-                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "导出"; onTapped: root.showToast("导出将在阶段三支持") }
+                    // 导出（真实 G-10：序列化视图模型→JSON 写文件）
+                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "导出"; onTapped: root.doExport() }
                     // 返回首页
                     StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "返回首页"; primary: true; onTapped: root.requestNavigate("memorylake") }
                 }
@@ -749,7 +808,7 @@ Item {
                                     }
                                     Text {
                                         visible: modelData.change !== ""
-                                        text: modelData.change + " 较上月"
+                                        text: modelData.change
                                         color: modelData.changeDown ? ml.changeDown : ml.changeUp
                                         font.pixelSize: 12; font.weight: Font.DemiBold
                                     }
@@ -815,7 +874,7 @@ Item {
                             insight: root.vmInsight
                             recs: root.vmRecs
                             keywords: []
-                            onExportRequested: root.showToast("导出将在阶段三支持")
+                            onExportRequested: root.doExport()
                         }
                     }
 
@@ -867,7 +926,7 @@ Item {
                             insight: root.vmInsight
                             recs: root.vmRecs
                             keywords: root.vmKeywords
-                            onExportRequested: root.showToast("导出将在阶段三支持")
+                            onExportRequested: root.doExport()
                         }
                     }
 
@@ -912,7 +971,7 @@ Item {
                             insight: root.vmInsight
                             recs: root.vmRecs
                             keywords: []
-                            onExportRequested: root.showToast("导出将在阶段三支持")
+                            onExportRequested: root.doExport()
                         }
                     }
 
@@ -960,10 +1019,12 @@ Item {
         property string glyph: ""
         property bool primary: false
         property bool tip: false
+        property bool dim: false           // 置灰（如「下一期」在本期时）
         signal tapped()
         implicitWidth: glyph !== "" ? 38 : (gbtnLabel.implicitWidth + 28)
         height: 38
         radius: 13
+        opacity: dim ? 0.4 : 1.0
         color: primary ? "transparent" : (gbtnMa.containsMouse ? ml.calGhostHover : ml.calGhostBg)
         border.width: 1
         border.color: primary ? ml.accentSoftBorder : ml.calGhostBorder

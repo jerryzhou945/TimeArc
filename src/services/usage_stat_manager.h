@@ -66,6 +66,26 @@ class UsageStatManager : public QObject {
   // matchesRange 支持（周一为首），周窗口起止由 QML 计算后传入，二者口径一致。
   Q_INVOKABLE QVariantList dailySecondsForRange(qint64 startUnixSec,
                                                 qint64 endUnixSec) const;
+  // 统计页期次任意窗口（G-9）+ 环比 WoW/MoM/YoY（G-8/G-2）：按记录起始 unix 落在
+  // [startUnixSec, endUnixSec] 闭区间聚合，口径与 matchesRange 当前周期一致；
+  // QML 传入本地周期边界（末秒为 end）即可取任意周/月/年窗口与其上一周期。
+  Q_INVOKABLE QVariantList activeSoftwareForWindow(qint64 startUnixSec,
+                                                   qint64 endUnixSec) const;
+  Q_INVOKABLE int activeSoftwareSecondsForWindow(qint64 startUnixSec,
+                                                 qint64 endUnixSec) const;
+  Q_INVOKABLE QVariantList foregroundSegmentsForWindow(qint64 startUnixSec,
+                                                       qint64 endUnixSec) const;
+  // 年视图 12 月序列（G-7）：单遍扫描，替代 12 次 activeSoftwareForMonth。
+  // 返回 [{month:1..12, seconds}]（当年到当前月、过去年整 12、未来年全 0）。
+  Q_INVOKABLE QVariantList monthlySecondsForYear(int year) const;
+  // 专注聚合（G-6 / A-5）：开发/办公/笔记 类目跨 app 连续块（间隙<=10min、最短>=5min）。
+  // 返回 {focusSeconds:qlonglong, focusDays:int}，供月·专注天数 / 年·专注小时。只读。
+  Q_INVOKABLE QVariantMap focusStatsForWindow(qint64 startUnixSec,
+                                              qint64 endUnixSec) const;
+  // 导出报告（G-10）：把 UI 组装的统计 JSON 写到下载/文档目录（报告文件，非 usage 数据，
+  // 不动磁盘契约/不写 usage/SQLite）。返回完整路径，失败空串。
+  Q_INVOKABLE QString exportReport(const QString& fileBaseName,
+                                   const QString& jsonContent) const;
 
 signals:
   void usageStatsChanged();
@@ -99,6 +119,9 @@ signals:
   QVariantList aggregateSoftware(
       const std::function<bool(const UsageRecord&)>& inWindow,
       const QString& sourceFilter) const;
+  // 前台会话段聚合核心（range 版与任意窗口版共用，谓词决定纳入哪些记录）。
+  QVariantList foregroundSegmentsImpl(
+      const std::function<bool(const UsageRecord&)>& inWindow) const;
   int aggregateSoftwareSecondsForRange(const QString& range,
                                        const QString& sourceFilter) const;
   bool matchesRange(const UsageRecord& record, const QString& range) const;
