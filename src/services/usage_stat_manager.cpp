@@ -943,6 +943,55 @@ QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
   return result;
 }
 
+QVariantList UsageStatManager::dailySecondsForRange(qint64 startUnixSec,
+                                                    qint64 endUnixSec) const {
+  // 任意窗口逐日 active(前台+音频并集) 秒数，口径与 dailySecondsForMonth 完全一致
+  // （每天对各 app 自身区间求并集再相加，按记录起始日分桶）。返回窗口内每个本地
+  // 自然日一项 [{dayStartUnix:qlonglong, seconds:qlonglong}]（无记录补 0），供
+  // 周 7 柱 / 任意期次序列用。只组合自身 m_records，不开新数据路径，安全面同月版。
+  QVariantList result;
+  if (endUnixSec <= startUnixSec) return result;
+
+  const QDate startDate =
+      QDateTime::fromSecsSinceEpoch(startUnixSec).toLocalTime().date();
+  const QDate endDate =
+      QDateTime::fromSecsSinceEpoch(endUnixSec).toLocalTime().date();
+  if (!startDate.isValid() || !endDate.isValid()) return result;
+
+  // 按本地自然日分桶：ISO 日期串 -> (groupKey -> intervals)。
+  QMap<QString, QMap<QString, QVector<UsageInterval>>> byDay;
+  const auto add = [&](const UsageRecord& record) {
+    if (record.durationSec == 0) return;
+    const qint64 recEnd =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || recEnd <= record.startUnixSec) return;
+    const QDate d =
+        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
+    if (!d.isValid() || d < startDate || d > endDate) return;
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    byDay[d.toString(Qt::ISODate)][key].append({record.startUnixSec, recEnd});
+  };
+  for (const UsageRecord& record : m_records) add(record);
+  if (m_hasCurrentRecord) add(m_currentRecord);
+
+  for (QDate d = startDate; d <= endDate; d = d.addDays(1)) {
+    qint64 total = 0;
+    const auto dayIt = byDay.constFind(d.toString(Qt::ISODate));
+    if (dayIt != byDay.constEnd()) {
+      for (auto it = dayIt->constBegin(); it != dayIt->constEnd(); ++it) {
+        total += static_cast<qint64>(mergedIntervalSeconds(it.value()));
+      }
+    }
+    QVariantMap m;
+    m["dayStartUnix"] =
+        static_cast<qlonglong>(d.startOfDay().toSecsSinceEpoch());
+    m["seconds"] = static_cast<qlonglong>(total);
+    result.append(m);
+  }
+  return result;
+}
+
 bool UsageStatManager::matchesRange(const UsageRecord& record,
                                     const QString& range) const {
   if (range == "all") return true;
@@ -957,6 +1006,12 @@ bool UsageStatManager::matchesRange(const UsageRecord& record,
     return recordDate.year() == today.year() &&
            recordDate.month() == today.month();
   if (range == "year") return recordDate.year() == today.year();
+  if (range == "week") {
+    // 当周（周一为首，含两端），对齐 v88/日历 ISO 周口径。dayOfWeek(): 周一=1..周日=7。
+    const QDate weekStart = today.addDays(-(today.dayOfWeek() - 1));
+    const QDate weekEnd = weekStart.addDays(6);
+    return recordDate >= weekStart && recordDate <= weekEnd;
+  }
 
   return false;
 }

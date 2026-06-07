@@ -60,6 +60,12 @@ class UsageStatManager : public QObject {
   // （无记录的天补 0），口径与 softwareSecondsForRange("month") 一致。
   // 返回 [{day:int(1..N), seconds:qlonglong}]，用于趋势曲线 / 月历柱。
   Q_INVOKABLE QVariantList dailySecondsForMonth(int year, int month) const;
+  // 统计页周视图（G-1）：任意窗口逐日 active 秒数序列，口径同 dailySecondsForMonth，
+  // 但按 [startUnixSec, endUnixSec] 的本地自然日分桶。返回 [{dayStartUnix, seconds}]
+  // （窗口内每天一项，无记录补 0），供周 7 柱 / 任意期次序列。range "week" 已在
+  // matchesRange 支持（周一为首），周窗口起止由 QML 计算后传入，二者口径一致。
+  Q_INVOKABLE QVariantList dailySecondsForRange(qint64 startUnixSec,
+                                                qint64 endUnixSec) const;
 
 signals:
   void usageStatsChanged();
