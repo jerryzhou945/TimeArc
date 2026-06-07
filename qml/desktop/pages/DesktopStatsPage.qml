@@ -40,6 +40,11 @@ Item {
     property string range: "week"        // 默认周（§2.2 必须）；week 由 G-1 后端支持
     property int periodOffset: 0          // 期次偏移（0=本期，负=过去；不超过本期）
     property int refreshTick: 0           // bump 触发派生绑定重算
+    // 重算去重：仅当数据代际 / 范围 / 期次三者之一变化才做昂贵聚合（5s Timer 空闲 tick 跳过，
+    // 修复长期卡顿——否则每 5s 重做整窗聚合 + 分类）。
+    property int _builtGen: -1
+    property string _builtRange: ""
+    property int _builtOffset: 2147483647
 
     // 缓存视图模型（rebuild() 重算，避免在绑定里反复调用后端聚合）
     property var vmApps: []
@@ -360,6 +365,10 @@ Item {
     // ============================================================
     function rebuild() {
         if (!usageStatManager) return
+        // 去重守卫：数据代际/范围/期次都没变→跳过（5s 空闲 tick 不再重算，消除长期卡顿）。
+        var gen = usageStatManager.recordsGeneration ? usageStatManager.recordsGeneration() : -1
+        if (gen === _builtGen && range === _builtRange && periodOffset === _builtOffset) return
+        _builtGen = gen; _builtRange = range; _builtOffset = periodOffset
         var r = range
         var win = periodWindow(r, periodOffset)
         vmPeriodLabel = win.label
@@ -463,8 +472,9 @@ Item {
     Keys.onEscapePressed: root.requestNavigate("memorylake")
 
     Component.onCompleted: {
+        // refresh() 现为增量（便宜），其 usageStatsChanged 同步触发一次 guarded rebuild；
+        // 不再额外直接 rebuild()（避免双重重算）。数据已由 app 启动/首页刷新载入。
         if (usageStatManager) usageStatManager.refresh()
-        rebuild()
         root.forceActiveFocus()
     }
 

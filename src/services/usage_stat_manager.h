@@ -34,6 +34,9 @@ class UsageStatManager : public QObject {
   int allSoftwareMinutes() const;
 
   Q_INVOKABLE void refresh();
+  // 数据代际：m_records 真实变化（全量重读或增量追加）时自增；live current 快照变化不计。
+  // 供 UI（统计页）跳过无新数据的重算（避免 5s Timer 每次都做昂贵聚合 → 长期卡顿）。
+  Q_INVOKABLE int recordsGeneration() const { return m_recordsGeneration; }
   // active = foreground + audio 合并视图；重叠时间会按区间合并，避免双算。
   Q_INVOKABLE QVariantList softwareForRange(const QString& range) const;
   Q_INVOKABLE QVariantList activeSoftwareForRange(const QString& range) const;
@@ -107,6 +110,10 @@ signals:
   QList<UsageRecord> m_records;
   UsageRecord m_currentRecord;
   bool m_hasCurrentRecord = false;
+  // 增量解析状态（JSONL 追加写）：上次已解析到的字节偏移 + 文件大小。size 变小=轮转/截断→全量重读。
+  int m_recordsGeneration = 0;
+  qint64 m_recordsParsedSize = -1;
+  qint64 m_recordsParsedOffset = 0;
 
   QString recordsFilePath() const;
   QString currentFilePath() const;

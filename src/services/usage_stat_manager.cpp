@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QFileIconProvider>
 #include <QFileInfo>
+#include <QHash>
 #include <QIcon>
 #include <QImage>
 #include <QJsonDocument>
@@ -237,12 +238,23 @@ QString appGroupKey(const QString& appId, const QString& appName,
 
 QString activityGroupKey(const QString& appId, const QString& appName,
                          const QString& path, const QString& windowTitle) {
+  // 记忆化：纯函数 + 确定性 + 站点目录编译期静态 → 进程内静态缓存无需失效。同一身份元组
+  // 在 46k 记录里高频重复，缓存把每条的多次 containsAny/站点扫描降为一次 hash 查找。
+  static QHash<QString, QString> cache;
+  const QChar sep(QChar(0x1f));
+  const QString k = appId + sep + appName + sep + path + sep + windowTitle;
+  const auto it = cache.constFind(k);
+  if (it != cache.constEnd()) return it.value();
+
+  QString value;
   if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForBrowserWindow(appId, appName, path, windowTitle)) {
-    return site->siteId;
+    value = site->siteId;
+  } else {
+    value = appGroupKey(appId, appName, path);
   }
-
-  return appGroupKey(appId, appName, path);
+  if (cache.size() < 200000) cache.insert(k, value);  // 软上限防极端无界增长
+  return value;
 }
 
 QString activityDisplayName(const QString& groupKey, const QString& appId,
@@ -259,9 +271,9 @@ QString activityDisplayName(const QString& groupKey, const QString& appId,
 // （仅本地：用于定类别，绝不展示原文、不进 AI、不落库，符合隐私边界=仅本地聚合）。
 // 系统/外壳进程单列为「系统」，便于 UI 降权（不当主角/不当头条类别）。
 // 站点特例（site:bilibili 等）已在 groupKey 体现，这里按 groupKey 直接定。
-QString classifyActivity(const QString& groupKey, const QString& appId,
-                         const QString& appName, const QString& path,
-                         const QString& windowTitle) {
+QString classifyActivityImpl(const QString& groupKey, const QString& appId,
+                             const QString& appName, const QString& path,
+                             const QString& windowTitle) {
   if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForGroupKey(groupKey)) {
     return site->category;
@@ -337,6 +349,21 @@ QString classifyActivity(const QString& groupKey, const QString& appId,
     return QStringLiteral("笔记");
 
   return QStringLiteral("其他");
+}
+
+// 记忆化包装（同 activityGroupKey：纯函数确定性，进程内静态缓存无需失效）。
+QString classifyActivity(const QString& groupKey, const QString& appId,
+                         const QString& appName, const QString& path,
+                         const QString& windowTitle) {
+  static QHash<QString, QString> cache;
+  const QChar sep(QChar(0x1f));
+  const QString k = groupKey + sep + appId + sep + appName + sep + path + sep + windowTitle;
+  const auto it = cache.constFind(k);
+  if (it != cache.constEnd()) return it.value();
+  const QString result =
+      classifyActivityImpl(groupKey, appId, appName, path, windowTitle);
+  if (cache.size() < 200000) cache.insert(k, result);
+  return result;
 }
 
 // 从 app 图标位图提取最多 3 个主色调（跳过透明/接近灰/接近黑白），按 path 缓存。
@@ -435,35 +462,62 @@ int UsageStatManager::allSoftwareMinutes() const {
 }
 
 void UsageStatManager::refresh() {
-  // refresh 是 UI 的数据入口：重读历史 JSONL，再尝试叠加仍在运行的 current 快照。
-  // 因为 service 独立进程写文件，UI 不能只依赖内存状态。
-  QList<UsageRecord> records;
+  // refresh 是 UI 的数据入口：读历史 JSONL（**增量**：service 是 append-only，只解析自上次
+  // 偏移以来新追加的完整行；size 变小=轮转/截断→全量重读），再叠加 current 实时快照。
+  // 关键性能修复：16MB/46k 行全量重解析每 5s 一次会让 UI 长期卡顿；增量后空闲 tick 近乎零成本。
+  const QString path = recordsFilePath();
+  const QFileInfo info(path);
+  const qint64 size = info.exists() ? info.size() : -1;
 
-  QFile file(recordsFilePath());
-  if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    while (!file.atEnd()) {
-      const QByteArray line = file.readLine().trimmed();
-      if (line.isEmpty()) continue;
-
-      const QJsonDocument doc = parseJsonLine(line);
-      if (!doc.isObject()) continue;
-
-      const QJsonObject object = doc.object();
-      if (object.value("platform").toString() != "windows") continue;
-
-      // 目前 UI 只消费 Windows service 写出的记录；macOS 记录后续接入时再放开。
-      UsageRecord record = parseRecordObject(object, false);
-
-      if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
-      if (record.appId.trimmed().isEmpty() &&
-          record.appName.trimmed().isEmpty())
-        continue;
-
-      records.append(record);
+  if (size < 0) {
+    if (!m_records.isEmpty()) {
+      m_records.clear();
+      ++m_recordsGeneration;
     }
-  }
+    m_recordsParsedSize = -1;
+    m_recordsParsedOffset = 0;
+  } else {
+    const bool full = (m_recordsParsedSize < 0) || (size < m_recordsParsedSize);
+    if (full) {
+      m_records.clear();
+      m_recordsParsedOffset = 0;
+    }
+    int added = 0;
+    if (full || m_recordsParsedOffset < size) {
+      QFile file(path);
+      // 非 Text 模式：按原始字节统计偏移（Text 会折叠 \r\n 致偏移与磁盘不一致）。
+      if (file.open(QIODevice::ReadOnly)) {
+        if (!full && m_recordsParsedOffset > 0) file.seek(m_recordsParsedOffset);
+        qint64 offset = full ? 0 : m_recordsParsedOffset;
+        while (!file.atEnd()) {
+          const QByteArray rawLine = file.readLine();
+          // 末尾无换行=半写行（service 正写到一半）→ 本次不消费，下次再读。
+          if (!rawLine.endsWith('\n')) break;
+          offset += rawLine.size();
+          const QByteArray line = rawLine.trimmed();
+          if (line.isEmpty()) continue;
 
-  m_records = records;
+          const QJsonDocument doc = parseJsonLine(line);
+          if (!doc.isObject()) continue;
+          const QJsonObject object = doc.object();
+          if (object.value("platform").toString() != "windows") continue;
+
+          // 目前 UI 只消费 Windows service 写出的记录；macOS 记录后续接入再放开。
+          UsageRecord record = parseRecordObject(object, false);
+          if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
+          if (record.appId.trimmed().isEmpty() &&
+              record.appName.trimmed().isEmpty())
+            continue;
+
+          m_records.append(record);
+          ++added;
+        }
+        m_recordsParsedOffset = offset;
+      }
+    }
+    m_recordsParsedSize = size;
+    if (full || added > 0) ++m_recordsGeneration;
+  }
 
   m_hasCurrentRecord = false;
   QFile currentFile(currentFilePath());
@@ -558,7 +612,9 @@ QVariantList UsageStatManager::aggregateSoftware(
         record.startUnixSec + static_cast<qint64>(record.durationSec);
     if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
 
-    Aggregate aggregate = grouped.value(key);
+    // 引用就地累加（原先 value()拷出 + [key]=拷回 会把不断增长的 intervals 每条记录
+    // 深拷两次 → O(N²)，重度前台 app 一周数千条时是 activeSoftware 的主要耗时）。
+    Aggregate& aggregate = grouped[key];
     if (aggregate.groupKey.trimmed().isEmpty()) {
       aggregate.groupKey = key;
     }
@@ -589,7 +645,6 @@ QVariantList UsageStatManager::aggregateSoftware(
         key, record.appId, record.appName, record.path, record.windowTitle)] +=
         record.durationSec;
     aggregate.live = aggregate.live || record.live;
-    grouped[key] = aggregate;
   };
 
   for (const UsageRecord& record : m_records) {
