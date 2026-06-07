@@ -254,4 +254,25 @@ QtObject {
                                                   : Qt.rgba(0.18, 0.22, 0.28, 0.86)
     // 议程删除 hover 破坏红薄洗（设计稿 .agenda-delete:hover rgba(255,95,95,.18)）
     readonly property color calDangerWash:  Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.18)
+
+    // ============================================================
+    // v88 设置页复刻令牌（settings）。夜 = 设计稿 .settings-* 暗玻璃原值；
+    // 昼 = light 覆盖派生浅瓷（R-LIGHT-N）。详见 docs/settings-render-pipeline-replication.md §9。
+    // ============================================================
+    // 左导航「原型/数据来源说明」琥珀提示条（设计稿 .prototype-status：bg rgba(255,230,163,.075)
+    // / border .13 / text rgba(255,238,190,.76)；昼用墨琥珀，与 chipTodo 同族 176,132,24）。
+    readonly property color protoAmberBg:     night ? Qt.rgba(255 / 255, 230 / 255, 163 / 255, 0.075)
+                                                    : Qt.rgba(176 / 255, 132 / 255, 24 / 255, 0.10)
+    readonly property color protoAmberBorder: night ? Qt.rgba(255 / 255, 230 / 255, 163 / 255, 0.13)
+                                                    : Qt.rgba(176 / 255, 132 / 255, 24 / 255, 0.22)
+    readonly property color protoAmberText:   night ? Qt.rgba(255 / 255, 238 / 255, 190 / 255, 0.76)
+                                                    : Qt.rgba(120 / 255, 86 / 255, 10 / 255, 0.86)
+    // GlassSwitch 关态轨底（设计稿 rgba(255,255,255,.12)；昼用墨色轨，否则白底上不可见 R-LIGHT-N）。
+    readonly property color switchOff:        night ? Qt.rgba(1, 1, 1, 0.12)
+                                                    : Qt.rgba(0.40, 0.34, 0.28, 0.22)
+    // GlassSwitch 旋钮（两态近白；昼用纯白以压在墨轨/亮渐变上都清晰）。
+    readonly property color switchKnob:       night ? Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.95) : "#FFFFFF"
+    // danger 按钮文字（设计稿 .settings-btn.danger 字 rgba(255,190,190,.86)；昼用可读墨红）。
+    readonly property color dangerText:       night ? Qt.rgba(255 / 255, 190 / 255, 190 / 255, 0.86)
+                                                    : Qt.rgba(170 / 255, 40 / 255, 40 / 255, 0.92)
 }

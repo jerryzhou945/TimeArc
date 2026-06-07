@@ -48,6 +48,11 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/SilkyFlickable.qml
     qml/desktop/memorylake/RecapSlide.qml
     qml/desktop/memorylake/RecapOverlay.qml
+    qml/desktop/memorylake/GlassSwitch.qml
+    qml/desktop/memorylake/GlassComboBox.qml
+    qml/desktop/memorylake/GlassSlider.qml
+    qml/desktop/memorylake/GlassTextField.qml
+    qml/desktop/memorylake/KbdChip.qml
     qml/mobile/MobileAppShell.qml
     qml/mobile/MobileTheme.qml
     qml/mobile/pages/MobileHomePage.qml

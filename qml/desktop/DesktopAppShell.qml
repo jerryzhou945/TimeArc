@@ -59,7 +59,7 @@ Item {
     readonly property bool onMemoryLake: selectedPage === "memorylake" && !showingTimerPage
     // 记忆湖首页 + 月度回顾页都铺满内容区（去外框/玻璃，让暗色水面铺满整窗）。
     readonly property bool fullBleedPage:
-        (selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "calendar" || selectedPage === "stats") && !showingTimerPage
+        (selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "calendar" || selectedPage === "stats" || selectedPage === "settings") && !showingTimerPage
     readonly property bool memoryLakeHasAmbient:
         onMemoryLake && pageLoader.item && ("hasAmbient" in pageLoader.item) && pageLoader.item.hasAmbient
     readonly property color memoryLakeAmbientColor:
@@ -293,7 +293,7 @@ Item {
                 // 边缘用羽化白圆角矩形作 MultiEffect 遮罩 → 渐隐不硬切；窗口 DWM 圆角再裁四角，无方角外露。
                 Item {
                     anchors.fill: parent
-                    visible: selectedPage === "calendar" || selectedPage === "stats"
+                    visible: selectedPage === "calendar" || selectedPage === "stats" || selectedPage === "settings"
 
                     GridTexture {
                         anchors.fill: parent
@@ -806,8 +806,8 @@ Item {
                         if (showingTimerPage)
                             return;
 
-                        // 记忆湖首页 / 月度回顾页 / 统计页：请求切页（今日事项「日历」、返回湖面、统计返回首页等）。
-                        if ((selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "stats")
+                        // 记忆湖首页 / 月度回顾页 / 统计页 / 设置页：请求切页（今日事项「日历」、返回湖面、统计/设置返回首页等）。
+                        if ((selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "stats" || selectedPage === "settings")
                                 && item.requestNavigate) {
                             item.requestNavigate.connect(function (pageKey) {
                                 var idx = indexOfPage(pageKey);
