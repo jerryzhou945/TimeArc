@@ -6,6 +6,9 @@ an item is fixed, move it out of here and into a session log / error report.
 Keep entries short. Link to a rule or file where possible. Entries should
 answer: *what's wrong, where's the code, what's the minimum fix?*
 
+> Actionable, dependency-ordered backlog (track tags + change-proposal flags):
+> [`../../docs/implementation-backlog.md`](../../docs/implementation-backlog.md).
+
 ## Platform
 
 - **Linux service is empty.** `src/service/linux/main.c` is a 0-byte file.
