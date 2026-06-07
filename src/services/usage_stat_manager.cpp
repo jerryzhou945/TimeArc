@@ -21,6 +21,7 @@
 #include <QSet>
 #include <QStandardPaths>
 #include <QStringList>
+#include <QUrl>
 #include <QVariantMap>
 #include <QVector>
 #include <algorithm>
@@ -1233,6 +1234,20 @@ QString UsageStatManager::exportReport(const QString& fileBaseName,
   file.close();
   if (written != bytes.size()) return QString();  // 短写（磁盘满等）→ 报失败而非假成功
   return path;
+}
+
+double UsageStatManager::fileSizeBytes(const QString& path) const {
+  // 只读文件大小（QFileInfo）。不读内容、不写、不触碰磁盘契约。文件不存在 → 0。
+  QString localPath = path;
+  const QUrl url(path);
+  if (url.isLocalFile()) localPath = url.toLocalFile();
+  if (localPath.trimmed().isEmpty()) return 0.0;
+  const QFileInfo info(localPath);
+  return info.exists() ? static_cast<double>(info.size()) : 0.0;
+}
+
+int UsageStatManager::recordCount() const {
+  return static_cast<int>(m_records.size());
 }
 
 bool UsageStatManager::matchesRange(const UsageRecord& record,

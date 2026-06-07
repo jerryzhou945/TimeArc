@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import "../memorylake"
 
 // v88「设置」页（暗玻璃全幅复刻 / 原地重皮 A-NAME）。规范：
@@ -65,12 +66,19 @@ Item {
     property bool memoAutosave: true
     property string memoSignature: "JusTin D"
 
+    // —— Phase 2 只读派生（onCompleted + usageStatsChanged 刷新；真实只读，不造假 G6）——
+    property real journalBytes: 0      // usage_records.jsonl 字节
+    property real cacheBytes: 0        // timearc.db 字节（UI 派生/缓存库）
+    property int usageRecordCount: 0   // 已解析记录条数
+    property string todaySwitchesText: "—"   // 今日前台切换次数（QML 派生）
+    property string memoPagesText: "—"       // 备忘页数（从 memoryLakeMemoDoc 派生）
+
     function _getBool(k, d) { return settingsRepository ? settingsRepository.getBool(k, d) : d }
     function _getStr(k, d) { return settingsRepository ? settingsRepository.getValue(k, d) : d }
     function _setBool(k, v) { if (settingsRepository) settingsRepository.setBool(k, v) }
     function _setStr(k, v) { if (settingsRepository) settingsRepository.setValue(k, v) }
 
-    Component.onCompleted: {
+    function reloadFromKV() {
         accentColor      = _getStr("accent_color", "#9FE7EE")
         blurStrength     = parseInt(_getStr("blur_strength", "24")) || 24
         restoreWindow    = _getBool("restore_window", true)
@@ -90,6 +98,63 @@ Item {
         memoHotkeyN      = _getBool("memo_hotkey_n", true)
         memoAutosave     = _getBool("memo_autosave", true)
         memoSignature    = _getStr("memo_signature", "JusTin D")
+    }
+
+    // 存储概览（G-STORAGE）：只读文件字节 + 记录数。
+    function refreshStorage() {
+        if (!usageStatManager) return
+        journalBytes = usageStatManager.fileSizeBytes(usageStatManager.usageRecordsPath)
+        cacheBytes = (databaseManager && databaseManager.getDatabasePath)
+                     ? usageStatManager.fileSizeBytes(databaseManager.getDatabasePath()) : 0
+        usageRecordCount = usageStatManager.recordCount()
+    }
+
+    // 数据概览派生：今日切换次数（QML 派生，G-4）+ 备忘页数（memoryLakeMemoDoc）。
+    function refreshOverview() {
+        if (usageStatManager && usageStatManager.foregroundSegmentsForRange) {
+            var segs = usageStatManager.foregroundSegmentsForRange("day")
+            todaySwitchesText = (segs && segs.length > 0) ? (computeSwitchCount(segs) + " 次") : "—"
+        }
+        var doc = _getStr("memoryLakeMemoDoc", "")
+        if (doc && doc.length > 0) {
+            try {
+                var o = JSON.parse(doc)
+                if (o && o.pages && o.pages.length !== undefined) memoPagesText = o.pages.length + " 页"
+            } catch (e) { /* 解析失败 → 维持「—」，不造假 */ }
+        }
+    }
+
+    // 切换次数（同统计页 G-4 派生）：摊平前台会话段、按起始排序、相邻 groupKey 不同计数。
+    function computeSwitchCount(segments) {
+        var flat = []
+        for (var i = 0; i < segments.length; i++) {
+            var grp = segments[i].groupKey
+            var segs = segments[i].segments ? segments[i].segments : []
+            for (var j = 0; j < segs.length; j++) flat.push({ key: grp, start: segs[j].startUnixSec })
+        }
+        flat.sort(function (a, b) { return a.start - b.start })
+        var sw = 0
+        for (var k = 1; k < flat.length; k++) if (flat[k].key !== flat[k - 1].key) sw++
+        return sw
+    }
+
+    function bytesText(b) {
+        if (!b || b <= 0) return "0 B"
+        if (b < 1024) return Math.round(b) + " B"
+        if (b < 1048576) return (b / 1024).toFixed(1) + " KB"
+        if (b < 1073741824) return (b / 1048576).toFixed(1) + " MB"
+        return (b / 1073741824).toFixed(2) + " GB"
+    }
+
+    Connections {
+        target: usageStatManager
+        function onUsageStatsChanged() { root.refreshStorage(); root.refreshOverview() }
+    }
+
+    Component.onCompleted: {
+        reloadFromKV()
+        refreshStorage()
+        refreshOverview()
         root.forceActiveFocus()
     }
 
@@ -151,22 +216,15 @@ Item {
         return (Math.round(m / 6) / 10).toFixed(1) + "h"
     }
 
-    // 导出设置 JSON（G-EXPORT 最小落地：序列化本页偏好，C++ exportReport 写下载/文档目录，非契约文件）。
+    // 导出设置 JSON（G-EXPORT）：settingsRepository.getAllSettings() 整张 settings 表 → JSON，
+    // C++ exportReport 写下载/文档目录（报告文件，非契约 usage 数据）。
     function buildSettingsJson() {
         try {
+            var all = settingsRepository ? settingsRepository.getAllSettings() : ({})
             return JSON.stringify({
                 app: "TimeArc", reportKind: "settings", aiGenerated: false,
                 theme: root.nightMode ? "dark-glass" : "day-frost",
-                settings: {
-                    accent_color: accentColor, blur_strength: blurStrength,
-                    restore_window: restoreWindow, landing_page: landingPage,
-                    show_welcome: showWelcome, language_mode: languageMode, time_format: timeFormat,
-                    track_running: trackRunning, game_mode: gameMode, idle_timeout: idleTimeout,
-                    auto_classify: autoClassify, merge_windows: mergeWindows,
-                    privacy_local_only: privacyLocalOnly, hide_titles: hideTitles,
-                    anonymize_export: anonymizeExport, notify_enabled: notifyEnabled,
-                    memo_hotkey_n: memoHotkeyN, memo_autosave: memoAutosave, memo_signature: memoSignature
-                }
+                settings: all
             }, null, 2)
         } catch (e) { return "" }
     }
@@ -189,6 +247,30 @@ Item {
         blurStrength = 24;       _setStr("blur_strength", "24")
         showWelcome = true;      _setBool("show_welcome", true)
         showToast("视觉设置已恢复默认")
+    }
+
+    // 导入设置（G-IMPORT）：FileDialog 选 JSON → C++ readTextFile 读 → 解析 → 逐键 setValue →
+    // 重读本页属性。只读所选文件、只写 settings KV，不动 usage/契约。
+    function doImport(fileUrl) {
+        if (!settingsRepository) { showToast("导入暂不可用"); return }
+        var txt = settingsRepository.readTextFile("" + fileUrl)
+        if (!txt || txt.length === 0) { showToast("JSON 文件格式不正确"); return }
+        try {
+            var o = JSON.parse(txt)
+            var s = (o && o.settings) ? o.settings : o
+            if (!s || typeof s !== "object") { showToast("JSON 文件格式不正确"); return }
+            var n = 0
+            for (var k in s) { if (s.hasOwnProperty(k)) { settingsRepository.setValue("" + k, "" + s[k]); n++ } }
+            reloadFromKV()
+            showToast(n > 0 ? "设置文件已读取" : "JSON 文件格式不正确")
+        } catch (e) { showToast("JSON 文件格式不正确") }
+    }
+
+    FileDialog {
+        id: importDialog
+        title: "导入设置 JSON"
+        nameFilters: ["JSON 文件 (*.json)", "所有文件 (*)"]
+        onAccepted: root.doImport(selectedFile)
     }
 
     Keys.onEscapePressed: root.requestNavigate("memorylake")
@@ -729,9 +811,46 @@ Item {
                             SettingsCard {
                                 badge: "▣"
                                 cardTitle: "存储空间"
-                                cardDesc: "当前缓存和历史记录占用。"
+                                cardDesc: "当前缓存和历史记录占用（本机只读统计）。"
                                 keywords: "存储 清理 保留周期 缓存 记录"
-                                PlaceholderNote { text: "存储占用与缓存/记录数将在下一阶段接入真实文件大小（只读）。" }
+
+                                // 存储条（本地占用相对 100MB 软参考；标签显示真实大小，非硬配额）
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 12
+                                    radius: 6
+                                    color: ml.trackBg
+                                    Rectangle {
+                                        height: parent.height
+                                        radius: parent.radius
+                                        width: parent.width * Math.max(0.02, Math.min(1, (root.journalBytes + root.cacheBytes) / (100 * 1024 * 1024)))
+                                        gradient: Gradient {
+                                            orientation: Gradient.Horizontal
+                                            GradientStop { position: 0; color: ml.aqua }
+                                            GradientStop { position: 1; color: ml.violet }
+                                        }
+                                    }
+                                }
+                                Text {
+                                    text: "本地占用 " + root.bytesText(root.journalBytes + root.cacheBytes) + "（相对 100MB 参考）"
+                                    color: ml.textTertiary; font.pixelSize: 10
+                                }
+
+                                GridLayout {
+                                    Layout.fillWidth: true
+                                    columns: 2
+                                    columnSpacing: 10
+                                    rowSpacing: 10
+                                    MetricTile { tileLabel: "缓存"; tileValue: root.bytesText(root.cacheBytes) }
+                                    MetricTile { tileLabel: "记录"; tileValue: root.usageRecordCount > 0 ? ("" + root.usageRecordCount) : "0" }
+                                }
+
+                                Flow {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+                                    GhostBtn { label: "清理缓存"; onTapped: root.showToast("清理功能将在后续阶段开放（仅清 UI 私有缓存）") }
+                                    GhostBtn { label: "删除历史"; danger: true; onTapped: root.showToast("历史为追加-only，删除需后台服务支持（受限）") }
+                                }
                             }
 
                             SettingsCard {
@@ -863,7 +982,7 @@ Item {
                                     Layout.fillWidth: true
                                     spacing: 10
                                     GhostBtn { label: "导出设置 JSON"; primary: true; onTapped: root.doExport() }
-                                    GhostBtn { label: "导入设置"; onTapped: root.showToast("导入将在下一阶段接入") }
+                                    GhostBtn { label: "导入设置"; onTapped: importDialog.open() }
                                     GhostBtn { label: "复制配置摘要"; onTapped: root.copySummary() }
                                 }
                             }
@@ -880,9 +999,9 @@ Item {
                                     columnSpacing: 10
                                     rowSpacing: 10
                                     MetricTile { tileLabel: "今日使用"; tileValue: root.todayUsageText() }
-                                    MetricTile { tileLabel: "切换次数"; tileValue: "—" }
-                                    MetricTile { tileLabel: "备忘页数"; tileValue: "—" }
-                                    MetricTile { tileLabel: "番茄钟"; tileValue: "—" }
+                                    MetricTile { tileLabel: "切换次数"; tileValue: root.todaySwitchesText }
+                                    MetricTile { tileLabel: "备忘页数"; tileValue: root.memoPagesText }
+                                    MetricTile { tileLabel: "番茄钟"; tileValue: "—" }   // 无引擎，诚实占位 G6
                                 }
                             }
 

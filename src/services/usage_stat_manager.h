@@ -90,6 +90,12 @@ class UsageStatManager : public QObject {
   Q_INVOKABLE QString exportReport(const QString& fileBaseName,
                                    const QString& jsonContent) const;
 
+  // 设置页存储概览（G-STORAGE）：只读取文件字节大小 / 已解析记录条数，供「存储空间」卡 +
+  // 数据概览。只用 QFileInfo 取大小，不读内容、不写任何数据，不触碰磁盘契约。path 接受
+  // 本地路径或 file:// URL；文件不存在返回 0。
+  Q_INVOKABLE double fileSizeBytes(const QString& path) const;
+  Q_INVOKABLE int recordCount() const;
+
 signals:
   void usageStatsChanged();
 

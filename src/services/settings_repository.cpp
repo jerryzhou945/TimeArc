@@ -3,6 +3,7 @@
 #include <QDate>
 #include <QDateTime>
 #include <QDebug>
+#include <QFile>
 #include <QMetaType>
 #include <QSettings>
 #include <QSqlDatabase>
@@ -10,6 +11,7 @@
 #include <QSqlQuery>
 #include <QStringList>
 #include <QTime>
+#include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -307,4 +309,41 @@ bool SettingsRepository::migrateLegacyQSettings(
 
   if (ok) ok = setBool(kMigrationFlag, true);
   return ok;
+}
+
+QVariantMap SettingsRepository::getAllSettings() {
+  QVariantMap out;
+
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) return out;
+
+  QSqlQuery query(db);
+  if (!query.exec(QStringLiteral("SELECT key, value FROM settings;"))) {
+    qWarning() << "Failed to query all settings:" << query.lastError().text();
+    return out;
+  }
+
+  while (query.next()) {
+    out.insert(query.value(0).toString(), query.value(1).toString());
+  }
+  return out;
+}
+
+QString SettingsRepository::readTextFile(const QString& path) {
+  QString localPath = path;
+  const QUrl url(path);
+  if (url.isLocalFile()) localPath = url.toLocalFile();
+
+  if (localPath.trimmed().isEmpty()) return QString();
+
+  QFile file(localPath);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    qWarning() << "Failed to open file for read:" << localPath
+               << file.errorString();
+    return QString();
+  }
+
+  const QByteArray data = file.readAll();
+  file.close();
+  return QString::fromUtf8(data);
 }

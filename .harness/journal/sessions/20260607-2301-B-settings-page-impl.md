@@ -49,15 +49,23 @@ spec ≤1100) + maximized 1920×1080 (full 238 nav + 2-col). Tabs general/tracki
 accent swatches, theme-switch ☾/☀, GlassSwitch/Slider/ComboBox, placeholders, perm「就绪」,
 data-overview real 今日使用 + honest「—」. scan_qt_log clean (zero warnings). harness_check 0.
 
-## Outcome — Phase 1: DONE (committed)
-- Files: shell routing (3) + MemoryLakeStyle tokens (protoAmber/switchOff/switchKnob/
-  dangerText) + 5 Glass* controls + qml/CMakeLists.txt + DesktopProfilePage.qml reskin +
-  README settings entry. Frozen files touched: NONE.
-- Acceptance C0/C1/C2/C3/C4/C5/C12/C13/C14 met for Phase-1 scope; general tab fully wired;
-  backend-dependent items honest placeholders for Phase 2/3 (G6).
-- NEXT Phase 2 (read-glue: usage_stat_manager/settings_repository — G-HIDEAPP, G-HIDETITLE/
-  G-ANON, G-STORAGE, data-overview real + switch-count derived, G-EXPORT/G-IMPORT). Phase 3
-  (restricted: G-TRACK/IDLE/CLEAR/PERM/NOTIFY/POMODORO/ACCENT/I18N per A-*).
+## Outcome — Phase 1: DONE (committed 4a588a3, pushed)
+- Shell routing (3) + MemoryLakeStyle tokens + 5 Glass* controls + qml/CMakeLists.txt +
+  DesktopProfilePage.qml reskin + README. Frozen files: NONE. C0-C5/C12-C14 met for scope.
+
+## Outcome — Phase 2a (safe read-glue, isolated/additive): DONE (committed, pushed)
+- C++ (non-frozen, no new files): usage_stat_manager +fileSizeBytes/+recordCount (G-STORAGE);
+  settings_repository +getAllSettings (G-EXPORT) /+readTextFile (G-IMPORT helper).
+- Page: storage card real (db 20.4MB / records 49708 verified) + bar; data overview real
+  (today usage / switch-count QML-derived G-4 / memo pages from memoryLakeMemoDoc; pomodoro
+  「—」G6); export via getAllSettings; import via FileDialog+readTextFile+per-key setValue.
+- Verified day/night, privacy+export tabs, build+scan clean, harness_check 0.
+- DEFERRED (shared read-path, regression-prone — needs isolated care + home/stats re-verify):
+  2A game/auto-classify/merge read-layer short-circuit, 2B G-HIDEAPP exclude, 2C G-HIDETITLE/
+  G-ANON output desensitize, 2G G-MEMO N-gate/G-LANDING/G-WIN. These switches currently
+  PERSIST (Phase-1 plan) but their aggregation EFFECT is not yet wired.
+- NEXT: Phase 2b/2c (above shared-aggregation effects, with before/after home+stats capture)
+  + Phase 3 (G-TRACK/IDLE/CLEAR/PERM/NOTIFY/POMODORO/ACCENT/I18N per A-*).
 
 ## Notes for next agent
 - Worktree build: cmake configure (Ninja, C:\Qt\6.11.1\mingw_64) then build.py; PATH needs
