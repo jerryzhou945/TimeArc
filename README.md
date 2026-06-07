@@ -47,9 +47,20 @@ with day and night modes.
   tagged across eight fixed categories (study, work, sport, leisure,
   reading, social, life, other). Manual projects and timer sessions are
   stored through the SQLite repository layer.
-- **Calendar of daily to-dos and photos** — persist per-date tasks and
-  optional imagery, link to-dos to projects to merge into the timeline.
-  Calendar to-dos are stored in the SQLite settings table.
+- **Calendar (日历)** — a full-bleed dark-glass page (v88) with **month grid +
+  week-plan / today-agenda / focus-record** views. Persist per-date to-dos and
+  optional photos, link to-dos to projects to merge into the timeline. Calendar
+  to-dos are stored in the SQLite settings table.
+- **Statistics (统计)** — a full-bleed dark-glass analytics page (v88) with
+  **week / month / year** views and period **prev / next** navigation, driven by
+  real read-only usage-journal data. Metric cards (total / daily-average / longest
+  streak / switch count) with period-over-period change (WoW / MoM / YoY), a
+  reduced-glass **category-share donut**, a 7-day / 12-month **bar chart**, a month
+  **activity heatmap** + week-trend line, a **top-apps ranking** (real icons +
+  open counts), **focus** time (开发/办公/笔记 derived blocks), and local
+  deterministic **insights / recommendations** (no AI over raw logs). Honest
+  placeholders where history is thin; **report export** to a JSON file. Read-only —
+  never writes usage/SQLite.
 - **Desktop shell** — a Qt Quick interface with full day/night theming.
   The left nav follows the design order **首页 (Memory Lake) · 日历 · 统计 ·
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.
