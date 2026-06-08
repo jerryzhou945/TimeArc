@@ -954,15 +954,17 @@ Item {
         store: settingsRepository    // UI 私有持久化（通用 key-value；非服务磁盘契约）
     }
 
-    // 欢迎入场动画（一次性，启动）：show_welcome 门控（默认开）；淡入→驻留→淡出，可点按提前关；
-    // done 后 visible=false 永不挡交互。品牌时刻复用 mlStyle.aqua/violet 令牌，不引入新色。
+    // 欢迎入场动画（一次性，启动）：show_welcome 门控（默认开）；**第一帧即满屏显示**→驻留→淡出
+    // （开屏不需要淡入，否则启动瞬间会先瞥见底层内容）。可点按提前关；done 后 visible=false 永不挡交互。
+    // willShow 关时 opacity 直接 0，避免 onCompleted 置 done 前的一帧闪屏。复用 mlStyle.aqua/violet 令牌。
     Rectangle {
         id: welcomeOverlay
         anchors.fill: parent
         z: 9000
         color: nightMode ? "#070A12" : "#F6F1EA"
         property bool done: false
-        opacity: 0
+        readonly property bool willShow: settingsRepository ? settingsRepository.getBool("show_welcome", true) : true
+        opacity: willShow ? 1 : 0
         visible: opacity > 0.01 && !done
         Column {
             anchors.centerIn: parent
@@ -986,18 +988,18 @@ Item {
             }
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: welcomeOverlay.dismiss() }
-        function dismiss() { if (done || welcomeOut.running) return; welcomeIn.stop(); welcomeOut.start(); }
+        function dismiss() { if (done || welcomeOut.running) return; welcomeSeq.stop(); welcomeOut.start(); }
+        // 即显 → 驻留 → 淡出（无淡入）。
         SequentialAnimation {
-            id: welcomeIn
-            NumberAnimation { target: welcomeOverlay; property: "opacity"; from: 0; to: 1; duration: 500; easing.type: Easing.OutCubic }
-            PauseAnimation { duration: 1800 }
-            NumberAnimation { target: welcomeOverlay; property: "opacity"; to: 0; duration: 700; easing.type: Easing.InCubic }
+            id: welcomeSeq
+            PauseAnimation { duration: 1700 }
+            NumberAnimation { target: welcomeOverlay; property: "opacity"; from: 1; to: 0; duration: 650; easing.type: Easing.InCubic }
             onFinished: welcomeOverlay.done = true
         }
         NumberAnimation { id: welcomeOut; target: welcomeOverlay; property: "opacity"; to: 0; duration: 320; onFinished: welcomeOverlay.done = true }
         Component.onCompleted: {
-            if (settingsRepository && !settingsRepository.getBool("show_welcome", true)) { done = true; return; }
-            welcomeIn.start();
+            if (!willShow) { done = true; return; }
+            welcomeSeq.start();
         }
     }
 
