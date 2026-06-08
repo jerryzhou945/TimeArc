@@ -3,7 +3,9 @@
 
 #include <QList>
 #include <QObject>
+#include <QSet>
 #include <QString>
+#include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -90,6 +92,25 @@ class UsageStatManager : public QObject {
   Q_INVOKABLE QString exportReport(const QString& fileBaseName,
                                    const QString& jsonContent) const;
 
+  // 设置页存储概览（G-STORAGE）：只读取文件字节大小 / 已解析记录条数，供「存储空间」卡 +
+  // 数据概览。只用 QFileInfo 取大小，不读内容、不写任何数据，不触碰磁盘契约。path 接受
+  // 本地路径或 file:// URL；文件不存在返回 0。
+  Q_INVOKABLE double fileSizeBytes(const QString& path) const;
+  Q_INVOKABLE int recordCount() const;
+
+  // 设置页读层过滤（2A 游戏/分类/合并 · 2B 逐项显隐 · 2C 标题脱敏 · 3A 软暂停）：
+  // 把 UI 私有偏好推入读出聚合层。只影响 UI 读出，不写/不删 usage，不动磁盘契约/服务。
+  // 默认无过滤（不脱敏/不隐藏/全分类/合并/计 live）= 与历史逐字节一致（首页/统计/记忆湖不回归）。变更后发
+  // usageStatsChanged 并自增 recordsGeneration，令各消费页重算。
+  Q_INVOKABLE void setReadFilters(bool autoClassify, bool gameClassify,
+                                  bool mergeSimilar, bool hideTitles,
+                                  bool trackingActive,
+                                  const QStringList& hiddenKeys);
+  // 逐项显隐选单（2B / G-HIDEAPP）：去重列出已采集到的 app，供设置页应用清单勾选。
+  // 每项 {groupKey, name, appName, path, hidden}。忽略隐藏集做枚举（含被隐藏项，标 hidden），
+  // 让用户能取消隐藏。只读自身记录，不开新数据路径。
+  Q_INVOKABLE QVariantList allApps() const;
+
 signals:
   void usageStatsChanged();
 
@@ -115,10 +136,21 @@ signals:
   qint64 m_recordsParsedSize = -1;
   qint64 m_recordsParsedOffset = 0;
 
+  // 设置页读层过滤（UI 私有；启动 + 开关变更时经 setReadFilters 推入）。默认 = 现状。
+  bool m_autoClassify = true;    // 关 → 类别一律「其他」（停用自动归类）
+  bool m_gameClassify = true;    // 关 → 游戏类别降级为「其他」（不识别游戏）
+  bool m_mergeSimilar = true;    // 关 → 多进程变体按 exe 细分（站点仍单列）
+  bool m_hideTitles = false;     // 类默认不脱敏（保字节一致契约）；UI 默认开由 KV 启动推入
+  bool m_trackingActive = true;  // 关 → 不纳入 live current 记录（软暂停，不删历史）
+  QSet<QString> m_hiddenKeys;    // 逐项显隐：被排除出聚合的 group key 集
+
   QString recordsFilePath() const;
   QString currentFilePath() const;
   UsageRecord parseRecordObject(const QJsonObject& object, bool live) const;
   QVariantMap recordToVariantMap(const UsageRecord& record) const;
+  // 读层有效 group key：按当前过滤标志返回记录的有效分组键（合并关→exe 细键），
+  // 被隐藏的 app 返回空串（调用方据此跳过）。
+  QString effectiveGroupKey(const UsageRecord& record) const;
   QVariantList aggregateSoftwareForRange(const QString& range,
                                          const QString& sourceFilter) const;
   // 聚合核心：按 inWindow 谓词筛记录、按 activity key 分组、合并重叠区间。

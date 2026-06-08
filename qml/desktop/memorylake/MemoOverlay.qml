@@ -27,6 +27,9 @@ Item {
     readonly property string docKey: "memoryLakeMemoDoc"
     property bool _loaded: false
 
+    // 番茄钟完成 → 通知 Shell（系统通知；不受结束庆祝开关影响）。
+    signal pomodoroFinished(string title)
+
     // —— 多页模型：每页 owns 标签 + 对象 + 画布 PNG。pagesData 为纯数据，pageLabels 单独驱动 UI 绑定。
     property var pagesData: [{ label: "Page 1", objects: [], canvas: "" }]
     property int currentPage: 0
@@ -191,7 +194,14 @@ Item {
             if (typeof doc.pen.color === "string" && doc.pen.color.length > 0) toolbar.inkColor = doc.pen.color;
         }
     }
-    function scheduleSave() { if (store) saveTimer.restart(); }
+    // G-MEMO 自动保存笔迹：memo_autosave 关 → 停连续防抖自动存（关闭时仍强存，内容永不丢失）。
+    function scheduleSave() {
+        if (!store) return;
+        if (store.getBool && !store.getBool("memo_autosave", true)) return;
+        saveTimer.restart();
+    }
+    // #3 番茄全局快捷键入口：开黑板并开/关番茄浮窗（由 Shell Shortcut 调用）。
+    function togglePomodoro() { open = true; pomodoro.shown = !pomodoro.shown; }
 
     Timer { id: saveTimer; interval: 600; repeat: false; onTriggered: memo.saveDoc() }
 
@@ -1032,7 +1042,12 @@ Item {
         style: memo.style
         store: memo.store     // gap #10：番茄状态持久化（单独键 memoryLakeMemoPomodoro）
         shown: false
-        onCompleted: function (v) { pomodoroComplete.variant = v; pomodoroComplete.shown = true; }
+        onCompleted: function (v) {
+            memo.pomodoroFinished(pomodoro.title);   // #3 系统通知（不受结束庆祝开关影响）
+            // #2 结束庆祝可在设置页关闭（pomodoro_celebrate）；关则静默完成，不弹全屏庆祝。
+            if (memo.store && memo.store.getBool && !memo.store.getBool("pomodoro_celebrate", true)) return;
+            pomodoroComplete.variant = v; pomodoroComplete.shown = true;
+        }
     }
     PomodoroCompleteOverlay {
         id: pomodoroComplete

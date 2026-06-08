@@ -47,6 +47,10 @@ For card, AI, Memory Lake, or mobile planning work, read:
   `docs/stats-functional-replication.md` + `docs/stats-render-pipeline-replication.md` +
   `docs/stats-backend-data-gaps.md`（后端缺口/接入） +
   `docs/stats-backend-performance.md`（性能：增量解析 / 记忆化 / 重算守卫）
+- 设置页（v88 暗玻璃 + 5 tab + 读层过滤/逐项显隐/番茄连接/自定义快捷键/通知/欢迎动画）：
+  `docs/settings-functional-replication.md` + `docs/settings-render-pipeline-replication.md` +
+  `docs/settings-implementation-issues.md`（决策 A-* / 缺口 G-* / 三阶段） +
+  `docs/settings-remaining-work.md`（未实装项审计 + 服务侧配置提案指针）
 
 Product principle:
 

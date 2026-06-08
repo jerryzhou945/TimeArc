@@ -21,6 +21,7 @@
 #include <QSet>
 #include <QStandardPaths>
 #include <QStringList>
+#include <QUrl>
 #include <QVariantMap>
 #include <QVector>
 #include <algorithm>
@@ -713,8 +714,8 @@ QVariantList UsageStatManager::aggregateSoftware(
     if (!matchesSource(record, sourceFilter)) return;
     if (record.durationSec == 0) return;
 
-    const QString key = activityGroupKey(record.appId, record.appName,
-                                         record.path, record.windowTitle);
+    const QString key = effectiveGroupKey(record);
+    if (key.isEmpty()) return;  // 逐项显隐：被排除的 app 不计入聚合（2B）
     const qint64 endUnixSec =
         record.startUnixSec + static_cast<qint64>(record.durationSec);
     if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
@@ -758,8 +759,8 @@ QVariantList UsageStatManager::aggregateSoftware(
     addRecord(record);
   }
 
-  if (m_hasCurrentRecord) {
-    addRecord(m_currentRecord);
+  if (m_hasCurrentRecord && m_trackingActive) {
+    addRecord(m_currentRecord);  // 3A 软暂停：关追踪时不纳入 live 记录（历史不删）
   }
 
   QVariantList result;
@@ -794,8 +795,16 @@ QVariantList UsageStatManager::aggregateSoftware(
         topCategory = it.key();
       }
     }
+    // dev：适配器元数据可覆盖类别（若提供）。
     if (!adapterMetadata.category.trimmed().isEmpty()) {
       topCategory = adapterMetadata.category;
+    }
+    // 2A：用户开关在适配器之后再门控——关「自动分类」→ 类别一律「其他」；
+    // 关「游戏识别」→ 游戏类（含适配器给出的）降级为「其他」。
+    if (!m_autoClassify) {
+      topCategory = QStringLiteral("其他");
+    } else if (!m_gameClassify && topCategory == QStringLiteral("游戏")) {
+      topCategory = QStringLiteral("其他");
     }
     item["category"] = topCategory;
     // 站点组（如 site:bilibili）的 path 是**浏览器 exe**，取图标色会错成浏览器色调
@@ -935,7 +944,13 @@ QVariantMap UsageStatManager::recordToVariantMap(
   item["appName"] = appName;
   item["name"] = displayName;
   item["path"] = record.path;
-  item["windowTitle"] = record.windowTitle;
+  // 2C 标题脱敏（读出端，G-HIDETITLE）：开「隐藏敏感标题」→ windowTitle 用类别替换。
+  // 当前 UI 各页均不展示 windowTitle（隐私原则：标题绝不显示）；此处对读出层唯一会带出
+  // 标题的字段做边界脱敏（采集/分类仍保留原文，符合 §2.8「输出端脱敏」）。
+  item["windowTitle"] =
+      m_hideTitles ? classifyActivity(groupKey, record.appId, appName,
+                                      record.path, record.windowTitle)
+                   : record.windowTitle;
   if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForGroupKey(groupKey)) {
     item["siteDomain"] = site->domain;
@@ -963,7 +978,8 @@ QVariantMap UsageStatManager::recordToVariantMap(
 }
 
 QVariantMap UsageStatManager::currentSoftware() const {
-  if (!m_hasCurrentRecord) {
+  // 3A 软暂停：关「追踪正在运行的应用」→ 不返回当前 live app（首页「当前应用」显示等待）。
+  if (!m_hasCurrentRecord || !m_trackingActive) {
     return QVariantMap();
   }
 
@@ -993,8 +1009,8 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
         record.startUnixSec + static_cast<qint64>(record.durationSec);
     if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
 
-    const QString key = activityGroupKey(record.appId, record.appName,
-                                         record.path, record.windowTitle);
+    const QString key = effectiveGroupKey(record);
+    if (key.isEmpty()) return;  // 逐项显隐：被排除的 app 不计入会话段（2B）
     AppSessions& app = grouped[key];
     if (app.groupKey.trimmed().isEmpty()) {
       app.groupKey = key;
@@ -1013,7 +1029,7 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
   };
 
   for (const UsageRecord& record : m_records) addRecord(record);
-  if (m_hasCurrentRecord) addRecord(m_currentRecord);
+  if (m_hasCurrentRecord && m_trackingActive) addRecord(m_currentRecord);  // 3A
 
   // 相邻会话间隙 <= 60s 视为同一次连续使用。
   constexpr qint64 kMergeGapSec = 60;
@@ -1141,10 +1157,11 @@ QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
     if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
+    if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
     byDay[d.day()][key].append({record.startUnixSec, end});
   };
   for (const UsageRecord& record : m_records) add(record);
-  if (m_hasCurrentRecord) add(m_currentRecord);
+  if (m_hasCurrentRecord && m_trackingActive) add(m_currentRecord);  // 3A 软暂停一致
 
   QVariantList result;
   // 当月只覆盖到"今天"为止——绝不把尚未发生的未来天补成 0，否则趋势会被未来的
@@ -1195,10 +1212,11 @@ QVariantList UsageStatManager::dailySecondsForRange(qint64 startUnixSec,
     if (!d.isValid() || d < startDate || d > endDate) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
+    if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
     byDay[d.toString(Qt::ISODate)][key].append({record.startUnixSec, recEnd});
   };
   for (const UsageRecord& record : m_records) add(record);
-  if (m_hasCurrentRecord) add(m_currentRecord);
+  if (m_hasCurrentRecord && m_trackingActive) add(m_currentRecord);  // 3A 软暂停一致
 
   for (QDate d = startDate; d <= endDate; d = d.addDays(1)) {
     qint64 total = 0;
@@ -1232,10 +1250,11 @@ QVariantList UsageStatManager::monthlySecondsForYear(int year) const {
     if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
+    if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
     byMonth[d.month()][key].append({record.startUnixSec, end});
   };
   for (const UsageRecord& record : m_records) add(record);
-  if (m_hasCurrentRecord) add(m_currentRecord);
+  if (m_hasCurrentRecord && m_trackingActive) add(m_currentRecord);  // 3A 软暂停一致
 
   const QDate today = QDate::currentDate();
   int upTo = 12;
@@ -1270,6 +1289,13 @@ QVariantMap UsageStatManager::focusStatsForWindow(qint64 startUnixSec,
   static const QSet<QString> kFocusCats = {QStringLiteral("开发"),
                                            QStringLiteral("办公"),
                                            QStringLiteral("笔记")};
+  // 2A 关「自动分类」→ 无类别基础，专注归零（与 ranking 类别口径一致，不残留旧分类）。
+  if (!m_autoClassify) {
+    QVariantMap zero;
+    zero["focusSeconds"] = static_cast<qlonglong>(0);
+    zero["focusDays"] = 0;
+    return zero;
+  }
   QVector<UsageInterval> intervals;
   const auto add = [&](const UsageRecord& record) {
     if (record.durationSec == 0) return;
@@ -1280,13 +1306,14 @@ QVariantMap UsageStatManager::focusStatsForWindow(qint64 startUnixSec,
     if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
+    if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入专注
     const QString cat = classifyActivity(key, record.appId, record.appName,
                                          record.path, record.windowTitle);
     if (!kFocusCats.contains(cat)) return;
     intervals.append({record.startUnixSec, end});
   };
   for (const UsageRecord& record : m_records) add(record);
-  if (m_hasCurrentRecord) add(m_currentRecord);
+  if (m_hasCurrentRecord && m_trackingActive) add(m_currentRecord);  // 3A 软暂停一致
 
   std::sort(intervals.begin(), intervals.end(),
             [](const UsageInterval& a, const UsageInterval& b) {
@@ -1361,6 +1388,87 @@ QString UsageStatManager::exportReport(const QString& fileBaseName,
   file.close();
   if (written != bytes.size()) return QString();  // 短写（磁盘满等）→ 报失败而非假成功
   return path;
+}
+
+double UsageStatManager::fileSizeBytes(const QString& path) const {
+  // 只读文件大小（QFileInfo）。不读内容、不写、不触碰磁盘契约。文件不存在 → 0。
+  QString localPath = path;
+  const QUrl url(path);
+  if (url.isLocalFile()) localPath = url.toLocalFile();
+  if (localPath.trimmed().isEmpty()) return 0.0;
+  const QFileInfo info(localPath);
+  return info.exists() ? static_cast<double>(info.size()) : 0.0;
+}
+
+int UsageStatManager::recordCount() const {
+  return static_cast<int>(m_records.size());
+}
+
+QString UsageStatManager::effectiveGroupKey(const UsageRecord& record) const {
+  // 站点组（site:*）始终保持独立身份（合并开关不影响“看了哪个站点”）。
+  const QString mergedKey = activityGroupKey(record.appId, record.appName,
+                                             record.path, record.windowTitle);
+  if (m_hiddenKeys.contains(mergedKey)) return QString();  // 2B 逐项显隐：排除
+  if (m_mergeSimilar || mergedKey.startsWith(QLatin1String("site:")))
+    return mergedKey;
+  // 2A 关「合并相似应用」：不并多进程变体，按 exe 名细分；无 exe 时退回合并键。
+  const QString exe = normalizedExeName(record.appName, record.path);
+  return exe.isEmpty() ? mergedKey : (QStringLiteral("exe:") + exe);
+}
+
+void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
+                                      bool mergeSimilar, bool hideTitles,
+                                      bool trackingActive,
+                                      const QStringList& hiddenKeys) {
+  // UI 私有读层偏好（启动 + 开关变更时由 QML 推入）。只影响 UI 聚合读出，
+  // 不写/不删 usage、不动磁盘契约/服务。
+  const QSet<QString> hidden(hiddenKeys.begin(), hiddenKeys.end());
+  const bool changed =
+      m_autoClassify != autoClassify || m_gameClassify != gameClassify ||
+      m_mergeSimilar != mergeSimilar || m_hideTitles != hideTitles ||
+      m_trackingActive != trackingActive || m_hiddenKeys != hidden;
+  if (!changed) return;
+  m_autoClassify = autoClassify;
+  m_gameClassify = gameClassify;
+  m_mergeSimilar = mergeSimilar;
+  m_hideTitles = hideTitles;
+  m_trackingActive = trackingActive;
+  m_hiddenKeys = hidden;
+  // 读层口径变化：自增代际让统计页“无新数据则跳过重算”的守卫失效，强制重算 + 刷新各页。
+  ++m_recordsGeneration;
+  emit usageStatsChanged();
+}
+
+QVariantList UsageStatManager::allApps() const {
+  // 始终以合并键身份去重（与隐藏集口径一致），忽略合并开关 → 清单稳定。
+  QMap<QString, QVariantMap> seen;
+  const auto addApp = [&](const UsageRecord& record) {
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    if (key.isEmpty() || seen.contains(key)) return;
+    const QString appName = !record.appName.trimmed().isEmpty()
+                                ? record.appName
+                                : QFileInfo(record.path).fileName();
+    QVariantMap item;
+    item["groupKey"] = key;
+    item["appId"] = key.startsWith(QLatin1String("site:")) ? key : record.appId;
+    item["appName"] = appName;
+    item["name"] = activityDisplayName(key, record.appId, appName, record.path);
+    item["path"] = record.path;
+    item["hidden"] = m_hiddenKeys.contains(key);  // 含被隐藏项，供取消隐藏
+    seen.insert(key, item);
+  };
+  for (const UsageRecord& record : m_records) addApp(record);
+  if (m_hasCurrentRecord) addApp(m_currentRecord);
+
+  QVariantList result;
+  for (const QVariantMap& item : seen) result.append(item);
+  std::sort(result.begin(), result.end(),
+            [](const QVariant& a, const QVariant& b) {
+              return a.toMap().value("name").toString().localeAwareCompare(
+                         b.toMap().value("name").toString()) < 0;
+            });
+  return result;
 }
 
 bool UsageStatManager::matchesRange(const UsageRecord& record,

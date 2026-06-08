@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
+import QtQuick.Window
 import time_arc
 import "memorylake"
 import "components/AppVisual.js" as AppVisual
@@ -59,7 +60,7 @@ Item {
     readonly property bool onMemoryLake: selectedPage === "memorylake" && !showingTimerPage
     // 记忆湖首页 + 月度回顾页都铺满内容区（去外框/玻璃，让暗色水面铺满整窗）。
     readonly property bool fullBleedPage:
-        (selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "calendar" || selectedPage === "stats") && !showingTimerPage
+        (selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "calendar" || selectedPage === "stats" || selectedPage === "settings") && !showingTimerPage
     readonly property bool memoryLakeHasAmbient:
         onMemoryLake && pageLoader.item && ("hasAmbient" in pageLoader.item) && pageLoader.item.hasAmbient
     readonly property color memoryLakeAmbientColor:
@@ -203,6 +204,75 @@ Item {
         applyThemeToLoadedPage();
     }
 
+    // 启动时把设置页的读层过滤推入 usageStatManager（2A 游戏/分类/合并 · 2B 逐项显隐 ·
+    // 2C 标题脱敏 · 3A 软暂停），让首页/统计/记忆湖在用户打开设置页前就遵从已存偏好。
+    // 只读层、UI 私有；不写/不删 usage（I1/I2）。
+    function applyReadFiltersFromSettings() {
+        if (!usageStatManager || !usageStatManager.setReadFilters || !settingsRepository)
+            return;
+        var hidden = [];
+        try {
+            var a = JSON.parse(settingsRepository.getValue("hidden_apps", "[]"));
+            if (Array.isArray(a)) hidden = a;
+        } catch (e) {}
+        usageStatManager.setReadFilters(
+            settingsRepository.getBool("auto_classify", true),
+            settingsRepository.getBool("game_mode", true),
+            settingsRepository.getBool("merge_windows", true),
+            settingsRepository.getBool("hide_titles", true),
+            settingsRepository.getBool("track_running", true),
+            hidden);
+    }
+
+    // 备忘 / 番茄全局快捷键（#3 自定义）：设置 KV 无变更信号，故设置页改键后发 hotkeysChanged，
+    // Shell 重读到这两个响应式属性 → 下方 Shortcut.sequences 即时重绑（单字母）。
+    property string memoHotkeyKey: "N"
+    property string pomodoroHotkeyKey: "P"
+    property bool notifyEnabled: true   // 系统通知开关（驱动托盘可见 + 是否发通知）
+    // 设置页改键 / 改通知开关后发 hotkeysChanged → Shell 重读这些 Shell 侧消费的设置。
+    function applyHotkeysFromSettings() {
+        if (!settingsRepository) return;
+        memoHotkeyKey = settingsRepository.getValue("memo_hotkey_key", "N");
+        pomodoroHotkeyKey = settingsRepository.getValue("pomodoro_hotkey_key", "P");
+        notifyEnabled = settingsRepository.getBool("notify_enabled", true);
+    }
+
+    Component.onCompleted: {
+        applyReadFiltersFromSettings();
+        applyHotkeysFromSettings();
+        // G-LANDING 默认页：landing_page = memorylake(默认/下标0) | recap | memo(开黑板覆盖层)。
+        var lp = settingsRepository ? settingsRepository.getValue("landing_page", "memorylake")
+                                    : "memorylake";
+        if (lp === "memo") {
+            memoOverlay.open = true;            // 备忘是动作而非页面：开覆盖层、保留首页
+        } else {
+            var idx = indexOfPage(lp);
+            if (idx >= 0) selectedIndex = idx;  // memorylake 即默认 0；recap 切到对应页
+        }
+    }
+
+    // G-MEMO：按 N 开/关备忘黑板（门控 memo_hotkey_n + 记忆卡翻面锁）。Qt 的 ShortcutOverride
+    // 让聚焦中的文本框（设置搜索 / 便签署名 / 便签文字）吃掉该键，故输入时不会误触发；
+    // 偏好在触发时实读，关掉开关后下次按 N 立即失效（无需依赖不存在的设置变更信号）。
+    Shortcut {
+        sequences: root.memoHotkeyKey.length > 0 ? [root.memoHotkeyKey] : []
+        enabled: !root.memoLocked && root.memoHotkeyKey.length > 0
+        onActivated: {
+            if (settingsRepository && !settingsRepository.getBool("memo_hotkey_n", true))
+                return;
+            memoOverlay.open = !memoOverlay.open;
+        }
+    }
+
+    // G-MEMO/#3：番茄钟全局快捷键 —— 开备忘黑板并开/关番茄浮窗（同样 ShortcutOverride 安全）。
+    Shortcut {
+        sequences: root.pomodoroHotkeyKey.length > 0 ? [root.pomodoroHotkeyKey] : []
+        enabled: !root.memoLocked && root.pomodoroHotkeyKey.length > 0
+        onActivated: {
+            if (memoOverlay.togglePomodoro) memoOverlay.togglePomodoro();
+        }
+    }
+
     Item {
         id: desktopStage
         anchors.fill: parent
@@ -293,7 +363,7 @@ Item {
                 // 边缘用羽化白圆角矩形作 MultiEffect 遮罩 → 渐隐不硬切；窗口 DWM 圆角再裁四角，无方角外露。
                 Item {
                     anchors.fill: parent
-                    visible: selectedPage === "calendar" || selectedPage === "stats"
+                    visible: selectedPage === "calendar" || selectedPage === "stats" || selectedPage === "settings"
 
                     GridTexture {
                         anchors.fill: parent
@@ -806,8 +876,8 @@ Item {
                         if (showingTimerPage)
                             return;
 
-                        // 记忆湖首页 / 月度回顾页 / 统计页：请求切页（今日事项「日历」、返回湖面、统计返回首页等）。
-                        if ((selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "stats")
+                        // 记忆湖首页 / 月度回顾页 / 统计页 / 设置页：请求切页（今日事项「日历」、返回湖面、统计/设置返回首页等）。
+                        if ((selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "stats" || selectedPage === "settings")
                                 && item.requestNavigate) {
                             item.requestNavigate.connect(function (pageKey) {
                                 var idx = indexOfPage(pageKey);
@@ -825,6 +895,9 @@ Item {
                                     nightMode = enabled;
                                 });
                             }
+                            // #3：设置页改键 → Shell 重读 memo/pomodoro 全局键（Shortcut 即时重绑）。
+                            if (item.hotkeysChanged)
+                                item.hotkeysChanged.connect(applyHotkeysFromSettings);
                             if ("nightMode" in item)
                                 item.nightMode = nightMode;
                         }
@@ -879,6 +952,74 @@ Item {
         style: mlStyle
         backdropSource: desktopStage
         store: settingsRepository    // UI 私有持久化（通用 key-value；非服务磁盘契约）
+    }
+
+    // 欢迎入场动画（一次性，启动）：show_welcome 门控（默认开）；**第一帧即满屏显示**→驻留→淡出
+    // （开屏不需要淡入，否则启动瞬间会先瞥见底层内容）。可点按提前关；done 后 visible=false 永不挡交互。
+    // willShow 关时 opacity 直接 0，避免 onCompleted 置 done 前的一帧闪屏。复用 mlStyle.aqua/violet 令牌。
+    Rectangle {
+        id: welcomeOverlay
+        anchors.fill: parent
+        z: 9000
+        color: nightMode ? "#070A12" : "#F6F1EA"
+        property bool done: false
+        readonly property bool willShow: settingsRepository ? settingsRepository.getBool("show_welcome", true) : true
+        opacity: willShow ? 1 : 0
+        visible: opacity > 0.01 && !done
+        Column {
+            anchors.centerIn: parent
+            spacing: 22
+            Rectangle {
+                width: 76; height: 76; radius: 22
+                anchors.horizontalCenter: parent.horizontalCenter
+                gradient: Gradient {
+                    GradientStop { position: 0; color: mlStyle.aqua }
+                    GradientStop { position: 1; color: mlStyle.violet }
+                }
+                Text { anchors.centerIn: parent; text: "T"; color: "#05070D"; font.pixelSize: 40; font.weight: Font.Black }
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "TimeArc"; color: appTextPrimary; font.pixelSize: 30; font.weight: Font.Bold; font.letterSpacing: 0.5
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "时间的弧线 · 慢慢积累，很好"; color: appTextSecondary; font.pixelSize: 14
+            }
+        }
+        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: welcomeOverlay.dismiss() }
+        function dismiss() { if (done || welcomeOut.running) return; welcomeSeq.stop(); welcomeOut.start(); }
+        // 即显 → 驻留 → 淡出（无淡入）。
+        SequentialAnimation {
+            id: welcomeSeq
+            PauseAnimation { duration: 1700 }
+            NumberAnimation { target: welcomeOverlay; property: "opacity"; from: 1; to: 0; duration: 650; easing.type: Easing.InCubic }
+            onFinished: welcomeOverlay.done = true
+        }
+        NumberAnimation { id: welcomeOut; target: welcomeOverlay; property: "opacity"; to: 0; duration: 320; onFinished: welcomeOverlay.done = true }
+        Component.onCompleted: {
+            if (!willShow) { done = true; return; }
+            welcomeSeq.start();
+        }
+    }
+
+    // 系统通知载体（G-NOTIFY）：Loader 容错加载——平台无 Qt.labs.platform 插件时静默失败、不拖垮整页。
+    Loader {
+        id: notifierLoader
+        source: "memorylake/NotifierTray.qml"
+        onLoaded: {
+            item.iconSource = Qt.resolvedUrl("../../resources/icons/app_icon.svg");
+            item.notifyOn = Qt.binding(function () { return root.notifyEnabled; });
+        }
+    }
+    // 番茄钟完成 → 仅当窗口不在前台（已无全屏庆祝可见）时发系统通知，避免与庆祝重复。
+    Connections {
+        target: memoOverlay
+        function onPomodoroFinished(title) {
+            if (!root.notifyEnabled || Window.active) return;
+            if (notifierLoader.item)
+                notifierLoader.item.notify("番茄钟完成", (title && title.length > 0 ? title : "专注") + " · 这一程结束了");
+        }
     }
 
     Connections {

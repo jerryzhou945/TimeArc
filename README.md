@@ -62,6 +62,22 @@ with day and night modes.
   deterministic **insights / recommendations** (no AI over raw logs). Honest
   placeholders where history is thin; **report export** to a JSON file. Read-only —
   never writes usage/SQLite.
+- **Settings (设置)** — a full-bleed dark-glass settings page (v88) with five tabs
+  (通用 / 追踪与应用 / 隐私与数据 / 备忘与番茄钟 / 导入导出), live card search, and
+  ~30 preferences persisted immediately to the SQLite settings store. Day-mode is a
+  switch that drives the app-wide night theme (the shell owns persistence). Built on a
+  new reusable dark-glass control family in `qml/desktop/memorylake/` — `GlassSwitch`,
+  `GlassComboBox` (overlay popup, no native skin), `GlassSlider`, `GlassTextField`
+  (incl. a search variant), and `KbdChip` — all styled from `MemoryLakeStyle` tokens.
+  The app-management tab lists real captured apps for per-app hide; the pomodoro card
+  drives the memo blackboard's real countdown (default duration/title/celebration);
+  memo & pomodoro hotkeys are user-customizable; a one-shot welcome animation is gated
+  by `show_welcome`; and **system notifications** (pomodoro-complete-in-background) use
+  `qml/desktop/memorylake/NotifierTray.qml` (a `Qt.labs.platform` tray, loaded
+  defensively so a missing plugin can't break the app). Items with no backend
+  (real history deletion, true service-side track pause / idle, real-time backdrop
+  blur, global accent/i18n) stay honest placeholders rather than faked; the page is
+  read-only over the usage journal and never bypasses the disk contract.
 - **Desktop shell** — a Qt Quick interface with full day/night theming.
   The left nav follows the design order **首页 (Memory Lake) · 日历 · 统计 ·
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.

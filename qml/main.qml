@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Window
 import time_arc
 
 ApplicationWindow {
@@ -26,6 +27,37 @@ ApplicationWindow {
     visible: true
     title: qsTr("TimeArc")
     color: "#F6F1EA"
+
+    // G-WIN 恢复窗口位置：关闭时保存归一化几何（仅普通窗口态——无边框最大化的 visibility 报
+    // FullScreen，跳过以免存成全屏尺寸），启动时按「启动时恢复上次位置」恢复。只写 UI 私有
+    // 设置 KV，不动 usage/磁盘契约。移动预览不参与。
+    Component.onCompleted: {
+        if (mobilePreview || !settingsRepository) return;
+        if (!settingsRepository.getBool("restore_window", true)) return;
+        var w = parseInt(settingsRepository.getValue("window_width", ""));
+        var h = parseInt(settingsRepository.getValue("window_height", ""));
+        var px = parseInt(settingsRepository.getValue("window_x", ""));
+        var py = parseInt(settingsRepository.getValue("window_y", ""));
+        // 钳进当前屏幕：尺寸不超可用桌面、不低于最小；位置须落在虚拟桌面内（留可见余量），
+        // 否则显示器变更/拔除后无边框窗口会飞出屏外且难拖回。
+        if (!isNaN(w)) width = Math.max(minimumWidth, Math.min(w, Screen.desktopAvailableWidth));
+        if (!isNaN(h)) height = Math.max(minimumHeight, Math.min(h, Screen.desktopAvailableHeight));
+        if (!isNaN(px) && !isNaN(py)) {
+            var maxX = Screen.virtualX + Screen.virtualWidth - 80;
+            var maxY = Screen.virtualY + Screen.virtualHeight - 80;
+            if (px >= Screen.virtualX && px <= maxX && py >= Screen.virtualY && py <= maxY) {
+                x = px; y = py;
+            }
+        }
+    }
+    onClosing: {
+        if (mobilePreview || !settingsRepository) return;
+        if (visibility !== Window.Windowed) return;   // 仅存普通窗口几何
+        settingsRepository.setValue("window_width", "" + Math.round(width));
+        settingsRepository.setValue("window_height", "" + Math.round(height));
+        settingsRepository.setValue("window_x", "" + Math.round(x));
+        settingsRepository.setValue("window_y", "" + Math.round(y));
+    }
 
     Loader {
         id: shellLoader

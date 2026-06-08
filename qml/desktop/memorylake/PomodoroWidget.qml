@@ -27,7 +27,14 @@ Item {
         if (!store || !_loaded) return;
         store.setValue(_storeKey, JSON.stringify({ total: total, remain: remain, title: title }));
     }
+    // 设置页默认专注分钟（#2）：pomodoro_duration（无则 0 表示用本组件默认 25）。
+    function _settingsMinutes() {
+        if (!store) return 0;
+        var v = parseInt(store.getValue("pomodoro_duration", ""));
+        return (!isNaN(v) && v > 0) ? v : 0;
+    }
     function _load() {
+        var hadSaved = false;
         if (store) {
             var raw = store.getValue(_storeKey, "");
             if (raw && raw.length > 0) {
@@ -38,8 +45,16 @@ Item {
                     var rm = (typeof d.remain === "number") ? d.remain : total;
                     remain = Math.max(0, Math.min(total, rm > 0 ? rm : total));
                     running = false; compact = false;
+                    hadSaved = true;
                 } catch (e) {}
             }
+        }
+        if (!hadSaved) {
+            // 无持久会话 → 采用设置页默认时长 / 标题（#2 接备忘番茄引擎）。
+            var m = _settingsMinutes();
+            if (m > 0) { total = m * 60; remain = total; }
+            var t = store ? store.getValue("pomodoro_title", "") : "";
+            if (t && t.length > 0) title = t;
         }
         _loaded = true;
     }
@@ -71,9 +86,23 @@ Item {
     // 总时长为 0（0 分 0 秒）时拒绝开始，避免秒针刚跑就判定完成。
     function startTimer() { if (running) return; if (total <= 0) return; if (remain <= 0) remain = total; running = true; }
     function pauseTimer() { running = false; _save(); }
-    function resetTimer() { running = false; compact = false; remain = total; _save(); }
+    function resetTimer() {
+        running = false; compact = false;
+        var m = _settingsMinutes(); if (m > 0) total = m * 60;            // #2 重置回设置页默认时长
+        var t = store ? store.getValue("pomodoro_title", "") : "";
+        if (t && t.length > 0) title = t;                                 // 标题与时长对称同步
+        remain = total; _save();
+    }
     function setMinutes(m) { var s = remain % 60; total = _clampMin(m) * 60 + (running ? 0 : _clampSec(s)); if (!running) remain = total; }
     function setSeconds(s) { var mnt = Math.floor((running ? total : remain) / 60); total = mnt * 60 + _clampSec(s); if (!running) remain = total; }
+    // 完成计数（今日，供设置页数据概览）：date-stamped JSON，跨天自动归零；store 空则静默跳过。
+    function _recordCompletion() {
+        if (!store) return;
+        var today = Qt.formatDate(new Date(), "yyyy-MM-dd");
+        var n = 1;
+        try { var o = JSON.parse(store.getValue("pomodoro_today", "")); if (o && o.d === today) n = (o.n || 0) + 1; } catch (e) {}
+        store.setValue("pomodoro_today", JSON.stringify({ d: today, n: n }));
+    }
     function _pickVariant() {
         var v = ["FOCUS COMPLETE", "GOOD SESSION", "MEMORY SAVED", "WELL DONE"];
         return v[Math.floor(Math.random() * v.length)];
@@ -150,6 +179,7 @@ Item {
                 pomo.running = false;
                 pomo.compact = false;
                 pomo._save();
+                pomo._recordCompletion();              // 今日完成计数（数据概览）
                 pomo.completed(pomo._pickVariant());   // 单一探测器（功能文 G7/C13）
             }
         }
