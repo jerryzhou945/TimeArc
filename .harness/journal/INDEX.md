@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-08T02:41:07Z | L3 | remote-branch-a... | git push origin --delete codex/site-icons-video-adapters ... | [report](errors/20260608-024107-B-remote-branch-already-deleted.md) |
 | 2026-06-08T02:13:22Z | L3 | harness-index-line-budget-repeat | harness_check still counted INDEX above the 100-line budget after automatic compaction. | [report](errors/20260608-021322-B-harness-index-line-budget-repeat.md) |
 | 2026-06-08T02:12:32Z | L3 | harness-index-line-budget | harness_check failed because INDEX exceeded the 100-line budget. | [report](errors/20260608-021232-B-harness-index-line-budget.md) |
 | 2026-06-08T02:05:21Z | L2 | smoke-exit-empty | timearc_db_smoke.exe exited 1 without visible output until Qt/MinGW runtime PATH was added. | [report](errors/20260608-020521-B-smoke-exit-empty.md) |
