@@ -27,7 +27,7 @@
 #include "services/stats_service.h"
 #include "services/calendar_manager.h"
 #include "services/project_manager.h"
-#include "services/site_catalog.h"
+#include "services/adapters/activity_adapter_registry.h"
 
 namespace {
 
@@ -241,108 +241,31 @@ int main(int argc, char* argv[]) {
   QCoreApplication::setApplicationName(QStringLiteral("TimeArc"));
   QStandardPaths::setTestModeEnabled(true);
 
-  const TimeArcSiteCatalog::SiteDefinition* bilibiliSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("\u54D4\u54E9\u54D4\u54E9 - Google Chrome"));
-  if (bilibiliSite == nullptr ||
-      bilibiliSite->siteId != QStringLiteral("site:bilibili") ||
-      bilibiliSite->displayName != QStringLiteral("\u54D4\u54E9\u54D4\u54E9") ||
-      bilibiliSite->brandColor != QStringLiteral("#FABECF")) {
-    return fail(QStringLiteral("Bilibili site catalog match failed."));
+  TimeArcAdapters::AdapterInput unknownWebsite;
+  unknownWebsite.url =
+      QStringLiteral("https://example.com/private?token=do-not-store");
+  unknownWebsite.title = QStringLiteral("Private dashboard");
+  TimeArcAdapters::AdapterMetadata unknownWebsiteMeta =
+      TimeArcAdapters::resolveActivity(unknownWebsite);
+  if (unknownWebsiteMeta.sourceType != QStringLiteral("website") ||
+      unknownWebsiteMeta.identifier != QStringLiteral("site:example.com") ||
+      unknownWebsiteMeta.displayName != QStringLiteral("example.com") ||
+      unknownWebsiteMeta.domain != QStringLiteral("example.com") ||
+      unknownWebsiteMeta.confidence < 0.70 ||
+      unknownWebsiteMeta.toVariantMap().contains(QStringLiteral("url"))) {
+    return fail(QStringLiteral("Generic website adapter fallback failed."));
   }
 
-  const TimeArcSiteCatalog::SiteDefinition* taobaoSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("\u6DD8\u5B9D\u7F51 - \u6DD8\uFF01\u6211\u559C\u6B22 - Google Chrome"));
-  if (taobaoSite == nullptr ||
-      taobaoSite->siteId != QStringLiteral("site:taobao") ||
-      taobaoSite->category != QStringLiteral("\u8D2D\u7269") ||
-      taobaoSite->iconLabel != QStringLiteral("\u6DD8")) {
-    return fail(QStringLiteral("Taobao site catalog match failed."));
-  }
-
-  const TimeArcSiteCatalog::SiteDefinition* zhihuSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("\u77E5\u4E4E - Google Chrome"));
-  if (zhihuSite == nullptr ||
-      zhihuSite->siteId != QStringLiteral("site:zhihu") ||
-      zhihuSite->displayName != QStringLiteral("\u77E5\u4E4E") ||
-      zhihuSite->iconLabel != QStringLiteral("\u77E5")) {
-    return fail(QStringLiteral("Zhihu site catalog match failed."));
-  }
-
-  const TimeArcSiteCatalog::SiteDefinition* xiaohongshuSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("\u5C0F\u7EA2\u4E66 - Google Chrome"));
-  if (xiaohongshuSite == nullptr ||
-      xiaohongshuSite->siteId != QStringLiteral("site:xiaohongshu") ||
-      xiaohongshuSite->brandColor != QStringLiteral("#F5D7DE") ||
-      xiaohongshuSite->iconLabel != QStringLiteral("\u7EA2")) {
-    return fail(QStringLiteral("Xiaohongshu site catalog match failed."));
-  }
-
-  struct SiteCase {
-    QString title;
-    QString siteId;
-  };
-  const SiteCase videoSiteCases[] = {
-      {QStringLiteral("\u7231\u5947\u827A-\u5728\u7EBF\u89C6\u9891\u7F51\u7AD9 - Google Chrome"),
-       QStringLiteral("site:iqiyi")},
-      {QStringLiteral("\u4F18\u9177 - Google Chrome"),
-       QStringLiteral("site:youku")},
-      {QStringLiteral("\u817E\u8BAF\u89C6\u9891 - Google Chrome"),
-       QStringLiteral("site:tencent-video")},
-      {QStringLiteral("\u8292\u679CTV - Google Chrome"),
-       QStringLiteral("site:mango-tv")},
-      {QStringLiteral("\u6296\u97F3 - Google Chrome"),
-       QStringLiteral("site:douyin")},
-      {QStringLiteral("\u5FEB\u624B - Google Chrome"),
-       QStringLiteral("site:kuaishou")},
-      {QStringLiteral("\u897F\u74DC\u89C6\u9891 - Google Chrome"),
-       QStringLiteral("site:xigua-video")},
-      {QStringLiteral("AcFun\u5F39\u5E55\u89C6\u9891\u7F51 - Google Chrome"),
-       QStringLiteral("site:acfun")},
-      {QStringLiteral("YouTube - Google Chrome"),
-       QStringLiteral("site:youtube")},
-      {QStringLiteral("Netflix - Google Chrome"),
-       QStringLiteral("site:netflix")},
-      {QStringLiteral("Twitch - Google Chrome"),
-       QStringLiteral("site:twitch")},
-      {QStringLiteral("\u6597\u9C7C - Google Chrome"),
-       QStringLiteral("site:douyu")},
-      {QStringLiteral("\u864E\u7259\u76F4\u64AD - Google Chrome"),
-       QStringLiteral("site:huya")},
-  };
-  for (const SiteCase& siteCase : videoSiteCases) {
-    const TimeArcSiteCatalog::SiteDefinition* site =
-        TimeArcSiteCatalog::matchByWindowTitle(siteCase.title);
-    if (site == nullptr || site->siteId != siteCase.siteId ||
-        site->iconSource.trimmed().isEmpty()) {
-      return fail(QStringLiteral("Video site catalog match failed: %1")
-                      .arg(siteCase.siteId));
-    }
-  }
-
-  const SiteCase mediaTitleCases[] = {
-      {QStringLiteral("\u66F4\u4E86300\u591A\u671F\u89C6\u9891\u4EE5\u540E - \u54D4\u54E9\u54D4\u54E9 bilibili - Google Chrome"),
-       QStringLiteral("site:bilibili")},
-      {QStringLiteral("Stranger Things - Netflix"),
-       QStringLiteral("site:netflix")},
-  };
-  for (const SiteCase& siteCase : mediaTitleCases) {
-    const TimeArcSiteCatalog::SiteDefinition* site =
-        TimeArcSiteCatalog::matchByWindowTitle(siteCase.title);
-    if (site == nullptr || site->siteId != siteCase.siteId) {
-      return fail(QStringLiteral("Media title site catalog match failed: %1")
-                      .arg(siteCase.siteId));
-    }
-  }
-
-  const TimeArcSiteCatalog::SiteDefinition* unknownSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("A normal documentation page - Google Chrome"));
-  if (unknownSite != nullptr) {
-    return fail(QStringLiteral("Unknown browser title matched a known site."));
+  TimeArcAdapters::AdapterInput unknownApp;
+  unknownApp.appName = QStringLiteral("SmokeApp.exe");
+  unknownApp.path = QStringLiteral("C:/TimeArcSmoke/SmokeApp.exe");
+  TimeArcAdapters::AdapterMetadata unknownAppMeta =
+      TimeArcAdapters::resolveActivity(unknownApp);
+  if (unknownAppMeta.sourceType != QStringLiteral("desktopApp") ||
+      unknownAppMeta.identifier.trimmed().isEmpty() ||
+      unknownAppMeta.displayName != QStringLiteral("SmokeApp") ||
+      unknownAppMeta.iconPath != unknownApp.path) {
+    return fail(QStringLiteral("Generic desktop adapter fallback failed."));
   }
 
   const QString testDataPath =
