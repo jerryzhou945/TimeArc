@@ -112,11 +112,11 @@ No separate lint or typecheck command is defined in the project. The full Qt/C++
 
 ## Branch Handling
 
-Planned branch handling:
+Actual branch handling:
 
-1. Merge `feature/adapter-support-system` back into `dev`.
-2. Push `origin/dev`.
-3. Delete the local feature branch.
-4. Delete the remote feature branch if it exists.
+1. Merged `feature/adapter-support-system` into `dev` with a no-fast-forward merge commit: `675bec8`.
+2. Pushed the merge result to `origin/dev`.
+3. Deleted the local feature branch `feature/adapter-support-system`.
+4. Attempted to delete remote `feature/adapter-support-system`; the remote ref did not exist, so there was nothing to delete.
 
-The final command results are reported in the task summary after validation and branch cleanup.
+Note: local `dev` is checked out in the primary worktree, which already had unrelated uncommitted changes. To avoid touching those changes, the merge was performed from the isolated adapter worktree on detached `origin/dev`, then pushed as `HEAD:dev`.
