@@ -59,7 +59,7 @@ Item {
     readonly property bool onMemoryLake: selectedPage === "memorylake" && !showingTimerPage
     // 记忆湖首页 + 月度回顾页都铺满内容区（去外框/玻璃，让暗色水面铺满整窗）。
     readonly property bool fullBleedPage:
-        (selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "calendar") && !showingTimerPage
+        (selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "calendar" || selectedPage === "stats") && !showingTimerPage
     readonly property bool memoryLakeHasAmbient:
         onMemoryLake && pageLoader.item && ("hasAmbient" in pageLoader.item) && pageLoader.item.hasAmbient
     readonly property color memoryLakeAmbientColor:
@@ -289,11 +289,11 @@ Item {
                     glowOpacity: mlStyle.glowStrength * 0.18
                 }
 
-                // 日历页专属：整 App v88 42px 蓝图栅格纹（仅日历选中时铺满全窗）。边缘用羽化
-                // 白圆角矩形作 MultiEffect 遮罩 → 渐隐不硬切；窗口 DWM 圆角再裁四角，无方角外露。
+                // 日历页 / 统计页：整 App v88 42px 蓝图栅格纹（选中时铺满全窗，对齐 .stats-page::before 42px）。
+                // 边缘用羽化白圆角矩形作 MultiEffect 遮罩 → 渐隐不硬切；窗口 DWM 圆角再裁四角，无方角外露。
                 Item {
                     anchors.fill: parent
-                    visible: selectedPage === "calendar"
+                    visible: selectedPage === "calendar" || selectedPage === "stats"
 
                     GridTexture {
                         anchors.fill: parent
@@ -806,8 +806,8 @@ Item {
                         if (showingTimerPage)
                             return;
 
-                        // 记忆湖首页 / 月度回顾页：请求切页（今日事项「日历」、返回湖面等）。
-                        if ((selectedPage === "memorylake" || selectedPage === "recap")
+                        // 记忆湖首页 / 月度回顾页 / 统计页：请求切页（今日事项「日历」、返回湖面、统计返回首页等）。
+                        if ((selectedPage === "memorylake" || selectedPage === "recap" || selectedPage === "stats")
                                 && item.requestNavigate) {
                             item.requestNavigate.connect(function (pageKey) {
                                 var idx = indexOfPage(pageKey);

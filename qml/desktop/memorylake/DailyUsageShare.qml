@@ -13,8 +13,17 @@ Rectangle {
     property MemoryLakeStyle style
     property var share: []          // [{name, appId, path, iconColors, percent, isOther}]
     property string total: ""
+    // 标题可改（统计页周/月/年复用本组件，"今日" 文案不再适用）。默认 = 首页文案，向后兼容。
+    property string titleKicker: "Daily Theme Share"
+    property string titleText: "今日主题使用占比"
+    // 内置底部洞察胶囊开关：统计页自带 InsightCard，置 false 避免重复/「今日」措辞。
+    property bool showInsight: true
 
     readonly property real gs: style ? style.glowStrength : 1.0
+    // 降玻璃开关（渲染文档 §4.1）：1.0=首页满霓虹；统计页传 ~0.45 收一半外晕但保清晰扇区。
+    // 扇区/中心孔/外缘描边/中心字/图例全程不动；只收 (1)(2)(3)(6)(7) 的辉光/模糊层。
+    property real glassStrength: 1.0
+    readonly property real gs2: gs * glassStrength
 
     // 扇区分类色（R2 / Cookbook §4.3）：按位次取 aqua/violet/gold/pink，其它取 slate；图例点与扇区共用同 color。
     readonly property var sharePalette: style ? [style.aqua, style.violet, style.shareGold, style.sharePink]
@@ -92,7 +101,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 3
                 Text {
-                    text: "Daily Theme Share"
+                    text: panel.titleKicker
                     color: panel.style ? panel.style.glowCyan : "#8EDFFF"
                     font.pixelSize: 11
                     font.weight: 800
@@ -100,7 +109,7 @@ Rectangle {
                     font.capitalization: Font.AllUppercase
                 }
                 Text {
-                    text: "今日主题使用占比"
+                    text: panel.titleText
                     color: panel.style ? panel.style.textPrimary : "#fff"
                     font.pixelSize: 16
                     font.weight: 800
@@ -155,17 +164,18 @@ Rectangle {
                     anchors.centerIn: parent
                     width: parent.width * 1.35; height: parent.height * 1.35
                     glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
-                    glowOpacity: 0.16 * panel.gs
+                    glowOpacity: 0.16 * panel.gs2
                     visible: panel.hasData
                 }
 
-                // (2) 彩色霓虹外晕：MultiEffect 模糊一份甜甜圈扇区，按扇区色外溢成霓虹（夜开昼弱）
+                // (2) 彩色霓虹外晕：MultiEffect 模糊一份甜甜圈扇区，按扇区色外溢成霓虹（夜开昼弱）。
+                // 降玻璃：阈值 0.6→0.25（低玻璃仍留一丝）、opacity ×glassStrength、blurMax 按比例收糊度。
                 MultiEffect {
                     anchors.fill: pie
                     source: pie
-                    visible: panel.hasData && panel.gs > 0.6
-                    opacity: 0.85
-                    blurEnabled: true; blur: 1.0; blurMax: 28; autoPaddingEnabled: true
+                    visible: panel.hasData && panel.gs2 > 0.25
+                    opacity: 0.85 * panel.glassStrength
+                    blurEnabled: true; blur: 1.0; blurMax: Math.round(28 * panel.glassStrength); autoPaddingEnabled: true
                 }
 
                 // (3) 呼吸光环（设计稿 .daily-pie-ring，scale .98↔1.035 / opacity .42↔.78，2.8s）
@@ -177,7 +187,8 @@ Rectangle {
                     color: "transparent"
                     border.width: 1
                     border.color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.14) : Qt.rgba(0.56, 0.87, 1, 0.14)
-                    visible: panel.hasData
+                    // 降玻璃：呼吸光环属重玻璃层，统计页（glassStrength≈0.45）关掉以保清晰。
+                    visible: panel.hasData && panel.glassStrength > 0.6
                     SequentialAnimation on scale {
                         running: ring.visible && panel.visible
                         loops: Animation.Infinite
@@ -259,7 +270,7 @@ Rectangle {
                         x: parent.width / 2 - width / 2
                         y: parent.height * 0.40 - height / 2
                         glowColor: panel.style ? panel.style.glowCyan : "#8EDFFF"
-                        glowOpacity: 0.14 * panel.gs
+                        glowOpacity: 0.14 * panel.gs2
                     }
                     // 内沿顶部 1px 高光
                     Rectangle {
@@ -283,7 +294,7 @@ Rectangle {
                     anchors.fill: glowSrc
                     source: glowSrc
                     visible: panel.style && panel.style.night && panel.total.length > 0
-                    blurEnabled: true; blur: 1.0; blurMax: 18; autoPaddingEnabled: true
+                    blurEnabled: true; blur: 1.0; blurMax: Math.round(18 * panel.glassStrength); autoPaddingEnabled: true
                 }
                 Text {
                     anchors.centerIn: parent
@@ -365,7 +376,7 @@ Rectangle {
             width: parent.width
             height: 44
             radius: 16
-            visible: panel.insightText.length > 0
+            visible: panel.showInsight && panel.insightText.length > 0
             color: panel.style ? (panel.style.night ? Qt.rgba(0, 0, 0, 0.13) : Qt.rgba(1, 1, 1, 0.4)) : "#00000020"
             border.width: 1
             border.color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.11) : Qt.rgba(0.56, 0.87, 1, 0.11)

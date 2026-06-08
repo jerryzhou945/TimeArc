@@ -40,6 +40,13 @@ For card, AI, Memory Lake, or mobile planning work, read:
 - `.harness/rules/07-product-ai-cards.md`
 - 备忘黑板：`docs/memory-lake-memo-functional-replication.md` +
   `docs/memory-lake-memo-render-pipeline-replication.md`（实现要点见 `.harness/rules/04` §8）
+- 日历页（v88 暗玻璃重皮 + 月/周计划/今日议程/专注记录）：
+  `docs/calendar-refactor-functional-replication.md` +
+  `docs/calendar-refactor-render-pipeline-replication.md`
+- 统计页（v88 暗玻璃 + 周/月/年 + 期次/环比/专注/导出）：
+  `docs/stats-functional-replication.md` + `docs/stats-render-pipeline-replication.md` +
+  `docs/stats-backend-data-gaps.md`（后端缺口/接入） +
+  `docs/stats-backend-performance.md`（性能：增量解析 / 记忆化 / 重算守卫）
 
 Product principle:
 

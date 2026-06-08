@@ -139,6 +139,8 @@ QtObject {
     readonly property color recapShell: night ? Qt.rgba(0.024, 0.04, 0.07, 1.0) : Qt.rgba(1, 1, 1, 0.92)
     readonly property color recapStage: night ? Qt.rgba(0, 0, 0, 0.20) : Qt.rgba(0, 0, 0, 0.12)   // .summary-stage/.side（v25 最终 .20）
     readonly property color changeDown: "#FF8FB5"   // .change.down（对比下降色）
+    // 统计页指标升幅绿（设计稿 .stats-metric-change rgba(125,255,178,.78)）。降幅复用 changeDown。
+    readonly property color changeUp: Qt.rgba(125 / 255, 255 / 255, 178 / 255, 0.78)
     // 回顾票根（kraft 纸）渐变与墨字（.ticket-card 设计稿固定色）
     readonly property color ticketTop: "#DED3BD"
     readonly property color ticketBottom: "#BFAE91"

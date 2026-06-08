@@ -34,6 +34,9 @@ class UsageStatManager : public QObject {
   int allSoftwareMinutes() const;
 
   Q_INVOKABLE void refresh();
+  // 数据代际：m_records 真实变化（全量重读或增量追加）时自增；live current 快照变化不计。
+  // 供 UI（统计页）跳过无新数据的重算（避免 5s Timer 每次都做昂贵聚合 → 长期卡顿）。
+  Q_INVOKABLE int recordsGeneration() const { return m_recordsGeneration; }
   // active = foreground + audio 合并视图；重叠时间会按区间合并，避免双算。
   Q_INVOKABLE QVariantList softwareForRange(const QString& range) const;
   Q_INVOKABLE QVariantList activeSoftwareForRange(const QString& range) const;
@@ -60,6 +63,32 @@ class UsageStatManager : public QObject {
   // （无记录的天补 0），口径与 softwareSecondsForRange("month") 一致。
   // 返回 [{day:int(1..N), seconds:qlonglong}]，用于趋势曲线 / 月历柱。
   Q_INVOKABLE QVariantList dailySecondsForMonth(int year, int month) const;
+  // 统计页周视图（G-1）：任意窗口逐日 active 秒数序列，口径同 dailySecondsForMonth，
+  // 但按 [startUnixSec, endUnixSec] 的本地自然日分桶。返回 [{dayStartUnix, seconds}]
+  // （窗口内每天一项，无记录补 0），供周 7 柱 / 任意期次序列。range "week" 已在
+  // matchesRange 支持（周一为首），周窗口起止由 QML 计算后传入，二者口径一致。
+  Q_INVOKABLE QVariantList dailySecondsForRange(qint64 startUnixSec,
+                                                qint64 endUnixSec) const;
+  // 统计页期次任意窗口（G-9）+ 环比 WoW/MoM/YoY（G-8/G-2）：按记录起始 unix 落在
+  // [startUnixSec, endUnixSec] 闭区间聚合，口径与 matchesRange 当前周期一致；
+  // QML 传入本地周期边界（末秒为 end）即可取任意周/月/年窗口与其上一周期。
+  Q_INVOKABLE QVariantList activeSoftwareForWindow(qint64 startUnixSec,
+                                                   qint64 endUnixSec) const;
+  Q_INVOKABLE int activeSoftwareSecondsForWindow(qint64 startUnixSec,
+                                                 qint64 endUnixSec) const;
+  Q_INVOKABLE QVariantList foregroundSegmentsForWindow(qint64 startUnixSec,
+                                                       qint64 endUnixSec) const;
+  // 年视图 12 月序列（G-7）：单遍扫描，替代 12 次 activeSoftwareForMonth。
+  // 返回 [{month:1..12, seconds}]（当年到当前月、过去年整 12、未来年全 0）。
+  Q_INVOKABLE QVariantList monthlySecondsForYear(int year) const;
+  // 专注聚合（G-6 / A-5）：开发/办公/笔记 类目跨 app 连续块（间隙<=10min、最短>=5min）。
+  // 返回 {focusSeconds:qlonglong, focusDays:int}，供月·专注天数 / 年·专注小时。只读。
+  Q_INVOKABLE QVariantMap focusStatsForWindow(qint64 startUnixSec,
+                                              qint64 endUnixSec) const;
+  // 导出报告（G-10）：把 UI 组装的统计 JSON 写到下载/文档目录（报告文件，非 usage 数据，
+  // 不动磁盘契约/不写 usage/SQLite）。返回完整路径，失败空串。
+  Q_INVOKABLE QString exportReport(const QString& fileBaseName,
+                                   const QString& jsonContent) const;
 
 signals:
   void usageStatsChanged();
@@ -81,6 +110,10 @@ signals:
   QList<UsageRecord> m_records;
   UsageRecord m_currentRecord;
   bool m_hasCurrentRecord = false;
+  // 增量解析状态（JSONL 追加写）：上次已解析到的字节偏移 + 文件大小。size 变小=轮转/截断→全量重读。
+  int m_recordsGeneration = 0;
+  qint64 m_recordsParsedSize = -1;
+  qint64 m_recordsParsedOffset = 0;
 
   QString recordsFilePath() const;
   QString currentFilePath() const;
@@ -93,6 +126,9 @@ signals:
   QVariantList aggregateSoftware(
       const std::function<bool(const UsageRecord&)>& inWindow,
       const QString& sourceFilter) const;
+  // 前台会话段聚合核心（range 版与任意窗口版共用，谓词决定纳入哪些记录）。
+  QVariantList foregroundSegmentsImpl(
+      const std::function<bool(const UsageRecord&)>& inWindow) const;
   int aggregateSoftwareSecondsForRange(const QString& range,
                                        const QString& sourceFilter) const;
   bool matchesRange(const UsageRecord& record, const QString& range) const;

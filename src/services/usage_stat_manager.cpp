@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QFileIconProvider>
 #include <QFileInfo>
+#include <QHash>
 #include <QIcon>
 #include <QImage>
 #include <QJsonDocument>
@@ -16,6 +17,9 @@
 #include <QMap>
 #include <QPixmap>
 #include <QProcessEnvironment>
+#include <QRegularExpression>
+#include <QSet>
+#include <QStandardPaths>
 #include <QStringList>
 #include <QVariantMap>
 #include <QVector>
@@ -234,12 +238,23 @@ QString appGroupKey(const QString& appId, const QString& appName,
 
 QString activityGroupKey(const QString& appId, const QString& appName,
                          const QString& path, const QString& windowTitle) {
+  // 记忆化：纯函数 + 确定性 + 站点目录编译期静态 → 进程内静态缓存无需失效。同一身份元组
+  // 在 46k 记录里高频重复，缓存把每条的多次 containsAny/站点扫描降为一次 hash 查找。
+  static QHash<QString, QString> cache;
+  const QChar sep(QChar(0x1f));
+  const QString k = appId + sep + appName + sep + path + sep + windowTitle;
+  const auto it = cache.constFind(k);
+  if (it != cache.constEnd()) return it.value();
+
+  QString value;
   if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForBrowserWindow(appId, appName, path, windowTitle)) {
-    return site->siteId;
+    value = site->siteId;
+  } else {
+    value = appGroupKey(appId, appName, path);
   }
-
-  return appGroupKey(appId, appName, path);
+  if (cache.size() < 200000) cache.insert(k, value);  // 软上限防极端无界增长
+  return value;
 }
 
 QString activityDisplayName(const QString& groupKey, const QString& appId,
@@ -256,9 +271,9 @@ QString activityDisplayName(const QString& groupKey, const QString& appId,
 // （仅本地：用于定类别，绝不展示原文、不进 AI、不落库，符合隐私边界=仅本地聚合）。
 // 系统/外壳进程单列为「系统」，便于 UI 降权（不当主角/不当头条类别）。
 // 站点特例（site:bilibili 等）已在 groupKey 体现，这里按 groupKey 直接定。
-QString classifyActivity(const QString& groupKey, const QString& appId,
-                         const QString& appName, const QString& path,
-                         const QString& windowTitle) {
+QString classifyActivityImpl(const QString& groupKey, const QString& appId,
+                             const QString& appName, const QString& path,
+                             const QString& windowTitle) {
   if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForGroupKey(groupKey)) {
     return site->category;
@@ -334,6 +349,21 @@ QString classifyActivity(const QString& groupKey, const QString& appId,
     return QStringLiteral("笔记");
 
   return QStringLiteral("其他");
+}
+
+// 记忆化包装（同 activityGroupKey：纯函数确定性，进程内静态缓存无需失效）。
+QString classifyActivity(const QString& groupKey, const QString& appId,
+                         const QString& appName, const QString& path,
+                         const QString& windowTitle) {
+  static QHash<QString, QString> cache;
+  const QChar sep(QChar(0x1f));
+  const QString k = groupKey + sep + appId + sep + appName + sep + path + sep + windowTitle;
+  const auto it = cache.constFind(k);
+  if (it != cache.constEnd()) return it.value();
+  const QString result =
+      classifyActivityImpl(groupKey, appId, appName, path, windowTitle);
+  if (cache.size() < 200000) cache.insert(k, result);
+  return result;
 }
 
 // 从 app 图标位图提取最多 3 个主色调（跳过透明/接近灰/接近黑白），按 path 缓存。
@@ -432,35 +462,62 @@ int UsageStatManager::allSoftwareMinutes() const {
 }
 
 void UsageStatManager::refresh() {
-  // refresh 是 UI 的数据入口：重读历史 JSONL，再尝试叠加仍在运行的 current 快照。
-  // 因为 service 独立进程写文件，UI 不能只依赖内存状态。
-  QList<UsageRecord> records;
+  // refresh 是 UI 的数据入口：读历史 JSONL（**增量**：service 是 append-only，只解析自上次
+  // 偏移以来新追加的完整行；size 变小=轮转/截断→全量重读），再叠加 current 实时快照。
+  // 关键性能修复：16MB/46k 行全量重解析每 5s 一次会让 UI 长期卡顿；增量后空闲 tick 近乎零成本。
+  const QString path = recordsFilePath();
+  const QFileInfo info(path);
+  const qint64 size = info.exists() ? info.size() : -1;
 
-  QFile file(recordsFilePath());
-  if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    while (!file.atEnd()) {
-      const QByteArray line = file.readLine().trimmed();
-      if (line.isEmpty()) continue;
-
-      const QJsonDocument doc = parseJsonLine(line);
-      if (!doc.isObject()) continue;
-
-      const QJsonObject object = doc.object();
-      if (object.value("platform").toString() != "windows") continue;
-
-      // 目前 UI 只消费 Windows service 写出的记录；macOS 记录后续接入时再放开。
-      UsageRecord record = parseRecordObject(object, false);
-
-      if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
-      if (record.appId.trimmed().isEmpty() &&
-          record.appName.trimmed().isEmpty())
-        continue;
-
-      records.append(record);
+  if (size < 0) {
+    if (!m_records.isEmpty()) {
+      m_records.clear();
+      ++m_recordsGeneration;
     }
-  }
+    m_recordsParsedSize = -1;
+    m_recordsParsedOffset = 0;
+  } else {
+    const bool full = (m_recordsParsedSize < 0) || (size < m_recordsParsedSize);
+    if (full) {
+      m_records.clear();
+      m_recordsParsedOffset = 0;
+    }
+    int added = 0;
+    if (full || m_recordsParsedOffset < size) {
+      QFile file(path);
+      // 非 Text 模式：按原始字节统计偏移（Text 会折叠 \r\n 致偏移与磁盘不一致）。
+      if (file.open(QIODevice::ReadOnly)) {
+        if (!full && m_recordsParsedOffset > 0) file.seek(m_recordsParsedOffset);
+        qint64 offset = full ? 0 : m_recordsParsedOffset;
+        while (!file.atEnd()) {
+          const QByteArray rawLine = file.readLine();
+          // 末尾无换行=半写行（service 正写到一半）→ 本次不消费，下次再读。
+          if (!rawLine.endsWith('\n')) break;
+          offset += rawLine.size();
+          const QByteArray line = rawLine.trimmed();
+          if (line.isEmpty()) continue;
 
-  m_records = records;
+          const QJsonDocument doc = parseJsonLine(line);
+          if (!doc.isObject()) continue;
+          const QJsonObject object = doc.object();
+          if (object.value("platform").toString() != "windows") continue;
+
+          // 目前 UI 只消费 Windows service 写出的记录；macOS 记录后续接入再放开。
+          UsageRecord record = parseRecordObject(object, false);
+          if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
+          if (record.appId.trimmed().isEmpty() &&
+              record.appName.trimmed().isEmpty())
+            continue;
+
+          m_records.append(record);
+          ++added;
+        }
+        m_recordsParsedOffset = offset;
+      }
+    }
+    m_recordsParsedSize = size;
+    if (full || added > 0) ++m_recordsGeneration;
+  }
 
   m_hasCurrentRecord = false;
   QFile currentFile(currentFilePath());
@@ -555,7 +612,9 @@ QVariantList UsageStatManager::aggregateSoftware(
         record.startUnixSec + static_cast<qint64>(record.durationSec);
     if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
 
-    Aggregate aggregate = grouped.value(key);
+    // 引用就地累加（原先 value()拷出 + [key]=拷回 会把不断增长的 intervals 每条记录
+    // 深拷两次 → O(N²)，重度前台 app 一周数千条时是 activeSoftware 的主要耗时）。
+    Aggregate& aggregate = grouped[key];
     if (aggregate.groupKey.trimmed().isEmpty()) {
       aggregate.groupKey = key;
     }
@@ -586,7 +645,6 @@ QVariantList UsageStatManager::aggregateSoftware(
         key, record.appId, record.appName, record.path, record.windowTitle)] +=
         record.durationSec;
     aggregate.live = aggregate.live || record.live;
-    grouped[key] = aggregate;
   };
 
   for (const UsageRecord& record : m_records) {
@@ -789,8 +847,8 @@ QVariantMap UsageStatManager::currentSoftware() const {
   return recordToVariantMap(m_currentRecord);
 }
 
-QVariantList UsageStatManager::foregroundSegmentsForRange(
-    const QString& range) const {
+QVariantList UsageStatManager::foregroundSegmentsImpl(
+    const std::function<bool(const UsageRecord&)>& inWindow) const {
   // 只看前台记录（service 已按"同 exe+同窗口标题连续"切会话；浏览器换标签标题
   // 会滚动新记录），按 activity key 分组，相邻间隙 <= 60s 合并成一次"会话段"，
   // 既消除标题抖动，又保留真实再次访问（中间隔了别的 app -> 有真实间隙，不合并）。
@@ -805,7 +863,7 @@ QVariantList UsageStatManager::foregroundSegmentsForRange(
   QMap<QString, AppSessions> grouped;
   const auto addRecord = [&](const UsageRecord& record) {
     if (record.source == "audio") return;  // 仅前台
-    if (!matchesRange(record, range)) return;
+    if (!inWindow(record)) return;
     if (record.durationSec == 0) return;
 
     const qint64 endUnixSec =
@@ -893,6 +951,45 @@ QVariantList UsageStatManager::foregroundSegmentsForRange(
   return result;
 }
 
+QVariantList UsageStatManager::foregroundSegmentsForRange(
+    const QString& range) const {
+  return foregroundSegmentsImpl(
+      [&](const UsageRecord& record) { return matchesRange(record, range); });
+}
+
+// 任意窗口版（统计页期次 prev/next）：按记录起始 unix 落在 [start,end] 闭区间筛选，
+// 与 matchesRange 当前周/月/年的按起始日口径一致（QML 传入本地周期边界，末秒为 end）。
+QVariantList UsageStatManager::foregroundSegmentsForWindow(
+    qint64 startUnixSec, qint64 endUnixSec) const {
+  return foregroundSegmentsImpl([&](const UsageRecord& record) {
+    return record.startUnixSec >= startUnixSec &&
+           record.startUnixSec <= endUnixSec;
+  });
+}
+
+QVariantList UsageStatManager::activeSoftwareForWindow(qint64 startUnixSec,
+                                                       qint64 endUnixSec) const {
+  return aggregateSoftware(
+      [&](const UsageRecord& record) {
+        return record.startUnixSec >= startUnixSec &&
+               record.startUnixSec <= endUnixSec;
+      },
+      QString());
+}
+
+int UsageStatManager::activeSoftwareSecondsForWindow(qint64 startUnixSec,
+                                                     qint64 endUnixSec) const {
+  quint64 total = 0;
+  const QVariantList items = activeSoftwareForWindow(startUnixSec, endUnixSec);
+  for (const QVariant& item : items) {
+    total += static_cast<quint64>(
+        item.toMap().value("seconds", 0).toLongLong());
+  }
+  return total > static_cast<quint64>(std::numeric_limits<int>::max())
+             ? std::numeric_limits<int>::max()
+             : static_cast<int>(total);
+}
+
 QVariantList UsageStatManager::activeSoftwareForMonth(int year,
                                                       int month) const {
   return aggregateSoftware(
@@ -943,6 +1040,201 @@ QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
   return result;
 }
 
+QVariantList UsageStatManager::dailySecondsForRange(qint64 startUnixSec,
+                                                    qint64 endUnixSec) const {
+  // 任意窗口逐日 active(前台+音频并集) 秒数，口径与 dailySecondsForMonth 完全一致
+  // （每天对各 app 自身区间求并集再相加，按记录起始日分桶）。返回窗口内每个本地
+  // 自然日一项 [{dayStartUnix:qlonglong, seconds:qlonglong}]（无记录补 0），供
+  // 周 7 柱 / 任意期次序列用。只组合自身 m_records，不开新数据路径，安全面同月版。
+  QVariantList result;
+  if (endUnixSec <= startUnixSec) return result;
+
+  const QDate startDate =
+      QDateTime::fromSecsSinceEpoch(startUnixSec).toLocalTime().date();
+  const QDate endDate =
+      QDateTime::fromSecsSinceEpoch(endUnixSec).toLocalTime().date();
+  if (!startDate.isValid() || !endDate.isValid()) return result;
+
+  // 按本地自然日分桶：ISO 日期串 -> (groupKey -> intervals)。
+  QMap<QString, QMap<QString, QVector<UsageInterval>>> byDay;
+  const auto add = [&](const UsageRecord& record) {
+    if (record.durationSec == 0) return;
+    const qint64 recEnd =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || recEnd <= record.startUnixSec) return;
+    const QDate d =
+        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
+    if (!d.isValid() || d < startDate || d > endDate) return;
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    byDay[d.toString(Qt::ISODate)][key].append({record.startUnixSec, recEnd});
+  };
+  for (const UsageRecord& record : m_records) add(record);
+  if (m_hasCurrentRecord) add(m_currentRecord);
+
+  for (QDate d = startDate; d <= endDate; d = d.addDays(1)) {
+    qint64 total = 0;
+    const auto dayIt = byDay.constFind(d.toString(Qt::ISODate));
+    if (dayIt != byDay.constEnd()) {
+      for (auto it = dayIt->constBegin(); it != dayIt->constEnd(); ++it) {
+        total += static_cast<qint64>(mergedIntervalSeconds(it.value()));
+      }
+    }
+    QVariantMap m;
+    m["dayStartUnix"] =
+        static_cast<qlonglong>(d.startOfDay().toSecsSinceEpoch());
+    m["seconds"] = static_cast<qlonglong>(total);
+    result.append(m);
+  }
+  return result;
+}
+
+QVariantList UsageStatManager::monthlySecondsForYear(int year) const {
+  // 指定年的 12 个月 active(前台∪音频并集) 秒序列，口径同 dailySecondsForMonth。
+  // 单遍扫描 m_records 按月分桶（替代统计页年视图 12 次 activeSoftwareForMonth）。
+  // 当年只到当前月、过去年整 12 月、未来年全 0（不造假未来）。
+  QMap<int, QMap<QString, QVector<UsageInterval>>> byMonth;
+  const auto add = [&](const UsageRecord& record) {
+    if (record.durationSec == 0) return;
+    const QDate d =
+        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
+    if (!d.isValid() || d.year() != year) return;
+    const qint64 end =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    byMonth[d.month()][key].append({record.startUnixSec, end});
+  };
+  for (const UsageRecord& record : m_records) add(record);
+  if (m_hasCurrentRecord) add(m_currentRecord);
+
+  const QDate today = QDate::currentDate();
+  int upTo = 12;
+  if (year == today.year()) upTo = today.month();
+  if (year > today.year()) upTo = 0;
+
+  QVariantList result;
+  for (int mo = 1; mo <= 12; ++mo) {
+    qint64 total = 0;
+    if (mo <= upTo) {
+      const auto it = byMonth.constFind(mo);
+      if (it != byMonth.constEnd()) {
+        for (auto j = it->constBegin(); j != it->constEnd(); ++j)
+          total += static_cast<qint64>(mergedIntervalSeconds(j.value()));
+      }
+    }
+    QVariantMap m;
+    m["month"] = mo;
+    m["seconds"] = static_cast<qlonglong>(total);
+    result.append(m);
+  }
+  return result;
+}
+
+QVariantMap UsageStatManager::focusStatsForWindow(qint64 startUnixSec,
+                                                  qint64 endUnixSec) const {
+  // 专注（A-5）= 开发/办公/笔记 类目的活动派生连续块：把窗口内 focus 类目记录跨 app
+  // 汇成时间轴，相邻间隙 <= 10min 合并成块，块时长 >= 5min 才计入。
+  // focusSeconds = 块总秒；focusDays = 含 focus 块的本地自然日数。只读 m_records。
+  constexpr qint64 kFocusGapSec = 600;   // 10min
+  constexpr qint64 kMinBlockSec = 300;   // 5min
+  static const QSet<QString> kFocusCats = {QStringLiteral("开发"),
+                                           QStringLiteral("办公"),
+                                           QStringLiteral("笔记")};
+  QVector<UsageInterval> intervals;
+  const auto add = [&](const UsageRecord& record) {
+    if (record.durationSec == 0) return;
+    if (record.startUnixSec < startUnixSec || record.startUnixSec > endUnixSec)
+      return;
+    const qint64 end =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
+    const QString key = activityGroupKey(record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    const QString cat = classifyActivity(key, record.appId, record.appName,
+                                         record.path, record.windowTitle);
+    if (!kFocusCats.contains(cat)) return;
+    intervals.append({record.startUnixSec, end});
+  };
+  for (const UsageRecord& record : m_records) add(record);
+  if (m_hasCurrentRecord) add(m_currentRecord);
+
+  std::sort(intervals.begin(), intervals.end(),
+            [](const UsageInterval& a, const UsageInterval& b) {
+              return a.start < b.start;
+            });
+
+  qint64 focusSeconds = 0;
+  QSet<qint64> focusDays;
+  qint64 curStart = 0;
+  qint64 curEnd = 0;
+  bool open = false;
+  const auto flush = [&]() {
+    if (!open) return;
+    const qint64 secs = curEnd - curStart;
+    if (secs >= kMinBlockSec) {
+      focusSeconds += secs;
+      const QDate d0 =
+          QDateTime::fromSecsSinceEpoch(curStart).toLocalTime().date();
+      const QDate d1 =
+          QDateTime::fromSecsSinceEpoch(curEnd).toLocalTime().date();
+      for (QDate d = d0; d.isValid() && d <= d1; d = d.addDays(1))
+        focusDays.insert(d.toJulianDay());
+    }
+    open = false;
+  };
+  for (const UsageInterval& iv : intervals) {
+    if (!open) {
+      curStart = iv.start;
+      curEnd = iv.end;
+      open = true;
+      continue;
+    }
+    if (iv.start - curEnd <= kFocusGapSec) {
+      curEnd = std::max(curEnd, iv.end);
+    } else {
+      flush();
+      curStart = iv.start;
+      curEnd = iv.end;
+      open = true;
+    }
+  }
+  flush();
+
+  QVariantMap m;
+  m["focusSeconds"] = static_cast<qlonglong>(focusSeconds);
+  m["focusDays"] = focusDays.size();
+  return m;
+}
+
+QString UsageStatManager::exportReport(const QString& fileBaseName,
+                                       const QString& jsonContent) const {
+  // 把 UI 组装好的统计 JSON 写到 下载/文档 目录（**报告文件，非 usage 数据**，
+  // 不动磁盘契约、不写 usage/SQLite）。返回完整路径，失败返回空串。
+  QString dir =
+      QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+  if (dir.isEmpty())
+    dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+  if (dir.isEmpty()) dir = usageDataDir();
+  QDir().mkpath(dir);
+
+  QString base = fileBaseName;
+  base.replace(QRegularExpression(QStringLiteral("[^A-Za-z0-9_.-]")),
+               QStringLiteral("_"));
+  base.remove(QRegularExpression(QStringLiteral("^_+|_+$")));  // 去净化产生的首尾下划线
+  if (base.trimmed().isEmpty()) base = QStringLiteral("timearc-stats");
+  const QString path = QDir(dir).filePath(base + QStringLiteral(".json"));
+
+  QFile file(path);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return QString();
+  const QByteArray bytes = jsonContent.toUtf8();
+  const qint64 written = file.write(bytes);
+  file.close();
+  if (written != bytes.size()) return QString();  // 短写（磁盘满等）→ 报失败而非假成功
+  return path;
+}
+
 bool UsageStatManager::matchesRange(const UsageRecord& record,
                                     const QString& range) const {
   if (range == "all") return true;
@@ -957,6 +1249,12 @@ bool UsageStatManager::matchesRange(const UsageRecord& record,
     return recordDate.year() == today.year() &&
            recordDate.month() == today.month();
   if (range == "year") return recordDate.year() == today.year();
+  if (range == "week") {
+    // 当周（周一为首，含两端），对齐 v88/日历 ISO 周口径。dayOfWeek(): 周一=1..周日=7。
+    const QDate weekStart = today.addDays(-(today.dayOfWeek() - 1));
+    const QDate weekEnd = weekStart.addDays(6);
+    return recordDate >= weekStart && recordDate <= weekEnd;
+  }
 
   return false;
 }
