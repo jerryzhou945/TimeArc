@@ -6,12 +6,9 @@
 #include <QVector>
 
 #include "adapter_metadata.h"
+#include "website_adapter_registry.h"
 
 namespace TimeArcAdapters {
-
-inline QVector<AdapterDefinition> registeredWebsiteAdapters() {
-  return {};
-}
 
 inline QVector<AdapterDefinition> registeredDesktopAppAdapters() {
   return {};

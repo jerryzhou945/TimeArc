@@ -268,6 +268,72 @@ int main(int argc, char* argv[]) {
     return fail(QStringLiteral("Generic desktop adapter fallback failed."));
   }
 
+  struct WebsiteAdapterCase {
+    QString url;
+    QString title;
+    QString expectedIdentifier;
+    QString expectedName;
+    QString expectedCategory;
+    bool expectsIcon;
+  };
+  const WebsiteAdapterCase websiteAdapterCases[] = {
+      {QStringLiteral("https://www.youtube.com/watch?v=secret-token"),
+       QStringLiteral("lofi stream - YouTube"),
+       QStringLiteral("site:youtube"),
+       QStringLiteral("YouTube"),
+       QStringLiteral("视频"),
+       true},
+      {QStringLiteral("https://space.bilibili.com/12345"),
+       QStringLiteral("UP 主空间 - 哔哩哔哩"),
+       QStringLiteral("site:bilibili"),
+       QStringLiteral("哔哩哔哩"),
+       QStringLiteral("视频"),
+       true},
+      {QStringLiteral("https://open.spotify.com/playlist/private-id"),
+       QStringLiteral("Daily Mix - Spotify"),
+       QStringLiteral("site:spotify-web"),
+       QStringLiteral("Spotify Web"),
+       QStringLiteral("音乐"),
+       false},
+      {QStringLiteral("https://y.qq.com/n/ryqq/songDetail/private-id"),
+       QStringLiteral("QQ音乐 - song"),
+       QStringLiteral("site:qq-music-web"),
+       QStringLiteral("QQ Music Web"),
+       QStringLiteral("音乐"),
+       false},
+  };
+  for (const WebsiteAdapterCase& siteCase : websiteAdapterCases) {
+    TimeArcAdapters::AdapterInput input;
+    input.url = siteCase.url;
+    input.title = siteCase.title;
+    const TimeArcAdapters::AdapterMetadata metadata =
+        TimeArcAdapters::resolveActivity(input);
+    const QVariantMap map = metadata.toVariantMap();
+    if (metadata.sourceType != QStringLiteral("website") ||
+        metadata.identifier != siteCase.expectedIdentifier ||
+        metadata.displayName != siteCase.expectedName ||
+        metadata.category != siteCase.expectedCategory ||
+        metadata.confidence < 0.89 ||
+        metadata.iconLabel.trimmed().isEmpty() ||
+        (siteCase.expectsIcon && metadata.iconPath.trimmed().isEmpty() &&
+         metadata.iconUrl.trimmed().isEmpty()) ||
+        map.contains(QStringLiteral("url")) ||
+        map.values().contains(siteCase.url)) {
+      return fail(QStringLiteral("Website adapter match failed: %1")
+                      .arg(siteCase.expectedIdentifier));
+    }
+  }
+
+  TimeArcAdapters::AdapterInput titleOnlyBilibili;
+  titleOnlyBilibili.title =
+      QStringLiteral("更了300多期视频以后 - 哔哩哔哩 bilibili - Google Chrome");
+  const TimeArcAdapters::AdapterMetadata titleOnlySite =
+      TimeArcAdapters::resolveWebsite(titleOnlyBilibili);
+  if (titleOnlySite.identifier != QStringLiteral("site:bilibili") ||
+      titleOnlySite.confidence >= 0.90) {
+    return fail(QStringLiteral("Website title fallback confidence failed."));
+  }
+
   const QString testDataPath =
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
   if (testDataPath.isEmpty()) {
