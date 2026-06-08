@@ -137,6 +137,10 @@ Item {
         return AppVisual.modelIconLabel(row)
     }
 
+    function modelDisplayName(row) {
+        return AppVisual.modelDisplayName(row)
+    }
+
     function refreshTodaySoftwareStats() {
         if (!usageStatManager) {
             todaySoftwareStats = []
@@ -206,6 +210,9 @@ Item {
         var current = usageStatManager.currentSoftware()
         if (!current)
             return "等待记录"
+        var adapterName = modelDisplayName(current)
+        if (adapterName.length > 0)
+            return adapterName
         if (current.name && current.name.length > 0)
             return current.name
         if (current.appName && current.appName.length > 0)
@@ -715,7 +722,7 @@ Item {
 
                                                     Text {
                                                         Layout.fillWidth: true
-                                                        text: modelData.name ? modelData.name : (modelData.appName ? modelData.appName : "Unknown app")
+                                                        text: modelDisplayName(modelData) || "Unknown app"
                                                         color: textPrimary
                                                         font.pixelSize: 14
                                                         font.bold: true
@@ -1278,7 +1285,7 @@ Item {
 
                                             Text {
                                                 Layout.fillWidth: true
-                                                text: modelData.name
+                                                text: modelDisplayName(modelData)
                                                 color: textPrimary
                                                 font.pixelSize: 13
                                                 font.bold: true
