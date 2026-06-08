@@ -125,7 +125,7 @@ Item {
                                     width: parent.width
                                     Text {
                                         width: parent.width - timeText.width
-                                        text: row.app ? row.app.name : ""
+                                        text: AppVisual.modelDisplayName(row.app)
                                         color: rankRoot.style ? Qt.rgba(rankRoot.style.textPrimary.r, rankRoot.style.textPrimary.g, rankRoot.style.textPrimary.b, rankRoot.style.night ? 0.82 : 1.0) : "#fff"
                                         font.pixelSize: 12
                                         elide: Text.ElideRight
