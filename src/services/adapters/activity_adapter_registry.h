@@ -6,13 +6,10 @@
 #include <QVector>
 
 #include "adapter_metadata.h"
+#include "desktop_app_adapter_registry.h"
 #include "website_adapter_registry.h"
 
 namespace TimeArcAdapters {
-
-inline QVector<AdapterDefinition> registeredDesktopAppAdapters() {
-  return {};
-}
 
 inline bool hasWebsiteSignal(const AdapterInput& input) {
   return !hostFromInput(input).isEmpty() || !input.url.trimmed().isEmpty();

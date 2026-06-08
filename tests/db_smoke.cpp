@@ -334,6 +334,78 @@ int main(int argc, char* argv[]) {
     return fail(QStringLiteral("Website title fallback confidence failed."));
   }
 
+  struct DesktopAdapterCase {
+    QString appId;
+    QString appName;
+    QString path;
+    QString expectedIdentifier;
+    QString expectedName;
+    QString expectedCategory;
+    bool supportsMedia;
+  };
+  const DesktopAdapterCase desktopAdapterCases[] = {
+      {QStringLiteral("com.google.Chrome"),
+       QStringLiteral("chrome.exe"),
+       QStringLiteral("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+       QStringLiteral("app:google-chrome"),
+       QStringLiteral("Chrome"),
+       QStringLiteral("浏览"),
+       false},
+      {QStringLiteral("Microsoft.MicrosoftEdge.Stable"),
+       QStringLiteral("msedge.exe"),
+       QStringLiteral("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
+       QStringLiteral("app:microsoft-edge"),
+       QStringLiteral("Edge"),
+       QStringLiteral("浏览"),
+       false},
+      {QStringLiteral("com.microsoft.VSCode"),
+       QStringLiteral("Code.exe"),
+       QStringLiteral("C:/Users/me/AppData/Local/Programs/Microsoft VS Code/Code.exe"),
+       QStringLiteral("app:vscode"),
+       QStringLiteral("VSCode"),
+       QStringLiteral("开发"),
+       false},
+      {QStringLiteral("com.spotify.client"),
+       QStringLiteral("Spotify.exe"),
+       QStringLiteral("C:/Users/me/AppData/Roaming/Spotify/Spotify.exe"),
+       QStringLiteral("app:spotify"),
+       QStringLiteral("Spotify"),
+       QStringLiteral("音乐"),
+       true},
+      {QStringLiteral("com.tencent.xinWeChat"),
+       QStringLiteral("WeChat.exe"),
+       QStringLiteral("C:/Program Files/Tencent/WeChat/WeChat.exe"),
+       QStringLiteral("app:wechat"),
+       QStringLiteral("WeChat"),
+       QStringLiteral("社交"),
+       false},
+      {QStringLiteral("com.tencent.qq"),
+       QStringLiteral("QQ.exe"),
+       QStringLiteral("C:/Program Files/Tencent/QQ/QQ.exe"),
+       QStringLiteral("app:qq"),
+       QStringLiteral("QQ"),
+       QStringLiteral("社交"),
+       false},
+  };
+  for (const DesktopAdapterCase& appCase : desktopAdapterCases) {
+    TimeArcAdapters::AdapterInput input;
+    input.appId = appCase.appId;
+    input.appName = appCase.appName;
+    input.path = appCase.path;
+    const TimeArcAdapters::AdapterMetadata metadata =
+        TimeArcAdapters::resolveActivity(input);
+    if (metadata.sourceType != QStringLiteral("desktopApp") ||
+        metadata.identifier != appCase.expectedIdentifier ||
+        metadata.displayName != appCase.expectedName ||
+        metadata.category != appCase.expectedCategory ||
+        metadata.iconLabel.trimmed().isEmpty() ||
+        metadata.supportsMediaDetection != appCase.supportsMedia ||
+        metadata.confidence < 0.90) {
+      return fail(QStringLiteral("Desktop app adapter match failed: %1")
+                      .arg(appCase.expectedIdentifier));
+    }
+  }
+
   const QString testDataPath =
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
   if (testDataPath.isEmpty()) {

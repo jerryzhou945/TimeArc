@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-08T07:00:04Z | L1 | desktop-adapter... | TDD red test: timearc_db_smoke failed after adding Chrome... | [report](errors/20260608-070004-B-desktop-adapters-red-test.md) |
 | 2026-06-08T06:57:05Z | L1 | apply-patch-wor... | apply_patch defaulted to the primary workspace while edit... | [report](errors/20260608-065705-B-apply-patch-worktree-path.md) |
 | 2026-06-08T06:56:13Z | L1 | rg-access-denied | rg --files failed with Access is denied in adapter suppor... | [report](errors/20260608-065613-B-rg-access-denied.md) |
 | 2026-06-08T06:52:44Z | L1 | website-adapter... | timearc_db_smoke failed after adding website adapter expe... | [report](errors/20260608-065244-B-website-adapters-red-test.md) |
