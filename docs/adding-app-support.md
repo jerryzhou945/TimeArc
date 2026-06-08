@@ -1,16 +1,16 @@
-# Adding Desktop App Support
+# 添加桌面软件支持
 
-Desktop app support is added by creating one adapter file and registering it.
+桌面软件支持通过“新增一个 adapter 文件并注册”完成。
 
-## Steps
+## 步骤
 
-1. Add a new header under `src/services/adapters/apps/`.
-2. Return a `TimeArcAdapters::AdapterDefinition`.
-3. Register the adapter in `src/services/adapters/desktop_app_adapter_registry.h`.
-4. Add smoke coverage in `tests/db_smoke.cpp` when the behavior is important.
-5. Run the harness build and smoke test.
+1. 在 `src/services/adapters/apps/` 下新增一个 header。
+2. 返回一个 `TimeArcAdapters::AdapterDefinition`。
+3. 在 `src/services/adapters/desktop_app_adapter_registry.h` 里注册该 adapter。
+4. 如果行为重要，在 `tests/db_smoke.cpp` 中补 smoke 覆盖。
+5. 运行 harness build 和 smoke test。
 
-## Adapter Shape
+## Adapter 示例
 
 ```cpp
 inline AdapterDefinition exampleAppAdapter() {
@@ -28,23 +28,22 @@ inline AdapterDefinition exampleAppAdapter() {
 }
 ```
 
-## Matching Rules
+## 匹配规则
 
-Preferred signals:
+优先使用：
 
-- App identifier or bundle identifier
-- Process name
-- Existing executable path or app name signal
+- app identifier 或 bundle identifier
+- process name
+- 已有的 executable path 或 app name 信号
 
-Do not:
+不要做：
 
-- Inspect private files
-- Read chat content
-- Read editor buffers
-- Capture screenshots
-- Use network IP address as app identity
+- 检查私人文件
+- 读取聊天内容
+- 读取编辑器 buffer
+- 截图
+- 用网络 IP 地址作为 app 身份
 
-## Icons
+## 图标
 
-For desktop apps, TimeArc can usually use the executable path and `image://appicon/` provider to render the native icon. Adapters should still provide a stable `iconLabel` and `brandColor` so the UI has a safe fallback.
-
+桌面软件通常可以通过可执行文件路径和 `image://appicon/` provider 渲染原生图标。adapter 仍然应该提供稳定的 `iconLabel` 和 `brandColor`，保证 UI 在图标缺失时有安全 fallback。

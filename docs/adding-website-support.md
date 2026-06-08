@@ -1,16 +1,16 @@
-# Adding Website Support
+# 添加网站支持
 
-Website support is added by creating one adapter file and registering it.
+网站支持通过“新增一个 adapter 文件并注册”完成。
 
-## Steps
+## 步骤
 
-1. Add a new header under `src/services/adapters/websites/`.
-2. Return a `TimeArcAdapters::AdapterDefinition`.
-3. Register the adapter in `src/services/adapters/website_adapter_registry.h`.
-4. Add smoke coverage in `tests/db_smoke.cpp` when the behavior is important.
-5. Run the harness build and smoke test.
+1. 在 `src/services/adapters/websites/` 下新增一个 header。
+2. 返回一个 `TimeArcAdapters::AdapterDefinition`。
+3. 在 `src/services/adapters/website_adapter_registry.h` 里注册该 adapter。
+4. 如果行为重要，在 `tests/db_smoke.cpp` 中补 smoke 覆盖。
+5. 运行 harness build 和 smoke test。
 
-## Adapter Shape
+## Adapter 示例
 
 ```cpp
 inline AdapterDefinition exampleWebsiteAdapter() {
@@ -30,33 +30,32 @@ inline AdapterDefinition exampleWebsiteAdapter() {
 }
 ```
 
-## Matching Rules
+## 匹配规则
 
-Preferred signals:
+优先信号：
 
-- Domain
-- Hostname
+- domain
+- hostname
 - URL pattern
 
-Allowed fallback:
+允许的 fallback：
 
-- Window title hints already captured by the service, used locally and with lower confidence
+- service 已经捕获到的窗口标题 hint。这个 hint 只在本地使用，并且应该给较低置信度。
 
-Do not:
+不要做：
 
-- Save full sensitive URLs in adapter metadata
-- Read webpage body text
-- Read input fields
-- Take screenshots
-- Use IP address as the default website identity
+- 在 adapter metadata 中保存完整敏感 URL
+- 读取网页正文
+- 读取输入框
+- 截图
+- 默认用 IP 地址作为网站身份
 
-## Icons
+## 图标
 
-Prefer this order:
+推荐优先级：
 
-1. Repo-local icon path when licensing and quality are acceptable.
-2. Future browser-provided favicon or high-resolution icon URL, sanitized by the capture layer.
-3. `iconLabel` and `brandColor` fallback.
+1. 在授权和质量可接受时使用 repo-local icon path。
+2. 未来由浏览器侧提供 favicon 或高分辨率 icon URL，并由 capture 层先做脱敏。
+3. 使用 `iconLabel` 和 `brandColor` fallback。
 
-If the adapter only knows the hostname, keep icon metadata minimal.
-
+如果 adapter 只知道 hostname，就保持 icon metadata 简洁，不要为了图标引入额外隐私风险。
