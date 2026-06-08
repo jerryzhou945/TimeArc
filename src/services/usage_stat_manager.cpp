@@ -27,6 +27,7 @@
 #include <initializer_list>
 #include <limits>
 
+#include "services/adapters/activity_adapter_registry.h"
 #include "services/site_catalog.h"
 
 namespace {
@@ -112,6 +113,92 @@ const TimeArcSiteCatalog::SiteDefinition* siteForBrowserTitle(
     const QString& title) {
   if (!isBrowserApp(appId, appName, path)) return nullptr;
   return TimeArcSiteCatalog::matchByWindowTitle(title);
+}
+
+TimeArcAdapters::AdapterInput adapterInputFromActivity(
+    const QString& appId, const QString& appName, const QString& path,
+    const QString& windowTitle, const QString& source = QString()) {
+  TimeArcAdapters::AdapterInput input;
+  input.source = source;
+  input.appId = appId;
+  input.appName = appName;
+  input.path = path;
+  input.title = windowTitle;
+  return input;
+}
+
+TimeArcAdapters::AdapterMetadata adapterMetadataForIdentifier(
+    const QString& identifier, const TimeArcAdapters::AdapterInput& input) {
+  for (const TimeArcAdapters::AdapterDefinition& adapter :
+       TimeArcAdapters::registeredWebsiteAdapters()) {
+    if (adapter.identifier == identifier) {
+      return TimeArcAdapters::metadataFromDefinition(adapter, 1.0, input);
+    }
+  }
+  for (const TimeArcAdapters::AdapterDefinition& adapter :
+       TimeArcAdapters::registeredDesktopAppAdapters()) {
+    if (adapter.identifier == identifier) {
+      return TimeArcAdapters::metadataFromDefinition(adapter, 1.0, input);
+    }
+  }
+  return TimeArcAdapters::AdapterMetadata();
+}
+
+TimeArcAdapters::AdapterMetadata resolveActivityMetadata(
+    const QString& appId, const QString& appName, const QString& path,
+    const QString& windowTitle, const QString& source = QString()) {
+  const TimeArcAdapters::AdapterInput input =
+      adapterInputFromActivity(appId, appName, path, windowTitle, source);
+  if (isBrowserApp(appId, appName, path)) {
+    const TimeArcAdapters::AdapterMetadata website =
+        TimeArcAdapters::resolveWebsite(input);
+    if (website.matched && !website.identifier.trimmed().isEmpty()) {
+      return website;
+    }
+  }
+  return TimeArcAdapters::resolveDesktopApp(input);
+}
+
+void applyAdapterMetadata(QVariantMap* item,
+                          const TimeArcAdapters::AdapterMetadata& metadata,
+                          const QString& fallbackIconPath) {
+  if (item == nullptr || metadata.identifier.trimmed().isEmpty()) return;
+
+  item->insert(QStringLiteral("adapterIdentifier"), metadata.identifier);
+  item->insert(QStringLiteral("sourceType"), metadata.sourceType);
+  item->insert(QStringLiteral("adapterDisplayName"), metadata.displayName);
+  item->insert(QStringLiteral("adapterConfidence"), metadata.confidence);
+  item->insert(QStringLiteral("supportsMediaDetection"),
+               metadata.supportsMediaDetection);
+
+  if (!metadata.domain.trimmed().isEmpty()) {
+    item->insert(QStringLiteral("domain"), metadata.domain);
+    item->insert(QStringLiteral("siteDomain"), metadata.domain);
+  }
+  if (!metadata.iconUrl.trimmed().isEmpty()) {
+    item->insert(QStringLiteral("iconUrl"), metadata.iconUrl);
+  }
+
+  QString iconPath = metadata.iconPath;
+  if (iconPath.trimmed().isEmpty() &&
+      metadata.sourceType == QStringLiteral("desktopApp")) {
+    iconPath = fallbackIconPath;
+  }
+  if (!iconPath.trimmed().isEmpty()) {
+    item->insert(QStringLiteral("iconPath"), iconPath);
+    if (iconPath.startsWith(QStringLiteral("qrc:"))) {
+      item->insert(QStringLiteral("iconSource"), iconPath);
+    }
+  }
+  if (!metadata.iconLabel.trimmed().isEmpty()) {
+    item->insert(QStringLiteral("iconLabel"), metadata.iconLabel);
+  }
+  if (!metadata.brandColor.trimmed().isEmpty()) {
+    item->insert(QStringLiteral("brandColor"), metadata.brandColor);
+  }
+  if (!metadata.category.trimmed().isEmpty()) {
+    item->insert(QStringLiteral("adapterCategory"), metadata.category);
+  }
 }
 
 quint64 mergedIntervalSeconds(QVector<UsageInterval> intervals) {
@@ -247,7 +334,11 @@ QString activityGroupKey(const QString& appId, const QString& appName,
   if (it != cache.constEnd()) return it.value();
 
   QString value;
-  if (const TimeArcSiteCatalog::SiteDefinition* site =
+  const TimeArcAdapters::AdapterMetadata metadata = resolveActivityMetadata(
+      appId, appName, path, windowTitle);
+  if (metadata.matched && !metadata.identifier.trimmed().isEmpty()) {
+    value = metadata.identifier;
+  } else if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForBrowserTitle(appId, appName, path, windowTitle)) {
     value = site->siteId;
   } else {
@@ -259,6 +350,14 @@ QString activityGroupKey(const QString& appId, const QString& appName,
 
 QString activityDisplayName(const QString& groupKey, const QString& appId,
                             const QString& appName, const QString& path) {
+  const TimeArcAdapters::AdapterInput input =
+      adapterInputFromActivity(appId, appName, path, QString());
+  const TimeArcAdapters::AdapterMetadata metadata =
+      adapterMetadataForIdentifier(groupKey, input);
+  if (!metadata.displayName.trimmed().isEmpty()) {
+    return metadata.displayName;
+  }
+
   if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForGroupKey(groupKey)) {
     return site->displayName;
@@ -274,6 +373,14 @@ QString activityDisplayName(const QString& groupKey, const QString& appId,
 QString classifyActivityImpl(const QString& groupKey, const QString& appId,
                              const QString& appName, const QString& path,
                              const QString& windowTitle) {
+  const TimeArcAdapters::AdapterInput input =
+      adapterInputFromActivity(appId, appName, path, windowTitle);
+  const TimeArcAdapters::AdapterMetadata metadata =
+      adapterMetadataForIdentifier(groupKey, input);
+  if (!metadata.category.trimmed().isEmpty()) {
+    return metadata.category;
+  }
+
   if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForGroupKey(groupKey)) {
     return site->category;
@@ -665,6 +772,10 @@ QVariantList UsageStatManager::aggregateSoftware(
 
     const QString displayName = activityDisplayName(
         aggregate.groupKey, aggregate.appId, aggregate.appName, aggregate.path);
+    const TimeArcAdapters::AdapterInput adapterInput = adapterInputFromActivity(
+        aggregate.appId, aggregate.appName, aggregate.path, QString());
+    const TimeArcAdapters::AdapterMetadata adapterMetadata =
+        adapterMetadataForIdentifier(aggregate.groupKey, adapterInput);
 
     QVariantMap item;
     item["groupKey"] = aggregate.groupKey;
@@ -683,6 +794,9 @@ QVariantList UsageStatManager::aggregateSoftware(
         topCategory = it.key();
       }
     }
+    if (!adapterMetadata.category.trimmed().isEmpty()) {
+      topCategory = adapterMetadata.category;
+    }
     item["category"] = topCategory;
     // 站点组（如 site:bilibili）的 path 是**浏览器 exe**，取图标色会错成浏览器色调
     // （用户反馈：bilibili 背景显示成 Chrome 的色）。站点组留空 -> QML 退回 appColor
@@ -697,6 +811,7 @@ QVariantList UsageStatManager::aggregateSoftware(
       item["iconLabel"] = site->iconLabel;
       item["iconSource"] = site->iconSource;
     }
+    applyAdapterMetadata(&item, adapterMetadata, aggregate.path);
     item["source"] = sourceFilter.trimmed().isEmpty()
                          ? "active"
                          : normalizedSource(sourceFilter);
@@ -809,6 +924,10 @@ QVariantMap UsageStatManager::recordToVariantMap(
       activityGroupKey(record.appId, appName, record.path, record.windowTitle);
   const QString displayName =
       activityDisplayName(groupKey, record.appId, appName, record.path);
+  const TimeArcAdapters::AdapterInput adapterInput = adapterInputFromActivity(
+      record.appId, appName, record.path, record.windowTitle, record.source);
+  const TimeArcAdapters::AdapterMetadata adapterMetadata =
+      adapterMetadataForIdentifier(groupKey, adapterInput);
 
   QVariantMap item;
   item["groupKey"] = groupKey;
@@ -823,6 +942,10 @@ QVariantMap UsageStatManager::recordToVariantMap(
     item["brandColor"] = site->brandColor;
     item["iconLabel"] = site->iconLabel;
     item["iconSource"] = site->iconSource;
+  }
+  applyAdapterMetadata(&item, adapterMetadata, record.path);
+  if (!adapterMetadata.category.trimmed().isEmpty()) {
+    item["category"] = adapterMetadata.category;
   }
   item["source"] = record.source;
   item["seconds"] = static_cast<qlonglong>(record.durationSec);
@@ -945,6 +1068,11 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
     item["sessionCount"] = segments.size();
     item["longestSec"] = static_cast<qlonglong>(longestSec);
     item["segments"] = segments;
+    const TimeArcAdapters::AdapterInput adapterInput =
+        adapterInputFromActivity(app.appId, app.appName, app.path, QString());
+    applyAdapterMetadata(
+        &item, adapterMetadataForIdentifier(app.groupKey, adapterInput),
+        app.path);
     result.append(item);
   }
 
