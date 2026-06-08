@@ -27,7 +27,7 @@
 #include "services/stats_service.h"
 #include "services/calendar_manager.h"
 #include "services/project_manager.h"
-#include "services/site_catalog.h"
+#include "services/adapters/activity_adapter_registry.h"
 
 namespace {
 
@@ -241,51 +241,169 @@ int main(int argc, char* argv[]) {
   QCoreApplication::setApplicationName(QStringLiteral("TimeArc"));
   QStandardPaths::setTestModeEnabled(true);
 
-  const TimeArcSiteCatalog::SiteDefinition* bilibiliSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("\u54D4\u54E9\u54D4\u54E9 - Google Chrome"));
-  if (bilibiliSite == nullptr ||
-      bilibiliSite->siteId != QStringLiteral("site:bilibili") ||
-      bilibiliSite->displayName != QStringLiteral("\u54D4\u54E9\u54D4\u54E9") ||
-      bilibiliSite->brandColor != QStringLiteral("#FABECF")) {
-    return fail(QStringLiteral("Bilibili site catalog match failed."));
+  TimeArcAdapters::AdapterInput unknownWebsite;
+  unknownWebsite.url =
+      QStringLiteral("https://example.com/private?token=do-not-store");
+  unknownWebsite.title = QStringLiteral("Private dashboard");
+  TimeArcAdapters::AdapterMetadata unknownWebsiteMeta =
+      TimeArcAdapters::resolveActivity(unknownWebsite);
+  if (unknownWebsiteMeta.sourceType != QStringLiteral("website") ||
+      unknownWebsiteMeta.identifier != QStringLiteral("site:example.com") ||
+      unknownWebsiteMeta.displayName != QStringLiteral("example.com") ||
+      unknownWebsiteMeta.domain != QStringLiteral("example.com") ||
+      unknownWebsiteMeta.confidence < 0.70 ||
+      unknownWebsiteMeta.toVariantMap().contains(QStringLiteral("url"))) {
+    return fail(QStringLiteral("Generic website adapter fallback failed."));
   }
 
-  const TimeArcSiteCatalog::SiteDefinition* taobaoSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("\u6DD8\u5B9D\u7F51 - \u6DD8\uFF01\u6211\u559C\u6B22 - Google Chrome"));
-  if (taobaoSite == nullptr ||
-      taobaoSite->siteId != QStringLiteral("site:taobao") ||
-      taobaoSite->category != QStringLiteral("\u8D2D\u7269") ||
-      taobaoSite->iconLabel != QStringLiteral("\u6DD8")) {
-    return fail(QStringLiteral("Taobao site catalog match failed."));
+  TimeArcAdapters::AdapterInput unknownApp;
+  unknownApp.appName = QStringLiteral("SmokeApp.exe");
+  unknownApp.path = QStringLiteral("C:/TimeArcSmoke/SmokeApp.exe");
+  TimeArcAdapters::AdapterMetadata unknownAppMeta =
+      TimeArcAdapters::resolveActivity(unknownApp);
+  if (unknownAppMeta.sourceType != QStringLiteral("desktopApp") ||
+      unknownAppMeta.identifier.trimmed().isEmpty() ||
+      unknownAppMeta.displayName != QStringLiteral("SmokeApp") ||
+      unknownAppMeta.iconPath != unknownApp.path) {
+    return fail(QStringLiteral("Generic desktop adapter fallback failed."));
   }
 
-  const TimeArcSiteCatalog::SiteDefinition* zhihuSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("\u77E5\u4E4E - Google Chrome"));
-  if (zhihuSite == nullptr ||
-      zhihuSite->siteId != QStringLiteral("site:zhihu") ||
-      zhihuSite->displayName != QStringLiteral("\u77E5\u4E4E") ||
-      zhihuSite->iconLabel != QStringLiteral("\u77E5")) {
-    return fail(QStringLiteral("Zhihu site catalog match failed."));
+  struct WebsiteAdapterCase {
+    QString url;
+    QString title;
+    QString expectedIdentifier;
+    QString expectedName;
+    QString expectedCategory;
+    bool expectsIcon;
+  };
+  const WebsiteAdapterCase websiteAdapterCases[] = {
+      {QStringLiteral("https://www.youtube.com/watch?v=secret-token"),
+       QStringLiteral("lofi stream - YouTube"),
+       QStringLiteral("site:youtube"),
+       QStringLiteral("YouTube"),
+       QStringLiteral("视频"),
+       true},
+      {QStringLiteral("https://space.bilibili.com/12345"),
+       QStringLiteral("UP 主空间 - 哔哩哔哩"),
+       QStringLiteral("site:bilibili"),
+       QStringLiteral("哔哩哔哩"),
+       QStringLiteral("视频"),
+       true},
+      {QStringLiteral("https://open.spotify.com/playlist/private-id"),
+       QStringLiteral("Daily Mix - Spotify"),
+       QStringLiteral("site:spotify-web"),
+       QStringLiteral("Spotify Web"),
+       QStringLiteral("音乐"),
+       false},
+      {QStringLiteral("https://y.qq.com/n/ryqq/songDetail/private-id"),
+       QStringLiteral("QQ音乐 - song"),
+       QStringLiteral("site:qq-music-web"),
+       QStringLiteral("QQ Music Web"),
+       QStringLiteral("音乐"),
+       false},
+  };
+  for (const WebsiteAdapterCase& siteCase : websiteAdapterCases) {
+    TimeArcAdapters::AdapterInput input;
+    input.url = siteCase.url;
+    input.title = siteCase.title;
+    const TimeArcAdapters::AdapterMetadata metadata =
+        TimeArcAdapters::resolveActivity(input);
+    const QVariantMap map = metadata.toVariantMap();
+    if (metadata.sourceType != QStringLiteral("website") ||
+        metadata.identifier != siteCase.expectedIdentifier ||
+        metadata.displayName != siteCase.expectedName ||
+        metadata.category != siteCase.expectedCategory ||
+        metadata.confidence < 0.89 ||
+        metadata.iconLabel.trimmed().isEmpty() ||
+        (siteCase.expectsIcon && metadata.iconPath.trimmed().isEmpty() &&
+         metadata.iconUrl.trimmed().isEmpty()) ||
+        map.contains(QStringLiteral("url")) ||
+        map.values().contains(siteCase.url)) {
+      return fail(QStringLiteral("Website adapter match failed: %1")
+                      .arg(siteCase.expectedIdentifier));
+    }
   }
 
-  const TimeArcSiteCatalog::SiteDefinition* xiaohongshuSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("\u5C0F\u7EA2\u4E66 - Google Chrome"));
-  if (xiaohongshuSite == nullptr ||
-      xiaohongshuSite->siteId != QStringLiteral("site:xiaohongshu") ||
-      xiaohongshuSite->brandColor != QStringLiteral("#FF2442") ||
-      xiaohongshuSite->iconLabel != QStringLiteral("\u7EA2")) {
-    return fail(QStringLiteral("Xiaohongshu site catalog match failed."));
+  TimeArcAdapters::AdapterInput titleOnlyBilibili;
+  titleOnlyBilibili.title =
+      QStringLiteral("更了300多期视频以后 - 哔哩哔哩 bilibili - Google Chrome");
+  const TimeArcAdapters::AdapterMetadata titleOnlySite =
+      TimeArcAdapters::resolveWebsite(titleOnlyBilibili);
+  if (titleOnlySite.identifier != QStringLiteral("site:bilibili") ||
+      titleOnlySite.confidence >= 0.90) {
+    return fail(QStringLiteral("Website title fallback confidence failed."));
   }
 
-  const TimeArcSiteCatalog::SiteDefinition* unknownSite =
-      TimeArcSiteCatalog::matchByWindowTitle(
-          QStringLiteral("A normal documentation page - Google Chrome"));
-  if (unknownSite != nullptr) {
-    return fail(QStringLiteral("Unknown browser title matched a known site."));
+  struct DesktopAdapterCase {
+    QString appId;
+    QString appName;
+    QString path;
+    QString expectedIdentifier;
+    QString expectedName;
+    QString expectedCategory;
+    bool supportsMedia;
+  };
+  const DesktopAdapterCase desktopAdapterCases[] = {
+      {QStringLiteral("com.google.Chrome"),
+       QStringLiteral("chrome.exe"),
+       QStringLiteral("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+       QStringLiteral("app:google-chrome"),
+       QStringLiteral("Chrome"),
+       QStringLiteral("浏览"),
+       false},
+      {QStringLiteral("Microsoft.MicrosoftEdge.Stable"),
+       QStringLiteral("msedge.exe"),
+       QStringLiteral("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
+       QStringLiteral("app:microsoft-edge"),
+       QStringLiteral("Edge"),
+       QStringLiteral("浏览"),
+       false},
+      {QStringLiteral("com.microsoft.VSCode"),
+       QStringLiteral("Code.exe"),
+       QStringLiteral("C:/Users/me/AppData/Local/Programs/Microsoft VS Code/Code.exe"),
+       QStringLiteral("app:vscode"),
+       QStringLiteral("VSCode"),
+       QStringLiteral("开发"),
+       false},
+      {QStringLiteral("com.spotify.client"),
+       QStringLiteral("Spotify.exe"),
+       QStringLiteral("C:/Users/me/AppData/Roaming/Spotify/Spotify.exe"),
+       QStringLiteral("app:spotify"),
+       QStringLiteral("Spotify"),
+       QStringLiteral("音乐"),
+       true},
+      {QStringLiteral("com.tencent.xinWeChat"),
+       QStringLiteral("WeChat.exe"),
+       QStringLiteral("C:/Program Files/Tencent/WeChat/WeChat.exe"),
+       QStringLiteral("app:wechat"),
+       QStringLiteral("WeChat"),
+       QStringLiteral("社交"),
+       false},
+      {QStringLiteral("com.tencent.qq"),
+       QStringLiteral("QQ.exe"),
+       QStringLiteral("C:/Program Files/Tencent/QQ/QQ.exe"),
+       QStringLiteral("app:qq"),
+       QStringLiteral("QQ"),
+       QStringLiteral("社交"),
+       false},
+  };
+  for (const DesktopAdapterCase& appCase : desktopAdapterCases) {
+    TimeArcAdapters::AdapterInput input;
+    input.appId = appCase.appId;
+    input.appName = appCase.appName;
+    input.path = appCase.path;
+    const TimeArcAdapters::AdapterMetadata metadata =
+        TimeArcAdapters::resolveActivity(input);
+    if (metadata.sourceType != QStringLiteral("desktopApp") ||
+        metadata.identifier != appCase.expectedIdentifier ||
+        metadata.displayName != appCase.expectedName ||
+        metadata.category != appCase.expectedCategory ||
+        metadata.iconLabel.trimmed().isEmpty() ||
+        metadata.supportsMediaDetection != appCase.supportsMedia ||
+        metadata.confidence < 0.90) {
+      return fail(QStringLiteral("Desktop app adapter match failed: %1")
+                      .arg(appCase.expectedIdentifier));
+    }
   }
 
   const QString testDataPath =

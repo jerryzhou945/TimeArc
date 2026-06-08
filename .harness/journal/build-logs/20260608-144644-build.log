@@ -1,0 +1,20 @@
+[1/14] Automatic MOC and UIC for target timearc_db_smoke
+[2/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.obj
+FAILED: CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.obj 
+D:\TimeArc\QT\Tools\mingw1310_64\bin\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_NO_DEBUG -DQT_SQL_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -ID:/TimeArc/worktrees/adapter-support-system/build/timearc_db_smoke_autogen/include -ID:/TimeArc/worktrees/adapter-support-system/src -ID:/TimeArc/worktrees/adapter-support-system/src/services -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtCore -isystem D:/TimeArc/QT/6.11.0/mingw_64/include -isystem D:/TimeArc/QT/6.11.0/mingw_64/mkspecs/win32-g++ -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtSql -O3 -DNDEBUG -std=gnu++17 -MD -MT CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.obj -MF CMakeFiles\timearc_db_smoke.dir\tests\db_smoke.cpp.obj.d -o CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.obj -c D:/TimeArc/worktrees/adapter-support-system/tests/db_smoke.cpp
+D:/TimeArc/worktrees/adapter-support-system/tests/db_smoke.cpp:30:10: fatal error: services/adapters/activity_adapter_registry.h: No such file or directory
+   30 | #include "services/adapters/activity_adapter_registry.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+[3/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/calendar_manager.cpp.obj
+[4/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/app_repository.cpp.obj
+[5/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/stats_service.cpp.obj
+[6/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/database_manager.cpp.obj
+[7/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/frontmost_session_repository.cpp.obj
+[8/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/media_session_repository.cpp.obj
+[9/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/settings_repository.cpp.obj
+[10/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/manual_project_repository.cpp.obj
+[11/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/timearc_db_smoke_autogen/mocs_compilation.cpp.obj
+[12/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/project_manager.cpp.obj
+[13/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/daily_card_service.cpp.obj
+ninja: build stopped: subcommand failed.

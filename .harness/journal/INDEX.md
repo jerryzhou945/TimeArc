@@ -6,81 +6,43 @@ the harness line budget intact.
 
 ## Error entries
 
-| Date (UTC)           | Lvl | Topic        | Summary                                         | Report |
-|----------------------|-----|--------------|-------------------------------------------------|--------|
-| 2026-06-07T08:15:05Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260607-081505-B-build-failure.md) |
-| 2026-06-07T07:23:13Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260607-072313-B-build-failure.md) |
-| 2026-06-07T05:46:39Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260607-054639-B-build-failure.md) |
-| 2026-06-06T16:23:09Z | L2 | memorylake-resp... | Memory Lake 首页 min/max layout: sidebar 备忘/记忆湖 overlap, briefing text/chip o... | [report](errors/20260606-162309-C-memorylake-responsive-minmax.md) |
-| 2026-06-06T11:58:52Z | L1 | memo-sticky-dup... | StickyNote: custom 'signal tagChanged()' collided with th... | [report](errors/20260606-115852-B-memo-sticky-dup-signal.md) |
-| 2026-06-06T11:09:49Z | L2 | backfilled-repo... | PR preflight git diff --check found trailing whitespace i... | [report](errors/20260606-110949-C-backfilled-report-trailing-whitespace.md) |
-| 2026-06-06T11:01:45Z | L2 | f-workspace-arc... | Archiving F:\TimeArc\time-arc failed because Windows repo... | [report](errors/20260606-110145-C-f-workspace-archive-locked.md) |
-| 2026-06-05T04:51:13Z | L2 | memo-loader-aut... | Object delegate Loader had anchors.fill:parent; a sized L... | [report](errors/20260605-045113-C-memo-loader-autosize.md) |
-| 2026-06-04T14:18:27Z | L3 | build-env-missi... | build.py 失败但日志/错误报告无任何 g++ 诊断：根因是本会话 PowerShell 的 PATH 缺少... | [report](errors/20260604-141827-B-build-env-missing-mingw-path.md) |
-| 2026-06-04T14:11:37Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-141137-B-build-failure.md) |
-| 2026-06-04T14:08:04Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-140804-B-build-failure.md) |
-| 2026-06-04T09:43:31Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-094331-B-build-failure.md) |
-| 2026-06-04T09:12:19Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-091219-B-build-failure.md) |
-| 2026-06-04T09:06:13Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260604-090613-B-build-failure.md) |
-| 2026-06-04T06:43:38Z | L3 | memcard-glow-de... | Left MemoryCard ambientGlow底灯 on MultiEffect-blur-of-soli... | [report](errors/20260604-064338-B-memcard-glow-deferred.md) |
-| 2026-06-04T00:12:06Z | L2 | dailyshare-pale... | DailyUsageShare new 'palette' property collided with base... | [report](errors/20260604-001206-B-dailyshare-palette-override.md) |
-| 2026-06-04T00:11:57Z | L3 | qt5compat-froze... | Donut center glow first used import Qt5Compat.GraphicalEf... | [report](errors/20260604-001157-B-qt5compat-frozen-cmake.md) |
-| 2026-06-03T17:25:32Z | L3 | verify-ignored-... | Visual-verify: forgot to recall existing [timearc-ui-buil... | [report](errors/20260603-172532-B-verify-ignored-known-launch-memory.md) |
-| 2026-06-03T13:44:24Z | L1 | memory-lake-ico... | cmake --build exited 1 | [report](errors/20260603-134424-B-memory-lake-iconcolor.md) |
-| 2026-06-03T12:58:56Z | L1 | memory-lake-cla... | cmake --build exited 1 | [report](errors/20260603-125856-B-memory-lake-classify.md) |
-| 2026-06-03T10:23:29Z | L3 | recap-future-da... | memoryLakeRecap asserted a false 'month-end decline' tren... | [report](errors/20260603-102329-B-recap-future-day-trend.md) |
-| 2026-06-03T09:40:14Z | L1 | memory-lake-recap | cmake --build exited 1 | [report](errors/20260603-094014-B-memory-lake-recap.md) |
-| 2026-06-03T09:20:34Z | L1 | memory-lake-bac... | cmake --build exited 1 | [report](errors/20260603-092034-B-memory-lake-backend.md) |
-| 2026-06-03T09:10:10Z | L1 | memory-lake-bac... | cmake --build exited 1 | [report](errors/20260603-091010-B-memory-lake-backend.md) |
-| 2026-06-03T08:50:17Z | L1 | memory-lake-bac... | cmake --build exited 1 | [report](errors/20260603-085017-B-memory-lake-backend.md) |
-| 2026-06-03T06:01:59Z | L2 | recap-mask-leak | Monthly Recap slides: clip:true on rounded Rectangles cli... | [report](errors/20260603-060159-C-recap-mask-leak.md) |
-| 2026-06-02T19:30:21Z | L3 | card-rim-leak-t... | Wrong premise (mine + a diagnosis subagent): moving the c... | [report](errors/20260602-193021-C-card-rim-leak-threshold.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-6fb5... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-6fb5f4d0bf.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-e68a... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-e68adb14db.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-886a... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-886a1b75d1.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-d6c5... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-d6c56fb846.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-31ae... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-31ae9f69ae.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-6ee1... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-6ee178fe89.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-657a... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-657ac0c834.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-861b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-861bfff367.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-61b2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-61b25b2db1.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-c9f9... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-c9f9399c2f.md) |
-| 2026-06-02T17:53:48Z | L2 | qt-warning-d49d... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175348-C-qt-warning-d49da4648e.md) |
-| 2026-06-02T17:53:47Z | L2 | qt-warning-a7a2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-a7a2acf438.md) |
-| 2026-06-02T17:53:47Z | L2 | qt-warning-9be3... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-9be398c673.md) |
-| 2026-06-02T17:53:47Z | L2 | qt-warning-3570... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-357045b158.md) |
-| 2026-06-02T17:53:47Z | L2 | qt-warning-8bf2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-8bf2c615cd.md) |
-| 2026-06-02T17:53:47Z | L2 | qt-warning-2cc7... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-2cc7858c7f.md) |
-| 2026-06-02T17:53:47Z | L2 | qt-warning-2c53... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-2c536eb360.md) |
-| 2026-06-02T17:53:47Z | L2 | qt-warning-13bf... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/pages/DesktopC... | [report](errors/20260602-175347-C-qt-warning-13bf1bee7e.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| 2026-06-02T17:03:18Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260602-170318-B-build-failure.md) |
-| 2026-06-02T17:03:09Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260602-170309-B-build-failure.md) |
-| 2026-06-02T16:58:56Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260602-165856-B-build-failure.md) |
-| 2026-06-02T16:36:40Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260602-163640-B-build-failure.md) |
-| 2026-06-02T16:08:35Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260602-160835-B-build-failure.md) |
-| 2026-06-02T15:55:14Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260602-155514-B-build-failure.md) |
-| 2026-06-02T11:03:53Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260602-110353-B-build-failure.md) |
-| 2026-05-31T08:21:45Z | L3 | git-revert-inde... | git revert failed to create .git/index.lock with Permissi... | [report](errors/20260531-082145-B-git-revert-index-lock.md) |
-| 2026-05-31T07:51:29Z | L1 | build-failure | cmake --build exited 2 | [report](errors/20260531-075129-B-build-failure.md) |
-| 2026-05-31T07:16:13Z | L3 | rg-access-denied | rg.exe failed with Access is denied while searching qml f... | [report](errors/20260531-071613-B-rg-access-denied.md) |
-| 2026-05-31T07:15:41Z | L3 | default-python-... | Default python.exe failed to start during preflight/error... | [report](errors/20260531-071541-B-default-python-launch.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| Date (UTC) | Lvl | Topic | Summary | Report |
+|------------|-----|-------|---------|--------|
+| 2026-06-08T07:23:43Z | L1 | powershell-plac... | Tried to read a preflight placeholder session path contai... | [report](errors/20260608-072343-B-powershell-placeholder-path.md) |
+| 2026-06-08T07:18:42Z | L1 | remote-feature-... | git push origin --delete feature/adapter-support-system f... | [report](errors/20260608-071842-B-remote-feature-branch-absent.md) |
+| 2026-06-08T07:00:04Z | L1 | desktop-adapter... | TDD red test: timearc_db_smoke failed after adding Chrome... | [report](errors/20260608-070004-B-desktop-adapters-red-test.md) |
+| 2026-06-08T06:57:05Z | L1 | apply-patch-wor... | apply_patch defaulted to the primary workspace while edit... | [report](errors/20260608-065705-B-apply-patch-worktree-path.md) |
+| 2026-06-08T06:56:13Z | L1 | rg-access-denied | rg --files failed with Access is denied in adapter suppor... | [report](errors/20260608-065613-B-rg-access-denied.md) |
+| 2026-06-08T06:52:44Z | L1 | website-adapter... | timearc_db_smoke failed after adding website adapter expe... | [report](errors/20260608-065244-B-website-adapters-red-test.md) |
+| 2026-06-08T06:48:40Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260608-064840-B-build-failure.md) |
+| 2026-06-08T06:47:00Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260608-064700-B-build-failure.md) |
+| 2026-06-08T06:45:52Z | L1 | worktree-mingw-... | CMake compiler test failed in linked worktree because Min... | [report](errors/20260608-064552-B-worktree-mingw-path-missing.md) |
+| 2026-06-08T06:45:20Z | L1 | worktree-cmake-... | CMake configure in linked worktree failed because Ninja w... | [report](errors/20260608-064520-B-worktree-cmake-ninja-not-found.md) |
+| 2026-06-08T06:44:46Z | L1 | worktree-build-... | build.py in the linked worktree failed before compiling b... | [report](errors/20260608-064446-B-worktree-build-cmake-not-found.md) |
+| 2026-06-08T06:42:28Z | L3 | worktree-local-... | linked worktree does not contain untracked .local-python ... | [report](errors/20260608-064228-B-worktree-local-python-missing.md) |
+| 2026-06-08T02:41:07Z | L3 | remote-branch-a... | git push origin --delete codex/site-icons-video-adapters ... | [report](errors/20260608-024107-B-remote-branch-already-deleted.md) |
+| 2026-06-08T02:13:22Z | L3 | harness-index-line-budget-repeat | harness_check still counted INDEX above the 100-line budget after automatic compaction. | [report](errors/20260608-021322-B-harness-index-line-budget-repeat.md) |
+| 2026-06-08T02:12:32Z | L3 | harness-index-line-budget | harness_check failed because INDEX exceeded the 100-line budget. | [report](errors/20260608-021232-B-harness-index-line-budget.md) |
+| 2026-06-08T02:05:21Z | L2 | smoke-exit-empty | timearc_db_smoke.exe exited 1 without visible output until Qt/MinGW runtime PATH was added. | [report](errors/20260608-020521-B-smoke-exit-empty.md) |
+| 2026-06-08T02:00:53Z | L1 | site-catalog-smoke-build-verbose | Smoke target build failed before MinGW runtime PATH was added. | [report](errors/20260608-020053-B-site-catalog-smoke-build-verbose.md) |
+| 2026-06-08T02:00:10Z | L1 | site-catalog-smoke-build | Smoke target build failed before MinGW runtime PATH was added. | [report](errors/20260608-020010-B-site-catalog-smoke-build.md) |
+| 2026-06-08T01:56:23Z | L3 | cmake-path-missing | build.py could not launch cmake because PATH missed CMake. | [report](errors/20260608-015623-B-cmake-path-missing.md) |
+| 2026-06-08T01:55:53Z | L3 | build-target-arg-unsupported | Plan used unsupported build.py --target syntax. | [report](errors/20260608-015553-B-build-target-arg-unsupported.md) |
+| 2026-06-08T01:43:48Z | L3 | icon-dir-wrong-path | Looked for qml/resources/icons before confirming resources/icons. | [report](errors/20260608-014348-B-icon-dir-wrong-path.md) |
+| 2026-06-08T01:39:05Z | L3 | git-path-missing | Plain git was not on PATH in the current shell. | [report](errors/20260608-013905-B-git-path-missing.md) |
+| 2026-06-08T01:39:05Z | L3 | rg-access-denied | rg --files docs failed with Access denied. | [report](errors/20260608-013905-B-rg-access-denied.md) |
+| 2026-06-08T01:37:59Z | L2 | preflight-python-stub | Default python resolved to WindowsApps stub. | [report](errors/20260608-013759-B-preflight-python-stub.md) |
+| ... | n/a | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |
 
 ## Session entries
 
 Sessions are logged under `sessions/` when they capture frozen-file changes or
 other high-signal context.
 
-| Date          | Kind               | Slug                                  | Link |
-|---------------|--------------------|---------------------------------------|------|
-| 2026-05-31    | Frozen change      | services-snake-case                   | [session](sessions/20260531-1138-B-services-snake-case.md) |
+| Date | Kind | Slug | Link |
+|------|------|------|------|
+| 2026-06-08 | Feature session | site-icons-video-adapters | [session](sessions/20260608-0938-B-site-icons-video-adapters.md) |
+| 2026-05-31 | Frozen change | services-snake-case | [session](sessions/20260531-1138-B-services-snake-case.md) |
 
 ## Open issues
 

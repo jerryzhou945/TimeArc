@@ -278,9 +278,20 @@ Item {
         for (var j = 0; j < sorted.length && j < n; j++) {
             var a = sorted[j]
             var key = a.groupKey ? a.groupKey : a.appId
-            out.push({ name: a.name ? a.name : (a.appName ? a.appName : "未知应用"),
+            out.push({ name: AppVisual.modelDisplayName(a) || "未知应用",
                        groupKey: key, path: a.path ? a.path : "",
-                       category: a.category ? a.category : "",
+                       appId: a.appId ? a.appId : "",
+                       appName: a.appName ? a.appName : "",
+                       adapterIdentifier: a.adapterIdentifier ? a.adapterIdentifier : "",
+                       sourceType: a.sourceType ? a.sourceType : "",
+                       adapterDisplayName: a.adapterDisplayName ? a.adapterDisplayName : "",
+                       adapterCategory: a.adapterCategory ? a.adapterCategory : "",
+                       brandColor: a.brandColor ? a.brandColor : "",
+                       iconSource: a.iconSource ? a.iconSource : "",
+                       iconPath: a.iconPath ? a.iconPath : "",
+                       iconUrl: a.iconUrl ? a.iconUrl : "",
+                       iconLabel: a.iconLabel ? a.iconLabel : "",
+                       category: AppVisual.modelCategory(a),
                        seconds: a.seconds ? a.seconds : 0,
                        time: a.time ? a.time : secondsToDisplay(a.seconds ? a.seconds : 0),
                        sessions: byKey[key] !== undefined ? byKey[key] : 0 })
@@ -1313,11 +1324,11 @@ Item {
                                 Rectangle {
                                     Layout.preferredWidth: 34; Layout.preferredHeight: 34
                                     radius: 11
-                                    color: AppVisual.appColor(modelData.groupKey, modelData.name, modelData.path)
+                                    color: AppVisual.modelAppColor(modelData)
                                     Image {
                                         anchors.centerIn: parent
                                         width: 22; height: 22
-                                        source: AppVisual.appIconSource(modelData.groupKey, modelData.path)
+                                        source: AppVisual.modelIconSource(modelData)
                                         sourceSize.width: 64; sourceSize.height: 64
                                         fillMode: Image.PreserveAspectFit
                                         asynchronous: true; smooth: true; mipmap: true
@@ -1325,8 +1336,8 @@ Item {
                                     }
                                     Text {
                                         anchors.centerIn: parent
-                                        visible: AppVisual.appIconSource(modelData.groupKey, modelData.path) === ""
-                                        text: AppVisual.appIconLabel(modelData.groupKey, modelData.name)
+                                        visible: AppVisual.modelIconSource(modelData) === ""
+                                        text: AppVisual.modelIconLabel(modelData)
                                         color: nightMode ? "#FFFFFF" : "#2D2724"
                                         font.pixelSize: 14; font.weight: 900
                                     }
@@ -1336,14 +1347,14 @@ Item {
                                     spacing: 2
                                     Text {
                                         Layout.fillWidth: true
-                                        text: modelData.name
+                                        text: AppVisual.modelDisplayName(modelData)
                                         color: ml.textPrimary
                                         font.pixelSize: 13; font.weight: Font.DemiBold
                                         elide: Text.ElideRight
                                     }
                                     Text {
                                         Layout.fillWidth: true
-                                        text: (modelData.category !== "" ? modelData.category : "应用") + " · " + modelData.sessions + " 次打开"
+                                        text: (AppVisual.modelCategory(modelData) !== "" ? AppVisual.modelCategory(modelData) : "应用") + " · " + modelData.sessions + " 次打开"
                                         color: ml.textTertiary
                                         font.pixelSize: 11
                                         elide: Text.ElideRight

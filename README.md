@@ -16,6 +16,7 @@ with day and night modes.
   - [Features](#features)
   - [Platform Support](#platform-support)
   - [Architecture](#architecture)
+  - [Adapter Support](#adapter-support)
   - [Desktop P1 MVP Status](#desktop-p1-mvp-status)
   - [Tech Stack](#tech-stack)
   - [Installation](#installation)
@@ -146,7 +147,11 @@ with day and night modes.
 - **Mainland China browser-site split** - common websites opened inside
   Chrome, Edge, Firefox, and other supported browsers can be grouped as
   independent `site:*` activities in the UI, with preset brand colors and
-  text/icon fallbacks for visual surfaces.
+  text/icon fallbacks for visual surfaces. Mainstream video sites now include
+  repo-local favicon assets under `resources/icons/sites/`, and foreground
+  window titles plus useful media titles share the same site catalog matching
+  path so video/audio usage can surface the site icon instead of the browser
+  icon when the title contains a known site marker.
 
 ## Platform Support
 
@@ -195,6 +200,18 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   memo blackboard doc are routed through SQLite-backed repositories/settings.
   Legacy QSettings data for those UI-owned items is migrated into SQLite on
   startup without deleting the old QSettings keys.
+
+## Adapter Support
+
+TimeArc has a basic website/software adapter system for high-frequency
+activities. Adapters add friendly metadata such as display name, category,
+icon fallback, source type, and confidence while keeping the original usage
+record fields intact.
+
+- System overview: `docs/adapter-system.md`
+- Add a website adapter: `docs/adding-website-support.md`
+- Add a desktop app adapter: `docs/adding-app-support.md`
+- Implementation report: `docs/adapter-support-implementation-report.md`
 
 ## Desktop P1 MVP Status
 

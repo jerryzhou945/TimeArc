@@ -125,6 +125,22 @@ Item {
         return AppVisual.appIconLabel(appId, appName)
     }
 
+    function modelAppColor(row) {
+        return AppVisual.modelAppColor(row)
+    }
+
+    function modelIconSource(row) {
+        return AppVisual.modelIconSource(row)
+    }
+
+    function modelIconLabel(row) {
+        return AppVisual.modelIconLabel(row)
+    }
+
+    function modelDisplayName(row) {
+        return AppVisual.modelDisplayName(row)
+    }
+
     function refreshTodaySoftwareStats() {
         if (!usageStatManager) {
             todaySoftwareStats = []
@@ -194,6 +210,9 @@ Item {
         var current = usageStatManager.currentSoftware()
         if (!current)
             return "等待记录"
+        var adapterName = modelDisplayName(current)
+        if (adapterName.length > 0)
+            return adapterName
         if (current.name && current.name.length > 0)
             return current.name
         if (current.appName && current.appName.length > 0)
@@ -668,13 +687,13 @@ Item {
                                                 Layout.preferredWidth: 34
                                                 Layout.preferredHeight: 34
                                                 radius: 17
-                                                color: appColor(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.name, modelData.path)
+                                                color: modelAppColor(modelData)
 
                                                 Image {
                                                     anchors.centerIn: parent
                                                     width: 24
                                                     height: 24
-                                                    source: appIconSource(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.path)
+                                                    source: modelIconSource(modelData)
                                                     sourceSize.width: 48
                                                     sourceSize.height: 48
                                                     fillMode: Image.PreserveAspectFit
@@ -686,8 +705,8 @@ Item {
 
                                                 Text {
                                                     anchors.centerIn: parent
-                                                    visible: appIconSource(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.path) === ""
-                                                    text: appIconLabel(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.name)
+                                                    visible: modelIconSource(modelData) === ""
+                                                    text: modelIconLabel(modelData)
                                                     color: nightMode ? "#FFFFFF" : "#2D2724"
                                                     font.pixelSize: 17
                                                     font.bold: true
@@ -703,7 +722,7 @@ Item {
 
                                                     Text {
                                                         Layout.fillWidth: true
-                                                        text: modelData.name ? modelData.name : (modelData.appName ? modelData.appName : "Unknown app")
+                                                        text: modelDisplayName(modelData) || "Unknown app"
                                                         color: textPrimary
                                                         font.pixelSize: 14
                                                         font.bold: true
@@ -729,7 +748,7 @@ Item {
                                                         width: parent.width * ((modelData.seconds ? modelData.seconds : 0) / Math.max(1, maxSoftwareSeconds()))
                                                         height: parent.height
                                                         radius: 3
-                                                        color: appColor(modelData.groupKey ? modelData.groupKey : modelData.appId, modelData.name, modelData.path)
+                                                        color: modelAppColor(modelData)
                                                     }
                                                 }
                                             }
@@ -1266,7 +1285,7 @@ Item {
 
                                             Text {
                                                 Layout.fillWidth: true
-                                                text: modelData.name
+                                                text: modelDisplayName(modelData)
                                                 color: textPrimary
                                                 font.pixelSize: 13
                                                 font.bold: true
