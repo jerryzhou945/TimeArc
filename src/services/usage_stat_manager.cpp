@@ -107,11 +107,11 @@ const TimeArcSiteCatalog::SiteDefinition* siteForGroupKey(
   return TimeArcSiteCatalog::findBySiteId(groupKey);
 }
 
-const TimeArcSiteCatalog::SiteDefinition* siteForBrowserWindow(
+const TimeArcSiteCatalog::SiteDefinition* siteForBrowserTitle(
     const QString& appId, const QString& appName, const QString& path,
-    const QString& windowTitle) {
+    const QString& title) {
   if (!isBrowserApp(appId, appName, path)) return nullptr;
-  return TimeArcSiteCatalog::matchByWindowTitle(windowTitle);
+  return TimeArcSiteCatalog::matchByWindowTitle(title);
 }
 
 quint64 mergedIntervalSeconds(QVector<UsageInterval> intervals) {
@@ -248,7 +248,7 @@ QString activityGroupKey(const QString& appId, const QString& appName,
 
   QString value;
   if (const TimeArcSiteCatalog::SiteDefinition* site =
-          siteForBrowserWindow(appId, appName, path, windowTitle)) {
+          siteForBrowserTitle(appId, appName, path, windowTitle)) {
     value = site->siteId;
   } else {
     value = appGroupKey(appId, appName, path);

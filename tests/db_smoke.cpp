@@ -276,9 +276,66 @@ int main(int argc, char* argv[]) {
           QStringLiteral("\u5C0F\u7EA2\u4E66 - Google Chrome"));
   if (xiaohongshuSite == nullptr ||
       xiaohongshuSite->siteId != QStringLiteral("site:xiaohongshu") ||
-      xiaohongshuSite->brandColor != QStringLiteral("#FF2442") ||
+      xiaohongshuSite->brandColor != QStringLiteral("#F5D7DE") ||
       xiaohongshuSite->iconLabel != QStringLiteral("\u7EA2")) {
     return fail(QStringLiteral("Xiaohongshu site catalog match failed."));
+  }
+
+  struct SiteCase {
+    QString title;
+    QString siteId;
+  };
+  const SiteCase videoSiteCases[] = {
+      {QStringLiteral("\u7231\u5947\u827A-\u5728\u7EBF\u89C6\u9891\u7F51\u7AD9 - Google Chrome"),
+       QStringLiteral("site:iqiyi")},
+      {QStringLiteral("\u4F18\u9177 - Google Chrome"),
+       QStringLiteral("site:youku")},
+      {QStringLiteral("\u817E\u8BAF\u89C6\u9891 - Google Chrome"),
+       QStringLiteral("site:tencent-video")},
+      {QStringLiteral("\u8292\u679CTV - Google Chrome"),
+       QStringLiteral("site:mango-tv")},
+      {QStringLiteral("\u6296\u97F3 - Google Chrome"),
+       QStringLiteral("site:douyin")},
+      {QStringLiteral("\u5FEB\u624B - Google Chrome"),
+       QStringLiteral("site:kuaishou")},
+      {QStringLiteral("\u897F\u74DC\u89C6\u9891 - Google Chrome"),
+       QStringLiteral("site:xigua-video")},
+      {QStringLiteral("AcFun\u5F39\u5E55\u89C6\u9891\u7F51 - Google Chrome"),
+       QStringLiteral("site:acfun")},
+      {QStringLiteral("YouTube - Google Chrome"),
+       QStringLiteral("site:youtube")},
+      {QStringLiteral("Netflix - Google Chrome"),
+       QStringLiteral("site:netflix")},
+      {QStringLiteral("Twitch - Google Chrome"),
+       QStringLiteral("site:twitch")},
+      {QStringLiteral("\u6597\u9C7C - Google Chrome"),
+       QStringLiteral("site:douyu")},
+      {QStringLiteral("\u864E\u7259\u76F4\u64AD - Google Chrome"),
+       QStringLiteral("site:huya")},
+  };
+  for (const SiteCase& siteCase : videoSiteCases) {
+    const TimeArcSiteCatalog::SiteDefinition* site =
+        TimeArcSiteCatalog::matchByWindowTitle(siteCase.title);
+    if (site == nullptr || site->siteId != siteCase.siteId ||
+        site->iconSource.trimmed().isEmpty()) {
+      return fail(QStringLiteral("Video site catalog match failed: %1")
+                      .arg(siteCase.siteId));
+    }
+  }
+
+  const SiteCase mediaTitleCases[] = {
+      {QStringLiteral("\u66F4\u4E86300\u591A\u671F\u89C6\u9891\u4EE5\u540E - \u54D4\u54E9\u54D4\u54E9 bilibili - Google Chrome"),
+       QStringLiteral("site:bilibili")},
+      {QStringLiteral("Stranger Things - Netflix"),
+       QStringLiteral("site:netflix")},
+  };
+  for (const SiteCase& siteCase : mediaTitleCases) {
+    const TimeArcSiteCatalog::SiteDefinition* site =
+        TimeArcSiteCatalog::matchByWindowTitle(siteCase.title);
+    if (site == nullptr || site->siteId != siteCase.siteId) {
+      return fail(QStringLiteral("Media title site catalog match failed: %1")
+                      .arg(siteCase.siteId));
+    }
   }
 
   const TimeArcSiteCatalog::SiteDefinition* unknownSite =

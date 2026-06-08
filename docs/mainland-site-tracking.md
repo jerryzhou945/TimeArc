@@ -76,3 +76,23 @@ TimeArc 现在会在 UI 聚合层把浏览器里的部分中国大陆常用网�
 - `.harness/tools/preflight.py --track B` 超过 30 秒未返回，按本次任务约定跳过。
 - `.harness/tools/build.py` 因无法写入 `.harness/journal/build-logs/*.log` 返回 `Permission denied`，按本次任务约定跳过。
 - 主应用 `time-arc` 目标构建多次均因本地构建速度超过 10 分钟超时；期间已重新生成并编译相关 QML cache 文件、`daily_card_service.cpp` 和 `usage_stat_manager.cpp`，未见编译错误输出，但完整 `TimeArc.exe` 链接未在本次会话完成。
+
+## v2：主流视频网站图标与媒体标题
+
+当前已经把主流视频网站纳入 `site_catalog.h` 并获取首批本地图标。首批视频站点包括：Bilibili、小红书、爱奇艺、优酷、腾讯视频、芒果TV、抖音、快手、西瓜视频、AcFun、YouTube、Netflix、Twitch、斗鱼、虎牙。
+
+图标资产规则：
+- repo 内首批图标放在 `resources/icons/sites/`，并通过 `resources/CMakeLists.txt` 打进 Qt resources。
+- `docs/site-icon-assets.md` 记录每个图标的来源 URL、文件名和获取方式。
+- QML 只消费本地 `qrc:` 或缓存 `file:` 图标，不直接联网。
+- 如果图标获取失败，UI 继续使用 `iconLabel + brandColor`，不能因为 favicon 失败影响统计聚合。
+
+标题适配规则：
+- foreground 的浏览器 `window_title` 和 media 的 `media_title/window_title` 共用同一个 `site_catalog.h` 匹配目录。
+- 未命中的普通网页继续归到 Chrome、Edge、Firefox 等浏览器 app，不强行拆分。
+- 后续如果接入浏览器扩展或真实 URL，再把 domain/favIconUrl 作为更高置信度来源；当前阶段仍只依赖标题和本地 catalog。
+
+本轮验证：
+- `build.py -- --target timearc_db_smoke` 通过。
+- `build\timearc_db_smoke.exe` 在补齐 Qt/MinGW runtime PATH 后通过。
+- `build.py -- --target time-arc` 通过，验证 QML 与资源打包链路。
