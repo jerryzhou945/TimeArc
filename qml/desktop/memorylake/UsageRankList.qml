@@ -91,17 +91,14 @@ Item {
                             Rectangle {
                                 width: 34; height: 34; radius: 10
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: AppVisual.appColor(row.app ? row.app.appId : "",
-                                                          row.app ? row.app.name : "",
-                                                          row.app ? row.app.path : "")
+                                color: AppVisual.modelAppColor(row.app)
                                 border.width: 1
                                 border.color: rankRoot.style ? rankRoot.style.cardBorder : "#ffffff20"
                                 clip: true
                                 Image {
                                     anchors.centerIn: parent
                                     width: 22; height: 22
-                                    source: AppVisual.appIconSource(row.app ? row.app.appId : "",
-                                                                    row.app ? row.app.path : "")
+                                    source: AppVisual.modelIconSource(row.app)
                                     sourceSize.width: 48
                                     sourceSize.height: 48
                                     fillMode: Image.PreserveAspectFit
@@ -112,10 +109,8 @@ Item {
                                 }
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: AppVisual.appIconSource(row.app ? row.app.appId : "",
-                                                                     row.app ? row.app.path : "") === ""
-                                    text: AppVisual.appIconLabel(row.app ? row.app.appId : "",
-                                                                 row.app ? row.app.name : "")
+                                    visible: AppVisual.modelIconSource(row.app) === ""
+                                    text: AppVisual.modelIconLabel(row.app)
                                     color: rankRoot.style ? rankRoot.style.textPrimary : "#fff"
                                     font.pixelSize: 15
                                     font.bold: true

@@ -5,6 +5,20 @@ set(TIME_ARC_RESOURCE_FILES
     resources/icons/home.svg
     resources/icons/chat.svg
     resources/icons/bilibili.svg
+    resources/icons/sites/acfun.ico
+    resources/icons/sites/douyin.ico
+    resources/icons/sites/douyu.ico
+    resources/icons/sites/huya.png
+    resources/icons/sites/iqiyi.ico
+    resources/icons/sites/kuaishou.ico
+    resources/icons/sites/mango-tv.ico
+    resources/icons/sites/netflix.ico
+    resources/icons/sites/tencent-video.ico
+    resources/icons/sites/twitch.ico
+    resources/icons/sites/xiaohongshu.ico
+    resources/icons/sites/xigua-video.ico
+    resources/icons/sites/youtube.ico
+    resources/icons/sites/youku.ico
     resources/icons/calendar.svg
     resources/icons/stats.svg
     resources/icons/user.svg
