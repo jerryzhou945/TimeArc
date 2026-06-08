@@ -72,11 +72,14 @@ Item {
         width: Math.max(combo.width, combo.popupMinWidth)
         padding: 6
         implicitHeight: Math.min(list.contentHeight + 12, 264)
+        // 不透明深色底：原 calPanelBg 在夜间是 rgba(1,1,1,0.045)（近全透）→ 选项与身后内容混叠。
+        // 改用 panelBg 的 RGB 并把 alpha 钳到 1（夜=深、昼=浅），保证任意背景上下拉都清晰不透。
         background: Rectangle {
             radius: 12
-            color: combo.style ? combo.style.calPanelBg : Qt.rgba(0.043, 0.063, 0.106, 0.96)
+            color: combo.style ? Qt.rgba(combo.style.panelBg.r, combo.style.panelBg.g, combo.style.panelBg.b, 1.0)
+                               : Qt.rgba(0.055, 0.075, 0.12, 1.0)
             border.width: 1
-            border.color: combo.style ? combo.style.panelBorder : Qt.rgba(1, 1, 1, 0.075)
+            border.color: combo.style ? combo.style.panelBorder : Qt.rgba(1, 1, 1, 0.1)
         }
         contentItem: ListView {
             id: list
