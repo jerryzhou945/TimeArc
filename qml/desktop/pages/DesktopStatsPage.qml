@@ -1313,11 +1313,11 @@ Item {
                                 Rectangle {
                                     Layout.preferredWidth: 34; Layout.preferredHeight: 34
                                     radius: 11
-                                    color: AppVisual.appColor(modelData.groupKey, modelData.name, modelData.path)
+                                    color: AppVisual.modelAppColor(modelData)
                                     Image {
                                         anchors.centerIn: parent
                                         width: 22; height: 22
-                                        source: AppVisual.appIconSource(modelData.groupKey, modelData.path)
+                                        source: AppVisual.modelIconSource(modelData)
                                         sourceSize.width: 64; sourceSize.height: 64
                                         fillMode: Image.PreserveAspectFit
                                         asynchronous: true; smooth: true; mipmap: true
@@ -1325,8 +1325,8 @@ Item {
                                     }
                                     Text {
                                         anchors.centerIn: parent
-                                        visible: AppVisual.appIconSource(modelData.groupKey, modelData.path) === ""
-                                        text: AppVisual.appIconLabel(modelData.groupKey, modelData.name)
+                                        visible: AppVisual.modelIconSource(modelData) === ""
+                                        text: AppVisual.modelIconLabel(modelData)
                                         color: nightMode ? "#FFFFFF" : "#2D2724"
                                         font.pixelSize: 14; font.weight: 900
                                     }

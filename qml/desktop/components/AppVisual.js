@@ -15,8 +15,8 @@ function siteVisual(appId) {
     var identity = appId ? appId.toString() : "";
     switch (identity) {
     case "site:bilibili": return { color: "#FABECF", label: "B", icon: Qt.resolvedUrl("../../../resources/icons/bilibili.svg") };
-    case "site:douyin": return { color: "#111111", label: "\u6296", icon: "" };
-    case "site:xiaohongshu": return { color: "#FF2442", label: "\u7EA2", icon: "" };
+    case "site:douyin": return { color: "#E8E2F1", label: "\u6296", icon: "" };
+    case "site:xiaohongshu": return { color: "#F5D7DE", label: "\u7EA2", icon: "" };
     case "site:weibo": return { color: "#E6162D", label: "\u5FAE", icon: "" };
     case "site:zhihu": return { color: "#1772F6", label: "\u77E5", icon: "" };
     case "site:taobao": return { color: "#FF5000", label: "\u6DD8", icon: "" };
@@ -24,9 +24,18 @@ function siteVisual(appId) {
     case "site:jd": return { color: "#E2231A", label: "\u4EAC", icon: "" };
     case "site:pinduoduo": return { color: "#E02E24", label: "\u62FC", icon: "" };
     case "site:baidu": return { color: "#2932E1", label: "\u767E", icon: "" };
-    case "site:iqiyi": return { color: "#00BE06", label: "\u7231", icon: "" };
-    case "site:youku": return { color: "#00A1D6", label: "\u4F18", icon: "" };
-    case "site:tencent-video": return { color: "#FFB000", label: "\u817E", icon: "" };
+    case "site:iqiyi": return { color: "#D8F0D6", label: "\u7231", icon: "" };
+    case "site:youku": return { color: "#D5ECF6", label: "\u4F18", icon: "" };
+    case "site:tencent-video": return { color: "#F5E4BE", label: "\u817E", icon: "" };
+    case "site:mango-tv": return { color: "#F4DDC7", label: "\u8292", icon: "" };
+    case "site:kuaishou": return { color: "#F4D9C8", label: "\u5FEB", icon: "" };
+    case "site:xigua-video": return { color: "#F3D5D2", label: "\u74DC", icon: "" };
+    case "site:acfun": return { color: "#F5D7DD", label: "A", icon: "" };
+    case "site:youtube": return { color: "#F2D4D4", label: "Y", icon: "" };
+    case "site:netflix": return { color: "#EFD3D5", label: "N", icon: "" };
+    case "site:twitch": return { color: "#E6DCF7", label: "T", icon: "" };
+    case "site:douyu": return { color: "#F4DEC7", label: "\u6597", icon: "" };
+    case "site:huya": return { color: "#F3E0C4", label: "\u864E", icon: "" };
     case "site:douban": return { color: "#007722", label: "\u8C46", icon: "" };
     case "site:csdn": return { color: "#C92027", label: "C", icon: "" };
     case "site:alipay": return { color: "#1677FF", label: "\u652F", icon: "" };
@@ -123,4 +132,32 @@ function appIconLabel(appId, appName) {
 
     var name = appName ? appName.toString().trim() : "";
     return name.length > 0 ? name.charAt(0).toUpperCase() : "\u00B7";
+}
+
+function modelIdentity(row) {
+    if (!row)
+        return "";
+    if (row.groupKey && row.groupKey.length > 0)
+        return row.groupKey;
+    if (row.appId && row.appId.length > 0)
+        return row.appId;
+    return "";
+}
+
+function modelAppColor(row) {
+    if (row && row.brandColor && row.brandColor.length > 0)
+        return row.brandColor;
+    return appColor(modelIdentity(row), row ? row.name : "", row ? row.path : "");
+}
+
+function modelIconSource(row) {
+    if (row && row.iconSource && row.iconSource.length > 0)
+        return row.iconSource;
+    return appIconSource(modelIdentity(row), row ? row.path : "");
+}
+
+function modelIconLabel(row) {
+    if (row && row.iconLabel && row.iconLabel.length > 0)
+        return row.iconLabel;
+    return appIconLabel(modelIdentity(row), row ? row.name : "");
 }

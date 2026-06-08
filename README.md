@@ -130,7 +130,11 @@ with day and night modes.
 - **Mainland China browser-site split** - common websites opened inside
   Chrome, Edge, Firefox, and other supported browsers can be grouped as
   independent `site:*` activities in the UI, with preset brand colors and
-  text/icon fallbacks for visual surfaces.
+  text/icon fallbacks for visual surfaces. Mainstream video sites now include
+  repo-local favicon assets under `resources/icons/sites/`, and foreground
+  window titles plus useful media titles share the same site catalog matching
+  path so video/audio usage can surface the site icon instead of the browser
+  icon when the title contains a known site marker.
 
 ## Platform Support
 
