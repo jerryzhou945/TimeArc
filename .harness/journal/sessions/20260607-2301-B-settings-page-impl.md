@@ -67,6 +67,17 @@ hidden=[app:terminal]+autoClassify=false → Home drops Terminal everywhere + th
 「今日无明显主线」 = filters genuinely propagate. scan_qt_log clean (1 env clipboard
 one-off, cleaned). harness_check 0. Temp-verify edits all reverted (grep clean).
 
+## Refinements (06-08, post phase-3) — DONE
+User 微调 3 项（PrintWindow 复核 tracking+memo tab 夜态、build/scan/harness 全清、对抗复核 24→4 全 low 已修关键项）：
+- #1 应用管理重设计：单列长清单（几十应用撑高右栏、栅格失衡）→ 整宽卡 + 搜索 + 2 列紧凑芯片
+  (字母头像+名+开关) + 计数 + 软折叠（默认 appCap=14，"显示全部"展开）；追踪范围去 wide 与分类规则并排上行。
+- #2 番茄钟接真引擎：番茄 = 备忘黑板 PomodoroWidget（纯 QML 倒计时、自带 KV memoryLakeMemoPomodoro，
+  **非** count-up timer_manager）。设置卡（默认时长/标题/结束庆祝）写 pomodoro_duration/title/celebrate；
+  PomodoroWidget _load(无存档)+resetTimer 读默认时长+标题；MemoOverlay 完成庆祝按 pomodoro_celebrate 门控。
+- #3 快捷键自定义：KeyCaptureChip（受控、单字母 A–Z、Keys.onShortcutOverride 捕获时吃全局键避免误触）；
+  写 memo_hotkey_key/pomodoro_hotkey_key + setHotkey 冲突校验 + hotkeysChanged 信号；Shell
+  memoHotkeyKey/pomodoroHotkeyKey 响应式 → Shortcut.sequences 即时重绑 + 新番茄 Shortcut→togglePomodoro。
+
 ## Notes for next agent
 - Worktree build: PATH = Qt 6.11.1 mingw_64 bin + mingw1310 + CMake_64 + Ninja, then
   build.py. Kill TimeArc.exe before each rebuild (exe lock).

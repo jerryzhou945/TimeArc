@@ -223,8 +223,19 @@ Item {
             hidden);
     }
 
+    // 备忘 / 番茄全局快捷键（#3 自定义）：设置 KV 无变更信号，故设置页改键后发 hotkeysChanged，
+    // Shell 重读到这两个响应式属性 → 下方 Shortcut.sequences 即时重绑（单字母）。
+    property string memoHotkeyKey: "N"
+    property string pomodoroHotkeyKey: "P"
+    function applyHotkeysFromSettings() {
+        if (!settingsRepository) return;
+        memoHotkeyKey = settingsRepository.getValue("memo_hotkey_key", "N");
+        pomodoroHotkeyKey = settingsRepository.getValue("pomodoro_hotkey_key", "P");
+    }
+
     Component.onCompleted: {
         applyReadFiltersFromSettings();
+        applyHotkeysFromSettings();
         // G-LANDING 默认页：landing_page = memorylake(默认/下标0) | recap | memo(开黑板覆盖层)。
         var lp = settingsRepository ? settingsRepository.getValue("landing_page", "memorylake")
                                     : "memorylake";
@@ -240,12 +251,21 @@ Item {
     // 让聚焦中的文本框（设置搜索 / 便签署名 / 便签文字）吃掉该键，故输入时不会误触发；
     // 偏好在触发时实读，关掉开关后下次按 N 立即失效（无需依赖不存在的设置变更信号）。
     Shortcut {
-        sequences: ["N"]
-        enabled: !root.memoLocked
+        sequences: root.memoHotkeyKey.length > 0 ? [root.memoHotkeyKey] : []
+        enabled: !root.memoLocked && root.memoHotkeyKey.length > 0
         onActivated: {
             if (settingsRepository && !settingsRepository.getBool("memo_hotkey_n", true))
                 return;
             memoOverlay.open = !memoOverlay.open;
+        }
+    }
+
+    // G-MEMO/#3：番茄钟全局快捷键 —— 开备忘黑板并开/关番茄浮窗（同样 ShortcutOverride 安全）。
+    Shortcut {
+        sequences: root.pomodoroHotkeyKey.length > 0 ? [root.pomodoroHotkeyKey] : []
+        enabled: !root.memoLocked && root.pomodoroHotkeyKey.length > 0
+        onActivated: {
+            if (memoOverlay.togglePomodoro) memoOverlay.togglePomodoro();
         }
     }
 
@@ -871,6 +891,9 @@ Item {
                                     nightMode = enabled;
                                 });
                             }
+                            // #3：设置页改键 → Shell 重读 memo/pomodoro 全局键（Shortcut 即时重绑）。
+                            if (item.hotkeysChanged)
+                                item.hotkeysChanged.connect(applyHotkeysFromSettings);
                             if ("nightMode" in item)
                                 item.nightMode = nightMode;
                         }

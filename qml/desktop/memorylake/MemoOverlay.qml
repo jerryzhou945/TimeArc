@@ -197,6 +197,8 @@ Item {
         if (store.getBool && !store.getBool("memo_autosave", true)) return;
         saveTimer.restart();
     }
+    // #3 番茄全局快捷键入口：开黑板并开/关番茄浮窗（由 Shell Shortcut 调用）。
+    function togglePomodoro() { open = true; pomodoro.shown = !pomodoro.shown; }
 
     Timer { id: saveTimer; interval: 600; repeat: false; onTriggered: memo.saveDoc() }
 
@@ -1037,7 +1039,11 @@ Item {
         style: memo.style
         store: memo.store     // gap #10：番茄状态持久化（单独键 memoryLakeMemoPomodoro）
         shown: false
-        onCompleted: function (v) { pomodoroComplete.variant = v; pomodoroComplete.shown = true; }
+        onCompleted: function (v) {
+            // #2 结束庆祝可在设置页关闭（pomodoro_celebrate）；关则静默完成，不弹全屏庆祝。
+            if (memo.store && memo.store.getBool && !memo.store.getBool("pomodoro_celebrate", true)) return;
+            pomodoroComplete.variant = v; pomodoroComplete.shown = true;
+        }
     }
     PomodoroCompleteOverlay {
         id: pomodoroComplete

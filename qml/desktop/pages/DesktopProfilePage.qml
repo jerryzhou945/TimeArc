@@ -29,6 +29,8 @@ Item {
     signal nightModeToggled(bool enabled)
     // 顶栏「返回首页」/ Esc 切页（Shell onLoaded 连接，已含 settings）。
     signal requestNavigate(string pageKey)
+    // 快捷键变更 → Shell 重读 memo/pomodoro 全局键（设置 KV 无变更信号，故显式通知，#3）。
+    signal hotkeysChanged()
 
     // 记忆湖统一色板（单一事实源 G1）。夜=暗玻璃霓虹，昼=浅瓷；由 night 切换。
     MemoryLakeStyle {
@@ -77,6 +79,30 @@ Item {
     // appList = usageStatManager.allApps() 去重清单（onCompleted 拉一次，供应用管理勾选）。
     property var hiddenApps: []
     property var appList: []
+    // 应用管理 UI（#1 重设计）：搜索过滤 + 软上限折叠（默认显 appCap 个，可展开全部）。
+    property string appSearchQuery: ""
+    property bool appsExpanded: false
+    readonly property int appCap: 14
+    readonly property var filteredApps: {
+        var q = ("" + appSearchQuery).toLowerCase()
+        if (q.length === 0) return appList
+        var r = []
+        for (var i = 0; i < appList.length; i++) {
+            var nm = ("" + (appList[i].name || appList[i].appName)).toLowerCase()
+            if (nm.indexOf(q) >= 0) r.push(appList[i])
+        }
+        return r
+    }
+    readonly property var shownApps: (appSearchQuery.length > 0 || appsExpanded)
+                                     ? filteredApps : filteredApps.slice(0, appCap)
+
+    // 番茄钟（#2 接备忘番茄引擎 PomodoroWidget；写 KV，引擎在 _load/reset 时读默认时长/标题）。
+    property string pomodoroDuration: "25"
+    property string pomodoroTitle: "专注一会儿"
+    property bool pomodoroCelebrate: true
+    // 快捷键自定义（#3）：备忘 / 番茄全局键（单字母；Shell 响应式读，hotkeysChanged 通知）。
+    property string memoHotkeyKey: "N"
+    property string pomodoroHotkeyKey: "P"
 
     function _getBool(k, d) { return settingsRepository ? settingsRepository.getBool(k, d) : d }
     function _getStr(k, d) { return settingsRepository ? settingsRepository.getValue(k, d) : d }
@@ -104,6 +130,11 @@ Item {
         memoAutosave     = _getBool("memo_autosave", true)
         memoSignature    = _getStr("memo_signature", "JusTin D")
         hiddenApps       = parseHiddenApps()
+        pomodoroDuration = _getStr("pomodoro_duration", "25")
+        pomodoroTitle    = _getStr("pomodoro_title", "专注一会儿")
+        pomodoroCelebrate= _getBool("pomodoro_celebrate", true)
+        memoHotkeyKey    = _getStr("memo_hotkey_key", "N")
+        pomodoroHotkeyKey= _getStr("pomodoro_hotkey_key", "P")
     }
 
     // —— 读层过滤推入（2A 游戏/分类/合并 · 2B 显隐 · 2C 标题 · 3A 软暂停）——
@@ -204,9 +235,25 @@ Item {
         currentTab = key
         searchQuery = ""          // 切 tab 清搜索（C2）
         searchField.text = ""
+        appSearchQuery = ""       // 应用管理搜索 / 折叠态复位（每次进 tab 全新，文本框同步清）
+        appsExpanded = false
+        appSearchField.text = ""
     }
     function showToast(msg) { settingsToast.message = msg; settingsToast.shown = true; toastTimer.restart() }
     function onOff(v) { return v ? "功能已开启" : "功能已关闭" }
+
+    // 自定义快捷键（#3）：单字母；备忘 / 番茄不能同键；写 KV + 发 hotkeysChanged 让 Shell 重读。
+    function setHotkey(which, k) {
+        if (which === "memo") {
+            if (k === pomodoroHotkeyKey) { showToast("与番茄钟快捷键冲突"); return }
+            memoHotkeyKey = k; _setStr("memo_hotkey_key", k)
+        } else {
+            if (k === memoHotkeyKey) { showToast("与备忘录快捷键冲突"); return }
+            pomodoroHotkeyKey = k; _setStr("pomodoro_hotkey_key", k)
+        }
+        hotkeysChanged()
+        showToast("快捷键已更新为 " + k)
+    }
 
     // 顶栏标题/描述（settingsCopy 逐字，v88 17835–17841）
     readonly property var topCopy: ({
@@ -760,7 +807,7 @@ Item {
                             tabKey: "tracking"
 
                             SettingsCard {
-                                badge: "◉"; wide: true
+                                badge: "◉"
                                 cardTitle: "追踪范围"
                                 cardDesc: "决定哪些应用会进入首页、时间图和月度记忆回顾。"
                                 keywords: "追踪 应用 游戏 app 使用时间 空闲"
@@ -798,38 +845,6 @@ Item {
                             }
 
                             SettingsCard {
-                                badge: "▥"
-                                cardTitle: "应用管理"
-                                cardDesc: "单独控制应用是否进入首页、统计和回顾（隐藏不删历史，仅读出端排除）。"
-                                keywords: "应用清单 排除 合并 显隐 隐藏 hidden"
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-                                    PlaceholderNote {
-                                        visible: root.appList.length === 0
-                                        text: "暂无采集到的应用记录（采集后将在此逐项显隐）。"
-                                    }
-                                    Repeater {
-                                        model: root.appList
-                                        delegate: SettingRow {
-                                            required property var modelData
-                                            rowTitle: (modelData.name && ("" + modelData.name).length > 0)
-                                                      ? modelData.name : modelData.appName
-                                            rowSub: root.isAppHidden(modelData.groupKey) ? "已从统计中隐藏" : "正在统计"
-                                            GlassSwitch {
-                                                style: ml
-                                                checked: !root.isAppHidden(modelData.groupKey)
-                                                onToggled: function (c) {
-                                                    root.setAppHidden(modelData.groupKey, !c)
-                                                    root.showToast(c ? "已显示该应用" : "已隐藏该应用")
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            SettingsCard {
                                 badge: "☷"
                                 cardTitle: "分类规则"
                                 cardDesc: "自动给软件分配游戏、创作、社交和工具等标签。"
@@ -849,6 +864,101 @@ Item {
                                     GlassSwitch {
                                         style: ml; checked: root.mergeWindows
                                         onToggled: function (c) { root.mergeWindows = c; root._setBool("merge_windows", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
+                                    }
+                                }
+                            }
+
+                            // 应用管理（#1 重设计）：整宽卡 + 搜索 + 2 列紧凑芯片 + 计数 + 软折叠，
+                            // 取代原先单列长清单（解决右栏被几十个应用撑高、栅格失衡）。
+                            SettingsCard {
+                                badge: "▥"; wide: true
+                                cardTitle: "应用管理"
+                                cardDesc: "单独控制应用是否进入首页、统计和回顾（隐藏不删历史，仅读出端排除）。"
+                                keywords: "应用清单 排除 合并 显隐 隐藏 hidden 搜索"
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
+                                        GlassTextField {
+                                            id: appSearchField
+                                            Layout.fillWidth: true
+                                            style: ml
+                                            search: true
+                                            placeholderText: "搜索应用…"
+                                            onTextEdited: function (t) { root.appSearchQuery = t }
+                                        }
+                                        Text {
+                                            Layout.alignment: Qt.AlignVCenter
+                                            text: "共 " + root.appList.length + " · 隐藏 " + root.hiddenApps.length
+                                            color: ml.textTertiary; font.pixelSize: 11
+                                        }
+                                    }
+
+                                    PlaceholderNote {
+                                        visible: root.appList.length === 0
+                                        text: "暂无采集到的应用记录（采集后将在此逐项显隐）。"
+                                    }
+                                    PlaceholderNote {
+                                        visible: root.appList.length > 0 && root.shownApps.length === 0
+                                        text: "没有匹配「" + root.appSearchQuery + "」的应用。"
+                                    }
+
+                                    GridLayout {
+                                        Layout.fillWidth: true
+                                        columns: root.sideCollapsed ? 1 : 2
+                                        columnSpacing: 10
+                                        rowSpacing: 10
+                                        Repeater {
+                                            model: root.shownApps
+                                            delegate: Rectangle {
+                                                required property var modelData
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 52
+                                                radius: 14
+                                                color: ml.calSunkBg
+                                                border.width: 1; border.color: ml.cellHair
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 10; anchors.rightMargin: 10
+                                                    spacing: 10
+                                                    Rectangle {
+                                                        width: 30; height: 30; radius: 9
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                        color: ml.calGhostBg
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: { var n = "" + (modelData.name || modelData.appName); return n.length > 0 ? n.charAt(0).toUpperCase() : "?" }
+                                                            color: ml.aqua; font.pixelSize: 14; font.weight: Font.DemiBold
+                                                        }
+                                                    }
+                                                    Text {
+                                                        Layout.fillWidth: true
+                                                        text: modelData.name || modelData.appName
+                                                        color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
+                                                        elide: Text.ElideRight
+                                                    }
+                                                    GlassSwitch {
+                                                        style: ml
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                        checked: !root.isAppHidden(modelData.groupKey)
+                                                        onToggled: function (c) {
+                                                            root.setAppHidden(modelData.groupKey, !c)
+                                                            root.showToast(c ? "已显示该应用" : "已隐藏该应用")
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    GhostBtn {
+                                        visible: root.appSearchQuery.length === 0 && root.filteredApps.length > root.appCap
+                                        label: root.appsExpanded ? "收起" : ("显示全部 " + root.filteredApps.length + " 个应用")
+                                        onTapped: root.appsExpanded = !root.appsExpanded
                                     }
                                 }
                             }
@@ -1013,27 +1123,87 @@ Item {
                                 }
                             }
 
+                            // 番茄钟（#2 接备忘黑板真引擎 PomodoroWidget；写 KV，引擎在 _load/reset 读默认）。
                             SettingsCard {
                                 badge: "●"
                                 cardTitle: "番茄钟"
-                                cardDesc: "设置默认专注时间和结束动画。"
-                                keywords: "番茄钟 pomodoro 专注 时间"
-                                PlaceholderNote { text: "倒计时引擎尚未实装，番茄钟默认项暂不开放（不写死假状态）。" }
+                                cardDesc: "设置备忘黑板里番茄钟的默认专注时长、标题与结束庆祝。"
+                                keywords: "番茄钟 pomodoro 专注 时间 倒计时"
+
+                                SettingRow {
+                                    rowTitle: "默认专注时长"
+                                    rowSub: "新开 / 重置番茄钟的初始分钟数（备忘内仍可临时调整）。"
+                                    GlassComboBox {
+                                        style: ml
+                                        model: ["15 分钟", "25 分钟", "30 分钟", "45 分钟", "60 分钟"]
+                                        property var _vals: ["15", "25", "30", "45", "60"]
+                                        currentIndex: Math.max(0, _vals.indexOf(root.pomodoroDuration))
+                                        onActivated: function (i) { root.pomodoroDuration = _vals[i]; root._setStr("pomodoro_duration", _vals[i]); root.showToast("默认专注时长已保存") }
+                                    }
+                                }
+                                SettingRow {
+                                    rowTitle: "默认专注标题"
+                                    rowSub: "番茄钟浮窗顶部显示的文字。"
+                                    GlassTextField {
+                                        style: ml
+                                        implicitWidth: 160
+                                        text: root.pomodoroTitle
+                                        placeholderText: "专注一会儿"
+                                        onEditingFinished: { root.pomodoroTitle = text; root._setStr("pomodoro_title", text); root.showToast("默认标题已保存") }
+                                    }
+                                }
+                                SettingRow {
+                                    rowTitle: "结束庆祝动画"
+                                    rowSub: "番茄钟完成时显示全屏庆祝。"
+                                    GlassSwitch {
+                                        style: ml; checked: root.pomodoroCelebrate
+                                        onToggled: function (c) { root.pomodoroCelebrate = c; root._setBool("pomodoro_celebrate", c); root.showToast(root.onOff(c)) }
+                                    }
+                                }
                             }
 
+                            // 快捷键（#3 自定义）：备忘 / 番茄全局键可点按重设（仅单字母）；其余为内置只读。
                             SettingsCard {
                                 badge: "⌘"
                                 cardTitle: "快捷键"
-                                cardDesc: "常用操作的键盘入口。"
-                                keywords: "快捷键 keyboard shortcut"
+                                cardDesc: "自定义备忘录与番茄钟的全局快捷键（点按键重设，仅单字母；其余为内置键）。"
+                                keywords: "快捷键 keyboard shortcut 自定义 备忘 番茄 N P"
                                 Column {
                                     Layout.fillWidth: true
                                     spacing: 8
                                     Repeater {
                                         model: [
-                                            { k: "N", d: "打开 / 关闭备忘录" },
-                                            { k: "Del", d: "删除选中便签 / 页面" },
-                                            { k: "Esc", d: "关闭回顾或设置" },
+                                            { which: "memo", d: "打开 / 关闭备忘录" },
+                                            { which: "pomo", d: "打开 / 关闭番茄钟" }
+                                        ]
+                                        delegate: Rectangle {
+                                            required property var modelData
+                                            width: parent.width
+                                            height: 40
+                                            radius: 14
+                                            color: ml.calSunkBg
+                                            border.width: 1; border.color: ml.cellHair
+                                            Row {
+                                                anchors.left: parent.left
+                                                anchors.leftMargin: 10
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                spacing: 10
+                                                KeyCaptureChip {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    keyText: modelData.which === "memo" ? root.memoHotkeyKey : root.pomodoroHotkeyKey
+                                                    onCaptured: function (k) { root.setHotkey(modelData.which, k) }
+                                                }
+                                                Text {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    text: modelData.d; color: ml.textSecondary; font.pixelSize: 11
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Repeater {
+                                        model: [
+                                            { k: "Del", d: "删除选中便签 / 对象" },
+                                            { k: "Esc", d: "关闭回顾 / 设置 / 清空选区" },
                                             { k: "Wheel", d: "切换卡牌 / 滚动列表" }
                                         ]
                                         delegate: Rectangle {
@@ -1381,6 +1551,43 @@ Item {
             preventStealing: true
             onClicked: gbtn.tapped()
         }
+    }
+
+    // 单字母快捷键捕获键帽（#3）：点击进入捕获、按 A–Z 设定、Esc 取消。受控（不自写 keyText，
+    // 父经 setHotkey 回写 → 绑定回流）。Keys.onShortcutOverride 让捕获时吃掉全局 Shortcut（否则按
+    // 旧 N/P 会触发备忘/番茄而非被捕获）。
+    component KeyCaptureChip: Rectangle {
+        id: kc
+        property string keyText: "N"
+        property bool capturing: false
+        signal captured(string key)
+        implicitWidth: 54; implicitHeight: 30
+        radius: 9
+        color: capturing ? ml.accentSoft : ml.calGhostBg
+        border.width: 1
+        border.color: capturing ? ml.accentSoftBorder : ml.calGhostBorder
+        Text {
+            anchors.centerIn: parent
+            text: kc.capturing ? "按键…" : kc.keyText
+            color: kc.capturing ? ml.aqua : ml.textPrimary
+            font.pixelSize: 12; font.weight: 900
+        }
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: { kc.capturing = true; kc.forceActiveFocus() }
+        }
+        Keys.onShortcutOverride: function (e) { if (kc.capturing) e.accepted = true }
+        Keys.onPressed: function (e) {
+            if (!kc.capturing) return
+            if (e.key === Qt.Key_Escape) { kc.capturing = false; e.accepted = true; return }
+            if (e.key >= Qt.Key_A && e.key <= Qt.Key_Z) {
+                kc.capturing = false
+                kc.captured(String.fromCharCode(e.key))   // Qt.Key_A==65 → 'A'
+                e.accepted = true
+            }
+        }
+        onActiveFocusChanged: if (!activeFocus) capturing = false
     }
 
     // 白天/黑夜主题开关（v88 .theme-switch §7.6）：dayOn = !nightMode；点击发 nightModeToggled。
