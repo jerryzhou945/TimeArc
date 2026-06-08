@@ -986,7 +986,7 @@ Item {
             }
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: welcomeOverlay.dismiss() }
-        function dismiss() { if (done) return; welcomeIn.stop(); welcomeOut.start(); }
+        function dismiss() { if (done || welcomeOut.running) return; welcomeIn.stop(); welcomeOut.start(); }
         SequentialAnimation {
             id: welcomeIn
             NumberAnimation { target: welcomeOverlay; property: "opacity"; from: 0; to: 1; duration: 500; easing.type: Easing.OutCubic }

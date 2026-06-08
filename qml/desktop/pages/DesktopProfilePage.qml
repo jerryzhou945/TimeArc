@@ -246,6 +246,7 @@ Item {
         appSearchQuery = ""       // 应用管理搜索 / 折叠态复位（每次进 tab 全新，文本框同步清）
         appsExpanded = false
         appSearchField.text = ""
+        if (key === "export") refreshOverview()   // 进数据概览前刷新（番茄今日完成数等无变更信号，主动重读）
     }
     function showToast(msg) { settingsToast.message = msg; settingsToast.shown = true; toastTimer.restart() }
     function onOff(v) { return v ? "功能已开启" : "功能已关闭" }
