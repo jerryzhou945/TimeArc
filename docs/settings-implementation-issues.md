@@ -1,5 +1,9 @@
 # 设置页 · 实施问题文档（后端缺口 / 技术难点 / 待决策 / 接入计划）
 
+> **当前状态（已超本文档计划）**：设置页已全实装并入 dev（PR #28）；本文为**原始规划 / 缺口清单**，逐项
+> **最新落地状态 + 未实装审计 + 服务侧配置提案**见 `docs/settings-remaining-work.md`。下方 §8 复选框是初始
+> 规划，未随实装逐个勾选——以 remaining-work 审计为准。
+>
 > 前置：本文是设置页复刻的**数据侧 + 决策侧问题清单 + 接入计划**，体例对齐
 > `docs/stats-backend-data-gaps.md`。配套：`docs/settings-functional-replication.md`（功能/行为/法规）+
 > `docs/settings-render-pipeline-replication.md`（美术/像素）。
