@@ -68,9 +68,15 @@ with day and night modes.
   new reusable dark-glass control family in `qml/desktop/memorylake/` — `GlassSwitch`,
   `GlassComboBox` (overlay popup, no native skin), `GlassSlider`, `GlassTextField`
   (incl. a search variant), and `KbdChip` — all styled from `MemoryLakeStyle` tokens.
-  Backend-less items (pomodoro, notifications, real history deletion) are honestly
-  hidden or shown as placeholders rather than faked; the page is read-only over the
-  usage journal.
+  The app-management tab lists real captured apps for per-app hide; the pomodoro card
+  drives the memo blackboard's real countdown (default duration/title/celebration);
+  memo & pomodoro hotkeys are user-customizable; a one-shot welcome animation is gated
+  by `show_welcome`; and **system notifications** (pomodoro-complete-in-background) use
+  `qml/desktop/memorylake/NotifierTray.qml` (a `Qt.labs.platform` tray, loaded
+  defensively so a missing plugin can't break the app). Items with no backend
+  (real history deletion, true service-side track pause / idle, real-time backdrop
+  blur, global accent/i18n) stay honest placeholders rather than faked; the page is
+  read-only over the usage journal and never bypasses the disk contract.
 - **Desktop shell** — a Qt Quick interface with full day/night theming.
   The left nav follows the design order **首页 (Memory Lake) · 日历 · 统计 ·
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.

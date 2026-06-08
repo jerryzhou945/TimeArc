@@ -95,6 +95,14 @@ Item {
     }
     function setMinutes(m) { var s = remain % 60; total = _clampMin(m) * 60 + (running ? 0 : _clampSec(s)); if (!running) remain = total; }
     function setSeconds(s) { var mnt = Math.floor((running ? total : remain) / 60); total = mnt * 60 + _clampSec(s); if (!running) remain = total; }
+    // 完成计数（今日，供设置页数据概览）：date-stamped JSON，跨天自动归零；store 空则静默跳过。
+    function _recordCompletion() {
+        if (!store) return;
+        var today = Qt.formatDate(new Date(), "yyyy-MM-dd");
+        var n = 1;
+        try { var o = JSON.parse(store.getValue("pomodoro_today", "")); if (o && o.d === today) n = (o.n || 0) + 1; } catch (e) {}
+        store.setValue("pomodoro_today", JSON.stringify({ d: today, n: n }));
+    }
     function _pickVariant() {
         var v = ["FOCUS COMPLETE", "GOOD SESSION", "MEMORY SAVED", "WELL DONE"];
         return v[Math.floor(Math.random() * v.length)];
@@ -171,6 +179,7 @@ Item {
                 pomo.running = false;
                 pomo.compact = false;
                 pomo._save();
+                pomo._recordCompletion();              // 今日完成计数（数据概览）
                 pomo.completed(pomo._pickVariant());   // 单一探测器（功能文 G7/C13）
             }
         }

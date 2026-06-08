@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
+import QtQuick.Window
 import time_arc
 import "memorylake"
 import "components/AppVisual.js" as AppVisual
@@ -227,10 +228,13 @@ Item {
     // Shell 重读到这两个响应式属性 → 下方 Shortcut.sequences 即时重绑（单字母）。
     property string memoHotkeyKey: "N"
     property string pomodoroHotkeyKey: "P"
+    property bool notifyEnabled: true   // 系统通知开关（驱动托盘可见 + 是否发通知）
+    // 设置页改键 / 改通知开关后发 hotkeysChanged → Shell 重读这些 Shell 侧消费的设置。
     function applyHotkeysFromSettings() {
         if (!settingsRepository) return;
         memoHotkeyKey = settingsRepository.getValue("memo_hotkey_key", "N");
         pomodoroHotkeyKey = settingsRepository.getValue("pomodoro_hotkey_key", "P");
+        notifyEnabled = settingsRepository.getBool("notify_enabled", true);
     }
 
     Component.onCompleted: {
@@ -948,6 +952,72 @@ Item {
         style: mlStyle
         backdropSource: desktopStage
         store: settingsRepository    // UI 私有持久化（通用 key-value；非服务磁盘契约）
+    }
+
+    // 欢迎入场动画（一次性，启动）：show_welcome 门控（默认开）；淡入→驻留→淡出，可点按提前关；
+    // done 后 visible=false 永不挡交互。品牌时刻复用 mlStyle.aqua/violet 令牌，不引入新色。
+    Rectangle {
+        id: welcomeOverlay
+        anchors.fill: parent
+        z: 9000
+        color: nightMode ? "#070A12" : "#F6F1EA"
+        property bool done: false
+        opacity: 0
+        visible: opacity > 0.01 && !done
+        Column {
+            anchors.centerIn: parent
+            spacing: 22
+            Rectangle {
+                width: 76; height: 76; radius: 22
+                anchors.horizontalCenter: parent.horizontalCenter
+                gradient: Gradient {
+                    GradientStop { position: 0; color: mlStyle.aqua }
+                    GradientStop { position: 1; color: mlStyle.violet }
+                }
+                Text { anchors.centerIn: parent; text: "T"; color: "#05070D"; font.pixelSize: 40; font.weight: Font.Black }
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "TimeArc"; color: appTextPrimary; font.pixelSize: 30; font.weight: Font.Bold; font.letterSpacing: 0.5
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "时间的弧线 · 慢慢积累，很好"; color: appTextSecondary; font.pixelSize: 14
+            }
+        }
+        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: welcomeOverlay.dismiss() }
+        function dismiss() { if (done) return; welcomeIn.stop(); welcomeOut.start(); }
+        SequentialAnimation {
+            id: welcomeIn
+            NumberAnimation { target: welcomeOverlay; property: "opacity"; from: 0; to: 1; duration: 500; easing.type: Easing.OutCubic }
+            PauseAnimation { duration: 1800 }
+            NumberAnimation { target: welcomeOverlay; property: "opacity"; to: 0; duration: 700; easing.type: Easing.InCubic }
+            onFinished: welcomeOverlay.done = true
+        }
+        NumberAnimation { id: welcomeOut; target: welcomeOverlay; property: "opacity"; to: 0; duration: 320; onFinished: welcomeOverlay.done = true }
+        Component.onCompleted: {
+            if (settingsRepository && !settingsRepository.getBool("show_welcome", true)) { done = true; return; }
+            welcomeIn.start();
+        }
+    }
+
+    // 系统通知载体（G-NOTIFY）：Loader 容错加载——平台无 Qt.labs.platform 插件时静默失败、不拖垮整页。
+    Loader {
+        id: notifierLoader
+        source: "memorylake/NotifierTray.qml"
+        onLoaded: {
+            item.iconSource = Qt.resolvedUrl("../../resources/icons/app_icon.svg");
+            item.notifyOn = Qt.binding(function () { return root.notifyEnabled; });
+        }
+    }
+    // 番茄钟完成 → 仅当窗口不在前台（已无全屏庆祝可见）时发系统通知，避免与庆祝重复。
+    Connections {
+        target: memoOverlay
+        function onPomodoroFinished(title) {
+            if (!root.notifyEnabled || Window.active) return;
+            if (notifierLoader.item)
+                notifierLoader.item.notify("番茄钟完成", (title && title.length > 0 ? title : "专注") + " · 这一程结束了");
+        }
     }
 
     Connections {

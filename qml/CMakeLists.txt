@@ -53,6 +53,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/memorylake/GlassSlider.qml
     qml/desktop/memorylake/GlassTextField.qml
     qml/desktop/memorylake/KbdChip.qml
+    qml/desktop/memorylake/NotifierTray.qml
     qml/mobile/MobileAppShell.qml
     qml/mobile/MobileTheme.qml
     qml/mobile/pages/MobileHomePage.qml

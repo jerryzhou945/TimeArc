@@ -66,7 +66,6 @@ Item {
     property bool notifyEnabled: true
     property bool memoHotkeyN: true
     property bool memoAutosave: true
-    property string memoSignature: "JusTin D"
 
     // —— Phase 2 只读派生（onCompleted + usageStatsChanged 刷新；真实只读，不造假 G6）——
     property real journalBytes: 0      // usage_records.jsonl 字节
@@ -74,6 +73,7 @@ Item {
     property int usageRecordCount: 0   // 已解析记录条数
     property string todaySwitchesText: "—"   // 今日前台切换次数（QML 派生）
     property string memoPagesText: "—"       // 备忘页数（从 memoryLakeMemoDoc 派生）
+    property string pomodoroTodayText: "—"    // 今日番茄完成数（PomodoroWidget 写 pomodoro_today）
 
     // 逐项显隐（2B / G-HIDEAPP）：hiddenApps = 被隐藏的 group key 数组（持久化为 JSON）；
     // appList = usageStatManager.allApps() 去重清单（onCompleted 拉一次，供应用管理勾选）。
@@ -128,7 +128,6 @@ Item {
         notifyEnabled    = _getBool("notify_enabled", true)
         memoHotkeyN      = _getBool("memo_hotkey_n", true)
         memoAutosave     = _getBool("memo_autosave", true)
-        memoSignature    = _getStr("memo_signature", "JusTin D")
         hiddenApps       = parseHiddenApps()
         pomodoroDuration = _getStr("pomodoro_duration", "25")
         pomodoroTitle    = _getStr("pomodoro_title", "专注一会儿")
@@ -184,6 +183,15 @@ Item {
                 var o = JSON.parse(doc)
                 if (o && o.pages && o.pages.length !== undefined) memoPagesText = o.pages.length + " 页"
             } catch (e) { /* 解析失败 → 维持「—」，不造假 */ }
+        }
+        // 今日番茄完成数（PomodoroWidget._recordCompletion 写 date-stamped pomodoro_today）。
+        var todayKey = Qt.formatDate(new Date(), "yyyy-MM-dd")
+        var praw = _getStr("pomodoro_today", "")
+        if (praw && praw.length > 0) {
+            try {
+                var p = JSON.parse(praw)
+                pomodoroTodayText = (p && p.d === todayKey && p.n > 0) ? (p.n + " 个") : "0 个"
+            } catch (e) { /* 维持「—」 */ }
         }
     }
 
@@ -1073,11 +1081,11 @@ Item {
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "系统通知权限"
-                                    rowSub: "通知能力尚未实装，开关仅记录偏好。"
+                                    rowTitle: "系统通知"
+                                    rowSub: "番茄钟在后台完成时发送系统通知（开启后显示系统托盘图标）。"
                                     GlassSwitch {
                                         style: ml; checked: root.notifyEnabled
-                                        onToggled: function (c) { root.notifyEnabled = c; root._setBool("notify_enabled", c); root.showToast(root.onOff(c)) }
+                                        onToggled: function (c) { root.notifyEnabled = c; root._setBool("notify_enabled", c); root.hotkeysChanged(); root.showToast(root.onOff(c)) }
                                     }
                                 }
                             }
@@ -1110,17 +1118,8 @@ Item {
                                         onToggled: function (c) { root.memoAutosave = c; root._setBool("memo_autosave", c); root.showToast(root.onOff(c)) }
                                     }
                                 }
-                                SettingRow {
-                                    rowTitle: "默认便签作者"
-                                    rowSub: "显示在便签底部。"
-                                    GlassTextField {
-                                        style: ml
-                                        implicitWidth: 160
-                                        text: root.memoSignature
-                                        placeholderText: "便签署名"
-                                        onEditingFinished: { root.memoSignature = text; root._setStr("memo_signature", text); root.showToast("默认作者已保存") }
-                                    }
-                                }
+                                // 「默认便签作者」已移除：便签署名 UI 在 StickyNote.qml 已停用（位置让给「成为待办」），
+                                // memo_signature 无任何消费者 → 删除该死控件，避免存了没人读（审计 settings-remaining-work.md）。
                             }
 
                             // 番茄钟（#2 接备忘黑板真引擎 PomodoroWidget；写 KV，引擎在 _load/reset 读默认）。
@@ -1264,7 +1263,7 @@ Item {
                                     MetricTile { tileLabel: "今日使用"; tileValue: root.todayUsageText() }
                                     MetricTile { tileLabel: "切换次数"; tileValue: root.todaySwitchesText }
                                     MetricTile { tileLabel: "备忘页数"; tileValue: root.memoPagesText }
-                                    MetricTile { tileLabel: "番茄钟"; tileValue: "—" }   // 无引擎，诚实占位 G6
+                                    MetricTile { tileLabel: "番茄钟"; tileValue: root.pomodoroTodayText }   // 今日完成数（已接真引擎）
                                 }
                             }
 

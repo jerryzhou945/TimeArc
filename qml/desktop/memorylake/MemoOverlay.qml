@@ -27,6 +27,9 @@ Item {
     readonly property string docKey: "memoryLakeMemoDoc"
     property bool _loaded: false
 
+    // 番茄钟完成 → 通知 Shell（系统通知；不受结束庆祝开关影响）。
+    signal pomodoroFinished(string title)
+
     // —— 多页模型：每页 owns 标签 + 对象 + 画布 PNG。pagesData 为纯数据，pageLabels 单独驱动 UI 绑定。
     property var pagesData: [{ label: "Page 1", objects: [], canvas: "" }]
     property int currentPage: 0
@@ -1040,6 +1043,7 @@ Item {
         store: memo.store     // gap #10：番茄状态持久化（单独键 memoryLakeMemoPomodoro）
         shown: false
         onCompleted: function (v) {
+            memo.pomodoroFinished(pomodoro.title);   // #3 系统通知（不受结束庆祝开关影响）
             // #2 结束庆祝可在设置页关闭（pomodoro_celebrate）；关则静默完成，不弹全屏庆祝。
             if (memo.store && memo.store.getBool && !memo.store.getBool("pomodoro_celebrate", true)) return;
             pomodoroComplete.variant = v; pomodoroComplete.shown = true;
