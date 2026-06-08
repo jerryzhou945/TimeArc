@@ -40,6 +40,8 @@ G2/G3 打磨 ───────────(随手)
 
 优先级直觉：**A1 是地基**（解锁 D1/D2，也是 README 头号 "important limit"）；**B1** 自包含可并行；
 **E\*** 最大最敏感、门控；**C/F** 按平台/发版节奏。
+设置页剩余（**§H**）：**H1 时间格式**可随手做（P1，注意散落已验收页）；**H5 服务侧配置**须先过已填提案的签核；
+**H3/H4**（强调色全局 + i18n）= 产品门控 **3E**；**H2** 依赖先有「分享图导出」特性；**H6** 受 QML 天花板、保留占位。
 
 ---
 
@@ -98,6 +100,30 @@ G2/G3 打磨 ───────────(随手)
 - [ ] **G3 Win11 snap-layouts fly-out**（原生 `WM_NCCALCSIZE`/`WM_NCHITTEST` pass，frameless Step 2 延期）—
   Track B · Windows · 见 agent memory `timearc-frameless-window`。
 
+### H. 设置页剩余项（settings · UI + 服务侧配置 · 实测审计见 `docs/settings-remaining-work.md`）
+> 设置页已全实装并入 dev（PR #28）。以下为审计后确认的剩余项；优先级标签：
+> **[P1]** 可随手做 · **[P2]** 有前置依赖 · **[门控]** 产品先拍板（3E）· **[提案]** 待签核 · **[天花板]** 受技术上限。
+- [ ] **H1 [P1] 时间格式 12/24 全局接线（G-TIMEFMT）** — `time_format` 已持久化但无消费者（时钟显示仍硬编码
+  24h）。剩余：日历议程 / 时间河 / 便签截止 / 今日议程等**时钟显示**读 `time_format` 走 `Qt.formatTime`（仅显示层，
+  不动存储/排序的 "HH:mm" 串）。Track B · UI(calendar/memory-lake/sticky 多页) · 小-中（散落、碰已验收页须连带复核）·
+  提案：否 · 纵切：先建共享 clock 格式 helper → 逐显示点接 → 抓图复核日历/记忆湖。
+- [ ] **H2 [P2] 匿名分享图（G-ANON）** — `anonymize_export` 已持久化无消费者；**当前没有分享图/截图导出功能**。
+  剩余：先建分享图导出能力，再在其渲染端把应用名换为类别/「应用 N」（**不可**在聚合源头改名，会误伤实时 UI）。
+  Track B · UI(recap/记忆湖 分享管线) · 中 · 依赖：先有「分享图导出」特性 · 提案：否。
+- [ ] **H3 [门控·3E] 强调色全局生效（G-ACCENT）** — `accent_color` 已持久化 + 本页高亮，未全局注入。剩余：
+  `MemoryLakeStyle` 强调色改可注入（仿 injectedTextPrimary）+ Shell 下发。Track B · UI · 中 · **产品方另行领出（3E）**。
+- [ ] **H4 [门控·3E] 界面语言全局译文（G-I18N）** — `language_mode` 已持久化（zh/en/ja）但 UI 文案全静态。剩余：
+  qsTr + QTranslator 或共享 strings map 覆盖全 app。Track B · UI 全量 · **大工程** · **产品方另行领出（3E）**。
+- [ ] **H5 [提案] 空闲超时 / 真停采集 / 删除历史（G-IDLE / G-TRACK / G-CLEAR）** — UI 现为软暂停 + 诚实标注；
+  服务忽略 idle/track（idle 是编译期 `#define`），历史追加-only 不可删。剩余：UI→服务 磁盘配置通道（service 读
+  `usage_config.json`）让 idle/track 生效 + 删历史策略。Track B · service(`src/service/windows/main.c` /
+  `usage_tracker.{c,h}` 非冻结) + UI · **变更提案已填**
+  `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（契约扩展 + 覆盖 A-TRACKPAUSE，**待维护者
+  签核**；须服务构建/测试流水线）· 依赖：签核。
+- [ ] **H6 [天花板] 磨砂实时模糊（G-BLUR）** — `blur_strength` 已持久化无真实效果；QML 无实时 backdrop blur，唯一
+  近似（面板半透明）伤可读性 + 改每页玻璃令牌（面大）。结论：**保留为标注偏好**，除非接受半透明代价或换渲染路径。
+  Track B · UI · 低/不做。
+
 ### M. 移动端（**超本次范围 · 低优 · 独立 arc**）
 - [ ] **M1 Memory Lake / 统计 等页的移动端等价**（桌面已 done；移动端大多未接真实数据）— Track B · 跨。
 
@@ -109,4 +135,6 @@ G2/G3 打磨 ───────────(随手)
 - 顶层路线：`README.md §Roadmap`（terse `- [ ]` 列表，落地时与本文同步勾选）。
 - 平台/契约规则：`.harness/rules/02-platform-boundaries.md`、`…/03-data-contract.md`、`…/06-licensing.md`、`…/07-product-ai-cards.md`。
 - AI 边界与 payload 政策：`docs/card-ai-development-spec.md`、`CLAUDE.md` Product Context 硬边界。
-- 既有 feature 文档范式（写 kickoff 时参照）：`docs/stats-*`、`docs/calendar-refactor-*`、`docs/memory-lake-*`。
+- 既有 feature 文档范式（写 kickoff 时参照）：`docs/stats-*`、`docs/calendar-refactor-*`、`docs/memory-lake-*`、`docs/settings-*`。
+- 设置页逐项剩余 / 实测审计：`docs/settings-remaining-work.md`；服务侧配置变更提案：
+  `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（§H5 依赖其签核）。
