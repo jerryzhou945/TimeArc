@@ -73,6 +73,11 @@ Item {
     property string todaySwitchesText: "—"   // 今日前台切换次数（QML 派生）
     property string memoPagesText: "—"       // 备忘页数（从 memoryLakeMemoDoc 派生）
 
+    // 逐项显隐（2B / G-HIDEAPP）：hiddenApps = 被隐藏的 group key 数组（持久化为 JSON）；
+    // appList = usageStatManager.allApps() 去重清单（onCompleted 拉一次，供应用管理勾选）。
+    property var hiddenApps: []
+    property var appList: []
+
     function _getBool(k, d) { return settingsRepository ? settingsRepository.getBool(k, d) : d }
     function _getStr(k, d) { return settingsRepository ? settingsRepository.getValue(k, d) : d }
     function _setBool(k, v) { if (settingsRepository) settingsRepository.setBool(k, v) }
@@ -98,6 +103,33 @@ Item {
         memoHotkeyN      = _getBool("memo_hotkey_n", true)
         memoAutosave     = _getBool("memo_autosave", true)
         memoSignature    = _getStr("memo_signature", "JusTin D")
+        hiddenApps       = parseHiddenApps()
+    }
+
+    // —— 读层过滤推入（2A 游戏/分类/合并 · 2B 显隐 · 2C 标题 · 3A 软暂停）——
+    // 把本页开关推进 usageStatManager 读出层；只影响 UI 聚合，不写/不删 usage（G4/I1/I2）。
+    function pushReadFilters() {
+        if (usageStatManager && usageStatManager.setReadFilters)
+            usageStatManager.setReadFilters(autoClassify, gameMode, mergeWindows,
+                                            hideTitles, trackRunning, hiddenApps)
+    }
+    function parseHiddenApps() {
+        try { var a = JSON.parse(_getStr("hidden_apps", "[]")); return Array.isArray(a) ? a : [] }
+        catch (e) { return [] }
+    }
+    function isAppHidden(key) { return hiddenApps.indexOf(key) >= 0 }
+    function setAppHidden(key, hidden) {
+        var a = hiddenApps.slice()
+        var idx = a.indexOf(key)
+        if (hidden && idx < 0) a.push(key)
+        else if (!hidden && idx >= 0) a.splice(idx, 1)
+        else return
+        hiddenApps = a
+        _setStr("hidden_apps", JSON.stringify(a))
+        pushReadFilters()
+    }
+    function refreshAppList() {
+        appList = (usageStatManager && usageStatManager.allApps) ? usageStatManager.allApps() : []
     }
 
     // 存储概览（G-STORAGE）：只读文件字节 + 记录数。
@@ -155,6 +187,8 @@ Item {
         reloadFromKV()
         refreshStorage()
         refreshOverview()
+        refreshAppList()
+        pushReadFilters()   // 与 Shell 启动推入一致；setReadFilters 幂等（无变化即早返回）
         root.forceActiveFocus()
     }
 
@@ -247,6 +281,28 @@ Item {
         blurStrength = 24;       _setStr("blur_strength", "24")
         showWelcome = true;      _setBool("show_welcome", true)
         showToast("视觉设置已恢复默认")
+    }
+
+    // 二次确认（A-CLEAR）：危险动作前确认；动作存于 _confirmAction，确认时执行。不写死假成功（G6）。
+    property var _confirmAction: null
+    function askConfirm(title, msg, confirmLabel, danger, action) {
+        confirmCard.titleText = title
+        confirmCard.msgText = msg
+        confirmCard.confirmLabel = confirmLabel
+        confirmCard.danger = danger
+        _confirmAction = action
+        confirmCard.shown = true
+    }
+    function _runConfirm() {
+        confirmCard.shown = false
+        var a = _confirmAction; _confirmAction = null
+        if (a) a()
+    }
+    // 仅清 UI 私有/派生缓存（窗口几何）：不动 usage 历史(D1)、设置偏好、备忘内容（A-CLEAR）。
+    function clearUiCache() {
+        _setStr("window_x", ""); _setStr("window_y", "")
+        _setStr("window_width", ""); _setStr("window_height", "")
+        showToast("已清空本地缓存（窗口位置等派生数据）")
     }
 
     // 导入设置（G-IMPORT）：FileDialog 选 JSON → C++ readTextFile 读 → 解析 → 逐键 setValue →
@@ -714,7 +770,10 @@ Item {
                                     rowSub: "记录窗口名称、应用名称和持续时间。真正暂停采集需后台服务支持（受限）。"
                                     GlassSwitch {
                                         style: ml; checked: root.trackRunning
-                                        onToggled: function (c) { root.trackRunning = c; root._setBool("track_running", c); root.showToast(root.onOff(c)) }
+                                        onToggled: function (c) {
+                                            root.trackRunning = c; root._setBool("track_running", c); root.pushReadFilters()
+                                            root.showToast(c ? "已恢复统计运行中的应用" : "已暂停统计（仅 UI；采集与历史保留）")
+                                        }
                                     }
                                 }
                                 SettingRow {
@@ -722,7 +781,7 @@ Item {
                                     rowSub: "将 Steam / Epic / 独立游戏归入游戏类别。"
                                     GlassSwitch {
                                         style: ml; checked: root.gameMode
-                                        onToggled: function (c) { root.gameMode = c; root._setBool("game_mode", c); root.showToast(root.onOff(c)) }
+                                        onToggled: function (c) { root.gameMode = c; root._setBool("game_mode", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
                                     }
                                 }
                                 SettingRow {
@@ -741,9 +800,33 @@ Item {
                             SettingsCard {
                                 badge: "▥"
                                 cardTitle: "应用管理"
-                                cardDesc: "单独控制应用是否显示在 TimeArc 中。"
-                                keywords: "应用清单 排除 合并 显隐"
-                                PlaceholderNote { text: "应用清单将在下一阶段接入真实采集到的应用（含逐项显隐）。" }
+                                cardDesc: "单独控制应用是否进入首页、统计和回顾（隐藏不删历史，仅读出端排除）。"
+                                keywords: "应用清单 排除 合并 显隐 隐藏 hidden"
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+                                    PlaceholderNote {
+                                        visible: root.appList.length === 0
+                                        text: "暂无采集到的应用记录（采集后将在此逐项显隐）。"
+                                    }
+                                    Repeater {
+                                        model: root.appList
+                                        delegate: SettingRow {
+                                            required property var modelData
+                                            rowTitle: (modelData.name && ("" + modelData.name).length > 0)
+                                                      ? modelData.name : modelData.appName
+                                            rowSub: root.isAppHidden(modelData.groupKey) ? "已从统计中隐藏" : "正在统计"
+                                            GlassSwitch {
+                                                style: ml
+                                                checked: !root.isAppHidden(modelData.groupKey)
+                                                onToggled: function (c) {
+                                                    root.setAppHidden(modelData.groupKey, !c)
+                                                    root.showToast(c ? "已显示该应用" : "已隐藏该应用")
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
                             SettingsCard {
@@ -757,7 +840,7 @@ Item {
                                     rowSub: "根据应用名称和使用模式判断类别。"
                                     GlassSwitch {
                                         style: ml; checked: root.autoClassify
-                                        onToggled: function (c) { root.autoClassify = c; root._setBool("auto_classify", c); root.showToast(root.onOff(c)) }
+                                        onToggled: function (c) { root.autoClassify = c; root._setBool("auto_classify", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
                                     }
                                 }
                                 SettingRow {
@@ -765,7 +848,7 @@ Item {
                                     rowSub: "浏览器标签页会合并为 Chrome。"
                                     GlassSwitch {
                                         style: ml; checked: root.mergeWindows
-                                        onToggled: function (c) { root.mergeWindows = c; root._setBool("merge_windows", c); root.showToast(root.onOff(c)) }
+                                        onToggled: function (c) { root.mergeWindows = c; root._setBool("merge_windows", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
                                     }
                                 }
                             }
@@ -795,12 +878,12 @@ Item {
                                     rowSub: "把文档名、聊天名和网页标题替换为类别（输出端脱敏，采集仍保留）。"
                                     GlassSwitch {
                                         style: ml; checked: root.hideTitles
-                                        onToggled: function (c) { root.hideTitles = c; root._setBool("hide_titles", c); root.showToast(root.onOff(c)) }
+                                        onToggled: function (c) { root.hideTitles = c; root._setBool("hide_titles", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
                                     }
                                 }
                                 SettingRow {
                                     rowTitle: "匿名化分享图"
-                                    rowSub: "导出截图时隐藏真实应用名称。"
+                                    rowSub: "偏好已保存；分享图渲染端匿名（用类别替代应用名）将随回顾分享管线接入。"
                                     GlassSwitch {
                                         style: ml; checked: root.anonymizeExport
                                         onToggled: function (c) { root.anonymizeExport = c; root._setBool("anonymize_export", c); root.showToast(root.onOff(c)) }
@@ -848,8 +931,18 @@ Item {
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
-                                    GhostBtn { label: "清理缓存"; onTapped: root.showToast("清理功能将在后续阶段开放（仅清 UI 私有缓存）") }
-                                    GhostBtn { label: "删除历史"; danger: true; onTapped: root.showToast("历史为追加-only，删除需后台服务支持（受限）") }
+                                    GhostBtn {
+                                        label: "清理缓存"
+                                        onTapped: root.askConfirm("清理缓存",
+                                            "将清除 UI 私有的派生缓存（窗口位置等）。不影响使用历史、设置偏好与备忘内容。",
+                                            "清理", false, function () { root.clearUiCache() })
+                                    }
+                                    GhostBtn {
+                                        label: "删除历史"; danger: true
+                                        onTapped: root.askConfirm("删除使用历史",
+                                            "使用历史为追加-only（磁盘契约 D1），应用内不提供删除；如需清空请停止后台服务后用迁移工具处理。",
+                                            "知道了", false, null)
+                                    }
                                 }
                             }
 
@@ -1015,7 +1108,12 @@ Item {
                                     Layout.fillWidth: true
                                     spacing: 10
                                     GhostBtn { label: "恢复视觉默认"; onTapped: root.restoreVisualDefaults() }
-                                    GhostBtn { label: "清空本地缓存"; danger: true; onTapped: root.showToast("清理功能将在后续阶段开放（仅清 UI 私有缓存）") }
+                                    GhostBtn {
+                                        label: "清空本地缓存"; danger: true
+                                        onTapped: root.askConfirm("清空本地缓存",
+                                            "将清除 UI 私有的派生缓存（窗口位置等）。不影响使用历史、设置偏好与备忘内容。",
+                                            "清空", true, function () { root.clearUiCache() })
+                                    }
                                 }
                             }
                         }
@@ -1050,6 +1148,60 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 200 } }
         Text { id: toastLabel; anchors.centerIn: parent; text: settingsToast.message; color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
         Timer { id: toastTimer; interval: 1500; onTriggered: settingsToast.shown = false }
+    }
+
+    // ============================================================
+    // 二次确认弹层（A-CLEAR：危险动作前确认；玻璃卡 + 暗遮罩）
+    // ============================================================
+    Rectangle {
+        id: confirmCard
+        property bool shown: false
+        property string titleText: ""
+        property string msgText: ""
+        property string confirmLabel: "确认"
+        property bool danger: false
+        anchors.fill: parent
+        z: 350
+        color: Qt.rgba(0, 0, 0, 0.42)
+        visible: opacity > 0.01
+        opacity: shown ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 180 } }
+        MouseArea { anchors.fill: parent; preventStealing: true; onClicked: confirmCard.shown = false }  // 点遮罩关闭
+
+        GlassPanel {
+            style: ml
+            radius: 22
+            width: Math.min(420, parent.width - 64)
+            height: confirmCol.implicitHeight + 36
+            anchors.centerIn: parent
+            MouseArea { anchors.fill: parent }   // 吞卡内点击，避免冒泡到遮罩关闭
+            ColumnLayout {
+                id: confirmCol
+                anchors { left: parent.left; right: parent.right; top: parent.top; margins: 18 }
+                spacing: 12
+                Text {
+                    text: confirmCard.titleText; color: ml.textPrimary
+                    font.pixelSize: 17; font.weight: Font.DemiBold
+                    Layout.fillWidth: true; wrapMode: Text.WordWrap
+                }
+                Text {
+                    text: confirmCard.msgText; color: ml.textSecondary
+                    font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.WordWrap; lineHeight: 1.35
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+                    Item { Layout.fillWidth: true }
+                    GhostBtn { label: "取消"; onTapped: confirmCard.shown = false }
+                    GhostBtn {
+                        label: confirmCard.confirmLabel
+                        danger: confirmCard.danger
+                        primary: !confirmCard.danger
+                        onTapped: root._runConfirm()
+                    }
+                }
+            }
+        }
     }
 
     // ============================================================

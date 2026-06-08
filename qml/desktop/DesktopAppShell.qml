@@ -203,6 +203,52 @@ Item {
         applyThemeToLoadedPage();
     }
 
+    // 启动时把设置页的读层过滤推入 usageStatManager（2A 游戏/分类/合并 · 2B 逐项显隐 ·
+    // 2C 标题脱敏 · 3A 软暂停），让首页/统计/记忆湖在用户打开设置页前就遵从已存偏好。
+    // 只读层、UI 私有；不写/不删 usage（I1/I2）。
+    function applyReadFiltersFromSettings() {
+        if (!usageStatManager || !usageStatManager.setReadFilters || !settingsRepository)
+            return;
+        var hidden = [];
+        try {
+            var a = JSON.parse(settingsRepository.getValue("hidden_apps", "[]"));
+            if (Array.isArray(a)) hidden = a;
+        } catch (e) {}
+        usageStatManager.setReadFilters(
+            settingsRepository.getBool("auto_classify", true),
+            settingsRepository.getBool("game_mode", true),
+            settingsRepository.getBool("merge_windows", true),
+            settingsRepository.getBool("hide_titles", true),
+            settingsRepository.getBool("track_running", true),
+            hidden);
+    }
+
+    Component.onCompleted: {
+        applyReadFiltersFromSettings();
+        // G-LANDING 默认页：landing_page = memorylake(默认/下标0) | recap | memo(开黑板覆盖层)。
+        var lp = settingsRepository ? settingsRepository.getValue("landing_page", "memorylake")
+                                    : "memorylake";
+        if (lp === "memo") {
+            memoOverlay.open = true;            // 备忘是动作而非页面：开覆盖层、保留首页
+        } else {
+            var idx = indexOfPage(lp);
+            if (idx >= 0) selectedIndex = idx;  // memorylake 即默认 0；recap 切到对应页
+        }
+    }
+
+    // G-MEMO：按 N 开/关备忘黑板（门控 memo_hotkey_n + 记忆卡翻面锁）。Qt 的 ShortcutOverride
+    // 让聚焦中的文本框（设置搜索 / 便签署名 / 便签文字）吃掉该键，故输入时不会误触发；
+    // 偏好在触发时实读，关掉开关后下次按 N 立即失效（无需依赖不存在的设置变更信号）。
+    Shortcut {
+        sequences: ["N"]
+        enabled: !root.memoLocked
+        onActivated: {
+            if (settingsRepository && !settingsRepository.getBool("memo_hotkey_n", true))
+                return;
+            memoOverlay.open = !memoOverlay.open;
+        }
+    }
+
     Item {
         id: desktopStage
         anchors.fill: parent

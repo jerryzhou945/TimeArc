@@ -191,7 +191,12 @@ Item {
             if (typeof doc.pen.color === "string" && doc.pen.color.length > 0) toolbar.inkColor = doc.pen.color;
         }
     }
-    function scheduleSave() { if (store) saveTimer.restart(); }
+    // G-MEMO 自动保存笔迹：memo_autosave 关 → 停连续防抖自动存（关闭时仍强存，内容永不丢失）。
+    function scheduleSave() {
+        if (!store) return;
+        if (store.getBool && !store.getBool("memo_autosave", true)) return;
+        saveTimer.restart();
+    }
 
     Timer { id: saveTimer; interval: 600; repeat: false; onTriggered: memo.saveDoc() }
 
