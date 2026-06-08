@@ -76,22 +76,24 @@ This implementation does not add:
 
 The adapter map intentionally does not serialize full URLs.
 
-## Tests Run So Far
+## Final Validation
 
-- `build.py -- --target timearc_db_smoke`
-- `build/timearc_db_smoke.exe`
-- `build.py -- --target time-arc`
-- `harness_check.py`
+- `build.py -- --target timearc_db_smoke`: passed
+- `build/timearc_db_smoke.exe`: passed
+- `ctest --test-dir build --output-on-failure`: passed, 1/1 tests
+- `build.py -- --target time-arc`: passed
+- `harness_check.py`: passed
 
-Final validation is performed after documentation is committed.
+No separate lint or typecheck command is defined in the project. The full Qt/C++ build is the current syntax/type verification path.
 
-## Commits So Far
+## Commits
 
 - `877dfd6 feat: add adapter registry foundation`
 - `2262cb2 feat: add initial website adapters`
 - `d70bea3 feat: add initial desktop app adapters`
 - `e7dcbbf feat: connect adapters to tracking data flow`
 - `6786b20 feat: display adapter metadata in UI`
+- `99ffc69 docs: add adapter documentation and implementation report`
 
 ## Known Limits
 
@@ -118,4 +120,3 @@ Planned branch handling:
 4. Delete the remote feature branch if it exists.
 
 The final command results are reported in the task summary after validation and branch cleanup.
-
