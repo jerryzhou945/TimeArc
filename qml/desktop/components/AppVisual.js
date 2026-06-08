@@ -137,6 +137,8 @@ function appIconLabel(appId, appName) {
 function modelIdentity(row) {
     if (!row)
         return "";
+    if (row.adapterIdentifier && row.adapterIdentifier.length > 0)
+        return row.adapterIdentifier;
     if (row.groupKey && row.groupKey.length > 0)
         return row.groupKey;
     if (row.appId && row.appId.length > 0)
@@ -144,20 +146,61 @@ function modelIdentity(row) {
     return "";
 }
 
+function modelDisplayName(row) {
+    if (!row)
+        return "";
+    if (row.adapterDisplayName && row.adapterDisplayName.length > 0)
+        return row.adapterDisplayName;
+    if (row.displayName && row.displayName.length > 0)
+        return row.displayName;
+    if (row.name && row.name.length > 0)
+        return row.name;
+    if (row.appName && row.appName.length > 0)
+        return row.appName;
+    return "";
+}
+
+function modelCategory(row) {
+    if (!row)
+        return "";
+    if (row.adapterCategory && row.adapterCategory.length > 0)
+        return row.adapterCategory;
+    if (row.category && row.category.length > 0)
+        return row.category;
+    return "";
+}
+
+function modelSourceType(row) {
+    if (!row)
+        return "";
+    if (row.sourceType && row.sourceType.length > 0)
+        return row.sourceType;
+    var identity = modelIdentity(row);
+    return identity.indexOf("site:") === 0 ? "website" : "desktopApp";
+}
+
 function modelAppColor(row) {
     if (row && row.brandColor && row.brandColor.length > 0)
         return row.brandColor;
-    return appColor(modelIdentity(row), row ? row.name : "", row ? row.path : "");
+    return appColor(modelIdentity(row), modelDisplayName(row), row ? row.path : "");
 }
 
 function modelIconSource(row) {
     if (row && row.iconSource && row.iconSource.length > 0)
         return row.iconSource;
+    if (row && row.iconPath && row.iconPath.length > 0) {
+        var iconPath = row.iconPath.toString();
+        if (iconPath.indexOf("qrc:") === 0 || iconPath.indexOf("file:") === 0)
+            return iconPath;
+        return appIconSource(modelIdentity(row), iconPath);
+    }
+    if (row && row.iconUrl && row.iconUrl.length > 0)
+        return row.iconUrl;
     return appIconSource(modelIdentity(row), row ? row.path : "");
 }
 
 function modelIconLabel(row) {
     if (row && row.iconLabel && row.iconLabel.length > 0)
         return row.iconLabel;
-    return appIconLabel(modelIdentity(row), row ? row.name : "");
+    return appIconLabel(modelIdentity(row), modelDisplayName(row));
 }
