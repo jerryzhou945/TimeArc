@@ -40,7 +40,7 @@ Every platform service must:
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
 - `platform/idle_win.c`: `GetLastInputInfo`.
 - `storage/usage_storage.c`: JSONL append + atomic rename for live snapshot.
-- `service/win_service.c`: **TODO** — SCM registration stubs only.
+- `service/win_service.c`: user-session autostart verbs (`--install`/`--uninstall`/`--start`/`--stop`/`--status`) via `schtasks`/Run-key (B1 Route A); the tracker stays in the interactive user session. A true SCM Session-0 service (Route B) is deferred.
 
 ### macOS — sampling primitives done, loop idle
 

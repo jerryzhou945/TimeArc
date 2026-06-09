@@ -157,7 +157,7 @@ with day and night modes.
 
 | Platform | Status      | Notes                                                  |
 |----------|-------------|--------------------------------------------------------|
-| Windows  | functional  | Foreground + WASAPI audio + idle; service runs as a foreground console binary (SCM registration is a TODO). |
+| Windows  | functional  | Foreground + WASAPI audio + idle; the tracker runs in the user session, with an opt-in logon autostart (Settings → 追踪与应用; B1 Route A). A true SCM/Session-0 service (Route B) is deferred. |
 | macOS    | in progress | `NSWorkspace` + `CGEventSource` + `IOPMCopyAssertionsByProcess` primitives are in place; tracker main loop not yet wired. |
 | Linux    | not started | Target both X11 and Wayland; audio likely via PipeWire. |
 
@@ -341,7 +341,10 @@ that root. If your Qt lives elsewhere, set `run.local.cmd` or `TIMEARC_QT_ROOT` 
 ### Basic Usage
 
 Launch `TimeArc`. On Windows it will auto-spawn `time-arc-service` from
-the same directory (detached); on macOS the service is not yet started
+the same directory (detached); Settings → 追踪与应用 also offers an opt-in
+"开机自动在后台采集" toggle that registers a per-user logon task so the
+tracker starts at login (B1 Route A — it always runs in the interactive user
+session, never Session 0, so capture stays correct). On macOS the service is not yet started
 by the UI. The desktop nav is **首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
 with **记忆湖 / Monthly Recap** pinned at the bottom; the Timer page opens when a
 calendar to-do starts timing. Memory Lake is the landing page.
@@ -544,8 +547,9 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       already in place; mirror `windows/tracker/usage_tracker.c`).
 - [ ] Implement the Linux service: X11 + Wayland foreground sampling,
       idle detection, PipeWire/PulseAudio audio.
-- [ ] Register the Windows service with the Service Control Manager
-      (stubs in `src/service/windows/service/win_service.c`).
+- [x] Windows background autostart (B1 Route A): per-user logon task /
+      Run-key via `win_service.c` lifecycle verbs, with a Settings toggle.
+      A true SCM Session-0 service (Route B) remains deferred.
 - [ ] Finish the on-disk storage migration so SQLite becomes the primary
       source, with a one-shot JSONL backfill/migrator.
 - [ ] Compile Qt as dynamically-linked libraries in release builds to
