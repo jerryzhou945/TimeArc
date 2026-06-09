@@ -23,9 +23,9 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 
 ## Storage
 
-- **SQLite path is reserved but unused.** `timearc_storage_init_sqlite` and
-  `timearc_storage_write_sqlite` are no-ops. Migration plan in
-  [`../rules/03-data-contract.md`](../rules/03-data-contract.md) §4.
+- **SQLite primary-source migration (A1) underway.** Service ALREADY dual-writes
+  JSONL + SQLite (`init/write_sqlite` implemented, enabled `init(&g,1,1)`); UI still
+  reads JSONL. Plan/sessions: [`a1-…-kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
 - **UTF-8 is not validated.** `write_json_string` in
   `src/service/windows/storage/usage_storage.c` has a TODO saying so; must be
   addressed before enabling cross-platform sync.

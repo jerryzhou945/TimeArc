@@ -48,14 +48,17 @@ G2/G3 打磨 ───────────(随手)
 ## 2. 清单（按子系统）
 
 ### A. 存储 / 数据层（keystone · 跨平台 · UI+service 共享契约）
-- [ ] **A1 完成 SQLite 迁移为主数据源 + JSONL 回填**
-  现状：service 侧 `timearc_storage_init_sqlite` / `write_sqlite` 是 no-op；UI 侧 SQLite 已承载
-  projects/sessions/calendar/settings/memo，但**自动前台/音频使用仍走 JSONL + live JSON 快照**，
-  且旧 QSettings 迁移后保留未删。剩余：让自动 usage 也以 SQLite 为主源 + 一次性 JSONL→SQLite
-  回填/迁移器 + JSONL 退役为历史/可选。
-  Track B（大，**拆多 session**）· 平台跨 · 依赖：无（但 D1/D2 依赖它）·
-  **变更提案：是**（碰冻结磁盘契约 `rules/03` §4、`usage_record.*`/`data_bridge.h`/`usage_paths.*`）·
-  纵切：先「读旧 + 双写校验」→ 再切主源 → 再退役 JSONL · **建议 kickoff 文档**。
+- [ ] **A1 完成 SQLite 迁移为主数据源 + JSONL 回填** — **kickoff 已就绪：见
+  [`a1-sqlite-storage-migration-kickoff.md`](a1-sqlite-storage-migration-kickoff.md)（多 session 拆分 S1–S5 + 实测证据）**。
+  现状（2026-06-09 实测，**校正旧述**）：service 侧 SQLite 写入**已完整实装并在生产启用**（`init(&g,1,1)` 双写
+  JSONL+SQLite，`frontmost_sessions`/`media_sessions` 实存 31k/21k 行、与 JSONL 头部对齐）——**不是 no-op**；UI 侧
+  SQLite 已承载 projects/sessions/calendar/settings/memo，但**自动前台/音频读取仍走 JSONL + live JSON 快照**，无
+  JSONL→SQLite 回填，路径/schema 两处独立构造（约定相等），注释过时；旧 QSettings 迁移后保留未删。剩余：UI 读侧切
+  SQLite（保 D5 并集/增量守卫/读层过滤/live 快照）+ 一次性回填启用前 JSONL 尾巴（.bak+事务+按唯一键对账，**非行数
+  相等**）+ 翻转主源（JSONL 兜底）+ JSONL 退役（未来）。
+  Track B（大，**拆多 session**：S1 地基→S2 读源→S3 回填→S4 翻转/契约修订→S5 退役）· 平台跨 · 依赖：无（但 D1/D2
+  依赖它）· **变更提案：是**（S4 改冻结 `CHARTER` I2 升 `timearc.db` 为主契约 + `rules/03` §4；`usage_paths` db
+  访问器条件性）· 纵切：见 kickoff §2 · **kickoff 文档已建**。
 - [ ] **A2 跨天手动 session 按天拆分/分摊**
   现状：靠重叠区间查询保留，未按天 split/prorate。Track B · UI(`project_manager`) · 中 · 提案：否。
 
