@@ -59,4 +59,9 @@ Track **B**。计划＝`docs/a1-sqlite-storage-migration-kickoff.md`；前置变
   （字段逐列对齐 service write_sqlite）→**按唯一键存在性对账**（非行数）→缺则 ROLLBACK 保 JSONL 不置标志。
   **实测**：前台 31027→**31446**(+419)、音频 21395→**21662**(+267)、MIN start→1780135221、flag='true'、`.bak` 19451200B=JSONL；
   **回填后 parity 全等**：记录数 53108==53108、week/month/year/all **全 diff 0**。二次启动 `.bak` mtime 不变、计数不再 +419/267（幂等）。scan_qt_log 无 log（0 告警）。
-- [ ] S4 翻转 + CHARTER I2 修订 + 端到端抓图 parity。
+- [x] S4 翻转主源 + 契约修订：flag 默认翻 **SQLite**（`kDefaultUseSqliteSource=true`，DB 缺失/空→回退 JSONL，
+  env `TIMEARC_USAGE_SOURCE=jsonl` 紧急回滚）；变更提案签核补全（kickoff session log §7）；**CHARTER I2 修订**
+  （timearc.db 升一等主契约 + UI 主读源）+ **版本 v0.1→v0.2** + `rules/03 §1` 表/文同步；`harness_check --bootstrap`
+  仅更新 CHARTER.md 哈希。**端到端实测（真 service+UI，flag=SQLite）**：Home 页 PrintWindow 抓图正常渲染真实数据
+  （Memory Lake/APP 排行/今日主题 5.3h/live「当前应用」Chrome 磁贴/占比环）；parity 仍 53108==53108、week/month/year/all
+  全 diff 0、top 排行一致；scan_qt_log 无 log（0 告警）；harness_check exit 0。service JSONL 写入不动（安全网）。

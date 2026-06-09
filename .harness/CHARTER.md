@@ -21,11 +21,20 @@ The UI may start the service (`src/main.cpp::startUsageService`) but must
 not link its code. A single service is guaranteed by a named mutex
 (`Local\TimeArcUsageService` on Windows); new platforms must do the same.
 
-**I2. Data contract on disk.** The schema is
-`src/service/shared/usage_record.schema.json`. History:
-`usage_records.jsonl` (append-only). Live: `usage_current.json` (atomic
-overwrite). Paths come from `usage_paths.c`. Field rename/type change or
-file move requires a charter amendment and migration plan.
+**I2. Data contract on disk.** The record schema is
+`src/service/shared/usage_record.schema.json`. The service writes history to
+**two** backends: the SQLite database `timearc.db` (**primary**; tables
+`apps`/`frontmost_sessions`/`media_sessions`, canonical DDL owned by
+`src/services/database_manager.cpp`, which the service inline DDL must stay
+column-compatible with — guarded by `tests/db_smoke.cpp`) and
+`usage_records.jsonl` (append-only, retained as a fallback safety net). Live:
+`usage_current.json` (atomic overwrite). The UI reads history from `timearc.db`
+as its **primary source**, falling back to JSONL when the DB is missing/empty.
+SQLite path: `%APPDATA%\TimeArc\TimeArc\timearc.db` (the service `usage_paths`/
+`usage_storage.c` and the UI `QStandardPaths::AppDataLocation` construct it
+independently but identically). Other paths come from `usage_paths.c`. A field
+rename/type change, a shared-table DDL change, or a file move requires a charter
+amendment and migration plan.
 
 **I3. C ABI as cross-language bridge.** `src/service/shared/data_bridge.h`
 is `extern "C"` and uses `swift_name`. Adding a function is allowed.
@@ -82,3 +91,8 @@ Bump the version below.
   `0.1` (root `CMakeLists.txt`). 33 commits. Windows tracker end-to-end
   working; macOS sampling primitives in place but service main loop still
   idle; Linux service stub empty.
+- **v0.2** — A1 SQLite primary-source migration. I2 amended: `timearc.db`
+  elevated to a first-class **primary** history contract + the UI's primary read
+  source; JSONL retained as append-only fallback (not yet retired). `rules/03`
+  §1 updated. Proposal/migration: `journal/sessions/20260609-1614-B-a1-sqlite-
+  storage-migration-kickoff.md`.

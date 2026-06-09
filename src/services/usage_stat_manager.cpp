@@ -583,9 +583,12 @@ WHERE ms.id > :sinceId
 ORDER BY ms.id ASC;
 )SQL");
 
-// A1 default read source. S2 keeps JSONL primary (flag OFF, zero page behavior
-// change); S4 flips this to true with JSONL fallback. Env override below.
-constexpr bool kDefaultUseSqliteSource = false;
+// A1 default read source. S4 flip: SQLite is now the UI's PRIMARY history
+// source. refreshHistoryFromSqlite() falls back to JSONL when the DB is
+// missing/empty (defends against the empty-DB / old-service illusion), and the
+// service keeps dual-writing JSONL as a safety net. Env TIMEARC_USAGE_SOURCE
+// overrides for emergency rollback without a recompile.
+constexpr bool kDefaultUseSqliteSource = true;
 
 }  // namespace
 
