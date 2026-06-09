@@ -54,5 +54,9 @@ Track **B**。计划＝`docs/a1-sqlite-storage-migration-kickoff.md`；前置变
   **parity 实测（TIMEARC_SQLITE_PARITY=1，flag 仍 OFF）**：week 32044==32044、month 373242==373242（**diff 0**）；
   year/all 422988 vs 415647（**diff 7341s**＝686 启用前尾巴，仅在 JSONL）；记录数 53108 vs 52422（diff 686=419+267）；
   top10 排行**顺序完全一致**，逐 app 秒差累加=尾巴。差异全可解释（§0.3）；抓图各页仍走 JSONL 不变；scan_qt_log 0 新告警。
-- [ ] S3 一次性回填（.bak + 事务 + 对账 + 幂等标志）。
+- [x] S3 一次性回填（folded 进 database_manager.{cpp,h}，db 层、不引 USM 符号；main.cpp 启动后调用）：
+  幂等标志 `usage_jsonl_backfill_v1_done`→先写 `.bak`→BEGIN IMMEDIATE→INSERT OR IGNORE 前台/音频 + apps
+  （字段逐列对齐 service write_sqlite）→**按唯一键存在性对账**（非行数）→缺则 ROLLBACK 保 JSONL 不置标志。
+  **实测**：前台 31027→**31446**(+419)、音频 21395→**21662**(+267)、MIN start→1780135221、flag='true'、`.bak` 19451200B=JSONL；
+  **回填后 parity 全等**：记录数 53108==53108、week/month/year/all **全 diff 0**。二次启动 `.bak` mtime 不变、计数不再 +419/267（幂等）。scan_qt_log 无 log（0 告警）。
 - [ ] S4 翻转 + CHARTER I2 修订 + 端到端抓图 parity。
