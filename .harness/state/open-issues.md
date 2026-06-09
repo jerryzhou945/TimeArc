@@ -19,7 +19,9 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   `RunLoop.current.run()` with no tracker. `AppEnv.swift` primitives are
   ready. The Windows `usage_tracker.c` loop is the reference contract.
 - **Windows service is not a real service.** `win_service.c` has three TODO
-  stubs. The current binary is a console exe.
+  stubs. The current binary is a console exe. Plan + route decision (**Route A:
+  user-session autostart**, not Session-0 SCM) in
+  [`../../docs/b1-windows-service-scm-kickoff.md`](../../docs/b1-windows-service-scm-kickoff.md).
 
 ## Storage
 
