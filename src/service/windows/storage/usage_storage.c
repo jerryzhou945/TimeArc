@@ -286,6 +286,13 @@ int timearc_storage_init_sqlite(TimeArcStorageContext* context) {
 
   sqlite3_busy_timeout(context->db, 5000);
 
+  // Schema authority (A1): the canonical DDL for the shared tables
+  // (apps / frontmost_sessions / media_sessions) is owned by the UI
+  // DatabaseManager (src/services/database_manager.cpp). This service-side
+  // inline DDL MUST stay column-compatible with it; tests/db_smoke.cpp has a
+  // schema-parity assertion that fails the build if either side drifts.
+  // Both writers use CREATE TABLE IF NOT EXISTS, so the first process to boot
+  // wins — a silent drift would surface as missing-column query errors.
   if (sqlite_exec(context, "PRAGMA foreign_keys = ON;") != 0 ||
       sqlite_exec(context, "PRAGMA journal_mode = WAL;") != 0 ||
       sqlite_exec(context,

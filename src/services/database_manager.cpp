@@ -14,6 +14,37 @@ namespace {
 const QString kConnectionName = QStringLiteral("timearc");
 const QString kDatabaseFileName = QStringLiteral("timearc.db");
 
+// A1 risk guard: the Windows service builds its DB path from raw getenv(APPDATA)
+// (usage_storage.c make_db_path -> %APPDATA%\TimeArc\TimeArc\timearc.db) while
+// the UI uses QStandardPaths::AppDataLocation. They are two independent
+// constructions that only happen to agree by convention. If they ever diverge
+// (renamed org/app, redirected env) the UI would silently read a different DB
+// than the service writes. Warn once so the split-brain is visible rather than
+// a silent "no data" symptom. Test mode deliberately relocates AppData, so this
+// is expected to differ there and is skipped.
+void warnIfDbPathDivergesFromService(const QString& uiPath) {
+  static bool checked = false;
+  if (checked) return;
+  checked = true;
+  if (QStandardPaths::isTestModeEnabled()) return;
+
+  QString base = qEnvironmentVariable("APPDATA");
+  if (base.trimmed().isEmpty()) base = qEnvironmentVariable("LOCALAPPDATA");
+  if (base.trimmed().isEmpty()) return;
+
+  const QString servicePath = QDir::cleanPath(
+      QDir(base).filePath(QStringLiteral("TimeArc/TimeArc/timearc.db")));
+  const QString uiClean = QDir::cleanPath(uiPath);
+  if (uiClean.compare(servicePath, Qt::CaseInsensitive) != 0) {
+    qWarning().noquote()
+        << "DatabaseManager: UI DB path differs from the Windows service "
+           "convention. UI reads:"
+        << uiClean << "; service writes:" << servicePath
+        << "- SQLite history reads and service writes may target different "
+           "files (A1 path-identity risk).";
+  }
+}
+
 }  // namespace
 
 DatabaseManager::DatabaseManager(QObject* parent) : QObject(parent) {}
@@ -79,6 +110,7 @@ bool DatabaseManager::openDatabase() {
     return false;
   }
 
+  warnIfDbPathDivergesFromService(path);
   return true;
 }
 
