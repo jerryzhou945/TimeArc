@@ -67,7 +67,7 @@ Update this rule and the main README together when this lands.
 
 Qt modules currently linked:
 
-- `Qt6::Core`, `Qt6::Quick`, `Qt6::Svg`, `Qt6::Widgets`
+- `Qt6::Core`, `Qt6::Quick`, `Qt6::Svg`, `Qt6::Sql`, `Qt6::Widgets`
 
 Additional Qt modules — particularly any module gated under a commercial-only
 or GPL-only posture (e.g., Qt Charts, Qt Data Visualization) — require
