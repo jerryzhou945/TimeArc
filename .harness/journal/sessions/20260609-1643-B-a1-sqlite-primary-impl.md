@@ -48,6 +48,11 @@ Track **B**。计划＝`docs/a1-sqlite-storage-migration-kickoff.md`；前置变
 - [x] S1 对齐去过时：去 stub 注释（usage_storage.h/storage_context.h/usage_storage.c DDL 锚点）、
   `db_smoke` schema-parity 断言（apps/frontmost/media 列名+类型+notnull，ctest exit 0）、
   `DatabaseManager::openDatabase` 路径不等一次性告警（test mode 跳过）。写侧实测复验见上。
-- [ ] S2 USM SQLite 读源（flag OFF + parity 自检）。
+- [x] S2 USM SQLite 读源（folded 进 usage_stat_manager.{h,cpp}，flag 默认 JSONL，env `TIMEARC_USAGE_SOURCE` 覆盖）：
+  refresh() 分派 JSONL/SQLite 历史 + 共享 live 快照；SQLite 增量按 MAX(id) 高水位、切源全量重载；JOIN apps 还原
+  app_name/path；保 D5/读层过滤/live/增量守卫。双读 parity 自检写 `logs/a1-parity-report.json`（env 门控）。
+  **parity 实测（TIMEARC_SQLITE_PARITY=1，flag 仍 OFF）**：week 32044==32044、month 373242==373242（**diff 0**）；
+  year/all 422988 vs 415647（**diff 7341s**＝686 启用前尾巴，仅在 JSONL）；记录数 53108 vs 52422（diff 686=419+267）；
+  top10 排行**顺序完全一致**，逐 app 秒差累加=尾巴。差异全可解释（§0.3）；抓图各页仍走 JSONL 不变；scan_qt_log 0 新告警。
 - [ ] S3 一次性回填（.bak + 事务 + 对账 + 幂等标志）。
 - [ ] S4 翻转 + CHARTER I2 修订 + 端到端抓图 parity。
