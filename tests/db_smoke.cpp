@@ -520,8 +520,11 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  // A1: assert the shared usage tables match the canonical column shape so the
-  // UI DDL and the service inline DDL cannot silently drift apart.
+  // A1: assert the UI-created shared usage tables match the canonical column
+  // shape, pinning the UI DatabaseManager DDL. NOTE: this runs only the UI DDL
+  // (the service C DDL in usage_storage.c is not linked here), so it catches
+  // UI-side drift; the service inline DDL must be kept in lockstep manually and
+  // is verified cross-process by the real service+UI end-to-end run.
   const ExpectedColumn appsColumns[] = {
       {"id", "INTEGER", 0},          {"app_identifier", "TEXT", 1},
       {"app_name", "TEXT", 1},       {"display_name", "TEXT", 0},

@@ -18,8 +18,6 @@
 #include <QVariant>
 #include <QVector>
 
-#include <limits>
-
 namespace {
 
 const QString kConnectionName = QStringLiteral("timearc");
@@ -444,16 +442,6 @@ QString uniqueKey(const BackfillRow& r) {
          QString::number(r.end);
 }
 
-qint64 minStart(QSqlDatabase& db, const QString& table) {
-  QSqlQuery q(db);
-  // table is an internal literal (frontmost_sessions/media_sessions): no taint.
-  if (q.exec(QStringLiteral("SELECT MIN(start_unix_sec) FROM ") + table) &&
-      q.next() && !q.value(0).isNull()) {
-    return q.value(0).toLongLong();
-  }
-  return std::numeric_limits<qint64>::max();  // empty/unknown -> import all
-}
-
 }  // namespace
 
 bool DatabaseManager::backfillUsageFromJsonl() {
@@ -482,12 +470,15 @@ bool DatabaseManager::backfillUsageFromJsonl() {
     return setBackfillDone();
   }
 
-  // 3. Per-source thresholds: import only the enable-before tail (start <
-  //    earliest SQLite row). Empty table -> max -> import all of that source.
-  const qint64 frontThreshold = minStart(db, QStringLiteral("frontmost_sessions"));
-  const qint64 mediaThreshold = minStart(db, QStringLiteral("media_sessions"));
-
-  // 4. Parse JSONL once, staging the tail (deduped by unique key) + apps.
+  // 3. Parse JSONL once, staging EVERY valid record (deduped by unique key) +
+  //    apps. We deliberately do NOT pre-filter on a MIN(start) watermark: audio
+  //    sessions can finalize out of start order (concurrent apps close at
+  //    different times), so a start-based threshold could silently skip a real
+  //    enable-before record that straddles the boundary. Instead we stage all,
+  //    let INSERT OR IGNORE absorb rows the service already wrote (the unique
+  //    indexes dedup them as no-ops), and let the existence-based reconcile in
+  //    step 6 be the authoritative "every JSONL record is in the DB" guard
+  //    (kickoff §6). Cost is one bounded full-JSONL pass on the single migration.
   QHash<QString, BackfillRow> frontByKey;
   QHash<QString, BackfillRow> mediaByKey;
   struct AppRow {
@@ -528,9 +519,6 @@ bool DatabaseManager::backfillUsageFromJsonl() {
     const qint64 end = start + duration;
     if (end <= start) continue;
 
-    const qint64 threshold = isAudio ? mediaThreshold : frontThreshold;
-    if (start >= threshold) continue;  // already covered by the service's rows
-
     const QString executablePath = nonEmptyOr(path, appIdentifier);
     QString appName = o.value(QStringLiteral("app_name")).toString();
     if (appName.isEmpty()) appName = QFileInfo(executablePath).fileName();
@@ -563,11 +551,11 @@ bool DatabaseManager::backfillUsageFromJsonl() {
   in.close();
 
   if (frontByKey.isEmpty() && mediaByKey.isEmpty()) {
-    qInfo() << "Backfill: no enable-before tail to import (heads aligned).";
+    qInfo() << "Backfill: no usage records to import (empty/absent JSONL).";
     return setBackfillDone();
   }
 
-  // 5. Backup JSONL before touching anything (rules/03 D1).
+  // 4. Backup JSONL before touching anything (rules/03 D1).
   const QString bakPath = jsonlPath + QStringLiteral(".bak");
   if (QFile::exists(bakPath)) QFile::remove(bakPath);
   if (!QFile::copy(jsonlPath, bakPath)) {
@@ -575,10 +563,11 @@ bool DatabaseManager::backfillUsageFromJsonl() {
     return false;
   }
 
-  // 6. Import inside a transaction (BEGIN IMMEDIATE for WAL: take the write
-  //    lock up front, busy_timeout already configured). The service may be
-  //    dual-writing concurrently, but only ever to start >= its own min, so the
-  //    tail range (start < threshold) never collides with new service rows.
+  // 5. Import inside a transaction (BEGIN IMMEDIATE for WAL: take the write
+  //    lock up front, busy_timeout already configured). INSERT OR IGNORE makes
+  //    rows the service already wrote no-ops; the service may dual-write
+  //    concurrently (it only writes new sessions, which either dedup or are
+  //    fresh keys), and busy_timeout covers the one-time lock window.
   if (!executeQuery(QStringLiteral("BEGIN IMMEDIATE;"))) {
     qWarning() << "Backfill aborted: could not begin transaction.";
     return false;
@@ -652,8 +641,8 @@ bool DatabaseManager::backfillUsageFromJsonl() {
     }
   }
 
-  // 7. Reconcile by unique-key EXISTENCE (never row-count: INSERT OR IGNORE
-  //    dedup makes counts legitimately differ). Every staged tail record must
+  // 6. Reconcile by unique-key EXISTENCE (never row-count: INSERT OR IGNORE
+  //    dedup makes counts legitimately differ). Every staged JSONL record must
   //    now resolve to a row; a single miss aborts the whole migration.
   int missing = 0;
   if (ok) {
@@ -700,10 +689,10 @@ bool DatabaseManager::backfillUsageFromJsonl() {
     return false;
   }
 
-  qInfo() << "Backfill complete: imported" << insertedFront
-          << "frontmost +" << insertedMedia << "media tail rows ("
+  qInfo() << "Backfill complete: inserted" << insertedFront
+          << "new frontmost +" << insertedMedia << "new media rows ("
           << frontByKey.size() << "/" << mediaByKey.size()
-          << "unique keys reconciled). Backup at" << bakPath;
+          << "unique keys staged & reconciled). Backup at" << bakPath;
   return setBackfillDone();
 }
 

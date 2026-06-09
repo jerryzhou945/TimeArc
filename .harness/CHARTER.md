@@ -26,13 +26,14 @@ not link its code. A single service is guaranteed by a named mutex
 **two** backends: the SQLite database `timearc.db` (**primary**; tables
 `apps`/`frontmost_sessions`/`media_sessions`, canonical DDL owned by
 `src/services/database_manager.cpp`, which the service inline DDL must stay
-column-compatible with — guarded by `tests/db_smoke.cpp`) and
-`usage_records.jsonl` (append-only, retained as a fallback safety net). Live:
-`usage_current.json` (atomic overwrite). The UI reads history from `timearc.db`
-as its **primary source**, falling back to JSONL when the DB is missing/empty.
-SQLite path: `%APPDATA%\TimeArc\TimeArc\timearc.db` (the service `usage_paths`/
-`usage_storage.c` and the UI `QStandardPaths::AppDataLocation` construct it
-independently but identically). Other paths come from `usage_paths.c`. A field
+column-compatible with — UI DDL pinned by `tests/db_smoke.cpp`, service DDL
+kept in lockstep manually) and `usage_records.jsonl` (append-only, retained as
+a fallback safety net). Live: `usage_current.json` (atomic overwrite). The UI
+reads history from `timearc.db` as its **primary source**, falling back to JSONL
+when the DB is missing/empty. SQLite path:
+`%APPDATA%\TimeArc\TimeArc\timearc.db` (the service `usage_storage.c::make_db_path`
+and the UI `QStandardPaths::AppDataLocation` construct it independently but
+identically). Other paths come from `usage_paths.c`. A field
 rename/type change, a shared-table DDL change, or a file move requires a charter
 amendment and migration plan.
 

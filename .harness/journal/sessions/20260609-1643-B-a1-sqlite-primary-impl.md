@@ -65,3 +65,14 @@ Track **B**。计划＝`docs/a1-sqlite-storage-migration-kickoff.md`；前置变
   仅更新 CHARTER.md 哈希。**端到端实测（真 service+UI，flag=SQLite）**：Home 页 PrintWindow 抓图正常渲染真实数据
   （Memory Lake/APP 排行/今日主题 5.3h/live「当前应用」Chrome 磁贴/占比环）；parity 仍 53108==53108、week/month/year/all
   全 diff 0、top 排行一致；scan_qt_log 无 log（0 告警）；harness_check exit 0。service JSONL 写入不动（安全网）。
+
+## 收尾：dev 同步 + 对抗式评审修正（PR 前）
+- 合并 origin/dev（PR #36 docs-sync）入分支，解决落后；docs（README/open-issues/backlog/06-licensing）同步 A1 完成。
+- 4-agent 对抗式评审（cloud workflow）出 3 处确认项，已修正：
+  1. **回填阈值漏乱序音频**（medium）：原按 per-source `MIN(start)` 阈值只导尾巴，乱序 close 的音频会话跨边界可能被静默漏导。
+     改为 **stage-all**（不预过滤），靠 INSERT OR IGNORE 吸收已存行 + 按唯一键存在性对账作权威保证（kickoff §6）。
+  2. **schema-parity 注释夸大**（medium）：db_smoke 只跑 UI DDL（service C 未链入），注释称「双侧漂移都拦」不实。
+     已校正 usage_storage.c / db_smoke.cpp / CHARTER 注释为「仅 UI DDL 钉死，service 侧靠人工 lockstep + 真机端到端」。
+  3. **CHARTER I2 路径归属错**（low）：db 路径由 `usage_storage.c::make_db_path` 构造，非 `usage_paths.c`。已订正。
+  （第 4 项「半写行 break 丢尾」经验证为非问题——readLine 语义下中段不会触发，已驳回。）
+- 修正于隔离 git worktree 应用（主工作树被并行 B1 会话切换占用）；db_smoke rebuild + 跑通（schema-parity 绿）。
