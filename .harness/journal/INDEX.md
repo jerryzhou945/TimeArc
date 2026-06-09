@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-09T11:00:22Z | L3 | env-fs-overlay-... | File tools (Edit/Write) landed in an overlay FS the compi... | [report](errors/20260609-110022-B-env-fs-overlay-wrong-branch.md) |
 | 2026-06-08T07:23:43Z | L1 | powershell-plac... | Tried to read a preflight placeholder session path contai... | [report](errors/20260608-072343-B-powershell-placeholder-path.md) |
 | 2026-06-08T07:18:42Z | L1 | remote-feature-... | git push origin --delete feature/adapter-support-system f... | [report](errors/20260608-071842-B-remote-feature-branch-absent.md) |
 | 2026-06-08T07:00:04Z | L1 | desktop-adapter... | TDD red test: timearc_db_smoke failed after adding Chrome... | [report](errors/20260608-070004-B-desktop-adapters-red-test.md) |
