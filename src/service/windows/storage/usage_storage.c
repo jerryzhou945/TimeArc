@@ -1,6 +1,7 @@
 #include "usage_storage.h"
 
 #include "data_bridge.h"
+#include "parson.h"
 #include "sqlite3.h"
 #include "usage_paths.h"
 
@@ -56,9 +57,132 @@ static int create_dir_if_missing(const char* path) {
   return -1;
 }
 
+// D2 (CHARTER I2 v0.3): can we actually write into `dir`? Create the leaf if it
+// is missing (the user-chosen target normally already exists) then probe-write a
+// throwaway file. Returns 0 when usable, -1 otherwise. This is the gate that
+// makes a redirected db_path fail-safe: a vanished network/removable drive fails
+// the probe and we fall back to the default path.
+static int dir_is_writable(const char* dir) {
+  if (dir == NULL || dir[0] == '\0') {
+    return -1;
+  }
+
+  create_dir_if_missing(dir);  // best effort; the probe is the real gate
+
+  char probe[4096];
+#ifdef _WIN32
+  int written =
+      snprintf(probe, sizeof(probe), "%s\\.timearc_db_write_test", dir);
+#else
+  int written =
+      snprintf(probe, sizeof(probe), "%s/.timearc_db_write_test", dir);
+#endif
+  if (written < 0 || (size_t)written >= sizeof(probe)) {
+    return -1;
+  }
+
+  FILE* file = fopen(probe, "wb");
+  if (file == NULL) {
+    return -1;
+  }
+  fclose(file);
+  remove(probe);
+  return 0;
+}
+
+// Copy the parent directory of `path` (everything before the last separator)
+// into out_dir. Returns -1 if there is no separator / it would not fit.
+static int parent_dir_of(const char* path, char* out_dir, size_t out_size) {
+  if (path == NULL || out_dir == NULL || out_size == 0) {
+    return -1;
+  }
+
+  size_t len = strlen(path);
+  size_t cut = 0;
+  for (size_t i = 0; i < len; ++i) {
+    if (path[i] == '\\' || path[i] == '/') {
+      cut = i;
+    }
+  }
+  if (cut == 0 || cut >= out_size) {
+    return -1;
+  }
+
+  memcpy(out_dir, path, cut);
+  out_dir[cut] = '\0';
+  return 0;
+}
+
+// D2 (CHARTER I2 v0.3): read a redirected SQLite path from the cross-process
+// pointer `<usageDir>/usage_config.json` "db_path". Returns 0 and fills out_path
+// when the key is present, non-empty, fits, and its parent directory is
+// creatable + writable; -1 otherwise (caller falls back to the default path).
+//
+// This is the SERVICE half of the pointer; the UI half lives in
+// database_manager.cpp (databasePath()) and uses the SAME key + SAME validation
+// + SAME default fallback, so the two processes never target different DB files
+// (invariant I2 same-source read). usage_config.json is SHARED with H5
+// (idle/track), so we only ever READ the one "db_path" key and never assume the
+// other keys are absent.
+static int read_config_db_path(char* out_path, size_t out_path_size) {
+  char dir[1024];
+  if (timearc_get_usage_data_dir(dir, sizeof(dir)) != 0) {
+    return -1;
+  }
+
+  char config_path[1200];
+#ifdef _WIN32
+  int written =
+      snprintf(config_path, sizeof(config_path), "%s\\usage_config.json", dir);
+#else
+  int written =
+      snprintf(config_path, sizeof(config_path), "%s/usage_config.json", dir);
+#endif
+  if (written < 0 || (size_t)written >= sizeof(config_path)) {
+    return -1;
+  }
+
+  JSON_Value* root = json_parse_file(config_path);
+  if (root == NULL) {
+    return -1;  // absent or malformed -> default (backward compatible)
+  }
+
+  int rc = -1;
+  JSON_Object* obj = json_value_get_object(root);
+  if (obj != NULL) {
+    const char* db_path = json_object_get_string(obj, "db_path");
+    if (db_path != NULL && db_path[0] != '\0') {
+      size_t db_len = strlen(db_path);
+      char parent[4096];
+      if (db_len < out_path_size &&
+          parent_dir_of(db_path, parent, sizeof(parent)) == 0 &&
+          dir_is_writable(parent) == 0) {
+        copy_string(out_path, out_path_size, db_path);
+        rc = 0;
+      } else {
+        // Honest fail-safe (G6): a configured-but-unusable pointer must be
+        // visible, not silently swallowed into a split-brain.
+        fprintf(stderr,
+                "TimeArc service: usage_config.json db_path '%s' is unusable "
+                "(too long / parent not writable); using the default db path.\n",
+                db_path);
+      }
+    }
+  }
+
+  json_value_free(root);
+  return rc;
+}
+
 static int make_db_path(char* out_path, size_t out_path_size) {
   if (out_path == NULL || out_path_size == 0) {
     return -1;
+  }
+
+  // D2: a usable redirected path in usage_config.json wins; otherwise fall
+  // through to the default %APPDATA%\TimeArc\TimeArc\timearc.db convention.
+  if (read_config_db_path(out_path, out_path_size) == 0) {
+    return 0;
   }
 
   const char* app_data = getenv("APPDATA");

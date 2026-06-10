@@ -19,6 +19,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QProcess>
+#include <QThread>
 
 #include "services/manual_project_repository.h"
 
@@ -409,5 +410,39 @@ bool SettingsRepository::setAutostartEnabled(bool enabled) {
 #else
   Q_UNUSED(enabled);
   return false;
+#endif
+}
+
+bool SettingsRepository::isBackgroundCollectionRunning() {
+#if defined(Q_OS_WIN)
+  QString out;
+  if (runServiceVerb(QStringLiteral("--status"), &out) < 0) return false;
+  return out.contains(QStringLiteral("running=yes"));
+#else
+  return false;
+#endif
+}
+
+bool SettingsRepository::stopBackgroundCollection() {
+#if defined(Q_OS_WIN)
+  // Graceful stop: set Local\TimeArcStop so the running tracker flushes the open
+  // session + audio and exits (NOT taskkill /F). --stop returns as soon as the
+  // event is set; the flush + handle release takes up to ~one poll interval, so
+  // poll --status until the instance is actually gone (the DB lock is released)
+  // before we report success -- a relocation/restore needs an exclusive lock.
+  runServiceVerb(QStringLiteral("--stop"));
+  for (int i = 0; i < 12; ++i) {
+    QString out;
+    if (runServiceVerb(QStringLiteral("--status"), &out) >= 0 &&
+        out.contains(QStringLiteral("running=no"))) {
+      return true;
+    }
+    QThread::msleep(300);
+  }
+  QString out;
+  return runServiceVerb(QStringLiteral("--status"), &out) >= 0 &&
+         out.contains(QStringLiteral("running=no"));
+#else
+  return true;  // no background collector to stop on non-Windows yet
 #endif
 }

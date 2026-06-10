@@ -30,12 +30,12 @@ column-compatible with — UI DDL pinned by `tests/db_smoke.cpp`, service DDL
 kept in lockstep manually) and `usage_records.jsonl` (append-only, retained as
 a fallback safety net). Live: `usage_current.json` (atomic overwrite). The UI
 reads history from `timearc.db` as its **primary source**, falling back to JSONL
-when the DB is missing/empty. SQLite path:
-`%APPDATA%\TimeArc\TimeArc\timearc.db` (the service `usage_storage.c::make_db_path`
-and the UI `QStandardPaths::AppDataLocation` construct it independently but
-identically). Other paths come from `usage_paths.c`. A field
-rename/type change, a shared-table DDL change, or a file move requires a charter
-amendment and migration plan.
+when the DB is missing/empty. SQLite path **defaults** to
+`%APPDATA%\TimeArc\TimeArc\timearc.db` (service `make_db_path` + UI
+`QStandardPaths::AppDataLocation`, independent but identical), and is **redirectable**
+via `usage_config.json` `db_path` (both read one pointer; fail-safe to default when
+absent/unreadable; D2 proposal `20260610-1705`). Other paths from `usage_paths.c`. A field
+rename/type change, a shared-table DDL change, or a file move requires a charter amendment + migration plan.
 
 **I3. C ABI as cross-language bridge.** `src/service/shared/data_bridge.h`
 is `extern "C"` and uses `swift_name`. Adding a function is allowed.
@@ -88,12 +88,12 @@ Bump the version below.
 
 ## 5. Charter version
 
-- **v0.1** — initial draft. Matches TimeArc source tree at project version
-  `0.1` (root `CMakeLists.txt`). 33 commits. Windows tracker end-to-end
-  working; macOS sampling primitives in place but service main loop still
-  idle; Linux service stub empty.
-- **v0.2** — A1 SQLite primary-source migration. I2 amended: `timearc.db`
-  elevated to a first-class **primary** history contract + the UI's primary read
-  source; JSONL retained as append-only fallback (not yet retired). `rules/03`
-  §1 updated. Proposal/migration: `journal/sessions/20260609-1614-B-a1-sqlite-
-  storage-migration-kickoff.md`.
+- **v0.1** — initial draft (project version `0.1`, 33 commits). Windows tracker
+  end-to-end; macOS primitives only; Linux stub empty.
+- **v0.2** — A1 SQLite primary-source migration. I2: `timearc.db` elevated to the
+  primary history contract + UI primary read source; JSONL kept as fallback.
+  `rules/03` §1. Proposal: `journal/sessions/20260609-1614-B-a1-sqlite-storage-migration-kickoff.md`.
+- **v0.3** — D2 user-selectable DB path. I2: the `timearc.db` path is the default but
+  **redirectable** via `usage_config.json` `db_path` (both processes read one pointer;
+  fail-safe to default). `rules/03` §1. Proposal:
+  `journal/sessions/20260610-1705-B-d2-db-path-pointer-proposal.md`.

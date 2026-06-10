@@ -31,6 +31,12 @@ service inline DDL must stay column-compatible (asserted by `tests/db_smoke.cpp`
 The enable-before JSONL tail was backfilled once into SQLite (idempotent,
 `usage_jsonl_backfill_v1_done`). JSONL retirement is a future milestone (A1 S5).
 
+**DB path (D2, `CHARTER` v0.3).** The `timearc.db` path above is the **default** and is
+**redirectable** to a user-chosen location via the `db_path` key in `usage_config.json`,
+read identically by the service (`make_db_path`) and the UI (`databasePath`), with a
+fail-safe fallback to the default when absent/unreadable. Relocation runs with the
+service stopped and keeps a backup (see invariant D1).
+
 ## 2. Record shape
 
 | Field              | Type     | Req. | Notes                                                      |

@@ -48,12 +48,40 @@ class DatabaseManager : public QObject {
   // returns false -- never a fake success (G6).
   Q_INVOKABLE bool restoreDatabase(const QString& sourcePath);
 
+  // D2 S2: relocate the live DB to a user-chosen directory. Validates the
+  // target (writable + free space), VACUUM INTOs a consistent snapshot at
+  // <dir>/timearc.db, inspectBackup-validates it, then (only after the old DB is
+  // confirmed unlocked) atomically switches the cross-process usage_config.json
+  // db_path pointer, reopens, and drops the old DB. Any failure rolls back to
+  // the old pointer + old DB -- never split-brain, never fake success (G6).
+  // Returns {ok, error, newPath}. The user must stop background collection
+  // first (B1 has no in-process stop); a locked old DB fails honestly. Restart
+  // both processes after success so the service re-reads the pointer.
+  Q_INVOKABLE QVariantMap relocateDatabaseTo(const QString& targetDirOrUrl);
+
+  // D2 S2: move the DB back to the default AppData location and clear the
+  // db_path pointer (so both processes fall back to the default). Same atomic
+  // sequence + rollback as relocateDatabaseTo.
+  Q_INVOKABLE QVariantMap restoreDefaultDatabaseLocation();
+
+  // D2: the directory the live DB currently resides in (for the settings UI).
+  Q_INVOKABLE QString currentDatabaseLocationDir() const;
+  // D2: true when a db_path redirect is active (DB is not at the default path).
+  Q_INVOKABLE bool isUsingCustomDatabaseLocation() const;
+
  signals:
   void databaseRestored();
 
  private:
   bool setBackfillDone();  // mark usage_jsonl_backfill_v1_done = true (S3)
   QString databasePath() const;
+  QString defaultDatabasePath() const;  // D2: AppData default, ignoring db_path
+  // D2: atomic read-modify-write of usage_config.json db_path (empty clears the
+  // key). Preserves every other key (H5 idle/track share this file).
+  bool writeDbPathPointer(const QString& dbPathOrEmpty);
+  // D2: shared body of relocateDatabaseTo / restoreDefaultDatabaseLocation.
+  QVariantMap relocateDatabaseImpl(const QString& targetDirOrUrl,
+                                   bool clearPointer);
   bool openDatabase();
   bool configureDatabase();
   bool createTables();

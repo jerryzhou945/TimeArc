@@ -43,6 +43,15 @@ class SettingsRepository : public QObject {
 
   // 注册（true）/反注册（false）开机自启，返回是否成功。
   Q_INVOKABLE bool setAutostartEnabled(bool enabled);
+
+  // 当前是否有后台采集进程在跑（解析 --status 输出的 running=yes）。与「开机自启」
+  // 注册态不同：自启只决定登录时是否拉起，这里是「此刻是否在采集」。
+  Q_INVOKABLE bool isBackgroundCollectionRunning();
+
+  // 优雅停止正在运行的后台采集（time-arc-service.exe --stop 置位 Local\TimeArcStop，
+  // 让 tracker flush 当前会话后退出——非 /F 硬杀）。会轮询等待其真正释放数据库（迁移/
+  // 恢复要拿独占文件锁）。返回停止后是否确已不在运行。守 I1：纯 UI→子进程命令。
+  Q_INVOKABLE bool stopBackgroundCollection();
 };
 
 #endif

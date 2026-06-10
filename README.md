@@ -364,11 +364,28 @@ Files written in the usage directory:
 - `usage_records.jsonl` - append-only history, one JSON record per line.
 - `usage_current.json` - atomic overwrite, UI-polled live snapshot.
 
-The SQLite file is separate from the usage directory. It uses Qt's
+The SQLite file is separate from the usage directory. It **defaults** to Qt's
 `QStandardPaths::AppDataLocation`; on Windows that is typically
 `%APPDATA%\TimeArc\TimeArc\timearc.db` (the service constructs the same path
 independently). It is the UI's primary history source (A1); JSONL is dual-written
 as a fallback and the enable-before tail was backfilled once into SQLite.
+
+**Choosing a different location (D2).** The `timearc.db` path is
+**redirectable** to a user-chosen directory (a larger disk, an external/synced
+volume) via the `db_path` key in `usage_config.json` (in the fixed usage
+directory above). Both processes read the same pointer — the UI in
+`DatabaseManager::databasePath()` and the service in `make_db_path` — with
+identical validation, and **fail safe to the default** when the key is absent,
+unreadable, or its target directory is not writable (a vanished network/removable
+drive simply reverts to the default, with a warning, never an empty-DB illusion).
+Settings → 导入导出 → **数据库位置** drives a safe migration: it **automatically
+stops background collection first** (`time-arc-service --stop`, a graceful flush —
+so the old DB is unlocked), snapshots the DB (`VACUUM INTO`), validates the copy,
+atomically switches the pointer, and reopens — rolling back to the old location on
+any failure (and, if the collector somehow can't be stopped, failing safe rather
+than splitting the data). Restart the app afterward so collection resumes and the
+service re-reads the pointer. A **还原默认位置** button moves the DB back and clears
+the pointer.
 
 Desktop manual projects, timer sessions, calendar to-dos, night mode, and the
 memo blackboard doc now read/write this SQLite database. Existing QSettings data
@@ -569,8 +586,13 @@ See `.harness/CHARTER.md` for invariants and frozen files;
 - [x] Add export/backup and restore flows for SQLite-backed desktop data.
       Shipped S1 (whole-DB backup via `VACUUM INTO`) + S2 (validated restore with
       the service stopped) per `docs/d1-export-backup-restore-kickoff.md`; retention (S3) deferred.
-- [ ] Add a safe database-path migration flow if user-selectable data
-      locations become a product requirement.
+- [x] Add a safe database-path migration flow for user-selectable data
+      locations (D2). A cross-process `db_path` pointer in `usage_config.json`
+      (read identically by the UI `databasePath()` and the service `make_db_path`,
+      fail-safe to the default) + a Settings → 数据库位置 migration
+      (`VACUUM INTO` snapshot → validate → lock-check old DB → atomic repoint →
+      reopen, with rollback) and a 还原默认位置 button. CHARTER I2 → v0.3;
+      `docs/d2-database-path-migration-kickoff.md`.
 - [ ] Expand local memo management only as local/offline tooling; do not
       describe it as AI chat unless an actual AI feature is added later.
 - [ ] Add UTF-8 validation to `usage_storage.c::write_json_string`.
