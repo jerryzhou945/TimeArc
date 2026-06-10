@@ -11,10 +11,12 @@
 #include <QJsonParseError>
 #include <QJsonValue>
 #include <QList>
+#include <QSaveFile>
 #include <QSet>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
+#include <QStorageInfo>
 #include <QUrl>
 #include <QVariant>
 #include <QVector>
@@ -23,6 +25,55 @@ namespace {
 
 const QString kConnectionName = QStringLiteral("timearc");
 const QString kDatabaseFileName = QStringLiteral("timearc.db");
+
+// D2 (CHARTER I2 v0.3): the cross-process db-path pointer lives in
+// usage_config.json in the FIXED usage dir (NOT inside the movable DB). The
+// service half (usage_storage.c make_db_path) and this UI half MUST resolve the
+// same file, so this mirrors the service's usage-dir construction (env-based,
+// %LOCALAPPDATA%\TimeArc\usage; same base as backfillJsonlPath), NOT
+// QStandardPaths. In test mode there is no service, so we keep the pointer under
+// the test-mode AppData to isolate db_smoke from the real user's usage dir.
+QString usageConfigDir() {
+  if (QStandardPaths::isTestModeEnabled()) {
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+  }
+  QString base = qEnvironmentVariable("LOCALAPPDATA");
+  if (base.trimmed().isEmpty()) base = qEnvironmentVariable("APPDATA");
+  if (base.trimmed().isEmpty()) base = QDir::homePath();
+  return QDir(base).filePath(QStringLiteral("TimeArc/usage"));
+}
+
+QString usageConfigPath() {
+  return QDir(usageConfigDir()).filePath(QStringLiteral("usage_config.json"));
+}
+
+// Raw db_path string from usage_config.json (empty when absent / unreadable /
+// malformed). No validation here -- callers decide what to do with it.
+QString readConfigDbPathRaw() {
+  QFile f(usageConfigPath());
+  if (!f.exists() || !f.open(QIODevice::ReadOnly)) return QString();
+  const QByteArray bytes = f.readAll();
+  f.close();
+  QJsonParseError err;
+  const QJsonDocument doc = QJsonDocument::fromJson(bytes, &err);
+  if (err.error != QJsonParseError::NoError || !doc.isObject()) return QString();
+  return doc.object().value(QStringLiteral("db_path")).toString();
+}
+
+// A directory is usable when it exists (or can be created) and a probe write
+// succeeds. This is the UI mirror of the service's dir_is_writable: a vanished
+// network/removable drive fails the probe and we fall back to the default path.
+bool dirIsUsable(const QString& dir) {
+  if (dir.trimmed().isEmpty()) return false;
+  QDir d(dir);
+  if (!d.exists() && !d.mkpath(QStringLiteral("."))) return false;
+  const QString probe = d.filePath(QStringLiteral(".timearc_db_write_test"));
+  QFile f(probe);
+  if (!f.open(QIODevice::WriteOnly)) return false;
+  f.close();
+  f.remove();
+  return true;
+}
 
 // A1 risk guard: the Windows service builds its DB path from raw getenv(APPDATA)
 // (usage_storage.c make_db_path -> %APPDATA%\TimeArc\TimeArc\timearc.db) while
@@ -37,6 +88,12 @@ void warnIfDbPathDivergesFromService(const QString& uiPath) {
   if (checked) return;
   checked = true;
   if (QStandardPaths::isTestModeEnabled()) return;
+
+  // D2: when a usable db_path redirect is configured, BOTH processes read it
+  // from the same usage_config.json, so the hardcoded-convention comparison no
+  // longer applies -- skip it to avoid a spurious divergence warning.
+  const QString raw = readConfigDbPathRaw();
+  if (!raw.isEmpty() && dirIsUsable(QFileInfo(raw).absolutePath())) return;
 
   QString base = qEnvironmentVariable("APPDATA");
   if (base.trimmed().isEmpty()) base = qEnvironmentVariable("LOCALAPPDATA");
@@ -92,12 +149,30 @@ QSqlDatabase DatabaseManager::database() const {
 
 QString DatabaseManager::getDatabasePath() const { return databasePath(); }
 
-QString DatabaseManager::databasePath() const {
+QString DatabaseManager::defaultDatabasePath() const {
   const QString appDataLocation =
       QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
   if (appDataLocation.isEmpty()) return QString();
 
   return QDir(appDataLocation).filePath(kDatabaseFileName);
+}
+
+QString DatabaseManager::databasePath() const {
+  // D2 (CHARTER I2 v0.3): a usable redirected path in usage_config.json wins;
+  // otherwise fall back to the default AppData location. The Windows service
+  // (usage_storage.c make_db_path) reads the SAME key with the SAME validation
+  // + SAME default fallback, so the two processes never target different DB
+  // files. A configured-but-unusable pointer fails safe to the default + warns.
+  const QString redirected = readConfigDbPathRaw();
+  if (!redirected.isEmpty()) {
+    if (dirIsUsable(QFileInfo(redirected).absolutePath()))
+      return QDir::cleanPath(redirected);
+    qWarning().noquote()
+        << "DatabaseManager: usage_config.json db_path is set but its parent is "
+           "not writable; falling back to the default location. db_path ="
+        << redirected;
+  }
+  return defaultDatabasePath();
 }
 
 bool DatabaseManager::openDatabase() {
@@ -1003,4 +1078,245 @@ bool DatabaseManager::restoreDatabase(const QString& sourcePath) {
   qInfo().noquote() << "restoreDatabase: restored from" << source;
   emit databaseRestored();
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// D2 S2: relocate the live DB to a user-chosen directory + flip the
+// cross-process db_path pointer. Reuses the D1 primitives above (VACUUM INTO,
+// inspectBackup) and the S1 pointer helpers. No UsageStatManager symbols (this
+// file is in the db_smoke link domain). Honest failure + atomic ordering: snap
+// + validate the NEW DB, confirm the OLD DB is unlocked, THEN switch the pointer
+// and reopen; any failure rolls back to the old pointer + old DB (never
+// split-brain, never a faked success -- G6).
+// ---------------------------------------------------------------------------
+
+bool DatabaseManager::writeDbPathPointer(const QString& dbPathOrEmpty) {
+  const QString cfgPath = usageConfigPath();
+  const QString cfgDir = QFileInfo(cfgPath).absolutePath();
+  if (!QDir().mkpath(cfgDir)) {
+    qWarning() << "writeDbPathPointer: cannot create usage dir:" << cfgDir;
+    return false;
+  }
+
+  // Read-modify-write: preserve every other key (H5 idle/track share this file).
+  QJsonObject obj;
+  {
+    QFile in(cfgPath);
+    if (in.exists() && in.open(QIODevice::ReadOnly)) {
+      const QJsonDocument doc = QJsonDocument::fromJson(in.readAll());
+      if (doc.isObject()) obj = doc.object();
+      in.close();
+    }
+  }
+  if (dbPathOrEmpty.isEmpty())
+    obj.remove(QStringLiteral("db_path"));
+  else
+    obj.insert(QStringLiteral("db_path"), QDir::cleanPath(dbPathOrEmpty));
+
+  // QSaveFile gives us the atomic tmp-write + rename the contract requires.
+  const QByteArray bytes =
+      QJsonDocument(obj).toJson(QJsonDocument::Indented);
+  QSaveFile out(cfgPath);
+  if (!out.open(QIODevice::WriteOnly)) {
+    qWarning() << "writeDbPathPointer: cannot open for write:" << cfgPath;
+    return false;
+  }
+  if (out.write(bytes) != bytes.size()) {
+    out.cancelWriting();
+    qWarning() << "writeDbPathPointer: short write:" << cfgPath;
+    return false;
+  }
+  if (!out.commit()) {
+    qWarning() << "writeDbPathPointer: commit failed:" << cfgPath;
+    return false;
+  }
+  return true;
+}
+
+QVariantMap DatabaseManager::relocateDatabaseImpl(const QString& targetDirOrUrl,
+                                                  bool clearPointer) {
+  QVariantMap r;
+  r[QStringLiteral("ok")] = false;
+  r[QStringLiteral("error")] = QString();
+  r[QStringLiteral("newPath")] = QString();
+
+  const QString targetDir = toLocalPath(targetDirOrUrl);
+  if (targetDir.trimmed().isEmpty()) {
+    r[QStringLiteral("error")] = QStringLiteral("目标目录为空");
+    return r;
+  }
+
+  // 1. Target must be a usable directory.
+  QDir td(targetDir);
+  if (!td.exists() && !td.mkpath(QStringLiteral("."))) {
+    r[QStringLiteral("error")] = QStringLiteral("目标目录不存在且无法创建");
+    return r;
+  }
+  if (!dirIsUsable(targetDir)) {
+    r[QStringLiteral("error")] = QStringLiteral("目标目录不可写");
+    return r;
+  }
+
+  const QString oldDbPath = databasePath();
+  if (oldDbPath.isEmpty()) {
+    r[QStringLiteral("error")] = QStringLiteral("无法解析当前数据库路径");
+    return r;
+  }
+
+  const QString newDbPath = QDir::cleanPath(td.filePath(kDatabaseFileName));
+  if (QFileInfo(newDbPath).absoluteFilePath() ==
+      QFileInfo(oldDbPath).absoluteFilePath()) {
+    r[QStringLiteral("error")] = clearPointer
+                                     ? QStringLiteral("数据库已在默认位置")
+                                     : QStringLiteral("目标与当前位置相同");
+    return r;
+  }
+
+  // 2. Never clobber an existing db at the target.
+  if (QFile::exists(newDbPath)) {
+    r[QStringLiteral("error")] =
+        QStringLiteral("目标目录已存在 timearc.db，请换一个目录");
+    return r;
+  }
+
+  // 3. Free-space guard: need at least the current DB size + headroom.
+  const qint64 dbSize = QFileInfo(oldDbPath).size();
+  const QStorageInfo si(targetDir);
+  if (si.isValid() && si.bytesAvailable() >= 0 &&
+      si.bytesAvailable() < dbSize + 64LL * 1024 * 1024) {
+    r[QStringLiteral("error")] = QStringLiteral("目标磁盘剩余空间不足");
+    return r;
+  }
+
+  // 4. Snapshot the live DB to the new path (consistent: VACUUM INTO folds WAL).
+  {
+    QSqlDatabase db = database();
+    if (!db.isValid() || !db.isOpen()) {
+      r[QStringLiteral("error")] = QStringLiteral("当前数据库未打开");
+      return r;
+    }
+    QString literal = newDbPath;
+    literal.replace(QLatin1Char('\''), QStringLiteral("''"));
+    QSqlQuery q(db);
+    if (!q.exec(QStringLiteral("VACUUM INTO '") + literal +
+                QStringLiteral("';"))) {
+      r[QStringLiteral("error")] =
+          QStringLiteral("导出快照失败：") + q.lastError().text();
+      QFile::remove(newDbPath);
+      return r;
+    }
+  }
+
+  // 5. Validate the snapshot BEFORE switching anything (reuse D1 inspectBackup).
+  const QVariantMap insp = inspectBackup(newDbPath);
+  if (!insp.value(QStringLiteral("ok")).toBool()) {
+    r[QStringLiteral("error")] = QStringLiteral("新数据库校验未通过：") +
+                                 insp.value(QStringLiteral("error")).toString();
+    QFile::remove(newDbPath);
+    return r;
+  }
+
+  // 6. Capture the rollback pointer, then release the UI handle on the old DB.
+  const QString originalRaw = readConfigDbPathRaw();
+  database().close();
+  QSqlDatabase::removeDatabase(kConnectionName);
+
+  // 7. Lock-probe the OLD DB by parking it at a sidecar (mirrors D1 restore's
+  //    remove-as-lock-test). If this fails the background service still holds
+  //    it -> abort BEFORE touching the pointer, so we never split-brain. The
+  //    parked copy is also the rollback source.
+  const QString parkedOld = oldDbPath + QStringLiteral(".pre-migrate.bak");
+  bool parked = false;
+  if (QFile::exists(oldDbPath)) {
+    if (QFile::exists(parkedOld) && !QFile::remove(parkedOld)) {
+      r[QStringLiteral("error")] = QStringLiteral("无法清理旧的迁移备份");
+      QFile::remove(newDbPath);
+      openDatabase();
+      configureDatabase();
+      return r;
+    }
+    if (!QFile::rename(oldDbPath, parkedOld)) {
+      qWarning() << "relocate: old DB is locked (background collection "
+                    "running?). Aborting before switching the pointer.";
+      r[QStringLiteral("error")] =
+          QStringLiteral("迁移失败：数据库被后台采集占用，请先停止后台采集");
+      QFile::remove(newDbPath);
+      openDatabase();  // pointer unchanged -> reopens the old DB
+      configureDatabase();
+      return r;
+    }
+    parked = true;
+    QFile::remove(oldDbPath + QStringLiteral("-wal"));
+    QFile::remove(oldDbPath + QStringLiteral("-shm"));
+  }
+
+  // 8. Atomically switch the cross-process pointer.
+  const bool wrote =
+      clearPointer ? writeDbPathPointer(QString()) : writeDbPathPointer(newDbPath);
+  if (!wrote) {
+    r[QStringLiteral("error")] = QStringLiteral("写入数据库位置指针失败，已回滚");
+    if (parked) QFile::rename(parkedOld, oldDbPath);
+    QFile::remove(newDbPath);
+    openDatabase();
+    configureDatabase();
+    return r;
+  }
+
+  // 9. Reopen on the new DB (databasePath() now resolves to newDbPath).
+  if (!openDatabase() || !configureDatabase()) {
+    qWarning() << "relocate: pointer switched but new DB failed to open; "
+                  "rolling back.";
+    database().close();
+    QSqlDatabase::removeDatabase(kConnectionName);
+    writeDbPathPointer(originalRaw);  // restore exact prior pointer
+    QFile::remove(newDbPath);
+    if (parked) QFile::rename(parkedOld, oldDbPath);
+    openDatabase();
+    configureDatabase();
+    r[QStringLiteral("error")] = QStringLiteral("切换到新数据库失败，已回滚");
+    return r;
+  }
+
+  // 10. Success: drop the parked old DB (+ stale sidecars). The pointer now
+  //     points at the new DB; restart prompts let the service re-read it.
+  if (parked) {
+    QFile::remove(parkedOld);
+    QFile::remove(parkedOld + QStringLiteral("-wal"));
+    QFile::remove(parkedOld + QStringLiteral("-shm"));
+  }
+
+  qInfo().noquote() << "relocateDatabase: moved DB to" << newDbPath
+                    << (clearPointer ? "(pointer cleared -> default)"
+                                     : "(pointer set)");
+  r[QStringLiteral("ok")] = true;
+  r[QStringLiteral("newPath")] = newDbPath;
+  r[QStringLiteral("error")] = QString();
+  return r;
+}
+
+QVariantMap DatabaseManager::relocateDatabaseTo(const QString& targetDirOrUrl) {
+  return relocateDatabaseImpl(targetDirOrUrl, /*clearPointer=*/false);
+}
+
+QVariantMap DatabaseManager::restoreDefaultDatabaseLocation() {
+  const QString def = defaultDatabasePath();
+  if (def.isEmpty()) {
+    QVariantMap r;
+    r[QStringLiteral("ok")] = false;
+    r[QStringLiteral("error")] = QStringLiteral("无法解析默认位置");
+    r[QStringLiteral("newPath")] = QString();
+    return r;
+  }
+  return relocateDatabaseImpl(QFileInfo(def).absolutePath(),
+                              /*clearPointer=*/true);
+}
+
+QString DatabaseManager::currentDatabaseLocationDir() const {
+  const QString p = databasePath();
+  return p.isEmpty() ? QString() : QFileInfo(p).absolutePath();
+}
+
+bool DatabaseManager::isUsingCustomDatabaseLocation() const {
+  return QDir::cleanPath(databasePath()) !=
+         QDir::cleanPath(defaultDatabasePath());
 }
