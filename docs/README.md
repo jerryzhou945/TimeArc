@@ -13,6 +13,8 @@
   `.harness/state/open-issues.md` 引用）。
 - [a1-sqlite-storage-migration-kickoff.md](a1-sqlite-storage-migration-kickoff.md) — A1（keystone）
   SQLite 升主数据源 + JSONL 回填的多 session 实施计划（backlog §A1 的展开）。
+- [b1-windows-service-scm-kickoff.md](b1-windows-service-scm-kickoff.md) — B1 Windows 服务化（SCM / 登录自启）
+  实施计划（backlog §B1 的展开）：Session 0 隔离陷阱 + 产品路线决策门（**已选 Route A**）+ S0/S1/S2 与 Route B 范围卡。
 - [agent-harness-vs-superpowers.md](agent-harness-vs-superpowers.md) — 本仓 `.harness` 与
   Superpowers 插件的对照学习：为何不引入插件、可借鉴项、给大范围工作的流程提醒。
 

@@ -56,7 +56,7 @@ Examples from the existing log that match: `Audio/Video tracking for macOS`,
 
 - Linux service: X11 + Wayland sampling, PipeWire audio, single-instance guard.
 - macOS service main loop: mirror Windows `usage_tracker.c` contract.
-- Windows SCM registration: fill the three TODO stubs in `win_service.c`.
+- Windows SCM registration: Route A (user-session logon autostart) shipped in `win_service.c` (PR #37); Route B (true SCM Session-0 broker) deferred.
 - SQLite writer + migrator (see the SQLite plan in `tracks/B-feature.md`
   §Playbook below).
 - Memory Lake data model + UI.

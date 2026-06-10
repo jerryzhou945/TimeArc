@@ -56,6 +56,7 @@ Item {
     property string languageMode: "zh"
     property string timeFormat: "24"
     property bool trackRunning: true
+    property bool autostartEnabled: false  // B1：开机自启实际注册态（读 --status，非 KV）
     property bool gameMode: true
     property string idleTimeout: "5"
     property bool autoClassify: true
@@ -222,11 +223,18 @@ Item {
         function onUsageStatsChanged() { root.refreshStorage(); root.refreshOverview() }
     }
 
+    // B1：读 service --status 的实际注册态（源是 OS 登录任务/Run 键，非 KV 设置）。
+    function refreshAutostart() {
+        if (settingsRepository && settingsRepository.autostartEnabled)
+            root.autostartEnabled = settingsRepository.autostartEnabled()
+    }
+
     Component.onCompleted: {
         reloadFromKV()
         refreshStorage()
         refreshOverview()
         refreshAppList()
+        refreshAutostart()
         pushReadFilters()   // 与 Shell 启动推入一致；setReadFilters 幂等（无变化即早返回）
         root.forceActiveFocus()
     }
@@ -829,6 +837,19 @@ Item {
                                         onToggled: function (c) {
                                             root.trackRunning = c; root._setBool("track_running", c); root.pushReadFilters()
                                             root.showToast(c ? "已恢复统计运行中的应用" : "已暂停统计（仅 UI；采集与历史保留）")
+                                        }
+                                    }
+                                }
+                                SettingRow {
+                                    rowTitle: "开机自动在后台采集"
+                                    rowSub: "登录时自动在后台启动采集（在用户会话内运行，无需管理员）。关闭仅停自启，不删历史。"
+                                    GlassSwitch {
+                                        style: ml; checked: root.autostartEnabled
+                                        onToggled: function (c) {
+                                            if (!settingsRepository) return
+                                            settingsRepository.setAutostartEnabled(c)
+                                            root.autostartEnabled = settingsRepository.autostartEnabled()
+                                            root.showToast(root.autostartEnabled ? "已设为开机自启（登录后台采集）" : "已关闭开机自启")
                                         }
                                     }
                                 }

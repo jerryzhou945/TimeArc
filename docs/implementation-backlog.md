@@ -61,10 +61,19 @@ G2/G3 打磨 ───────────(随手)
   现状：靠重叠区间查询保留，未按天 split/prorate。Track B · UI(`project_manager`) · 中 · 提案：否。
 
 ### B. Windows 服务硬化（**Windows 专属** · service 侧 C）
-- [ ] **B1 注册为真正的 Windows 服务（SCM）**
-  现状：`src/service/windows/service/win_service.c` 三个 TODO stub；当前是前台 console exe。
-  Track B · Windows · 自包含、不阻塞 UI · 提案：若新增源/动 service CMake 则需 · 纵切：先 install/
-  start/stop 三动作打通。
+- [x] **B1 注册为真正的 Windows 服务（SCM）· Route A 已实装（S1+S2）** — **kickoff：见
+  [`b1-windows-service-scm-kickoff.md`](b1-windows-service-scm-kickoff.md)（Session 0 隔离陷阱 + 产品路线决策门 +
+  S0/S1/S2 与 Route B SB1–SB3 范围卡）。决策（2026-06-09，维护者拍板）：先走 Route A。已实装（PR #37）：
+  S1 生命周期动词（install/uninstall/start/stop/status）+ 用户会话登录自启（schtasks，HKCU Run 退路）+ `Local\TimeArcStop`
+  停采集通道；S2 设置页「开机自动在后台采集」开关 + 文档同步；本机真机验收全绿（InteractiveToken 任务、优雅停、干净卸载）。Route B 仍暂缓。**
+  实装前现状（已被本 PR 取代，见上）：`src/service/windows/service/win_service.c:3-16` 曾是三个 TODO stub（全 `return -1`）、前台 console exe，由 UI
+  `src/main.cpp::startUsageService`（`startDetached`）在**用户会话**里拉起。
+  **关键校正**：「真正的 SCM 服务」若按朴素 `CreateService`+LocalSystem 实现会落 **Session 0**，使前台/空闲/音频/媒体
+  采集全空、数据写错 profile（采集全链路依赖 per-session API + 用户 env，见 kickoff §0.3）——**真不变量是「tracker 必须
+  跑在交互式用户会话」**。**已选 Route A（用户会话登录自启，无管理员、零冻结改动）**为 MVP；Route B（SCM session-broker
+  真服务）门控、需管理员 + 链 `advapi32/wtsapi32/userenv`（动冻结 `src/service/CMakeLists.txt`）+ 修订 CHARTER I1，暂缓。
+  Track B · Windows · 自包含、可与 A1 并行（不碰 I2 数据契约）· 提案：Route A 否 / Route B 是 · 纵切：见 kickoff §2
+  （动词面 install/start/stop/uninstall/status 为稳定 CLI 契约）。
 - [ ] **B2 `write_json_string` 加 UTF-8 校验**（`usage_storage.c:140-175` 仅做 JSON 转义、未校验输入字节是否为合法 UTF-8 序列；**源内并无 TODO 注释**——旧述「usage_storage.c TODO」不实，全仓唯一 "UTF-8" 字样即本条；跨平台同步前必须）
   Track A/C · Windows/shared · 小 · 可随任意 service session 捎带。
 - [ ] **B3（可选低优）Windows `rename` 非原子覆盖**（`usage_storage.c` 现先 `remove`）——转 SQLite WAL 时再 revisit。
