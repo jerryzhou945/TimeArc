@@ -81,7 +81,8 @@ chicken-and-egg). This is the SAME channel H5 proposes; **joint sign-off recomme
       read identically by both processes, fail-safe to default.
 - [x] `CHARTER.md` I2 amended + version bumped **v0.2 → v0.3**.
 - [x] `state/frozen-files.json` regenerated after the CHARTER edit (`--bootstrap`, only CHARTER hash).
-- [ ] `README.md` (Data Location + Roadmap) updated when implemented (deferred to D2-S1 code).
+- [x] `README.md` (Data Location + Roadmap) updated when implemented (D2-S1/S2 impl session
+      `20260610-1824-B-d2-db-path-impl.md`).
 - [ ] **Joint sign-off with H5** (shared `usage_config.json` channel) recommended; if H5 lands
       first, D2 only adds the `db_path` key + the two reads + the I2 amendment.
 

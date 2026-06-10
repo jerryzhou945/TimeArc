@@ -69,6 +69,9 @@ S1 跨进程 DB 路径指针(契约扩展; 须 CHARTER I2 修订 + 提案 + 服�
 ## 2. 多 session 拆分（逐张范围卡）
 
 ### S1 — 跨进程 DB 路径指针（契约扩展 · **须提案 + CHARTER I2 修订** · 服务侧 · Track B · 门控）
+> **状态：✅ 已实装**（impl session `20260610-1824-B-d2-db-path-impl.md`，PR #41）。service `make_db_path`
+> 用 vendored Parson 读 `usage_config.json` `db_path`；UI `databasePath()` 用 QJsonDocument 同源读取；
+> 等价校验 + 默认回退；`db_smoke` 三态 + 真 service E2E 验过。
 **目标**：建立一个两进程同源读取的 db 路径指针，缺失即回退默认（fail-safe），不引入 IPC、不破单实例。
 - 指针：在 `usage_config.json`（usage dir，固定）加 `db_path`（绝对路径，可空/可缺）。
 - service：`make_db_path` 改为**先读 config `db_path`**——非空且父目录可建/可写则用之，否则回退现约定路径
@@ -83,6 +86,9 @@ S1 跨进程 DB 路径指针(契约扩展; 须 CHARTER I2 修订 + 提案 + 服�
   回退默认 + 告警（**不 split-brain、不空库假象**）；服务 smoke 覆盖「config 读 db_path」。
 
 ### S2 — UI 迁移流（复用 D1 原语 · 主要非冻结 · Track B）
+> **状态：✅ 已实装**（同上 session）。`DatabaseManager::relocateDatabaseTo` / `restoreDefaultDatabaseLocation`
+> （`VACUUM INTO` → `inspectBackup` → 锁探旧库 → 原子 RMW 写指针保 H5 键 → 重开 → 回滚）+ 设置页
+> 「数据库位置」卡 + FolderDialog + 还原默认；`db_smoke` 往返 + 真 UI 抓图验过。
 **目标**：从设置页一键把整库安全搬到用户所选目录，**先搬+校验新库 → 再切指针 → 后删旧库**，全程可回滚。
 - 设置页（`DesktopProfilePage.qml`，并入「导入导出」或新「数据位置」卡）：选目录（folder dialog）→ 校验可写 +
   剩余空间（`QStorageInfo`）→ **要求先停后台采集**（同 D1 限制：无 in-app 一键停，引导用开关停；service 持锁则诚实失败）→
