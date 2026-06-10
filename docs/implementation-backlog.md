@@ -48,17 +48,15 @@ G2/G3 打磨 ───────────(随手)
 ## 2. 清单（按子系统）
 
 ### A. 存储 / 数据层（keystone · 跨平台 · UI+service 共享契约）
-- [ ] **A1 完成 SQLite 迁移为主数据源 + JSONL 回填** — **kickoff 已就绪：见
-  [`a1-sqlite-storage-migration-kickoff.md`](a1-sqlite-storage-migration-kickoff.md)（多 session 拆分 S1–S5 + 实测证据）**。
-  现状（2026-06-09 实测，**校正旧述**）：service 侧 SQLite 写入**已完整实装并在生产启用**（`init(&g,1,1)` 双写
-  JSONL+SQLite，`frontmost_sessions`/`media_sessions` 实存 31k/21k 行、与 JSONL 头部对齐）——**不是 no-op**；UI 侧
-  SQLite 已承载 projects/sessions/calendar/settings/memo，但**自动前台/音频读取仍走 JSONL + live JSON 快照**，无
-  JSONL→SQLite 回填，路径/schema 两处独立构造（约定相等），注释过时；旧 QSettings 迁移后保留未删。剩余：UI 读侧切
-  SQLite（保 D5 并集/增量守卫/读层过滤/live 快照）+ 一次性回填启用前 JSONL 尾巴（.bak+事务+按唯一键对账，**非行数
-  相等**）+ 翻转主源（JSONL 兜底）+ JSONL 退役（未来）。
-  Track B（大，**拆多 session**：S1 地基→S2 读源→S3 回填→S4 翻转/契约修订→S5 退役）· 平台跨 · 依赖：无（但 D1/D2
-  依赖它）· **变更提案：是**（S4 改冻结 `CHARTER` I2 升 `timearc.db` 为主契约 + `rules/03` §4；`usage_paths` db
-  访问器条件性）· 纵切：见 kickoff §2 · **kickoff 文档已建**。
+- [~] **A1 SQLite 升主数据源 + JSONL 回填 — S1–S4 已完成（`CHARTER` v0.2）**；见
+  [`a1-sqlite-storage-migration-kickoff.md`](a1-sqlite-storage-migration-kickoff.md) + 实现 log
+  `.harness/journal/sessions/20260609-1643-B-a1-sqlite-primary-impl.md`。
+  - [x] **S1** 对齐去过时：去 stub 注释 + `db_smoke` schema-parity 断言（仅 UI DDL）+ DatabaseManager 路径不等告警。
+  - [x] **S2** UsageStatManager 加 SQLite 读源（folded、flag）+ 双读 parity 自检（保 D5/增量守卫/读层过滤/live）。
+  - [x] **S3** 一次性回填全部 JSONL（`.bak`+事务+**按唯一键对账非行数**+幂等 `usage_jsonl_backfill_v1_done`；stage-all 不靠 start 阈值，防乱序音频漏）。
+  - [x] **S4** 翻转主源 SQLite（JSONL 兜底）+ `CHARTER` I2 修订（timearc.db 升一等主契约）+ 版本 v0.1→v0.2 + `rules/03`。
+  - [ ] **S5（本轮不做）** 退役 JSONL 写入 + 移除 UI JSONL 读路径 + 最终 `rules/03` 修订 +（可选）删遗留 QSettings。
+  实测：回填后 SQLite==JSONL（week/month/year/all 全 diff 0、记录 53108==53108）。Track B · 平台跨 · `usage_paths` db 访问器未加。
 - [ ] **A2 跨天手动 session 按天拆分/分摊**
   现状：靠重叠区间查询保留，未按天 split/prorate。Track B · UI(`project_manager`) · 中 · 提案：否。
 

@@ -62,11 +62,13 @@ SQLite 历史未被消费、启用前尾巴未回填、路径/schema 双源可�
   PrintWindow 逐页抓图，week/month/year/all 数字翻转前后不变（`stats-backend-performance §5`）。
 - 新测试件：`tests/db_smoke.cpp` schema-parity 断言（S1）；回填幂等二次启动不重复（S3）。
 
-## 7. Sign-off（S4 改冻结前据实勾选）
-- [ ] `rules/03-data-contract.md` 更新为「SQLite 主源」新现实（S4）。
-- [ ] `CHARTER.md` 版本号 bump（I2 修订，S4）。
-- [ ] `state/frozen-files.json` 在冻结改动落地后重生成（仅当 S4 动 usage_paths/CHARTER）。
-- [ ] `README.md §Roadmap` 同步（用户可见，S4）。
+## 7. Sign-off（S4 据实勾选 · 实现 session log = `20260609-1643-B-a1-sqlite-primary-impl.md`）
+- [x] `rules/03-data-contract.md` 更新为「SQLite 主源」新现实（S4，§1 表 + 文）。
+- [x] `CHARTER.md` 版本号 bump v0.1→v0.2（I2 修订：timearc.db 升一等主契约 + UI 主读源）。
+- [x] `state/frozen-files.json` 在冻结改动落地后重生成（`harness_check --bootstrap`，仅 CHARTER.md 变）。
+- [x] `README.md §Roadmap` 同步（用户可见，A1 收尾）。
+- 决策：路径约定本机/各模式实测相等 → **不加** frozen `usage_paths` db 访问器（仅 DatabaseManager 一次性不等告警）；
+  唯一冻结改动＝CHARTER.md（I2+版本）。`usage_record.schema.json` 不动（JSONL/current 记录形状不变）。
 
 ## 本 session 收尾
 - 产出：`docs/a1-sqlite-storage-migration-kickoff.md`（新）、`docs/README.md`(索引+1行)、

@@ -106,6 +106,12 @@ int main(int argc, char* argv[]) {
   DatabaseManager databaseManager;
   if (!databaseManager.initialize()) {
     qWarning() << "Database initialization failed.";
+  } else if (!databaseManager.backfillUsageFromJsonl()) {
+    // A1 S3: import the enable-before JSONL tail into SQLite (idempotent). A
+    // false return means a real failure (reconcile mismatch / SQL error); the
+    // flag stays unset so the next launch retries, JSONL stays the safety net.
+    qWarning() << "Usage JSONL->SQLite backfill incomplete; will retry next "
+                  "launch.";
   }
 
   AppRepository appRepository;

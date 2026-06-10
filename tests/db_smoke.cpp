@@ -17,6 +17,7 @@
 #include <QVariantMap>
 
 #include <algorithm>
+#include <iterator>
 
 #include "services/app_repository.h"
 #include "services/database_manager.h"
@@ -51,6 +52,69 @@ bool tableExists(const QSqlDatabase& db, const QString& tableName) {
   }
 
   return query.next();
+}
+
+// A1 schema-parity guard. The canonical DDL for the shared usage tables is owned
+// by DatabaseManager (src/services/database_manager.cpp); the Windows service
+// inline DDL (src/service/windows/storage/usage_storage.c) MUST stay
+// column-compatible with it. This asserts the table actually created by
+// DatabaseManager matches the canonical column shape (name, declared type,
+// NOT NULL), so any drift in the UI DDL fails the build. Keep these lists and
+// the service DDL in lockstep when amending the schema.
+struct ExpectedColumn {
+  const char* name;
+  const char* type;  // declared type, upper-cased
+  int notNull;       // 1 = NOT NULL, 0 = nullable (PRAGMA notnull)
+};
+
+bool columnsMatch(const QSqlDatabase& db, const QString& tableName,
+                  const ExpectedColumn* expected, int expectedCount,
+                  QString* mismatch) {
+  QSqlQuery query(db);
+  if (!query.exec(
+          QStringLiteral("PRAGMA table_info(%1);").arg(tableName))) {
+    *mismatch = QStringLiteral("PRAGMA table_info(%1) failed: %2")
+                    .arg(tableName, query.lastError().text());
+    return false;
+  }
+
+  int index = 0;
+  while (query.next()) {
+    const QString name = query.value(1).toString();
+    const QString type = query.value(2).toString().toUpper();
+    const int notNull = query.value(3).toInt();
+    if (index >= expectedCount) {
+      *mismatch = QStringLiteral("%1 has more columns than expected (extra: %2)")
+                      .arg(tableName, name);
+      return false;
+    }
+    const ExpectedColumn& want = expected[index];
+    if (name != QString::fromUtf8(want.name) ||
+        type != QString::fromUtf8(want.type).toUpper() ||
+        notNull != want.notNull) {
+      *mismatch =
+          QStringLiteral(
+              "%1 column %2: got (%3 %4 notnull=%5) expected (%6 %7 notnull=%8)")
+              .arg(tableName)
+              .arg(index)
+              .arg(name, type)
+              .arg(notNull)
+              .arg(QString::fromUtf8(want.name), QString::fromUtf8(want.type))
+              .arg(want.notNull);
+      return false;
+    }
+    ++index;
+  }
+
+  if (index != expectedCount) {
+    *mismatch = QStringLiteral("%1 has %2 columns, expected %3")
+                    .arg(tableName)
+                    .arg(index)
+                    .arg(expectedCount);
+    return false;
+  }
+
+  return true;
 }
 
 bool hasInsertedSession(const QVariantList& sessions,
@@ -453,6 +517,51 @@ int main(int argc, char* argv[]) {
   for (const QString& tableName : requiredTables) {
     if (!tableExists(db, tableName)) {
       return fail(QStringLiteral("Required table is missing: %1").arg(tableName));
+    }
+  }
+
+  // A1: assert the UI-created shared usage tables match the canonical column
+  // shape, pinning the UI DatabaseManager DDL. NOTE: this runs only the UI DDL
+  // (the service C DDL in usage_storage.c is not linked here), so it catches
+  // UI-side drift; the service inline DDL must be kept in lockstep manually and
+  // is verified cross-process by the real service+UI end-to-end run.
+  const ExpectedColumn appsColumns[] = {
+      {"id", "INTEGER", 0},          {"app_identifier", "TEXT", 1},
+      {"app_name", "TEXT", 1},       {"display_name", "TEXT", 0},
+      {"app_icon_path", "TEXT", 0},  {"executable_path", "TEXT", 0},
+      {"platform", "TEXT", 0},       {"created_at", "INTEGER", 1},
+      {"updated_at", "INTEGER", 1},
+  };
+  const ExpectedColumn frontmostColumns[] = {
+      {"id", "INTEGER", 0},          {"app_identifier", "TEXT", 1},
+      {"window_title", "TEXT", 0},   {"start_unix_sec", "INTEGER", 1},
+      {"end_unix_sec", "INTEGER", 1}, {"duration_sec", "INTEGER", 1},
+      {"active_sec", "INTEGER", 1},  {"idle_sec", "INTEGER", 0},
+      {"created_at", "INTEGER", 1},
+  };
+  const ExpectedColumn mediaColumns[] = {
+      {"id", "INTEGER", 0},           {"app_identifier", "TEXT", 1},
+      {"media_type", "TEXT", 1},      {"media_title", "TEXT", 0},
+      {"start_unix_sec", "INTEGER", 1}, {"end_unix_sec", "INTEGER", 1},
+      {"playback_sec", "INTEGER", 1}, {"created_at", "INTEGER", 1},
+  };
+  struct TableSchema {
+    QString name;
+    const ExpectedColumn* columns;
+    int count;
+  };
+  const TableSchema schemaParityTables[] = {
+      {QStringLiteral("apps"), appsColumns,
+       static_cast<int>(std::size(appsColumns))},
+      {QStringLiteral("frontmost_sessions"), frontmostColumns,
+       static_cast<int>(std::size(frontmostColumns))},
+      {QStringLiteral("media_sessions"), mediaColumns,
+       static_cast<int>(std::size(mediaColumns))},
+  };
+  for (const TableSchema& table : schemaParityTables) {
+    QString mismatch;
+    if (!columnsMatch(db, table.name, table.columns, table.count, &mismatch)) {
+      return fail(QStringLiteral("Schema parity drift: %1").arg(mismatch));
     }
   }
 
