@@ -77,13 +77,15 @@ chicken-and-egg). This is the SAME channel H5 proposes; **joint sign-off recomme
 
 ## 7. Sign-off
 
-- [ ] `rules/03-data-contract.md` updated: db path is redirectable via `usage_config.json db_path`,
+- [x] `rules/03-data-contract.md` updated: db path is redirectable via `usage_config.json db_path`,
       read identically by both processes, fail-safe to default.
-- [ ] `CHARTER.md` I2 amended + version bumped **v0.2 → v0.3**.
-- [ ] `state/frozen-files.json` regenerated after the CHARTER edit.
-- [ ] `README.md` (Data Location + Roadmap) updated when implemented.
+- [x] `CHARTER.md` I2 amended + version bumped **v0.2 → v0.3**.
+- [x] `state/frozen-files.json` regenerated after the CHARTER edit (`--bootstrap`, only CHARTER hash).
+- [ ] `README.md` (Data Location + Roadmap) updated when implemented (deferred to D2-S1 code).
 - [ ] **Joint sign-off with H5** (shared `usage_config.json` channel) recommended; if H5 lands
       first, D2 only adds the `db_path` key + the two reads + the I2 amendment.
 
-**Status: PROPOSED — awaiting maintainer sign-off. NOT implemented;** D2-S1 code does not land
-until this proposal + the service build pipeline are approved.
+**Status: APPROVED (maintainer sign-off 2026-06-10).** Contract amendments (CHARTER I2 → v0.3,
+rules/03 §1, frozen-files.json) landed on `feat/d2-database-path-migration` as implementation prep.
+**D2-S1/S2 CODE pending in a follow-up session** on this same branch; do NOT merge PR #41 to dev
+until the code is in (else the contract would be ahead of the implementation).
