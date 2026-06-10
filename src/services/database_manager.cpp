@@ -3,16 +3,56 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
+#include <QHash>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QJsonValue>
+#include <QList>
+#include <QSet>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QVariant>
+#include <QVector>
 
 namespace {
 
 const QString kConnectionName = QStringLiteral("timearc");
 const QString kDatabaseFileName = QStringLiteral("timearc.db");
+
+// A1 risk guard: the Windows service builds its DB path from raw getenv(APPDATA)
+// (usage_storage.c make_db_path -> %APPDATA%\TimeArc\TimeArc\timearc.db) while
+// the UI uses QStandardPaths::AppDataLocation. They are two independent
+// constructions that only happen to agree by convention. If they ever diverge
+// (renamed org/app, redirected env) the UI would silently read a different DB
+// than the service writes. Warn once so the split-brain is visible rather than
+// a silent "no data" symptom. Test mode deliberately relocates AppData, so this
+// is expected to differ there and is skipped.
+void warnIfDbPathDivergesFromService(const QString& uiPath) {
+  static bool checked = false;
+  if (checked) return;
+  checked = true;
+  if (QStandardPaths::isTestModeEnabled()) return;
+
+  QString base = qEnvironmentVariable("APPDATA");
+  if (base.trimmed().isEmpty()) base = qEnvironmentVariable("LOCALAPPDATA");
+  if (base.trimmed().isEmpty()) return;
+
+  const QString servicePath = QDir::cleanPath(
+      QDir(base).filePath(QStringLiteral("TimeArc/TimeArc/timearc.db")));
+  const QString uiClean = QDir::cleanPath(uiPath);
+  if (uiClean.compare(servicePath, Qt::CaseInsensitive) != 0) {
+    qWarning().noquote()
+        << "DatabaseManager: UI DB path differs from the Windows service "
+           "convention. UI reads:"
+        << uiClean << "; service writes:" << servicePath
+        << "- SQLite history reads and service writes may target different "
+           "files (A1 path-identity risk).";
+  }
+}
 
 }  // namespace
 
@@ -79,6 +119,7 @@ bool DatabaseManager::openDatabase() {
     return false;
   }
 
+  warnIfDbPathDivergesFromService(path);
   return true;
 }
 
@@ -333,5 +374,341 @@ bool DatabaseManager::executeQuery(const QString& sql) {
     return false;
   }
 
+  return true;
+}
+
+namespace {
+
+// A1 S3 backfill helpers. Kept self-contained in the database layer
+// (TIME_ARC_DATABASE_SOURCES) with NO UsageStatManager symbols, so db_smoke
+// still links. Field mapping mirrors the service write path
+// (usage_storage.c timearc_storage_write_sqlite) so backfilled rows are
+// byte-identical to what the dual-write would have produced.
+
+const QString kBackfillFlagKey =
+    QStringLiteral("usage_jsonl_backfill_v1_done");
+
+QString backfillJsonlPath() {
+  // Must match the service + UsageStatManager usage dir (env-based, NOT
+  // QStandardPaths): %LOCALAPPDATA%\TimeArc\usage\usage_records.jsonl.
+  QString base = qEnvironmentVariable("LOCALAPPDATA");
+  if (base.trimmed().isEmpty()) base = qEnvironmentVariable("APPDATA");
+  if (base.trimmed().isEmpty()) base = QDir::homePath();
+  return QDir(base).filePath(
+      QStringLiteral("TimeArc/usage/usage_records.jsonl"));
+}
+
+QJsonObject parseJsonlLine(const QByteArray& line) {
+  QJsonParseError error;
+  QJsonDocument doc = QJsonDocument::fromJson(line, &error);
+  if (error.error != QJsonParseError::NoError) {
+    // Tolerate older local-code-page window titles, like UsageStatManager.
+    const QByteArray utf8 =
+        QString::fromLocal8Bit(line.constData(), line.size()).toUtf8();
+    doc = QJsonDocument::fromJson(utf8, &error);
+  }
+  return doc.isObject() ? doc.object() : QJsonObject();
+}
+
+QString nonEmptyOr(const QString& value, const QString& fallback) {
+  return value.isEmpty() ? fallback : value;
+}
+
+qint64 jsonInt(const QJsonObject& o, const QString& key) {
+  const QJsonValue v = o.value(key);
+  if (v.isDouble()) return static_cast<qint64>(v.toDouble());
+  if (v.isString()) return v.toString().toLongLong();
+  return 0;
+}
+
+// One tail row staged for import, with the unique-key fields used by both the
+// INSERT and the existence-based reconciliation.
+struct BackfillRow {
+  QString appIdentifier;
+  QString appName;
+  QString executablePath;
+  QString platform;
+  QString title;  // window_title (frontmost) or resolved media title (audio)
+  bool isAudio = false;
+  qint64 start = 0;
+  qint64 end = 0;
+  qint64 duration = 0;
+};
+
+QString uniqueKey(const BackfillRow& r) {
+  const QChar sep(QChar(0x1f));
+  return r.appIdentifier + sep + (r.isAudio ? QStringLiteral("audio") : QString()) +
+         sep + r.title + sep + QString::number(r.start) + sep +
+         QString::number(r.end);
+}
+
+}  // namespace
+
+bool DatabaseManager::backfillUsageFromJsonl() {
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) {
+    qWarning() << "Backfill skipped: database is not open.";
+    return false;
+  }
+
+  // 1. Idempotency: already migrated -> skip.
+  {
+    QSqlQuery q(db);
+    q.prepare(QStringLiteral(
+        "SELECT value FROM settings WHERE key = :key;"));
+    q.bindValue(QStringLiteral(":key"), kBackfillFlagKey);
+    if (q.exec() && q.next() &&
+        q.value(0).toString() == QStringLiteral("true")) {
+      return true;  // done in a previous launch
+    }
+  }
+
+  // 2. Resolve JSONL; nothing on disk -> nothing to backfill, mark done.
+  const QString jsonlPath = backfillJsonlPath();
+  if (!QFileInfo::exists(jsonlPath)) {
+    qInfo() << "Backfill: no JSONL at" << jsonlPath << "- nothing to import.";
+    return setBackfillDone();
+  }
+
+  // 3. Parse JSONL once, staging EVERY valid record (deduped by unique key) +
+  //    apps. We deliberately do NOT pre-filter on a MIN(start) watermark: audio
+  //    sessions can finalize out of start order (concurrent apps close at
+  //    different times), so a start-based threshold could silently skip a real
+  //    enable-before record that straddles the boundary. Instead we stage all,
+  //    let INSERT OR IGNORE absorb rows the service already wrote (the unique
+  //    indexes dedup them as no-ops), and let the existence-based reconcile in
+  //    step 6 be the authoritative "every JSONL record is in the DB" guard
+  //    (kickoff §6). Cost is one bounded full-JSONL pass on the single migration.
+  QHash<QString, BackfillRow> frontByKey;
+  QHash<QString, BackfillRow> mediaByKey;
+  struct AppRow {
+    QString appName;
+    QString executablePath;
+    QString platform;
+  };
+  QHash<QString, AppRow> appsByIdentifier;
+
+  QFile in(jsonlPath);
+  if (!in.open(QIODevice::ReadOnly)) {
+    qWarning() << "Backfill: cannot open JSONL:" << jsonlPath;
+    return false;
+  }
+  while (!in.atEnd()) {
+    const QByteArray raw = in.readLine();
+    if (!raw.endsWith('\n')) break;  // half-written tail line
+    const QByteArray line = raw.trimmed();
+    if (line.isEmpty()) continue;
+    const QJsonObject o = parseJsonlLine(line);
+    if (o.isEmpty()) continue;
+
+    // Mirror service write_sqlite skip rules exactly.
+    const QString source = o.value(QStringLiteral("source")).toString();
+    const bool isForeground =
+        source.isEmpty() || source == QStringLiteral("foreground");
+    const bool isAudio = source == QStringLiteral("audio");
+    if (!isForeground && !isAudio) continue;
+
+    const QString appId = o.value(QStringLiteral("app_id")).toString();
+    const QString path = o.value(QStringLiteral("path")).toString();
+    const QString appIdentifier = nonEmptyOr(appId, path);
+    if (appIdentifier.isEmpty()) continue;
+
+    const qint64 start = jsonInt(o, QStringLiteral("start_unix_sec"));
+    const qint64 duration = jsonInt(o, QStringLiteral("duration_sec"));
+    if (start <= 0 || duration <= 0) continue;
+    const qint64 end = start + duration;
+    if (end <= start) continue;
+
+    const QString executablePath = nonEmptyOr(path, appIdentifier);
+    QString appName = o.value(QStringLiteral("app_name")).toString();
+    if (appName.isEmpty()) appName = QFileInfo(executablePath).fileName();
+    if (appName.isEmpty()) appName = appIdentifier;
+    const QString platform =
+        nonEmptyOr(o.value(QStringLiteral("platform")).toString(),
+                   QStringLiteral("windows"));
+    const QString windowTitle = o.value(QStringLiteral("window_title")).toString();
+
+    BackfillRow row;
+    row.appIdentifier = appIdentifier;
+    row.appName = appName;
+    row.executablePath = executablePath;
+    row.platform = platform;
+    row.isAudio = isAudio;
+    row.start = start;
+    row.end = end;
+    row.duration = duration;
+    row.title = isAudio
+                    ? (windowTitle.isEmpty() ? QStringLiteral("Audio playback")
+                                             : windowTitle)
+                    : windowTitle;
+    (isAudio ? mediaByKey : frontByKey).insert(uniqueKey(row), row);
+
+    if (!appsByIdentifier.contains(appIdentifier)) {
+      appsByIdentifier.insert(appIdentifier,
+                              {appName, executablePath, platform});
+    }
+  }
+  in.close();
+
+  if (frontByKey.isEmpty() && mediaByKey.isEmpty()) {
+    qInfo() << "Backfill: no usage records to import (empty/absent JSONL).";
+    return setBackfillDone();
+  }
+
+  // 4. Backup JSONL before touching anything (rules/03 D1).
+  const QString bakPath = jsonlPath + QStringLiteral(".bak");
+  if (QFile::exists(bakPath)) QFile::remove(bakPath);
+  if (!QFile::copy(jsonlPath, bakPath)) {
+    qWarning() << "Backfill aborted: failed to write backup" << bakPath;
+    return false;
+  }
+
+  // 5. Import inside a transaction (BEGIN IMMEDIATE for WAL: take the write
+  //    lock up front, busy_timeout already configured). INSERT OR IGNORE makes
+  //    rows the service already wrote no-ops; the service may dual-write
+  //    concurrently (it only writes new sessions, which either dedup or are
+  //    fresh keys), and busy_timeout covers the one-time lock window.
+  if (!executeQuery(QStringLiteral("BEGIN IMMEDIATE;"))) {
+    qWarning() << "Backfill aborted: could not begin transaction.";
+    return false;
+  }
+
+  QSqlQuery appStmt(db);
+  appStmt.prepare(QStringLiteral(
+      "INSERT OR IGNORE INTO apps (app_identifier, app_name, display_name, "
+      "app_icon_path, executable_path, platform, created_at, updated_at) "
+      "VALUES (:id, :name, :name, '', :exe, :platform, :now, :now);"));
+  QSqlQuery frontStmt(db);
+  frontStmt.prepare(QStringLiteral(
+      "INSERT OR IGNORE INTO frontmost_sessions (app_identifier, window_title, "
+      "start_unix_sec, end_unix_sec, duration_sec, active_sec, idle_sec, "
+      "created_at) VALUES (:id, :title, :start, :end, :dur, :dur, 0, :now);"));
+  QSqlQuery mediaStmt(db);
+  mediaStmt.prepare(QStringLiteral(
+      "INSERT OR IGNORE INTO media_sessions (app_identifier, media_type, "
+      "media_title, start_unix_sec, end_unix_sec, playback_sec, created_at) "
+      "VALUES (:id, 'audio', :title, :start, :end, :dur, :now);"));
+
+  const qint64 now = QDateTime::currentSecsSinceEpoch();
+  bool ok = true;
+  int insertedFront = 0;
+  int insertedMedia = 0;
+
+  for (auto it = appsByIdentifier.constBegin();
+       ok && it != appsByIdentifier.constEnd(); ++it) {
+    appStmt.bindValue(QStringLiteral(":id"), it.key());
+    appStmt.bindValue(QStringLiteral(":name"), it.value().appName);
+    appStmt.bindValue(QStringLiteral(":exe"), it.value().executablePath);
+    appStmt.bindValue(QStringLiteral(":platform"), it.value().platform);
+    appStmt.bindValue(QStringLiteral(":now"), now);
+    if (!appStmt.exec()) {
+      qWarning() << "Backfill app upsert failed:" << appStmt.lastError().text();
+      ok = false;
+    }
+  }
+  for (auto it = frontByKey.constBegin();
+       ok && it != frontByKey.constEnd(); ++it) {
+    const BackfillRow& r = it.value();
+    frontStmt.bindValue(QStringLiteral(":id"), r.appIdentifier);
+    frontStmt.bindValue(QStringLiteral(":title"), r.title);
+    frontStmt.bindValue(QStringLiteral(":start"), r.start);
+    frontStmt.bindValue(QStringLiteral(":end"), r.end);
+    frontStmt.bindValue(QStringLiteral(":dur"), r.duration);
+    frontStmt.bindValue(QStringLiteral(":now"), now);
+    if (!frontStmt.exec()) {
+      qWarning() << "Backfill frontmost insert failed:"
+                 << frontStmt.lastError().text();
+      ok = false;
+    } else {
+      insertedFront += frontStmt.numRowsAffected() > 0 ? 1 : 0;
+    }
+  }
+  for (auto it = mediaByKey.constBegin();
+       ok && it != mediaByKey.constEnd(); ++it) {
+    const BackfillRow& r = it.value();
+    mediaStmt.bindValue(QStringLiteral(":id"), r.appIdentifier);
+    mediaStmt.bindValue(QStringLiteral(":title"), r.title);
+    mediaStmt.bindValue(QStringLiteral(":start"), r.start);
+    mediaStmt.bindValue(QStringLiteral(":end"), r.end);
+    mediaStmt.bindValue(QStringLiteral(":dur"), r.duration);
+    mediaStmt.bindValue(QStringLiteral(":now"), now);
+    if (!mediaStmt.exec()) {
+      qWarning() << "Backfill media insert failed:"
+                 << mediaStmt.lastError().text();
+      ok = false;
+    } else {
+      insertedMedia += mediaStmt.numRowsAffected() > 0 ? 1 : 0;
+    }
+  }
+
+  // 6. Reconcile by unique-key EXISTENCE (never row-count: INSERT OR IGNORE
+  //    dedup makes counts legitimately differ). Every staged JSONL record must
+  //    now resolve to a row; a single miss aborts the whole migration.
+  int missing = 0;
+  if (ok) {
+    QSqlQuery frontCheck(db);
+    frontCheck.prepare(QStringLiteral(
+        "SELECT 1 FROM frontmost_sessions WHERE app_identifier = :id AND "
+        "window_title = :title AND start_unix_sec = :start AND "
+        "end_unix_sec = :end LIMIT 1;"));
+    for (auto it = frontByKey.constBegin();
+         it != frontByKey.constEnd(); ++it) {
+      const BackfillRow& r = it.value();
+      frontCheck.bindValue(QStringLiteral(":id"), r.appIdentifier);
+      frontCheck.bindValue(QStringLiteral(":title"), r.title);
+      frontCheck.bindValue(QStringLiteral(":start"), r.start);
+      frontCheck.bindValue(QStringLiteral(":end"), r.end);
+      if (!frontCheck.exec() || !frontCheck.next()) ++missing;
+    }
+    QSqlQuery mediaCheck(db);
+    mediaCheck.prepare(QStringLiteral(
+        "SELECT 1 FROM media_sessions WHERE app_identifier = :id AND "
+        "media_type = 'audio' AND media_title = :title AND "
+        "start_unix_sec = :start AND end_unix_sec = :end LIMIT 1;"));
+    for (auto it = mediaByKey.constBegin();
+         it != mediaByKey.constEnd(); ++it) {
+      const BackfillRow& r = it.value();
+      mediaCheck.bindValue(QStringLiteral(":id"), r.appIdentifier);
+      mediaCheck.bindValue(QStringLiteral(":title"), r.title);
+      mediaCheck.bindValue(QStringLiteral(":start"), r.start);
+      mediaCheck.bindValue(QStringLiteral(":end"), r.end);
+      if (!mediaCheck.exec() || !mediaCheck.next()) ++missing;
+    }
+  }
+
+  if (!ok || missing > 0) {
+    executeQuery(QStringLiteral("ROLLBACK;"));
+    qWarning() << "Backfill rolled back: ok=" << ok << "missing=" << missing
+               << "- JSONL kept, flag unset, .bak retained at" << bakPath;
+    return false;
+  }
+
+  if (!executeQuery(QStringLiteral("COMMIT;"))) {
+    executeQuery(QStringLiteral("ROLLBACK;"));
+    qWarning() << "Backfill commit failed; rolled back.";
+    return false;
+  }
+
+  qInfo() << "Backfill complete: inserted" << insertedFront
+          << "new frontmost +" << insertedMedia << "new media rows ("
+          << frontByKey.size() << "/" << mediaByKey.size()
+          << "unique keys staged & reconciled). Backup at" << bakPath;
+  return setBackfillDone();
+}
+
+bool DatabaseManager::setBackfillDone() {
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) return false;
+  QSqlQuery q(db);
+  q.prepare(QStringLiteral(
+      "INSERT INTO settings (key, value, updated_at) "
+      "VALUES (:key, 'true', :now) "
+      "ON CONFLICT(key) DO UPDATE SET value = 'true', updated_at = :now;"));
+  q.bindValue(QStringLiteral(":key"), kBackfillFlagKey);
+  q.bindValue(QStringLiteral(":now"), QDateTime::currentSecsSinceEpoch());
+  if (!q.exec()) {
+    qWarning() << "Backfill: failed to set done flag:" << q.lastError().text();
+    return false;
+  }
   return true;
 }

@@ -25,9 +25,11 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 
 ## Storage
 
-- **SQLite primary-source migration (A1) underway.** Service ALREADY dual-writes
-  JSONL + SQLite (`init/write_sqlite` implemented, enabled `init(&g,1,1)`); UI still
-  reads JSONL. Plan/sessions: [`a1-…-kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
+- **SQLite primary-source migration (A1) S1–S4 DONE** (`CHARTER` v0.2). UI now
+  reads usage history from SQLite (primary; JSONL fallback when DB missing/empty);
+  enable-before JSONL tail backfilled once (idempotent). Remaining = **A1 S5**
+  (retire JSONL writing after a soak). Plan:
+  [`a1-…-kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
 - **UTF-8 is not validated.** `write_json_string`
   (`src/service/windows/storage/usage_storage.c:140-175`) only JSON-escapes; it does
   not check input bytes are valid UTF-8 (no TODO in source). Fix before cross-platform sync.

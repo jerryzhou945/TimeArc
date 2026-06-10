@@ -19,6 +19,9 @@
 #include <QProcessEnvironment>
 #include <QRegularExpression>
 #include <QSet>
+#include <QSqlDatabase>
+#include <QSqlError>
+#include <QSqlQuery>
 #include <QStandardPaths>
 #include <QStringList>
 #include <QUrl>
@@ -545,10 +548,82 @@ QJsonDocument parseJsonLine(const QByteArray& line) {
   return QJsonDocument();
 }
 
+// A1: SQLite history read source (S2). The DatabaseManager-owned connection is
+// already open by the time UsageStatManager is constructed (main.cpp opens it
+// before the manager). frontmost/media sessions JOIN apps to restore the
+// app_name/path richness the JSONL records carry inline.
+const QString kTimearcConnection = QStringLiteral("timearc");
+
+// On Windows the JSONL app_id and path are the same exe path (verified) and the
+// service writes app_identifier = app_id, executable_path = path. So
+// app_identifier rebuilds appId, executable_path rebuilds path, apps.app_name
+// rebuilds app_name — reconstructing the exact (appId, appName, path, title)
+// identity tuple the activity classifier/grouper keys on => per-window parity.
+const QString kSqlFrontmostSince = QStringLiteral(R"SQL(
+SELECT fs.app_identifier,
+       COALESCE(NULLIF(a.app_name, ''), fs.app_identifier),
+       COALESCE(NULLIF(a.executable_path, ''), fs.app_identifier),
+       fs.window_title, fs.start_unix_sec, fs.duration_sec, fs.id
+FROM frontmost_sessions fs
+LEFT JOIN apps a ON a.app_identifier = fs.app_identifier
+WHERE fs.id > :sinceId
+ORDER BY fs.id ASC;
+)SQL");
+
+// media_sessions is the audio side of the D5 union (the whole table is audio:
+// the service only ever writes media_type='audio'). playback_sec -> duration.
+const QString kSqlMediaSince = QStringLiteral(R"SQL(
+SELECT ms.app_identifier,
+       COALESCE(NULLIF(a.app_name, ''), ms.app_identifier),
+       COALESCE(NULLIF(a.executable_path, ''), ms.app_identifier),
+       ms.media_title, ms.start_unix_sec, ms.playback_sec, ms.id
+FROM media_sessions ms
+LEFT JOIN apps a ON a.app_identifier = ms.app_identifier
+WHERE ms.id > :sinceId
+ORDER BY ms.id ASC;
+)SQL");
+
+// A1 default read source. S4 flip: SQLite is now the UI's PRIMARY history
+// source. refreshHistoryFromSqlite() falls back to JSONL when the DB is
+// missing/empty (defends against the empty-DB / old-service illusion), and the
+// service keeps dual-writing JSONL as a safety net. Env TIMEARC_USAGE_SOURCE
+// overrides for emergency rollback without a recompile.
+constexpr bool kDefaultUseSqliteSource = true;
+
 }  // namespace
 
 UsageStatManager::UsageStatManager(QObject* parent) : QObject(parent) {
+  m_useSqliteSource = kDefaultUseSqliteSource;
+  // Env override (no recompile): testing the SQLite path while the default is
+  // still JSONL (S2), and an emergency rollback lever after the S4 flip.
+  const QString sourceOverride =
+      qEnvironmentVariable("TIMEARC_USAGE_SOURCE").trimmed().toLower();
+  if (sourceOverride == QStringLiteral("sqlite")) {
+    m_useSqliteSource = true;
+  } else if (sourceOverride == QStringLiteral("jsonl")) {
+    m_useSqliteSource = false;
+  }
+
   refresh();
+
+  // A1 dual-read parity self-check (diagnostic, env-gated so normal startup is
+  // unaffected). Writes a JSON report (week/month/year/all totals + top apps for
+  // both sources) next to the harness log so it can be inspected; differences
+  // should be only the explainable dedup / enable-before tail. The harness Qt
+  // logger only tees Warning+, so a file is the reliable channel for a GUI app.
+  if (qEnvironmentVariableIsSet("TIMEARC_SQLITE_PARITY")) {
+    const QVariantMap report = sqliteParityReport();
+    const QString dir = QDir(QStandardPaths::writableLocation(
+                                 QStandardPaths::GenericDataLocation))
+                            .filePath(QStringLiteral("TimeArc/logs"));
+    QDir().mkpath(dir);
+    QFile file(QDir(dir).filePath(QStringLiteral("a1-parity-report.json")));
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+      file.write(QJsonDocument(QJsonObject::fromVariantMap(report))
+                     .toJson(QJsonDocument::Indented));
+      file.close();
+    }
+  }
 }
 
 QString UsageStatManager::usageRecordsPath() const { return recordsFilePath(); }
@@ -570,9 +645,45 @@ int UsageStatManager::allSoftwareMinutes() const {
 }
 
 void UsageStatManager::refresh() {
-  // refresh 是 UI 的数据入口：读历史 JSONL（**增量**：service 是 append-only，只解析自上次
-  // 偏移以来新追加的完整行；size 变小=轮转/截断→全量重读），再叠加 current 实时快照。
-  // 关键性能修复：16MB/46k 行全量重解析每 5s 一次会让 UI 长期卡顿；增量后空闲 tick 近乎零成本。
+  // refresh 是 UI 的数据入口：装载历史（按读源：JSONL 增量 / SQLite 增量；A1）再叠加
+  // current 实时快照（始终 JSON live：混合架构＝SQLite/JSONL 历史 + JSON live）。最后
+  // emit。增量守卫令空闲 5s tick 近乎零成本（无新行→不自增 recordsGeneration→统计页跳过重算）。
+  if (m_useSqliteSource) {
+    refreshHistoryFromSqlite();  // DB 不可用/空 → 内部回退 JSONL（防空库假象）
+  } else {
+    refreshHistoryFromJsonl();
+  }
+  refreshLiveSnapshot();
+  emit usageStatsChanged();
+}
+
+bool UsageStatManager::tryParseHistoryLine(const QByteArray& line,
+                                           UsageRecord* out) const {
+  const QJsonDocument doc = parseJsonLine(line);
+  if (!doc.isObject()) return false;
+  const QJsonObject object = doc.object();
+  // 目前 UI 只消费 Windows service 写出的记录；macOS 记录后续接入再放开。
+  if (object.value("platform").toString() != "windows") return false;
+  UsageRecord record = parseRecordObject(object, false);
+  if (record.startUnixSec <= 0 || record.durationSec == 0) return false;
+  if (record.appId.trimmed().isEmpty() && record.appName.trimmed().isEmpty())
+    return false;
+  *out = record;
+  return true;
+}
+
+void UsageStatManager::refreshHistoryFromJsonl() {
+  // 历史 JSONL（**增量**：service append-only，只解析自上次偏移以来新追加的完整行；
+  // size 变小=轮转/截断→全量重读）。切源（首次 / 从 SQLite 回退）时全量重载。
+  if (m_recordsSource != HistorySource::Jsonl) {
+    m_records.clear();
+    m_recordsParsedSize = -1;
+    m_recordsParsedOffset = 0;
+    m_sqliteFrontmostMaxId = 0;
+    m_sqliteMediaMaxId = 0;
+    m_recordsSource = HistorySource::Jsonl;  // 全量由下方 full 路径自增代际
+  }
+
   const QString path = recordsFilePath();
   const QFileInfo info(path);
   const qint64 size = info.exists() ? info.size() : -1;
@@ -584,49 +695,140 @@ void UsageStatManager::refresh() {
     }
     m_recordsParsedSize = -1;
     m_recordsParsedOffset = 0;
-  } else {
-    const bool full = (m_recordsParsedSize < 0) || (size < m_recordsParsedSize);
-    if (full) {
-      m_records.clear();
-      m_recordsParsedOffset = 0;
-    }
-    int added = 0;
-    if (full || m_recordsParsedOffset < size) {
-      QFile file(path);
-      // 非 Text 模式：按原始字节统计偏移（Text 会折叠 \r\n 致偏移与磁盘不一致）。
-      if (file.open(QIODevice::ReadOnly)) {
-        if (!full && m_recordsParsedOffset > 0) file.seek(m_recordsParsedOffset);
-        qint64 offset = full ? 0 : m_recordsParsedOffset;
-        while (!file.atEnd()) {
-          const QByteArray rawLine = file.readLine();
-          // 末尾无换行=半写行（service 正写到一半）→ 本次不消费，下次再读。
-          if (!rawLine.endsWith('\n')) break;
-          offset += rawLine.size();
-          const QByteArray line = rawLine.trimmed();
-          if (line.isEmpty()) continue;
-
-          const QJsonDocument doc = parseJsonLine(line);
-          if (!doc.isObject()) continue;
-          const QJsonObject object = doc.object();
-          if (object.value("platform").toString() != "windows") continue;
-
-          // 目前 UI 只消费 Windows service 写出的记录；macOS 记录后续接入再放开。
-          UsageRecord record = parseRecordObject(object, false);
-          if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
-          if (record.appId.trimmed().isEmpty() &&
-              record.appName.trimmed().isEmpty())
-            continue;
-
-          m_records.append(record);
-          ++added;
-        }
-        m_recordsParsedOffset = offset;
-      }
-    }
-    m_recordsParsedSize = size;
-    if (full || added > 0) ++m_recordsGeneration;
+    return;
   }
 
+  const bool full = (m_recordsParsedSize < 0) || (size < m_recordsParsedSize);
+  if (full) {
+    m_records.clear();
+    m_recordsParsedOffset = 0;
+  }
+  int added = 0;
+  if (full || m_recordsParsedOffset < size) {
+    QFile file(path);
+    // 非 Text 模式：按原始字节统计偏移（Text 会折叠 \r\n 致偏移与磁盘不一致）。
+    if (file.open(QIODevice::ReadOnly)) {
+      if (!full && m_recordsParsedOffset > 0) file.seek(m_recordsParsedOffset);
+      qint64 offset = full ? 0 : m_recordsParsedOffset;
+      while (!file.atEnd()) {
+        const QByteArray rawLine = file.readLine();
+        // 末尾无换行=半写行（service 正写到一半）→ 本次不消费，下次再读。
+        if (!rawLine.endsWith('\n')) break;
+        offset += rawLine.size();
+        const QByteArray line = rawLine.trimmed();
+        if (line.isEmpty()) continue;
+
+        UsageRecord record;
+        if (!tryParseHistoryLine(line, &record)) continue;
+        m_records.append(record);
+        ++added;
+      }
+      m_recordsParsedOffset = offset;
+    }
+  }
+  m_recordsParsedSize = size;
+  if (full || added > 0) ++m_recordsGeneration;
+}
+
+bool UsageStatManager::sqliteMaxIds(QSqlDatabase& db, qint64* maxFront,
+                                    qint64* maxMedia) const {
+  *maxFront = 0;
+  *maxMedia = 0;
+  if (!db.isValid() || !db.isOpen()) return false;
+  QSqlQuery query(db);
+  if (!query.exec(QStringLiteral(
+          "SELECT (SELECT COALESCE(MAX(id), 0) FROM frontmost_sessions), "
+          "(SELECT COALESCE(MAX(id), 0) FROM media_sessions);"))) {
+    return false;  // 表缺失 / 连接异常 → 视为不可用（回退 JSONL）
+  }
+  if (!query.next()) return false;
+  *maxFront = query.value(0).toLongLong();
+  *maxMedia = query.value(1).toLongLong();
+  return true;
+}
+
+int UsageStatManager::appendSqliteSessionsSince(QList<UsageRecord>* out,
+                                                const QString& sql,
+                                                const QString& source,
+                                                qint64* sinceMaxId) const {
+  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection);
+  if (!db.isValid() || !db.isOpen()) return 0;
+  QSqlQuery query(db);
+  if (!query.prepare(sql)) {
+    qWarning() << "UsageStatManager: failed to prepare SQLite session query:"
+               << query.lastError().text();
+    return 0;
+  }
+  query.bindValue(QStringLiteral(":sinceId"), *sinceMaxId);
+  if (!query.exec()) {
+    qWarning() << "UsageStatManager: failed to read SQLite sessions:"
+               << query.lastError().text();
+    return 0;
+  }
+  int added = 0;
+  while (query.next()) {
+    const qint64 id = query.value(6).toLongLong();
+    if (id > *sinceMaxId) *sinceMaxId = id;  // 推进水位（含被跳过行，避免重扫）
+
+    UsageRecord record;
+    record.appId = query.value(0).toString();
+    record.appName = query.value(1).toString();
+    record.path = query.value(2).toString();
+    record.windowTitle = query.value(3).toString();
+    record.startUnixSec = query.value(4).toLongLong();
+    const qlonglong dur = query.value(5).toLongLong();
+    record.durationSec = dur > 0 ? static_cast<quint64>(dur) : 0;
+    record.source = source;
+    record.live = false;
+    // 与 JSONL 同款过滤，逐窗口 parity：start>0 / dur>0 / 标识非空。
+    if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
+    if (record.appId.trimmed().isEmpty() && record.appName.trimmed().isEmpty())
+      continue;
+    out->append(record);
+    ++added;
+  }
+  return added;
+}
+
+void UsageStatManager::refreshHistoryFromSqlite() {
+  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection);
+  qint64 maxFront = 0;
+  qint64 maxMedia = 0;
+  const bool ok = sqliteMaxIds(db, &maxFront, &maxMedia);
+  if (!ok || (maxFront <= 0 && maxMedia <= 0)) {
+    // DB 不可用（连接坏/表缺失）或空库 → 回退 JSONL（防空库假象 / 旧版无库）。
+    refreshHistoryFromJsonl();
+    return;
+  }
+
+  bool full = (m_recordsSource != HistorySource::Sqlite);
+  const bool shrank =
+      (maxFront < m_sqliteFrontmostMaxId) || (maxMedia < m_sqliteMediaMaxId);
+  if (full || shrank) {  // 切源 / 库被替换（水位回退）→ 全量重载
+    m_records.clear();
+    m_sqliteFrontmostMaxId = 0;
+    m_sqliteMediaMaxId = 0;
+    m_recordsParsedSize = -1;  // 复位 JSONL 增量态，便于将来回退时干净重读
+    m_recordsParsedOffset = 0;
+    m_recordsSource = HistorySource::Sqlite;
+    full = true;
+  }
+
+  int added = 0;
+  if (full || maxFront > m_sqliteFrontmostMaxId ||
+      maxMedia > m_sqliteMediaMaxId) {
+    added += appendSqliteSessionsSince(&m_records, kSqlFrontmostSince,
+                                       QStringLiteral("foreground"),
+                                       &m_sqliteFrontmostMaxId);
+    added += appendSqliteSessionsSince(&m_records, kSqlMediaSince,
+                                       QStringLiteral("audio"),
+                                       &m_sqliteMediaMaxId);
+  }
+  if (full || added > 0) ++m_recordsGeneration;
+}
+
+void UsageStatManager::refreshLiveSnapshot() {
+  // live 快照始终来自 usage_current.json（无 SQLite 等价物，混合架构保留 JSON live）。
   m_hasCurrentRecord = false;
   QFile currentFile(currentFilePath());
   if (currentFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -660,8 +862,91 @@ void UsageStatManager::refresh() {
       }
     }
   }
+}
 
-  emit usageStatsChanged();
+bool UsageStatManager::loadAllJsonlRecords(QList<UsageRecord>* out) const {
+  QFile file(recordsFilePath());
+  if (!file.open(QIODevice::ReadOnly)) return false;
+  while (!file.atEnd()) {
+    const QByteArray rawLine = file.readLine();
+    if (!rawLine.endsWith('\n')) break;  // 半写尾行
+    const QByteArray line = rawLine.trimmed();
+    if (line.isEmpty()) continue;
+    UsageRecord record;
+    if (tryParseHistoryLine(line, &record)) out->append(record);
+  }
+  return true;
+}
+
+bool UsageStatManager::loadAllSqliteRecords(QList<UsageRecord>* out) const {
+  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection);
+  qint64 maxFront = 0;
+  qint64 maxMedia = 0;
+  if (!sqliteMaxIds(db, &maxFront, &maxMedia)) return false;
+  qint64 frontFrom = 0;
+  qint64 mediaFrom = 0;
+  appendSqliteSessionsSince(out, kSqlFrontmostSince,
+                            QStringLiteral("foreground"), &frontFrom);
+  appendSqliteSessionsSince(out, kSqlMediaSince, QStringLiteral("audio"),
+                            &mediaFrom);
+  return true;
+}
+
+QVariantMap UsageStatManager::paritySnapshot() const {
+  QVariantMap snap;
+  QVariantMap totals;
+  for (const QString& r : {QStringLiteral("week"), QStringLiteral("month"),
+                           QStringLiteral("year"), QStringLiteral("all")}) {
+    totals[r] = activeSoftwareSecondsForRange(r);
+  }
+  snap[QStringLiteral("totals")] = totals;
+
+  QStringList topNames;
+  QVariantList top;
+  const QVariantList allApps = activeSoftwareForRange(QStringLiteral("all"));
+  for (int i = 0; i < allApps.size() && i < 10; ++i) {
+    const QVariantMap m = allApps[i].toMap();
+    topNames << m.value(QStringLiteral("name")).toString();
+    QVariantMap entry;
+    entry[QStringLiteral("name")] = m.value(QStringLiteral("name"));
+    entry[QStringLiteral("seconds")] = m.value(QStringLiteral("seconds"));
+    top << entry;
+  }
+  snap[QStringLiteral("topNames")] = topNames;
+  snap[QStringLiteral("top")] = top;
+  return snap;
+}
+
+QVariantMap UsageStatManager::sqliteParityReport() {
+  // 分别全量装载两源（不动生产读源 / 不依赖 flag），用同一聚合核心对比；排除 live。
+  QVariantMap report;
+  QList<UsageRecord> jsonlRecords;
+  QList<UsageRecord> sqliteRecords;
+  const bool haveJsonl = loadAllJsonlRecords(&jsonlRecords);
+  const bool haveSqlite = loadAllSqliteRecords(&sqliteRecords);
+  report[QStringLiteral("jsonlAvailable")] = haveJsonl;
+  report[QStringLiteral("sqliteAvailable")] = haveSqlite;
+  report[QStringLiteral("jsonlRecordCount")] = jsonlRecords.size();
+  report[QStringLiteral("sqliteRecordCount")] = sqliteRecords.size();
+
+  // 临时把 m_records 换成各源全量集，跑同一聚合，随后还原（同步、单线程，安全）。
+  QList<UsageRecord> savedRecords = m_records;
+  const bool savedHasCurrent = m_hasCurrentRecord;
+  const HistorySource savedSource = m_recordsSource;
+  m_hasCurrentRecord = false;  // 纯历史对比，两侧都排除 live
+
+  m_records = jsonlRecords;
+  const QVariantMap jsonlSnap = paritySnapshot();
+  m_records = sqliteRecords;
+  const QVariantMap sqliteSnap = paritySnapshot();
+
+  m_records = savedRecords;
+  m_hasCurrentRecord = savedHasCurrent;
+  m_recordsSource = savedSource;
+
+  report[QStringLiteral("jsonl")] = jsonlSnap;
+  report[QStringLiteral("sqlite")] = sqliteSnap;
+  return report;
 }
 
 QVariantList UsageStatManager::softwareForRange(const QString& range) const {

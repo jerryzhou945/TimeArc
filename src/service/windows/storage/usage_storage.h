@@ -8,8 +8,10 @@
 //
 // tracker 只负责决定“这一段从什么时候到什么时候”；这里负责把标准化后的
 // TimeArcUsageRecord 写成 JSONL 历史记录，或覆盖 usage_current.json 实时快照。
-// Initialize a storage context with the requested backends. JSONL is currently
-// implemented; SQLite is stubbed behind these flags for the future backend.
+// Initialize a storage context with the requested backends. JSONL and SQLite
+// are BOTH fully implemented and enabled together in production via
+// timearc_storage_init_global() -> timearc_storage_init(&g, 1, 1). The flags
+// stay so a build can opt one backend out; they are not stubs.
 int timearc_storage_init(TimeArcStorageContext* context,
                          int use_jsonl,
                          int use_sqlite);

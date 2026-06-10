@@ -190,10 +190,12 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 - `data_bridge.h` is the cross-language C ABI used by Swift (macOS) and
   C (Windows/Linux) tracker code to submit sessions to the storage
   layer.
-- SQLite database-layer integration has started. The app and service can
-  open the shared `timearc.db` and write/read app and session tables, but
-  the migration is transitional: SQLite is not yet the sole primary data
-  source, and the JSONL history plus live JSON snapshot still remain in use.
+- SQLite (`timearc.db`) is the UI's **primary** history source as of A1. The
+  service dual-writes both SQLite and JSONL; the UI reads usage history from
+  SQLite (falling back to JSONL when the DB is missing/empty), and the
+  enable-before JSONL tail has been backfilled once into SQLite. JSONL is kept
+  as an append-only fallback safety net (retirement is a future milestone), and
+  the live JSON snapshot stays in use (no SQLite equivalent).
 - Current desktop data split: automatic foreground-app and media usage
   still come from the real service capture path and journal/database session
   readers; manual projects, timer sessions, calendar todos, night mode, and the
@@ -238,9 +240,9 @@ state. The main data loop is now closed for the desktop surfaces below:
 
 Important limits remain:
 
-- SQLite is not yet the only primary data source. Automatic foreground and
-  media usage still depend on the service capture path, journal files, and
-  current database readers.
+- SQLite is now the UI's primary history source, but JSONL is not yet retired:
+  the service still dual-writes JSONL as a fallback and the UI falls back to it
+  when the DB is missing/empty (full JSONL retirement is a future milestone).
 - Legacy QSettings project/session/todo/memo/night-mode data is migrated
   idempotently into SQLite when possible, but the old QSettings data is kept
   for rollback rather than deleted.
@@ -258,8 +260,8 @@ Important limits remain:
 | Service (Win)    | C11 (WinAPI, WASAPI `IAudioMeterInformation`, PSAPI, COM)       |
 | Service (macOS)  | Swift 5+ (`NSWorkspace`, Accessibility API, IOKit power mgmt)   |
 | Service (Linux)  | C11 — X11 + Wayland planned                                     |
-| Storage (today)  | JSONL history + atomic JSON live snapshot for service usage; SQLite repositories for app/session/project/settings data |
-| Storage (planned)| Finish SQLite migration as the primary data source              |
+| Storage (today)  | SQLite `timearc.db` is the UI's primary history source (service dual-writes JSONL as fallback); atomic JSON live snapshot; SQLite repositories for app/session/project/settings data |
+| Storage (planned)| Retire JSONL after the SQLite-primary migration soaks (A1 S5)   |
 | Build            | CMake 3.16+, Qt's `qt_standard_project_setup(REQUIRES 6.8)`     |
 | Persistence (UI) | SQLite settings/repositories; legacy QSettings is migrated and retained for rollback |
 | Third-party      | SQLite (vendored, public domain), Parson (vendored, MIT)        |
@@ -364,8 +366,9 @@ Files written in the usage directory:
 
 The SQLite file is separate from the usage directory. It uses Qt's
 `QStandardPaths::AppDataLocation`; on Windows that is typically
-`%APPDATA%\TimeArc\TimeArc\timearc.db`. It is being introduced alongside
-JSONL and is not yet the sole primary data source.
+`%APPDATA%\TimeArc\TimeArc\timearc.db` (the service constructs the same path
+independently). It is the UI's primary history source (A1); JSONL is dual-written
+as a fallback and the enable-before tail was backfilled once into SQLite.
 
 Desktop manual projects, timer sessions, calendar to-dos, night mode, and the
 memo blackboard doc now read/write this SQLite database. Existing QSettings data
@@ -550,8 +553,9 @@ See `.harness/CHARTER.md` for invariants and frozen files;
 - [x] Windows background autostart (B1 Route A): per-user logon task /
       Run-key via `win_service.c` lifecycle verbs, with a Settings toggle.
       A true SCM Session-0 service (Route B) remains deferred.
-- [ ] Finish the on-disk storage migration so SQLite becomes the primary
-      source, with a one-shot JSONL backfill/migrator.
+- [x] Make SQLite the primary on-disk history source with a one-shot JSONL
+      backfill/migrator (A1 S1–S4). Remaining: retire JSONL writing after a
+      soak period (A1 S5).
 - [ ] Compile Qt as dynamically-linked libraries in release builds to
       satisfy the LGPL-3.0 combination posture.
 - [ ] Add an in-app licenses page surfacing all third-party texts.
