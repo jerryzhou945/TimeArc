@@ -1,5 +1,7 @@
 # B1 · Windows 服务化（SCM / 后台自启）· 实现启动（Kickoff / 多 session 拆分）
 
+> **状态（2026-06-10）：✅ Route A 已实装并合并（PR #37 → dev）。** S1（生命周期动词 install/uninstall/start/stop/status + 用户会话登录自启 schtasks／Run 退路 + 停采集事件）+ S2（设置「开机自动在后台采集」开关）完成；Route B（SCM session-broker 真服务）暂缓。下文 §0「现状校正」描述的是**实装前起点**，非当前状态——当前状态见 `docs/implementation-backlog.md §B1` 与 `.harness/state/open-issues.md`。
+
 > 用途：把 `docs/implementation-backlog.md` §B1（「注册为真正的 Windows 服务（SCM）」）从「三个 TODO
 > stub」展开成**带依赖、可逐 session 落地**的执行计划。B1 是 Track **B**、Windows 专属、与 A1 **可并行**
 > （两者磁盘契约不冲突：A1 动**读/写存储**，B1 只动**进程生命周期/启动方式**）。本文先把**真实现状**钉死，

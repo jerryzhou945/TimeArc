@@ -38,7 +38,7 @@ F1 动态 Qt ──> F2 许可证页 ─(临近发版里程碑)
 G2/G3 打磨 ───────────(随手)
 ```
 
-优先级直觉：**A1 是地基**（其写侧 S1 已产出生产库文件 → **D1/D2 的备份/选路其实已可起步**，仅 D2「迁移后改读新路径」待 S4；A1 作为「SQLite 升主数据源」**整体仍未完成**——UI 读侧/回填/翻转待做，也是 README 头号 "important limit"）；**B1** 自包含可并行；
+优先级直觉：**A1 是地基**，S1–S4 已落地并合并（SQLite 升 UI 主历史读源 + 回填 + 翻转，`CHARTER` v0.2）——**D1/D2（导出-备份 / DB 路径迁移）已解锁**，A1 仅剩 **S5**（退役 JSONL 写入，未来发版）；**B1**（Windows 用户会话自启 Route A）亦已实装合并、Route B 暂缓；
 **E\*** 最大最敏感、门控；**C/F** 按平台/发版节奏。
 设置页剩余（**§H**）：**H1 时间格式**可随手做（P1，注意散落已验收页）；**H5 服务侧配置**须先过已填提案的签核；
 **H3/H4**（强调色全局 + i18n）= 产品门控 **3E**；**H2** 依赖先有「分享图导出」特性；**H6** 受 QML 天花板、保留占位。
@@ -87,7 +87,7 @@ G2/G3 打磨 ───────────(随手)
   音频、单实例守卫。Track B · Linux · 大。
 
 ### D. 数据运维（UI · 跨平台 · 依赖 **A1-S1**：库文件已落地、服务已 dual-write SQLite；**不依赖** UI 读侧翻转 S2/S4）
-- [ ] **D1 导出 / 备份 / 恢复（SQLite 数据）** — Track B · 依赖 A1-S1（仅需 `timearc.db` 已存在，**不依赖读侧翻转**；现状只有偏好/报告 JSON 导出，**无整库备份/恢复**）· 中。
+- [x] **D1 导出 / 备份 / 恢复（SQLite 数据）— S1+S2 实装（PR #40）** — Track B · 依赖 A1-S1 · 中 · 提案：否（不碰 I2）。`DatabaseManager::backupDatabase`（`VACUUM INTO` 一致快照）+ `inspectBackup`（只读校验：完整性 + 三契约表 + 计数/时间区间）+ `restoreDatabase`（停服协调 + `.pre-restore.bak` 回滚 + 换库 + emit databaseRestored 重启提示），设置页「数据库备份与恢复」卡 + `db_smoke` 往返/坏文件用例。S3 保留/自动备份未做。见 [`d1-export-backup-restore-kickoff.md`](d1-export-backup-restore-kickoff.md)。
 - [~] **D2 用户可选数据库路径的安全迁移流 — kickoff 已产出** — Track B · 依赖 A1-S1 + **D1 迁移原语** + **H5 服务配置通道（同 `usage_config.json`，待签核）** · 中 · **提案：是（碰 I2，须 CHARTER 修订 + 服务构建流水线）**。库路径在两处非冻结代码各自硬编码（service `usage_storage.c::make_db_path`、UI `database_manager.cpp::databasePath`），但路径值是 I2 明文不变量；难点＝两进程同源读「db 路径指针」（落 `usage_config.json` `db_path` 键，缺失回退默认 fail-safe）。逐 session 拆分（S1 跨进程指针+I2 修订门控 → S2 UI 迁移流 → S3 预设/还原默认）见 [`d2-database-path-migration-kickoff.md`](d2-database-path-migration-kickoff.md)。**门控：下一步是送签变更提案，非直接写码。**
 
 ### E. AI / Daily Cards 隐私管线（**产品门控** · 跨平台 · 须产品先拍板）

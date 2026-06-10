@@ -1,5 +1,7 @@
 # A1 · SQLite 主数据源迁移 · 实现启动（Kickoff / 多 session 拆分）
 
+> **状态（2026-06-10）：✅ 已实装并合并（PR #38 → dev）。** S1–S4 完成（`CHARTER` v0.2：SQLite 升为 UI 主历史读源 + 启用前 JSONL 尾巴回填 + 翻转主源 + JSONL 兜底）；仅 **S5**（退役 JSONL 写入）留待未来发版。下文 §0「现状校正」描述的是**实装前起点**（计划基线），非当前状态——当前状态见 `docs/implementation-backlog.md §A1` 与 `.harness/state/open-issues.md`。
+
 > 用途：把 `docs/implementation-backlog.md` §A1（keystone）从「散落待办」展开成**带依赖、可逐 session 落地**
 > 的执行计划。A1 是 Track **B**、跨多 session、碰冻结磁盘契约（`CHARTER` I2 / `rules/03` §4），所以本文先把
 > **真实现状**钉死，再给拆分、文件红线、变更提案边界、必须保留的语义、风险与验收口径。

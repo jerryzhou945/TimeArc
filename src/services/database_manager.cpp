@@ -15,6 +15,7 @@
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
+#include <QUrl>
 #include <QVariant>
 #include <QVector>
 
@@ -52,6 +53,16 @@ void warnIfDbPathDivergesFromService(const QString& uiPath) {
         << "- SQLite history reads and service writes may target different "
            "files (A1 path-identity risk).";
   }
+}
+
+// Accept either a plain filesystem path or a file:// URL (the QML FileDialog
+// hands back file:// URLs). Returns a local filesystem path.
+QString toLocalPath(const QString& pathOrUrl) {
+  const QString trimmed = pathOrUrl.trimmed();
+  if (trimmed.isEmpty()) return trimmed;
+  const QUrl url(trimmed);
+  if (url.isLocalFile()) return url.toLocalFile();
+  return trimmed;
 }
 
 }  // namespace
@@ -710,5 +721,286 @@ bool DatabaseManager::setBackfillDone() {
     qWarning() << "Backfill: failed to set done flag:" << q.lastError().text();
     return false;
   }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// D1: whole-DB backup / inspect / restore. All logic folded into this already
+// app-registered translation unit so no frozen CMake / no new .cpp (kickoff §3).
+// No UsageStatManager symbols are referenced (db_smoke links this file but not
+// USM). Honest failure throughout: empty string / false + qWarning, never a
+// faked success (G6).
+// ---------------------------------------------------------------------------
+
+QString DatabaseManager::backupDatabase(const QString& destPath) {
+  const QString src = databasePath();
+  if (src.isEmpty()) {
+    qWarning() << "backupDatabase: cannot resolve live database path.";
+    return QString();
+  }
+
+  // Resolve destination. Empty -> auto-name in the Download->Documents->AppData
+  // cascade (mirrors UsageStatManager::exportReport; reimplemented here so this
+  // file stays free of USM symbols). Non-empty -> use it verbatim (tests pass a
+  // temp path).
+  QString dst = toLocalPath(destPath);
+  if (dst.isEmpty()) {
+    QString dir =
+        QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    if (dir.isEmpty())
+      dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    if (dir.isEmpty())
+      dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    if (dir.isEmpty()) {
+      qWarning() << "backupDatabase: no writable target directory.";
+      return QString();
+    }
+    const QString stamp =
+        QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+    dst = QDir(dir).filePath(QStringLiteral("timearc-backup-") + stamp +
+                             QStringLiteral(".db"));
+  }
+
+  // Ensure the parent directory exists.
+  const QFileInfo dstInfo(dst);
+  QDir dstDir(dstInfo.absolutePath());
+  if (!dstDir.exists() && !dstDir.mkpath(QStringLiteral("."))) {
+    qWarning() << "backupDatabase: cannot create target directory:"
+               << dstDir.absolutePath();
+    return QString();
+  }
+
+  // VACUUM INTO requires the target file to NOT already exist.
+  if (QFile::exists(dst) && !QFile::remove(dst)) {
+    qWarning() << "backupDatabase: target exists and cannot be removed:" << dst;
+    return QString();
+  }
+
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) {
+    qWarning() << "backupDatabase: live database is not open.";
+    return QString();
+  }
+
+  // VACUUM INTO takes the destination as a SQL string LITERAL (no bind support),
+  // so escape single quotes by doubling them. Windows backslashes are literal in
+  // a SQLite string literal and need no escaping.
+  QString literal = dst;
+  literal.replace(QLatin1Char('\''), QStringLiteral("''"));
+  QSqlQuery q(db);
+  if (!q.exec(QStringLiteral("VACUUM INTO '") + literal + QStringLiteral("';"))) {
+    qWarning() << "backupDatabase: VACUUM INTO failed:" << q.lastError().text();
+    return QString();
+  }
+
+  // Confirm the artifact really landed before claiming success.
+  const QFileInfo out(dst);
+  if (!out.exists() || out.size() <= 0) {
+    qWarning() << "backupDatabase: artifact missing or empty after VACUUM:"
+               << dst;
+    return QString();
+  }
+  qInfo().noquote() << "backupDatabase: wrote" << dst;
+  return dst;
+}
+
+QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
+  QVariantMap result;
+  result[QStringLiteral("ok")] = false;
+  result[QStringLiteral("integrity")] = QString();
+  result[QStringLiteral("frontmostRows")] = 0;
+  result[QStringLiteral("mediaRows")] = 0;
+  result[QStringLiteral("appRows")] = 0;
+  result[QStringLiteral("minUnixSec")] = 0;
+  result[QStringLiteral("maxUnixSec")] = 0;
+  result[QStringLiteral("sizeBytes")] = 0;
+  result[QStringLiteral("error")] = QString();
+
+  const QString local = toLocalPath(path);
+  if (local.isEmpty()) {
+    result[QStringLiteral("error")] = QStringLiteral("空路径");
+    return result;
+  }
+  const QFileInfo info(local);
+  if (!info.exists() || info.size() <= 0) {
+    result[QStringLiteral("error")] = QStringLiteral("文件不存在或为空");
+    return result;
+  }
+  result[QStringLiteral("sizeBytes")] = static_cast<qlonglong>(info.size());
+
+  // Unique throwaway connection name so concurrent / repeated calls never clash.
+  static int counter = 0;
+  const QString connName =
+      QStringLiteral("timearc_inspect_") + QString::number(++counter);
+
+  bool ok = false;
+  QString errorText;
+  QString integrity;
+  qlonglong frontRows = 0, mediaRows = 0, appRows = 0, minUnix = 0, maxUnix = 0;
+
+  // Scope every QSqlDatabase / QSqlQuery local INSIDE this block so they are all
+  // destroyed before removeDatabase(), else Qt warns "connection still in use".
+  {
+    QSqlDatabase db =
+        QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connName);
+    db.setDatabaseName(local);
+    db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+    if (!db.open()) {
+      errorText = QStringLiteral("无法打开数据库：") + db.lastError().text();
+    } else {
+      // 1. integrity_check — first row must be exactly "ok".
+      QSqlQuery iq(db);
+      if (iq.exec(QStringLiteral("PRAGMA integrity_check;")) && iq.next()) {
+        integrity = iq.value(0).toString();
+      } else {
+        integrity = QStringLiteral("(检查失败)");
+      }
+
+      // 2. assert the three contract tables exist (reject random / foreign .db).
+      bool hasAll = true;
+      const QStringList required = {QStringLiteral("apps"),
+                                    QStringLiteral("frontmost_sessions"),
+                                    QStringLiteral("media_sessions")};
+      for (const QString& t : required) {
+        QSqlQuery tq(db);
+        tq.prepare(QStringLiteral("SELECT 1 FROM sqlite_master WHERE "
+                                  "type='table' AND name=:n LIMIT 1;"));
+        tq.bindValue(QStringLiteral(":n"), t);
+        if (!tq.exec() || !tq.next()) {
+          hasAll = false;
+          break;
+        }
+      }
+
+      if (integrity != QStringLiteral("ok")) {
+        errorText = QStringLiteral("完整性检查未通过：") + integrity;
+      } else if (!hasAll) {
+        errorText = QStringLiteral("不是 TimeArc 数据库（缺少契约表）");
+      } else {
+        // 3. row counts + start_unix_sec range across both session tables.
+        QSqlQuery cq(db);
+        if (cq.exec(QStringLiteral(
+                "SELECT COUNT(*) FROM frontmost_sessions;")) &&
+            cq.next())
+          frontRows = cq.value(0).toLongLong();
+        if (cq.exec(QStringLiteral("SELECT COUNT(*) FROM media_sessions;")) &&
+            cq.next())
+          mediaRows = cq.value(0).toLongLong();
+        if (cq.exec(QStringLiteral("SELECT COUNT(*) FROM apps;")) && cq.next())
+          appRows = cq.value(0).toLongLong();
+        if (cq.exec(QStringLiteral(
+                "SELECT MIN(start_unix_sec), MAX(start_unix_sec) FROM "
+                "(SELECT start_unix_sec FROM frontmost_sessions "
+                "UNION ALL SELECT start_unix_sec FROM media_sessions);")) &&
+            cq.next()) {
+          minUnix = cq.value(0).toLongLong();
+          maxUnix = cq.value(1).toLongLong();
+        }
+        ok = true;
+      }
+      db.close();
+    }
+  }
+  QSqlDatabase::removeDatabase(connName);
+
+  result[QStringLiteral("ok")] = ok;
+  result[QStringLiteral("integrity")] = integrity;
+  result[QStringLiteral("frontmostRows")] = frontRows;
+  result[QStringLiteral("mediaRows")] = mediaRows;
+  result[QStringLiteral("appRows")] = appRows;
+  result[QStringLiteral("minUnixSec")] = minUnix;
+  result[QStringLiteral("maxUnixSec")] = maxUnix;
+  if (!ok && errorText.isEmpty()) errorText = QStringLiteral("未知错误");
+  result[QStringLiteral("error")] = errorText;
+  return result;
+}
+
+bool DatabaseManager::restoreDatabase(const QString& sourcePath) {
+  const QString source = toLocalPath(sourcePath);
+  if (source.isEmpty()) {
+    qWarning() << "restoreDatabase: empty source path.";
+    return false;
+  }
+
+  // 1. Validate the candidate first — never overwrite the live DB with junk.
+  const QVariantMap info = inspectBackup(source);
+  if (!info.value(QStringLiteral("ok")).toBool()) {
+    qWarning().noquote() << "restoreDatabase: candidate rejected:"
+                         << info.value(QStringLiteral("error")).toString();
+    return false;
+  }
+
+  const QString dbPath = databasePath();
+  if (dbPath.isEmpty()) {
+    qWarning() << "restoreDatabase: cannot resolve live database path.";
+    return false;
+  }
+  // Restoring a file onto itself is a no-op error.
+  if (QFileInfo(source).absoluteFilePath() ==
+      QFileInfo(dbPath).absoluteFilePath()) {
+    qWarning() << "restoreDatabase: source is the live database; nothing to do.";
+    return false;
+  }
+
+  // 2. Back up the current DB so a failed swap can roll back (rules/03 D1).
+  const QString preBak = dbPath + QStringLiteral(".pre-restore.bak");
+  if (QFile::exists(preBak) && !QFile::remove(preBak)) {
+    qWarning() << "restoreDatabase: cannot clear old pre-restore backup:"
+               << preBak;
+    return false;
+  }
+  if (QFile::exists(dbPath) && !QFile::copy(dbPath, preBak)) {
+    qWarning() << "restoreDatabase: cannot create pre-restore backup; aborting.";
+    return false;
+  }
+
+  // Reopen + reconfigure the live connection in-process (best effort).
+  auto reopen = [this]() {
+    if (openDatabase()) configureDatabase();
+  };
+
+  // 3. Release the UI's handle so the file can be replaced.
+  database().close();
+  QSqlDatabase::removeDatabase(kConnectionName);
+
+  // 4. Remove the live DB + stale WAL side files. A remove failure means the
+  //    file is still locked (background collection running) -> reopen original,
+  //    keep the untouched pre-restore copy, and report honestly.
+  bool removed = true;
+  if (QFile::exists(dbPath) && !QFile::remove(dbPath)) removed = false;
+  if (!removed) {
+    qWarning() << "restoreDatabase: live DB is locked (background collection "
+                  "running?). Original kept; aborting restore.";
+    reopen();
+    return false;
+  }
+  QFile::remove(dbPath + QStringLiteral("-wal"));
+  QFile::remove(dbPath + QStringLiteral("-shm"));
+
+  // 5. Copy the validated backup into place. On failure, roll back.
+  if (!QFile::copy(source, dbPath)) {
+    qWarning() << "restoreDatabase: failed to copy backup into place; rolling "
+                  "back to pre-restore copy.";
+    QFile::remove(dbPath);
+    if (QFile::exists(preBak)) QFile::copy(preBak, dbPath);
+    reopen();
+    return false;
+  }
+
+  // 6. Reopen the freshly restored DB in-process; announce so the UI can prompt
+  //    a restart. If reopen fails, roll back to the pre-restore copy.
+  if (!openDatabase() || !configureDatabase()) {
+    qWarning() << "restoreDatabase: copied backup but failed to reopen; rolling "
+                  "back.";
+    database().close();
+    QSqlDatabase::removeDatabase(kConnectionName);
+    QFile::remove(dbPath);
+    if (QFile::exists(preBak)) QFile::copy(preBak, dbPath);
+    reopen();
+    return false;
+  }
+
+  qInfo().noquote() << "restoreDatabase: restored from" << source;
+  emit databaseRestored();
   return true;
 }
