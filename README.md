@@ -378,12 +378,14 @@ directory above). Both processes read the same pointer — the UI in
 identical validation, and **fail safe to the default** when the key is absent,
 unreadable, or its target directory is not writable (a vanished network/removable
 drive simply reverts to the default, with a warning, never an empty-DB illusion).
-Settings → 导入导出 → **数据库位置** drives a safe migration: it snapshots the DB
-(`VACUUM INTO`), validates the copy, confirms the old DB is unlocked, then
-atomically switches the pointer and reopens — rolling back to the old location on
-any failure. Stop background collection before migrating, and restart both
-processes afterward so the service re-reads the pointer. A **还原默认位置** button
-moves the DB back and clears the pointer.
+Settings → 导入导出 → **数据库位置** drives a safe migration: it **automatically
+stops background collection first** (`time-arc-service --stop`, a graceful flush —
+so the old DB is unlocked), snapshots the DB (`VACUUM INTO`), validates the copy,
+atomically switches the pointer, and reopens — rolling back to the old location on
+any failure (and, if the collector somehow can't be stopped, failing safe rather
+than splitting the data). Restart the app afterward so collection resumes and the
+service re-reads the pointer. A **还原默认位置** button moves the DB back and clears
+the pointer.
 
 Desktop manual projects, timer sessions, calendar to-dos, night mode, and the
 memo blackboard doc now read/write this SQLite database. Existing QSettings data

@@ -436,17 +436,27 @@ Item {
         return (databaseManager && databaseManager.currentDatabaseLocationDir)
             ? ("" + databaseManager.currentDatabaseLocationDir()) : "—"
     }
+    // 迁移/还原前**自动**停止后台采集（settingsRepository.stopBackgroundCollection：优雅停 +
+    // 轮询等到真正释放数据库），再执行迁移。Qt.callLater 让确认弹层先关闭再做这段短暂阻塞活。
+    // 即便停采集失败/服务仍占用，迁移自身的锁探也会诚实失败回退（绝不 split-brain）。
+    function _stopThenMigrate(migrateFn) {
+        Qt.callLater(function () {
+            if (settingsRepository && settingsRepository.stopBackgroundCollection)
+                settingsRepository.stopBackgroundCollection()
+            root._afterRelocate(migrateFn())
+        })
+    }
     function onDbFolderChosen(folderUrl) {
         if (!databaseManager || !databaseManager.relocateDatabaseTo) { showToast("迁移暂不可用"); return }
         root.askConfirm("迁移数据库位置",
-            "将把整个使用数据库迁移到所选目录，并切换两进程的数据库位置指针。\n迁移前请先停止后台采集（设置 → 隐私与数据 → 开机自动在后台采集），否则会因数据库被占用而失败。",
-            "迁移", true, function () { root._afterRelocate(databaseManager.relocateDatabaseTo("" + folderUrl)) })
+            "将把整个使用数据库迁移到所选目录，并切换两进程共用的数据库位置指针。\n迁移会自动先停止后台采集；完成后请按提示重启应用以恢复采集。",
+            "迁移", true, function () { root._stopThenMigrate(function () { return databaseManager.relocateDatabaseTo("" + folderUrl) }) })
     }
     function doRestoreDefaultLocation() {
         if (!databaseManager || !databaseManager.restoreDefaultDatabaseLocation) { showToast("迁移暂不可用"); return }
         root.askConfirm("还原默认数据库位置",
-            "将把数据库迁回默认位置并清除位置指针。迁移前请先停止后台采集。",
-            "还原", true, function () { root._afterRelocate(databaseManager.restoreDefaultDatabaseLocation()) })
+            "将把数据库迁回默认位置并清除位置指针。会自动先停止后台采集，完成后请重启应用。",
+            "还原", true, function () { root._stopThenMigrate(function () { return databaseManager.restoreDefaultDatabaseLocation() }) })
     }
     function _afterRelocate(res) {
         if (res && res.ok) {
@@ -1386,7 +1396,7 @@ Item {
                             SettingsCard {
                                 badge: "⇧"; wide: true
                                 cardTitle: "数据库位置"
-                                cardDesc: "把整个使用数据库迁到所选目录（更大的磁盘 / 同步盘），并切换两进程共用的位置指针；全程安全可回滚。迁移前请先停止后台采集。"
+                                cardDesc: "把整个使用数据库迁到所选目录（更大的磁盘 / 同步盘），并切换两进程共用的位置指针；全程安全可回滚。迁移会自动停止后台采集，完成后请重启应用。"
                                 keywords: "数据库 位置 迁移 路径 磁盘 db_path 重定向 relocate 移动"
 
                                 Rectangle {
