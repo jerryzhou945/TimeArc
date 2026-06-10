@@ -18,10 +18,9 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 - **macOS service does not sample yet.** `TimeArcService.swift` is
   `RunLoop.current.run()` with no tracker. `AppEnv.swift` primitives are
   ready. The Windows `usage_tracker.c` loop is the reference contract.
-- **Windows background autostart shipped (B1 Route A).** `win_service.c` now
-  implements `--install/--uninstall/--start/--stop/--status` — an opt-in per-user
-  logon task (schtasks; Run-key fallback) keeps the tracker in the interactive user
-  session, plus a Settings toggle. SCM Session-0 service (Route B) deferred; see [`B1 kickoff`](../../docs/b1-windows-service-scm-kickoff.md).
+- **Windows background autostart shipped (B1 Route A).** `win_service.c` verbs
+  `--install/--uninstall/--start/--stop/--status` + a Settings toggle register an
+  opt-in per-user logon task (schtasks; Run-key fallback) keeping the tracker in the user session. SCM Session-0 (Route B) deferred; see [`B1 kickoff`](../../docs/b1-windows-service-scm-kickoff.md).
 
 ## Storage
 
