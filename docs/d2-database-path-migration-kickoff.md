@@ -35,7 +35,9 @@
   → **须 CHARTER amendment**（`CHARTER` §4：I2 触动须迁移计划 + bump 版本）。**这是 D2 与 D1 的关键差异**（D1 不碰 I2）。
 
 ### 0.3 D1 已产出可复用的迁移原语（D2 的机械层直接借用）
-- 停服协调（无 in-app 一键停 → 引导用户用设置页「开机自动在后台采集」开关停；service 持库锁时诚实失败）；
+- 停服协调：D1 当时无自动停采集（**注：设置页「开机自动在后台采集」开关只管登录自启注册、并不停运行中的采集**），
+  service 持库锁时诚实失败。**D2 已补真正的自动停采集**＝`SettingsRepository::stopBackgroundCollection`（`--stop` 优雅停 +
+  轮询 `--status` 到 `running=no`），迁移时自动调用；D1 恢复流仍为手动停（未接此自动停，可作后续统一）；
 - `VACUUM INTO` 一致快照 / 整库 copy；`-wal`/`-shm` 旁文件清理；`inspectBackup`（完整性 + 三契约表断言 + 计数/区间）；
 - `*.pre-restore.bak` 先备份 + 失败回滚（`database_manager.cpp:735` 起 D1 三方法）。
 
@@ -86,9 +88,12 @@ S1 跨进程 DB 路径指针(契约扩展; 须 CHARTER I2 修订 + 提案 + 服�
   回退默认 + 告警（**不 split-brain、不空库假象**）；服务 smoke 覆盖「config 读 db_path」。
 
 ### S2 — UI 迁移流（复用 D1 原语 · 主要非冻结 · Track B）
-> **状态：✅ 已实装**（同上 session）。`DatabaseManager::relocateDatabaseTo` / `restoreDefaultDatabaseLocation`
-> （`VACUUM INTO` → `inspectBackup` → 锁探旧库 → 原子 RMW 写指针保 H5 键 → 重开 → 回滚）+ 设置页
-> 「数据库位置」卡 + FolderDialog + 还原默认；`db_smoke` 往返 + 真 UI 抓图验过。
+> **状态：✅ 已实装**（同上 session + fix a83c54f）。`DatabaseManager::relocateDatabaseTo` /
+> `restoreDefaultDatabaseLocation`（`VACUUM INTO` → `inspectBackup` → 锁探旧库 → 原子 RMW 写指针保 H5 键
+> → 重开 → 回滚）+ 设置页「数据库位置」卡 + FolderDialog + 还原默认；`db_smoke` 往返 + 真 UI 抓图验过。
+> **修正下文「引导用开关停」**：迁移**自动**先停采集＝`SettingsRepository::stopBackgroundCollection`
+> （`time-arc-service.exe --stop` 优雅停 + 轮询 `--status` 到 `running=no`），不靠用户手动——「开机自动在后台采集」
+> 开关只管登录自启注册、**不停运行中的采集**，原计划那条引导是错的。
 **目标**：从设置页一键把整库安全搬到用户所选目录，**先搬+校验新库 → 再切指针 → 后删旧库**，全程可回滚。
 - 设置页（`DesktopProfilePage.qml`，并入「导入导出」或新「数据位置」卡）：选目录（folder dialog）→ 校验可写 +
   剩余空间（`QStorageInfo`）→ **要求先停后台采集**（同 D1 限制：无 in-app 一键停，引导用开关停；service 持锁则诚实失败）→
@@ -100,9 +105,10 @@ S1 跨进程 DB 路径指针(契约扩展; 须 CHARTER I2 修订 + 提案 + 服�
 - 变更提案：S1 已覆盖（S2 是 UI 消费侧）。
 - 验收：**往返迁移**真机（默认 → 自定义 → 还原默认），真 service + 真 UI 两进程都跟随、数字不丢；坏路径 fail-safe。
 
-### S3 — 预设 / 还原默认 / 盘符守卫（未来 · 本轮不做）
-- 路径预设、一键「还原默认位置」、网络/可移动盘迁移后消失时 fail-safe 回退默认 + 告警、OneDrive 重定向守卫、
-  剩余空间预警。列为后续。
+### S3 — 预设 / 盘符守卫（未来 · 本轮不做）
+- **已在 S2 落地**：一键「还原默认位置」、基本剩余空间校验（DB 大小 + 64MB 余量）、不可写父目录 fail-safe 回退默认。
+- **仍待做**：路径预设、网络/可移动盘迁移后消失的**专门**告警 UX（当前靠通用 fail-safe 回退默认）、OneDrive 重定向守卫、
+  迁移前主动的剩余空间预警 UI。列为后续。
 
 ---
 
