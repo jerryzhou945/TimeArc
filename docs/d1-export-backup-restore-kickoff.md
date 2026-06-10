@@ -67,7 +67,7 @@ S1 整库备份(VACUUM INTO 一致快照) ──> S2 校验 + 恢复(停服 + .p
 
 ## 2. 多 session 拆分（逐张范围卡）
 
-### S1 — 整库备份（MVP 纵切 · 无冻结改动 · Track B）
+### S1 — 整库备份（MVP 纵切 · 无冻结改动 · Track B） · ✅ 已实装（PR #40，2026-06-10）
 **目标**：一键把整个 `timearc.db` 导出成一份**一致**的单文件备份到用户可见目录，只读、不扰动 live。
 - C++（折进 `database_manager.{h,cpp}`）：`Q_INVOKABLE QString backupDatabase()`。
   - 用 **`VACUUM INTO 'dst'`**（**不是** `QFile::copy`）——产出单文件一致快照，隐式 checkpoint WAL 进副本，避免漏掉
@@ -84,7 +84,7 @@ S1 整库备份(VACUUM INTO 一致快照) ──> S2 校验 + 恢复(停服 + .p
   `PRAGMA integrity_check` = `ok`、三张契约表 `apps/frontmost_sessions/media_sessions` 行数与源库一致；
   `python .harness/tools/scan_qt_log.py`；PrintWindow-by-PID 抓设置页（min 1280×720 + 最大化）；`harness_check` exit 0。
 
-### S2 — 校验 + 恢复（敏感纵切 · 无冻结改动 · Track B）
+### S2 — 校验 + 恢复（敏感纵切 · 无冻结改动 · Track B） · ✅ 已实装（PR #40，2026-06-10）
 **目标**：从一份备份 `.db` 安全恢复整库，**先校验、先自备份、停服协调、提示重启**，绝不在不确定时假成功。
 - C++（折进 `database_manager.{h,cpp}`）：
   - `Q_INVOKABLE QVariantMap inspectBackup(const QString& path)`：**只读**打开候选库（独立连接名，结束即关）→

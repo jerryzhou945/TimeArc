@@ -87,7 +87,7 @@ G2/G3 打磨 ───────────(随手)
   音频、单实例守卫。Track B · Linux · 大。
 
 ### D. 数据运维（UI · 跨平台 · 依赖 **A1-S1**：库文件已落地、服务已 dual-write SQLite；**不依赖** UI 读侧翻转 S2/S4）
-- [~] **D1 导出 / 备份 / 恢复（SQLite 数据）— kickoff 已产出** — Track B · 依赖 A1-S1（仅需 `timearc.db` 已存在，**不依赖读侧翻转**；现状只有偏好/报告 JSON 导出，**无整库备份/恢复**）· 中 · 提案：否（不碰 I2）。逐 session 拆分（S1 备份 `VACUUM INTO` 一致快照 → S2 校验+恢复 停服+`.pre-restore.bak`+重启 → S3 保留/自动备份未来）见 [`d1-export-backup-restore-kickoff.md`](d1-export-backup-restore-kickoff.md)。
+- [x] **D1 导出 / 备份 / 恢复（SQLite 数据）— S1+S2 实装（PR #40）** — Track B · 依赖 A1-S1 · 中 · 提案：否（不碰 I2）。`DatabaseManager::backupDatabase`（`VACUUM INTO` 一致快照）+ `inspectBackup`（只读校验：完整性 + 三契约表 + 计数/时间区间）+ `restoreDatabase`（停服协调 + `.pre-restore.bak` 回滚 + 换库 + emit databaseRestored 重启提示），设置页「数据库备份与恢复」卡 + `db_smoke` 往返/坏文件用例。S3 保留/自动备份未做。见 [`d1-export-backup-restore-kickoff.md`](d1-export-backup-restore-kickoff.md)。
 - [ ] **D2 用户可选数据库路径的安全迁移流** — Track B · 依赖 A1-S1（库路径现写死 `AppDataLocation/timearc.db`，无 setter/迁移；若含「迁移后全程改读新路径」则与 S4 的 `usage_paths` db 访问器同一冻结点耦合）· 中（仅当 user-selectable 数据位置成需求）。
 
 ### E. AI / Daily Cards 隐私管线（**产品门控** · 跨平台 · 须产品先拍板）
