@@ -88,7 +88,7 @@ G2/G3 打磨 ───────────(随手)
 
 ### D. 数据运维（UI · 跨平台 · 依赖 **A1-S1**：库文件已落地、服务已 dual-write SQLite；**不依赖** UI 读侧翻转 S2/S4）
 - [ ] **D1 导出 / 备份 / 恢复（SQLite 数据）** — Track B · 依赖 A1-S1（仅需 `timearc.db` 已存在，**不依赖读侧翻转**；现状只有偏好/报告 JSON 导出，**无整库备份/恢复**）· 中。
-- [ ] **D2 用户可选数据库路径的安全迁移流** — Track B · 依赖 A1-S1（库路径现写死 `AppDataLocation/timearc.db`，无 setter/迁移；若含「迁移后全程改读新路径」则与 S4 的 `usage_paths` db 访问器同一冻结点耦合）· 中（仅当 user-selectable 数据位置成需求）。
+- [~] **D2 用户可选数据库路径的安全迁移流 — kickoff 已产出** — Track B · 依赖 A1-S1 + **D1 迁移原语** + **H5 服务配置通道（同 `usage_config.json`，待签核）** · 中 · **提案：是（碰 I2，须 CHARTER 修订 + 服务构建流水线）**。库路径在两处非冻结代码各自硬编码（service `usage_storage.c::make_db_path`、UI `database_manager.cpp::databasePath`），但路径值是 I2 明文不变量；难点＝两进程同源读「db 路径指针」（落 `usage_config.json` `db_path` 键，缺失回退默认 fail-safe）。逐 session 拆分（S1 跨进程指针+I2 修订门控 → S2 UI 迁移流 → S3 预设/还原默认）见 [`d2-database-path-migration-kickoff.md`](d2-database-path-migration-kickoff.md)。**门控：下一步是送签变更提案，非直接写码。**
 
 ### E. AI / Daily Cards 隐私管线（**产品门控** · 跨平台 · 须产品先拍板）
 > 已实现（C++）：六种本地确定性卡（`build*Card`：mainline/top_apps/focus_block/entertainment/contrast/random_flip，`aiGenerated:false`）+ 活动分段器（`segmentFocusBlocks`/`taskBlocks`）+ 关键词分类器（`classifyApp`）。**注**：`getTodayCards()` / `DesktopDailyCardView.qml` **未接进任何 QML（零调用 / 零实例化，死路径）**；实际上线 UI 走记忆湖路径 `memoryLakeDay`/`memoryLakeRecap`（复用同一分类器 + 分段器）。以下为剩余、且受 CLAUDE.md AI 硬边界门控。

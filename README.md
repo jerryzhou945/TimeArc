@@ -568,7 +568,10 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       and a confirmed-summary AI pass.
 - [ ] Add export/backup and restore flows for SQLite-backed desktop data.
 - [ ] Add a safe database-path migration flow if user-selectable data
-      locations become a product requirement.
+      locations become a product requirement. Planned in
+      `docs/d2-database-path-migration-kickoff.md` (a cross-process db-path
+      pointer in `usage_config.json` + a stop/move/repoint/restart migration);
+      gated on a CHARTER I2 amendment and the service-config channel sign-off.
 - [ ] Expand local memo management only as local/offline tooling; do not
       describe it as AI chat unless an actual AI feature is added later.
 - [ ] Add UTF-8 validation to `usage_storage.c::write_json_string`.
