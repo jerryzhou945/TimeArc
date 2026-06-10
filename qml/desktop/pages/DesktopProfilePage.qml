@@ -331,7 +331,8 @@ Item {
         var json = buildSettingsJson()
         if (!json || json.length === 0) { showToast("导出失败：序列化错误"); return }
         var p = usageStatManager.exportReport("timearc-settings", json)
-        showToast(p && p.length > 0 ? "设置 JSON 已导出" : "导出失败")
+        if (p && p.length > 0) root.showSavedAt("设置 JSON 已导出", p)
+        else showToast("导出失败")
     }
     function copySummary() {
         clipHelper.text = "TimeArc 设置摘要：" + (root.nightMode ? "暗玻璃主题" : "白天浅瓷主题")
@@ -386,12 +387,25 @@ Item {
         } catch (e) { showToast("JSON 文件格式不正确") }
     }
 
+    // 成功保存反馈：在持久确认卡里显示完整路径（toast 单行 + 1.5s 装不下长路径，用户找不到文件），
+    // 并给「打开文件夹」按钮用资源管理器定位（Qt.openUrlExternally 打开所在目录）。
+    function _folderUrlOf(p) {
+        var s = ("" + p).replace(/\\/g, "/")
+        var i = s.lastIndexOf("/")
+        var dir = (i > 0) ? s.substring(0, i) : s
+        return "file:///" + dir
+    }
+    function showSavedAt(title, p) {
+        root.askConfirm(title, "已保存到：\n" + p, "打开文件夹", false,
+            function () { Qt.openUrlExternally(root._folderUrlOf(p)) })
+    }
     // D1 备份（整库）：C++ backupDatabase 用 VACUUM INTO 取一致快照写 下载/文档/AppData，
     // 只读、不扰 live；返回完整路径或空串（失败诚实报错 G6）。
     function doBackupDatabase() {
         if (!databaseManager || !databaseManager.backupDatabase) { showToast("备份暂不可用"); return }
         var p = databaseManager.backupDatabase()
-        showToast(p && p.length > 0 ? ("数据库已备份：" + p) : "备份失败")
+        if (p && p.length > 0) root.showSavedAt("数据库已备份", p)
+        else showToast("备份失败")
     }
     // D1 恢复（整库）：选备份 → 只读校验预览（坏文件直接拒）→ 危险二次确认 → 替换库。
     function _unixDate(s) { return (s && s > 0) ? Qt.formatDate(new Date(s * 1000), "yyyy-MM-dd") : "—" }
@@ -1438,7 +1452,7 @@ Item {
                 }
                 Text {
                     text: confirmCard.msgText; color: ml.textSecondary
-                    font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.WordWrap; lineHeight: 1.35
+                    font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap; lineHeight: 1.35
                 }
                 RowLayout {
                     Layout.fillWidth: true

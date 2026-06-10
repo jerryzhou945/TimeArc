@@ -50,6 +50,10 @@ validated restore, with tests. S3 (retention/auto-backup) is out of scope.
 - Files: database_manager.{h,cpp}, DesktopProfilePage.qml, tests/db_smoke.cpp, README.md,
   docs/implementation-backlog.md, docs/d1-export-backup-restore-kickoff.md, .harness/state/open-issues.md.
 - Frozen files touched: none (no change proposal; D1 does not touch I2).
+- Follow-up fix (17:40): backup + JSON-export success now show the FULL path in the persistent
+  confirm card (with 打开文件夹 → Qt.openUrlExternally) instead of a 1.5s single-line toast that
+  clipped long paths; confirm-card msgText WordWrap→Wrap so spaceless paths wrap. Users couldn't
+  find the saved file before. (DesktopProfilePage.qml only.)
 - Follow-ups: D1 S3 (retention / auto-backup) deferred.
 
 ## Notes for the next agent
