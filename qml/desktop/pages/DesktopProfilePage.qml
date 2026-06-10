@@ -429,6 +429,36 @@ Item {
         // 成功路径由 databaseManager.databaseRestored 信号触发重启提示
     }
 
+    // D2 数据位置：选目录把整库迁到用户所选目录（更大磁盘 / 同步盘），并切换两进程共用的
+    // usage_config.json db_path 指针。C++ relocateDatabaseTo 负责原子序（搬+校验新库 → 确认旧库
+    // 未被占用 → 切指针 → 重开 → 任一步失败回滚），UI 只做确认 + 结果反馈（诚实失败 G6）。
+    function dbLocationText() {
+        return (databaseManager && databaseManager.currentDatabaseLocationDir)
+            ? ("" + databaseManager.currentDatabaseLocationDir()) : "—"
+    }
+    function onDbFolderChosen(folderUrl) {
+        if (!databaseManager || !databaseManager.relocateDatabaseTo) { showToast("迁移暂不可用"); return }
+        root.askConfirm("迁移数据库位置",
+            "将把整个使用数据库迁移到所选目录，并切换两进程的数据库位置指针。\n迁移前请先停止后台采集（设置 → 隐私与数据 → 开机自动在后台采集），否则会因数据库被占用而失败。",
+            "迁移", true, function () { root._afterRelocate(databaseManager.relocateDatabaseTo("" + folderUrl)) })
+    }
+    function doRestoreDefaultLocation() {
+        if (!databaseManager || !databaseManager.restoreDefaultDatabaseLocation) { showToast("迁移暂不可用"); return }
+        root.askConfirm("还原默认数据库位置",
+            "将把数据库迁回默认位置并清除位置指针。迁移前请先停止后台采集。",
+            "还原", true, function () { root._afterRelocate(databaseManager.restoreDefaultDatabaseLocation()) })
+    }
+    function _afterRelocate(res) {
+        if (res && res.ok) {
+            root.askConfirm("迁移成功",
+                "数据库已迁移到：\n" + res.newPath
+                    + "\n\n需要重启应用（并重启后台采集）以让两进程加载新位置，是否立即退出？",
+                "立即退出", false, function () { Qt.quit() })
+        } else {
+            showToast(res && res.error ? ("迁移失败：" + res.error) : "迁移失败")
+        }
+    }
+
     FileDialog {
         id: importDialog
         title: "导入设置 JSON"
@@ -441,6 +471,12 @@ Item {
         title: "选择数据库备份"
         nameFilters: ["数据库备份 (*.db)", "所有文件 (*)"]
         onAccepted: root.onRestoreFileChosen(selectedFile)
+    }
+
+    FolderDialog {
+        id: dbFolderDialog
+        title: "选择数据库存放目录"
+        onAccepted: root.onDbFolderChosen(selectedFolder)
     }
 
     // 恢复成功后（C++ emit databaseRestored）：引导重启以加载新数据（UI 缓存未热更）。
@@ -1343,6 +1379,45 @@ Item {
                                     spacing: 10
                                     GhostBtn { label: "备份数据库"; primary: true; onTapped: root.doBackupDatabase() }
                                     GhostBtn { label: "恢复数据库"; danger: true; onTapped: restoreDialog.open() }
+                                }
+                            }
+
+                            // D2：数据库位置（用户可选目录 + 安全迁移 + 还原默认）
+                            SettingsCard {
+                                badge: "⇧"; wide: true
+                                cardTitle: "数据库位置"
+                                cardDesc: "把整个使用数据库迁到所选目录（更大的磁盘 / 同步盘），并切换两进程共用的位置指针；全程安全可回滚。迁移前请先停止后台采集。"
+                                keywords: "数据库 位置 迁移 路径 磁盘 db_path 重定向 relocate 移动"
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: dbLocCol.implicitHeight + 24
+                                    radius: 14
+                                    color: ml.calSunkBg
+                                    border.width: 1; border.color: ml.cellHair
+                                    Column {
+                                        id: dbLocCol
+                                        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
+                                        spacing: 3
+                                        Text { text: "当前位置"; color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
+                                        Text {
+                                            text: root.dbLocationText()
+                                            color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold
+                                            width: parent.width; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideMiddle
+                                        }
+                                    }
+                                }
+                                Flow {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+                                    GhostBtn { label: "迁移到…"; primary: true; onTapped: dbFolderDialog.open() }
+                                    GhostBtn {
+                                        label: "还原默认位置"
+                                        opacity: enabled ? 1 : 0.45
+                                        enabled: !!(databaseManager && databaseManager.isUsingCustomDatabaseLocation
+                                                    && databaseManager.isUsingCustomDatabaseLocation())
+                                        onTapped: root.doRestoreDefaultLocation()
+                                    }
                                 }
                             }
 
