@@ -16,14 +16,26 @@ Root directory from `usage_paths.c`:
 
 | Filename                  | Writer                      | Reader         | Shape                               |
 |---------------------------|-----------------------------|----------------|-------------------------------------|
-| `usage_records.jsonl`     | service (append)            | legacy UI/import | one JSON record per line, UTF-8   |
+| `timearc.db`              | service + UI SQLite writers  | **UI (primary history read)** | app/session/settings tables (SQLite) |
+| `usage_records.jsonl`     | service (append)            | UI fallback / import | one JSON record per line, UTF-8 |
 | `usage_current.json`      | service (atomic overwrite)  | UI (poll read) | single JSON record + `live`, `updated_unix_sec` |
-| `timearc.db`              | UI + service SQLite writers | UI DB layer    | app/session/settings tables         |
 
-SQLite is now partially enabled for the database layer. The Qt app uses
-`QStandardPaths::AppDataLocation`; the Windows service mirrors that path as
-`%APPDATA%\TimeArc\TimeArc\timearc.db`. JSONL and the live snapshot remain
-active during the transition, so SQLite is not yet the sole primary source.
+SQLite (`timearc.db`) is the UI's **primary** history source as of A1
+(`CHARTER` v0.2). The Qt app uses `QStandardPaths::AppDataLocation`; the Windows
+service mirrors that path as `%APPDATA%\TimeArc\TimeArc\timearc.db`. The service
+still **dual-writes** JSONL (append-only) as a fallback, and the UI falls back
+to JSONL when the DB is missing/empty (and can be forced via
+`TIMEARC_USAGE_SOURCE=jsonl`). The live snapshot stays JSON (no SQLite
+equivalent). Canonical shared-table DDL is owned by `database_manager.cpp`; the
+service inline DDL must stay column-compatible (asserted by `tests/db_smoke.cpp`).
+The enable-before JSONL tail was backfilled once into SQLite (idempotent,
+`usage_jsonl_backfill_v1_done`). JSONL retirement is a future milestone (A1 S5).
+
+**DB path (D2, `CHARTER` v0.3).** The `timearc.db` path above is the **default** and is
+**redirectable** to a user-chosen location via the `db_path` key in `usage_config.json`,
+read identically by the service (`make_db_path`) and the UI (`databasePath`), with a
+fail-safe fallback to the default when absent/unreadable. Relocation runs with the
+service stopped and keeps a backup (see invariant D1).
 
 ## 2. Record shape
 

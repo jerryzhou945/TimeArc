@@ -38,7 +38,7 @@ F1 动态 Qt ──> F2 许可证页 ─(临近发版里程碑)
 G2/G3 打磨 ───────────(随手)
 ```
 
-优先级直觉：**A1 是地基**（解锁 D1/D2，也是 README 头号 "important limit"）；**B1** 自包含可并行；
+优先级直觉：**A1 是地基**，S1–S4 已落地并合并（SQLite 升 UI 主历史读源 + 回填 + 翻转，`CHARTER` v0.2）——**D1/D2（导出-备份 / DB 路径迁移）已解锁**，A1 仅剩 **S5**（退役 JSONL 写入，未来发版）；**B1**（Windows 用户会话自启 Route A）亦已实装合并、Route B 暂缓；
 **E\*** 最大最敏感、门控；**C/F** 按平台/发版节奏。
 设置页剩余（**§H**）：**H1 时间格式**可随手做（P1，注意散落已验收页）；**H5 服务侧配置**须先过已填提案的签核；
 **H3/H4**（强调色全局 + i18n）= 产品门控 **3E**；**H2** 依赖先有「分享图导出」特性；**H6** 受 QML 天花板、保留占位。
@@ -48,23 +48,33 @@ G2/G3 打磨 ───────────(随手)
 ## 2. 清单（按子系统）
 
 ### A. 存储 / 数据层（keystone · 跨平台 · UI+service 共享契约）
-- [ ] **A1 完成 SQLite 迁移为主数据源 + JSONL 回填**
-  现状：service 侧 `timearc_storage_init_sqlite` / `write_sqlite` 是 no-op；UI 侧 SQLite 已承载
-  projects/sessions/calendar/settings/memo，但**自动前台/音频使用仍走 JSONL + live JSON 快照**，
-  且旧 QSettings 迁移后保留未删。剩余：让自动 usage 也以 SQLite 为主源 + 一次性 JSONL→SQLite
-  回填/迁移器 + JSONL 退役为历史/可选。
-  Track B（大，**拆多 session**）· 平台跨 · 依赖：无（但 D1/D2 依赖它）·
-  **变更提案：是**（碰冻结磁盘契约 `rules/03` §4、`usage_record.*`/`data_bridge.h`/`usage_paths.*`）·
-  纵切：先「读旧 + 双写校验」→ 再切主源 → 再退役 JSONL · **建议 kickoff 文档**。
+- [~] **A1 SQLite 升主数据源 + JSONL 回填 — S1–S4 已完成（`CHARTER` v0.2）**；见
+  [`a1-sqlite-storage-migration-kickoff.md`](a1-sqlite-storage-migration-kickoff.md) + 实现 log
+  `.harness/journal/sessions/20260609-1643-B-a1-sqlite-primary-impl.md`。
+  - [x] **S1** 对齐去过时：去 stub 注释 + `db_smoke` schema-parity 断言（仅 UI DDL）+ DatabaseManager 路径不等告警。
+  - [x] **S2** UsageStatManager 加 SQLite 读源（folded、flag）+ 双读 parity 自检（保 D5/增量守卫/读层过滤/live）。
+  - [x] **S3** 一次性回填全部 JSONL（`.bak`+事务+**按唯一键对账非行数**+幂等 `usage_jsonl_backfill_v1_done`；stage-all 不靠 start 阈值，防乱序音频漏）。
+  - [x] **S4** 翻转主源 SQLite（JSONL 兜底）+ `CHARTER` I2 修订（timearc.db 升一等主契约）+ 版本 v0.1→v0.2 + `rules/03`。
+  - [ ] **S5（本轮不做）** 退役 JSONL 写入 + 移除 UI JSONL 读路径 + 最终 `rules/03` 修订 +（可选）删遗留 QSettings。
+  实测：回填后 SQLite==JSONL（week/month/year/all 全 diff 0、记录 53108==53108）。Track B · 平台跨 · `usage_paths` db 访问器未加。
 - [ ] **A2 跨天手动 session 按天拆分/分摊**
   现状：靠重叠区间查询保留，未按天 split/prorate。Track B · UI(`project_manager`) · 中 · 提案：否。
 
 ### B. Windows 服务硬化（**Windows 专属** · service 侧 C）
-- [ ] **B1 注册为真正的 Windows 服务（SCM）**
-  现状：`src/service/windows/service/win_service.c` 三个 TODO stub；当前是前台 console exe。
-  Track B · Windows · 自包含、不阻塞 UI · 提案：若新增源/动 service CMake 则需 · 纵切：先 install/
-  start/stop 三动作打通。
-- [ ] **B2 `write_json_string` 加 UTF-8 校验**（`usage_storage.c` TODO；跨平台同步前必须）
+- [x] **B1 注册为真正的 Windows 服务（SCM）· Route A 已实装（S1+S2）** — **kickoff：见
+  [`b1-windows-service-scm-kickoff.md`](b1-windows-service-scm-kickoff.md)（Session 0 隔离陷阱 + 产品路线决策门 +
+  S0/S1/S2 与 Route B SB1–SB3 范围卡）。决策（2026-06-09，维护者拍板）：先走 Route A。已实装（PR #37）：
+  S1 生命周期动词（install/uninstall/start/stop/status）+ 用户会话登录自启（schtasks，HKCU Run 退路）+ `Local\TimeArcStop`
+  停采集通道；S2 设置页「开机自动在后台采集」开关 + 文档同步；本机真机验收全绿（InteractiveToken 任务、优雅停、干净卸载）。Route B 仍暂缓。**
+  实装前现状（已被本 PR 取代，见上）：`src/service/windows/service/win_service.c:3-16` 曾是三个 TODO stub（全 `return -1`）、前台 console exe，由 UI
+  `src/main.cpp::startUsageService`（`startDetached`）在**用户会话**里拉起。
+  **关键校正**：「真正的 SCM 服务」若按朴素 `CreateService`+LocalSystem 实现会落 **Session 0**，使前台/空闲/音频/媒体
+  采集全空、数据写错 profile（采集全链路依赖 per-session API + 用户 env，见 kickoff §0.3）——**真不变量是「tracker 必须
+  跑在交互式用户会话」**。**已选 Route A（用户会话登录自启，无管理员、零冻结改动）**为 MVP；Route B（SCM session-broker
+  真服务）门控、需管理员 + 链 `advapi32/wtsapi32/userenv`（动冻结 `src/service/CMakeLists.txt`）+ 修订 CHARTER I1，暂缓。
+  Track B · Windows · 自包含、可与 A1 并行（不碰 I2 数据契约）· 提案：Route A 否 / Route B 是 · 纵切：见 kickoff §2
+  （动词面 install/start/stop/uninstall/status 为稳定 CLI 契约）。
+- [ ] **B2 `write_json_string` 加 UTF-8 校验**（`usage_storage.c:140-175` 仅做 JSON 转义、未校验输入字节是否为合法 UTF-8 序列；**源内并无 TODO 注释**——旧述「usage_storage.c TODO」不实，全仓唯一 "UTF-8" 字样即本条；跨平台同步前必须）
   Track A/C · Windows/shared · 小 · 可随任意 service session 捎带。
 - [ ] **B3（可选低优）Windows `rename` 非原子覆盖**（`usage_storage.c` 现先 `remove`）——转 SQLite WAL 时再 revisit。
 
@@ -76,12 +86,12 @@ G2/G3 打磨 ───────────(随手)
   现状：`src/service/linux/main.c` 0 字节。需 X11 + Wayland 前台采样、idle 检测、PipeWire/PulseAudio
   音频、单实例守卫。Track B · Linux · 大。
 
-### D. 数据运维（UI · 跨平台 · 依赖 A1）
-- [ ] **D1 导出 / 备份 / 恢复（SQLite 数据）** — Track B · 依赖 A1 · 中。
-- [ ] **D2 用户可选数据库路径的安全迁移流** — Track B · 依赖 A1 · 中（仅当 user-selectable 数据位置成需求）。
+### D. 数据运维（UI · 跨平台 · 依赖 **A1-S1**：库文件已落地、服务已 dual-write SQLite；**不依赖** UI 读侧翻转 S2/S4）
+- [x] **D1 导出 / 备份 / 恢复（SQLite 数据）— S1+S2 实装（PR #40）** — Track B · 依赖 A1-S1 · 中 · 提案：否（不碰 I2）。`DatabaseManager::backupDatabase`（`VACUUM INTO` 一致快照）+ `inspectBackup`（只读校验：完整性 + 三契约表 + 计数/时间区间）+ `restoreDatabase`（停服协调 + `.pre-restore.bak` 回滚 + 换库 + emit databaseRestored 重启提示），设置页「数据库备份与恢复」卡 + `db_smoke` 往返/坏文件用例。S3 保留/自动备份未做。见 [`d1-export-backup-restore-kickoff.md`](d1-export-backup-restore-kickoff.md)。
+- [x] **D2 用户可选数据库路径的安全迁移流 — S1+S2 实装（PR #41，`CHARTER` I2 → v0.3）** — Track B · 依赖 A1-S1 + **D1 迁移原语** · 中 · **提案：是（碰 I2，已签核 `20260610-1705`）**。**S1 跨进程指针**：`usage_config.json` 加 `db_path` 键，service `make_db_path`（vendored Parson，无 CMake 改动）与 UI `databasePath()`（QJsonDocument）**同源读取** + 等价校验（非空 + 父目录可建/可写）+ 缺失/坏值/不可写父目录回退默认 + 一次性告警（fail-safe，不 split-brain）。**S2 UI 迁移流**：`relocateDatabaseTo` / `restoreDefaultDatabaseLocation`（`VACUUM INTO` 新库 → `inspectBackup` 校验 → 锁探旧库 → 原子 RMW 写指针（保 H5 键）→ 重开 → 任一步回滚），设置页「数据库位置」卡 + FolderDialog + 还原默认。验证：`db_smoke`（S1 三态 + S2 往返）+ 真 service E2E（`make_db_path` 读指针建库）+ 真 UI 抓图。S3（预设/盘符守卫）未做。见 [`d2-database-path-migration-kickoff.md`](d2-database-path-migration-kickoff.md)。
 
 ### E. AI / Daily Cards 隐私管线（**产品门控** · 跨平台 · 须产品先拍板）
-> 已 ship：六种本地确定性卡 + 活动分段器 + 关键词分类器（`aiGenerated:false`）。以下为剩余、且受 CLAUDE.md AI 硬边界门控。
+> 已实现（C++）：六种本地确定性卡（`build*Card`：mainline/top_apps/focus_block/entertainment/contrast/random_flip，`aiGenerated:false`）+ 活动分段器（`segmentFocusBlocks`/`taskBlocks`）+ 关键词分类器（`classifyApp`）。**注**：`getTodayCards()` / `DesktopDailyCardView.qml` **未接进任何 QML（零调用 / 零实例化，死路径）**；实际上线 UI 走记忆湖路径 `memoryLakeDay`/`memoryLakeRecap`（复用同一分类器 + 分段器）。以下为剩余、且受 CLAUDE.md AI 硬边界门控。
 - [ ] **E1 敏感应用隐私过滤器** — Track B · 门控 · 进 AI 前的前置。
 - [ ] **E2 用户可编辑类目**（覆盖/扩展分类器桶）— Track B。
 - [ ] **E3 卡片持久化** — Track B。
@@ -94,9 +104,10 @@ G2/G3 打磨 ───────────(随手)
 - [ ] **F2 in-app 第三方许可证页面**（surfacing 所有 third-party 文本，`rules/06` §4）— Track B。
 
 ### G. 配置 / 打磨 / 杂项
-- [ ] **G1 用户偏好外置为可编辑配置 + 接 Parson**（Parson 已 vendored 未用）— Track B · 小-中。
+- [ ] **G1 用户偏好外置为可编辑配置 + 接 Parson**（Parson 已 vendored 且已链接进 app/service 目标、但 src 零调用）— Track B · 小-中 · 备注：设置页约 30 项偏好走 SQLite `settings` 表（`SettingsRepository`），是 SQLite KV、**非人类可编辑磁盘文本、不经 Parson，不满足本项**（本项指人类可编辑磁盘配置文件 + Parson 解析）；与 **H5** 服务侧 `usage_config.json` 提案范畴相邻（H5 是服务 idle/track 运行配置、复用 `SettingsRepository` 非 Parson），宜交叉引用。
 - [ ] **G2 富化本地 memo 管理**（仅本地/离线，**不得**描述为 AI chat）+ memo 延期项（§A #11–14：
-  番茄钟声音/工休循环/进度环、键盘切工具、conic-aura shader）— Track B · 小。
+  番茄钟声音 / 工作-休息循环 / 环形进度环 / 键盘快捷切工具）— Track B · 小。
+  〔修正：原列「conic-aura shader」已移除——它不属 §A #11–14，且 conic 光环（`PomodoroCompleteOverlay.qml`）+ 运行 aura 辉光（`PomodoroWidget.qml:205`）均已用 Canvas/动画实装、故意不用 shader。〕
 - [ ] **G3 Win11 snap-layouts fly-out**（原生 `WM_NCCALCSIZE`/`WM_NCHITTEST` pass，frameless Step 2 延期）—
   Track B · Windows · 见 agent memory `timearc-frameless-window`。
 
@@ -125,7 +136,7 @@ G2/G3 打磨 ───────────(随手)
   Track B · UI · 低/不做。
 
 ### M. 移动端（**超本次范围 · 低优 · 独立 arc**）
-- [ ] **M1 Memory Lake / 统计 等页的移动端等价**（桌面已 done；移动端大多未接真实数据）— Track B · 跨。
+- [ ] **M1 Memory Lake / 统计 等页的移动端等价**（桌面 `DesktopStatsPage`/`DesktopMemoryLakePage` 已 done 且接只读真实后端；移动端 `qml/mobile/pages/` 仅 Home/Stats/History/Settings 四页、**全部字面 mock、零 backend manager**（`MobileAppShell` 仅注入 `mobileTheme`），且**无记忆湖移动页**——须从零新建）— Track B · 跨。
 
 ---
 

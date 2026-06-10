@@ -1,16 +1,18 @@
 #include "data_bridge.h"
+#include "service/win_service.h"
 #include "tracker/usage_tracker.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 #include <stdio.h>
+#include <string.h>
 
 // Windows 采集进程入口。
 //
 // 当前实现还是前台控制台程序：启动后初始化存储、进入 tracker 轮询循环，
-// Ctrl+C/关闭控制台时请求 tracker 收尾。后续改成真正的 Windows 服务时，
-// 这里会和 Service Control Manager 的入口衔接。
+// Ctrl+C/关闭控制台时请求 tracker 收尾。生命周期动词（--install 等）由
+// service/win_service.c 处理，让采集留在用户会话（B1 Route A）。
 static BOOL WINAPI console_handler(DWORD event_type) {
   switch (event_type) {
     case CTRL_C_EVENT:
@@ -25,12 +27,34 @@ static BOOL WINAPI console_handler(DWORD event_type) {
   }
 }
 
-int main(void) {
+// 生命周期动词分派（B1 Route A）。无参 = 今天的前台/会话内 tracker（向后兼容，
+// UI auto-spawn 仍可用）；动词经 win_service 注册/查询/启停用户会话登录自启项。
+static int dispatch_verb(const char* verb) {
+  if (strcmp(verb, "--install") == 0) return timearc_win_service_install();
+  if (strcmp(verb, "--uninstall") == 0) return timearc_win_service_uninstall();
+  if (strcmp(verb, "--start") == 0) return timearc_win_service_start();
+  if (strcmp(verb, "--stop") == 0) return timearc_win_service_stop();
+  if (strcmp(verb, "--status") == 0) return timearc_win_service_status();
+  if (strcmp(verb, "--run-service") == 0) return timearc_win_service_run();
+
+  fprintf(stderr,
+          "TimeArc usage service\n"
+          "usage: time-arc-service "
+          "[--install|--uninstall|--start|--stop|--status]\n"
+          "  (no args)   run the foreground user-session tracker\n");
+  return 2;
+}
+
+int main(int argc, char** argv) {
+  if (argc >= 2) {
+    return dispatch_verb(argv[1]);
+  }
+
   SetConsoleCtrlHandler(console_handler, TRUE);
 
   // 防止同时启动多个采集进程。否则多个进程会同时写 usage_records.jsonl
   // 和 usage_current.json，历史记录与实时状态都会变得不可预测。
-  HANDLE instance_mutex = CreateMutexA(NULL, TRUE, "Local\\TimeArcUsageService");
+  HANDLE instance_mutex = CreateMutexA(NULL, TRUE, TIMEARC_INSTANCE_MUTEX_NAME);
   if (instance_mutex == NULL) {
     fprintf(stderr, "failed to create TimeArc service mutex\n");
     return 1;

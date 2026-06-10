@@ -21,6 +21,19 @@ static int should_stop(void) {
   return InterlockedCompareExchange(&g_stop_requested, 0, 0) != 0;
 }
 
+// 在一个轮询周期内等待停机事件。语义等价于既有 Sleep(ms)，但能即时响应独立
+// `--stop` 进程的 SetEvent（不必等满一个周期）。事件置位即请求停机，主循环下一
+// 轮的 should_stop() 处自然退出、走既有 flush。事件为 NULL 时退化为纯 Sleep。
+static void tracker_wait(HANDLE stop_event, DWORD ms) {
+  if (stop_event != NULL) {
+    if (WaitForSingleObject(stop_event, ms) == WAIT_OBJECT_0) {
+      timearc_usage_tracker_request_stop();
+    }
+    return;
+  }
+  Sleep(ms);
+}
+
 static int64_t unix_time_sec(void) {
   FILETIME ft;
   GetSystemTimeAsFileTime(&ft);
@@ -82,6 +95,13 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
     }
   }
 
+  // 停采集通道（B1 Route A）：除 console_handler 外另开一个具名事件，让独立的
+  // `--stop` 进程能请求优雅停机（OpenEvent+SetEvent）。今天 tracker 是 UI
+  // detached-spawn 的无控制台进程，兄弟进程无法对它投递 CTRL，故必须有这条事件
+  // 通道才能优雅停（详见 docs/b1-windows-service-scm-kickoff.md §4.4）。手动重置，
+  // 置位后保持；创建失败则退化为仅 console_handler 可停（不影响采集本身）。
+  HANDLE stop_event = CreateEventA(NULL, TRUE, FALSE, TIMEARC_STOP_EVENT_NAME);
+
   AppInfo current_app;
   memset(&current_app, 0, sizeof(current_app));
   int has_session = 0;
@@ -107,13 +127,13 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
       }
       ta_clear_current_usage();
 
-      Sleep((DWORD)active_config.poll_interval_ms);
+      tracker_wait(stop_event, (DWORD)active_config.poll_interval_ms);
       continue;
     }
 
     AppInfo next_app;
     if (timearc_win_get_active_app(&next_app) != 0) {
-      Sleep((DWORD)active_config.poll_interval_ms);
+      tracker_wait(stop_event, (DWORD)active_config.poll_interval_ms);
       continue;
     }
 
@@ -130,7 +150,7 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
 
     write_current_session(&current_app, session_start_sec, now_sec);
 
-    Sleep((DWORD)active_config.poll_interval_ms);
+    tracker_wait(stop_event, (DWORD)active_config.poll_interval_ms);
   }
 
   int64_t final_sec = unix_time_sec();
@@ -140,6 +160,10 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   timearc_audio_tracker_flush(&audio_state, final_sec);
   timearc_audio_tracker_shutdown();
   ta_clear_current_usage();
+
+  if (stop_event != NULL) {
+    CloseHandle(stop_event);
+  }
 
   return 0;
 }

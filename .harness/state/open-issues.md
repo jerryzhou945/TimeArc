@@ -18,17 +18,20 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 - **macOS service does not sample yet.** `TimeArcService.swift` is
   `RunLoop.current.run()` with no tracker. `AppEnv.swift` primitives are
   ready. The Windows `usage_tracker.c` loop is the reference contract.
-- **Windows service is not a real service.** `win_service.c` has three TODO
-  stubs. The current binary is a console exe.
+- **Windows background autostart shipped (B1 Route A).** `win_service.c` verbs
+  `--install/--uninstall/--start/--stop/--status` + a Settings toggle register an
+  opt-in per-user logon task (schtasks; Run-key fallback) keeping the tracker in the user session. SCM Session-0 (Route B) deferred; see [`B1 kickoff`](../../docs/b1-windows-service-scm-kickoff.md).
 
 ## Storage
 
-- **SQLite path is reserved but unused.** `timearc_storage_init_sqlite` and
-  `timearc_storage_write_sqlite` are no-ops. Migration plan in
-  [`../rules/03-data-contract.md`](../rules/03-data-contract.md) §4.
-- **UTF-8 is not validated.** `write_json_string` in
-  `src/service/windows/storage/usage_storage.c` has a TODO saying so; must be
-  addressed before enabling cross-platform sync.
+- **SQLite primary-source migration (A1) S1–S4 DONE** (`CHARTER` v0.2). UI reads
+  SQLite primary + JSONL fallback; tail backfilled once. Remaining = **A1 S5** (retire
+  JSONL after soak). [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
+- **Whole-DB backup/restore (D1) — DONE (S1+S2, PR #40).** `DatabaseManager`
+  `backupDatabase`/`inspectBackup`/`restoreDatabase` + Settings UI; S3 retention deferred.
+- **UTF-8 is not validated.** `write_json_string`
+  (`src/service/windows/storage/usage_storage.c:140-175`) only JSON-escapes; it does
+  not check input bytes are valid UTF-8 (no TODO in source). Fix before cross-platform sync.
 - **Windows `rename` is non-atomic over existing files.** `usage_storage.c`
   already `remove`s first; revisit if we move to SQLite with WAL.
 

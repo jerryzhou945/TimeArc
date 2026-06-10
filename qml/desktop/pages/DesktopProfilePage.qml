@@ -56,6 +56,7 @@ Item {
     property string languageMode: "zh"
     property string timeFormat: "24"
     property bool trackRunning: true
+    property bool autostartEnabled: false  // B1：开机自启实际注册态（读 --status，非 KV）
     property bool gameMode: true
     property string idleTimeout: "5"
     property bool autoClassify: true
@@ -222,11 +223,18 @@ Item {
         function onUsageStatsChanged() { root.refreshStorage(); root.refreshOverview() }
     }
 
+    // B1：读 service --status 的实际注册态（源是 OS 登录任务/Run 键，非 KV 设置）。
+    function refreshAutostart() {
+        if (settingsRepository && settingsRepository.autostartEnabled)
+            root.autostartEnabled = settingsRepository.autostartEnabled()
+    }
+
     Component.onCompleted: {
         reloadFromKV()
         refreshStorage()
         refreshOverview()
         refreshAppList()
+        refreshAutostart()
         pushReadFilters()   // 与 Shell 启动推入一致；setReadFilters 幂等（无变化即早返回）
         root.forceActiveFocus()
     }
@@ -323,7 +331,8 @@ Item {
         var json = buildSettingsJson()
         if (!json || json.length === 0) { showToast("导出失败：序列化错误"); return }
         var p = usageStatManager.exportReport("timearc-settings", json)
-        showToast(p && p.length > 0 ? "设置 JSON 已导出" : "导出失败")
+        if (p && p.length > 0) root.showSavedAt("设置 JSON 已导出", p)
+        else showToast("导出失败")
     }
     function copySummary() {
         clipHelper.text = "TimeArc 设置摘要：" + (root.nightMode ? "暗玻璃主题" : "白天浅瓷主题")
@@ -378,11 +387,117 @@ Item {
         } catch (e) { showToast("JSON 文件格式不正确") }
     }
 
+    // 成功保存反馈：在持久确认卡里显示完整路径（toast 单行 + 1.5s 装不下长路径，用户找不到文件），
+    // 并给「打开文件夹」按钮用资源管理器定位（Qt.openUrlExternally 打开所在目录）。
+    function _folderUrlOf(p) {
+        var s = ("" + p).replace(/\\/g, "/")
+        var i = s.lastIndexOf("/")
+        var dir = (i > 0) ? s.substring(0, i) : s
+        return "file:///" + dir
+    }
+    function showSavedAt(title, p) {
+        root.askConfirm(title, "已保存到：\n" + p, "打开文件夹", false,
+            function () { Qt.openUrlExternally(root._folderUrlOf(p)) })
+    }
+    // D1 备份（整库）：C++ backupDatabase 用 VACUUM INTO 取一致快照写 下载/文档/AppData，
+    // 只读、不扰 live；返回完整路径或空串（失败诚实报错 G6）。
+    function doBackupDatabase() {
+        if (!databaseManager || !databaseManager.backupDatabase) { showToast("备份暂不可用"); return }
+        var p = databaseManager.backupDatabase()
+        if (p && p.length > 0) root.showSavedAt("数据库已备份", p)
+        else showToast("备份失败")
+    }
+    // D1 恢复（整库）：选备份 → 只读校验预览（坏文件直接拒）→ 危险二次确认 → 替换库。
+    function _unixDate(s) { return (s && s > 0) ? Qt.formatDate(new Date(s * 1000), "yyyy-MM-dd") : "—" }
+    function onRestoreFileChosen(fileUrl) {
+        if (!databaseManager || !databaseManager.inspectBackup) { showToast("恢复暂不可用"); return }
+        var info = databaseManager.inspectBackup("" + fileUrl)
+        if (!info || !info.ok) {
+            showToast(info && info.error ? ("无效备份：" + info.error) : "无效的备份文件")
+            return
+        }
+        var msg = "完整性 " + info.integrity
+                + "\n前台 " + info.frontmostRows + " 条 · 音频 " + info.mediaRows + " 条 · 应用 " + info.appRows + " 个"
+                + "\n时间范围 " + root._unixDate(info.minUnixSec) + " ~ " + root._unixDate(info.maxUnixSec)
+                + "\n\n将用所选备份覆盖当前全部记录，且需先停止后台采集。"
+        root.askConfirm("恢复数据库", msg, "恢复", true, function () { root.doRestoreConfirmed("" + fileUrl) })
+    }
+    function doRestoreConfirmed(fileUrl) {
+        if (!databaseManager || !databaseManager.restoreDatabase) { showToast("恢复暂不可用"); return }
+        var ok = databaseManager.restoreDatabase("" + fileUrl)
+        if (!ok) showToast("恢复失败：备份无效或数据库被后台采集占用")
+        // 成功路径由 databaseManager.databaseRestored 信号触发重启提示
+    }
+
+    // D2 数据位置：选目录把整库迁到用户所选目录（更大磁盘 / 同步盘），并切换两进程共用的
+    // usage_config.json db_path 指针。C++ relocateDatabaseTo 负责原子序（搬+校验新库 → 确认旧库
+    // 未被占用 → 切指针 → 重开 → 任一步失败回滚），UI 只做确认 + 结果反馈（诚实失败 G6）。
+    function dbLocationText() {
+        return (databaseManager && databaseManager.currentDatabaseLocationDir)
+            ? ("" + databaseManager.currentDatabaseLocationDir()) : "—"
+    }
+    // 迁移/还原前**自动**停止后台采集（settingsRepository.stopBackgroundCollection：优雅停 +
+    // 轮询等到真正释放数据库），再执行迁移。Qt.callLater 让确认弹层先关闭再做这段短暂阻塞活。
+    // 即便停采集失败/服务仍占用，迁移自身的锁探也会诚实失败回退（绝不 split-brain）。
+    function _stopThenMigrate(migrateFn) {
+        Qt.callLater(function () {
+            if (settingsRepository && settingsRepository.stopBackgroundCollection)
+                settingsRepository.stopBackgroundCollection()
+            root._afterRelocate(migrateFn())
+        })
+    }
+    function onDbFolderChosen(folderUrl) {
+        if (!databaseManager || !databaseManager.relocateDatabaseTo) { showToast("迁移暂不可用"); return }
+        root.askConfirm("迁移数据库位置",
+            "将把整个使用数据库迁移到所选目录，并切换两进程共用的数据库位置指针。\n迁移会自动先停止后台采集；完成后请按提示重启应用以恢复采集。",
+            "迁移", true, function () { root._stopThenMigrate(function () { return databaseManager.relocateDatabaseTo("" + folderUrl) }) })
+    }
+    function doRestoreDefaultLocation() {
+        if (!databaseManager || !databaseManager.restoreDefaultDatabaseLocation) { showToast("迁移暂不可用"); return }
+        root.askConfirm("还原默认数据库位置",
+            "将把数据库迁回默认位置并清除位置指针。会自动先停止后台采集，完成后请重启应用。",
+            "还原", true, function () { root._stopThenMigrate(function () { return databaseManager.restoreDefaultDatabaseLocation() }) })
+    }
+    function _afterRelocate(res) {
+        if (res && res.ok) {
+            root.askConfirm("迁移成功",
+                "数据库已迁移到：\n" + res.newPath
+                    + "\n\n需要重启应用（并重启后台采集）以让两进程加载新位置，是否立即退出？",
+                "立即退出", false, function () { Qt.quit() })
+        } else {
+            showToast(res && res.error ? ("迁移失败：" + res.error) : "迁移失败")
+        }
+    }
+
     FileDialog {
         id: importDialog
         title: "导入设置 JSON"
         nameFilters: ["JSON 文件 (*.json)", "所有文件 (*)"]
         onAccepted: root.doImport(selectedFile)
+    }
+
+    FileDialog {
+        id: restoreDialog
+        title: "选择数据库备份"
+        nameFilters: ["数据库备份 (*.db)", "所有文件 (*)"]
+        onAccepted: root.onRestoreFileChosen(selectedFile)
+    }
+
+    FolderDialog {
+        id: dbFolderDialog
+        title: "选择数据库存放目录"
+        onAccepted: root.onDbFolderChosen(selectedFolder)
+    }
+
+    // 恢复成功后（C++ emit databaseRestored）：引导重启以加载新数据（UI 缓存未热更）。
+    Connections {
+        target: databaseManager
+        ignoreUnknownSignals: true
+        function onDatabaseRestored() {
+            root.askConfirm("恢复成功",
+                "数据库已恢复。需要重启应用以加载新数据，是否立即退出？",
+                "立即退出", false, function () { Qt.quit() })
+        }
     }
 
     Keys.onEscapePressed: root.requestNavigate("memorylake")
@@ -833,6 +948,19 @@ Item {
                                     }
                                 }
                                 SettingRow {
+                                    rowTitle: "开机自动在后台采集"
+                                    rowSub: "登录时自动在后台启动采集（在用户会话内运行，无需管理员）。关闭仅停自启，不删历史。"
+                                    GlassSwitch {
+                                        style: ml; checked: root.autostartEnabled
+                                        onToggled: function (c) {
+                                            if (!settingsRepository) return
+                                            settingsRepository.setAutostartEnabled(c)
+                                            root.autostartEnabled = settingsRepository.autostartEnabled()
+                                            root.showToast(root.autostartEnabled ? "已设为开机自启（登录后台采集）" : "已关闭开机自启")
+                                        }
+                                    }
+                                }
+                                SettingRow {
                                     rowTitle: "游戏模式识别"
                                     rowSub: "将 Steam / Epic / 独立游戏归入游戏类别。"
                                     GlassSwitch {
@@ -1251,6 +1379,59 @@ Item {
                             }
 
                             SettingsCard {
+                                badge: "⇩"; wide: true
+                                cardTitle: "数据库备份与恢复"
+                                cardDesc: "把整个使用数据库导出为单文件备份，或从备份恢复（恢复前请先停止后台采集）。"
+                                keywords: "备份 恢复 数据库 sqlite db 整库 vacuum"
+
+                                Flow {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+                                    GhostBtn { label: "备份数据库"; primary: true; onTapped: root.doBackupDatabase() }
+                                    GhostBtn { label: "恢复数据库"; danger: true; onTapped: restoreDialog.open() }
+                                }
+                            }
+
+                            // D2：数据库位置（用户可选目录 + 安全迁移 + 还原默认）
+                            SettingsCard {
+                                badge: "⇧"; wide: true
+                                cardTitle: "数据库位置"
+                                cardDesc: "把整个使用数据库迁到所选目录（更大的磁盘 / 同步盘），并切换两进程共用的位置指针；全程安全可回滚。迁移会自动停止后台采集，完成后请重启应用。"
+                                keywords: "数据库 位置 迁移 路径 磁盘 db_path 重定向 relocate 移动"
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: dbLocCol.implicitHeight + 24
+                                    radius: 14
+                                    color: ml.calSunkBg
+                                    border.width: 1; border.color: ml.cellHair
+                                    Column {
+                                        id: dbLocCol
+                                        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
+                                        spacing: 3
+                                        Text { text: "当前位置"; color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
+                                        Text {
+                                            text: root.dbLocationText()
+                                            color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold
+                                            width: parent.width; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideMiddle
+                                        }
+                                    }
+                                }
+                                Flow {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+                                    GhostBtn { label: "迁移到…"; primary: true; onTapped: dbFolderDialog.open() }
+                                    GhostBtn {
+                                        label: "还原默认位置"
+                                        opacity: enabled ? 1 : 0.45
+                                        enabled: !!(databaseManager && databaseManager.isUsingCustomDatabaseLocation
+                                                    && databaseManager.isUsingCustomDatabaseLocation())
+                                        onTapped: root.doRestoreDefaultLocation()
+                                    }
+                                }
+                            }
+
+                            SettingsCard {
                                 badge: "≈"
                                 cardTitle: "当前数据概览"
                                 cardDesc: "今天的使用情况和本地记录规模。"
@@ -1356,7 +1537,7 @@ Item {
                 }
                 Text {
                     text: confirmCard.msgText; color: ml.textSecondary
-                    font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.WordWrap; lineHeight: 1.35
+                    font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap; lineHeight: 1.35
                 }
                 RowLayout {
                     Layout.fillWidth: true

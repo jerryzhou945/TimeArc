@@ -15,6 +15,12 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include <QCoreApplication>
+#include <QDir>
+#include <QFileInfo>
+#include <QProcess>
+#include <QThread>
+
 #include "services/manual_project_repository.h"
 
 namespace {
@@ -346,4 +352,97 @@ QString SettingsRepository::readTextFile(const QString& path) {
   const QByteArray data = file.readAll();
   file.close();
   return QString::fromUtf8(data);
+}
+
+namespace {
+#if defined(Q_OS_WIN)
+// 解析与 main.cpp::startUsageService 相同的 service exe 路径（同目录）。
+QString serviceExePath() {
+  return QDir(QCoreApplication::applicationDirPath())
+      .filePath(QStringLiteral("time-arc-service.exe"));
+}
+
+// 同步运行一个 service 动词，捕获 stdout；返回退出码（启动失败 -1）。纯 UI→子进程
+// 命令（守 I1），不经磁盘契约。CREATE_NO_WINDOW 隐藏 service（console 程序）窗口。
+int runServiceVerb(const QString& verb, QString* out = nullptr) {
+  const QString exe = serviceExePath();
+  if (!QFileInfo::exists(exe)) return -1;
+  QProcess proc;
+  proc.setCreateProcessArgumentsModifier(
+      [](QProcess::CreateProcessArguments* args) {
+        args->flags |= 0x08000000;  // CREATE_NO_WINDOW
+      });
+  proc.start(exe, QStringList{verb});
+  if (!proc.waitForStarted(3000)) return -1;
+  if (!proc.waitForFinished(8000)) {
+    proc.kill();
+    return -1;
+  }
+  if (out) *out = QString::fromLocal8Bit(proc.readAllStandardOutput());
+  return proc.exitCode();
+}
+#endif
+}  // namespace
+
+bool SettingsRepository::autostartSupported() const {
+#if defined(Q_OS_WIN)
+  return true;
+#else
+  return false;
+#endif
+}
+
+bool SettingsRepository::autostartEnabled() {
+#if defined(Q_OS_WIN)
+  QString out;
+  if (runServiceVerb(QStringLiteral("--status"), &out) < 0) return false;
+  return out.contains(QStringLiteral("autostart=on"));
+#else
+  return false;
+#endif
+}
+
+bool SettingsRepository::setAutostartEnabled(bool enabled) {
+#if defined(Q_OS_WIN)
+  const QString verb =
+      enabled ? QStringLiteral("--install") : QStringLiteral("--uninstall");
+  return runServiceVerb(verb) == 0;
+#else
+  Q_UNUSED(enabled);
+  return false;
+#endif
+}
+
+bool SettingsRepository::isBackgroundCollectionRunning() {
+#if defined(Q_OS_WIN)
+  QString out;
+  if (runServiceVerb(QStringLiteral("--status"), &out) < 0) return false;
+  return out.contains(QStringLiteral("running=yes"));
+#else
+  return false;
+#endif
+}
+
+bool SettingsRepository::stopBackgroundCollection() {
+#if defined(Q_OS_WIN)
+  // Graceful stop: set Local\TimeArcStop so the running tracker flushes the open
+  // session + audio and exits (NOT taskkill /F). --stop returns as soon as the
+  // event is set; the flush + handle release takes up to ~one poll interval, so
+  // poll --status until the instance is actually gone (the DB lock is released)
+  // before we report success -- a relocation/restore needs an exclusive lock.
+  runServiceVerb(QStringLiteral("--stop"));
+  for (int i = 0; i < 12; ++i) {
+    QString out;
+    if (runServiceVerb(QStringLiteral("--status"), &out) >= 0 &&
+        out.contains(QStringLiteral("running=no"))) {
+      return true;
+    }
+    QThread::msleep(300);
+  }
+  QString out;
+  return runServiceVerb(QStringLiteral("--status"), &out) >= 0 &&
+         out.contains(QStringLiteral("running=no"));
+#else
+  return true;  // no background collector to stop on non-Windows yet
+#endif
 }
