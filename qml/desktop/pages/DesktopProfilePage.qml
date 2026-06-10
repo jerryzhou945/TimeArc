@@ -386,11 +386,58 @@ Item {
         } catch (e) { showToast("JSON 文件格式不正确") }
     }
 
+    // D1 备份（整库）：C++ backupDatabase 用 VACUUM INTO 取一致快照写 下载/文档/AppData，
+    // 只读、不扰 live；返回完整路径或空串（失败诚实报错 G6）。
+    function doBackupDatabase() {
+        if (!databaseManager || !databaseManager.backupDatabase) { showToast("备份暂不可用"); return }
+        var p = databaseManager.backupDatabase()
+        showToast(p && p.length > 0 ? ("数据库已备份：" + p) : "备份失败")
+    }
+    // D1 恢复（整库）：选备份 → 只读校验预览（坏文件直接拒）→ 危险二次确认 → 替换库。
+    function _unixDate(s) { return (s && s > 0) ? Qt.formatDate(new Date(s * 1000), "yyyy-MM-dd") : "—" }
+    function onRestoreFileChosen(fileUrl) {
+        if (!databaseManager || !databaseManager.inspectBackup) { showToast("恢复暂不可用"); return }
+        var info = databaseManager.inspectBackup("" + fileUrl)
+        if (!info || !info.ok) {
+            showToast(info && info.error ? ("无效备份：" + info.error) : "无效的备份文件")
+            return
+        }
+        var msg = "完整性 " + info.integrity
+                + "\n前台 " + info.frontmostRows + " 条 · 音频 " + info.mediaRows + " 条 · 应用 " + info.appRows + " 个"
+                + "\n时间范围 " + root._unixDate(info.minUnixSec) + " ~ " + root._unixDate(info.maxUnixSec)
+                + "\n\n将用所选备份覆盖当前全部记录，且需先停止后台采集。"
+        root.askConfirm("恢复数据库", msg, "恢复", true, function () { root.doRestoreConfirmed("" + fileUrl) })
+    }
+    function doRestoreConfirmed(fileUrl) {
+        if (!databaseManager || !databaseManager.restoreDatabase) { showToast("恢复暂不可用"); return }
+        var ok = databaseManager.restoreDatabase("" + fileUrl)
+        if (!ok) showToast("恢复失败：备份无效或数据库被后台采集占用")
+        // 成功路径由 databaseManager.databaseRestored 信号触发重启提示
+    }
+
     FileDialog {
         id: importDialog
         title: "导入设置 JSON"
         nameFilters: ["JSON 文件 (*.json)", "所有文件 (*)"]
         onAccepted: root.doImport(selectedFile)
+    }
+
+    FileDialog {
+        id: restoreDialog
+        title: "选择数据库备份"
+        nameFilters: ["数据库备份 (*.db)", "所有文件 (*)"]
+        onAccepted: root.onRestoreFileChosen(selectedFile)
+    }
+
+    // 恢复成功后（C++ emit databaseRestored）：引导重启以加载新数据（UI 缓存未热更）。
+    Connections {
+        target: databaseManager
+        ignoreUnknownSignals: true
+        function onDatabaseRestored() {
+            root.askConfirm("恢复成功",
+                "数据库已恢复。需要重启应用以加载新数据，是否立即退出？",
+                "立即退出", false, function () { Qt.quit() })
+        }
     }
 
     Keys.onEscapePressed: root.requestNavigate("memorylake")
@@ -1268,6 +1315,20 @@ Item {
                                     GhostBtn { label: "导出设置 JSON"; primary: true; onTapped: root.doExport() }
                                     GhostBtn { label: "导入设置"; onTapped: importDialog.open() }
                                     GhostBtn { label: "复制配置摘要"; onTapped: root.copySummary() }
+                                }
+                            }
+
+                            SettingsCard {
+                                badge: "⇩"; wide: true
+                                cardTitle: "数据库备份与恢复"
+                                cardDesc: "把整个使用数据库导出为单文件备份，或从备份恢复（恢复前请先停止后台采集）。"
+                                keywords: "备份 恢复 数据库 sqlite db 整库 vacuum"
+
+                                Flow {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+                                    GhostBtn { label: "备份数据库"; primary: true; onTapped: root.doBackupDatabase() }
+                                    GhostBtn { label: "恢复数据库"; danger: true; onTapped: restoreDialog.open() }
                                 }
                             }
 
