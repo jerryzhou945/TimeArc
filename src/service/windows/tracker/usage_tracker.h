@@ -12,8 +12,8 @@
 //
 // - INSTANCE_MUTEX: 单实例守卫；持有者＝当前会话里正在运行的 tracker。
 // - STOP_EVENT: 优雅停采集通道；独立的 `--stop` 进程置位它请求主循环收尾 flush。
-#define TIMEARC_INSTANCE_MUTEX_NAME "Local\TimeArcUsageService"
-#define TIMEARC_STOP_EVENT_NAME "Local\TimeArcStop"
+#define TIMEARC_INSTANCE_MUTEX_NAME "Local\\TimeArcUsageService"
+#define TIMEARC_STOP_EVENT_NAME "Local\\TimeArcStop"
 
 typedef struct TimeArcUsageTrackerConfig {
   // 前台窗口和空闲状态的采样频率。间隔越短越实时，但系统调用更频繁。

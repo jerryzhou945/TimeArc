@@ -16,7 +16,7 @@
 #define TIMEARC_TASK_NAME L"TimeArc Usage Service"
 #define TIMEARC_RUN_VALUE L"TimeArc Usage Service"
 #define TIMEARC_RUN_KEY \
-  L"HKCU\Software\Microsoft\Windows\CurrentVersion\Run"
+  L"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
 
 enum { EXE_CAP = 1024, CMD_CAP = 1536 };
 
@@ -51,10 +51,12 @@ static int run_hidden_wait(wchar_t* cmdline) {
 // —— 登录任务（主路） ——
 // /tr 的值含空格须整体加引号，内层 exe 路径也含空格须再加引号 → /tr "\"<exe>\""。
 // 不加 /rl highest：以标准用户令牌跑在用户会话（采集正确 + 无 UAC）。
+// 任务/Run 动作走 "<exe>" --start：--start 以 CREATE_NO_WINDOW 拉起无窗 tracker，避免
+// 控制台子系统 exe 作为登录项直接运行时长驻一个可见控制台窗口（仅 --start 启动器一闪）。
 static int register_logon_task(const wchar_t* exe) {
   wchar_t cmd[CMD_CAP];
   _snwprintf(cmd, CMD_CAP,
-             L"schtasks /create /tn \"%ls\" /tr \"\\\"%ls\\\"\" /sc onlogon /f",
+             L"schtasks /create /tn \"%ls\" /tr \"\\\"%ls\\\" --start\" /sc onlogon /f",
              TIMEARC_TASK_NAME, exe);
   cmd[CMD_CAP - 1] = L'\0';
   return run_hidden_wait(cmd);
@@ -78,7 +80,7 @@ static int logon_task_exists(void) {
 static int register_run_key(const wchar_t* exe) {
   wchar_t cmd[CMD_CAP];
   _snwprintf(cmd, CMD_CAP,
-             L"reg add \"%ls\" /v \"%ls\" /t REG_SZ /d \"\\\"%ls\\\"\" /f",
+             L"reg add \"%ls\" /v \"%ls\" /t REG_SZ /d \"\\\"%ls\\\" --start\" /f",
              TIMEARC_RUN_KEY, TIMEARC_RUN_VALUE, exe);
   cmd[CMD_CAP - 1] = L'\0';
   return run_hidden_wait(cmd);
@@ -146,7 +148,7 @@ int timearc_win_service_start(void) {
   si.cb = sizeof(si);
   ZeroMemory(&pi, sizeof(pi));
   if (!CreateProcessW(NULL, cmd, NULL, NULL, FALSE,
-                      CREATE_NO_WINDOW | DETACHED_PROCESS, NULL, NULL, &si,
+                      CREATE_NO_WINDOW, NULL, NULL, &si,  // 不叠 DETACHED_PROCESS（叠加会令 CREATE_NO_WINDOW 被忽略→子进程无控制台→收不到 Ctrl 事件）
                       &pi)) {
     fprintf(stderr, "start: failed to launch tracker\n");
     return 1;
