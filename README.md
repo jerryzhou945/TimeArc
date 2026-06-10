@@ -567,6 +567,8 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       filter for sensitive apps, user-editable categories, card persistence,
       and a confirmed-summary AI pass.
 - [ ] Add export/backup and restore flows for SQLite-backed desktop data.
+      Planned in `docs/d1-export-backup-restore-kickoff.md` (S1 whole-DB backup via
+      `VACUUM INTO` → S2 validated restore with the service stopped).
 - [ ] Add a safe database-path migration flow if user-selectable data
       locations become a product requirement.
 - [ ] Expand local memo management only as local/offline tooling; do not
