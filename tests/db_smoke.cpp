@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -1001,6 +1002,173 @@ int main(int argc, char* argv[]) {
            QStringLiteral("local_memo_chat_messages"), QString()))
            .isEmpty()) {
     return fail(QStringLiteral("Local memo clear did not reload as empty."));
+  }
+
+  // ---- D1: whole-DB backup / inspect / restore round-trip --------------------
+  // Exercises DatabaseManager::backupDatabase / inspectBackup / restoreDatabase
+  // (folded into the already-linked database_manager.cpp; no USM symbols).
+  {
+    const QString d1Bak =
+        QDir::temp().filePath(QStringLiteral("timearc-d1-roundtrip.db"));
+    const QString d1Bad =
+        QDir::temp().filePath(QStringLiteral("timearc-d1-bad.db"));
+    const QString d1Empty =
+        QDir::temp().filePath(QStringLiteral("timearc-d1-empty.db"));
+    QFile::remove(d1Bak);
+    QFile::remove(d1Bad);
+    QFile::remove(d1Empty);
+
+    auto tableCount = [](QSqlDatabase d, const QString& t) -> qlonglong {
+      QSqlQuery c(d);
+      if (c.exec(QStringLiteral("SELECT COUNT(*) FROM ") + t +
+                 QStringLiteral(";")) &&
+          c.next())
+        return c.value(0).toLongLong();
+      return -1;
+    };
+
+    qlonglong liveFront = -1, liveMedia = -1, afterDelete = -1;
+    // Release main()'s long-lived handle so restoreDatabase can fully close the
+    // connection (else Windows keeps the file locked and the swap fails).
+    db = QSqlDatabase();
+    {
+      QSqlDatabase live = databaseManager.database();
+      if (!live.isValid() || !live.isOpen())
+        return fail(QStringLiteral("D1: live connection unavailable."));
+
+      // Seed known rows so the round-trip has identifiable data to lose/recover.
+      QSqlQuery insApp(live);
+      insApp.prepare(QStringLiteral(
+          "INSERT OR IGNORE INTO apps (app_identifier, app_name, display_name, "
+          "app_icon_path, executable_path, platform, created_at, updated_at) "
+          "VALUES ('d1.roundtrip', 'D1', 'D1', '', '', 'windows', 1700000000, "
+          "1700000000);"));
+      if (!insApp.exec())
+        return fail(QStringLiteral("D1: seed app insert failed: %1")
+                        .arg(insApp.lastError().text()));
+
+      QSqlQuery insF(live);
+      insF.prepare(QStringLiteral(
+          "INSERT OR IGNORE INTO frontmost_sessions (app_identifier, "
+          "window_title, start_unix_sec, end_unix_sec, duration_sec, "
+          "active_sec, idle_sec, created_at) VALUES ('d1.roundtrip', :title, "
+          ":s, :e, 50, 50, 0, 1700000000);"));
+      for (int i = 0; i < 3; ++i) {
+        insF.bindValue(QStringLiteral(":title"),
+                       QStringLiteral("D1 win %1").arg(i));
+        insF.bindValue(QStringLiteral(":s"), 1700000000 + i * 100);
+        insF.bindValue(QStringLiteral(":e"), 1700000000 + i * 100 + 50);
+        if (!insF.exec())
+          return fail(QStringLiteral("D1: seed frontmost insert failed: %1")
+                          .arg(insF.lastError().text()));
+      }
+
+      QSqlQuery insM(live);
+      insM.prepare(QStringLiteral(
+          "INSERT OR IGNORE INTO media_sessions (app_identifier, media_type, "
+          "media_title, start_unix_sec, end_unix_sec, playback_sec, "
+          "created_at) VALUES ('d1.roundtrip', 'audio', :title, :s, :e, 30, "
+          "1700000000);"));
+      for (int i = 0; i < 2; ++i) {
+        insM.bindValue(QStringLiteral(":title"),
+                       QStringLiteral("D1 audio %1").arg(i));
+        insM.bindValue(QStringLiteral(":s"), 1700001000 + i * 100);
+        insM.bindValue(QStringLiteral(":e"), 1700001000 + i * 100 + 30);
+        if (!insM.exec())
+          return fail(QStringLiteral("D1: seed media insert failed: %1")
+                          .arg(insM.lastError().text()));
+      }
+
+      liveFront = tableCount(live, QStringLiteral("frontmost_sessions"));
+      liveMedia = tableCount(live, QStringLiteral("media_sessions"));
+      if (liveFront <= 0 || liveMedia <= 0)
+        return fail(QStringLiteral("D1: session tables empty before backup."));
+
+      // Backup to an explicit temp path.
+      const QString written = databaseManager.backupDatabase(d1Bak);
+      if (written.isEmpty() || !QFileInfo::exists(d1Bak))
+        return fail(QStringLiteral("D1: backupDatabase produced no file."));
+
+      // Inspect: must validate and report matching counts.
+      const QVariantMap insp = databaseManager.inspectBackup(d1Bak);
+      if (!insp.value(QStringLiteral("ok")).toBool())
+        return fail(
+            QStringLiteral("D1: inspectBackup rejected a valid backup: %1")
+                .arg(insp.value(QStringLiteral("error")).toString()));
+      if (insp.value(QStringLiteral("integrity")).toString() !=
+          QStringLiteral("ok"))
+        return fail(QStringLiteral("D1: inspectBackup integrity != ok."));
+      if (insp.value(QStringLiteral("frontmostRows")).toLongLong() !=
+              liveFront ||
+          insp.value(QStringLiteral("mediaRows")).toLongLong() != liveMedia)
+        return fail(QStringLiteral(
+            "D1: inspectBackup counts disagree with the live tables."));
+
+      // Mutate the live DB, confirm the loss.
+      QSqlQuery del(live);
+      if (!del.exec(QStringLiteral(
+              "DELETE FROM frontmost_sessions WHERE app_identifier = "
+              "'d1.roundtrip';")))
+        return fail(QStringLiteral("D1: delete of seeded rows failed."));
+      afterDelete = tableCount(live, QStringLiteral("frontmost_sessions"));
+      if (afterDelete >= liveFront)
+        return fail(QStringLiteral("D1: row count did not drop after delete."));
+    }  // 'live' destroyed -> no lingering reference for the swap
+
+    // Restore: counts must recover.
+    if (!databaseManager.restoreDatabase(d1Bak))
+      return fail(QStringLiteral("D1: restoreDatabase returned false."));
+    QSqlDatabase restored = databaseManager.database();
+    if (!restored.isValid() || !restored.isOpen())
+      return fail(QStringLiteral("D1: connection not reopened after restore."));
+    const qlonglong afterRestore =
+        tableCount(restored, QStringLiteral("frontmost_sessions"));
+    if (afterRestore != liveFront)
+      return fail(
+          QStringLiteral(
+              "D1: restore did not recover row count (got %1, want %2).")
+              .arg(afterRestore)
+              .arg(liveFront));
+
+    // Bad-file rejection: a non-sqlite file must be refused.
+    {
+      QFile bad(d1Bad);
+      if (!bad.open(QIODevice::WriteOnly))
+        return fail(QStringLiteral("D1: could not write bad-file fixture."));
+      bad.write("this is definitely not a sqlite database");
+      bad.close();
+    }
+    if (databaseManager.inspectBackup(d1Bad)
+            .value(QStringLiteral("ok"))
+            .toBool())
+      return fail(
+          QStringLiteral("D1: inspectBackup accepted a non-sqlite file."));
+
+    // Missing-tables rejection: a valid sqlite db without the contract tables.
+    {
+      QSqlDatabase ed = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                  QStringLiteral("d1_empty"));
+      ed.setDatabaseName(d1Empty);
+      if (ed.open()) {
+        QSqlQuery eq(ed);
+        eq.exec(QStringLiteral("CREATE TABLE foo (x INTEGER);"));
+        ed.close();
+      }
+    }
+    QSqlDatabase::removeDatabase(QStringLiteral("d1_empty"));
+    if (databaseManager.inspectBackup(d1Empty)
+            .value(QStringLiteral("ok"))
+            .toBool())
+      return fail(QStringLiteral(
+          "D1: inspectBackup accepted a sqlite file without contract tables."));
+
+    // Cleanup fixtures + the pre-restore backup the restore left behind.
+    QFile::remove(d1Bak);
+    QFile::remove(d1Bad);
+    QFile::remove(d1Empty);
+    QFile::remove(databasePath + QStringLiteral(".pre-restore.bak"));
+    qInfo().noquote()
+        << QStringLiteral("D1 backup/inspect/restore round-trip ok.");
   }
 
   qInfo().noquote() << QStringLiteral("database smoke ok: %1").arg(databasePath);

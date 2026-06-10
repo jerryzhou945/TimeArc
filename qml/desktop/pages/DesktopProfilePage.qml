@@ -331,7 +331,8 @@ Item {
         var json = buildSettingsJson()
         if (!json || json.length === 0) { showToast("导出失败：序列化错误"); return }
         var p = usageStatManager.exportReport("timearc-settings", json)
-        showToast(p && p.length > 0 ? "设置 JSON 已导出" : "导出失败")
+        if (p && p.length > 0) root.showSavedAt("设置 JSON 已导出", p)
+        else showToast("导出失败")
     }
     function copySummary() {
         clipHelper.text = "TimeArc 设置摘要：" + (root.nightMode ? "暗玻璃主题" : "白天浅瓷主题")
@@ -386,11 +387,71 @@ Item {
         } catch (e) { showToast("JSON 文件格式不正确") }
     }
 
+    // 成功保存反馈：在持久确认卡里显示完整路径（toast 单行 + 1.5s 装不下长路径，用户找不到文件），
+    // 并给「打开文件夹」按钮用资源管理器定位（Qt.openUrlExternally 打开所在目录）。
+    function _folderUrlOf(p) {
+        var s = ("" + p).replace(/\\/g, "/")
+        var i = s.lastIndexOf("/")
+        var dir = (i > 0) ? s.substring(0, i) : s
+        return "file:///" + dir
+    }
+    function showSavedAt(title, p) {
+        root.askConfirm(title, "已保存到：\n" + p, "打开文件夹", false,
+            function () { Qt.openUrlExternally(root._folderUrlOf(p)) })
+    }
+    // D1 备份（整库）：C++ backupDatabase 用 VACUUM INTO 取一致快照写 下载/文档/AppData，
+    // 只读、不扰 live；返回完整路径或空串（失败诚实报错 G6）。
+    function doBackupDatabase() {
+        if (!databaseManager || !databaseManager.backupDatabase) { showToast("备份暂不可用"); return }
+        var p = databaseManager.backupDatabase()
+        if (p && p.length > 0) root.showSavedAt("数据库已备份", p)
+        else showToast("备份失败")
+    }
+    // D1 恢复（整库）：选备份 → 只读校验预览（坏文件直接拒）→ 危险二次确认 → 替换库。
+    function _unixDate(s) { return (s && s > 0) ? Qt.formatDate(new Date(s * 1000), "yyyy-MM-dd") : "—" }
+    function onRestoreFileChosen(fileUrl) {
+        if (!databaseManager || !databaseManager.inspectBackup) { showToast("恢复暂不可用"); return }
+        var info = databaseManager.inspectBackup("" + fileUrl)
+        if (!info || !info.ok) {
+            showToast(info && info.error ? ("无效备份：" + info.error) : "无效的备份文件")
+            return
+        }
+        var msg = "完整性 " + info.integrity
+                + "\n前台 " + info.frontmostRows + " 条 · 音频 " + info.mediaRows + " 条 · 应用 " + info.appRows + " 个"
+                + "\n时间范围 " + root._unixDate(info.minUnixSec) + " ~ " + root._unixDate(info.maxUnixSec)
+                + "\n\n将用所选备份覆盖当前全部记录，且需先停止后台采集。"
+        root.askConfirm("恢复数据库", msg, "恢复", true, function () { root.doRestoreConfirmed("" + fileUrl) })
+    }
+    function doRestoreConfirmed(fileUrl) {
+        if (!databaseManager || !databaseManager.restoreDatabase) { showToast("恢复暂不可用"); return }
+        var ok = databaseManager.restoreDatabase("" + fileUrl)
+        if (!ok) showToast("恢复失败：备份无效或数据库被后台采集占用")
+        // 成功路径由 databaseManager.databaseRestored 信号触发重启提示
+    }
+
     FileDialog {
         id: importDialog
         title: "导入设置 JSON"
         nameFilters: ["JSON 文件 (*.json)", "所有文件 (*)"]
         onAccepted: root.doImport(selectedFile)
+    }
+
+    FileDialog {
+        id: restoreDialog
+        title: "选择数据库备份"
+        nameFilters: ["数据库备份 (*.db)", "所有文件 (*)"]
+        onAccepted: root.onRestoreFileChosen(selectedFile)
+    }
+
+    // 恢复成功后（C++ emit databaseRestored）：引导重启以加载新数据（UI 缓存未热更）。
+    Connections {
+        target: databaseManager
+        ignoreUnknownSignals: true
+        function onDatabaseRestored() {
+            root.askConfirm("恢复成功",
+                "数据库已恢复。需要重启应用以加载新数据，是否立即退出？",
+                "立即退出", false, function () { Qt.quit() })
+        }
     }
 
     Keys.onEscapePressed: root.requestNavigate("memorylake")
@@ -1272,6 +1333,20 @@ Item {
                             }
 
                             SettingsCard {
+                                badge: "⇩"; wide: true
+                                cardTitle: "数据库备份与恢复"
+                                cardDesc: "把整个使用数据库导出为单文件备份，或从备份恢复（恢复前请先停止后台采集）。"
+                                keywords: "备份 恢复 数据库 sqlite db 整库 vacuum"
+
+                                Flow {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+                                    GhostBtn { label: "备份数据库"; primary: true; onTapped: root.doBackupDatabase() }
+                                    GhostBtn { label: "恢复数据库"; danger: true; onTapped: restoreDialog.open() }
+                                }
+                            }
+
+                            SettingsCard {
                                 badge: "≈"
                                 cardTitle: "当前数据概览"
                                 cardDesc: "今天的使用情况和本地记录规模。"
@@ -1377,7 +1452,7 @@ Item {
                 }
                 Text {
                     text: confirmCard.msgText; color: ml.textSecondary
-                    font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.WordWrap; lineHeight: 1.35
+                    font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap; lineHeight: 1.35
                 }
                 RowLayout {
                     Layout.fillWidth: true
