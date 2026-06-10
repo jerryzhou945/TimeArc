@@ -14,6 +14,7 @@
 #include <QStandardPaths>
 #include <QStringList>
 #include <QSettings>
+#include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -1299,7 +1300,12 @@ int main(int argc, char* argv[]) {
     const QString movedDb =
         QDir::cleanPath(QDir(d2Dir).filePath(QStringLiteral("timearc.db")));
 
-    const QVariantMap mv = databaseManager.relocateDatabaseTo(d2Dir);
+    // Pass the file:// URL form the QML FolderDialog actually hands back (NOT a
+    // plain path), so this exercises the toLocalPath URL->path conversion the
+    // settings 迁移到… button relies on -- the one seam between the dialog and
+    // the migration engine.
+    const QString d2DirUrl = QUrl::fromLocalFile(d2Dir).toString();
+    const QVariantMap mv = databaseManager.relocateDatabaseTo(d2DirUrl);
     if (!mv.value(QStringLiteral("ok")).toBool())
       return fail(QStringLiteral("D2 S2: relocate failed: %1")
                       .arg(mv.value(QStringLiteral("error")).toString()));
