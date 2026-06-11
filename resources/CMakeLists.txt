@@ -46,9 +46,9 @@ set(TIME_ARC_RESOURCE_FILES
     # qrc 内嵌 → 离线可达（rules/06 §4(2) / CHARTER I6）。新增 thirdparty 组件时
     # 须同步在此追加文本并补一行页面条目（rules/06 §4(3)）。
     # 只内嵌 F2 页面实际呈现的组件文本（Qt 两份 + SQLite + Parson + 本项目）。
-    # resources/licenses/mingw-runtime-exception.txt 留在磁盘作 F1-S2 产物（由 F1-S3
-    # 打包随 NOTICE 分发），不入 qrc：本页不单列 MinGW 运行库（其完整署名含 libwinpthread，
-    # 归 F1 的 NOTICE），避免内嵌一份无 UI 入口的悬空资源（CHARTER I6）。
+    # mingw-runtime-exception.txt（libgcc/libstdc++ 的 GCC 运行时例外）与 mingw-w64-winpthreads.txt
+    # （libwinpthread 的 MinGW-w64 MIT）留在磁盘作 F1 打包产物（由 F1-S3 随 NOTICE 分发），不入 qrc：
+    # 本页不单列 MinGW 运行库，避免内嵌一份无 UI 入口的悬空资源（CHARTER I6）。
     resources/licenses/qt-lgpl-3.0.txt
     resources/licenses/qt-gpl-3.0.txt
     resources/licenses/sqlite-public-domain.txt
