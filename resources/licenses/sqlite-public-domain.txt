@@ -1,0 +1,26 @@
+SQLite — Public Domain Dedication
+
+SQLite 3.51.3 — https://www.sqlite.org/
+Vendored under thirdparty/sqlite3/ (static linkage).
+
+SQLite is in the public domain. It has NO license and NO copyright holder.
+In place of a legal notice, its author offers the following blessing, taken
+verbatim from the top of the amalgamation header (thirdparty/sqlite3/sqlite3.h):
+
+       The author disclaims copyright to this source code.  In place of
+       a legal notice, here is a blessing:
+
+          May you do good and not evil.
+          May you find forgiveness for yourself and forgive others.
+          May you share freely, never taking more than you give.
+
+Because SQLite is dedicated to the public domain there is no copyright and no
+set of license terms to reproduce in full. This file records that status
+explicitly so the in-app licenses page and the distributed package can satisfy
+the "full license text" requirement of .harness/rules/06-licensing.md §4(1)
+for a public-domain component. This is a documented, intentional deviation:
+the requirement assumes a copyrighted component, and SQLite has none.
+
+For jurisdictions that do not recognise the public domain, the SQLite project
+offers a separate paid "Warranty of Title and Perpetual License." TimeArc does
+not rely on that grant; it relies on the public-domain dedication above.

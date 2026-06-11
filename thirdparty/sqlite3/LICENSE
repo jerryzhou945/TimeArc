@@ -1,0 +1,18 @@
+SQLite — Public Domain Dedication
+
+SQLite 3.51.3 — https://www.sqlite.org/
+
+SQLite is in the public domain. It has no license and no copyright holder.
+In place of a legal notice, its author offers the following blessing, taken
+verbatim from the top of sqlite3.h:
+
+       The author disclaims copyright to this source code.  In place of
+       a legal notice, here is a blessing:
+
+          May you do good and not evil.
+          May you find forgiveness for yourself and forgive others.
+          May you share freely, never taking more than you give.
+
+Because SQLite is dedicated to the public domain there is no copyright and no
+license terms to reproduce. This file records that status explicitly for tools
+and reviewers that look for a per-component LICENSE file.

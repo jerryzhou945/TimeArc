@@ -49,9 +49,9 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   still fall to 其他). Implementation issues + resolutions (A1–A7, B1–B11):
   `docs/memory-lake-integration-issues.md`; per-surface plan:
   `docs/memory-lake-backend-integration-plan.md` (also `…-implementation-plan.md` §4).
-- **Third-party license page missing.** Main README TO-DO. Required by GPL +
-  Qt LGPL combination; see
-  [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.
+- **Third-party license page — shipped (F2).** Settings → 导入导出 →「关于与开源许可」
+  surfaces each component's name / version / full text offline (`resources/licenses/`,
+  qrc-embedded); see [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.
 - **Frameless window — native snap-layouts fly-out deferred (Step 2).** PR #18
   shipped pure-QML frameless chrome (`qml/desktop/components/WindowChrome.qml`)
   + Win11 DWM rounded corners/shadow (`main.cpp::applyWin11RoundedCorners`). The
@@ -76,8 +76,8 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 
 ## Build / distribution
 
-- **Qt is not yet dynamically linked for distribution builds.** Still linking
-  targets as-is; LGPL compliance not proven for release.
+- **Qt dynamic link + release packaging — shipped (F1).** objdump confirms Qt6*.dll
+  imports (`tools/verify-linkage.ps1`); `tools/package-release.ps1` bundles DLLs + LICENSE + licenses/ + NOTICE.
 - **No JSON parser wired for user config.** Parson is bundled but unused;
   README TO-DO lists "JSON parser for user preferences".
 
