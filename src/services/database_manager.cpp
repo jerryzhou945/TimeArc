@@ -17,6 +17,7 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QStorageInfo>
+#include <QStringList>
 #include <QUrl>
 #include <QVariant>
 #include <QVector>
@@ -45,6 +46,69 @@ QString usageConfigDir() {
 
 QString usageConfigPath() {
   return QDir(usageConfigDir()).filePath(QStringLiteral("usage_config.json"));
+}
+
+// D2/H5: atomic read-modify-write of usage_config.json. Inserts/overwrites every
+// key in `updates`, removes every key in `removeKeys`, and PRESERVES all other
+// keys. Both the D2 db_path writer and the H5 idle/track writer funnel through
+// this one helper, so neither can clobber the other's keys (the kickoff's #1
+// risk -- made structurally impossible rather than guarded by convention).
+// QSaveFile gives the atomic tmp-write + rename the disk contract requires.
+// Returns false on any failure (G6 honest -- caller must not assume success).
+bool mergeUsageConfig(const QJsonObject& updates, const QStringList& removeKeys) {
+  const QString cfgPath = usageConfigPath();
+  const QString cfgDir = QFileInfo(cfgPath).absolutePath();
+  if (!QDir().mkpath(cfgDir)) {
+    qWarning() << "mergeUsageConfig: cannot create usage dir:" << cfgDir;
+    return false;
+  }
+
+  // Read-modify: preserve every existing key. A genuinely absent/empty file means
+  // "start fresh"; a non-empty-but-UNPARSEABLE file must NOT be treated as empty,
+  // or overwriting it would silently destroy the other writer's co-resident key
+  // (db_path vs idle/track -- the kickoff's #1 risk). Refuse honestly (G6) so the
+  // corrupt file + its keys survive for recovery; the caller (e.g. relocate) sees
+  // the failure and rolls back instead of split-braining.
+  QJsonObject obj;
+  {
+    QFile in(cfgPath);
+    if (in.exists() && in.open(QIODevice::ReadOnly)) {
+      const QByteArray raw = in.readAll();
+      in.close();
+      if (!raw.trimmed().isEmpty()) {
+        QJsonParseError err;
+        const QJsonDocument doc = QJsonDocument::fromJson(raw, &err);
+        if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+          qWarning() << "mergeUsageConfig: refusing to overwrite unparseable "
+                        "usage_config.json (preserving sibling keys for "
+                        "recovery):"
+                     << cfgPath;
+          return false;
+        }
+        obj = doc.object();
+      }
+    }
+  }
+  for (const QString& k : removeKeys) obj.remove(k);
+  for (auto it = updates.begin(); it != updates.end(); ++it)
+    obj.insert(it.key(), it.value());
+
+  const QByteArray bytes = QJsonDocument(obj).toJson(QJsonDocument::Indented);
+  QSaveFile out(cfgPath);
+  if (!out.open(QIODevice::WriteOnly)) {
+    qWarning() << "mergeUsageConfig: cannot open for write:" << cfgPath;
+    return false;
+  }
+  if (out.write(bytes) != bytes.size()) {
+    out.cancelWriting();
+    qWarning() << "mergeUsageConfig: short write:" << cfgPath;
+    return false;
+  }
+  if (!out.commit()) {
+    qWarning() << "mergeUsageConfig: commit failed:" << cfgPath;
+    return false;
+  }
+  return true;
 }
 
 // Raw db_path string from usage_config.json (empty when absent / unreadable /
@@ -1091,46 +1155,30 @@ bool DatabaseManager::restoreDatabase(const QString& sourcePath) {
 // ---------------------------------------------------------------------------
 
 bool DatabaseManager::writeDbPathPointer(const QString& dbPathOrEmpty) {
-  const QString cfgPath = usageConfigPath();
-  const QString cfgDir = QFileInfo(cfgPath).absolutePath();
-  if (!QDir().mkpath(cfgDir)) {
-    qWarning() << "writeDbPathPointer: cannot create usage dir:" << cfgDir;
-    return false;
-  }
-
-  // Read-modify-write: preserve every other key (H5 idle/track share this file).
-  QJsonObject obj;
-  {
-    QFile in(cfgPath);
-    if (in.exists() && in.open(QIODevice::ReadOnly)) {
-      const QJsonDocument doc = QJsonDocument::fromJson(in.readAll());
-      if (doc.isObject()) obj = doc.object();
-      in.close();
-    }
-  }
+  // Read-modify-write via the shared helper: an empty path clears the key,
+  // otherwise sets it; the H5 idle/track keys in this same file are preserved.
   if (dbPathOrEmpty.isEmpty())
-    obj.remove(QStringLiteral("db_path"));
-  else
-    obj.insert(QStringLiteral("db_path"), QDir::cleanPath(dbPathOrEmpty));
+    return mergeUsageConfig(QJsonObject(), {QStringLiteral("db_path")});
+  QJsonObject u;
+  u.insert(QStringLiteral("db_path"), QDir::cleanPath(dbPathOrEmpty));
+  return mergeUsageConfig(u, QStringList());
+}
 
-  // QSaveFile gives us the atomic tmp-write + rename the contract requires.
-  const QByteArray bytes =
-      QJsonDocument(obj).toJson(QJsonDocument::Indented);
-  QSaveFile out(cfgPath);
-  if (!out.open(QIODevice::WriteOnly)) {
-    qWarning() << "writeDbPathPointer: cannot open for write:" << cfgPath;
-    return false;
-  }
-  if (out.write(bytes) != bytes.size()) {
-    out.cancelWriting();
-    qWarning() << "writeDbPathPointer: short write:" << cfgPath;
-    return false;
-  }
-  if (!out.commit()) {
-    qWarning() << "writeDbPathPointer: commit failed:" << cfgPath;
-    return false;
-  }
-  return true;
+bool DatabaseManager::writeServiceConfig(int idleMs, bool trackEnabled) {
+  // H5 S2: write the background collector's idle-timeout (ms) + tracking on/off
+  // into usage_config.json. Shares mergeUsageConfig with the D2 db_path writer,
+  // so db_path is preserved untouched. idleMs <= 0 omits the key so the service
+  // keeps its compile-time default (fail-safe); track_enabled is always written
+  // (the user's explicit choice). Takes effect on the next collector startup --
+  // restart it via SettingsRepository for immediate effect. G6: false on failure.
+  QJsonObject u;
+  QStringList remove;
+  if (idleMs > 0)
+    u.insert(QStringLiteral("idle_threshold_ms"), idleMs);
+  else
+    remove << QStringLiteral("idle_threshold_ms");
+  u.insert(QStringLiteral("track_enabled"), trackEnabled);
+  return mergeUsageConfig(u, remove);
 }
 
 QVariantMap DatabaseManager::relocateDatabaseImpl(const QString& targetDirOrUrl,

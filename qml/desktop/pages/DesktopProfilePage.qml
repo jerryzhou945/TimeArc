@@ -110,6 +110,35 @@ Item {
     function _setBool(k, v) { if (settingsRepository) settingsRepository.setBool(k, v) }
     function _setStr(k, v) { if (settingsRepository) settingsRepository.setValue(k, v) }
 
+    // —— H5 服务侧配置（空闲超时 / 真停采集）——
+    // idle 选单是分钟串（"5"/"10"/…），后台服务要毫秒。两进程经磁盘 usage_config.json
+    // 通信（守 I1，无 IPC）：C++ writeServiceConfig 原子 RMW 写入并保留 D2 的 db_path 键。
+    function _idleMs() { return (parseInt(root.idleTimeout) || 5) * 60000 }
+    function _writeServiceConfig() {
+        if (databaseManager && databaseManager.writeServiceConfig)
+            databaseManager.writeServiceConfig(_idleMs(), root.trackRunning)
+    }
+    // 「应用并重启采集」：写最新 idle+track 后优雅停采集，再按追踪开关决定是否重启。
+    // 服务是 startup-read（启动时读一次），故唯有重启采集进程新设置才即时生效。
+    // 追踪关闭＝服务**真停**采集（非仅 UI 软暂停）：此时只停、不重启。
+    function applyAndRestartCollection() {
+        _writeServiceConfig()
+        if (!settingsRepository || !settingsRepository.stopBackgroundCollection) {
+            showToast("已写入配置；下次启动采集时生效"); return
+        }
+        Qt.callLater(function () {
+            settingsRepository.stopBackgroundCollection()
+            if (root.trackRunning) {
+                var ok = settingsRepository.startBackgroundCollection
+                         ? settingsRepository.startBackgroundCollection() : false
+                showToast(ok ? "已重启后台采集，新设置已生效"
+                             : "采集未能启动，请检查后台服务")
+            } else {
+                showToast("已停止后台采集（追踪已关闭，不再记录新数据）")
+            }
+        })
+    }
+
     function reloadFromKV() {
         accentColor      = _getStr("accent_color", "#9FE7EE")
         blurStrength     = parseInt(_getStr("blur_strength", "24")) || 24
@@ -938,12 +967,13 @@ Item {
 
                                 SettingRow {
                                     rowTitle: "追踪正在运行的应用"
-                                    rowSub: "记录窗口名称、应用名称和持续时间。真正暂停采集需后台服务支持（受限）。"
+                                    rowSub: "记录窗口名称、应用名称和持续时间。关闭后，后台服务会真正停止采集（点下方「应用并重启采集」即时生效，不删除既有历史）。"
                                     GlassSwitch {
                                         style: ml; checked: root.trackRunning
                                         onToggled: function (c) {
                                             root.trackRunning = c; root._setBool("track_running", c); root.pushReadFilters()
-                                            root.showToast(c ? "已恢复统计运行中的应用" : "已暂停统计（仅 UI；采集与历史保留）")
+                                            root._writeServiceConfig()
+                                            root.showToast(c ? "已开启追踪（应用并重启采集后生效）" : "已关闭追踪（应用并重启采集后服务停止记录）")
                                         }
                                     }
                                 }
@@ -970,13 +1000,24 @@ Item {
                                 }
                                 SettingRow {
                                     rowTitle: "空闲超过"
-                                    rowSub: "超过指定时间后暂停记录。实际阈值由后台服务决定（受限）。"
+                                    rowSub: "无键鼠输入超过该时间即结束当前前台计时（应用并重启采集后生效）。"
                                     GlassComboBox {
                                         style: ml
                                         model: ["5 分钟", "10 分钟", "15 分钟", "30 分钟"]
                                         property var _vals: ["5", "10", "15", "30"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.idleTimeout))
-                                        onActivated: function (i) { root.idleTimeout = _vals[i]; root._setStr("idle_timeout", _vals[i]); root.showToast("空闲超时已保存") }
+                                        onActivated: function (i) { root.idleTimeout = _vals[i]; root._setStr("idle_timeout", _vals[i]); root._writeServiceConfig(); root.showToast("空闲超时已保存（应用并重启采集后生效）") }
+                                    }
+                                }
+                                SettingRow {
+                                    rowTitle: "立即生效"
+                                    rowSub: "把上面的空闲超时与追踪开关写入后台服务并重启采集，立即生效；否则下次启动采集时才生效。"
+                                    GhostBtn {
+                                        label: "应用并重启采集"; primary: true
+                                        enabled: !!(settingsRepository && settingsRepository.autostartSupported
+                                                    && settingsRepository.autostartSupported())
+                                        opacity: enabled ? 1 : 0.45
+                                        onTapped: root.applyAndRestartCollection()
                                     }
                                 }
                             }
