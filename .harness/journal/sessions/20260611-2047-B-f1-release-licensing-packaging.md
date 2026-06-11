@@ -38,3 +38,23 @@ description was stale — Qt is *already* dynamic; F1 = prove + de-stale + packa
 - **Encoding bug caught + fixed**: PowerShell 5.1 read the UTF-8 `.ps1` as ANSI/GBK and mangled `—`/`→` in
   NOTICE + script messages → made both scripts pure ASCII; regenerated NOTICE renders clean.
 - `harness_check.py` exit 0; backlog §F1 → `[x]`; S4 (in-tree CMake deploy) left gated (needs proposal).
+
+## Adversarial review (3 dims + verify) — legal gaps found in windeployqt auto-bundling, fixed
+The scripts/de-stale were judged sound (verify-linkage correctly FAILS on a zero-Qt-import proxy; no frozen
+CMake; no PS5.1 incompat). But `windeployqt --compiler-runtime` auto-adds binaries the kickoff's component
+list never anticipated, all shipping un-attributed — 3 real findings, all fixed:
+- **opengl32sw.dll (Mesa/llvmpipe, ~20 MB)** shipped with no Mesa/LLVM attribution → **dropped via
+  `--no-opengl-sw`** (Qt6 uses the Direct3D 11 RHI on Windows, so the software-GL rasterizer is unused;
+  also addresses the kickoff §5 over-packaging risk).
+- **D3Dcompiler_47.dll (Microsoft redistributable)** unacknowledged → added a NOTICE section (kept; the D3D11
+  backend needs it).
+- **libwinpthread-1.dll mis-attributed** — it is MinGW-w64 winpthreads (MIT), NOT the GCC Runtime Library
+  Exception → vendored `resources/licenses/mingw-w64-winpthreads.txt` + split the NOTICE MinGW section.
+- Also: zip now contains a top-level folder (clean unzip). Re-ran packaging: opengl32sw gone, 7 license texts,
+  NOTICE accurate, linkage assert green, exit 0.
+
+## Note — test-induced service blip (handled)
+The clean-machine launch test spawned the bundled `time-arc-service.exe` (child of the packaged app); it
+outlived the killed parent and took over collection from the user's original service. I killed the orphan and
+restored the user's collection by relaunching the canonical `build/time-arc-service.exe` (detached, no args,
+matching `main.cpp::startUsageService`). Subsequent package verification was inspection-only (no app launch).
