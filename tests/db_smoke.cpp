@@ -1368,6 +1368,138 @@ int main(int argc, char* argv[]) {
         << QStringLiteral("D2 db-path pointer + relocate round-trip ok.");
   }
 
+  // ---- H5: UI->service config channel (idle / track) -------------------------
+  // DatabaseManager::writeServiceConfig writes idle_threshold_ms + track_enabled
+  // into the SAME usage_config.json the D2 db_path lives in, through the shared
+  // mergeUsageConfig RMW helper. Asserts: values land with the right types,
+  // idleMs<=0 omits the key, and -- the headline invariant (#3) -- the two
+  // writers preserve each other's keys in BOTH directions. Test mode keeps the
+  // pointer under testDataPath (no real usage dir touched). QtCore + QtSql only.
+  {
+    const QString configPath =
+        QDir(testDataPath).filePath(QStringLiteral("usage_config.json"));
+    auto readConfigObj = [&]() -> QJsonObject {
+      QFile f(configPath);
+      if (!f.exists() || !f.open(QIODevice::ReadOnly)) return QJsonObject();
+      const QByteArray b = f.readAll();
+      f.close();
+      const QJsonDocument d = QJsonDocument::fromJson(b);
+      return d.isObject() ? d.object() : QJsonObject();
+    };
+    QFile::remove(configPath);
+
+    // 1. Basic write: both keys land with the right values + JSON types.
+    if (!databaseManager.writeServiceConfig(300000, false))
+      return fail(QStringLiteral("H5: writeServiceConfig returned false."));
+    {
+      const QJsonObject o = readConfigObj();
+      if (!o.value(QStringLiteral("idle_threshold_ms")).isDouble() ||
+          o.value(QStringLiteral("idle_threshold_ms")).toInt() != 300000)
+        return fail(QStringLiteral("H5: idle_threshold_ms not written as 300000."));
+      if (!o.value(QStringLiteral("track_enabled")).isBool() ||
+          o.value(QStringLiteral("track_enabled")).toBool() != false)
+        return fail(QStringLiteral("H5: track_enabled not written as false."));
+    }
+
+    // 2. idleMs <= 0 omits the key (service keeps its compile-time default);
+    //    track_enabled is still written (the user's explicit choice).
+    if (!databaseManager.writeServiceConfig(0, true))
+      return fail(QStringLiteral("H5: writeServiceConfig(0,true) returned false."));
+    {
+      const QJsonObject o = readConfigObj();
+      if (o.contains(QStringLiteral("idle_threshold_ms")))
+        return fail(QStringLiteral("H5: idleMs<=0 did not omit idle_threshold_ms."));
+      if (o.value(QStringLiteral("track_enabled")).toBool() != true)
+        return fail(QStringLiteral("H5: track_enabled not updated to true."));
+    }
+
+    // 3. Invariant #3 forward: the H5 writer preserves a pre-existing D2 db_path.
+    {
+      QJsonObject seed;
+      seed.insert(QStringLiteral("db_path"),
+                  QStringLiteral("D:/somewhere/timearc.db"));
+      QFile f(configPath);
+      if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate) ||
+          f.write(QJsonDocument(seed).toJson()) < 0)
+        return fail(QStringLiteral("H5: could not seed db_path before write."));
+      f.close();
+    }
+    if (!databaseManager.writeServiceConfig(600000, false))
+      return fail(QStringLiteral("H5: writeServiceConfig over db_path failed."));
+    {
+      const QJsonObject o = readConfigObj();
+      if (o.value(QStringLiteral("db_path")).toString() !=
+          QStringLiteral("D:/somewhere/timearc.db"))
+        return fail(QStringLiteral("H5: writer clobbered the D2 db_path key."));
+      if (o.value(QStringLiteral("idle_threshold_ms")).toInt() != 600000 ||
+          o.value(QStringLiteral("track_enabled")).toBool() != false)
+        return fail(QStringLiteral("H5: idle/track not co-written with db_path."));
+    }
+    QFile::remove(configPath);
+
+    // 4. Invariant #3 reverse: the D2 writer (relocate / restore-default, which
+    //    funnel through the same helper) preserves the H5 idle/track keys. Set
+    //    idle/track, relocate (writes db_path) and assert idle/track survive next
+    //    to it, then restore-default (clears db_path) and assert idle/track STILL
+    //    survive -- only db_path is removed.
+    if (!databaseManager.writeServiceConfig(900000, false))
+      return fail(QStringLiteral("H5: pre-relocate writeServiceConfig failed."));
+    const QString h5Dir = QDir::temp().filePath(QStringLiteral("timearc-h5-reloc"));
+    QDir(h5Dir).removeRecursively();
+    QDir().mkpath(h5Dir);
+    const QVariantMap h5mv =
+        databaseManager.relocateDatabaseTo(QUrl::fromLocalFile(h5Dir).toString());
+    if (!h5mv.value(QStringLiteral("ok")).toBool())
+      return fail(QStringLiteral("H5: relocate (D2 writer) failed: %1")
+                      .arg(h5mv.value(QStringLiteral("error")).toString()));
+    {
+      const QJsonObject o = readConfigObj();
+      if (o.value(QStringLiteral("db_path")).toString().isEmpty())
+        return fail(QStringLiteral("H5: relocate did not write db_path."));
+      if (o.value(QStringLiteral("idle_threshold_ms")).toInt() != 900000 ||
+          o.value(QStringLiteral("track_enabled")).toBool() != false)
+        return fail(QStringLiteral("H5: D2 writer clobbered the H5 idle/track keys."));
+    }
+    const QVariantMap h5rv = databaseManager.restoreDefaultDatabaseLocation();
+    if (!h5rv.value(QStringLiteral("ok")).toBool())
+      return fail(QStringLiteral("H5: restore-default failed: %1")
+                      .arg(h5rv.value(QStringLiteral("error")).toString()));
+    {
+      const QJsonObject o = readConfigObj();
+      if (o.contains(QStringLiteral("db_path")))
+        return fail(QStringLiteral("H5: restore-default did not clear db_path."));
+      if (o.value(QStringLiteral("idle_threshold_ms")).toInt() != 900000 ||
+          o.value(QStringLiteral("track_enabled")).toBool() != false)
+        return fail(QStringLiteral("H5: restore-default clobbered the H5 keys."));
+    }
+    QDir(h5Dir).removeRecursively();
+    QFile::remove(configPath);
+
+    // 5. Corrupt-existing-file guard: a non-empty UNPARSEABLE usage_config.json must
+    //    NOT be silently overwritten (that would truncate the other writer's key).
+    //    writeServiceConfig refuses (returns false) and leaves the file byte-intact.
+    {
+      const QByteArray garbage = QByteArrayLiteral("{ not valid json :: db_path");
+      QFile f(configPath);
+      if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate) ||
+          f.write(garbage) != garbage.size())
+        return fail(QStringLiteral("H5: could not seed corrupt config."));
+      f.close();
+      if (databaseManager.writeServiceConfig(120000, true))
+        return fail(QStringLiteral("H5: writeServiceConfig overwrote a corrupt config."));
+      QFile rf(configPath);
+      if (!rf.open(QIODevice::ReadOnly))
+        return fail(QStringLiteral("H5: corrupt config vanished after refused write."));
+      const QByteArray after = rf.readAll();
+      rf.close();
+      if (after != garbage)
+        return fail(QStringLiteral("H5: corrupt config was mutated instead of preserved."));
+      QFile::remove(configPath);
+    }
+    qInfo().noquote()
+        << QStringLiteral("H5 service-config write + key-preservation ok.");
+  }
+
   qInfo().noquote() << QStringLiteral("database smoke ok: %1").arg(databasePath);
   return 0;
 }

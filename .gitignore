@@ -85,6 +85,10 @@ CMakeLists.txt.user*
 /build*/
 /.build*/
 
+# Release packages (produced by tools/package-release.ps1; only the script is tracked)
+/dist*/
+*.zip
+
 # Per-machine, fork-local toolchain overrides for run.cmd / launch.cmd.
 # Never committed; each developer pins their own Qt root without editing
 # the tracked launch scripts. See the README "Quick run on Windows" section.

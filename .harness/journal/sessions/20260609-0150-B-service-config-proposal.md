@@ -59,11 +59,24 @@ keeping A-CLEAR (UI-private cache only) unless product wants a purge tool. A JSO
 rejected (breaks the append-only invariant + incremental readers).
 
 ## 8. Sign-off
-- [ ] `rules/*.md` updated (new service-config rule) if approved.
-- [ ] `CHARTER.md` notes the UI→service config channel as a sanctioned disk extension; records
-      that idle/track override A-TRACKPAUSE.
-- [ ] `state/frozen-files.json` regenerated if any frozen file ends up touched.
-- [ ] `README.md` updated (idle/track now real) if implemented.
+- [x] **Maintainer approval:** repo owner (Yonezawa-Akane) authorized H5 implementation into PR #42
+      on 2026-06-11 ("start H5 contents … go"). Treated as the sign-off; implemented this session.
+- [x] `rules/03-data-contract.md` updated: a "Service config (H5)" paragraph documents the
+      `idle_threshold_ms` / `track_enabled` keys, the UI→service direction, and key coexistence with
+      the D2 `db_path` (shared atomic RMW). A-TRACKPAUSE override recorded there + in the backlog.
+- [x] `state/frozen-files.json` — CHARTER.md is frozen; its hash was regenerated via
+      `harness_check.py --bootstrap` after the v0.4 amendment (1 hash updated). No service TU was added,
+      so `src/service/CMakeLists.txt` stays untouched; harness_check pass 2 clean.
+- [x] **CHARTER amended to v0.4** (follow-up 2026-06-11): I1 now names `usage_config.json` as the
+      sanctioned UI→service control file, and §5 v0.4 records the idle/track keys + the A-TRACKPAUSE
+      supersession as a charter invariant (v0.3 had sanctioned the file's transport; v0.4 records the new
+      *control* semantic). `rules/03` tagged `CHARTER` v0.4.
+- [x] `README.md` updated (idle/track now real — settings section).
 
-**Status: PROPOSED — awaiting maintainer sign-off. NOT implemented in this PR;** the UI keeps the
-honest soft-pause + "受限" labels until approved.
+**Status: APPROVED + IMPLEMENTED (H5 S1+S2, PR #42).** idle-timeout + true-pause now reach the service
+via `usage_config.json`; the UI dropped the "受限" labels. Verified (artifacts under
+`.harness/journal/build-logs/`): real-binary service smoke `20260611-135946-h5-service-smoke.log`
+(idle applied / paused = self-exit + no new records / absent = defaults) + `db_smoke`
+`20260611-140119-h5-db-smoke.log` (H5 write + bidirectional key-preservation + corrupt-guard) +
+settings-card capture (`h5-tracking-1280/1680.png`). **G-CLEAR (delete history) remains deferred** per §7 (append-only; a purge
+tool + charter amendment is a separate session if product wants it).

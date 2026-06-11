@@ -113,6 +113,23 @@ static int parent_dir_of(const char* path, char* out_dir, size_t out_size) {
   return 0;
 }
 
+// Build "<usageDir>/usage_config.json" into out. 0 on success, -1 otherwise.
+// Shared by the D2 db_path reader and the H5 idle/track reader so both halves
+// resolve the exact same cross-process config file.
+static int make_usage_config_path(char* out, size_t out_size) {
+  char dir[1024];
+  if (timearc_get_usage_data_dir(dir, sizeof(dir)) != 0) {
+    return -1;
+  }
+
+#ifdef _WIN32
+  int written = snprintf(out, out_size, "%s\\usage_config.json", dir);
+#else
+  int written = snprintf(out, out_size, "%s/usage_config.json", dir);
+#endif
+  return (written > 0 && (size_t)written < out_size) ? 0 : -1;
+}
+
 // D2 (CHARTER I2 v0.3): read a redirected SQLite path from the cross-process
 // pointer `<usageDir>/usage_config.json` "db_path". Returns 0 and fills out_path
 // when the key is present, non-empty, fits, and its parent directory is
@@ -125,20 +142,8 @@ static int parent_dir_of(const char* path, char* out_dir, size_t out_size) {
 // (idle/track), so we only ever READ the one "db_path" key and never assume the
 // other keys are absent.
 static int read_config_db_path(char* out_path, size_t out_path_size) {
-  char dir[1024];
-  if (timearc_get_usage_data_dir(dir, sizeof(dir)) != 0) {
-    return -1;
-  }
-
   char config_path[1200];
-#ifdef _WIN32
-  int written =
-      snprintf(config_path, sizeof(config_path), "%s\\usage_config.json", dir);
-#else
-  int written =
-      snprintf(config_path, sizeof(config_path), "%s/usage_config.json", dir);
-#endif
-  if (written < 0 || (size_t)written >= sizeof(config_path)) {
+  if (make_usage_config_path(config_path, sizeof(config_path)) != 0) {
     return -1;
   }
 
@@ -172,6 +177,48 @@ static int read_config_db_path(char* out_path, size_t out_path_size) {
 
   json_value_free(root);
   return rc;
+}
+
+// H5 (UI→service config channel): read idle_threshold_ms + track_enabled from
+// the SAME usage_config.json the D2 db_path lives in. Contract in
+// usage_storage.h. Fail-safe: a missing/malformed file or a missing/ill-typed
+// key leaves the caller's default in place; a configured-but-insane idle value
+// is rejected with a stderr note rather than silently honored (G6). Read-only —
+// the D2 db_path key is preserved because nothing is written here.
+int timearc_read_service_config(int64_t* idle_threshold_ms, int* track_enabled) {
+  char config_path[1200];
+  if (make_usage_config_path(config_path, sizeof(config_path)) != 0) {
+    return -1;
+  }
+
+  JSON_Value* root = json_parse_file(config_path);
+  if (root == NULL) {
+    return -1;  // absent or malformed -> caller keeps compile-time defaults
+  }
+
+  JSON_Object* obj = json_value_get_object(root);
+  if (obj != NULL) {
+    if (idle_threshold_ms != NULL &&
+        json_object_has_value_of_type(obj, "idle_threshold_ms", JSONNumber)) {
+      double ms = json_object_get_number(obj, "idle_threshold_ms");
+      // 夹取合理区间（1s..24h），防 UI 分钟→毫秒换算错位或脏值把空闲判定推离谱。
+      if (ms >= 1000.0 && ms <= 86400000.0) {
+        *idle_threshold_ms = (int64_t)ms;
+      } else {
+        fprintf(stderr,
+                "TimeArc service: usage_config.json idle_threshold_ms %.0f out "
+                "of range [1000,86400000]; using the default.\n",
+                ms);
+      }
+    }
+    if (track_enabled != NULL &&
+        json_object_has_value_of_type(obj, "track_enabled", JSONBoolean)) {
+      *track_enabled = json_object_get_boolean(obj, "track_enabled") ? 1 : 0;
+    }
+  }
+
+  json_value_free(root);
+  return 0;
 }
 
 static int make_db_path(char* out_path, size_t out_path_size) {

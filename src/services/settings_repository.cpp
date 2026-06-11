@@ -446,3 +446,26 @@ bool SettingsRepository::stopBackgroundCollection() {
   return true;  // no background collector to stop on non-Windows yet
 #endif
 }
+
+bool SettingsRepository::startBackgroundCollection() {
+#if defined(Q_OS_WIN)
+  // Launch a tracker now; the single-instance mutex makes a double-start
+  // idempotent. --start returns as soon as the launcher fires, so poll --status
+  // briefly for the tracker to grab the mutex (tracking on) -- or, when tracking
+  // was just turned off, to self-exit -- before reporting the real running state.
+  if (runServiceVerb(QStringLiteral("--start")) < 0) return false;
+  for (int i = 0; i < 8; ++i) {
+    QString out;
+    if (runServiceVerb(QStringLiteral("--status"), &out) >= 0 &&
+        out.contains(QStringLiteral("running=yes"))) {
+      return true;
+    }
+    QThread::msleep(200);
+  }
+  QString out;
+  return runServiceVerb(QStringLiteral("--status"), &out) >= 0 &&
+         out.contains(QStringLiteral("running=yes"));
+#else
+  return false;  // no background collector to start on non-Windows yet
+#endif
+}

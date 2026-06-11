@@ -43,9 +43,10 @@
   需先建分享图导出能力，超出本轮。
 
 **契约/平台项 → 已提案（不偷接服务）：**
-- 📋 **空闲超时 / 真停采集 / 删除历史**（G-IDLE/G-TRACK/G-CLEAR）：见
-  `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（UI→服务 磁盘配置通道方案 +
-  删历史决策）。属磁盘契约扩展 + 服务侧改 + A-TRACKPAUSE 复议，须维护者签核后由具服务构建流水线的会话实装。
+- ✅ **空闲超时 / 真停采集**（G-IDLE/G-TRACK）：**已实装**（H5 S1+S2，PR #42）——UI→服务 磁盘配置通道
+  `usage_config.json`（`idle_threshold_ms`/`track_enabled`）。提案
+  `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（维护者签核）。**G-CLEAR 删除历史暂缓**
+  （append-only；真删须 CHARTER 修订或外部停服 purge 工具）。
 - ⛔ **仅本地 / 权限就绪**：设计如此（无上传可禁 / Windows 前台采集无授权 API），无可实装对象。
 
 ---
@@ -69,9 +70,9 @@
 
 | 控件 | KV 键 | 状态 | 真实消费者 / 取证 | 备注（缺口） |
 |---|---|---|---|---|
-| 追踪正在运行的应用 | `track_running` | 🟡 | `DesktopAppShell.qml:222`→`setReadFilters`：UI **软暂停**（读层不计 live）；**真停采集做不到** | G-TRACK（服务侧，契约阻断） |
+| 追踪正在运行的应用 | `track_running` | ✅ | UI 软暂停（读层）**＋** 写 `usage_config.json` `track_enabled`：服务真停采集并退出（H5，PR #42；「应用并重启采集」即时生效） | ~~G-TRACK~~ 已解 |
 | 游戏模式识别 | `game_mode` | ✅ | `setReadFilters` → `usage_stat_manager` 类别票门控 | — |
-| 空闲超过（超时） | `idle_timeout` | 🧱 | **UI 内无消费者**；服务空闲阈值是编译期 `#define`，不读设置 | G-IDLE（服务侧，契约阻断） |
+| 空闲超过（超时） | `idle_timeout` | ✅ | 写 `usage_config.json` `idle_threshold_ms`；服务启动读入 `TimeArcUsageTrackerConfig`（H5，PR #42；分钟→ms） | ~~G-IDLE~~ 已解 |
 | 应用逐项显隐 | `hidden_apps` | ✅ | `DesktopAppShell.qml:214`→`setReadFilters`；聚合/趋势/专注/live 全链路排除 + 选单 | G-HIDEAPP |
 | 自动分类 | `auto_classify` | ✅ | `setReadFilters` → 类别门控（关→「其他」、专注归零） | — |
 | 合并同类窗口 | `merge_windows` | ✅ | `setReadFilters` → `effectiveGroupKey`（关→按 exe 细分） | — |
@@ -137,9 +138,9 @@
    类别 / 「应用 N」。当前仅存偏好。
 
 ### D. 契约 / 平台阻断（UI 内无法真正实现，需提案或服务侧工具）
-9. **真正暂停采集 + 空闲超时（`track_running` 真停 / `idle_timeout` / G-TRACK·G-IDLE）**：服务是独立进程、
-   靠磁盘契约通信（无 IPC，I1）。真停采集 / 改空闲阈值需「服务启动读 usage 目录配置文件」或新增控制通道 ——
-   **须先提改契约提案**。UI 现仅软暂停近似 + 诚实标注。
+9. ✅ **真正暂停采集 + 空闲超时（`track_running` 真停 / `idle_timeout` / G-TRACK·G-IDLE）— 已实装（H5，PR #42）**：
+   服务启动读 `usage_config.json`（`idle_threshold_ms`/`track_enabled`），idle 接进 tracker config、`track_enabled=false`
+   真停采集并退出；UI `writeServiceConfig` + 「应用并重启采集」即时生效。仍无 IPC（守 I1），纯磁盘配置通道。
 10. **删除历史（G-CLEAR 真删）**：usage 为追加-only（契约 D1/I2）。应用内只清 UI 私有缓存；真删需「停服务 +
     迁移工具」。
 11. **应用使用权限探测（G-PERM）**：Windows 前台采集无需 OS 授权，无权限 API 可查 → 恒「就绪」（诚实，按 A-PERM）。
@@ -160,7 +161,8 @@
 | P2 | 数据概览番茄格：接「完成次数」需先给番茄引擎加完成日志 | 前端 + 引擎 | 中 |
 | P3 | 系统通知能力（C-7） | 新建能力 | 中-大 |
 | P3 | 匿名分享图（C-8 / G-ANON） | 跨页渲染 | 中 |
-| 提案 | 真停采集 / 空闲 / 真删历史（D-9/10） | 契约修订 | 大 + 需评审 |
+| ✅ 已做 | 真停采集 / 空闲（D-9 · H5 S1+S2，PR #42） | 磁盘配置通道 | — |
+| 提案 | 真删历史（D-10 / G-CLEAR，暂缓） | 契约修订 | 大 + 需评审 |
 | 天花板 | 磨砂实时模糊（B-6） | 受限 | 不做 / 占位 |
 | 设计如此 | 仅本地、权限就绪 | 安抚 / 诚实 | 不做 |
 

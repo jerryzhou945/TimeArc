@@ -74,10 +74,12 @@ with day and night modes.
   memo & pomodoro hotkeys are user-customizable; a one-shot welcome animation is gated
   by `show_welcome`; and **system notifications** (pomodoro-complete-in-background) use
   `qml/desktop/memorylake/NotifierTray.qml` (a `Qt.labs.platform` tray, loaded
-  defensively so a missing plugin can't break the app). Items with no backend
-  (real history deletion, true service-side track pause / idle, real-time backdrop
-  blur, global accent/i18n) stay honest placeholders rather than faked; the page is
-  read-only over the usage journal and never bypasses the disk contract.
+  defensively so a missing plugin can't break the app). The **idle timeout** and
+  **true track pause** now take real effect: they write `usage_config.json` and an
+  "应用并重启采集" action restarts the service to apply them (H5). Items still without a
+  backend (real history deletion, real-time backdrop blur, global accent/i18n) stay
+  honest placeholders rather than faked; the page is read-only over the usage journal
+  and never bypasses the disk contract.
 - **Desktop shell** — a Qt Quick interface with full day/night theming.
   The left nav follows the design order **首页 (Memory Lake) · 日历 · 统计 ·
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.
@@ -309,6 +311,26 @@ Two executables are produced: `TimeArc` (the UI) and `time-arc-service`
 (the background sampler). Both land under the install prefix's `bin/`
 (or `.app` bundle on macOS).
 
+### Packaging a release (Windows)
+
+`tools/package-release.ps1` produces a self-contained portable package. It runs
+`windeployqt` to bundle the Qt and MinGW runtime DLLs next to `TimeArc.exe` and the
+service, copies `LICENSE` and the whole `resources/licenses/` tree, and writes a
+`NOTICE.txt` (including the Qt LGPL relink statement). It first asserts — via
+`tools/verify-linkage.ps1` — that the shipped `TimeArc.exe` links Qt **dynamically**
+(LGPL posture: `objdump` must show `Qt6*.dll` imports and no static Qt), refusing to
+package otherwise.
+
+```powershell
+python .harness/tools/build.py -- --config Release   # build Release first
+pwsh -File tools/package-release.ps1                  # -> dist/TimeArc-<ver>-win64/ + .zip
+```
+
+The `dist/` output is gitignored, and the result unzips and runs on a machine with no Qt
+installed (the bundled DLLs are used). One-step in-tree CMake deploy automation
+(`cmake --install`) is deferred — it would edit the frozen top-level `CMakeLists.txt` and
+needs a change proposal first.
+
 ### Quick run on Windows (`run.cmd` / `launch.cmd`)
 
 Two convenience launchers live at the repo root:
@@ -400,17 +422,22 @@ written to `<GenericDataLocation>/TimeArc/logs/harness-qt.log`.
 ### TimeArc Service
 
 The service samples foreground windows and per-process audio every
-second (configurable via `TIMEARC_USAGE_POLL_INTERVAL_MS`). It honors a
-60-second idle threshold (`TIMEARC_USAGE_IDLE_THRESHOLD_MS`) and
-guarantees a single running instance via the named mutex
-`Local\TimeArcUsageService` on Windows. A `Ctrl+C` or console close
-triggers an orderly flush of the current session.
+second (configurable via `TIMEARC_USAGE_POLL_INTERVAL_MS`). The idle
+threshold defaults to 60 s (`TIMEARC_USAGE_IDLE_THRESHOLD_MS`) but is
+**overridable at startup** via `usage_config.json` `idle_threshold_ms`;
+`track_enabled=false` in that file makes the service collect nothing and
+exit (a true pause — never a deletion). It guarantees a single running
+instance via the named mutex `Local\TimeArcUsageService` on Windows, and a
+`Ctrl+C`, console close, or `--stop` triggers an orderly flush of the
+current session.
 
 ### Configuration
 
-User preferences are not yet externalized as editable config files. Desktop
-night mode is persisted in SQLite settings, and the bundled Parson JSON parser
-exists for future user-config work.
+`usage_config.json` (in the fixed usage dir) is the one cross-process config
+file: the UI writes it and the service reads it via the bundled Parson parser.
+It carries the `db_path` redirect (D2) and the H5 `idle_threshold_ms` /
+`track_enabled` keys; both writers do an atomic read-modify-write that preserves
+the other's keys. Other UI preferences live in the SQLite settings table.
 
 ## Project Structure
 
@@ -573,9 +600,14 @@ See `.harness/CHARTER.md` for invariants and frozen files;
 - [x] Make SQLite the primary on-disk history source with a one-shot JSONL
       backfill/migrator (A1 S1–S4). Remaining: retire JSONL writing after a
       soak period (A1 S5).
-- [ ] Compile Qt as dynamically-linked libraries in release builds to
-      satisfy the LGPL-3.0 combination posture.
-- [ ] Add an in-app licenses page surfacing all third-party texts.
+- [x] Compile Qt as dynamically-linked libraries in release builds to satisfy the
+      LGPL-3.0 combination posture (F1). Qt already links dynamically — verified by
+      `tools/verify-linkage.ps1` (Qt6*.dll imports, no static Qt) — and
+      `tools/package-release.ps1` produces a portable package bundling the relink-able
+      Qt/MinGW DLLs + `LICENSE` + `licenses/` + `NOTICE.txt`.
+- [x] Add an in-app licenses page surfacing all third-party texts (F2). Shipped
+      at Settings → 导入导出 → 「关于与开源许可」: per-component name, version, and
+      full, offline-readable license text (`resources/licenses/`, qrc-embedded).
 - [ ] Wire Parson in as the JSON parser for user preferences /
       configuration.
 - [ ] Evolve the "Memory Lake" Daily Cards: the six local card types
@@ -610,6 +642,16 @@ or later (GPL-3.0-or-later)**. See `LICENSE` for the full text.
 
 | Component | License                   | Linkage | Notes                                |
 |-----------|---------------------------|---------|--------------------------------------|
-| Qt 6      | LGPL-3.0 (with exceptions)| dynamic (planned for release) | Required for GUI + QML + Svg. |
+| Qt 6      | LGPL-3.0 (with exceptions)| dynamic | Required for GUI + QML + Svg. Bundled by `tools/package-release.ps1` as relink-able DLLs (LGPL posture). |
 | SQLite    | Public domain             | static  | Vendored under `thirdparty/sqlite3/`; used by the database layer and service storage. |
 | Parson    | MIT                       | static  | Vendored under `thirdparty/parson/`. Will back user config. |
+
+Full license texts for every component above ship in `resources/licenses/*.txt`
+(embedded in the qrc, so they are readable offline) and are viewable in-app at
+Settings → 导入导出 → 「关于与开源许可」, which also shows each component's version
+(Qt 6.11.1, SQLite 3.51.3, Parson 1.5.3). SQLite is public domain and carries no
+license text, so its entry ships the author's blessing plus an explicit
+"public domain — no license text" note. When a new third-party component is added
+under `thirdparty/`, add its text to `resources/licenses/`, register it in
+`resources/CMakeLists.txt`, and add a row to the in-app page — see
+[`.harness/rules/06-licensing.md`](.harness/rules/06-licensing.md) §4.

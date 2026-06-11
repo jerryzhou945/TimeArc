@@ -40,7 +40,7 @@ G2/G3 打磨 ───────────(随手)
 
 优先级直觉：**A1 是地基**，S1–S4 已落地并合并（SQLite 升 UI 主历史读源 + 回填 + 翻转，`CHARTER` v0.2）——**D1/D2（导出-备份 / DB 路径迁移）已解锁**，A1 仅剩 **S5**（退役 JSONL 写入，未来发版）；**B1**（Windows 用户会话自启 Route A）亦已实装合并、Route B 暂缓；
 **E\*** 最大最敏感、门控；**C/F** 按平台/发版节奏。
-设置页剩余（**§H**）：**H1 时间格式**可随手做（P1，注意散落已验收页）；**H5 服务侧配置**须先过已填提案的签核；
+设置页剩余（**§H**）：**H1 时间格式**可随手做（P1，注意散落已验收页）；**H5 服务侧配置 S1+S2 已实装**（idle/真停，PR #42；S3 删历史暂缓）；
 **H3/H4**（强调色全局 + i18n）= 产品门控 **3E**；**H2** 依赖先有「分享图导出」特性；**H6** 受 QML 天花板、保留占位。
 
 ---
@@ -100,8 +100,14 @@ G2/G3 打磨 ───────────(随手)
 - [ ] **E5 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
 
 ### F. 发布 / 许可（build/release · 跨平台 · 临近发版）
-- [ ] **F1 release 构建动态链接 Qt**（满足 LGPL/GPL 组合姿态）— Track B · 提案：可能动冻结 `CMakeLists`。
-- [ ] **F2 in-app 第三方许可证页面**（surfacing 所有 third-party 文本，`rules/06` §4）— Track B。
+- [x] **F1 release 构建动态链接 Qt**（满足 LGPL/GPL 组合姿态）— Track B · Route A · 提案：否（未动冻结 `CMakeLists`）。
+  已实装（**PR #43**）：S1 `tools/verify-linkage.ps1`（objdump 断言 Qt6*.dll 动态、无静态 Qt + shared-libs 部署）
+  + 去过时文档（open-issues / rules/06 §1 / README）；S2 许可文本 `resources/licenses/`；S3 `tools/package-release.ps1`
+  （windeployqt + 随包 Qt/MinGW DLL + LICENSE + licenses/ + NOTICE.txt relink 声明 + 嵌 S1 断言 + zip；断面机
+  剥离 PATH 解压即跑已验证）。S4 in-tree CMake 部署（改冻结顶层 CMake）仍门控暂缓（须提案）。
+- [x] **F2 in-app 第三方许可证页面**（surfacing 所有 third-party 文本，`rules/06` §4）— Track B。
+  已实装（**PR #43**）：设置→导入导出→「关于与开源许可」卡（Qt/SQLite/Parson/TimeArc 名+版本+许可+链接方式），
+  「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。
 
 ### G. 配置 / 打磨 / 杂项
 - [ ] **G1 用户偏好外置为可编辑配置 + 接 Parson**（Parson 已 vendored 且已链接进 app/service 目标、但 src 零调用）— Track B · 小-中 · 备注：设置页约 30 项偏好走 SQLite `settings` 表（`SettingsRepository`），是 SQLite KV、**非人类可编辑磁盘文本、不经 Parson，不满足本项**（本项指人类可编辑磁盘配置文件 + Parson 解析）；与 **H5** 服务侧 `usage_config.json` 提案范畴相邻（H5 是服务 idle/track 运行配置、复用 `SettingsRepository` 非 Parson），宜交叉引用。
@@ -125,12 +131,14 @@ G2/G3 打磨 ───────────(随手)
   `MemoryLakeStyle` 强调色改可注入（仿 injectedTextPrimary）+ Shell 下发。Track B · UI · 中 · **产品方另行领出（3E）**。
 - [ ] **H4 [门控·3E] 界面语言全局译文（G-I18N）** — `language_mode` 已持久化（zh/en/ja）但 UI 文案全静态。剩余：
   qsTr + QTranslator 或共享 strings map 覆盖全 app。Track B · UI 全量 · **大工程** · **产品方另行领出（3E）**。
-- [ ] **H5 [提案] 空闲超时 / 真停采集 / 删除历史（G-IDLE / G-TRACK / G-CLEAR）** — UI 现为软暂停 + 诚实标注；
-  服务忽略 idle/track（idle 是编译期 `#define`），历史追加-only 不可删。剩余：UI→服务 磁盘配置通道（service 读
-  `usage_config.json`）让 idle/track 生效 + 删历史策略。Track B · service(`src/service/windows/main.c` /
-  `usage_tracker.{c,h}` 非冻结) + UI · **变更提案已填**
-  `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（契约扩展 + 覆盖 A-TRACKPAUSE，**待维护者
-  签核**；须服务构建/测试流水线）· 依赖：签核。
+- [x] **H5 [S1+S2 已实装·PR #42] 空闲超时 / 真停采集（G-IDLE / G-TRACK）** — UI→服务 磁盘配置通道已落地：service 启动读
+  `usage_config.json` 的 `idle_threshold_ms`+`track_enabled`（`timearc_read_service_config`，缺/坏→编译期默认，向后兼容），
+  idle 接进 `TimeArcUsageTrackerConfig`、`track_enabled=false` 让服务**真停采集并退出**（`--status running=no`，绝不删历史）；
+  UI `DatabaseManager::writeServiceConfig`（与 D2 db_path 共用原子 RMW `mergeUsageConfig`，互保键）+ 设置页「应用并重启采集」
+  即时生效，去掉「受限」标注。验证：服务真二进制 smoke（idle 生效 / 暂停期无新记录 / 缺 config→默认）+ `db_smoke` 双向保键。
+  提案 `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（维护者签核，CHARTER v0.3 channel 复用）。
+  **S3 删除历史（G-CLEAR）暂缓**（append-only；要 purge 须 CHARTER 修订或外部停服工具，非本轮）。计划见
+  [`h5-service-config-channel-kickoff.md`](h5-service-config-channel-kickoff.md)。
 - [ ] **H6 [天花板] 磨砂实时模糊（G-BLUR）** — `blur_strength` 已持久化无真实效果；QML 无实时 backdrop blur，唯一
   近似（面板半透明）伤可读性 + 改每页玻璃令牌（面大）。结论：**保留为标注偏好**，除非接受半透明代价或换渲染路径。
   Track B · UI · 低/不做。

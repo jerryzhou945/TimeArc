@@ -37,6 +37,18 @@ read identically by the service (`make_db_path`) and the UI (`databasePath`), wi
 fail-safe fallback to the default when absent/unreadable. Relocation runs with the
 service stopped and keeps a backup (see invariant D1).
 
+**Service config (H5, `CHARTER` v0.4).** `usage_config.json` also carries two UI→service behavior keys
+the service reads at startup (`timearc_read_service_config`): `idle_threshold_ms` (int;
+fills `TimeArcUsageTrackerConfig.idle_threshold_ms`, clamped 1s–24h) and `track_enabled`
+(bool; `false` = the service collects nothing and self-exits — a *true pause*, never a
+deletion). The UI writes them via `DatabaseManager::writeServiceConfig`; both the D2
+db_path writer and the H5 idle/track writer share one atomic read-modify-write
+(`mergeUsageConfig`) that preserves the other's keys. Absent/invalid keys → compile-time
+defaults (fail-safe = today's behavior). This is a sanctioned UI→service direction over
+the same disk channel D2 opened (no IPC; honors I1) and supersedes the earlier
+A-TRACKPAUSE UI-only approximation. Proposal:
+`journal/sessions/20260609-0150-B-service-config-proposal.md`.
+
 ## 2. Record shape
 
 | Field              | Type     | Req. | Notes                                                      |
