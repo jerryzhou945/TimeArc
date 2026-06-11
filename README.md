@@ -580,8 +580,11 @@ See `.harness/CHARTER.md` for invariants and frozen files;
 - [x] Make SQLite the primary on-disk history source with a one-shot JSONL
       backfill/migrator (A1 S1–S4). Remaining: retire JSONL writing after a
       soak period (A1 S5).
-- [ ] Compile Qt as dynamically-linked libraries in release builds to
-      satisfy the LGPL-3.0 combination posture.
+- [x] Compile Qt as dynamically-linked libraries in release builds to satisfy the
+      LGPL-3.0 combination posture (F1). Qt already links dynamically — verified by
+      `tools/verify-linkage.ps1` (Qt6*.dll imports, no static Qt) — and
+      `tools/package-release.ps1` produces a portable package bundling the relink-able
+      Qt/MinGW DLLs + `LICENSE` + `licenses/` + `NOTICE.txt`.
 - [x] Add an in-app licenses page surfacing all third-party texts (F2). Shipped
       at Settings → 导入导出 → 「关于与开源许可」: per-component name, version, and
       full, offline-readable license text (`resources/licenses/`, qrc-embedded).
@@ -619,7 +622,7 @@ or later (GPL-3.0-or-later)**. See `LICENSE` for the full text.
 
 | Component | License                   | Linkage | Notes                                |
 |-----------|---------------------------|---------|--------------------------------------|
-| Qt 6      | LGPL-3.0 (with exceptions)| dynamic (planned for release) | Required for GUI + QML + Svg. |
+| Qt 6      | LGPL-3.0 (with exceptions)| dynamic | Required for GUI + QML + Svg. Bundled by `tools/package-release.ps1` as relink-able DLLs (LGPL posture). |
 | SQLite    | Public domain             | static  | Vendored under `thirdparty/sqlite3/`; used by the database layer and service storage. |
 | Parson    | MIT                       | static  | Vendored under `thirdparty/parson/`. Will back user config. |
 

@@ -76,8 +76,8 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 
 ## Build / distribution
 
-- **Qt is not yet dynamically linked for distribution builds.** Still linking
-  targets as-is; LGPL compliance not proven for release.
+- **Qt dynamic link + release packaging — shipped (F1).** objdump confirms Qt6*.dll
+  imports (`tools/verify-linkage.ps1`); `tools/package-release.ps1` bundles DLLs + LICENSE + licenses/ + NOTICE.
 - **No JSON parser wired for user config.** Parson is bundled but unused;
   README TO-DO lists "JSON parser for user preferences".
 

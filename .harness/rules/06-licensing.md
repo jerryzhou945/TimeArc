@@ -7,7 +7,7 @@ enters the build must pass this rule.
 
 | Component | License                | Linkage         | Notes                                      |
 |-----------|------------------------|-----------------|--------------------------------------------|
-| Qt        | LGPL-3.0 (with exceptions) | **must be dynamic** | Main README TO-DO item. Satisfy before first release. |
+| Qt        | LGPL-3.0 (with exceptions) | **dynamic** | Dynamically linked (objdump: Qt6*.dll imports); `tools/verify-linkage.ps1` asserts pre-release. |
 | SQLite    | Public domain          | static          | Bundled as `thirdparty/sqlite3`.           |
 | Parson    | MIT                    | static          | Bundled as `thirdparty/parson`. For config JSON.       |
 
