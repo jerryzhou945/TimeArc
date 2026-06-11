@@ -50,18 +50,25 @@ Consult the Free Software Foundation's list when in doubt.
 
 ## 4. Third-party license surfacing
 
-The main `README.md` To-Do contains:
-
-> Include licenses for all third-party code in the UI.
-
-When a licensing page is added to the QML UI, it must:
+Shipped (F2). Location: Settings → 导入导出 tab → 「关于与开源许可」 card in
+`qml/desktop/pages/DesktopProfilePage.qml`. Texts live in `resources/licenses/*.txt`
+(F1-S2 artifact: same files distributed with the package), embedded in the qrc via
+`resources/CMakeLists.txt` and loaded by normalizing the `Qt.resolvedUrl` `qrc:/…`
+to the `:/` resource prefix and calling `SettingsRepository::readTextFile()` (`QFile`
+reads `:/` resources). A pure-QML `XMLHttpRequest` GET on `qrc:` was tried but is
+blocked by Qt's default (`QML_XHR_ALLOW_FILE_READ` off) — see L3
+`f2-qrc-xhr-blocked-use-readtextfile`. The page must keep satisfying:
 
 1. Show, for each third-party component, the component name, version, and
-   full license text.
+   full license text. (SQLite is public domain and has no license text: it ships
+   the author's blessing + an explicit "public domain, no license text" note —
+   a documented, intentional deviation from the full-text requirement.)
 2. Be reachable without a network connection (texts shipped in `resources/`).
-3. Be updated whenever `thirdparty/CMakeLists.txt` gains a new component.
+3. Be updated whenever `thirdparty/CMakeLists.txt` gains a new component: add
+   `resources/licenses/<name>.txt`, register it in `resources/CMakeLists.txt`, and
+   add a row to `licenseComponents` in `DesktopProfilePage.qml`.
 
-Update this rule and the main README together when this lands.
+Keep this rule, the README Third-Party table, and the page in sync when components change.
 
 ## 5. Qt specifically
 

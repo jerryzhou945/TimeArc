@@ -582,7 +582,9 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       soak period (A1 S5).
 - [ ] Compile Qt as dynamically-linked libraries in release builds to
       satisfy the LGPL-3.0 combination posture.
-- [ ] Add an in-app licenses page surfacing all third-party texts.
+- [x] Add an in-app licenses page surfacing all third-party texts (F2). Shipped
+      at Settings → 导入导出 → 「关于与开源许可」: per-component name, version, and
+      full, offline-readable license text (`resources/licenses/`, qrc-embedded).
 - [ ] Wire Parson in as the JSON parser for user preferences /
       configuration.
 - [ ] Evolve the "Memory Lake" Daily Cards: the six local card types
@@ -620,3 +622,13 @@ or later (GPL-3.0-or-later)**. See `LICENSE` for the full text.
 | Qt 6      | LGPL-3.0 (with exceptions)| dynamic (planned for release) | Required for GUI + QML + Svg. |
 | SQLite    | Public domain             | static  | Vendored under `thirdparty/sqlite3/`; used by the database layer and service storage. |
 | Parson    | MIT                       | static  | Vendored under `thirdparty/parson/`. Will back user config. |
+
+Full license texts for every component above ship in `resources/licenses/*.txt`
+(embedded in the qrc, so they are readable offline) and are viewable in-app at
+Settings → 导入导出 → 「关于与开源许可」, which also shows each component's version
+(Qt 6.11.1, SQLite 3.51.3, Parson 1.5.3). SQLite is public domain and carries no
+license text, so its entry ships the author's blessing plus an explicit
+"public domain — no license text" note. When a new third-party component is added
+under `thirdparty/`, add its text to `resources/licenses/`, register it in
+`resources/CMakeLists.txt`, and add a row to the in-app page — see
+[`.harness/rules/06-licensing.md`](.harness/rules/06-licensing.md) §4.

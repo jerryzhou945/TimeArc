@@ -105,6 +105,56 @@ Item {
     property string memoHotkeyKey: "N"
     property string pomodoroHotkeyKey: "P"
 
+    // F2「关于与开源许可」：应用版本（MVP 常量，对齐顶层 CMakeLists project(time-arc VERSION 0.1)；
+    // 真值访问器须在既有类读 PROJECT_VERSION，但该宏未注入编译期→需动冻结 src/CMakeLists，故 MVP 用常量。
+    // 见 docs/f2-in-app-licenses-page-kickoff.md §5）。
+    readonly property string appVersion: "0.1"
+    // 第三方组件清单（名称 + 版本 + 许可 + 链接方式 + 文本文件）。文本由 F1-S2 产出（resources/licenses/，
+    // 随包分发 + 本页渲染，单一真相源；新增 thirdparty 组件须同步加文本 + 本数组一行，rules/06 §4(3)）。
+    // 版本真相源：Qt 6.11.1（C:/Qt/6.11.1）/ SQLite 3.51.3（sqlite3.h:149）/ Parson 1.5.3（parson.h:37-39）。
+    readonly property var licenseComponents: [
+        { name: "Qt 6", version: "6.11.1",
+          license: "GNU LGPL-3.0（含例外条款）；部分工具与附加模块为 GPL-3.0",
+          linkage: "动态 / dynamic",
+          texts: [ { btn: "LGPL-3.0 全文", file: "qt-lgpl-3.0.txt" },
+                   { btn: "GPL-3.0 全文", file: "qt-gpl-3.0.txt" } ] },
+        { name: "SQLite", version: "3.51.3",
+          license: "Public domain（公有领域，无许可正文）",
+          linkage: "静态 / static",
+          texts: [ { btn: "查看声明", file: "sqlite-public-domain.txt" } ] },
+        { name: "Parson", version: "1.5.3",
+          license: "MIT",
+          linkage: "静态 / static",
+          texts: [ { btn: "查看许可全文", file: "parson-mit.txt" } ] },
+        { name: "TimeArc", version: root.appVersion,
+          license: "GPL-3.0-or-later（本项目自身，= 仓库根 LICENSE）",
+          linkage: "—",
+          texts: [ { btn: "查看许可全文", file: "timearc-gpl-3.0.txt" } ] }
+    ]
+
+    // 许可全文的 Qt 资源路径。坑链（实测）：
+    //   1) Qt.resolvedUrl 从 qml/desktop/pages/ 上溯三级到模块根，产出 "qrc:/qt/qml/time_arc/resources/licenses/<file>"；
+    //   2) QML XMLHttpRequest 对本地/qrc 文件 GET 默认禁读（"… disabled by default … QML_XHR_ALLOW_FILE_READ"），不可用；
+    //   3) settingsRepository.readTextFile() 是 QFile，认 ":/" 资源前缀但不认 "qrc:" scheme。
+    // 故把 "qrc:/…" 去掉 "qrc" 前缀规整成 ":/…" 喂给 readTextFile → QFile 读内嵌资源，零 C++、无需放宽安全开关。
+    // 内嵌资源无网络访问 → 天然离线（CHARTER I6 / rules/06 §4(2)）。
+    function _licenseResPath(file) {
+        var u = Qt.resolvedUrl("../../../resources/licenses/" + file).toString()
+        return (u.indexOf("qrc:/") === 0) ? u.substring(3) : u   // "qrc:/x" → ":/x"
+    }
+
+    // 打开许可全文弹层（同步读 qrc 文本，立即填充）。
+    function showLicenseText(file, titleStr, subStr) {
+        licenseViewer.titleText = titleStr
+        licenseViewer.subText = subStr + " · " + file
+        var resPath = root._licenseResPath(file)
+        var t = settingsRepository ? settingsRepository.readTextFile(resPath) : ""
+        licenseViewer.bodyText = (t && t.length > 0) ? t
+            : "（许可文本载入为空：" + file + "）\n查无资源 " + resPath
+              + "；请确认已编入 resources/CMakeLists.txt 的 TIME_ARC_RESOURCE_FILES。"
+        licenseViewer.shown = true
+    }
+
     function _getBool(k, d) { return settingsRepository ? settingsRepository.getBool(k, d) : d }
     function _getStr(k, d) { return settingsRepository ? settingsRepository.getValue(k, d) : d }
     function _setBool(k, v) { if (settingsRepository) settingsRepository.setBool(k, v) }
@@ -535,7 +585,12 @@ Item {
         }
     }
 
-    Keys.onEscapePressed: root.requestNavigate("memorylake")
+    Keys.onEscapePressed: {
+        // Esc 先收起打开的弹层（许可全文 / 二次确认），都没开才返回首页。
+        if (licenseViewer.shown) licenseViewer.shown = false
+        else if (confirmCard.shown) confirmCard.shown = false
+        else root.requestNavigate("memorylake")
+    }
     TextEdit { id: clipHelper; visible: false }   // 纯 QML 剪贴板助手（copy()）
 
     // ============================================================
@@ -1515,6 +1570,97 @@ Item {
                                     }
                                 }
                             }
+
+                            // ===== F2：关于与开源许可（应用内第三方许可证页面，Route A）=====
+                            // 满足 rules/06 §4(1) 名称+版本+全文、§4(2) 离线可达、CHARTER I6「reachable from the UI」。
+                            SettingsCard {
+                                badge: "©"; wide: true
+                                cardTitle: "关于与开源许可"
+                                cardDesc: "TimeArc 及其依赖的第三方组件版本与许可证。全文随包内嵌，离线可读。"
+                                keywords: "关于 about 许可 license 开源 第三方 版权 copyright qt sqlite parson lgpl gpl mit 公有领域"
+
+                                // 应用自身一行：名称 + 版本（MVP 常量）。
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: aboutCol.implicitHeight + 24
+                                    radius: 14
+                                    color: ml.calSunkBg
+                                    border.width: 1; border.color: ml.cellHair
+                                    Column {
+                                        id: aboutCol
+                                        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
+                                        spacing: 3
+                                        Text { text: "应用"; color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
+                                        Text {
+                                            text: "TimeArc · 本地版本 " + root.appVersion
+                                            color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
+                                            width: parent.width; wrapMode: Text.WordWrap
+                                        }
+                                        Text {
+                                            text: "本项目以 GPL-3.0-or-later 授权；Qt 以 LGPL-3.0 动态链接。"
+                                            color: ml.textTertiary; font.pixelSize: 11
+                                            width: parent.width; wrapMode: Text.WordWrap
+                                        }
+                                    }
+                                }
+
+                                // 第三方组件清单：每行一块 sunken Rectangle，名称+版本+许可+链接方式 + 查看全文按钮。
+                                Repeater {
+                                    model: root.licenseComponents
+                                    delegate: Rectangle {
+                                        id: compRow
+                                        required property var modelData
+                                        readonly property var comp: compRow.modelData
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: compCol.implicitHeight + 24
+                                        radius: 14
+                                        color: ml.calSunkBg
+                                        border.width: 1; border.color: ml.cellHair
+                                        ColumnLayout {
+                                            id: compCol
+                                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
+                                            spacing: 6
+                                            RowLayout {
+                                                Layout.fillWidth: true
+                                                spacing: 8
+                                                Text { text: compRow.comp.name; color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                                Text {
+                                                    visible: compRow.comp.version !== ""
+                                                    text: "v" + compRow.comp.version
+                                                    color: ml.textTertiary; font.pixelSize: 11
+                                                }
+                                                Item { Layout.fillWidth: true }
+                                                Text {
+                                                    text: compRow.comp.linkage
+                                                    color: ml.textTertiary; font.pixelSize: 10
+                                                    font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3
+                                                }
+                                            }
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: compRow.comp.license
+                                                color: ml.textSecondary; font.pixelSize: 11; wrapMode: Text.WordWrap
+                                            }
+                                            Flow {
+                                                Layout.fillWidth: true
+                                                spacing: 8
+                                                Repeater {
+                                                    model: compRow.comp.texts
+                                                    delegate: GhostBtn {
+                                                        required property var modelData
+                                                        label: modelData.btn
+                                                        onTapped: root.showLicenseText(modelData.file, compRow.comp.name, compRow.comp.license)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                PlaceholderNote {
+                                    text: "全文文件位于 resources/licenses/，已内嵌 qrc 随包分发；无网络也可阅读。新增第三方依赖时须同步补充对应文本与本卡条目（rules/06 §4(3)）。"
+                                }
+                            }
                         }
                     }
                 }
@@ -1597,6 +1743,83 @@ Item {
                         danger: confirmCard.danger
                         primary: !confirmCard.danger
                         onTapped: root._runConfirm()
+                    }
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    // 许可全文弹层（F2）：玻璃卡 + 暗遮罩 + SilkyFlickable 滚动；文本经 readTextFile 读 :/ qrc 内嵌资源（离线）。
+    // 模 confirmCard 范式：点遮罩 / 「关闭」收起；卡内 MouseArea 吞点击不冒泡到遮罩。
+    // ============================================================
+    Rectangle {
+        id: licenseViewer
+        property bool shown: false
+        property string titleText: ""
+        property string subText: ""
+        property string bodyText: ""
+        anchors.fill: parent
+        z: 360
+        color: Qt.rgba(0, 0, 0, 0.55)
+        visible: opacity > 0.01
+        opacity: shown ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 180 } }
+        MouseArea { anchors.fill: parent; preventStealing: true; onClicked: licenseViewer.shown = false }
+
+        GlassPanel {
+            style: ml
+            strong: true
+            radius: 22
+            width: Math.min(720, parent.width - 64)
+            height: Math.min(560, parent.height - 80)
+            anchors.centerIn: parent
+            MouseArea { anchors.fill: parent }   // 吞卡内点击，避免冒泡到遮罩关闭
+
+            ColumnLayout {
+                anchors { fill: parent; margins: 18 }
+                spacing: 12
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+                        Text {
+                            Layout.fillWidth: true
+                            text: licenseViewer.titleText; color: ml.textPrimary
+                            font.pixelSize: 17; font.weight: Font.DemiBold; wrapMode: Text.WordWrap
+                        }
+                        Text {
+                            visible: licenseViewer.subText !== ""
+                            Layout.fillWidth: true
+                            text: licenseViewer.subText; color: ml.textTertiary
+                            font.pixelSize: 11; wrapMode: Text.WrapAnywhere
+                        }
+                    }
+                    GhostBtn { label: "关闭"; onTapped: licenseViewer.shown = false }
+                }
+                ThinRule {}
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    radius: 14
+                    color: ml.calSunkBg
+                    border.width: 1; border.color: ml.cellHair
+                    clip: true
+                    SilkyFlickable {
+                        id: licenseScroll
+                        style: ml
+                        anchors { fill: parent; margins: 12 }
+                        Text {
+                            width: licenseScroll.width - 14
+                            text: licenseViewer.bodyText
+                            textFormat: Text.PlainText   // 许可文本含 <http://…> 等，禁富文本解析
+                            color: ml.textSecondary
+                            font.pixelSize: 12
+                            wrapMode: Text.Wrap
+                            lineHeight: 1.3
+                        }
                     }
                 }
             }
