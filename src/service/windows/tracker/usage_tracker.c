@@ -82,8 +82,9 @@ static void write_current_session(const AppInfo* app, int64_t start_sec,
 
 int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   TimeArcUsageTrackerConfig active_config = {
-      TIMEARC_USAGE_POLL_INTERVAL_MS,
-      TIMEARC_USAGE_IDLE_THRESHOLD_MS,
+      .poll_interval_ms = TIMEARC_USAGE_POLL_INTERVAL_MS,
+      .idle_threshold_ms = TIMEARC_USAGE_IDLE_THRESHOLD_MS,
+      .track_enabled = 1,  // 默认采集（向后兼容）；具名初始化器须显式给 1，见头文件。
   };
 
   if (config != NULL) {
@@ -93,6 +94,16 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
     if (config->idle_threshold_ms > 0) {
       active_config.idle_threshold_ms = config->idle_threshold_ms;
     }
+    active_config.track_enabled = config->track_enabled ? 1 : 0;
+  }
+
+  // H5「真停采集」：追踪关闭时根本不进采集循环——不写历史、不写 live 快照、不轮询
+  // 音频。清掉可能残留的 live 文件后立即返回；进程随之退出、释放单实例 mutex，于是
+  // `--status` 报 running=no（诚实反映「未在采集」）。重启后读到 track_enabled=1 才
+  // 恢复（startup-read，与 idle 阈值一致）。绝不回溯删除既有记录（append-only）。
+  if (!active_config.track_enabled) {
+    ta_clear_current_usage();
+    return 0;
   }
 
   // 停采集通道（B1 Route A）：除 console_handler 外另开一个具名事件，让独立的

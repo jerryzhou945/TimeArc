@@ -183,10 +183,10 @@ DesktopProfilePage.qml（Item，就地重皮为全幅暗玻璃；保留 nightMod
 - **标准**：
   - **必须（诚实）**：游戏识别/自动分类/合并窗口**已在读层恒实装**（D-CLASSIFY-IS-UI）——开关落地为
     **UI 读层短路**（关 → 退回原始 app 分组 / 不归类），`setBool` 持久化（wired+胶水）。
-  - **必须（服务边界）**：「追踪正在运行的应用」总开关 + 「空闲超时」**真改捕获行为属服务**，
-    UI **不可**直控（无 IPC/契约禁止，§8）。落地两选一：UI 侧「暂停读取/排除新记录」的近似，或
-    服务读配置文件 = **服务改 + 契约修订 + 产品决策**（问题文档 G-TRACK / G-IDLE）。空闲阈值现为
-    编译期 `#define TIMEARC_USAGE_IDLE_THRESHOLD_MS 60000`（`usage_tracker.h:7`）。
+  - **已实装（服务边界，H5 PR #42）**：「追踪正在运行的应用」总开关 + 「空闲超时」真改捕获行为属服务，
+    经**磁盘配置通道**（非 IPC，守 I1）落地：UI 写 `usage_config.json`（`track_enabled`/`idle_threshold_ms`），
+    服务启动读入；track 关＝服务真停采集并退出；「应用并重启采集」即时生效（编译期 `#define` 仍是缺省回退）。
+    详见 `docs/h5-service-config-channel-kickoff.md` + `rules/03-data-contract.md`「Service config (H5)」。
   - **应当（应用显隐）**：`setValue("hidden_apps", JSON)` + `UsageStatManager` 聚合加排除过滤
     + 清单绑 `appRepository.getAllApps()`（partial，G-HIDEAPP）。
 - **步骤**：① GlassSwitch×N + setBool；② 空闲超时 GlassComboBox + 标注服务受限；
@@ -278,8 +278,8 @@ SQLite `settings` 表（`key TEXT PK, value TEXT, updated_at INT`，`ON CONFLICT
 | 游戏识别 | `game_mode` | ✅ | 读层短路（classifyActivity，恒实装） |
 | 自动分类 | `auto_classify` | ✅ | 读层短路（同上） |
 | 合并窗口 | `merge_windows` | ✅ | 读层短路（appGroupKey，恒实装） |
-| 总追踪开关 | `track_running` | 🧱 | 服务捕获，UI 不可直控（G-TRACK） |
-| 空闲超时 | `idle_timeout` | 🧱 | 编译期 #define，服务不读设置（G-IDLE） |
+| 总追踪开关 | `track_running` | ✅ | UI 软暂停 + 写 `usage_config.json` `track_enabled`→服务真停采集（H5，PR #42） |
+| 空闲超时 | `idle_timeout` | ✅ | 写 `usage_config.json` `idle_threshold_ms`→服务启动读入（H5，PR #42） |
 | 应用显隐 | `hidden_apps`(JSON) | 🟡 | UsageStatManager 加排除过滤（G-HIDEAPP） |
 | 仅本地 | `privacy_local_only` | 🟢 | 安抚占位（无上传可禁） |
 | 隐藏标题 | `hide_titles` | 🟡 | 读出端脱敏（保捕获）（G-HIDETITLE） |
@@ -341,7 +341,7 @@ SQLite `settings` 表（`key TEXT PK, value TEXT, updated_at INT`，`ON CONFLICT
 | C4 | 白天模式开关 = `!nightMode`，发 `nightModeToggled`，**不**自写 night_mode，昼夜整 App 切 | 必须 |
 | C5 | 每个 UI 偏好项即时 `setBool/setValue` 持久化，重启保持（getBool/getValue 读回） | 必须 |
 | C6 | 分类/合并/游戏识别开关 = 读层短路生效（关→退回原始分组），非装饰 | 必须 |
-| C7 | 总追踪/空闲超时/清理删除：诚实标注服务/契约受限，**未**伪装生效（G6/G4） | 必须 |
+| C7 | 总追踪/空闲超时**已真生效**（H5，写 usage_config.json→服务读）；仅清理删除历史仍诚实标注契约受限（G-CLEAR，G6/G4） | 必须 |
 | C8 | 番茄卡/通知/权限：无后端项隐藏或显式占位，**无**假值（G6） | 必须 |
 | C9 | 数据概览今日/切换/页数接真实 manager/派生；番茄态「—」不写死 | 必须 |
 | C10 | 导出 = getAllSettings()+exportReport 真落文件；导入 = 真读真写键 | 应当 |
@@ -380,7 +380,7 @@ SQLite `settings` 表（`key TEXT PK, value TEXT, updated_at INT`，`ON CONFLICT
 **`docs/settings-implementation-issues.md`**：
 - **A 类（产品/设计决策）**：A-DEFAULT（默认昼/暗）、A-NAME（是否正名文件）、A-CLEAR（清理删除范围）、
   A-PERM（Windows「权限」语义）、A-POMODORO（是否本期建番茄）、A-TRACKPAUSE（总追踪暂停语义）。
-- **G- 类（后端硬缺口）**：G-TRACK / G-IDLE（服务改）、G-ACCENT / G-BLUR / G-I18N / G-WIN / G-LANDING /
+- **G- 类（后端硬缺口）**：~~G-TRACK / G-IDLE~~（**已实装 H5，PR #42**）、G-ACCENT / G-BLUR / G-I18N / G-WIN / G-LANDING /
   G-TIMEFMT / G-HIDEAPP / G-HIDETITLE / G-ANON / G-STORAGE / G-CLEAR / G-PERM / G-NOTIFY / G-MEMO /
   G-POMODORO / G-EXPORT / G-IMPORT。
 - **B 类（v88 稿件 bug / 不一致）**：B1 原型提示条文案需改真实口径；B2 数据概览写死 "Ready"/假数字；

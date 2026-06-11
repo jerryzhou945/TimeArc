@@ -31,7 +31,7 @@
 | A-CLEAR | 「清理缓存/删除历史/清空本地」删什么 | (a)★仅 UI 私有/派生缓存 / (b) 含服务 usage（需停服务迁移工具） | (a) |
 | A-PERM | Windows「应用使用权限」语义 | (a)★恒「就绪」（前台捕获无需授权）/ (b) 启发式探测 OpenProcess 失败 / (c) 隐藏此项 | (a) |
 | A-POMODORO | 本期是否建番茄钟引擎 | (a)★暂隐番茄卡（无引擎）/ (b) 仅存偏好+占位 / (c) 本期新建倒计时番茄 | (a) |
-| A-TRACKPAUSE | 「追踪正在运行的应用」总开关语义 | (a)★UI 近似「暂停读取/排除新记录」/ (b) 真停服务（服务改+契约修订） | (a) |
+| A-TRACKPAUSE | 「追踪正在运行的应用」总开关语义 | (a)★UI 近似「暂停读取/排除新记录」/ (b) 真停服务（服务改+契约修订） | (a) → **H5 已实现 (b) 真停（PR #42）** |
 
 > 用户拍板后把选项写回本节并在 §6 展开。未拍板项一律按建议默认落地 + 标注，**不**伪装生效。
 
@@ -96,9 +96,8 @@
 
 **追踪 tracking**
 - ✅ 游戏识别 / ✅ 自动分类 / ✅ 合并窗口 —— 读层短路（classifyActivity/appGroupKey 恒实装）+ `setBool` 持久化。
-- 🧱 总追踪开关 —— 服务捕获，UI 不可直控（G-TRACK / A-TRACKPAUSE）。
-- 🧱 空闲超时 5/10/15/30 —— 编译期 `#define TIMEARC_USAGE_IDLE_THRESHOLD_MS 60000`（`usage_tracker.h:7`），
-  服务不读设置（G-IDLE）。
+- ✅ 总追踪开关 —— **真停已实装（H5，PR #42）**：写 `usage_config.json` `track_enabled`，服务读到→真停采集并退出（不再仅 UI 近似；A-TRACKPAUSE 已被 H5 取代）。
+- ✅ 空闲超时 5/10/15/30 —— **已实装（H5，PR #42）**：写 `usage_config.json` `idle_threshold_ms`，服务启动读入 tracker config（不再编译期 `#define`-only）。
 - 🟡 应用逐项显隐 —— `getAllApps()` + `hidden_apps` JSON + 聚合排除过滤（G-HIDEAPP）。
 
 **隐私 privacy**
@@ -135,15 +134,15 @@
   是**读层短路**（轻胶水），**不**碰服务。✅
 - **真正碰服务的只有 2 项**：
   - **总追踪开关**：服务是独立进程、无 IPC、不读 `settings` 表（CHARTER I1 + CLAUDE.md「禁 IPC/socket/
-    共享内存进服务」）。UI 单方**无法暂停采集**；UI 侧只能做「暂停读取 / 排除新记录」的**近似**（采集仍在跑）。
-    真暂停 = 起停服务进程 / 服务读盘 flag = **服务改 + 契约修订 + 产品决策**（A-TRACKPAUSE）。
-  - **空闲超时**：阈值是**编译期** `#define`（`usage_tracker.h:7`），服务不从设置读。改它要么服务启动读
-    usage 目录里的配置文件（服务改、契约邻接），要么固定不可调（产品决策）。UI 单方做不到。
+    共享内存进服务」）。**【H5 已实装，PR #42】** 真暂停 = 服务读盘 flag：UI 写 `usage_config.json` `track_enabled`，
+    服务启动读到→真停采集并退出（仍守 I1 无 IPC；走「服务读盘 flag」这条，A-TRACKPAUSE 已被取代）。
+  - **空闲超时**：**【H5 已实装，PR #42】** 服务启动读 usage 目录 `usage_config.json` 的 `idle_threshold_ms`
+    （编译期 `#define`（`usage_tracker.h:7`）降级为缺省回退）。原困境=阈值是编译期常量、服务不从设置读，已解。
 - **删除/清理历史**：`usage_records.jsonl` 追加-only（不变量 D1）、`timearc.db` 服务实时写。UI **不可**
   重写/删。只能缩到 UI 私有/派生缓存，或停服务 + 迁移工具/轮转（A-CLEAR）。
 
-> 结论：把这 3 类（总追踪/空闲/删历史）在 UI 上**诚实标注受限**（如灰显 + tooltip「需后台服务支持，
-> 规划中」或做明确的 UI 近似），**严禁**做成「点了就以为生效」。
+> 结论（更新）：**总追踪/空闲超时已经 H5（PR #42）真生效**——UI 写 `usage_config.json`、服务读盘配置。
+> 仅**删除历史**仍诚实标注受限（append-only D1，G-CLEAR 暂缓）。原则不变：**严禁**把未生效项做成「点了就以为生效」。
 
 ---
 
@@ -172,7 +171,7 @@
 | A-CLEAR | 清理/删除范围 | 数据安全 / 契约 | 仅 UI 私有缓存（a）；真删另起停服务迁移工具 |
 | A-PERM | Windows 权限语义 | 文案诚实 | 恒「就绪」（a）或隐藏 |
 | A-POMODORO | 本期是否建番茄 | 范围 | 暂隐番茄卡（a） |
-| A-TRACKPAUSE | 总追踪开关语义 | 用户预期 vs 真实 | UI 近似 + 诚实标注（a） |
+| A-TRACKPAUSE | 总追踪开关语义 | 用户预期 vs 真实 | UI 近似（a）→ **H5 已升级真停（PR #42）** |
 | A-ACCENT-SCOPE | 强调色仅本页 vs 全局 | 架构 | 先持久化 + 本页高亮；全局留 G-ACCENT |
 
 **B 类（v88 稿件 bug / 复刻顺手修）**：
@@ -190,8 +189,8 @@
 
 | # | 缺口 | 用途 | 建议接口 / 派生 | 风险 |
 |---|---|---|---|---|
-| G-TRACK | 总追踪开关无法控服务采集 | 追踪范围·总开关 | UI 近似（排除新记录读取）；真停 = 服务读 flag（提案） | 🧱 契约/进程边界；A-TRACKPAUSE |
-| G-IDLE | 空闲阈值编译期 #define | 空闲超时 | 服务启动读 usage 目录 config 文件 | 🧱 服务改 + 契约邻接 |
+| ~~G-TRACK~~ ✅ | 总追踪开关无法控服务采集 | 追踪范围·总开关 | **已实装（H5，PR #42）**：服务读 `usage_config.json` `track_enabled`→真停采集 | ✅ A-TRACKPAUSE 已被 H5 取代 |
+| ~~G-IDLE~~ ✅ | 空闲阈值编译期 #define | 空闲超时 | **已实装（H5，PR #42）**：服务读 `usage_config.json` `idle_threshold_ms` | ✅ 磁盘配置通道（守 I1） |
 | G-HIDEAPP | 聚合无 per-app 排除 | 应用显隐 | 扩 `usage_stat_manager` 聚合：跳过 `hidden_apps` 集 + `getAllApps()` 绑清单 | 🟡 只读层小改 |
 | G-HIDETITLE | 标题原样流入 UI | 隐藏敏感标题 | 输出函数加 `hide_titles` 时以 `classifyActivity` 替换 `windowTitle` | 🟡 保捕获、读出端脱敏 |
 | G-ANON | 导出含真实应用名 | 匿名分享图 | 导出模型 `anonymize_export` 时替换 displayName→类别/"App N" | 🟡 UI/导出端 |
@@ -244,7 +243,7 @@
 - [ ] 2G N 开/自动保存门控（G-MEMO）+ 默认页 landing(G-LANDING) + 恢复窗口(G-WIN)。
 
 **阶段三 · 受限/新能力（需决策/服务改/超范围）**
-- [ ] 3A 总追踪/空闲超时：按 A-TRACKPAUSE 做 UI 近似 + 诚实标注（G-TRACK/G-IDLE）。
+- [x] 3A 总追踪/空闲超时：**真停采集已实装（H5 S1+S2，PR #42）**——服务读 `usage_config.json`，超出原 A-TRACKPAUSE「UI 近似」决策。
 - [ ] 3B 清理/删除：按 A-CLEAR 缩到 UI 私有缓存 + 二次确认（G-CLEAR）。
 - [ ] 3C 权限/通知：按 A-PERM 落地 + 通知占位（G-PERM/G-NOTIFY）。
 - [ ] 3D 番茄卡：按 A-POMODORO 隐藏/占位（G-POMODORO）。

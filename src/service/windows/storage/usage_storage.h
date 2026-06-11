@@ -1,6 +1,8 @@
 #ifndef TIMEARC_USAGE_STORAGE_H
 #define TIMEARC_USAGE_STORAGE_H
 
+#include <stdint.h>
+
 #include "storage_context.h"
 #include "usage_record.h"
 
@@ -32,6 +34,18 @@ void timearc_storage_clear_current_record(TimeArcStorageContext* context);
 int timearc_storage_init_sqlite(TimeArcStorageContext* context);
 int timearc_storage_write_sqlite(TimeArcStorageContext* context,
                                  const TimeArcUsageRecord* record);
+
+// H5 (UI→service config channel): read the service-behavior keys the UI writes
+// into `<usageDir>/usage_config.json`. Fills *idle_threshold_ms (from the
+// "idle_threshold_ms" number, clamped to a sane 1s–24h window) and/or
+// *track_enabled (from the "track_enabled" bool) ONLY for keys that are present
+// and well-typed; absent/invalid keys leave the out-param untouched so the
+// caller's compile-time default survives (fail-safe — same backward-compat
+// posture as the D2 db_path reader). Either out-param may be NULL. Returns 0
+// when the file parsed (even if a key was missing), -1 when absent/unreadable.
+// Read-only: this never rewrites usage_config.json (the D2 db_path key is shared
+// with this file and must be preserved by whoever writes it).
+int timearc_read_service_config(int64_t* idle_threshold_ms, int* track_enabled);
 
 TimeArcStorageContext* timearc_storage_global_context(void);
 

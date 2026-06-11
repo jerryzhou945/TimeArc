@@ -64,6 +64,14 @@ class DatabaseManager : public QObject {
   // sequence + rollback as relocateDatabaseTo.
   Q_INVOKABLE QVariantMap restoreDefaultDatabaseLocation();
 
+  // H5 S2: write the background collector's idle-timeout (ms) + tracking on/off
+  // flag into usage_config.json so the service applies them at startup. Same
+  // atomic RMW + key-preservation as the D2 db_path writer (they share one
+  // helper), so neither clobbers the other's keys. idleMs <= 0 omits the key
+  // (service keeps its compile-time default). Restart the collector
+  // (SettingsRepository) for immediate effect. Returns false on a write failure.
+  Q_INVOKABLE bool writeServiceConfig(int idleMs, bool trackEnabled);
+
   // D2: the directory the live DB currently resides in (for the settings UI).
   Q_INVOKABLE QString currentDatabaseLocationDir() const;
   // D2: true when a db_path redirect is active (DB is not at the default path).
