@@ -74,10 +74,12 @@ with day and night modes.
   memo & pomodoro hotkeys are user-customizable; a one-shot welcome animation is gated
   by `show_welcome`; and **system notifications** (pomodoro-complete-in-background) use
   `qml/desktop/memorylake/NotifierTray.qml` (a `Qt.labs.platform` tray, loaded
-  defensively so a missing plugin can't break the app). Items with no backend
-  (real history deletion, true service-side track pause / idle, real-time backdrop
-  blur, global accent/i18n) stay honest placeholders rather than faked; the page is
-  read-only over the usage journal and never bypasses the disk contract.
+  defensively so a missing plugin can't break the app). The **idle timeout** and
+  **true track pause** now take real effect: they write `usage_config.json` and an
+  "应用并重启采集" action restarts the service to apply them (H5). Items still without a
+  backend (real history deletion, real-time backdrop blur, global accent/i18n) stay
+  honest placeholders rather than faked; the page is read-only over the usage journal
+  and never bypasses the disk contract.
 - **Desktop shell** — a Qt Quick interface with full day/night theming.
   The left nav follows the design order **首页 (Memory Lake) · 日历 · 统计 ·
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.
@@ -400,17 +402,22 @@ written to `<GenericDataLocation>/TimeArc/logs/harness-qt.log`.
 ### TimeArc Service
 
 The service samples foreground windows and per-process audio every
-second (configurable via `TIMEARC_USAGE_POLL_INTERVAL_MS`). It honors a
-60-second idle threshold (`TIMEARC_USAGE_IDLE_THRESHOLD_MS`) and
-guarantees a single running instance via the named mutex
-`Local\TimeArcUsageService` on Windows. A `Ctrl+C` or console close
-triggers an orderly flush of the current session.
+second (configurable via `TIMEARC_USAGE_POLL_INTERVAL_MS`). The idle
+threshold defaults to 60 s (`TIMEARC_USAGE_IDLE_THRESHOLD_MS`) but is
+**overridable at startup** via `usage_config.json` `idle_threshold_ms`;
+`track_enabled=false` in that file makes the service collect nothing and
+exit (a true pause — never a deletion). It guarantees a single running
+instance via the named mutex `Local\TimeArcUsageService` on Windows, and a
+`Ctrl+C`, console close, or `--stop` triggers an orderly flush of the
+current session.
 
 ### Configuration
 
-User preferences are not yet externalized as editable config files. Desktop
-night mode is persisted in SQLite settings, and the bundled Parson JSON parser
-exists for future user-config work.
+`usage_config.json` (in the fixed usage dir) is the one cross-process config
+file: the UI writes it and the service reads it via the bundled Parson parser.
+It carries the `db_path` redirect (D2) and the H5 `idle_threshold_ms` /
+`track_enabled` keys; both writers do an atomic read-modify-write that preserves
+the other's keys. Other UI preferences live in the SQLite settings table.
 
 ## Project Structure
 

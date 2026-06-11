@@ -7,7 +7,8 @@
 > **配套权威**：已填变更提案 `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`
 > （**待维护者签核**）；`.harness/rules/03-data-contract.md`（磁盘契约）；`CHARTER` I1（两进程只经磁盘、无 IPC）。
 >
-> **状态：未起（门控）。** 下一步是**送签上面那份提案**——签核后才落代码。本文是计划，不是代码。
+> **状态：S1+S2 已实装（PR #42，提案经维护者签核）。** 服务读 config 应用 idle/真停 + UI 写 config/接线/重启生效/去「受限」
+> 均已落地并验证（服务真二进制 smoke + `db_smoke` 双向保键 + 设置页抓图）。**S3 删除历史（G-CLEAR）仍暂缓**（见下）。
 
 ---
 
@@ -109,4 +110,4 @@
 - 服务配置提案（H5 指针的家）：`.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（**待签核**）。
 - 契约与边界：`.harness/CHARTER.md`（I1/I2、§3 冻结表、§4 修订）、`.harness/rules/03-data-contract.md`、设置页审计 `docs/settings-remaining-work.md`。
 
-> 受**提案签核**门控。签核后建议顺序：S1（服务读+应用）→ S2（UI 写+接线+重启生效+去「受限」）→ S3 仅在产品要 purge 时另起。
+> **已完成：S1（服务读+应用）→ S2（UI 写+接线+重启生效+去「受限」）（PR #42）。** S3 仅在产品要 purge 时另起（碰 I2 → 走 CHARTER 修订提案）。

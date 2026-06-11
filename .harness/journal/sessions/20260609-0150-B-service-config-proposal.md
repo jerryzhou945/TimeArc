@@ -59,11 +59,22 @@ keeping A-CLEAR (UI-private cache only) unless product wants a purge tool. A JSO
 rejected (breaks the append-only invariant + incremental readers).
 
 ## 8. Sign-off
-- [ ] `rules/*.md` updated (new service-config rule) if approved.
-- [ ] `CHARTER.md` notes the UI→service config channel as a sanctioned disk extension; records
-      that idle/track override A-TRACKPAUSE.
-- [ ] `state/frozen-files.json` regenerated if any frozen file ends up touched.
-- [ ] `README.md` updated (idle/track now real) if implemented.
+- [x] **Maintainer approval:** repo owner (Yonezawa-Akane) authorized H5 implementation into PR #42
+      on 2026-06-11 ("start H5 contents … go"). Treated as the sign-off; implemented this session.
+- [x] `rules/03-data-contract.md` updated: a "Service config (H5)" paragraph documents the
+      `idle_threshold_ms` / `track_enabled` keys, the UI→service direction, and key coexistence with
+      the D2 `db_path` (shared atomic RMW). A-TRACKPAUSE override recorded there + in the backlog.
+- [N/A] `state/frozen-files.json` — **no frozen file was touched.** The reader decl lives in
+      non-frozen `usage_storage.h` (because `data_bridge.h` is frozen); no new service TU, so frozen
+      `src/service/CMakeLists.txt` is untouched. Nothing to regenerate; harness_check pass 2 stays clean.
+- [x] **CHARTER: no new version bump.** The UI→service `usage_config.json` channel was already
+      sanctioned in **v0.3** (D2 `db_path` — same file, same both-process read, same fail-safe RMW).
+      H5 only adds two keys to that existing channel, so it is documented in `rules/03` rather than
+      re-amending the (100-line-budget-capped) charter. No frozen-hash churn.
+- [x] `README.md` updated (idle/track now real — settings section).
 
-**Status: PROPOSED — awaiting maintainer sign-off. NOT implemented in this PR;** the UI keeps the
-honest soft-pause + "受限" labels until approved.
+**Status: APPROVED + IMPLEMENTED (H5 S1+S2, PR #42).** idle-timeout + true-pause now reach the service
+via `usage_config.json`; the UI dropped the "受限" labels. Verified: service real-binary smoke (idle
+applied / paused = no new records / absent config = defaults) + `db_smoke` bidirectional key-preservation
++ settings-card capture. **G-CLEAR (delete history) remains deferred** per §7 (append-only; a purge
+tool + charter amendment is a separate session if product wants it).
