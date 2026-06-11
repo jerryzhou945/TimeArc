@@ -125,12 +125,13 @@ G2/G3 打磨 ───────────(随手)
   `MemoryLakeStyle` 强调色改可注入（仿 injectedTextPrimary）+ Shell 下发。Track B · UI · 中 · **产品方另行领出（3E）**。
 - [ ] **H4 [门控·3E] 界面语言全局译文（G-I18N）** — `language_mode` 已持久化（zh/en/ja）但 UI 文案全静态。剩余：
   qsTr + QTranslator 或共享 strings map 覆盖全 app。Track B · UI 全量 · **大工程** · **产品方另行领出（3E）**。
-- [ ] **H5 [提案] 空闲超时 / 真停采集 / 删除历史（G-IDLE / G-TRACK / G-CLEAR）** — UI 现为软暂停 + 诚实标注；
+- [~] **H5 [提案·已展开 kickoff] 空闲超时 / 真停采集 / 删除历史（G-IDLE / G-TRACK / G-CLEAR）** — UI 现为软暂停 + 诚实标注；
   服务忽略 idle/track（idle 是编译期 `#define`），历史追加-only 不可删。剩余：UI→服务 磁盘配置通道（service 读
   `usage_config.json`）让 idle/track 生效 + 删历史策略。Track B · service(`src/service/windows/main.c` /
   `usage_tracker.{c,h}` 非冻结) + UI · **变更提案已填**
   `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（契约扩展 + 覆盖 A-TRACKPAUSE，**待维护者
-  签核**；须服务构建/测试流水线）· 依赖：签核。
+  签核**；须服务构建/测试流水线）· 依赖：签核 · **执行计划已展开**
+  [`h5-service-config-channel-kickoff.md`](h5-service-config-channel-kickoff.md)（S1 服务读+应用 → S2 UI 写+接线+重启生效+去「受限」 → S3 删历史决策卡；D2 已铺好全部通道原语，故现低成本）。
 - [ ] **H6 [天花板] 磨砂实时模糊（G-BLUR）** — `blur_strength` 已持久化无真实效果；QML 无实时 backdrop blur，唯一
   近似（面板半透明）伤可读性 + 改每页玻璃令牌（面大）。结论：**保留为标注偏好**，除非接受半透明代价或换渲染路径。
   Track B · UI · 低/不做。
