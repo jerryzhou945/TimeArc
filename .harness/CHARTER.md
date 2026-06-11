@@ -17,25 +17,24 @@ shared memory. See `rules/03-data-contract.md` for the files.
 ## 2. Invariants
 
 **I1. Two-process separation.** UI does not sample. Service does not draw.
-The UI may start the service (`src/main.cpp::startUsageService`) but must
-not link its code. A single service is guaranteed by a named mutex
-(`Local\TimeArcUsageService` on Windows); new platforms must do the same.
+The UI may start the service (`src/main.cpp::startUsageService`) and may write the
+sanctioned control file `usage_config.json` (db path / idle / track) it reads at
+startup — disk-only, no IPC; the UI must not link service code. A single service is
+guaranteed by a named mutex (`Local\TimeArcUsageService` on Windows); same on new platforms.
 
 **I2. Data contract on disk.** The record schema is
 `src/service/shared/usage_record.schema.json`. The service writes history to
-**two** backends: the SQLite database `timearc.db` (**primary**; tables
+**two** backends: SQLite `timearc.db` (**primary**; tables
 `apps`/`frontmost_sessions`/`media_sessions`, canonical DDL owned by
-`src/services/database_manager.cpp`, which the service inline DDL must stay
-column-compatible with — UI DDL pinned by `tests/db_smoke.cpp`, service DDL
-kept in lockstep manually) and `usage_records.jsonl` (append-only, retained as
-a fallback safety net). Live: `usage_current.json` (atomic overwrite). The UI
-reads history from `timearc.db` as its **primary source**, falling back to JSONL
-when the DB is missing/empty. SQLite path **defaults** to
-`%APPDATA%\TimeArc\TimeArc\timearc.db` (service `make_db_path` + UI
-`QStandardPaths::AppDataLocation`, independent but identical), and is **redirectable**
-via `usage_config.json` `db_path` (both read one pointer; fail-safe to default when
-absent/unreadable; D2 proposal `20260610-1705`). Other paths from `usage_paths.c`. A field
-rename/type change, a shared-table DDL change, or a file move requires a charter amendment + migration plan.
+`src/services/database_manager.cpp`; service inline DDL stays column-compatible,
+UI DDL pinned by `tests/db_smoke.cpp`) and `usage_records.jsonl` (append-only
+fallback). Live: `usage_current.json` (atomic overwrite). The UI reads history
+from `timearc.db`, falling back to JSONL when it is missing/empty. SQLite path
+**defaults** to `%APPDATA%\TimeArc\TimeArc\timearc.db` (service `make_db_path` + UI
+`QStandardPaths`, identical) and is **redirectable** via `usage_config.json`
+`db_path` (both read one pointer; fail-safe to default). Other paths from
+`usage_paths.c`. A field rename/type change, a shared-table DDL change, or a file
+move requires a charter amendment + migration plan.
 
 **I3. C ABI as cross-language bridge.** `src/service/shared/data_bridge.h`
 is `extern "C"` and uses `swift_name`. Adding a function is allowed.
@@ -88,12 +87,13 @@ Bump the version below.
 
 ## 5. Charter version
 
-- **v0.1** — initial draft (project version `0.1`, 33 commits). Windows tracker
-  end-to-end; macOS primitives only; Linux stub empty.
-- **v0.2** — A1 SQLite primary-source migration. I2: `timearc.db` elevated to the
-  primary history contract + UI primary read source; JSONL kept as fallback.
-  `rules/03` §1. Proposal: `journal/sessions/20260609-1614-B-a1-sqlite-storage-migration-kickoff.md`.
-- **v0.3** — D2 user-selectable DB path. I2: the `timearc.db` path is the default but
-  **redirectable** via `usage_config.json` `db_path` (both processes read one pointer;
-  fail-safe to default). `rules/03` §1. Proposal:
-  `journal/sessions/20260610-1705-B-d2-db-path-pointer-proposal.md`.
+- **v0.1** — initial draft (`0.1`, 33 commits): Windows tracker end-to-end; macOS primitives only; Linux stub empty.
+- **v0.2** — A1 SQLite primary-source migration. I2: `timearc.db` elevated to primary
+  history contract + UI read source; JSONL kept as fallback. `rules/03` §1. Proposal: `journal/sessions/20260609-1614-B-a1-sqlite-storage-migration-kickoff.md`.
+- **v0.3** — D2 user-selectable DB path. I2: `timearc.db` path defaults but is
+  **redirectable** via `usage_config.json` `db_path` (both read one pointer; fail-safe).
+  Proposal: `journal/sessions/20260610-1705-B-d2-db-path-pointer-proposal.md`.
+- **v0.4** — H5 service-config control channel (I1). UI writes `usage_config.json`
+  `idle_threshold_ms` (runtime idle, 1s–24h) + `track_enabled` (`false` = service
+  self-exits = true pause, no deletion), read at service startup via the shared D2
+  RMW; supersedes A-TRACKPAUSE. Proposal: `journal/sessions/20260609-0150-B-service-config-proposal.md`.

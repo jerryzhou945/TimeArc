@@ -42,6 +42,8 @@ other high-signal context.
 
 | Date | Kind | Slug | Link |
 |------|------|------|------|
+| 2026-06-11 | Frozen change (CHARTER v0.4) | h5-gap-closing-charter-v04 | [session](sessions/20260611-1401-B-h5-gap-closing-charter-v04.md) |
+| 2026-06-11 | Feature session | h5-service-config-channel | [session](sessions/20260611-1202-B-h5-service-config-channel.md) |
 | 2026-06-08 | Feature session | site-icons-video-adapters | [session](sessions/20260608-0938-B-site-icons-video-adapters.md) |
 | 2026-05-31 | Frozen change | services-snake-case | [session](sessions/20260531-1138-B-services-snake-case.md) |
 

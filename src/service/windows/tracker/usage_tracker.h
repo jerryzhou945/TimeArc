@@ -24,8 +24,8 @@ typedef struct TimeArcUsageTrackerConfig {
 
   // H5「真停采集」：0＝追踪关闭，主循环不进采集（不写历史/live/音频）；1＝正常采集。
   // 由 main.c 从 usage_config.json 的 track_enabled 填入；缺省须为 1（向后兼容）。
-  // 注意：每个位置初始化器都必须**显式**给它 1——省略字段会被零初始化成 0，
-  // 等于静默关闭采集，破坏既有行为。
+  // 注意：初始化时必须**显式**给它 1（现用具名初始化器 `.track_enabled = 1`）——
+  // 省略字段会被零初始化成 0，等于静默关闭采集，破坏既有行为。
   int track_enabled;
 } TimeArcUsageTrackerConfig;
 

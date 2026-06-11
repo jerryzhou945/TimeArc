@@ -55,3 +55,11 @@ README idle/track-now-real, backlog §H5 + kickoff status, proposal §8.
   up + idle echo; absent file → compile-time defaults.
 - UI: `build.py`, PrintWindow-by-PID capture of the 追踪与应用 card, `scan_qt_log`.
 - `harness_check.py` exit 0.
+
+## Follow-up (2026-06-11, `20260611-1401-B-h5-gap-closing-charter-v04.md`)
+A post-merge-prep audit closed the gaps this plan asserted: the **CHARTER v0.4** amendment
+named above is now actually landed (I1 + §5 v0.4, frozen hash regenerated); the struct uses
+**designated** initializers (not positional); write-failure is surfaced in the UI; and the
+real-binary service smoke + `db_smoke` + `harness_check` are now artifact-backed
+(`build-logs/20260611-135946-h5-service-smoke.log` ALL PASS, `…-140119-h5-db-smoke.log` exit 0,
+`…-140135-h5-harness-check.log` clean).

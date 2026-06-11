@@ -37,7 +37,7 @@ read identically by the service (`make_db_path`) and the UI (`databasePath`), wi
 fail-safe fallback to the default when absent/unreadable. Relocation runs with the
 service stopped and keeps a backup (see invariant D1).
 
-**Service config (H5).** `usage_config.json` also carries two UI→service behavior keys
+**Service config (H5, `CHARTER` v0.4).** `usage_config.json` also carries two UI→service behavior keys
 the service reads at startup (`timearc_read_service_config`): `idle_threshold_ms` (int;
 fills `TimeArcUsageTrackerConfig.idle_threshold_ms`, clamped 1s–24h) and `track_enabled`
 (bool; `false` = the service collects nothing and self-exits — a *true pause*, never a

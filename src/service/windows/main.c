@@ -74,11 +74,12 @@ int main(int argc, char** argv) {
 
   // 轮询间隔、空闲阈值、采集开关集中放在配置里。先填编译期默认（＝今天行为），
   // 再让 H5 的 usage_config.json 覆盖 idle/track（缺/坏/键缺则保留默认，向后兼容）。
-  // track_enabled 必须显式给 1：省略会被零初始化成 0＝静默关采集（见头文件红线）。
+  // 用具名初始化器：track_enabled 必须显式给 1——任何遗漏会被零初始化成 0＝静默关
+  // 采集，故宁可显式（见头文件红线）。
   TimeArcUsageTrackerConfig config = {
-      TIMEARC_USAGE_POLL_INTERVAL_MS,
-      TIMEARC_USAGE_IDLE_THRESHOLD_MS,
-      1,
+      .poll_interval_ms = TIMEARC_USAGE_POLL_INTERVAL_MS,
+      .idle_threshold_ms = TIMEARC_USAGE_IDLE_THRESHOLD_MS,
+      .track_enabled = 1,
   };
 
   // 启动时读一次配置（startup-read）：UI 改了设置须经「应用并重启采集」重启本进程

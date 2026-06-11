@@ -82,9 +82,9 @@ static void write_current_session(const AppInfo* app, int64_t start_sec,
 
 int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   TimeArcUsageTrackerConfig active_config = {
-      TIMEARC_USAGE_POLL_INTERVAL_MS,
-      TIMEARC_USAGE_IDLE_THRESHOLD_MS,
-      1,  // track_enabled: 默认采集（向后兼容）。位置初始化器必须显式给 1，见头文件。
+      .poll_interval_ms = TIMEARC_USAGE_POLL_INTERVAL_MS,
+      .idle_threshold_ms = TIMEARC_USAGE_IDLE_THRESHOLD_MS,
+      .track_enabled = 1,  // 默认采集（向后兼容）；具名初始化器须显式给 1，见头文件。
   };
 
   if (config != NULL) {

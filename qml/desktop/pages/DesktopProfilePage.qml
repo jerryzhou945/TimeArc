@@ -114,15 +114,21 @@ Item {
     // idle 选单是分钟串（"5"/"10"/…），后台服务要毫秒。两进程经磁盘 usage_config.json
     // 通信（守 I1，无 IPC）：C++ writeServiceConfig 原子 RMW 写入并保留 D2 的 db_path 键。
     function _idleMs() { return (parseInt(root.idleTimeout) || 5) * 60000 }
+    // 返回写盘是否成功：usage_config.json 损坏/不可写时 mergeUsageConfig 拒写并返回
+    // false（守 D2 db_path 键不被覆盖）。调用方据此提示，避免「假成功」。无写入通道
+    // （如平台未绑定）视为 true，不报假失败、保持旧行为。
     function _writeServiceConfig() {
         if (databaseManager && databaseManager.writeServiceConfig)
-            databaseManager.writeServiceConfig(_idleMs(), root.trackRunning)
+            return databaseManager.writeServiceConfig(_idleMs(), root.trackRunning)
+        return true
     }
     // 「应用并重启采集」：写最新 idle+track 后优雅停采集，再按追踪开关决定是否重启。
     // 服务是 startup-read（启动时读一次），故唯有重启采集进程新设置才即时生效。
     // 追踪关闭＝服务**真停**采集（非仅 UI 软暂停）：此时只停、不重启。
     function applyAndRestartCollection() {
-        _writeServiceConfig()
+        if (!_writeServiceConfig()) {
+            showToast("服务配置写入失败（usage_config.json 不可写或已损坏），未重启采集"); return
+        }
         if (!settingsRepository || !settingsRepository.stopBackgroundCollection) {
             showToast("已写入配置；下次启动采集时生效"); return
         }
@@ -972,8 +978,9 @@ Item {
                                         style: ml; checked: root.trackRunning
                                         onToggled: function (c) {
                                             root.trackRunning = c; root._setBool("track_running", c); root.pushReadFilters()
-                                            root._writeServiceConfig()
-                                            root.showToast(c ? "已开启追踪（应用并重启采集后生效）" : "已关闭追踪（应用并重启采集后服务停止记录）")
+                                            root.showToast(!root._writeServiceConfig()
+                                                ? "已保存到本机，但服务配置写入失败（usage_config.json 不可写或已损坏）"
+                                                : (c ? "已开启追踪（应用并重启采集后生效）" : "已关闭追踪（应用并重启采集后服务停止记录）"))
                                         }
                                     }
                                 }
@@ -1006,7 +1013,7 @@ Item {
                                         model: ["5 分钟", "10 分钟", "15 分钟", "30 分钟"]
                                         property var _vals: ["5", "10", "15", "30"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.idleTimeout))
-                                        onActivated: function (i) { root.idleTimeout = _vals[i]; root._setStr("idle_timeout", _vals[i]); root._writeServiceConfig(); root.showToast("空闲超时已保存（应用并重启采集后生效）") }
+                                        onActivated: function (i) { root.idleTimeout = _vals[i]; root._setStr("idle_timeout", _vals[i]); root.showToast(root._writeServiceConfig() ? "空闲超时已保存（应用并重启采集后生效）" : "已保存到本机，但服务配置写入失败（usage_config.json 不可写或已损坏）") }
                                     }
                                 }
                                 SettingRow {
