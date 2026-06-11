@@ -21,6 +21,12 @@ typedef struct TimeArcUsageTrackerConfig {
 
   // 键鼠无输入超过该阈值后，关闭当前 foreground session。
   int64_t idle_threshold_ms;
+
+  // H5「真停采集」：0＝追踪关闭，主循环不进采集（不写历史/live/音频）；1＝正常采集。
+  // 由 main.c 从 usage_config.json 的 track_enabled 填入；缺省须为 1（向后兼容）。
+  // 注意：每个位置初始化器都必须**显式**给它 1——省略字段会被零初始化成 0，
+  // 等于静默关闭采集，破坏既有行为。
+  int track_enabled;
 } TimeArcUsageTrackerConfig;
 
 // 前台使用采集主循环。
