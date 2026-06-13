@@ -1468,15 +1468,14 @@ Item {
 
                             SettingsCard {
                                 badge: "⇅"; wide: true
-                                cardTitle: "导入与导出"
-                                cardDesc: "把当前设置导出为 JSON，或复制配置摘要。"
-                                keywords: "导出 导入 json 备份 复制"
+                                cardTitle: "设置迁移"
+                                cardDesc: "从设置文件恢复偏好，或复制一份便于排查的配置摘要。"
+                                keywords: "导入 json 备份 复制 摘要"
 
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
-                                    GhostBtn { label: "导出设置 JSON"; primary: true; onTapped: root.doExport() }
-                                    GhostBtn { label: "导入设置"; onTapped: importDialog.open() }
+                                    GhostBtn { label: "导入设置"; primary: true; onTapped: importDialog.open() }
                                     GhostBtn { label: "复制配置摘要"; onTapped: root.copySummary() }
                                 }
                             }

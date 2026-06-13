@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-13T20:57:23Z | L3 | gpp-smoke-journ... | Temporary g++ smoke source was written under .harness/jou... | [report](errors/20260613-205723-B-gpp-smoke-journal-source.md) |
+| 2026-06-13T20:52:57Z | L1 | settings-export... | cmake --build exited 1 | [report](errors/20260613-205257-B-settings-export-ui-build-verbose.md) |
+| 2026-06-13T20:52:28Z | L1 | settings-export... | cmake --build exited 1 | [report](errors/20260613-205228-B-settings-export-ui-build.md) |
 | 2026-06-13T20:40:41Z | L3 | tdd-before-desi... | Loaded TDD skill before completing brainstorming approval... | [report](errors/20260613-204041-B-tdd-before-design-approval.md) |
 | 2026-06-13T20:08:55Z | L3 | powershell-pyth... | Tried to run python with bash-style heredoc in PowerShell... | [report](errors/20260613-200855-C-powershell-python-heredoc.md) |
 | 2026-06-13T20:07:50Z | L3 | shell-path-not-... | After writing User PATH, a new tool-launched PowerShell s... | [report](errors/20260613-200750-C-shell-path-not-reloaded.md) |

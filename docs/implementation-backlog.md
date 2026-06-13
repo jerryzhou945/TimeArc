@@ -116,7 +116,7 @@ G2/G3 打磨 ───────────(随手)
   「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。
 
 ### G. 配置 / 打磨 / 杂项
-- [ ] **G1 用户偏好外置为可编辑配置 + 接 Parson**（Parson 已 vendored 且已链接进 app/service 目标、但 src 零调用）— Track B · 小-中 · 备注：设置页约 30 项偏好走 SQLite `settings` 表（`SettingsRepository`），是 SQLite KV、**非人类可编辑磁盘文本、不经 Parson，不满足本项**（本项指人类可编辑磁盘配置文件 + Parson 解析）；与 **H5** 服务侧 `usage_config.json` 提案范畴相邻（H5 是服务 idle/track 运行配置、复用 `SettingsRepository` 非 Parson），宜交叉引用。
+- [x] **G1 用户偏好外置为可编辑配置 + 接 Parson（alpha 口径收束）** — 2026-06-14 决策：alpha 不引入第二套人类可编辑 JSON 偏好文件；约 30 项用户偏好继续以 SQLite `settings` 表（`SettingsRepository`）为唯一 UI 偏好源，避免与 H5/D2 的 `usage_config.json` 控制文件形成双写。设置页移除可见「导出设置 JSON」入口，仅保留导入设置与复制配置摘要；`doExport()` 功能函数暂保留为内部/诊断能力。后续若要真正 Parson 外置配置，应另开提案并定义与 SQLite KV 的同步边界。
 - [ ] **G2 富化本地 memo 管理**（仅本地/离线，**不得**描述为 AI chat）+ memo 延期项（§A #11–14：
   番茄钟声音 / 工作-休息循环 / 环形进度环 / 键盘快捷切工具）— Track B · 小。
   〔修正：原列「conic-aura shader」已移除——它不属 §A #11–14，且 conic 光环（`PomodoroCompleteOverlay.qml`）+ 运行 aura 辉光（`PomodoroWidget.qml:205`）均已用 Canvas/动画实装、故意不用 shader。〕
