@@ -7,6 +7,9 @@ in the commit message body.
 
 - [ ] The session stayed on **one track** (A / B / C). If it drifted, split
       the commit. See [`../tracks/README.md`](../tracks/README.md).
+- [ ] Commit shape follows [`../rules/08-git-workflow.md`](../rules/08-git-workflow.md):
+      one independent small feature/fix per commit; large work split by phase;
+      each commit safely revertible on its own.
 - [ ] Run the track-specific exit delta in `../tracks/<letter>-*.md`.
 - [ ] Diff size is justified by the session goal stated in
       `journal/sessions/`. No unrelated drive-by edits.
@@ -69,6 +72,9 @@ in the commit message body.
       `journal/errors.jsonl`.
 - [ ] Session log in `journal/sessions/` is updated with outcome (done /
       partial / rolled back).
+- [ ] Completed feature/fix work has a Chinese summary report in `docs/`, and
+      `docs/implementation-backlog.md` plus `.harness/state/open-issues.md`
+      are updated for shipped/deferred items.
 - [ ] If the harness itself needed patching to fit your change, the patch is
       part of this commit (and `CHARTER.md` is updated if the amendment is
       to a frozen file).

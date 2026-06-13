@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-13T09:00:03Z | L3 | gh-cli-missing | gh CLI not found while trying to create PR for git workfl... | [report](errors/20260613-090003-A-gh-cli-missing.md) |
 | 2026-06-11T11:11:51Z | L3 | f2-qrc-xhr-bloc... | F2 loader: kickoff's recommended pure-QML XMLHttpRequest ... | [report](errors/20260611-111151-B-f2-qrc-xhr-blocked-use-readtextfile.md) |
 | 2026-06-09T11:00:22Z | L3 | env-fs-overlay-... | File tools (Edit/Write) landed in an overlay FS the compi... | [report](errors/20260609-110022-B-env-fs-overlay-wrong-branch.md) |
 | 2026-06-08T07:23:43Z | L1 | powershell-plac... | Tried to read a preflight placeholder session path contai... | [report](errors/20260608-072343-B-powershell-placeholder-path.md) |
