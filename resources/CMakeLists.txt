@@ -3,6 +3,7 @@ set(TIME_ARC_RESOURCE_FILES
     resources/background_night.png
     resources/icons/app_icon.svg
     resources/icons/home.svg
+    resources/icons/home_white.svg
     resources/icons/chat.svg
     resources/icons/bilibili.svg
     resources/icons/sites/acfun.ico
@@ -20,9 +21,14 @@ set(TIME_ARC_RESOURCE_FILES
     resources/icons/sites/youtube.ico
     resources/icons/sites/youku.ico
     resources/icons/calendar.svg
+    resources/icons/calendar_white.svg
     resources/icons/stats.svg
+    resources/icons/stats_white.svg
     resources/icons/user.svg
     resources/icons/settings.svg
+    resources/icons/settings_white.svg
+    resources/icons/note.svg
+    resources/icons/note_white.svg
     resources/icons/recap.svg
     resources/memorylake/memory_bg.png
     resources/memorylake/memory_cat_1.png

@@ -40,6 +40,45 @@ Rectangle {
         items = out;
     }
 
+    function cloneTodo(todo) {
+        var out = {};
+        for (var key in todo)
+            out[key] = todo[key];
+        return out;
+    }
+
+    function toggleDoneAt(index) {
+        if (!calendarManager || !calendarManager.savedTodos
+                || calendarManager.savedTodos === "")
+            return;
+        try {
+            var map = JSON.parse(calendarManager.savedTodos);
+            var arr = map[todayKey];
+            if (!arr || index < 0 || index >= arr.length)
+                return;
+            var next = [];
+            for (var i = 0; i < arr.length; i++)
+                next.push(cloneTodo(arr[i]));
+            next[index].done = !(next[index].done === true);
+            map[todayKey] = next;
+            calendarManager.setSavedTodos(JSON.stringify(map));
+        } catch (e) {}
+    }
+
+    function displayTime(raw) {
+        if (!raw || raw === "")
+            return "--:--";
+        var parts = raw.split(":");
+        if (parts.length < 2)
+            return raw;
+        var h = parseInt(parts[0]);
+        var m = parseInt(parts[1]);
+        if (isNaN(h) || isNaN(m))
+            return raw;
+        var fmt = settingsRepository ? settingsRepository.getValue("time_format", "24") : "24";
+        return fmt === "12" ? Qt.formatTime(new Date(2000, 0, 1, h, m), "h:mm AP") : raw;
+    }
+
     Component.onCompleted: reload()
     Connections {
         target: calendarManager
@@ -186,6 +225,7 @@ Rectangle {
                 delegate: Rectangle {
                     id: rowBg
                     required property var modelData
+                    required property int index
                     width: parent.width
                     height: 50
                     radius: 15
@@ -223,6 +263,10 @@ Rectangle {
                             font.pixelSize: 13
                             font.weight: 900
                         }
+                        TapHandler {
+                            acceptedButtons: Qt.LeftButton
+                            onTapped: panel.toggleDoneAt(rowBg.index)
+                        }
                     }
 
                     // 时间（右，aqua；无则 --:--，对齐 v88 .todo-time）
@@ -231,7 +275,7 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.rightMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
-                        text: (rowBg.modelData.time && rowBg.modelData.time !== "") ? rowBg.modelData.time : "--:--"
+                        text: displayTime(rowBg.modelData.time)
                         color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.78) : Qt.rgba(0.62, 0.90, 0.93, 0.78)
                         font.pixelSize: 10
                         font.weight: 760

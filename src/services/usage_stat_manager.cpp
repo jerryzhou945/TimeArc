@@ -247,8 +247,17 @@ QString appDisplayName(const QString& appId, const QString& appName,
                        const QString& path) {
   // 把 exe/path 归一成更适合 UI 的名称。没有命中特例时回退到 exe 文件名。
   const QString text = (appId + " " + appName + " " + path).toLower();
+  const QString displayExeName =
+      QFileInfo(!path.trimmed().isEmpty() ? path : appName).fileName().toLower();
 
   if (containsAny(text, {"cloudmusic", "netease"})) return "网易云音乐";
+  if (displayExeName == "r5apex.exe" || displayExeName == "r5apex_dx12.exe" ||
+      containsAny(text, {"apex legends"}))
+    return "Apex Legends";
+  if (displayExeName == "nvcontainer.exe") return "NVIDIA Container";
+  if (displayExeName == "svchost.exe") return "Service Host";
+  if (containsAny(text, {"runtimebroker.exe"})) return "Runtime Broker";
+  if (containsAny(text, {"searchhost.exe", "searchapp.exe"})) return "Windows Search";
   if (containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome"}))
     return "Google Chrome";
   if (containsAny(text,
@@ -257,8 +266,6 @@ QString appDisplayName(const QString& appId, const QString& appName,
   if (containsAny(text, {"discord"})) return "Discord";
   if (containsAny(text, {"weixin", "wechat"})) return "微信";
   if (containsAny(text, {"qqmusic"})) return "QQ Music";
-  const QString displayExeName =
-      QFileInfo(!path.trimmed().isEmpty() ? path : appName).fileName().toLower();
   if (displayExeName == "steam.exe" || displayExeName == "steamwebhelper.exe")
     return "Steam";
   if (containsAny(text, {"msedge", "edge.exe"})) return "Microsoft Edge";
@@ -294,6 +301,19 @@ QString appGroupKey(const QString& appId, const QString& appName,
     return "app:wechat";
   if (containsAny(text, {"cloudmusic", "netease"}))
     return "app:netease-cloud-music";
+  const QString exeName = normalizedExeName(appName, path);
+  if (exeName == "r5apex" || exeName == "r5apex_dx12" ||
+      containsAny(text, {"apex legends"}))
+    return "app:apex-legends";
+  if (exeName == "nvcontainer")
+    return "app:nvidia-container";
+  if (exeName == "svchost")
+    return "app:windows-service-host";
+  if (containsAny(text, {"runtimebroker.exe", "searchhost.exe", "searchapp.exe",
+                         "startmenuexperiencehost.exe", "applicationframehost.exe",
+                         "widgets.exe", "taskhostw.exe", "dllhost.exe",
+                         "conhost.exe", "wmiprvse.exe", "audiodg.exe"}))
+    return "app:windows-system";
   if (containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome"}))
     return "app:google-chrome";
   if (containsAny(text,
@@ -303,7 +323,6 @@ QString appGroupKey(const QString& appId, const QString& appName,
     return "app:discord";
   if (containsAny(text, {"qqmusic"}))
     return "app:qq-music";
-  const QString exeName = normalizedExeName(appName, path);
   if (exeName == "steam" || exeName == "steamwebhelper")
     return "app:steam";
   if (containsAny(text, {"msedge", "edge.exe"}))
@@ -397,11 +416,14 @@ QString classifyActivityImpl(const QString& groupKey, const QString& appId,
   const QString title = windowTitle.toLower();
 
   if (containsAny(id, {"startmenuexperiencehost", "searchhost", "searchapp",
-                       "shellexperiencehost", "lockapp", "applicationframehost",
-                       "textinputhost", "dwm.exe", "sihost", "ctfmon",
-                       "systemsettings", "useroobe", "explorer.exe",
-                       "windows\\explorer", "rundll32", "taskmgr", "winlogon",
-                       "fontdrvhost", "wininit", "csrss", "smartscreen"}))
+                        "shellexperiencehost", "lockapp", "applicationframehost",
+                        "textinputhost", "dwm.exe", "sihost", "ctfmon",
+                        "systemsettings", "useroobe", "explorer.exe",
+                        "windows\\explorer", "rundll32", "taskmgr", "winlogon",
+                        "fontdrvhost", "wininit", "csrss", "smartscreen",
+                        "svchost.exe", "runtimebroker.exe", "taskhostw.exe",
+                        "dllhost.exe", "conhost.exe", "wmiprvse.exe",
+                        "audiodg.exe", "widgets.exe", "nvcontainer.exe"}))
     return QStringLiteral("系统");
 
   // 浏览器：先按 exe 认定，再**仅用站点专名标题词**细分到 视频/音乐，否则 浏览。
@@ -439,9 +461,9 @@ QString classifyActivityImpl(const QString& groupKey, const QString& appId,
     return QStringLiteral("社交");
 
   if (containsAny(id, {"steam.exe", "steamwebhelper", "epicgames", "riotclient",
-                       "leagueoflegends", "valorant", "genshin", "yuanshen",
-                       "starrail", "streetfighter", "wegame", "battle.net",
-                       "ubisoft", "gog galaxy"}))
+                        "leagueoflegends", "valorant", "genshin", "yuanshen",
+                        "starrail", "streetfighter", "wegame", "battle.net",
+                        "ubisoft", "gog galaxy", "r5apex", "apex legends"}))
     return QStringLiteral("游戏");
 
   if (containsAny(id, {"winword", "excel.exe", "powerpnt", "onenote", "outlook",

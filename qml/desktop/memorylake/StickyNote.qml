@@ -41,6 +41,11 @@ Item {
         note.tagPicked();
     }
 
+    function dueTimeText(value) {
+        var fmt = settingsRepository ? settingsRepository.getValue("time_format", "24") : "24";
+        return Qt.formatDateTime(value, fmt === "12" ? "M月d日  h:mm AP" : "M月d日  HH:mm");
+    }
+
     z: 124
     width: 310
     height: 285
@@ -289,9 +294,8 @@ Item {
 
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: dateRow.hasDue
-                                      ? Qt.formatDateTime(new Date(note.due), "M月d日  HH:mm")
-                                      : "设置截止时间"
+                                text: dateRow.hasDue ? note.dueTimeText(new Date(note.due))
+                                                     : "设置截止时间"
                                 color: Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b,
                                                dateRow.hasDue ? 0.84 : 0.52)
                                 font.pixelSize: dateRow.hasDue ? 13 : 12

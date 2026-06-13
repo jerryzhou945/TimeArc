@@ -64,6 +64,9 @@ function appColor(appId, appName, path) {
 
     if (containsAny(text, ["bilibili", "b23.tv"])) return "#FABECF";
     if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D98E9F";
+    if (containsAny(text, ["apex legends", "r5apex"])) return "#E6C7B8";
+    if (containsAny(text, ["nvidia", "nvcontainer"])) return "#C9E8BA";
+    if (containsAny(text, ["service host", "windows-system", "svchost", "runtime broker", "windows search"])) return "#C8D6E5";
     if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#BFD7EA";
     if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#9FC7DE";
     if (containsAny(text, ["discord"])) return "#D9D0F2";
