@@ -65,6 +65,20 @@ Rectangle {
         } catch (e) {}
     }
 
+    function displayTime(raw) {
+        if (!raw || raw === "")
+            return "--:--";
+        var parts = raw.split(":");
+        if (parts.length < 2)
+            return raw;
+        var h = parseInt(parts[0]);
+        var m = parseInt(parts[1]);
+        if (isNaN(h) || isNaN(m))
+            return raw;
+        var fmt = settingsRepository ? settingsRepository.getValue("time_format", "24") : "24";
+        return fmt === "12" ? Qt.formatTime(new Date(2000, 0, 1, h, m), "h:mm AP") : raw;
+    }
+
     Component.onCompleted: reload()
     Connections {
         target: calendarManager
@@ -261,7 +275,7 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.rightMargin: 12
                         anchors.verticalCenter: parent.verticalCenter
-                        text: (rowBg.modelData.time && rowBg.modelData.time !== "") ? rowBg.modelData.time : "--:--"
+                        text: displayTime(rowBg.modelData.time)
                         color: panel.style ? Qt.rgba(panel.style.glowCyan.r, panel.style.glowCyan.g, panel.style.glowCyan.b, 0.78) : Qt.rgba(0.62, 0.90, 0.93, 0.78)
                         font.pixelSize: 10
                         font.weight: 760

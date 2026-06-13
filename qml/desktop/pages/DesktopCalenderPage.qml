@@ -105,6 +105,20 @@ Item {
         return value < 10 ? "0" + value : "" + value
     }
 
+    function displayTime(raw) {
+        if (!raw || raw === "")
+            return ""
+        var parts = raw.split(":")
+        if (parts.length < 2)
+            return raw
+        var h = parseInt(parts[0])
+        var m = parseInt(parts[1])
+        if (isNaN(h) || isNaN(m))
+            return raw
+        var fmt = settingsRepository ? settingsRepository.getValue("time_format", "24") : "24"
+        return fmt === "12" ? Qt.formatTime(new Date(2000, 0, 1, h, m), "h:mm AP") : raw
+    }
+
     function dateKey(value) {
         return value.getFullYear() + "-" + pad2(value.getMonth() + 1) + "-" + pad2(value.getDate())
     }
@@ -1228,7 +1242,7 @@ Item {
                                                 anchors.rightMargin: 6
                                                 verticalAlignment: Text.AlignVCenter
                                                 elide: Text.ElideRight
-                                                text: (ev.time && ev.time !== "" ? ev.time + " " : "") + ev.text
+                                                text: (ev.time && ev.time !== "" ? displayTime(ev.time) + " " : "") + ev.text
                                                 color: ml.chipText
                                                 font.pixelSize: 9
                                             }
@@ -1422,7 +1436,7 @@ Item {
                                                     anchors.rightMargin: 6
                                                     verticalAlignment: Text.AlignVCenter
                                                     elide: Text.ElideRight
-                                                    text: (modelData.time && modelData.time !== "" ? modelData.time + " " : "") + modelData.text
+                                                    text: (modelData.time && modelData.time !== "" ? displayTime(modelData.time) + " " : "") + modelData.text
                                                     color: ml.chipText
                                                     font.pixelSize: 9
                                                 }
@@ -1526,7 +1540,7 @@ Item {
                                                 Layout.fillWidth: true
                                                 Layout.alignment: Qt.AlignVCenter
                                                 text: modelData.type === "event" ? "全天"
-                                                      : (modelData.time && modelData.time !== "" ? modelData.time
+                                                      : (modelData.time && modelData.time !== "" ? displayTime(modelData.time)
                                                       : (modelData.type === "focus" ? "专注" : "未定"))
                                                 color: (modelData.time && modelData.time !== "") ? ml.glowCyan : ml.textTertiary
                                                 font.pixelSize: (modelData.time && modelData.time !== "") ? 11 : 10
@@ -2148,7 +2162,7 @@ Item {
 
                                                     Text {
                                                         visible: agendaItem.time && agendaItem.time !== ""
-                                                        text: agendaItem.time
+                                                        text: displayTime(agendaItem.time)
                                                         color: Qt.rgba(ml.glowCyan.r, ml.glowCyan.g, ml.glowCyan.b, 0.85)
                                                         font.pixelSize: 10
                                                         font.bold: true
@@ -2653,7 +2667,7 @@ Item {
                         anchors.left: createTimeGlyph.right; anchors.right: timePickChev.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: 8; anchors.rightMargin: 6
-                        text: root.createTime !== "" ? root.createTime : "选择时间（可选）"
+                        text: root.createTime !== "" ? displayTime(root.createTime) : "选择时间（可选）"
                         color: root.createTime !== "" ? ml.textPrimary : ml.textTertiary
                         font.pixelSize: 13
                         elide: Text.ElideRight
