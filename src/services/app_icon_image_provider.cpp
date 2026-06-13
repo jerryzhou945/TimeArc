@@ -3,6 +3,8 @@
 #include <QFileIconProvider>
 #include <QFileInfo>
 #include <QIcon>
+#include <QImage>
+#include <QPainter>
 #include <QSize>
 #include <QUrl>
 #include <QtGlobal>
@@ -25,7 +27,7 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
     if (fileInfo.exists()) {
       QFileIconProvider iconProvider;
       const QIcon icon = iconProvider.icon(fileInfo);
-      pixmap = icon.pixmap(side, side);
+      pixmap = normalizePixmap(icon.pixmap(side, side), side);
     }
   }
 
@@ -39,6 +41,44 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
 
   if (size) *size = pixmap.size();
   return pixmap;
+}
+
+QPixmap AppIconImageProvider::normalizePixmap(const QPixmap& source,
+                                              int side) const {
+  if (source.isNull()) return source;
+
+  const QImage image = source.toImage().convertToFormat(QImage::Format_ARGB32);
+  int left = image.width();
+  int top = image.height();
+  int right = -1;
+  int bottom = -1;
+
+  for (int y = 0; y < image.height(); ++y) {
+    for (int x = 0; x < image.width(); ++x) {
+      if (qAlpha(image.pixel(x, y)) <= 8) continue;
+      left = qMin(left, x);
+      top = qMin(top, y);
+      right = qMax(right, x);
+      bottom = qMax(bottom, y);
+    }
+  }
+
+  if (right < left || bottom < top) return transparentPixmap(side);
+
+  const QRect bounds(left, top, right - left + 1, bottom - top + 1);
+  const QPixmap cropped = source.copy(bounds);
+  const int targetSide = qMax(1, side - 4);
+  const QPixmap scaled =
+      cropped.scaled(targetSide, targetSide, Qt::KeepAspectRatio,
+                     Qt::SmoothTransformation);
+
+  QPixmap normalized(side, side);
+  normalized.fill(Qt::transparent);
+  QPainter painter(&normalized);
+  painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
+  painter.drawPixmap((side - scaled.width()) / 2, (side - scaled.height()) / 2,
+                     scaled);
+  return normalized;
 }
 
 QPixmap AppIconImageProvider::transparentPixmap(int side) const {
