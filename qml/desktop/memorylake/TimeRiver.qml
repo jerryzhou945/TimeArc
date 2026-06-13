@@ -20,6 +20,22 @@ Item {
 
     readonly property var nodes: app && app.times ? app.times : []
 
+    function displayTime(raw) {
+        if (!raw || raw === "")
+            return "";
+        var parts = raw.split(":");
+        if (parts.length < 2)
+            return raw;
+        var h = parseInt(parts[0]);
+        var m = parseInt(parts[1]);
+        if (isNaN(h) || isNaN(m))
+            return raw;
+        var fmt = settingsRepository ? settingsRepository.getValue("time_format", "24") : "24";
+        if (fmt !== "12")
+            return raw;
+        return Qt.formatTime(new Date(2000, 0, 1, h === 24 ? 0 : h, m), "h:mm AP");
+    }
+
     // 全天分数 -> 轴可视区像素 y。轴线在 wrap 内上 26 / 下 30 内缩，节点与标签共用。
     function mapY(frac) {
         var top = 26;
@@ -99,7 +115,7 @@ Item {
                     required property var modelData
                     x: 8
                     y: river.mapY(modelData.f) - height / 2
-                    text: modelData.t
+                    text: river.displayTime(modelData.t)
                     color: river.style ? river.style.textTertiary : "#888"
                     font.pixelSize: 10
                 }
@@ -168,7 +184,7 @@ Item {
                     Text {
                         x: river.axisX + nodeW + 10
                         y: nodeY - 8
-                        text: (modelData.start ? modelData.start : "") + "–" + (modelData.end ? modelData.end : "")
+                        text: river.displayTime(modelData.start) + "–" + river.displayTime(modelData.end)
                         color: river.style ? river.style.textSecondary : "#bbb"
                         font.pixelSize: 11
                     }
