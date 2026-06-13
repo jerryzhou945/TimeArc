@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-13T21:14:13Z | L2 | bilibili-icon-t... | build.py timed out at the tool limit while compiling Bili... | [report](errors/20260613-211413-B-bilibili-icon-timeriver-build-timeout.md) |
 | 2026-06-13T20:57:23Z | L3 | gpp-smoke-journ... | Temporary g++ smoke source was written under .harness/jou... | [report](errors/20260613-205723-B-gpp-smoke-journal-source.md) |
 | 2026-06-13T20:52:57Z | L1 | settings-export... | cmake --build exited 1 | [report](errors/20260613-205257-B-settings-export-ui-build-verbose.md) |
 | 2026-06-13T20:52:28Z | L1 | settings-export... | cmake --build exited 1 | [report](errors/20260613-205228-B-settings-export-ui-build.md) |

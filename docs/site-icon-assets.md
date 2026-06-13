@@ -2,7 +2,7 @@
 
 | Site | File | Source URL | Acquisition Method | Notes |
 |------|------|------------|--------------------|-------|
-| Bilibili | `resources/icons/bilibili.svg` | existing repository asset | existing local SVG | Kept for compatibility. |
+| Bilibili | `resources/icons/sites/bilibili.png` | https://i0.hdslb.com/bfs/static/jinkela/long/images/512.png | official 512px icon from homepage metadata | Trademark belongs to the site owner. |
 | Xiaohongshu | `resources/icons/sites/xiaohongshu.ico` | https://www.xiaohongshu.com/favicon.ico | official favicon download | Trademark belongs to the site owner. |
 | iQIYI | `resources/icons/sites/iqiyi.ico` | https://www.iqiyi.com/favicon.ico | official favicon download | Trademark belongs to the site owner. |
 | Youku | `resources/icons/sites/youku.ico` | https://www.youku.com/favicon.ico | official favicon download | Trademark belongs to the site owner. |

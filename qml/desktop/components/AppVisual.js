@@ -14,7 +14,7 @@ function containsAny(text, words) {
 function siteVisual(appId) {
     var identity = appId ? appId.toString() : "";
     switch (identity) {
-    case "site:bilibili": return { color: "#FABECF", label: "B", icon: Qt.resolvedUrl("../../../resources/icons/bilibili.svg") };
+    case "site:bilibili": return { color: "#FABECF", label: "B", icon: Qt.resolvedUrl("../../../resources/icons/sites/bilibili.png") };
     case "site:douyin": return { color: "#E8E2F1", label: "\u6296", icon: "" };
     case "site:xiaohongshu": return { color: "#F5D7DE", label: "\u7EA2", icon: "" };
     case "site:weibo": return { color: "#E6162D", label: "\u5FAE", icon: "" };
@@ -114,7 +114,7 @@ function coverTone(c, night) {
     return Qt.hsla(h, ns, nl, 1.0);
 }
 
-// 系统小图标 source。site:bilibili 走内置 SVG；无 path 返回 ""（由调用方走 appColor 兜底）。
+// 系统小图标 source。站点图标优先走内置站点资源；无 path 返回 ""（由调用方走 appColor 兜底）。
 function appIconSource(appId, path) {
     var identity = appId ? appId.toString() : "";
     var site = siteVisual(identity);

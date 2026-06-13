@@ -15,7 +15,7 @@ inline AdapterDefinition bilibiliWebsiteAdapter() {
   adapter.category = QStringLiteral("视频");
   adapter.domain = QStringLiteral("bilibili.com");
   adapter.iconPath =
-      QStringLiteral("qrc:/qt/qml/time_arc/resources/icons/bilibili.svg");
+      QStringLiteral("qrc:/qt/qml/time_arc/resources/icons/sites/bilibili.png");
   adapter.iconLabel = QStringLiteral("B");
   adapter.brandColor = QStringLiteral("#FABECF");
   adapter.supportsMediaDetection = true;

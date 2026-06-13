@@ -21,7 +21,7 @@
 - Create: `.harness/journal/errors/20260613-204041-B-tdd-before-design-approval.md`
 - Create: `.harness/journal/sessions/20260614-0403-C-cmake-d-drive-path.md`
 
-- [ ] Stage and commit harness-only records with `git commit -m "Add CMake path repair journal"`.
+- [x] Stage and commit harness-only records with `git commit -m "Add CMake path repair journal"`.
 
 ### Task 2: Settings UI + G1 Backlog
 
@@ -29,10 +29,10 @@
 - Modify: `qml/desktop/pages/DesktopProfilePage.qml`
 - Modify: `docs/implementation-backlog.md`
 
-- [ ] Remove the visible “导出设置 JSON” control while keeping `doExport()` available.
-- [ ] Retitle/copy the card around import/summary so the layout still feels intentional.
-- [ ] Update G1 to state alpha does not need a Parson-backed human JSON config file.
-- [ ] Build, run harness check, commit.
+- [x] Remove the visible “导出设置 JSON” control while keeping `doExport()` available.
+- [x] Retitle/copy the card around import/summary so the layout still feels intentional.
+- [x] Update G1 to state alpha does not need a Parson-backed human JSON config file.
+- [x] Build, run harness check, commit.
 
 ### Task 3: App Identity and Mainstream Ranking
 
@@ -41,9 +41,9 @@
 - Modify: `src/services/daily_card_service.cpp`
 - Modify: `docs/implementation-backlog.md`
 
-- [ ] Extend common app names/categories and group keys for noisy Windows/QQ screenshot helpers.
-- [ ] Mark low-signal helper/system apps so Memory Lake home ranking excludes them, while full settings app management remains complete.
-- [ ] Build, run harness check, commit.
+- [x] Extend common app names/categories and group keys for noisy Windows/QQ screenshot helpers.
+- [x] Mark low-signal helper/system apps so Memory Lake home ranking excludes them, while full settings app management remains complete.
+- [x] Build, run harness check, commit.
 
 ### Task 4: App Management Icons and Sort
 
@@ -51,9 +51,9 @@
 - Modify: `qml/desktop/pages/DesktopProfilePage.qml`
 - Modify: `qml/desktop/components/AppVisual.js`
 
-- [ ] Add helper functions to detect icon availability and sort apps with icon-first then display name.
-- [ ] Replace letter-only app management tiles with icon image plus first-letter fallback.
-- [ ] Build, run harness check, commit.
+- [x] Add helper functions to detect icon availability and sort apps with icon-first then display name.
+- [x] Replace letter-only app management tiles with icon image plus first-letter fallback.
+- [x] Build, run harness check, commit.
 
 ### Task 5: Bilibili Site Icon and TimeRiver Labels
 
@@ -64,9 +64,9 @@
 - Modify: `qml/desktop/memorylake/TimeRiver.qml`
 - Modify: `resources/CMakeLists.txt`
 - Delete: `resources/icons/bilibili.svg`
-- Add: `resources/icons/sites/bilibili.ico`
+- Add: `resources/icons/sites/bilibili.png`
 
-- [ ] Move Bilibili to the same `resources/icons/sites/*.ico` site-icon path as other video sites.
-- [ ] Remove the old root `bilibili.svg` resource entry.
-- [ ] Add TimeRiver label lane/skip logic so dense labels do not overlap.
-- [ ] Build, run harness check, commit.
+- [x] Move Bilibili to the same `resources/icons/sites/` site-icon path as other video sites.
+- [x] Remove the old root `bilibili.svg` resource entry.
+- [x] Add TimeRiver label lane/skip logic so dense labels do not overlap.
+- [x] Build, run harness check, commit.
