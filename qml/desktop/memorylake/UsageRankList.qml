@@ -95,17 +95,22 @@ Item {
                                 border.width: 1
                                 border.color: rankRoot.style ? rankRoot.style.cardBorder : "#ffffff20"
                                 clip: true
-                                Image {
+                                Item {
                                     anchors.centerIn: parent
-                                    width: 22; height: 22
-                                    source: AppVisual.modelIconSource(row.app)
-                                    sourceSize.width: 48
-                                    sourceSize.height: 48
-                                    fillMode: Image.PreserveAspectFit
-                                    asynchronous: true
-                                    smooth: true
-                                    mipmap: true
-                                    visible: source != ""
+                                    width: 24; height: 24
+                                    clip: true
+                                    Image {
+                                        anchors.centerIn: parent
+                                        width: 24; height: 24
+                                        source: AppVisual.modelIconSource(row.app)
+                                        sourceSize.width: 64
+                                        sourceSize.height: 64
+                                        fillMode: Image.PreserveAspectFit
+                                        asynchronous: true
+                                        smooth: true
+                                        mipmap: true
+                                        visible: source != ""
+                                    }
                                 }
                                 Text {
                                     anchors.centerIn: parent
