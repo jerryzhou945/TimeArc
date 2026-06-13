@@ -5,7 +5,7 @@ set(TIME_ARC_RESOURCE_FILES
     resources/icons/home.svg
     resources/icons/home_white.svg
     resources/icons/chat.svg
-    resources/icons/bilibili.svg
+    resources/icons/sites/bilibili.png
     resources/icons/sites/acfun.ico
     resources/icons/sites/douyin.ico
     resources/icons/sites/douyu.ico

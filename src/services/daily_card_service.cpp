@@ -911,13 +911,19 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
     catSec[cat] += sec;
     catByKey.insert(key, cat);
     nameByKey.insert(key, u.value(QStringLiteral("name")).toString());
+    const bool homeVisible =
+        !u.contains(QStringLiteral("homeRankVisible")) ||
+        u.value(QStringLiteral("homeRankVisible")).toBool();
+    if (!homeVisible) {
+      continue;
+    }
     if (cat == QStringLiteral("系统"))
       systemApps.append(v);
     else
       nonSystem.append(v);
   }
 
-  // 卡牌/排行：非系统优先（系统外壳降权沉底），取前 10，长尾不进 List。
+  // 卡牌/排行：只展示主流/高信号应用；系统外壳、截图助手等低信号项仍保留在设置页全量列表。
   QVariantList ordered = nonSystem;
   ordered.append(systemApps);
   if (ordered.size() > 10) ordered = ordered.mid(0, 10);

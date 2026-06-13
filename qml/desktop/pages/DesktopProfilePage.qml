@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import "../memorylake"
+import "../components/AppVisual.js" as AppVisual
 
 // v88「设置」页（暗玻璃全幅复刻 / 原地重皮 A-NAME）。规范：
 //   docs/settings-functional-replication.md / settings-render-pipeline-replication.md /
@@ -86,12 +87,12 @@ Item {
     readonly property int appCap: 14
     readonly property var filteredApps: {
         var q = ("" + appSearchQuery).toLowerCase()
-        if (q.length === 0) return appList
         var r = []
         for (var i = 0; i < appList.length; i++) {
-            var nm = ("" + (appList[i].name || appList[i].appName)).toLowerCase()
-            if (nm.indexOf(q) >= 0) r.push(appList[i])
+            var nm = AppVisual.modelDisplayName(appList[i]).toLowerCase()
+            if (q.length === 0 || nm.indexOf(q) >= 0) r.push(appList[i])
         }
+        r.sort(AppVisual.compareAppModels)
         return r
     }
     readonly property var shownApps: (appSearchQuery.length > 0 || appsExpanded)
@@ -1156,9 +1157,10 @@ Item {
                                             model: root.shownApps
                                             delegate: Rectangle {
                                                 required property var modelData
+                                                readonly property string appIconSource: AppVisual.modelIconSource(modelData)
                                                 Layout.fillWidth: true
                                                 Layout.preferredHeight: 52
-                                                radius: 14
+                                                radius: 8
                                                 color: ml.calSunkBg
                                                 border.width: 1; border.color: ml.cellHair
                                                 RowLayout {
@@ -1169,15 +1171,26 @@ Item {
                                                         width: 30; height: 30; radius: 9
                                                         Layout.alignment: Qt.AlignVCenter
                                                         color: ml.calGhostBg
+                                                        clip: true
+                                                        Image {
+                                                            anchors.fill: parent
+                                                            anchors.margins: 5
+                                                            visible: appIconSource.length > 0
+                                                            source: appIconSource
+                                                            fillMode: Image.PreserveAspectFit
+                                                            asynchronous: true
+                                                            cache: true
+                                                        }
                                                         Text {
                                                             anchors.centerIn: parent
-                                                            text: { var n = "" + (modelData.name || modelData.appName); return n.length > 0 ? n.charAt(0).toUpperCase() : "?" }
+                                                            visible: appIconSource.length === 0
+                                                            text: AppVisual.modelIconLabel(modelData)
                                                             color: ml.aqua; font.pixelSize: 14; font.weight: Font.DemiBold
                                                         }
                                                     }
                                                     Text {
                                                         Layout.fillWidth: true
-                                                        text: modelData.name || modelData.appName
+                                                        text: AppVisual.modelDisplayName(modelData)
                                                         color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
                                                         elide: Text.ElideRight
                                                     }
@@ -1468,15 +1481,14 @@ Item {
 
                             SettingsCard {
                                 badge: "⇅"; wide: true
-                                cardTitle: "导入与导出"
-                                cardDesc: "把当前设置导出为 JSON，或复制配置摘要。"
-                                keywords: "导出 导入 json 备份 复制"
+                                cardTitle: "设置迁移"
+                                cardDesc: "从设置文件恢复偏好，或复制一份便于排查的配置摘要。"
+                                keywords: "导入 json 备份 复制 摘要"
 
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
-                                    GhostBtn { label: "导出设置 JSON"; primary: true; onTapped: root.doExport() }
-                                    GhostBtn { label: "导入设置"; onTapped: importDialog.open() }
+                                    GhostBtn { label: "导入设置"; primary: true; onTapped: importDialog.open() }
                                     GhostBtn { label: "复制配置摘要"; onTapped: root.copySummary() }
                                 }
                             }

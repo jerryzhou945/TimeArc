@@ -16,7 +16,6 @@ class AppIconImageProvider final : public QQuickImageProvider {
                         const QSize& requestedSize) override;
 
  private:
-  QPixmap normalizePixmap(const QPixmap& source, int side) const;
   QPixmap transparentPixmap(int side) const;
 };
 

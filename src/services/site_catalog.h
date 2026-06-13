@@ -23,7 +23,7 @@ inline const QVector<SiteDefinition>& sites() {
       {QStringLiteral("site:bilibili"), QStringLiteral("\u54D4\u54E9\u54D4\u54E9"),
        QStringLiteral("\u89C6\u9891"), QStringLiteral("bilibili.com"),
        QStringLiteral("#FABECF"), QStringLiteral("B"),
-       QStringLiteral("qrc:/qt/qml/time_arc/resources/icons/bilibili.svg"),
+       QStringLiteral("qrc:/qt/qml/time_arc/resources/icons/sites/bilibili.png"),
        {QStringLiteral("bilibili"), QStringLiteral("b23.tv"),
         QStringLiteral("\u54D4\u54E9\u54D4\u54E9"), QStringLiteral("bilibili.com")}},
       {QStringLiteral("site:douyin"), QStringLiteral("\u6296\u97F3"),

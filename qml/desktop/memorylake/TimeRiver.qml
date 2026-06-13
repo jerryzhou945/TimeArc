@@ -44,6 +44,29 @@ Item {
         return top + avail * f;
     }
 
+    function labelLane(index) {
+        var node = nodes[index];
+        if (!node)
+            return 0;
+        var y = mapY(node.y ? node.y : 0);
+        var lane = 0;
+        for (var i = index - 1; i >= 0; --i) {
+            var prev = nodes[i];
+            if (!prev)
+                continue;
+            var py = mapY(prev.y ? prev.y : 0);
+            if (Math.abs(py - y) < 18)
+                lane += 1;
+        }
+        return lane;
+    }
+
+    function labelY(nodeY, lane) {
+        var offsets = [-24, -8, 8, 24];
+        var y = nodeY + offsets[Math.min(lane, offsets.length - 1)];
+        return Math.max(4, Math.min(wrap.height - 18, y));
+    }
+
     Column {
         anchors.fill: parent
         spacing: 10
@@ -134,6 +157,7 @@ Item {
                     // 横向长度按单次时长映射：约 2h 占满，按比例缩短，最短 20px。
                     readonly property real nodeW: Math.max(20, Math.min(availW,
                         availW * Math.min(1, (modelData.dur ? modelData.dur : 0) / 7200)))
+                    readonly property int labelLane: river.labelLane(index)
 
                     // 涟漪
                     Rectangle {
@@ -182,11 +206,14 @@ Item {
 
                     // 标签
                     Text {
-                        x: river.axisX + nodeW + 10
-                        y: nodeY - 8
+                        visible: labelLane < 4
+                        x: Math.min(river.axisX + nodeW + 10 + labelLane * 8, wrap.width - width - 8)
+                        y: river.labelY(nodeY, labelLane)
+                        width: 92
                         text: river.displayTime(modelData.start) + "–" + river.displayTime(modelData.end)
                         color: river.style ? river.style.textSecondary : "#bbb"
                         font.pixelSize: 11
+                        elide: Text.ElideRight
                     }
                 }
             }
