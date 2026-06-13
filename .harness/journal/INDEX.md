@@ -8,6 +8,10 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-13T20:40:41Z | L3 | tdd-before-desi... | Loaded TDD skill before completing brainstorming approval... | [report](errors/20260613-204041-B-tdd-before-design-approval.md) |
+| 2026-06-13T20:08:55Z | L3 | powershell-pyth... | Tried to run python with bash-style heredoc in PowerShell... | [report](errors/20260613-200855-C-powershell-python-heredoc.md) |
+| 2026-06-13T20:07:50Z | L3 | shell-path-not-... | After writing User PATH, a new tool-launched PowerShell s... | [report](errors/20260613-200750-C-shell-path-not-reloaded.md) |
+| 2026-06-13T20:06:41Z | L1 | cmake-not-in-path | cmake was not discoverable from PATH; D-drive Qt CMake ex... | [report](errors/20260613-200641-C-cmake-not-in-path.md) |
 | 2026-06-13T19:49:58Z | L3 | switch-blocked-... | git switch -c codex/app-icon-normal-centered origin/dev w... | [report](errors/20260613-194958-C-switch-blocked-harness-edits.md) |
 | 2026-06-13T19:47:09Z | L3 | error-report-pa... | apply_patch failed while filling app-icon-small-corner er... | [report](errors/20260613-194709-C-error-report-patch-context.md) |
 | 2026-06-13T19:42:34Z | L3 | chained-shell-c... | Bundled multiple git show calls with semicolons instead o... | [report](errors/20260613-194234-C-chained-shell-command.md) |
