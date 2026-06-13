@@ -50,7 +50,7 @@ G2/G3 打磨 ───────────(随手)
 ### Alpha. 桌面 alpha 功能修复（非移动端 / 非 AI）
 - [x] **P0 首页右侧今日事项可勾选完成** — 2026-06-13 已实装：点击 checkbox 可切换 `done` 并写回 `CalendarManager.savedTodos`。commit `53acc61`。
 - [x] **P1 常见应用名称大众化** — 2026-06-13 已覆盖 Apex Legends、NVIDIA Container、Service Host / Windows system process 命名与 group key。commit `bddadd1`。
-- [x] **P1 原生应用图标内容居中** — 2026-06-13 已在 `AppIconImageProvider` 裁剪透明边距后重新居中，修复 Apex 等 exe icon 自带透明偏移导致的视觉不居中。commit `cc3bd92`。
+- [x] **P1 原生应用图标内容居中** — 2026-06-13 已在 `AppIconImageProvider` 用 `QImage` 裁剪透明边距后重新居中，修复 Apex 等 exe icon 自带透明偏移导致的视觉不居中，并避开高 DPI `QPixmap` 坐标偏移。commits `cc3bd92`、后续 UI 修复。
 - [x] **P1 桌面 12/24 小时显示接线** — 见 H1。commits `c3317fb`、`7dfad9c`。
 - [x] **P1 JSON 字符串 UTF-8 校验** — 见 B2。commit `74cc033`。
 

@@ -14,7 +14,7 @@
 
 ## 文档同步
 
-- `docs/implementation-backlog.md` 已更新 B2/H1 状态，并将 E5 标记为 alpha 关键样例已覆盖、长尾继续渐进。
+- `docs/implementation-backlog.md` 已更新 B2/H1 状态，并新增 Alpha 桌面修复小清单；分类器长尾仍保留为后续渐进覆盖。
 - `.harness/state/open-issues.md` 已移除 UTF-8 未校验问题，并补充分类器本轮覆盖范围。
 
 ## 提交记录

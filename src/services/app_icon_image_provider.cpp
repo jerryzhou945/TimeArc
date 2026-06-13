@@ -66,19 +66,20 @@ QPixmap AppIconImageProvider::normalizePixmap(const QPixmap& source,
   if (right < left || bottom < top) return transparentPixmap(side);
 
   const QRect bounds(left, top, right - left + 1, bottom - top + 1);
-  const QPixmap cropped = source.copy(bounds);
+  const QImage cropped = image.copy(bounds);
   const int targetSide = qMax(1, side - 4);
-  const QPixmap scaled =
+  const QImage scaled =
       cropped.scaled(targetSide, targetSide, Qt::KeepAspectRatio,
                      Qt::SmoothTransformation);
 
-  QPixmap normalized(side, side);
+  QImage normalized(side, side, QImage::Format_ARGB32);
   normalized.fill(Qt::transparent);
   QPainter painter(&normalized);
   painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-  painter.drawPixmap((side - scaled.width()) / 2, (side - scaled.height()) / 2,
-                     scaled);
-  return normalized;
+  painter.drawImage((side - scaled.width()) / 2, (side - scaled.height()) / 2,
+                    scaled);
+  painter.end();
+  return QPixmap::fromImage(normalized);
 }
 
 QPixmap AppIconImageProvider::transparentPixmap(int side) const {
