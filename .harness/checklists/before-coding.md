@@ -30,6 +30,9 @@ Total time: ~2 minutes once the project is familiar.
 - [ ] `git status` — what's uncommitted? Is the tree clean enough to be
       auditable at commit time? If not, commit or stash first.
 - [ ] `git log --oneline -5` — are you on the branch you think you are?
+- [ ] If this is implementation work, follow
+      [`../rules/08-git-workflow.md`](../rules/08-git-workflow.md): start from
+      latest `dev` and create a dedicated feature branch before committing.
 - [ ] Skim [`../journal/INDEX.md`](../journal/INDEX.md) for open issues that
       may overlap your change.
 

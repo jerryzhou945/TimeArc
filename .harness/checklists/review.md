@@ -69,6 +69,10 @@ Designed to take ~10 minutes on a normal PR.
 
 - [ ] Would this diff be safely revertible as a single commit? If not,
       should it be split?
+- [ ] Branch, commit, PR, report, and rollback notes follow
+      [`../rules/08-git-workflow.md`](../rules/08-git-workflow.md). If the PR
+      is merged, delete the remote and local feature branches after `dev`
+      contains the merge.
 - [ ] Is there anything you want to know about this diff that is not in the
       diff, the session log, or the rule files? That's a documentation gap
       — file it as an L3 error with topic `doc-gap`.
