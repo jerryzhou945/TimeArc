@@ -74,8 +74,8 @@ G2/G3 打磨 ───────────(随手)
   真服务）门控、需管理员 + 链 `advapi32/wtsapi32/userenv`（动冻结 `src/service/CMakeLists.txt`）+ 修订 CHARTER I1，暂缓。
   Track B · Windows · 自包含、可与 A1 并行（不碰 I2 数据契约）· 提案：Route A 否 / Route B 是 · 纵切：见 kickoff §2
   （动词面 install/start/stop/uninstall/status 为稳定 CLI 契约）。
-- [ ] **B2 `write_json_string` 加 UTF-8 校验**（`usage_storage.c:140-175` 仅做 JSON 转义、未校验输入字节是否为合法 UTF-8 序列；**源内并无 TODO 注释**——旧述「usage_storage.c TODO」不实，全仓唯一 "UTF-8" 字样即本条；跨平台同步前必须）
-  Track A/C · Windows/shared · 小 · 可随任意 service session 捎带。
+- [x] **B2 `write_json_string` 加 UTF-8 校验** — 2026-06-13 已实装：JSON 字符串输出保留合法 UTF-8，非法字节写为 `\ufffd`，控制字符/引号/反斜杠继续按 JSON 规则转义；不改 SQLite 写入和磁盘契约。
+  Track B · Windows/shared · 小 · commit `74cc033`。
 - [ ] **B3（可选低优）Windows `rename` 非原子覆盖**（`usage_storage.c` 现先 `remove`）——转 SQLite WAL 时再 revisit。
 
 ### C. 跨平台服务（**非 Windows**）
@@ -97,7 +97,8 @@ G2/G3 打磨 ───────────(随手)
 - [ ] **E3 卡片持久化** — Track B。
 - [ ] **E4 「确认摘要后过 AI」管线**（原始→本地摘要→隐私过滤→用户确认→AI；当前**零代码**）—
   Track B · **强门控** · 多 session · **必须先写 spec + 产品签字**（见 `docs/card-ai-development-spec.md`、`.harness/rules/07`）。
-- [ ] **E5 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
+- [~] **E5 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
+  2026-06-13 alpha 修复已覆盖截图中的 `r5apex_dx12` → Apex Legends、`nvcontainer` → NVIDIA Container、`svchost` → Service Host，并补入 Apex/NVIDIA/Windows 系统进程的 group key 与分类；更广泛长尾仍保留为后续渐进覆盖。
 
 ### F. 发布 / 许可（build/release · 跨平台 · 临近发版）
 - [x] **F1 release 构建动态链接 Qt**（满足 LGPL/GPL 组合姿态）— Track B · Route A · 提案：否（未动冻结 `CMakeLists`）。
@@ -120,10 +121,8 @@ G2/G3 打磨 ───────────(随手)
 ### H. 设置页剩余项（settings · UI + 服务侧配置 · 实测审计见 `docs/settings-remaining-work.md`）
 > 设置页已全实装并入 dev（PR #28）。以下为审计后确认的剩余项；优先级标签：
 > **[P1]** 可随手做 · **[P2]** 有前置依赖 · **[门控]** 产品先拍板（3E）· **[提案]** 待签核 · **[天花板]** 受技术上限。
-- [ ] **H1 [P1] 时间格式 12/24 全局接线（G-TIMEFMT）** — `time_format` 已持久化但无消费者（时钟显示仍硬编码
-  24h）。剩余：日历议程 / 时间河 / 便签截止 / 今日议程等**时钟显示**读 `time_format` 走 `Qt.formatTime`（仅显示层，
-  不动存储/排序的 "HH:mm" 串）。Track B · UI(calendar/memory-lake/sticky 多页) · 小-中（散落、碰已验收页须连带复核）·
-  提案：否 · 纵切：先建共享 clock 格式 helper → 逐显示点接 → 抓图复核日历/记忆湖。
+- [x] **H1 [P1] 时间格式 12/24 全局接线（G-TIMEFMT）** — 2026-06-13 已实装桌面显示层：日历月/周/今日议程、右侧议程、创建弹层已选时间、记忆湖今日事项、时间河、便签截止时间读取 `time_format` 并走 `Qt.formatTime/Qt.formatDateTime`；存储/排序仍保留 `"HH:mm"` 串。
+  Track B · UI(calendar/memory-lake/sticky 多页) · 提案：否 · commits `c3317fb`、`7dfad9c`。
 - [ ] **H2 [P2] 匿名分享图（G-ANON）** — `anonymize_export` 已持久化无消费者；**当前没有分享图/截图导出功能**。
   剩余：先建分享图导出能力，再在其渲染端把应用名换为类别/「应用 N」（**不可**在聚合源头改名，会误伤实时 UI）。
   Track B · UI(recap/记忆湖 分享管线) · 中 · 依赖：先有「分享图导出」特性 · 提案：否。

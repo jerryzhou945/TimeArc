@@ -29,9 +29,6 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   JSONL after soak). [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
 - **Whole-DB backup/restore (D1) — DONE (S1+S2, PR #40).** `DatabaseManager`
   `backupDatabase`/`inspectBackup`/`restoreDatabase` + Settings UI; S3 retention deferred.
-- **UTF-8 is not validated.** `write_json_string`
-  (`src/service/windows/storage/usage_storage.c:140-175`) only JSON-escapes; it does
-  not check input bytes are valid UTF-8 (no TODO in source). Fix before cross-platform sync.
 - **Windows `rename` is non-atomic over existing files.** `usage_storage.c`
   already `remove`s first; revisit if we move to SQLite with WAL.
 
@@ -44,9 +41,10 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   data + `DailyCardService::memoryLake{Day,Recap}` local templates; C++ aggregation added
   (no schema change): per-day month series, last-month compare, category share, time-of-day
   peak, per-app sessions; cross-app focus-block task summary; window-title-aware category
-  classifier (`系统` bucket); icon-dominant-color blended background + covers. **Still
-  open:** mobile equivalent; classifier long-tail keyword coverage (`A4` — uncommon apps
-  still fall to 其他). Implementation issues + resolutions (A1–A7, B1–B11):
+  classifier (`系统` bucket); icon-dominant-color blended background + covers. 2026-06-13
+  alpha pass covered Apex Legends / NVIDIA Container / common Windows system process naming
+  and grouping. **Still open:** mobile equivalent; broader classifier long-tail keyword
+  coverage (`A4` — uncommon apps can still fall to 其他). Implementation issues + resolutions (A1–A7, B1–B11):
   `docs/memory-lake-integration-issues.md`; per-surface plan:
   `docs/memory-lake-backend-integration-plan.md` (also `…-implementation-plan.md` §4).
 - **Third-party license page — shipped (F2).** Settings → 导入导出 →「关于与开源许可」
