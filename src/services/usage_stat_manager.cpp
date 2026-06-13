@@ -265,6 +265,11 @@ QString appDisplayName(const QString& appId, const QString& appName,
     return "VS Code";
   if (containsAny(text, {"discord"})) return "Discord";
   if (containsAny(text, {"weixin", "wechat"})) return "微信";
+  if (displayExeName == "qq.exe") return "QQ";
+  if (displayExeName == "tim.exe") return "TIM";
+  if (containsAny(text, {"qqscreenshot", "qqscreentshot", "qqscreen",
+                         "qqscreenclip", "qqcapture"}))
+    return "QQ 截图";
   if (containsAny(text, {"qqmusic"})) return "QQ Music";
   if (displayExeName == "steam.exe" || displayExeName == "steamwebhelper.exe")
     return "Steam";
@@ -296,12 +301,19 @@ QString appGroupKey(const QString& appId, const QString& appName,
   // group key 是统计聚合的身份。多个实际进程可以归到同一个 app key，
   // 例如 steam.exe 和 steamwebhelper.exe 都算 Steam。
   const QString text = (appId + " " + appName + " " + path).toLower();
+  const QString exeName = normalizedExeName(appName, path);
 
   if (containsAny(text, {"weixin", "wechat", "wechatappex", "wechatbrowser"}))
     return "app:wechat";
+  if (containsAny(text, {"qqscreenshot", "qqscreentshot", "qqscreen",
+                         "qqscreenclip", "qqcapture"}))
+    return "app:qq-screenshot";
+  if (exeName == "qq")
+    return "app:qq";
+  if (exeName == "tim")
+    return "app:tim";
   if (containsAny(text, {"cloudmusic", "netease"}))
     return "app:netease-cloud-music";
-  const QString exeName = normalizedExeName(appName, path);
   if (exeName == "r5apex" || exeName == "r5apex_dx12" ||
       containsAny(text, {"apex legends"}))
     return "app:apex-legends";
@@ -344,6 +356,24 @@ QString appGroupKey(const QString& appId, const QString& appName,
 
   const QString fallback = !appId.trimmed().isEmpty() ? appId : path;
   return "path:" + fallback.toLower();
+}
+
+bool isHomeRankVisibleActivity(const QString& groupKey, const QString& appId,
+                               const QString& appName, const QString& path,
+                               const QString& displayName,
+                               const QString& category) {
+  if (category == QStringLiteral("系统")) return false;
+  const QString id =
+      (groupKey + " " + appId + " " + appName + " " + path + " " + displayName)
+          .toLower();
+  if (containsAny(id, {"app:windows-system", "app:windows-service-host",
+                       "app:nvidia-container", "app:qq-screenshot",
+                       "qqscreenshot", "qqscreentshot", "qqscreenclip",
+                       "qqcapture", "crashpad_handler", "werfault.exe",
+                       "backgroundtaskhost.exe", "securityhealthsystray.exe",
+                       "shellexperiencehost.exe"}))
+    return false;
+  return true;
 }
 
 QString activityGroupKey(const QString& appId, const QString& appName,
@@ -1114,6 +1144,10 @@ QVariantList UsageStatManager::aggregateSoftware(
       topCategory = QStringLiteral("其他");
     }
     item["category"] = topCategory;
+    item["homeRankVisible"] =
+        isHomeRankVisibleActivity(aggregate.groupKey, aggregate.appId,
+                                  aggregate.appName, aggregate.path,
+                                  displayName, topCategory);
     // 站点组（如 site:bilibili）的 path 是**浏览器 exe**，取图标色会错成浏览器色调
     // （用户反馈：bilibili 背景显示成 Chrome 的色）。站点组留空 -> QML 退回 appColor
     // 的站点品牌色（site:bilibili -> 粉色）。避免任何 site:* 组取到宿主浏览器色。
