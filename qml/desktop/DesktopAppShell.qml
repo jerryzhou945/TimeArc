@@ -128,17 +128,22 @@ Item {
     // onMemoryLake / 信号连接使用）；bottom = true 的项固定在菜单最底部（月度回顾）。
     property var navItems: [
         { title: "首页", subtitle: "Dashboard", page: "memorylake",
-          icon: Qt.resolvedUrl("../../resources/icons/home.svg") },
+          icon: Qt.resolvedUrl("../../resources/icons/home.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/icons/home_white.svg") },
         { title: "日历", subtitle: "Calendar", page: "calendar",
-          icon: Qt.resolvedUrl("../../resources/icons/calendar.svg") },
+          icon: Qt.resolvedUrl("../../resources/icons/calendar.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/icons/calendar_white.svg") },
         { title: "统计", subtitle: "Stats", page: "stats",
-          icon: Qt.resolvedUrl("../../resources/icons/stats.svg") },
+          icon: Qt.resolvedUrl("../../resources/icons/stats.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/icons/stats_white.svg") },
         { title: "设置", subtitle: "Settings", page: "settings",
-          icon: Qt.resolvedUrl("../../resources/icons/settings.svg") },
+          icon: Qt.resolvedUrl("../../resources/icons/settings.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/icons/settings_white.svg") },
         // 「备忘」= 动作（打开黑板模态覆盖层），不是页面路由：无 page 键，点击触发
         // memoOverlay.open，不切 selectedIndex（功能文 §2.1 / C0）。
         { title: "备忘", subtitle: "Notes", action: "memo",
-          icon: Qt.resolvedUrl("../../resources/icons/chat.svg") },
+          icon: Qt.resolvedUrl("../../resources/icons/note.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/icons/note_white.svg") },
         { title: "记忆湖", subtitle: "Memory Recap", page: "recap", bottom: true,
           icon: Qt.resolvedUrl("../../resources/icons/recap.svg") }
     ]
@@ -568,7 +573,7 @@ Item {
                         spacing: 14
 
                         Image {
-                            source: modelData.icon
+                            source: (nightMode && modelData.nightIcon) ? modelData.nightIcon : modelData.icon
                             width: 22
                             height: 22
                             fillMode: Image.PreserveAspectFit
