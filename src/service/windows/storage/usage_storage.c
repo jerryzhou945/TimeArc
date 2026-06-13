@@ -308,6 +308,58 @@ static int sqlite_exec(TimeArcStorageContext* context, const char* sql) {
   return 0;
 }
 
+static int is_utf8_continuation(unsigned char c) {
+  return c >= 0x80 && c <= 0xbf;
+}
+
+static size_t valid_utf8_sequence_length(const unsigned char* p) {
+  const unsigned char c = p[0];
+
+  if (c < 0x80) {
+    return 1;
+  }
+
+  if (c >= 0xc2 && c <= 0xdf) {
+    return is_utf8_continuation(p[1]) ? 2 : 0;
+  }
+
+  if (c == 0xe0) {
+    return (p[1] >= 0xa0 && p[1] <= 0xbf && is_utf8_continuation(p[2])) ? 3
+                                                                         : 0;
+  }
+  if (c >= 0xe1 && c <= 0xec) {
+    return (is_utf8_continuation(p[1]) && is_utf8_continuation(p[2])) ? 3 : 0;
+  }
+  if (c == 0xed) {
+    return (p[1] >= 0x80 && p[1] <= 0x9f && is_utf8_continuation(p[2])) ? 3
+                                                                        : 0;
+  }
+  if (c >= 0xee && c <= 0xef) {
+    return (is_utf8_continuation(p[1]) && is_utf8_continuation(p[2])) ? 3 : 0;
+  }
+
+  if (c == 0xf0) {
+    return (p[1] >= 0x90 && p[1] <= 0xbf && is_utf8_continuation(p[2]) &&
+            is_utf8_continuation(p[3]))
+               ? 4
+               : 0;
+  }
+  if (c >= 0xf1 && c <= 0xf3) {
+    return (is_utf8_continuation(p[1]) && is_utf8_continuation(p[2]) &&
+            is_utf8_continuation(p[3]))
+               ? 4
+               : 0;
+  }
+  if (c == 0xf4) {
+    return (p[1] >= 0x80 && p[1] <= 0x8f && is_utf8_continuation(p[2]) &&
+            is_utf8_continuation(p[3]))
+               ? 4
+               : 0;
+  }
+
+  return 0;
+}
+
 static void write_json_string(FILE* file, const char* value) {
   fputc('"', file);
 
@@ -333,8 +385,17 @@ static void write_json_string(FILE* file, const char* value) {
         default:
           if (*p < 0x20) {
             fprintf(file, "\\u%04x", *p);
-          } else {
+          } else if (*p < 0x80) {
             fputc(*p, file);
+          } else {
+            const size_t utf8_len = valid_utf8_sequence_length(p);
+            if (utf8_len == 0) {
+              fputs("\\ufffd", file);
+            } else {
+              fwrite(p, 1, utf8_len, file);
+              p += utf8_len;
+              continue;
+            }
           }
           break;
       }
