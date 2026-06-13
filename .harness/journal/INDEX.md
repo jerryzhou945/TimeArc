@@ -8,6 +8,24 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-13T19:49:58Z | L3 | switch-blocked-... | git switch -c codex/app-icon-normal-centered origin/dev w... | [report](errors/20260613-194958-C-switch-blocked-harness-edits.md) |
+| 2026-06-13T19:47:09Z | L3 | error-report-pa... | apply_patch failed while filling app-icon-small-corner er... | [report](errors/20260613-194709-C-error-report-patch-context.md) |
+| 2026-06-13T19:42:34Z | L3 | chained-shell-c... | Bundled multiple git show calls with semicolons instead o... | [report](errors/20260613-194234-C-chained-shell-command.md) |
+| 2026-06-13T19:41:45Z | L1 | build-cmake-mis... | Baseline harness build failed because cmake executable wa... | [report](errors/20260613-194145-C-build-cmake-missing.md) |
+| 2026-06-13T19:40:55Z | L2 | app-icon-small-... | Native software icon renders as a tiny pixel/detail in th... | [report](errors/20260613-194055-C-app-icon-small-corner.md) |
+| 2026-06-13T19:40:29Z | L3 | rg-access-denie... | rg failed with Access is denied while searching for icon ... | [report](errors/20260613-194029-C-rg-access-denied-repeat.md) |
+| 2026-06-13T19:39:51Z | L3 | wrong-session-t... | Tried to read .harness/templates/session.md; actual templ... | [report](errors/20260613-193951-C-wrong-session-template.md) |
+| 2026-06-13T19:39:12Z | L3 | preflight-pytho... | System python/py launchers failed while running harness p... | [report](errors/20260613-193912-C-preflight-python-launcher.md) |
+| 2026-06-13T10:30:19Z | L3 | app-icon-dpr-ce... | AppIconImageProvider transparent-padding crop used QPixma... | [report](errors/20260613-103019-B-app-icon-dpr-centering-regression.md) |
+| 2026-06-13T10:07:03Z | L3 | gh-cli-missing | GitHub CLI is not available; using git push and connector... | [report](errors/20260613-100703-B-gh-cli-missing.md) |
+| 2026-06-13T09:54:29Z | L3 | todo-checkbox-p... | CalendarSyncList patch failed around localized checkmark ... | [report](errors/20260613-095429-B-todo-checkbox-patch-context.md) |
+| 2026-06-13T09:52:56Z | L3 | rg-access-denied | rg.exe access denied in current PowerShell session; using... | [report](errors/20260613-095256-B-rg-access-denied.md) |
+| 2026-06-13T09:29:27Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260613-092927-B-build-failure.md) |
+| 2026-06-13T09:29:11Z | L1 | build-cmake-not... | build.py failed before compilation because cmake was not ... | [report](errors/20260613-092911-B-build-cmake-not-found.md) |
+| 2026-06-13T09:26:17Z | L3 | stash-apply-jou... | git stash apply for prior harness journal failed because ... | [report](errors/20260613-092617-B-stash-apply-journal-conflict.md) |
+| 2026-06-13T09:25:41Z | L3 | powershell-stas... | git stash show stash@{0} failed because PowerShell split ... | [report](errors/20260613-092541-B-powershell-stash-ref-quoting.md) |
+| 2026-06-13T09:23:04Z | L3 | white-icon-patc... | apply_patch failed because stats_white.svg content did no... | [report](errors/20260613-092304-B-white-icon-patch-context.md) |
+| 2026-06-13T09:17:29Z | L3 | switch-blocked-... | git switch dev was blocked by preflight-updated .harness/... | [report](errors/20260613-091729-B-switch-blocked-current-track.md) |
 | 2026-06-11T11:11:51Z | L3 | f2-qrc-xhr-bloc... | F2 loader: kickoff's recommended pure-QML XMLHttpRequest ... | [report](errors/20260611-111151-B-f2-qrc-xhr-blocked-use-readtextfile.md) |
 | 2026-06-09T11:00:22Z | L3 | env-fs-overlay-... | File tools (Edit/Write) landed in an overlay FS the compi... | [report](errors/20260609-110022-B-env-fs-overlay-wrong-branch.md) |
 | 2026-06-08T07:23:43Z | L1 | powershell-plac... | Tried to read a preflight placeholder session path contai... | [report](errors/20260608-072343-B-powershell-placeholder-path.md) |

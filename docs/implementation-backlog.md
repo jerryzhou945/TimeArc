@@ -31,7 +31,7 @@
 A1 存储迁移(keystone) ──┬──> D1 导出/备份 ──> D2 DB 路径迁移
                         └──(更顺)
 B1 Windows SCM ───────(独立, 可并行)
-小修(B2/E5/G1) ───────(低风险, 任意时候捎带)
+小修(B2/G1/G4) ───────(低风险, 任意时候捎带)
 E1→E2→E3→E4 AI/隐私 arc ─(门控, 须产品拍板; 串行多 session)
 C1 macOS / C2 Linux ──(独立平台 arc, 视目标平台启动)
 F1 动态 Qt ──> F2 许可证页 ─(临近发版里程碑)
@@ -50,7 +50,7 @@ G2/G3 打磨 ───────────(随手)
 ### Alpha. 桌面 alpha 功能修复（非移动端 / 非 AI）
 - [x] **P0 首页右侧今日事项可勾选完成** — 2026-06-13 已实装：点击 checkbox 可切换 `done` 并写回 `CalendarManager.savedTodos`。commit `53acc61`。
 - [x] **P1 常见应用名称大众化** — 2026-06-13 已覆盖 Apex Legends、NVIDIA Container、Service Host / Windows system process 命名与 group key。commit `bddadd1`。
-- [x] **P1 原生应用图标内容居中** — 2026-06-13 已在 `AppIconImageProvider` 用 `QImage` 裁剪透明边距后重新居中，修复 Apex 等 exe icon 自带透明偏移导致的视觉不居中，并避开高 DPI `QPixmap` 坐标偏移。commits `cc3bd92`、后续 UI 修复。
+- [x] **P1 原生应用图标正常居中显示** — 2026-06-14 已回退 `AppIconImageProvider` 的透明边距裁剪路径，恢复 Qt 原生 app icon pixmap；QML 固定图标槽继续负责居中与等比显示。commit pending。
 - [x] **P1 桌面 12/24 小时显示接线** — 见 H1。commits `c3317fb`、`7dfad9c`。
 - [x] **P1 JSON 字符串 UTF-8 校验** — 见 B2。commit `74cc033`。
 
@@ -98,14 +98,12 @@ G2/G3 打磨 ───────────(随手)
 - [x] **D2 用户可选数据库路径的安全迁移流 — S1+S2 实装（PR #41，`CHARTER` I2 → v0.3）** — Track B · 依赖 A1-S1 + **D1 迁移原语** · 中 · **提案：是（碰 I2，已签核 `20260610-1705`）**。**S1 跨进程指针**：`usage_config.json` 加 `db_path` 键，service `make_db_path`（vendored Parson，无 CMake 改动）与 UI `databasePath()`（QJsonDocument）**同源读取** + 等价校验（非空 + 父目录可建/可写）+ 缺失/坏值/不可写父目录回退默认 + 一次性告警（fail-safe，不 split-brain）。**S2 UI 迁移流**：`relocateDatabaseTo` / `restoreDefaultDatabaseLocation`（`VACUUM INTO` 新库 → `inspectBackup` 校验 → 锁探旧库 → 原子 RMW 写指针（保 H5 键）→ 重开 → 任一步回滚），设置页「数据库位置」卡 + FolderDialog + 还原默认。验证：`db_smoke`（S1 三态 + S2 往返）+ 真 service E2E（`make_db_path` 读指针建库）+ 真 UI 抓图。S3（预设/盘符守卫）未做。见 [`d2-database-path-migration-kickoff.md`](d2-database-path-migration-kickoff.md)。
 
 ### E. AI / Daily Cards 隐私管线（**产品门控** · 跨平台 · 须产品先拍板）
-> 已实现（C++）：六种本地确定性卡（`build*Card`：mainline/top_apps/focus_block/entertainment/contrast/random_flip，`aiGenerated:false`）+ 活动分段器（`segmentFocusBlocks`/`taskBlocks`）+ 关键词分类器（`classifyApp`）。**注**：`getTodayCards()` / `DesktopDailyCardView.qml` **未接进任何 QML（零调用 / 零实例化，死路径）**；实际上线 UI 走记忆湖路径 `memoryLakeDay`/`memoryLakeRecap`（复用同一分类器 + 分段器）。以下为剩余、且受 CLAUDE.md AI 硬边界门控。
+> 已实现（C++）：六种本地确定性卡（`build*Card`：mainline/top_apps/focus_block/entertainment/contrast/random_flip，`aiGenerated:false`）+ 活动分段器（`segmentFocusBlocks`/`taskBlocks`）。**注**：`getTodayCards()` / `DesktopDailyCardView.qml` **未接进任何 QML（零调用 / 零实例化，死路径）**；实际上线 UI 走记忆湖路径 `memoryLakeDay`/`memoryLakeRecap`（复用本地分段与分类能力）。以下为剩余、且受 CLAUDE.md AI 硬边界门控。
 - [ ] **E1 敏感应用隐私过滤器** — Track B · 门控 · 进 AI 前的前置。
 - [ ] **E2 用户可编辑类目**（覆盖/扩展分类器桶）— Track B。
 - [ ] **E3 卡片持久化** — Track B。
 - [ ] **E4 「确认摘要后过 AI」管线**（原始→本地摘要→隐私过滤→用户确认→AI；当前**零代码**）—
   Track B · **强门控** · 多 session · **必须先写 spec + 产品签字**（见 `docs/card-ai-development-spec.md`、`.harness/rules/07`）。
-- [~] **E5 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
-  2026-06-13 alpha 修复已覆盖截图中的 `r5apex_dx12` → Apex Legends、`nvcontainer` → NVIDIA Container、`svchost` → Service Host，并补入 Apex/NVIDIA/Windows 系统进程的 group key 与分类；更广泛长尾仍保留为后续渐进覆盖。
 
 ### F. 发布 / 许可（build/release · 跨平台 · 临近发版）
 - [x] **F1 release 构建动态链接 Qt**（满足 LGPL/GPL 组合姿态）— Track B · Route A · 提案：否（未动冻结 `CMakeLists`）。
@@ -124,6 +122,8 @@ G2/G3 打磨 ───────────(随手)
   〔修正：原列「conic-aura shader」已移除——它不属 §A #11–14，且 conic 光环（`PomodoroCompleteOverlay.qml`）+ 运行 aura 辉光（`PomodoroWidget.qml:205`）均已用 Canvas/动画实装、故意不用 shader。〕
 - [ ] **G3 Win11 snap-layouts fly-out**（原生 `WM_NCCALCSIZE`/`WM_NCHITTEST` pass，frameless Step 2 延期）—
   Track B · Windows · 见 agent memory `timearc-frameless-window`。
+- [~] **G4 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
+  2026-06-13 alpha 修复已覆盖截图中的 `r5apex_dx12` → Apex Legends、`nvcontainer` → NVIDIA Container、`svchost` → Service Host，并补入 Apex/NVIDIA/Windows 系统进程的 group key 与分类；这属于本地 app 身份与显示打磨，不归入 AI / Daily Cards 隐私管线。更广泛长尾仍保留为后续渐进覆盖。
 
 ### H. 设置页剩余项（settings · UI + 服务侧配置 · 实测审计见 `docs/settings-remaining-work.md`）
 > 设置页已全实装并入 dev（PR #28）。以下为审计后确认的剩余项；优先级标签：
