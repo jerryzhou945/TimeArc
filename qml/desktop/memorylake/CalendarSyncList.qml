@@ -40,6 +40,31 @@ Rectangle {
         items = out;
     }
 
+    function cloneTodo(todo) {
+        var out = {};
+        for (var key in todo)
+            out[key] = todo[key];
+        return out;
+    }
+
+    function toggleDoneAt(index) {
+        if (!calendarManager || !calendarManager.savedTodos
+                || calendarManager.savedTodos === "")
+            return;
+        try {
+            var map = JSON.parse(calendarManager.savedTodos);
+            var arr = map[todayKey];
+            if (!arr || index < 0 || index >= arr.length)
+                return;
+            var next = [];
+            for (var i = 0; i < arr.length; i++)
+                next.push(cloneTodo(arr[i]));
+            next[index].done = !(next[index].done === true);
+            map[todayKey] = next;
+            calendarManager.setSavedTodos(JSON.stringify(map));
+        } catch (e) {}
+    }
+
     Component.onCompleted: reload()
     Connections {
         target: calendarManager
@@ -186,6 +211,7 @@ Rectangle {
                 delegate: Rectangle {
                     id: rowBg
                     required property var modelData
+                    required property int index
                     width: parent.width
                     height: 50
                     radius: 15
@@ -222,6 +248,10 @@ Rectangle {
                             color: Qt.rgba(0.016, 0.031, 0.055, 0.92)
                             font.pixelSize: 13
                             font.weight: 900
+                        }
+                        TapHandler {
+                            acceptedButtons: Qt.LeftButton
+                            onTapped: panel.toggleDoneAt(rowBg.index)
                         }
                     }
 
