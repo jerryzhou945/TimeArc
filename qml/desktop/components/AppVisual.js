@@ -202,6 +202,26 @@ function modelIconSource(row) {
     return appIconSource(modelIdentity(row), row ? row.path : "");
 }
 
+function modelHasIcon(row) {
+    var source = modelIconSource(row);
+    return source && source.toString().length > 0;
+}
+
+function compareAppModels(a, b) {
+    var ai = modelHasIcon(a) ? 1 : 0;
+    var bi = modelHasIcon(b) ? 1 : 0;
+    if (ai !== bi)
+        return bi - ai;
+
+    var an = modelDisplayName(a).toLowerCase();
+    var bn = modelDisplayName(b).toLowerCase();
+    var nameCompare = an.localeCompare(bn);
+    if (nameCompare !== 0)
+        return nameCompare;
+
+    return modelIdentity(a).localeCompare(modelIdentity(b));
+}
+
 function modelIconLabel(row) {
     if (row && row.iconLabel && row.iconLabel.length > 0)
         return row.iconLabel;
