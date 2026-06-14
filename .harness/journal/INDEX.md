@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-14T09:59:59Z | L3 | gh-cli-missing-... | GitHub publish flow requested but gh is not available in ... | [report](errors/20260614-095959-C-gh-cli-missing-for-pr-flow.md) |
 | 2026-06-14T09:54:42Z | L3 | errors-jsonl-po... | PowerShell Set-Content rewrote errors.jsonl with a non-UT... | [report](errors/20260614-095442-C-errors-jsonl-powershell-encoding.md) |
 | 2026-06-14T09:42:55Z | L2 | zero-byte-timearc-exe | Runtime launch failed because build/TimeArc.exe was zero bytes after prior relink/start attempt | [report](errors/20260614-094255-C-zero-byte-timearc-exe.md) |
 | 2026-06-14T09:41:46Z | L3 | qt-log-rotate-sandbox-denied | scan_qt_log.py could read and record the external Qt log but failed to rotate it under sandbox restrictions | [report](errors/20260614-094146-C-qt-log-rotate-sandbox-denied.md) |
