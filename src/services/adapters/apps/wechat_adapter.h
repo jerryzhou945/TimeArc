@@ -11,9 +11,9 @@ inline AdapterDefinition wechatAppAdapter() {
   AdapterDefinition adapter;
   adapter.identifier = QStringLiteral("app:wechat");
   adapter.sourceType = QStringLiteral("desktopApp");
-  adapter.displayName = QStringLiteral("WeChat");
+  adapter.displayName = QString::fromUtf8(u8"微信");
   adapter.category = QStringLiteral("社交");
-  adapter.iconLabel = QStringLiteral("W");
+  adapter.iconLabel = QString::fromUtf8(u8"微");
   adapter.brandColor = QStringLiteral("#DDF1E5");
   adapter.appIdentifiers = {QStringLiteral("com.tencent.xinwechat"),
                             QStringLiteral("wechat"),

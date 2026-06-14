@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-14T09:14:12Z | L2 | app-friendly-na... | TDD red test: timearc_db_smoke fails because WeChat/Jiany... | [report](errors/20260614-091412-C-app-friendly-name-red-test.md) |
+| 2026-06-14T09:08:51Z | L2 | ui-app-label-ic... | User-reported UI regressions: non-friendly app names, hom... | [report](errors/20260614-090851-C-ui-app-label-icon-card-regressions.md) |
+| 2026-06-14T09:07:47Z | L2 | python-windowsa... | System python points to WindowsApps placeholder and exits... | [report](errors/20260614-090747-C-python-windowsapps-placeholder.md) |
 | 2026-06-14T03:46:41Z | L1 | app-management-... | cmake --build exited 1 | [report](errors/20260614-034641-B-app-management-sort.md) |
 | 2026-06-14T02:55:57Z | L1 | mainstream-site... | cmake --build exited 1 | [report](errors/20260614-025557-C-mainstream-site-aggregation.md) |
 | 2026-06-14T02:52:28Z | L1 | mainstream-site... | cmake --build exited 1 | [report](errors/20260614-025228-C-mainstream-site-aggregation.md) |
