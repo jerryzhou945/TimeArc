@@ -33,3 +33,18 @@ back to label tiles when image loading fails.
 - `resources/icons/sites/*`, `resources/CMakeLists.txt`
 - `docs/site-icon-assets.md`, `docs/implementation-backlog.md`
 - `tests/db_smoke.cpp`
+
+## What Happened
+
+- Refreshed site icon assets from official homepage metadata, PWA manifests, or
+  favicon endpoints. High-resolution replacements landed for Xiaohongshu,
+  iQIYI, AcFun, Netflix, and Alipay where available.
+- App management now shows all aggregated entries. High-frequency rows sort by
+  duration; sub-minute low-frequency rows sort by display name.
+- Icon fallback handling now tries original app identifiers when paths are
+  absent and shows a label tile when QML image loading fails.
+
+## Outcome
+
+Implementation complete locally. Validation: baseline build, targeted
+`timearc_db_smoke`, full build, and harness checks passed during the session.

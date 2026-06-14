@@ -125,9 +125,11 @@ G2/G3 打磨 ───────────(随手)
   Track B · Windows · 见 agent memory `timearc-frameless-window`。
 - [~] **G4 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
   2026-06-13 alpha 修复已覆盖截图中的 `r5apex_dx12` → Apex Legends、`nvcontainer` → NVIDIA Container、`svchost` → Service Host，并补入 Apex/NVIDIA/Windows 系统进程的 group key 与分类；2026-06-14 继续补 QQ/TIM/QQ 截图助手显示名与 group key，聚合项新增 `homeRankVisible`，记忆湖首页排行过滤 QQ 截图、Windows/NVIDIA helper 等低信号项，但设置页应用管理保留全量列表。更广泛长尾仍保留为后续渐进覆盖。
-  2026-06-14 本轮继续收窄设置页应用管理：`allApps()` 输出聚合 `seconds` 与 `settingsVisible`，默认按高频到低频展示大众化应用/站点，并收起 `pid:*`、`.dll`、Windows helper、QQ 截图、NVIDIA helper 等低信号项；搜索仍覆盖全量记录，便于需要时找回并调整显隐。
+  2026-06-14 本轮曾继续收窄设置页应用管理：`allApps()` 输出聚合 `seconds` 与 `settingsVisible`，默认按高频到低频展示大众化应用/站点，并收起 `pid:*`、`.dll`、Windows helper、QQ 截图、NVIDIA helper 等低信号项；搜索仍覆盖全量记录，便于需要时找回并调整显隐。
 
   2026-06-14 C 修复：浏览器承载的主流网站现在在通用浏览器 adapter 之前拆分；Chrome/Edge 前台记录只要窗口标题命中站点目录，就计入 `site:*`（例如 `site:douyin`、`site:xiaohongshu`），不再聚合进 `app:google-chrome` 或 `app:microsoft-edge`。
+  2026-06-14 本轮更新：设置页应用管理改为展示全部聚合项，不再默认过滤 `settingsVisible=false`；排序口径为高频项按时长降序，低于 60 秒的低频项按显示名 A-Z/本地字典序排列。图标链路同时加固：原生 app 图标候选从 `path` 扩展到原始 `appId`，Image 加载失败时在首页、统计、记忆湖、报告与应用管理中回退到首字图标。
+  2026-06-14 图标资源更新：主流网站优先使用官网 metadata/PWA manifest 暴露的高像素 PNG（新增/替换小红书、爱奇艺、AcFun、Netflix、支付宝等），其余官网仅提供 favicon 的站点保留本地 favicon 兜底；详见 `docs/site-icon-assets.md`。
 ### H. 设置页剩余项（settings · UI + 服务侧配置 · 实测审计见 `docs/settings-remaining-work.md`）
 > 设置页已全实装并入 dev（PR #28）。以下为审计后确认的剩余项；优先级标签：
 > **[P1]** 可随手做 · **[P2]** 有前置依赖 · **[门控]** 产品先拍板（3E）· **[提案]** 待签核 · **[天花板]** 受技术上限。
