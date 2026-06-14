@@ -34,6 +34,7 @@ set(TIME_ARC_RESOURCE_FILES
     resources/icons/note.svg
     resources/icons/note_white.svg
     resources/icons/recap.svg
+    resources/icons/recap_white.svg
     resources/memorylake/memory_bg.png
     resources/memorylake/memory_cat_1.png
     resources/memorylake/memory_cat_2.png

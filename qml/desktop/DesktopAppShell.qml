@@ -145,7 +145,8 @@ Item {
           icon: Qt.resolvedUrl("../../resources/icons/note.svg"),
           nightIcon: Qt.resolvedUrl("../../resources/icons/note_white.svg") },
         { title: "记忆湖", subtitle: "Memory Recap", page: "recap", bottom: true,
-          icon: Qt.resolvedUrl("../../resources/icons/recap.svg") }
+          icon: Qt.resolvedUrl("../../resources/icons/recap.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/icons/recap_white.svg") }
     ]
 
     readonly property var topNavItems: navItems.filter(function (it) { return !it.bottom })
@@ -573,7 +574,7 @@ Item {
                         spacing: 14
 
                         Image {
-                            source: (nightMode && modelData.nightIcon) ? modelData.nightIcon : modelData.icon
+                            source: ((nightMode || fullBleedPage) && modelData.nightIcon) ? modelData.nightIcon : modelData.icon
                             width: 22
                             height: 22
                             fillMode: Image.PreserveAspectFit
