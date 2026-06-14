@@ -265,6 +265,8 @@ QString appDisplayName(const QString& appId, const QString& appName,
     return "VS Code";
   if (containsAny(text, {"discord"})) return "Discord";
   if (containsAny(text, {"weixin", "wechat"})) return "微信";
+  if (containsAny(text, {"jianyingpro", "jianying", "capcut"}))
+    return QString::fromUtf8(u8"剪映专业版");
   if (displayExeName == "qq.exe") return "QQ";
   if (displayExeName == "tim.exe") return "TIM";
   if (containsAny(text, {"qqscreenshot", "qqscreentshot", "qqscreen",
@@ -305,6 +307,8 @@ QString appGroupKey(const QString& appId, const QString& appName,
 
   if (containsAny(text, {"weixin", "wechat", "wechatappex", "wechatbrowser"}))
     return "app:wechat";
+  if (containsAny(text, {"jianyingpro", "jianying", "capcut"}))
+    return "app:jianying-pro";
   if (containsAny(text, {"qqscreenshot", "qqscreentshot", "qqscreen",
                          "qqscreenclip", "qqcapture"}))
     return "app:qq-screenshot";
@@ -418,6 +422,7 @@ bool isSettingsListVisibleActivity(const QString& groupKey,
       QStringLiteral("app:telegram"),
       QStringLiteral("app:spotify"),
       QStringLiteral("app:zoom"),
+      QStringLiteral("app:jianying-pro"),
   };
   if (kPublicApps.contains(groupKey)) return true;
 

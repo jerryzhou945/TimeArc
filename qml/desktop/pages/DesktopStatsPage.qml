@@ -224,6 +224,12 @@ Item {
         for (var i = 0; i < daily.length; i++)
             if ((daily[i].seconds ? daily[i].seconds : 0) > maxSec) maxSec = daily[i].seconds
         var cells = []
+        if (daily.length > 0) {
+            var firstDate = new Date((daily[0].dayStartUnix ? daily[0].dayStartUnix : 0) * 1000)
+            var firstDow = (firstDate.getDay() + 6) % 7
+            for (var p = 0; p < firstDow; p++)
+                cells.push({ level: 0, day: "", seconds: 0, empty: true })
+        }
         for (var j = 0; j < daily.length; j++) {
             var sec = daily[j].seconds ? daily[j].seconds : 0
             var lv = 0
@@ -233,8 +239,10 @@ Item {
             }
             var day = daily[j].day !== undefined ? daily[j].day
                       : new Date((daily[j].dayStartUnix ? daily[j].dayStartUnix : 0) * 1000).getDate()
-            cells.push({ level: lv, day: day, seconds: sec })
+            cells.push({ level: lv, day: day, seconds: sec, empty: false })
         }
+        while (cells.length > 0 && cells.length % 7 !== 0)
+            cells.push({ level: 0, day: "", seconds: 0, empty: true })
         return cells
     }
 
@@ -929,21 +937,21 @@ Item {
                         StatsHeatmap {
                             Layout.columnSpan: root.sideCollapsed ? 12 : 7
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 262
+                            Layout.preferredHeight: 320
                             title: "活跃热力"; sub: "本月每日强度（按当月峰值分级）"
                             cells: root.vmHeat
                         }
                         StatsRankingList {
                             Layout.columnSpan: root.sideCollapsed ? 12 : 5
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 262
+                            Layout.preferredHeight: 320
                             title: "高频应用"; sub: "本月使用排行"
                             rows: root.vmRanking
                         }
                         StatsInsightCard {
                             Layout.columnSpan: 12
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 200
+                            Layout.preferredHeight: 260
                             insight: root.vmInsight
                             recs: root.vmRecs
                             keywords: root.vmKeywords
@@ -1105,7 +1113,7 @@ Item {
                         delegate: Item {
                             id: barItem
                             required property int index
-                            readonly property var bar: (chart.bars && index < chart.bars.length) ? chart.bars[index] : null
+                            readonly property var bar: (chart.bars && barItem.index < chart.bars.length) ? chart.bars[barItem.index] : null
                             width: (barsRow.width - 8 * (chart.barCount - 1)) / chart.barCount
                             height: barsRow.height
                             readonly property real avail: height - 22
@@ -1223,12 +1231,15 @@ Item {
         property string title: ""
         property string sub: ""
         property var cells: []
+        readonly property int weekCount: Math.max(1, Math.ceil((cells ? cells.length : 0) / 7))
+        readonly property real cellSide: Math.max(9, Math.min(15, Math.floor(Math.min((heatBody.width - 26 - Math.max(0, weekCount - 1) * 4) / weekCount,
+                                                                                       (heatBody.height - 6 * 4) / 7))))
         readonly property var levelColors: [
-            ml.trackBg,
-            Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.18),
-            Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.32),
-            Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0.42),
-            Qt.rgba(ml.shareGold.r, ml.shareGold.g, ml.shareGold.b, 0.50)
+            root.nightMode ? "#1F2937" : "#EBEDF0",
+            root.nightMode ? "#0E4429" : "#9BE9A8",
+            root.nightMode ? "#006D32" : "#40C463",
+            root.nightMode ? "#26A641" : "#30A14E",
+            root.nightMode ? "#39D353" : "#216E39"
         ]
         style: ml
         radius: 18
@@ -1247,29 +1258,42 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
-                Grid {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    columns: 7
-                    rowSpacing: 6
-                    columnSpacing: 6
-                    Repeater {
-                        model: heat.cells
-                        delegate: Rectangle {
-                            required property var modelData
-                            width: (heatBody.width - 6 * 6) / 7
-                            height: width
-                            radius: 7
-                            color: heat.levelColors[modelData.level]
-                            border.width: modelData.level === 0 ? 1 : 0
-                            border.color: ml.cardBorder
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData.day
-                                color: modelData.level >= 3 ? ml.calBtnInk : ml.textTertiary
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 8
+                    Column {
+                        width: 18
+                        spacing: 4
+                        Repeater {
+                            model: ["一", "", "三", "", "五", "", ""]
+                            delegate: Text {
+                                required property var modelData
+                                width: 18
+                                height: heat.cellSide
+                                text: modelData
+                                color: ml.textTertiary
                                 font.pixelSize: 10
-                                font.weight: modelData.level >= 3 ? Font.DemiBold : Font.Normal
+                                horizontalAlignment: Text.AlignRight
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                    }
+                    Grid {
+                        rows: 7
+                        flow: Grid.TopToBottom
+                        rowSpacing: 4
+                        columnSpacing: 4
+                        Repeater {
+                            model: heat.cells
+                            delegate: Rectangle {
+                                required property var modelData
+                                width: heat.cellSide
+                                height: heat.cellSide
+                                radius: 3
+                                opacity: modelData.empty ? 0 : 1
+                                color: heat.levelColors[Math.max(0, Math.min(4, modelData.level))]
+                                border.width: modelData.level === 0 ? 1 : 0
+                                border.color: root.nightMode ? "#30363D" : "#D0D7DE"
                             }
                         }
                     }
@@ -1459,6 +1483,7 @@ Item {
                 Repeater {
                     model: ic.recs
                     delegate: RowLayout {
+                        id: recRow
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
@@ -1468,7 +1493,7 @@ Item {
                             radius: 8
                             color: ml.accentSoft
                             border.width: 1; border.color: ml.accentSoftBorder
-                            Text { anchors.centerIn: parent; text: (index + 1); color: ml.aqua; font.pixelSize: 12; font.weight: Font.DemiBold }
+                            Text { anchors.centerIn: parent; text: (recRow.index + 1); color: ml.aqua; font.pixelSize: 12; font.weight: Font.DemiBold }
                         }
                         Text {
                             Layout.fillWidth: true

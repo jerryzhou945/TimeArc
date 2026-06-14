@@ -574,7 +574,7 @@ Item {
                         spacing: 14
 
                         Image {
-                            source: ((nightMode || fullBleedPage) && modelData.nightIcon) ? modelData.nightIcon : modelData.icon
+                            source: (nightMode && modelData.nightIcon) ? modelData.nightIcon : modelData.icon
                             width: 22
                             height: 22
                             fillMode: Image.PreserveAspectFit
