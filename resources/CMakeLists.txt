@@ -6,20 +6,27 @@ set(TIME_ARC_RESOURCE_FILES
     resources/icons/home_white.svg
     resources/icons/chat.svg
     resources/icons/sites/bilibili.png
-    resources/icons/sites/acfun.ico
+    resources/icons/sites/acfun.png
+    resources/icons/sites/alipay.png
     resources/icons/sites/baidu.png
+    resources/icons/sites/dianping.ico
+    resources/icons/sites/douban.ico
     resources/icons/sites/douyin.ico
     resources/icons/sites/douyu.ico
     resources/icons/sites/huya.png
-    resources/icons/sites/iqiyi.ico
+    resources/icons/sites/iqiyi.png
+    resources/icons/sites/jd.ico
     resources/icons/sites/kuaishou.ico
     resources/icons/sites/mango-tv.png
-    resources/icons/sites/netflix.ico
+    resources/icons/sites/meituan.ico
+    resources/icons/sites/netflix.png
+    resources/icons/sites/pinduoduo.png
     resources/icons/sites/taobao.png
     resources/icons/sites/tencent-video.png
     resources/icons/sites/tmall.png
     resources/icons/sites/twitch.ico
-    resources/icons/sites/xiaohongshu.ico
+    resources/icons/sites/weibo.ico
+    resources/icons/sites/xiaohongshu.png
     resources/icons/sites/xigua-video.ico
     resources/icons/sites/youtube.png
     resources/icons/sites/youku.png
