@@ -202,6 +202,51 @@ inline const SiteDefinition* matchByWindowTitle(const QString& windowTitle) {
   return nullptr;
 }
 
+inline bool textContainsAny(const QString& text, const QStringList& needles) {
+  const QString folded = text.toLower();
+  for (const QString& needle : needles) {
+    if (!needle.trimmed().isEmpty() && folded.contains(needle.toLower())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+inline bool looksLikeBrowserApp(const QString& appId, const QString& appName,
+                                const QString& path) {
+  return textContainsAny(
+      appId + QLatin1Char(' ') + appName + QLatin1Char(' ') + path,
+      {QStringLiteral("chrome.exe"), QStringLiteral("google\\chrome"),
+       QStringLiteral("google/chrome"), QStringLiteral("msedge"),
+       QStringLiteral("edge.exe"), QStringLiteral("firefox"),
+       QStringLiteral("opera.exe"), QStringLiteral("brave"),
+       QStringLiteral("vivaldi"), QStringLiteral("360se"),
+       QStringLiteral("qqbrowser"), QStringLiteral("sogouexplorer"),
+       QStringLiteral("ucbrowser")});
+}
+
+inline bool looksLikeBrowserHostedTitle(const QString& windowTitle) {
+  return textContainsAny(
+      windowTitle,
+      {QStringLiteral(" - Google Chrome"),
+       QStringLiteral(" - Microsoft Edge"),
+       QStringLiteral(" - Mozilla Firefox"), QStringLiteral(" - Firefox"),
+       QStringLiteral(" - Brave"), QStringLiteral(" - Opera"),
+       QStringLiteral(" - Vivaldi"), QStringLiteral(" - QQBrowser"),
+       QStringLiteral(" - 360"), QStringLiteral(" - 搜狗高速浏览器"),
+       QStringLiteral(" - 搜狗浏览器")});
+}
+
+inline const SiteDefinition* matchBrowserHostedActivity(
+    const QString& appId, const QString& appName, const QString& path,
+    const QString& windowTitle) {
+  if (!looksLikeBrowserApp(appId, appName, path) &&
+      !looksLikeBrowserHostedTitle(windowTitle)) {
+    return nullptr;
+  }
+  return matchByWindowTitle(windowTitle);
+}
+
 }  // namespace TimeArcSiteCatalog
 
 #endif

@@ -115,8 +115,8 @@ const TimeArcSiteCatalog::SiteDefinition* siteForGroupKey(
 const TimeArcSiteCatalog::SiteDefinition* siteForBrowserTitle(
     const QString& appId, const QString& appName, const QString& path,
     const QString& title) {
-  if (!isBrowserApp(appId, appName, path)) return nullptr;
-  return TimeArcSiteCatalog::matchByWindowTitle(title);
+  return TimeArcSiteCatalog::matchBrowserHostedActivity(appId, appName, path,
+                                                        title);
 }
 
 TimeArcAdapters::AdapterInput adapterInputFromActivity(
@@ -435,13 +435,13 @@ QString activityGroupKey(const QString& appId, const QString& appName,
   if (it != cache.constEnd()) return it.value();
 
   QString value;
-  const TimeArcAdapters::AdapterMetadata metadata = resolveActivityMetadata(
-      appId, appName, path, windowTitle);
-  if (metadata.matched && !metadata.identifier.trimmed().isEmpty()) {
-    value = metadata.identifier;
-  } else if (const TimeArcSiteCatalog::SiteDefinition* site =
+  if (const TimeArcSiteCatalog::SiteDefinition* site =
           siteForBrowserTitle(appId, appName, path, windowTitle)) {
     value = site->siteId;
+  } else if (const TimeArcAdapters::AdapterMetadata metadata =
+                 resolveActivityMetadata(appId, appName, path, windowTitle);
+             metadata.matched && !metadata.identifier.trimmed().isEmpty()) {
+    value = metadata.identifier;
   } else {
     value = appGroupKey(appId, appName, path);
   }

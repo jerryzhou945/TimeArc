@@ -8,6 +8,12 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-14T02:55:57Z | L1 | mainstream-site... | cmake --build exited 1 | [report](errors/20260614-025557-C-mainstream-site-aggregation.md) |
+| 2026-06-14T02:52:28Z | L1 | mainstream-site... | cmake --build exited 1 | [report](errors/20260614-025228-C-mainstream-site-aggregation.md) |
+| 2026-06-14T02:42:30Z | L3 | db-diagnostic-u... | SQLite diagnostic used literal Chinese patterns through P... | [report](errors/20260614-024230-C-db-diagnostic-unicode-pattern-output.md) |
+| 2026-06-14T02:40:41Z | L3 | db-diagnostic-a... | SQLite diagnostic assumed apps.path exists; inspect schem... | [report](errors/20260614-024041-C-db-diagnostic-apps-path-column.md) |
+| 2026-06-14T02:40:03Z | L3 | db-diagnostic-p... | SQLite diagnostic used the python alias and exited withou... | [report](errors/20260614-024003-C-db-diagnostic-python-alias.md) |
+| 2026-06-14T02:39:17Z | L2 | douyin-xhs-home... | Douyin and Xiaohongshu usage exists in SQLite but still d... | [report](errors/20260614-023917-C-douyin-xhs-home-missing.md) |
 | 2026-06-14T00:59:17Z | L1 | site-icons-full... | cmake --build exited 1 | [report](errors/20260614-005917-B-site-icons-full-build.md) |
 | 2026-06-14T00:42:57Z | L1 | site-icons-red-... | cmake --build exited 1 | [report](errors/20260614-004257-B-site-icons-red-test.md) |
 | 2026-06-14T00:41:36Z | L3 | adapter-registr... | Looked for src/services/adapters/activity_adapter_registr... | [report](errors/20260614-004136-B-adapter-registry-path-assumption.md) |
