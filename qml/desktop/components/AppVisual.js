@@ -1,7 +1,8 @@
+.pragma library
 // 共享 APP 视觉助手：APP 身份 -> 柔和底色 / 系统小图标 source。
 // 单一实现，首页（DesktopHomePage.qml）与记忆湖共用，杜绝两套色表/取图逻辑漂移。
 // 详见 docs/memory-lake-backend-integration-plan.md §2.2。
-.pragma library
+// （.pragma library 必须在文件前 128 字节内，否则 Qt CMake 仍会告警，见 Qt6QmlMacros.cmake LIMIT_INPUT 128）
 
 function containsAny(text, words) {
     for (var i = 0; i < words.length; i++) {
