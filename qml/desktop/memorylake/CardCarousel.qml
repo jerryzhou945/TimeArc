@@ -18,6 +18,19 @@ Item {
 
     readonly property bool locked: flippedIndex >= 0
     property bool wheelLock: false
+    property bool tipShown: true
+
+    function revealTip() {
+        tipShown = true
+        tipAutoHide.restart()
+    }
+
+    onSelectedIndexChanged: revealTip()
+    onLockedChanged: {
+        tipShown = true
+        if (!locked)
+            tipAutoHide.restart()
+    }
 
     // 中央列（湖）区域：现在卡牌区已是中栏独立暗箱（设计稿 .cards-zone），lane = 整个卡区，
     // 灯光/水位线天然限定在卡区圆角内（不再需要避让左右面板的绝对偏移）。
@@ -165,6 +178,7 @@ Item {
                     if (carousel.locked) return
                     if (carousel.wheelLock) return
                     carousel.wheelLock = true
+                    carousel.revealTip()
                     wheelTimer.restart()
                     var dir = event.angleDelta.y > 0 ? -1 : 1
                     var next = Math.max(0, Math.min(carousel.apps.length - 1, carousel.selectedIndex + dir))
@@ -175,6 +189,7 @@ Item {
 
         // wheel-tip（卡区左上角，设计稿 .wheel-tip）
         Rectangle {
+            id: wheelTip
             x: 16; y: 14
             width: tipText.width + 22; height: 34; radius: 17
             color: carousel.locked ? (carousel.style ? carousel.style.lockBg : "#3c0a18")
@@ -182,7 +197,10 @@ Item {
             border.width: 1
             border.color: carousel.locked ? (carousel.style ? carousel.style.lockBorder : "#ff789f30")
                                           : (carousel.style ? carousel.style.cardBorder : "#ffffff14")
+            opacity: (carousel.locked || carousel.tipShown) ? 1 : 0
+            visible: opacity > 0.01
             Behavior on color { ColorAnimation { duration: 180 } }
+            Behavior on opacity { NumberAnimation { duration: 260 } }
             Text {
                 id: tipText
                 anchors.centerIn: parent
@@ -320,4 +338,12 @@ Item {
         interval: 240
         onTriggered: carousel.wheelLock = false
     }
+
+    Timer {
+        id: tipAutoHide
+        interval: 2200
+        onTriggered: if (!carousel.locked) carousel.tipShown = false
+    }
+
+    Component.onCompleted: tipAutoHide.restart()
 }
