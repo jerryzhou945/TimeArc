@@ -429,6 +429,42 @@ int main(int argc, char* argv[]) {
     }
   }
 
+  struct BrowserHostedSiteCase {
+    QString appId;
+    QString appName;
+    QString path;
+    QString title;
+    QString expectedSiteId;
+  };
+  const BrowserHostedSiteCase browserHostedSiteCases[] = {
+      {QStringLiteral("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+       QStringLiteral("chrome.exe"),
+       QStringLiteral("C:/Program Files/Google/Chrome/Application/chrome.exe"),
+       QStringLiteral("douyin.com/user/self - Google Chrome"),
+       QStringLiteral("site:douyin")},
+      {QString(),
+       QStringLiteral("unknown.exe"),
+       QString(),
+       QStringLiteral("xiaohongshu.com/explore - Google Chrome"),
+       QStringLiteral("site:xiaohongshu")},
+  };
+  for (const BrowserHostedSiteCase& browserCase : browserHostedSiteCases) {
+    const TimeArcSiteCatalog::SiteDefinition* site =
+        TimeArcSiteCatalog::matchBrowserHostedActivity(
+            browserCase.appId, browserCase.appName, browserCase.path,
+            browserCase.title);
+    if (site == nullptr || site->siteId != browserCase.expectedSiteId) {
+      return fail(QStringLiteral("Browser-hosted site split failed for %1")
+                      .arg(browserCase.expectedSiteId));
+    }
+  }
+  if (TimeArcSiteCatalog::matchBrowserHostedActivity(
+          QStringLiteral("C:/Windows/System32/notepad.exe"),
+          QStringLiteral("notepad.exe"), QString(),
+          QStringLiteral("xiaohongshu notes.txt - Notepad")) != nullptr) {
+    return fail(QStringLiteral("Native app title falsely matched as a site."));
+  }
+
   struct DesktopAdapterCase {
     QString appId;
     QString appName;
