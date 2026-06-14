@@ -210,16 +210,18 @@ function modelHasIcon(row) {
 function compareAppModels(a, b) {
     var as = a && a.seconds ? Number(a.seconds) : 0;
     var bs = b && b.seconds ? Number(b.seconds) : 0;
+    var aLow = as < 60;
+    var bLow = bs < 60;
+    var an = modelDisplayName(a).toLowerCase();
+    var bn = modelDisplayName(b).toLowerCase();
+
+    if (aLow !== bLow)
+        return aLow ? 1 : -1;
+    if (aLow && bLow)
+        return an.localeCompare(bn);
     if (as !== bs)
         return bs - as;
 
-    var ai = modelHasIcon(a) ? 1 : 0;
-    var bi = modelHasIcon(b) ? 1 : 0;
-    if (ai !== bi)
-        return bi - ai;
-
-    var an = modelDisplayName(a).toLowerCase();
-    var bn = modelDisplayName(b).toLowerCase();
     var nameCompare = an.localeCompare(bn);
     if (nameCompare !== 0)
         return nameCompare;

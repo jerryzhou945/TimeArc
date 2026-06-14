@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-14T03:46:41Z | L1 | app-management-... | cmake --build exited 1 | [report](errors/20260614-034641-B-app-management-sort.md) |
 | 2026-06-14T02:55:57Z | L1 | mainstream-site... | cmake --build exited 1 | [report](errors/20260614-025557-C-mainstream-site-aggregation.md) |
 | 2026-06-14T02:52:28Z | L1 | mainstream-site... | cmake --build exited 1 | [report](errors/20260614-025228-C-mainstream-site-aggregation.md) |
 | 2026-06-14T02:42:30Z | L3 | db-diagnostic-u... | SQLite diagnostic used literal Chinese patterns through P... | [report](errors/20260614-024230-C-db-diagnostic-unicode-pattern-output.md) |

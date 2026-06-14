@@ -424,6 +424,8 @@ bool isSettingsListVisibleActivity(const QString& groupKey,
   return seconds >= 300;
 }
 
+bool isLowFrequencySettingsActivity(qlonglong seconds) { return seconds < 60; }
+
 QString activityGroupKey(const QString& appId, const QString& appName,
                          const QString& path, const QString& windowTitle) {
   // 记忆化：纯函数 + 确定性 + 站点目录编译期静态 → 进程内静态缓存无需失效。同一身份元组
@@ -1905,9 +1907,14 @@ QVariantList UsageStatManager::allApps() const {
               const QVariantMap bm = b.toMap();
               const qlonglong as = am.value("seconds").toLongLong();
               const qlonglong bs = bm.value("seconds").toLongLong();
+              const bool al = isLowFrequencySettingsActivity(as);
+              const bool bl = isLowFrequencySettingsActivity(bs);
+              if (al != bl) return !al;
+              const QString an = am.value("name").toString();
+              const QString bn = bm.value("name").toString();
+              if (al && bl) return an.localeAwareCompare(bn) < 0;
               if (as != bs) return as > bs;
-              return am.value("name").toString().localeAwareCompare(
-                         bm.value("name").toString()) < 0;
+              return an.localeAwareCompare(bn) < 0;
             });
   return result;
 }

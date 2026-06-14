@@ -90,8 +90,6 @@ Item {
         var r = []
         for (var i = 0; i < appList.length; i++) {
             var row = appList[i]
-            if (q.length === 0 && row.settingsVisible === false)
-                continue
             var searchText = [
                 AppVisual.modelDisplayName(row),
                 AppVisual.modelIdentity(row),
@@ -106,14 +104,6 @@ Item {
     }
     readonly property var shownApps: (appSearchQuery.length > 0 || appsExpanded)
                                      ? filteredApps : filteredApps.slice(0, appCap)
-    readonly property int appsHiddenByDefault: {
-        var n = 0
-        for (var i = 0; i < appList.length; i++) {
-            if (appList[i].settingsVisible === false)
-                n++
-        }
-        return n
-    }
 
     // 番茄钟（#2 接备忘番茄引擎 PomodoroWidget；写 KV，引擎在 _load/reset 时读默认时长/标题）。
     property string pomodoroDuration: "25"
@@ -1153,8 +1143,7 @@ Item {
                                             Layout.alignment: Qt.AlignVCenter
                                             text: root.appSearchQuery.length > 0
                                                   ? ("搜索 " + root.filteredApps.length + " / 共 " + root.appList.length)
-                                                  : ("展示 " + root.filteredApps.length + " / 共 " + root.appList.length
-                                                     + " · 默认收起 " + root.appsHiddenByDefault)
+                                                  : ("展示 " + root.filteredApps.length + " / 共 " + root.appList.length)
                                             color: ml.textTertiary; font.pixelSize: 11
                                         }
                                     }
