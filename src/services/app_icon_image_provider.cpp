@@ -29,8 +29,9 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
     }
   }
 
-  // 返回透明图而不是 null pixmap，可以让 QML 布局尺寸保持稳定。
-  if (pixmap.isNull()) pixmap = transparentPixmap(side);
+  // 找不到真实文件图标时返回 null pixmap，让 QML Image 进入 Error，
+  // 触发现有的文字/色块兜底；透明图会被视为 Ready，反而像“图标丢失”。
+  if (pixmap.isNull()) return QPixmap();
 
   if (requestedSize.isValid() && !requestedSize.isEmpty()) {
     pixmap = pixmap.scaled(requestedSize, Qt::KeepAspectRatio,
@@ -38,11 +39,5 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
   }
 
   if (size) *size = pixmap.size();
-  return pixmap;
-}
-
-QPixmap AppIconImageProvider::transparentPixmap(int side) const {
-  QPixmap pixmap(side, side);
-  pixmap.fill(Qt::transparent);
   return pixmap;
 }
