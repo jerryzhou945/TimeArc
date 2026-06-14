@@ -122,6 +122,8 @@ function appIconSource(appId, path) {
         return site.icon;
 
     var raw = path ? path.toString() : "";
+    if (raw.length === 0 && identity.indexOf("app:") !== 0 && identity.indexOf("site:") !== 0)
+        raw = identity;
     if (raw.length === 0)
         return "";
     return "image://appicon/" + encodeURIComponent(raw);
@@ -195,11 +197,12 @@ function modelIconSource(row) {
         var iconPath = row.iconPath.toString();
         if (iconPath.indexOf("qrc:") === 0 || iconPath.indexOf("file:") === 0)
             return iconPath;
-        return appIconSource(modelIdentity(row), iconPath);
+        return appIconSource(row.appId ? row.appId : modelIdentity(row), iconPath);
     }
     if (row && row.iconUrl && row.iconUrl.length > 0)
         return row.iconUrl;
-    return appIconSource(modelIdentity(row), row ? row.path : "");
+    return appIconSource(row && row.appId ? row.appId : modelIdentity(row),
+                         row ? row.path : "");
 }
 
 function modelHasIcon(row) {

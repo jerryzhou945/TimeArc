@@ -955,6 +955,7 @@ QVariantMap DailyCardService::memoryLakeDay(const QVariantList& usmApps,
 
     QVariantMap app;
     app.insert(QStringLiteral("appId"), groupKey);
+    app.insert(QStringLiteral("sourceAppId"), u.value(QStringLiteral("appId")));
     app.insert(QStringLiteral("name"), name);
     app.insert(QStringLiteral("appName"), u.value(QStringLiteral("appName")));
     app.insert(QStringLiteral("path"), path);

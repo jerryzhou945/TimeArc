@@ -1182,9 +1182,10 @@ Item {
                                                         color: ml.calGhostBg
                                                         clip: true
                                                         Image {
+                                                            id: appIconImage
                                                             anchors.fill: parent
                                                             anchors.margins: 5
-                                                            visible: appIconSource.length > 0
+                                                            visible: appIconSource.length > 0 && status === Image.Ready
                                                             source: appIconSource
                                                             fillMode: Image.PreserveAspectFit
                                                             asynchronous: true
@@ -1192,7 +1193,7 @@ Item {
                                                         }
                                                         Text {
                                                             anchors.centerIn: parent
-                                                            visible: appIconSource.length === 0
+                                                            visible: appIconSource.length === 0 || appIconImage.status === Image.Error
                                                             text: AppVisual.modelIconLabel(modelData)
                                                             color: ml.aqua; font.pixelSize: 14; font.weight: Font.DemiBold
                                                         }

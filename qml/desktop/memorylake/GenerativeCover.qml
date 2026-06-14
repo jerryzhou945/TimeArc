@@ -14,7 +14,8 @@ Item {
     property int iconSize: 96        // 图标显示边长（不超过容器的一半）
     property real glowStrength: 0.5
 
-    readonly property string _appId: app ? (app.appId ? app.appId.toString() : "") : ""
+    readonly property string _appId: app ? (app.sourceAppId ? app.sourceAppId.toString()
+                                                           : (app.appId ? app.appId.toString() : "")) : ""
     readonly property string _name: app ? (app.name ? app.name.toString()
                                                      : (app.appName ? app.appName.toString() : "")) : ""
     readonly property string _path: app ? (app.path ? app.path.toString() : "") : ""
@@ -64,6 +65,7 @@ Item {
 
     // 主体：居中系统图标（请求 256，按中等尺寸显示，不拉伸）。
     Image {
+        id: coverIcon
         anchors.centerIn: parent
         width: genCover.side
         height: genCover.side
@@ -74,13 +76,13 @@ Item {
         asynchronous: true
         smooth: true
         mipmap: true
-        visible: genCover.iconSrc !== ""
+        visible: genCover.iconSrc !== "" && status === Image.Ready
     }
 
     // 缺图标兜底：显示名首字（仍坐在 appColor 底上，不破版）。
     Text {
         anchors.centerIn: parent
-        visible: genCover.iconSrc === ""
+        visible: genCover.iconSrc === "" || coverIcon.status === Image.Error
         text: genCover.iconLabel
         color: Qt.rgba(1, 1, 1, genCover.night ? 0.9 : 0.78)
         font.pixelSize: Math.max(18, genCover.side * 0.6)

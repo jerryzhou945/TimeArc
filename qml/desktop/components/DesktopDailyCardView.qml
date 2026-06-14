@@ -95,17 +95,42 @@ SoftCard {
                     height: 34
                     spacing: 12
 
-                    Image {
+                    Rectangle {
                         width: 26
                         height: 26
+                        radius: 7
                         anchors.verticalCenter: parent.verticalCenter
-                        fillMode: Image.PreserveAspectFit
-                        smooth: true
-                        asynchronous: true
-                        visible: source.toString().length > 0
-                        source: (modelData.appIconPath && modelData.appIconPath.length > 0)
-                                ? ("image://appicon/" + encodeURIComponent(modelData.appIconPath))
-                                : ""
+                        color: Qt.rgba(1, 1, 1, 0.08)
+                        clip: true
+
+                        readonly property string iconSource: (modelData.appIconPath && modelData.appIconPath.length > 0)
+                                                             ? ("image://appicon/" + encodeURIComponent(modelData.appIconPath))
+                                                             : ""
+                        readonly property string iconLabel: {
+                            var name = modelData.displayName !== undefined ? ("" + modelData.displayName).trim() : ""
+                            return name.length > 0 ? name.charAt(0).toUpperCase() : "\u00B7"
+                        }
+
+                        Image {
+                            id: dailyCardIconImage
+                            anchors.centerIn: parent
+                            width: 20
+                            height: 20
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
+                            asynchronous: true
+                            visible: parent.iconSource.length > 0 && status === Image.Ready
+                            source: parent.iconSource
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: parent.iconSource.length === 0 || dailyCardIconImage.status === Image.Error
+                            text: parent.iconLabel
+                            color: root.themeTextPrimary
+                            font.pixelSize: 13
+                            font.bold: true
+                        }
                     }
 
                     Text {
