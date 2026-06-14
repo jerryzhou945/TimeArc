@@ -89,14 +89,31 @@ Item {
         var q = ("" + appSearchQuery).toLowerCase()
         var r = []
         for (var i = 0; i < appList.length; i++) {
-            var nm = AppVisual.modelDisplayName(appList[i]).toLowerCase()
-            if (q.length === 0 || nm.indexOf(q) >= 0) r.push(appList[i])
+            var row = appList[i]
+            if (q.length === 0 && row.settingsVisible === false)
+                continue
+            var searchText = [
+                AppVisual.modelDisplayName(row),
+                AppVisual.modelIdentity(row),
+                AppVisual.modelCategory(row),
+                row.appName || "",
+                row.path || ""
+            ].join(" ").toLowerCase()
+            if (q.length === 0 || searchText.indexOf(q) >= 0) r.push(row)
         }
         r.sort(AppVisual.compareAppModels)
         return r
     }
     readonly property var shownApps: (appSearchQuery.length > 0 || appsExpanded)
                                      ? filteredApps : filteredApps.slice(0, appCap)
+    readonly property int appsHiddenByDefault: {
+        var n = 0
+        for (var i = 0; i < appList.length; i++) {
+            if (appList[i].settingsVisible === false)
+                n++
+        }
+        return n
+    }
 
     // 番茄钟（#2 接备忘番茄引擎 PomodoroWidget；写 KV，引擎在 _load/reset 时读默认时长/标题）。
     property string pomodoroDuration: "25"
@@ -1134,7 +1151,10 @@ Item {
                                         }
                                         Text {
                                             Layout.alignment: Qt.AlignVCenter
-                                            text: "共 " + root.appList.length + " · 隐藏 " + root.hiddenApps.length
+                                            text: root.appSearchQuery.length > 0
+                                                  ? ("搜索 " + root.filteredApps.length + " / 共 " + root.appList.length)
+                                                  : ("展示 " + root.filteredApps.length + " / 共 " + root.appList.length
+                                                     + " · 默认收起 " + root.appsHiddenByDefault)
                                             color: ml.textTertiary; font.pixelSize: 11
                                         }
                                     }

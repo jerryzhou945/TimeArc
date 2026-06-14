@@ -8,6 +8,11 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-14T00:59:17Z | L1 | site-icons-full... | cmake --build exited 1 | [report](errors/20260614-005917-B-site-icons-full-build.md) |
+| 2026-06-14T00:42:57Z | L1 | site-icons-red-... | cmake --build exited 1 | [report](errors/20260614-004257-B-site-icons-red-test.md) |
+| 2026-06-14T00:41:36Z | L3 | adapter-registr... | Looked for src/services/adapters/activity_adapter_registr... | [report](errors/20260614-004136-B-adapter-registry-path-assumption.md) |
+| 2026-06-13T21:48:14Z | L3 | sqlite-inspecti... | SQLite inspection printed media rows containing emoji to ... | [report](errors/20260613-214814-B-sqlite-inspection-output-encoding.md) |
+| 2026-06-13T21:47:42Z | L3 | sqlite-query-in... | Inline python -c SQLite inspection command used escaped n... | [report](errors/20260613-214742-B-sqlite-query-inline-python-escape.md) |
 | 2026-06-13T21:14:13Z | L2 | bilibili-icon-t... | build.py timed out at the tool limit while compiling Bili... | [report](errors/20260613-211413-B-bilibili-icon-timeriver-build-timeout.md) |
 | 2026-06-13T20:57:23Z | L3 | gpp-smoke-journ... | Temporary g++ smoke source was written under .harness/jou... | [report](errors/20260613-205723-B-gpp-smoke-journal-source.md) |
 | 2026-06-13T20:52:57Z | L1 | settings-export... | cmake --build exited 1 | [report](errors/20260613-205257-B-settings-export-ui-build-verbose.md) |

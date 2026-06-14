@@ -376,6 +376,54 @@ bool isHomeRankVisibleActivity(const QString& groupKey, const QString& appId,
   return true;
 }
 
+bool isSettingsListVisibleActivity(const QString& groupKey,
+                                   const QString& appId,
+                                   const QString& appName,
+                                   const QString& path,
+                                   const QString& displayName,
+                                   const QString& category, quint64 seconds) {
+  if (groupKey.startsWith(QLatin1String("site:"))) return true;
+
+  const QString id =
+      (groupKey + " " + appId + " " + appName + " " + path + " " + displayName)
+          .toLower();
+  if (category == QStringLiteral("系统")) return false;
+  if (containsAny(id, {"pid:", ".dll", "app:windows-system",
+                       "app:windows-service-host", "app:nvidia-container",
+                       "app:qq-screenshot", "qqscreenshot", "qqscreentshot",
+                       "qqscreenclip", "qqcapture", "permissioncenterui",
+                       "pickerhost", "shellexperiencehost", "runtimebroker",
+                       "crashpad_handler", "werfault.exe",
+                       "backgroundtaskhost.exe", "securityhealthsystray.exe",
+                       "startmenuexperiencehost.exe", "applicationframehost.exe",
+                       "widgets.exe", "taskhostw.exe", "dllhost.exe",
+                       "conhost.exe", "wmiprvse.exe", "audiodg.exe"}))
+    return false;
+
+  static const QSet<QString> kPublicApps = {
+      QStringLiteral("app:wechat"),
+      QStringLiteral("app:qq"),
+      QStringLiteral("app:tim"),
+      QStringLiteral("app:netease-cloud-music"),
+      QStringLiteral("app:apex-legends"),
+      QStringLiteral("app:google-chrome"),
+      QStringLiteral("app:vscode"),
+      QStringLiteral("app:discord"),
+      QStringLiteral("app:qq-music"),
+      QStringLiteral("app:steam"),
+      QStringLiteral("app:microsoft-edge"),
+      QStringLiteral("app:firefox"),
+      QStringLiteral("app:file-explorer"),
+      QStringLiteral("app:terminal"),
+      QStringLiteral("app:telegram"),
+      QStringLiteral("app:spotify"),
+      QStringLiteral("app:zoom"),
+  };
+  if (kPublicApps.contains(groupKey)) return true;
+
+  return seconds >= 300;
+}
+
 QString activityGroupKey(const QString& appId, const QString& appName,
                          const QString& path, const QString& windowTitle) {
   // 记忆化：纯函数 + 确定性 + 站点目录编译期静态 → 进程内静态缓存无需失效。同一身份元组
@@ -1782,32 +1830,84 @@ void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
 
 QVariantList UsageStatManager::allApps() const {
   // 始终以合并键身份去重（与隐藏集口径一致），忽略合并开关 → 清单稳定。
-  QMap<QString, QVariantMap> seen;
+  struct AppListEntry {
+    QString groupKey;
+    QString appId;
+    QString appName;
+    QString path;
+    QVector<UsageInterval> intervals;
+  };
+
+  QMap<QString, AppListEntry> seen;
   const auto addApp = [&](const UsageRecord& record) {
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
-    if (key.isEmpty() || seen.contains(key)) return;
+    if (key.isEmpty()) return;
+    const qint64 endUnixSec =
+        record.startUnixSec + static_cast<qint64>(record.durationSec);
+    if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
+
     const QString appName = !record.appName.trimmed().isEmpty()
                                 ? record.appName
                                 : QFileInfo(record.path).fileName();
-    QVariantMap item;
-    item["groupKey"] = key;
-    item["appId"] = key.startsWith(QLatin1String("site:")) ? key : record.appId;
-    item["appName"] = appName;
-    item["name"] = activityDisplayName(key, record.appId, appName, record.path);
-    item["path"] = record.path;
-    item["hidden"] = m_hiddenKeys.contains(key);  // 含被隐藏项，供取消隐藏
-    seen.insert(key, item);
+    AppListEntry& entry = seen[key];
+    if (entry.groupKey.trimmed().isEmpty()) {
+      entry.groupKey = key;
+      entry.appId = key.startsWith(QLatin1String("site:")) ? key : record.appId;
+      entry.appName = appName;
+      entry.path = record.path;
+    } else if (entry.path.trimmed().isEmpty() && !record.path.trimmed().isEmpty()) {
+      entry.path = record.path;
+    }
+    entry.intervals.append({record.startUnixSec, endUnixSec});
   };
   for (const UsageRecord& record : m_records) addApp(record);
   if (m_hasCurrentRecord) addApp(m_currentRecord);
 
   QVariantList result;
-  for (const QVariantMap& item : seen) result.append(item);
+  for (AppListEntry& entry : seen) {
+    std::sort(entry.intervals.begin(), entry.intervals.end(),
+              [](const UsageInterval& a, const UsageInterval& b) {
+                return a.start < b.start;
+              });
+    const quint64 seconds = mergedIntervalSeconds(entry.intervals);
+    const QString displayName =
+        activityDisplayName(entry.groupKey, entry.appId, entry.appName,
+                            entry.path);
+    const QString category =
+        classifyActivity(entry.groupKey, entry.appId, entry.appName, entry.path,
+                         QString());
+
+    QVariantMap item;
+    item["groupKey"] = entry.groupKey;
+    item["appId"] = entry.appId;
+    item["appName"] = entry.appName;
+    item["name"] = displayName;
+    item["displayName"] = displayName;
+    item["path"] = entry.path;
+    item["category"] = category;
+    item["seconds"] = static_cast<qlonglong>(seconds);
+    item["settingsVisible"] = isSettingsListVisibleActivity(
+        entry.groupKey, entry.appId, entry.appName, entry.path, displayName,
+        category, seconds);
+    item["hidden"] = m_hiddenKeys.contains(entry.groupKey);  // 含被隐藏项，供取消隐藏
+    const TimeArcAdapters::AdapterInput adapterInput =
+        adapterInputFromActivity(entry.appId, entry.appName, entry.path,
+                                 QString());
+    applyAdapterMetadata(
+        &item, adapterMetadataForIdentifier(entry.groupKey, adapterInput),
+        entry.path);
+    result.append(item);
+  }
   std::sort(result.begin(), result.end(),
             [](const QVariant& a, const QVariant& b) {
-              return a.toMap().value("name").toString().localeAwareCompare(
-                         b.toMap().value("name").toString()) < 0;
+              const QVariantMap am = a.toMap();
+              const QVariantMap bm = b.toMap();
+              const qlonglong as = am.value("seconds").toLongLong();
+              const qlonglong bs = bm.value("seconds").toLongLong();
+              if (as != bs) return as > bs;
+              return am.value("name").toString().localeAwareCompare(
+                         bm.value("name").toString()) < 0;
             });
   return result;
 }

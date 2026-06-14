@@ -44,27 +44,70 @@ Item {
         return top + avail * f;
     }
 
-    function labelLane(index) {
+    function nodePixelY(index) {
         var node = nodes[index];
         if (!node)
             return 0;
-        var y = mapY(node.y ? node.y : 0);
-        var lane = 0;
-        for (var i = index - 1; i >= 0; --i) {
-            var prev = nodes[i];
-            if (!prev)
-                continue;
-            var py = mapY(prev.y ? prev.y : 0);
-            if (Math.abs(py - y) < 18)
-                lane += 1;
-        }
-        return lane;
+        return mapY(node.y ? node.y : 0);
     }
 
-    function labelY(nodeY, lane) {
-        var offsets = [-24, -8, 8, 24];
-        var y = nodeY + offsets[Math.min(lane, offsets.length - 1)];
+    function nodeWidth(node, availW) {
+        return Math.max(20, Math.min(availW,
+            availW * Math.min(1, (node && node.dur ? node.dur : 0) / 7200)));
+    }
+
+    function clusterStartIndex(index) {
+        var start = index;
+        while (start > 0
+               && Math.abs(nodePixelY(start) - nodePixelY(start - 1)) < 34) {
+            start--;
+        }
+        return start;
+    }
+
+    function clusterEndIndex(index) {
+        var end = index;
+        while (end < nodes.length - 1
+               && Math.abs(nodePixelY(end + 1) - nodePixelY(end)) < 34) {
+            end++;
+        }
+        return end;
+    }
+
+    function clusterSize(index) {
+        return clusterEndIndex(index) - clusterStartIndex(index) + 1;
+    }
+
+    function isClusterLabelVisible(index) {
+        return index === clusterStartIndex(index);
+    }
+
+    function clusterLabelText(index) {
+        var start = clusterStartIndex(index);
+        var end = clusterEndIndex(index);
+        var first = nodes[start];
+        var last = nodes[end];
+        if (!first || !last)
+            return "";
+        var text = displayTime(first.start) + "–" + displayTime(last.end);
+        var count = end - start + 1;
+        return count > 1 ? (text + " · " + count + "次") : text;
+    }
+
+    function clusterLabelY(index) {
+        var start = clusterStartIndex(index);
+        var end = clusterEndIndex(index);
+        var y = (nodePixelY(start) + nodePixelY(end)) / 2 - 8;
         return Math.max(4, Math.min(wrap.height - 18, y));
+    }
+
+    function clusterLabelWidth(index, availW) {
+        var start = clusterStartIndex(index);
+        var end = clusterEndIndex(index);
+        var maxW = 20;
+        for (var i = start; i <= end; i++)
+            maxW = Math.max(maxW, nodeWidth(nodes[i], availW));
+        return maxW;
     }
 
     Column {
@@ -155,9 +198,8 @@ Item {
                     readonly property real availW: wrap.width - river.axisX - 70
                     readonly property real nodeY: river.mapY(modelData.y ? modelData.y : 0)
                     // 横向长度按单次时长映射：约 2h 占满，按比例缩短，最短 20px。
-                    readonly property real nodeW: Math.max(20, Math.min(availW,
-                        availW * Math.min(1, (modelData.dur ? modelData.dur : 0) / 7200)))
-                    readonly property int labelLane: river.labelLane(index)
+                    readonly property real nodeW: river.nodeWidth(modelData, availW)
+                    readonly property real labelAnchorW: river.clusterLabelWidth(index, availW)
 
                     // 涟漪
                     Rectangle {
@@ -206,11 +248,11 @@ Item {
 
                     // 标签
                     Text {
-                        visible: labelLane < 4
-                        x: Math.min(river.axisX + nodeW + 10 + labelLane * 8, wrap.width - width - 8)
-                        y: river.labelY(nodeY, labelLane)
-                        width: 92
-                        text: river.displayTime(modelData.start) + "–" + river.displayTime(modelData.end)
+                        visible: river.isClusterLabelVisible(index)
+                        x: Math.min(river.axisX + labelAnchorW + 12, wrap.width - width - 8)
+                        y: river.clusterLabelY(index)
+                        width: 128
+                        text: river.clusterLabelText(index)
                         color: river.style ? river.style.textSecondary : "#bbb"
                         font.pixelSize: 11
                         elide: Text.ElideRight

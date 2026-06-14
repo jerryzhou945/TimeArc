@@ -15,7 +15,7 @@ inline AdapterDefinition youtubeWebsiteAdapter() {
   adapter.category = QStringLiteral("视频");
   adapter.domain = QStringLiteral("youtube.com");
   adapter.iconPath =
-      QStringLiteral("qrc:/qt/qml/time_arc/resources/icons/sites/youtube.ico");
+      QStringLiteral("qrc:/qt/qml/time_arc/resources/icons/sites/youtube.png");
   adapter.iconLabel = QStringLiteral("Y");
   adapter.brandColor = QStringLiteral("#F2D4D4");
   adapter.supportsMediaDetection = true;
