@@ -31,6 +31,7 @@
 #include "services/calendar_manager.h"
 #include "services/project_manager.h"
 #include "services/adapters/activity_adapter_registry.h"
+#include "services/site_catalog.h"
 
 namespace {
 
@@ -398,6 +399,34 @@ int main(int argc, char* argv[]) {
   if (titleOnlySite.identifier != QStringLiteral("site:bilibili") ||
       titleOnlySite.confidence >= 0.90) {
     return fail(QStringLiteral("Website title fallback confidence failed."));
+  }
+
+  struct CatalogTitleCase {
+    QString title;
+    QString expectedSiteId;
+    QString expectedIconSuffix;
+  };
+  const CatalogTitleCase catalogTitleCases[] = {
+      {QStringLiteral("douyin.com/user/self - Google Chrome"),
+       QStringLiteral("site:douyin"), QStringLiteral("/douyin.ico")},
+      {QStringLiteral("小红书 - 你的生活兴趣社区 - Google Chrome"),
+       QStringLiteral("site:xiaohongshu"), QStringLiteral("/xiaohongshu.ico")},
+      {QStringLiteral("粥粥鱼F1shZzz的抖音 - 抖音"),
+       QStringLiteral("site:douyin"), QStringLiteral("/douyin.ico")},
+      {QStringLiteral("知乎 - 有问题，就会有答案 - Google Chrome"),
+       QStringLiteral("site:zhihu"), QStringLiteral("/zhihu.png")},
+      {QStringLiteral("优酷 - 这世界很酷 - Google Chrome"),
+       QStringLiteral("site:youku"), QStringLiteral("/youku.png")},
+  };
+  for (const CatalogTitleCase& catalogCase : catalogTitleCases) {
+    const TimeArcSiteCatalog::SiteDefinition* site =
+        TimeArcSiteCatalog::matchByWindowTitle(catalogCase.title);
+    if (site == nullptr || site->siteId != catalogCase.expectedSiteId ||
+        !site->iconSource.endsWith(catalogCase.expectedIconSuffix)) {
+      return fail(QStringLiteral(
+                      "Site catalog title/icon match failed for %1")
+                      .arg(catalogCase.expectedSiteId));
+    }
   }
 
   struct DesktopAdapterCase {
