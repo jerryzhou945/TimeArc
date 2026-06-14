@@ -410,13 +410,19 @@ int main(int argc, char* argv[]) {
       {QStringLiteral("douyin.com/user/self - Google Chrome"),
        QStringLiteral("site:douyin"), QStringLiteral("/douyin.ico")},
       {QStringLiteral("小红书 - 你的生活兴趣社区 - Google Chrome"),
-       QStringLiteral("site:xiaohongshu"), QStringLiteral("/xiaohongshu.ico")},
+       QStringLiteral("site:xiaohongshu"), QStringLiteral("/xiaohongshu.png")},
       {QStringLiteral("粥粥鱼F1shZzz的抖音 - 抖音"),
        QStringLiteral("site:douyin"), QStringLiteral("/douyin.ico")},
       {QStringLiteral("知乎 - 有问题，就会有答案 - Google Chrome"),
        QStringLiteral("site:zhihu"), QStringLiteral("/zhihu.png")},
       {QStringLiteral("优酷 - 这世界很酷 - Google Chrome"),
        QStringLiteral("site:youku"), QStringLiteral("/youku.png")},
+      {QStringLiteral("爱奇艺 - Google Chrome"),
+       QStringLiteral("site:iqiyi"), QStringLiteral("/iqiyi.png")},
+      {QStringLiteral("AcFun - Google Chrome"),
+       QStringLiteral("site:acfun"), QStringLiteral("/acfun.png")},
+      {QStringLiteral("支付宝 - Google Chrome"),
+       QStringLiteral("site:alipay"), QStringLiteral("/alipay.png")},
   };
   for (const CatalogTitleCase& catalogCase : catalogTitleCases) {
     const TimeArcSiteCatalog::SiteDefinition* site =

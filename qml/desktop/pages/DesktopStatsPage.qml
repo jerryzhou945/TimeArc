@@ -1326,17 +1326,18 @@ Item {
                                     radius: 11
                                     color: AppVisual.modelAppColor(modelData)
                                     Image {
+                                        id: statsAppIconImage
                                         anchors.centerIn: parent
                                         width: 22; height: 22
                                         source: AppVisual.modelIconSource(modelData)
                                         sourceSize.width: 64; sourceSize.height: 64
                                         fillMode: Image.PreserveAspectFit
                                         asynchronous: true; smooth: true; mipmap: true
-                                        visible: source != ""
+                                        visible: source != "" && status === Image.Ready
                                     }
                                     Text {
                                         anchors.centerIn: parent
-                                        visible: AppVisual.modelIconSource(modelData) === ""
+                                        visible: AppVisual.modelIconSource(modelData) === "" || statsAppIconImage.status === Image.Error
                                         text: AppVisual.modelIconLabel(modelData)
                                         color: nightMode ? "#FFFFFF" : "#2D2724"
                                         font.pixelSize: 14; font.weight: 900

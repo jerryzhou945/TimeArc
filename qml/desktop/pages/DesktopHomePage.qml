@@ -690,6 +690,7 @@ Item {
                                                 color: modelAppColor(modelData)
 
                                                 Image {
+                                                    id: homeRankIconImage
                                                     anchors.centerIn: parent
                                                     width: 24
                                                     height: 24
@@ -700,12 +701,12 @@ Item {
                                                     asynchronous: true
                                                     smooth: true
                                                     mipmap: true
-                                                    visible: source != ""
+                                                    visible: source != "" && status === Image.Ready
                                                 }
 
                                                 Text {
                                                     anchors.centerIn: parent
-                                                    visible: modelIconSource(modelData) === ""
+                                                    visible: modelIconSource(modelData) === "" || homeRankIconImage.status === Image.Error
                                                     text: modelIconLabel(modelData)
                                                     color: nightMode ? "#FFFFFF" : "#2D2724"
                                                     font.pixelSize: 17

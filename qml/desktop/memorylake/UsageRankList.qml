@@ -100,6 +100,7 @@ Item {
                                     width: 24; height: 24
                                     clip: true
                                     Image {
+                                        id: rankIconImage
                                         anchors.centerIn: parent
                                         width: 24; height: 24
                                         source: AppVisual.modelIconSource(row.app)
@@ -109,12 +110,12 @@ Item {
                                         asynchronous: true
                                         smooth: true
                                         mipmap: true
-                                        visible: source != ""
+                                        visible: source != "" && status === Image.Ready
                                     }
                                 }
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: AppVisual.modelIconSource(row.app) === ""
+                                    visible: AppVisual.modelIconSource(row.app) === "" || rankIconImage.status === Image.Error
                                     text: AppVisual.modelIconLabel(row.app)
                                     color: rankRoot.style ? rankRoot.style.textPrimary : "#fff"
                                     font.pixelSize: 15
