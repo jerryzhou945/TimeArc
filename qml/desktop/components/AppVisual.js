@@ -208,6 +208,11 @@ function modelHasIcon(row) {
 }
 
 function compareAppModels(a, b) {
+    var as = a && a.seconds ? Number(a.seconds) : 0;
+    var bs = b && b.seconds ? Number(b.seconds) : 0;
+    if (as !== bs)
+        return bs - as;
+
     var ai = modelHasIcon(a) ? 1 : 0;
     var bi = modelHasIcon(b) ? 1 : 0;
     if (ai !== bi)
