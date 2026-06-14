@@ -10,4 +10,4 @@ Expected touches: `src/services/adapters/*`, `src/services/usage_stat_manager.cp
 
 # Outcome
 
-Pending.
+Implemented in five focused commits: `5c8e939`, `bbae8d1`, `d8b4b81`, `f023587`, and `f369f1f`, plus final runtime cleanup/docs commit `Fix runtime UI verification warnings`. Full build, `timearc_db_smoke`, clean app launch, `scan_qt_log.py` no-log result, and `harness_check.py` passed.

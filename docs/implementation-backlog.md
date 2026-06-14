@@ -49,8 +49,8 @@ G2/G3 打磨 ───────────(随手)
 
 ### Alpha. 桌面 alpha 功能修复（非移动端 / 非 AI）
 - [x] **P0 首页右侧今日事项可勾选完成** — 2026-06-13 已实装：点击 checkbox 可切换 `done` 并写回 `CalendarManager.savedTodos`。commit `53acc61`。
-- [x] **P1 常见应用名称大众化** — 2026-06-13 已覆盖 Apex Legends、NVIDIA Container、Service Host / Windows system process 命名与 group key。commit `bddadd1`。
-- [x] **P1 原生应用图标正常居中显示** — 2026-06-14 已回退 `AppIconImageProvider` 的透明边距裁剪路径，恢复 Qt 原生 app icon pixmap；QML 固定图标槽继续负责居中与等比显示。commit pending。
+- [x] **P1 常见应用名称大众化** — 2026-06-13 已覆盖 Apex Legends、NVIDIA Container、Service Host / Windows system process 命名与 group key；2026-06-14 继续补齐 WeChat→微信、JianyingPro/CapCut→剪映专业版。commits `bddadd1`, `5c8e939`。
+- [x] **P1 原生应用图标正常居中显示** — 2026-06-14 已回退 `AppIconImageProvider` 的透明边距裁剪路径，恢复 Qt 原生 app icon pixmap；QML 固定图标槽继续负责居中与等比显示。本轮继续让找不到真实系统图标的 app 回退到首字图标，避免记忆湖/统计页出现透明“缺图标”。commits `f023587`。
 - [x] **P1 桌面 12/24 小时显示接线** — 见 H1。commits `c3317fb`、`7dfad9c`。
 - [x] **P1 JSON 字符串 UTF-8 校验** — 见 B2。commit `74cc033`。
 

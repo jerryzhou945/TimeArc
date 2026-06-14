@@ -7,8 +7,8 @@
 - Topic: build-output-locked-timearc
 - Recorded: 2026-06-14T09:18:23Z
 - Session: (unknown)
-- Platform: n-a
-- Tooling: (fill in)
+- Platform: Windows desktop
+- Tooling: `.local-python\Python312\python.exe .harness/tools/build.py`
 
 ## 1. What happened
 
@@ -17,21 +17,21 @@ Build failed because running TimeArc.exe locked the output binary; stop the app 
 ## 2. Evidence
 
 ```
-(paste relevant log excerpt here)
+ld.exe: cannot open output file TimeArc.exe: Permission denied
 ```
 
 ## 3. Root cause
 
-- Immediate cause:
-- Underlying cause:
-- Why the harness/checklists did not prevent it:
+- Immediate cause: a running `TimeArc.exe` process held the output binary open.
+- Underlying cause: Windows linker cannot overwrite an executable while it is running.
+- Why the harness/checklists did not prevent it: the app had been left open from a prior manual run.
 
 ## 4. Fix
 
-- Files changed:
-- Short description:
-- Commit:
+- Files changed: none.
+- Short description: stopped the running `TimeArc` process and reran the build successfully.
+- Commit: not applicable.
 
 ## 5. Prevention
 
-Concrete harness upgrade, or 'one-off, no harness change'.
+One-off local runtime state; no harness change needed.

@@ -2,7 +2,9 @@
 
 #include <QFileIconProvider>
 #include <QFileInfo>
+#include <QFont>
 #include <QIcon>
+#include <QPainter>
 #include <QSize>
 #include <QUrl>
 #include <QtGlobal>
@@ -29,9 +31,7 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
     }
   }
 
-  // 找不到真实文件图标时返回 null pixmap，让 QML Image 进入 Error，
-  // 触发现有的文字/色块兜底；透明图会被视为 Ready，反而像“图标丢失”。
-  if (pixmap.isNull()) return QPixmap();
+  if (pixmap.isNull()) pixmap = fallbackPixmap(path, side);
 
   if (requestedSize.isValid() && !requestedSize.isEmpty()) {
     pixmap = pixmap.scaled(requestedSize, Qt::KeepAspectRatio,
@@ -39,5 +39,42 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
   }
 
   if (size) *size = pixmap.size();
+  return pixmap;
+}
+
+QPixmap AppIconImageProvider::fallbackPixmap(const QString& identity,
+                                             int side) const {
+  const QString base = QFileInfo(identity).completeBaseName().trimmed();
+  const QString labelSource = base.isEmpty() ? identity.trimmed() : base;
+  const QString label =
+      labelSource.isEmpty() ? QStringLiteral("?") : labelSource.left(1).toUpper();
+
+  uint hash = 2166136261u;
+  const QString key = labelSource.toLower();
+  for (const QChar ch : key) {
+    hash ^= static_cast<uint>(ch.unicode());
+    hash *= 16777619u;
+  }
+
+  const QColor palette[] = {QColor("#CFE8D8"), QColor("#D9D0F2"),
+                            QColor("#EFDCC3"), QColor("#EBC9CF"),
+                            QColor("#BFD7EA"), QColor("#DDF1E5")};
+  const QColor bg = palette[hash % (sizeof(palette) / sizeof(palette[0]))];
+
+  QPixmap pixmap(side, side);
+  pixmap.fill(Qt::transparent);
+
+  QPainter painter(&pixmap);
+  painter.setRenderHint(QPainter::Antialiasing, true);
+  painter.setPen(Qt::NoPen);
+  painter.setBrush(bg);
+  painter.drawRoundedRect(QRectF(0, 0, side, side), side * 0.22, side * 0.22);
+
+  QFont font = painter.font();
+  font.setBold(true);
+  font.setPixelSize(qMax(10, static_cast<int>(side * 0.46)));
+  painter.setFont(font);
+  painter.setPen(QColor("#2D2724"));
+  painter.drawText(QRect(0, 0, side, side), Qt::AlignCenter, label);
   return pixmap;
 }

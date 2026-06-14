@@ -43,7 +43,9 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   peak, per-app sessions; cross-app focus-block task summary; window-title-aware category
   classifier (`系统` bucket); icon-dominant-color blended background + covers. 2026-06-13
   alpha pass covered Apex Legends / NVIDIA Container / common Windows system process naming
-  and grouping. **Still open:** mobile equivalent; broader classifier long-tail keyword
+  and grouping. 2026-06-14 C pass added WeChat/剪映专业版 naming, app icon
+  fallback hardening, Memory Lake card-tip fadeout, day-mode sidebar icon selection,
+  and GitHub-style monthly stats heatmap/layout fixes. **Still open:** mobile equivalent; broader classifier long-tail keyword
   coverage (`A4` — uncommon apps can still fall to 其他). Implementation issues + resolutions (A1–A7, B1–B11):
   `docs/memory-lake-integration-issues.md`; per-surface plan:
   `docs/memory-lake-backend-integration-plan.md` (also `…-implementation-plan.md` §4).

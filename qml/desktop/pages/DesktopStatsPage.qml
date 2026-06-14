@@ -1113,7 +1113,7 @@ Item {
                         delegate: Item {
                             id: barItem
                             required property int index
-                            readonly property var bar: (chart.bars && index < chart.bars.length) ? chart.bars[index] : null
+                            readonly property var bar: (chart.bars && barItem.index < chart.bars.length) ? chart.bars[barItem.index] : null
                             width: (barsRow.width - 8 * (chart.barCount - 1)) / chart.barCount
                             height: barsRow.height
                             readonly property real avail: height - 22
@@ -1483,6 +1483,7 @@ Item {
                 Repeater {
                     model: ic.recs
                     delegate: RowLayout {
+                        id: recRow
                         required property var modelData
                         required property int index
                         Layout.fillWidth: true
@@ -1492,7 +1493,7 @@ Item {
                             radius: 8
                             color: ml.accentSoft
                             border.width: 1; border.color: ml.accentSoftBorder
-                            Text { anchors.centerIn: parent; text: (index + 1); color: ml.aqua; font.pixelSize: 12; font.weight: Font.DemiBold }
+                            Text { anchors.centerIn: parent; text: (recRow.index + 1); color: ml.aqua; font.pixelSize: 12; font.weight: Font.DemiBold }
                         }
                         Text {
                             Layout.fillWidth: true
