@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import "../components/I18n.js" as I18n
 
 // 番茄钟浮窗（v88 .pomodoro-widget）。计时状态机 idle→running(收缩成像素番茄)→paused(展开)→
 // complete(展开+弹层)；1Hz；分[1,180]/秒[0,59]；横向填充进度条（非环形，对齐 v88）。
@@ -9,6 +10,7 @@ Item {
     id: pomo
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property var store: null               // UI 私有持久化后端（Shell→MemoOverlay 注入）
     property bool shown: false
     property int total: 25 * 60
@@ -284,7 +286,7 @@ Item {
                 background: null
                 padding: 0
                 color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.62)
-                placeholderText: "专注什么？"
+                placeholderText: I18n.t(pomo.languageMode, "专注什么？")
                 placeholderTextColor: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.30)
                 font.pixelSize: 12
                 maximumLength: 30
@@ -320,7 +322,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 Row {
                     spacing: 4
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "分"
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(pomo.languageMode, "分")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12 }
                     NumberField {
                         id: minBox
@@ -331,7 +333,7 @@ Item {
                 }
                 Row {
                     spacing: 4
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: "秒"
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(pomo.languageMode, "秒")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12 }
                     NumberField {
                         id: secBox
@@ -355,7 +357,7 @@ Item {
                         GradientStop { position: 0; color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.94) }
                         GradientStop { position: 1; color: Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.92) }
                     }
-                    Text { anchors.centerIn: parent; text: pomo.running ? "进行中" : "开始"
+                    Text { anchors.centerIn: parent; text: pomo.running ? I18n.t(pomo.languageMode, "进行中") : I18n.t(pomo.languageMode, "开始")
                            color: Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.94); font.pixelSize: 14; font.weight: Font.DemiBold }
                     MouseArea {
                         anchors.fill: parent
@@ -368,7 +370,7 @@ Item {
                     width: 72; height: 34; radius: 10
                     color: resetH.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                     border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
-                    Text { anchors.centerIn: parent; text: "重置"
+                    Text { anchors.centerIn: parent; text: I18n.t(pomo.languageMode, "重置")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
                     MouseArea { id: resetH; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor; onClicked: pomo.resetTimer() }

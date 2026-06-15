@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../components/AppVisual.js" as AppVisual
+import "../components/I18n.js" as I18n
 
 // 月度记忆回顾全屏覆盖层：自动播放 11 屏 + 进度条 + 看完解锁目录 + 滚轮/键盘/点击导航。
 // 1:1 对应设计稿 .summary-overlay 全套逻辑。
@@ -8,6 +9,7 @@ Item {
     id: recap
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property var apps: []
     // 真实月度回顾模型（dailyCardService.memoryLakeRecap），由页面在打开时注入。
     property var model: ({})
@@ -211,13 +213,13 @@ Item {
                     width: pauseT.width + 28; height: 34; radius: 17
                     color: recap.style ? recap.style.cardBg : "#ffffff14"
                     border.width: 1; border.color: recap.style ? recap.style.cardBorder : "#ffffff20"
-                    Text { id: pauseT; anchors.centerIn: parent; text: recap.autoPlay ? "暂停" : "继续"; color: recap.style ? recap.style.textPrimary : "#fff"; font.pixelSize: 12; font.bold: true }
+        Text { id: pauseT; anchors.centerIn: parent; text: recap.autoPlay ? I18n.t(recap.languageMode, "暂停") : I18n.t(recap.languageMode, "继续"); color: recap.style ? recap.style.textPrimary : "#fff"; font.pixelSize: 12; font.bold: true }
                     TapHandler { onTapped: { recap.autoPlay = !recap.autoPlay; recap.schedule() } }
                 }
                 Rectangle {
                     width: closeT.width + 28; height: 34; radius: 17
                     color: recap.style && recap.style.night ? Qt.rgba(1, 1, 1, 0.84) : "#2D2724"
-                    Text { id: closeT; anchors.centerIn: parent; text: "返回湖面"; color: recap.style && recap.style.night ? "#05070D" : "#fff"; font.pixelSize: 12; font.bold: true }
+        Text { id: closeT; anchors.centerIn: parent; text: I18n.t(recap.languageMode, "返回湖面"); color: recap.style && recap.style.night ? "#05070D" : "#fff"; font.pixelSize: 12; font.bold: true }
                     TapHandler { onTapped: recap.close() }
                 }
             }
@@ -250,7 +252,7 @@ Item {
             Text {
                 id: noteT
                 anchors.centerIn: parent
-                text: recap.storyComplete ? "已看完 · 右侧目录已解锁，可自由回看" : ((recap.model && recap.model.modeNote) ? recap.model.modeNote : "")
+        text: recap.storyComplete ? I18n.t(recap.languageMode, "已看完 · 右侧目录已解锁，可自由回看") : ((recap.model && recap.model.modeNote) ? I18n.t(recap.languageMode, recap.model.modeNote) : "")
                 color: recap.storyComplete ? (recap.style ? recap.style.accentText : "#9ef1ff") : (recap.style ? recap.style.textSecondary : "#bbb")
                 font.pixelSize: 12
             }
@@ -300,6 +302,7 @@ Item {
                         required property var modelData
                         anchors.fill: parent
                         style: recap.style
+                        languageMode: recap.languageMode
                         apps: recap.apps
                         slideData: modelData
                         active: index === recap.index

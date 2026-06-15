@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
 import "../components/TagPalette.js" as TagPalette
+import "../components/I18n.js" as I18n
 
 Item {
     id: root
@@ -15,6 +16,10 @@ Item {
     property color themePanelColor: "#FBF8F4"
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
+    property string languageMode: "zh"
+
+    function tr(source) { return I18n.t(languageMode, source) }
+    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
 
     property color textPrimary: themeTextPrimary
     property color textSecondary: themeTextSecondary
@@ -126,14 +131,14 @@ Item {
                         spacing: 4
 
                         Text {
-                            text: "手动计时"
+                text: root.tr("手动计时")
                             color: textPrimary
                             font.pixelSize: 30
                             font.bold: true
                         }
 
                         Text {
-                            text: "结束后会自动回到首页，并把本次时长累计到项目中。"
+                text: root.tr("结束后会自动回到首页，并把本次时长累计到项目中。")
                             color: textSecondary
                             font.pixelSize: 14
                         }
@@ -208,7 +213,7 @@ Item {
                                 spacing: 14
 
                                 SoftButton {
-                                    text: timerManager && timerManager.running ? "暂停" : "继续"
+                    text: timerManager && timerManager.running ? root.tr("暂停") : root.tr("继续")
                                     iconText: timerManager && timerManager.running ? "Ⅱ" : "▶"
                                     implicitWidth: 132
                                     implicitHeight: 52
@@ -231,7 +236,7 @@ Item {
                                 }
 
                                 SoftButton {
-                                    text: "结束"
+                    text: root.tr("结束")
                                     iconText: "✓"
                                     implicitWidth: 132
                                     implicitHeight: 52
@@ -272,14 +277,14 @@ Item {
 
                     Text {
                         Layout.fillWidth: true
-                        text: "最近项目"
+                text: root.tr("最近项目")
                         color: textPrimary
                         font.pixelSize: 22
                         font.bold: true
                     }
 
                     Text {
-                        text: recentProjects(4).length + " 个"
+                text: root.sentence("projectCountPlain", {count: recentProjects(4).length}, recentProjects(4).length + " 个")
                         color: textSecondary
                         font.pixelSize: 13
                     }
@@ -338,7 +343,7 @@ Item {
 
                                 Text {
                                     Layout.fillWidth: true
-                                    text: (modelData.tag ? modelData.tag + " · " : "") + (modelData.time ? modelData.time : "0h 0m")
+                        text: (modelData.tag ? root.tr(modelData.tag) + " · " : "") + (modelData.time ? modelData.time : "0h 0m")
                                     color: textSecondary
                                     font.pixelSize: 12
                                     elide: Text.ElideRight
@@ -354,7 +359,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             visible: recentProjects(8).length === 0
-                            text: "还没有最近项目"
+                    text: root.tr("还没有最近项目")
                             color: textSecondary
                             font.pixelSize: 14
                         }

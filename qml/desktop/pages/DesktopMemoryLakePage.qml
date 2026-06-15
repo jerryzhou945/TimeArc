@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
+import "../components/I18n.js" as I18n
 
 // 记忆湖页面：1:1 复刻 MemoryLakeDesign/memory_lake_v25_win11_style.html 的窗口内部三栏。
 // 阶段 A：三栏静态排版 + 灯光底子 + 主题。后续阶段补卡牌交互 / 丝滑滚动 / 月度回顾。
@@ -19,6 +20,8 @@ Item {
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
     property string languageMode: "zh"
+
+    function tr(source) { return I18n.t(languageMode, source) }
 
     // —— 当前选中的记忆 ——
     property int selectedIndex: 0
@@ -168,8 +171,8 @@ Item {
                         Column {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 3
-                            Text { text: "Memory Lake"; color: ml.textPrimary; font.pixelSize: 18; font.bold: true }
-                            Text { text: "电脑使用时间记录"; color: ml.textTertiary; font.pixelSize: 11 }
+                            Text { text: root.tr("Memory Lake"); color: ml.textPrimary; font.pixelSize: 18; font.bold: true }
+                            Text { text: root.tr("电脑使用时间记录"); color: ml.textTertiary; font.pixelSize: 11 }
                         }
                     }
                 }
@@ -187,13 +190,13 @@ Item {
                         anchors.margins: 14
                         spacing: 7
                         Text {
-                            text: root.todayTheme.kicker; color: ml.aqua; font.pixelSize: 11; opacity: 0.9
+                            text: root.tr(root.todayTheme.kicker); color: ml.aqua; font.pixelSize: 11; opacity: 0.9
                             font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
                         }
-                        Text { text: root.todayTheme.title; color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
+                        Text { text: root.tr(root.todayTheme.title); color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
                         Text {
                             width: parent.width
-                            text: root.todayTheme.desc
+                            text: root.tr(root.todayTheme.desc)
                             color: ml.textSecondary
                             font.pixelSize: 12
                             wrapMode: Text.WordWrap
@@ -344,14 +347,14 @@ Item {
                     visible: !root.hasData
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "今天还没有自动记录"
+                        text: root.tr("今天还没有自动记录")
                         color: ml.textPrimary
                         font.pixelSize: 18
                         font.bold: true
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: "开始使用电脑后，这里会浮现今天的记忆卡片。"
+                        text: root.tr("开始使用电脑后，这里会浮现今天的记忆卡片。")
                         color: ml.textSecondary
                         font.pixelSize: 13
                     }
@@ -404,6 +407,7 @@ Item {
                             width: parent.width
                             height: Math.max(160, parent.height - 298 - 14)
                             style: ml
+                            languageMode: root.languageMode
                             onOpenCalendar: root.requestNavigate("calendar")
                         }
 
@@ -412,6 +416,7 @@ Item {
                             width: parent.width
                             height: 298
                             style: ml
+                            languageMode: root.languageMode
                             share: root.usageShare
                             total: root.overview.total
                         }

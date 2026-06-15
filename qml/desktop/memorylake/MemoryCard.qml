@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../components/AppVisual.js" as AppVisual
+import "../components/I18n.js" as I18n
 
 // 单张记忆卡牌：3D 翻面（Flipable + Y 轴旋转，自带透视），选中放大，悬停预览。
 // 1:1 对应设计稿 .card / .face / 翻面 rotateY。
@@ -178,7 +179,7 @@ Item {
                             elide: Text.ElideRight
                         }
                         Text {
-                            text: card.app ? card.app.type : ""
+                            text: card.app ? I18n.t(card.languageMode, card.app.type) : ""
                             color: card.style ? card.style.textTertiary : "#888"
                             font.pixelSize: card.selected ? 13 : 12
                         }
@@ -216,7 +217,7 @@ Item {
                         }
                         Text {
                             visible: card.selected
-                            text: "点击翻面后锁定选择"
+                            text: I18n.t(card.languageMode, "点击翻面后锁定选择")
                             color: card.style ? card.style.textTertiary : "#888"
                             font.pixelSize: 11
                         }
@@ -333,7 +334,7 @@ Item {
                                 border.color: card.style ? card.style.cardBorder : "#ffffff16"
                                 Text {
                                     anchors.centerIn: parent
-                                    text: modelData.k + "  " + modelData.v
+                                    text: I18n.t(card.languageMode, modelData.k) + "  " + I18n.t(card.languageMode, modelData.v)
                                     color: card.style ? card.style.textSecondary : "#ccc"
                                     font.pixelSize: 12
                                     font.bold: true

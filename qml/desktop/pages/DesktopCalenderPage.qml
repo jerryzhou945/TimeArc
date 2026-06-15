@@ -7,6 +7,7 @@ import QtCore
 import "../components"
 import "../memorylake"
 import "../components/TagPalette.js" as TagPalette
+import "../components/I18n.js" as I18n
 
 Item {
     id: root
@@ -38,6 +39,10 @@ Item {
     property color themePanelColor: "#FBF8F4"
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
+    property string languageMode: "zh"
+
+    function tr(source) { return I18n.t(languageMode, source) }
+    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
 
     // 颜色全部走 memory-lake token（G1 单源）。夜=暗玻璃霓虹，昼=浅瓷，由 ml.night 切换。
     // 旧布局（Soft* 卡）在 F-B1 仍在，但已被 token 染成暗霓虹（可跑切片）；F-B2+ 重构结构。
@@ -324,7 +329,7 @@ Item {
         return type === "event" ? ml.aqua : type === "focus" ? ml.violet : ml.shareGold
     }
     function typeLabel(type) {
-        return type === "event" ? "事件" : type === "focus" ? "专注" : "待办"
+        return type === "event" ? tr("事件") : type === "focus" ? tr("专注") : tr("待办")
     }
 
     // 左栏统计芯片（§2.7）：今日事项 / 完成率 / 专注块(今日 focus 数) / 本周任务(本周周一起事项总数) 均为真值。
@@ -375,7 +380,7 @@ Item {
 
     // 底中变更反馈胶囊（v88 §1.11 showCalendarToast）。净增反馈，低风险。
     function showCalToast(msg) {
-        calToast.message = msg
+        calToast.message = tr(msg)
         calToast.shown = true
         toastTimer.restart()
     }
@@ -567,7 +572,7 @@ Item {
             nid: ""
         })
         saveTodosForSelectedDate()
-        showCalToast("已创建待办")
+        showCalToast(tr("已创建待办"))
     }
 
     function addAnniversaryFromPopup() {
@@ -583,7 +588,7 @@ Item {
             desc: createDescEdit.text.trim()
         })
         saveAnniversaries(list)
-        showCalToast("已创建纪念日")
+        showCalToast(tr("已创建纪念日"))
     }
 
     function openCreate() {
@@ -868,12 +873,12 @@ Item {
                         color: textPrimary
                         font.pixelSize: 23
                         font.weight: Font.Bold
-                        font.letterSpacing: -0.4
+                        font.letterSpacing: 0
                     }
 
                     Text {
                         Layout.fillWidth: true
-                        text: "按日期整理待办、照片与计时记录"
+                        text: root.tr("按日期整理待办、照片与计时记录")
                         color: textSecondary
                         font.pixelSize: 12
                         elide: Text.ElideRight
@@ -903,7 +908,7 @@ Item {
                         GradientStop { position: 0; color: ml.aqua }
                         GradientStop { position: 1; color: ml.violet }
                     }
-                    Text { anchors.centerIn: parent; text: "今天"; color: ml.calBtnInk
+                    Text { anchors.centerIn: parent; text: root.tr("今天"); color: ml.calBtnInk
                            font.pixelSize: 14; font.weight: Font.DemiBold }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                 onClicked: {
@@ -964,9 +969,9 @@ Item {
                             spacing: 5
                             Text { text: "CALENDAR"; color: ml.glowCyan; font.pixelSize: 11
                                    font.weight: Font.Black; font.letterSpacing: 0.7 }
-                            Text { text: "日历"; color: ml.textPrimary; font.pixelSize: 26
-                                   font.weight: Font.Bold; font.letterSpacing: -0.6 }
-                            Text { text: "按日期整理时间上下文"; color: ml.textTertiary; font.pixelSize: 11 }
+                            Text { text: root.tr("日历"); color: ml.textPrimary; font.pixelSize: 26
+                                   font.weight: Font.Bold; font.letterSpacing: 0 }
+                            Text { text: root.tr("按日期整理时间上下文"); color: ml.textTertiary; font.pixelSize: 11 }
                         }
                     }
 
@@ -1005,10 +1010,12 @@ Item {
                                     }
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: modelData.label
+                                        text: root.tr(modelData.label)
                                         color: activeView === modelData.key ? ml.textPrimary : ml.textSecondary
                                         font.pixelSize: 13
                                         font.weight: activeView === modelData.key ? Font.DemiBold : Font.Normal
+                                        width: 160
+                                        elide: Text.ElideRight
                                     }
                                 }
                                 MouseArea {
@@ -1018,7 +1025,7 @@ Item {
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
                                         activeView = modelData.key
-                                        showCalToast("已切换到" + modelData.label)
+                                        showCalToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label))
                                     }
                                 }
                             }
@@ -1055,7 +1062,7 @@ Item {
                                     anchors.leftMargin: 12
                                     anchors.topMargin: 10
                                     spacing: 6
-                                    Text { text: modelData.label; color: ml.textTertiary; font.pixelSize: 10 }
+                        Text { text: root.tr(modelData.label); color: ml.textTertiary; font.pixelSize: 10 }
                                     Text { text: statValue(modelData.key); color: ml.textPrimary
                                            font.pixelSize: 21; font.weight: Font.Bold }
                                 }
@@ -1103,7 +1110,7 @@ Item {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: modelData
+                                    text: root.tr(modelData)
                                     color: ml.textTertiary
                                     font.pixelSize: 11
                                     font.weight: Font.Bold
@@ -1198,7 +1205,7 @@ Item {
                                         border.color: modelData.countdownCount > 0 ? ml.chipFocusBd : ml.chipTodoBd
                                         Text {
                                             anchors.centerIn: parent
-                                            text: modelData.countdownCount > 0 ? "倒" : "纪"
+                            text: modelData.countdownCount > 0 ? root.tr("倒") : root.tr("纪")
                                             color: ml.chipText
                                             font.pixelSize: 9
                                             font.bold: true
@@ -1304,10 +1311,10 @@ Item {
                                 font.pixelSize: 14
                                 font.weight: Font.DemiBold
                             }
-                            Text { text: "本周计划"; color: ml.textTertiary; font.pixelSize: 10 }
+                            Text { text: root.tr("本周计划"); color: ml.textTertiary; font.pixelSize: 10 }
                         }
                         Text {
-                            text: weekViewTaskCount(selectedDateKey) + " 项"
+                            text: root.sentence("itemCount", {count: weekViewTaskCount(selectedDateKey)}, weekViewTaskCount(selectedDateKey) + " 项")
                             color: ml.textTertiary
                             font.pixelSize: 11
                         }
@@ -1488,7 +1495,7 @@ Item {
                             font.weight: Font.Bold
                         }
                         Text {
-                            text: "专注 " + secondsToDisplay(selectedDateTotalSeconds())
+                            text: root.sentence("focusDuration", {time: secondsToDisplay(selectedDateTotalSeconds())}, "专注 " + secondsToDisplay(selectedDateTotalSeconds()))
                             color: ml.accentText
                             font.pixelSize: 12
                             font.bold: true
@@ -1539,9 +1546,9 @@ Item {
                                             Text {
                                                 Layout.fillWidth: true
                                                 Layout.alignment: Qt.AlignVCenter
-                                                text: modelData.type === "event" ? "全天"
+                                                text: modelData.type === "event" ? root.tr("全天")
                                                       : (modelData.time && modelData.time !== "" ? displayTime(modelData.time)
-                                                      : (modelData.type === "focus" ? "专注" : "未定"))
+                                                      : (modelData.type === "focus" ? root.tr("专注") : root.tr("未定")))
                                                 color: (modelData.time && modelData.time !== "") ? ml.glowCyan : ml.textTertiary
                                                 font.pixelSize: (modelData.time && modelData.time !== "") ? 11 : 10
                                                 font.bold: (modelData.time && modelData.time !== "")
@@ -1554,7 +1561,7 @@ Item {
                                             spacing: 2
                                             Text {
                                                 Layout.fillWidth: true
-                                                text: modelData.label
+                                            text: root.tr(modelData.label)
                                                 color: modelData.done ? ml.textSecondary : ml.textPrimary
                                                 font.pixelSize: 13
                                                 font.bold: true
@@ -1609,7 +1616,7 @@ Item {
                                 visible: agendaRepeater.count === 0
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "这一天还没有安排"
+                                    text: root.tr("这一天还没有安排")
                                     color: ml.textTertiary
                                     font.pixelSize: 13
                                 }
@@ -1637,7 +1644,7 @@ Item {
                     anchors.margins: 16
                     spacing: 14
 
-                    Text { text: "本周专注"; color: ml.textPrimary; font.pixelSize: 13; font.bold: true }
+                    Text { text: root.tr("本周专注"); color: ml.textPrimary; font.pixelSize: 13; font.bold: true }
 
                     // 本周 7 柱
                     RowLayout {
@@ -1701,7 +1708,7 @@ Item {
                         spacing: 8
                         Text { text: selectedDateLabel(); color: ml.textPrimary; font.pixelSize: 13; font.bold: true }
                         Text { text: secondsToDisplay(selectedDateTotalSeconds()); color: ml.accentText; font.pixelSize: 18; font.bold: true }
-                        Text { Layout.fillWidth: true; text: "(" + dayProjects().length + " 个项目)"; color: ml.textTertiary; font.pixelSize: 11 }
+                        Text { Layout.fillWidth: true; text: root.sentence("projectCount", {count: dayProjects().length}, "(" + dayProjects().length + " 个项目)"); color: ml.textTertiary; font.pixelSize: 11 }
                     }
 
                     // 逐项目计时条 + 按标签（同一滚动列）
@@ -1772,7 +1779,7 @@ Item {
                                 visible: dayProjects().length === 0
                                 Text {
                                     anchors.centerIn: parent
-                                    text: "这一天还没有专注记录"
+                                    text: root.tr("这一天还没有专注记录")
                                     color: ml.textTertiary
                                     font.pixelSize: 13
                                 }
@@ -1780,7 +1787,7 @@ Item {
 
                             Text {
                                 visible: dayTagSummary(selectedDateKey).length > 0
-                                text: "按标签"
+                                text: root.tr("按标签")
                                 color: ml.textTertiary
                                 font.pixelSize: 11
                                 topPadding: 4
@@ -2153,7 +2160,7 @@ Item {
                                                         Text {
                                                             id: memoMk
                                                             anchors.centerIn: parent
-                                                            text: "便签"
+                                                            text: root.tr("便签")
                                                             color: ml.violet
                                                             font.pixelSize: 9
                                                             font.bold: true
@@ -2188,7 +2195,7 @@ Item {
                                                 color: startMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                                                 border.width: 1
                                                 border.color: ml.calGhostBorder
-                                                Text { anchors.centerIn: parent; text: "开始"; color: ml.calGlyph; font.pixelSize: 12 }
+                                                Text { anchors.centerIn: parent; text: root.tr("开始"); color: ml.calGlyph; font.pixelSize: 12 }
                                                 MouseArea {
                                                     id: startMa
                                                     anchors.fill: parent
@@ -2242,7 +2249,7 @@ Item {
                                     visible: todoModel.count === 0
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "暂无日程"
+                                        text: root.tr("暂无日程")
                                         color: ml.textTertiary
                                         font.pixelSize: 13
                                     }
@@ -2329,7 +2336,7 @@ Item {
                                     visible: dayProjects().length === 0
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "这一天还没有计时记录"
+                                        text: root.tr("这一天还没有计时记录")
                                         color: ml.textTertiary
                                         font.pixelSize: 13
                                     }
@@ -2459,7 +2466,7 @@ Item {
                                     visible: sortedAnniversaries().length === 0
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "还没有纪念日或倒计时"
+                                        text: root.tr("还没有纪念日或倒计时")
                                         color: ml.textTertiary
                                         font.pixelSize: 13
                                     }
@@ -2481,7 +2488,7 @@ Item {
                         }
                         Text {
                             anchors.centerIn: parent
-                            text: sidePanelMode === "anniversaries" ? "＋ 新建纪念日" : "＋ 新建待办"
+                            text: sidePanelMode === "anniversaries" ? "＋ " + root.tr("新建纪念日") : "＋ " + root.tr("新建待办")
                             color: ml.calBtnInk
                             font.pixelSize: 14
                             font.weight: Font.Bold
@@ -2575,9 +2582,9 @@ Item {
                         anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 2
-                        Text { text: sidePanelMode === "anniversaries" ? "新建纪念日" : "新建待办"
+                        Text { text: sidePanelMode === "anniversaries" ? root.tr("新建纪念日") : root.tr("新建待办")
                                color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.Bold }
-                        Text { text: "本日 · " + selectedDateLabel(); color: ml.textTertiary; font.pixelSize: 11 }
+                        Text { text: root.sentence("thisDayLabel", {date: selectedDateLabel()}, "本日 · " + selectedDateLabel()); color: ml.textTertiary; font.pixelSize: 11 }
                     }
                     Rectangle {
                         id: createClose
@@ -2606,7 +2613,7 @@ Item {
                     }
                     Text { anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
                            visible: createTitleInput.text === ""
-                           text: sidePanelMode === "anniversaries" ? "纪念日名称" : "标题"
+                           text: sidePanelMode === "anniversaries" ? root.tr("纪念日名称") : root.tr("标题")
                            color: ml.textTertiary; font.pixelSize: 14 }
                 }
 
@@ -2646,7 +2653,7 @@ Item {
                             Gradient { id: annTypeGrad; orientation: Gradient.Horizontal
                                        GradientStop { position: 0; color: ml.aqua }
                                        GradientStop { position: 1; color: ml.violet } }
-                            Text { anchors.centerIn: parent; text: modelData
+                            Text { anchors.centerIn: parent; text: root.tr(modelData)
                                    color: root.annType === modelData ? ml.calBtnInk : ml.textSecondary
                                    font.pixelSize: 13; font.bold: true }
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
@@ -2667,7 +2674,7 @@ Item {
                         anchors.left: createTimeGlyph.right; anchors.right: timePickChev.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: 8; anchors.rightMargin: 6
-                        text: root.createTime !== "" ? displayTime(root.createTime) : "选择时间（可选）"
+                        text: root.createTime !== "" ? displayTime(root.createTime) : root.tr("选择时间（可选）")
                         color: root.createTime !== "" ? ml.textPrimary : ml.textTertiary
                         font.pixelSize: 13
                         elide: Text.ElideRight
@@ -2696,7 +2703,7 @@ Item {
                     }
                     Text { anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 11
                            visible: createDescEdit.text === ""
-                           text: "详情（可选）"; color: ml.textTertiary; font.pixelSize: 13 }
+                           text: root.tr("详情（可选）"); color: ml.textTertiary; font.pixelSize: 13 }
                 }
 
                 // 底部：取消 / 创建
@@ -2707,7 +2714,7 @@ Item {
                         width: (parent.width - 10) / 2; height: 40; radius: 12
                         color: createCancelMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                         border.width: 1; border.color: ml.calGhostBorder
-                        Text { anchors.centerIn: parent; text: "取消"; color: ml.textSecondary; font.pixelSize: 14 }
+                        Text { anchors.centerIn: parent; text: root.tr("取消"); color: ml.textSecondary; font.pixelSize: 14 }
                         MouseArea { id: createCancelMa; anchors.fill: parent; hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor; onClicked: closeCreate() }
                     }
@@ -2716,7 +2723,7 @@ Item {
                         gradient: Gradient { orientation: Gradient.Horizontal
                                              GradientStop { position: 0; color: ml.aqua }
                                              GradientStop { position: 1; color: ml.violet } }
-                        Text { anchors.centerIn: parent; text: "创建"; color: ml.calBtnInk
+                        Text { anchors.centerIn: parent; text: root.tr("创建"); color: ml.calBtnInk
                                font.pixelSize: 14; font.weight: Font.Bold }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
                                     onClicked: submitCreate() }
@@ -2756,7 +2763,7 @@ Item {
                           leftMargin: 18; rightMargin: 18; topMargin: 16 }
                 spacing: 14
 
-                Text { text: "选择时间"; color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.Bold }
+                Text { text: root.tr("选择时间"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.Bold }
 
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -2827,7 +2834,7 @@ Item {
                         width: (parent.width - 10) / 2; height: 38; radius: 12
                         color: tpClearMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                         border.width: 1; border.color: ml.calGhostBorder
-                        Text { anchors.centerIn: parent; text: "清除"; color: ml.textSecondary; font.pixelSize: 13 }
+                        Text { anchors.centerIn: parent; text: root.tr("清除"); color: ml.textSecondary; font.pixelSize: 13 }
                         MouseArea { id: tpClearMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                                     onClicked: { root.createTime = ""; root.timePickerOpen = false } }
                     }
@@ -2836,7 +2843,7 @@ Item {
                         gradient: Gradient { orientation: Gradient.Horizontal
                                              GradientStop { position: 0; color: ml.aqua }
                                              GradientStop { position: 1; color: ml.violet } }
-                        Text { anchors.centerIn: parent; text: "确定"; color: ml.calBtnInk
+                        Text { anchors.centerIn: parent; text: root.tr("确定"); color: ml.calBtnInk
                                font.pixelSize: 13; font.weight: Font.DemiBold }
                         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: commitTimePick() }
                     }
@@ -2847,7 +2854,7 @@ Item {
 
     FileDialog {
         id: dayPhotoDialog
-        title: "选择这一天的背景照片"
+        title: root.tr("选择这一天的背景照片")
         nameFilters: ["Images (*.png *.jpg *.jpeg *.bmp *.webp)"]
 
         onAccepted: {

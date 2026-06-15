@@ -1,6 +1,7 @@
 import QtQuick
 import "components"
 import "pages"
+import "../desktop/components/I18n.js" as I18n
 
 Rectangle {
     id: root
@@ -8,6 +9,7 @@ Rectangle {
     color: mobileTheme.bg
 
     property string currentTab: "home"
+    property string languageMode: settingsRepository ? settingsRepository.getValue("language_mode", "zh") : "zh"
     // 无边框窗口顶部预留高度（移动预览默认保留原生边框 ⇒ 0；防御性接收，便于未来移动端 chrome）。
     property int topReserve: 0
 
@@ -52,7 +54,7 @@ Rectangle {
             MobileTabButton {
                 width: parent.width / 4
                 theme: mobileTheme
-                label: "主页"
+                label: I18n.t(root.languageMode, "首页")
                 iconName: "home"
                 active: root.currentTab === "home"
                 onClicked: root.currentTab = "home"
@@ -61,7 +63,7 @@ Rectangle {
             MobileTabButton {
                 width: parent.width / 4
                 theme: mobileTheme
-                label: "统计"
+                label: I18n.t(root.languageMode, "统计")
                 iconName: "stats"
                 active: root.currentTab === "stats"
                 onClicked: root.currentTab = "stats"
@@ -70,7 +72,7 @@ Rectangle {
             MobileTabButton {
                 width: parent.width / 4
                 theme: mobileTheme
-                label: "历史"
+                label: I18n.t(root.languageMode, "历史")
                 iconName: "history"
                 active: root.currentTab === "history"
                 onClicked: root.currentTab = "history"
@@ -79,7 +81,7 @@ Rectangle {
             MobileTabButton {
                 width: parent.width / 4
                 theme: mobileTheme
-                label: "设置"
+                label: I18n.t(root.languageMode, "设置")
                 iconName: "settings"
                 active: root.currentTab === "settings"
                 onClicked: root.currentTab = "settings"

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import "../components/I18n.js" as I18n
 
 // Daily Theme Share：今日主题使用占比（霓虹甜甜圈 + 图例 + 洞察）。
 // v88 复刻（设计稿 .daily-pie-panel）：玻璃底 + aqua/violet 双角径向辉光 + 26px 方格底纹；
@@ -11,6 +12,7 @@ Rectangle {
     id: panel
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property var share: []          // [{name, appId, path, iconColors, percent, isOther}]
     property string total: ""
     // 标题可改（统计页周/月/年复用本组件，"今日" 文案不再适用）。默认 = 首页文案，向后兼容。
@@ -36,7 +38,7 @@ Rectangle {
             // 上游为「按 app 切片」补的 brandColor/iconColors 取色对分类切片无意义（分类无品牌色），此处不取。
             var col = s.isOther ? (style ? style.shareOther : "#6F7C91")
                                 : sharePalette[Math.min(i, sharePalette.length - 1)];
-            out.push({ name: s.name, percent: s.percent, color: col });
+            out.push({ name: I18n.category(panel.languageMode, s.name), percent: s.percent, color: col });
         }
         return out;
     }
@@ -47,7 +49,7 @@ Rectangle {
     }
     // 洞察：由真实最高占比切片派生的事实标签（非 Mock）。
     readonly property string insightText: hasData && slices.length > 0
-        ? ("今日主题：" + slices[0].name + " 占比最高（" + slices[0].percent + "%）") : ""
+        ? I18n.sentence(panel.languageMode, "topThemeInsight", {name: slices[0].name, percent: slices[0].percent}, "今日主题：" + slices[0].name + " 占比最高（" + slices[0].percent + "%）") : ""
 
     onSlicesChanged: pie.requestPaint()
 
@@ -109,7 +111,7 @@ Rectangle {
                     font.capitalization: Font.AllUppercase
                 }
                 Text {
-                    text: panel.titleText
+                text: I18n.t(panel.languageMode, panel.titleText)
                     color: panel.style ? panel.style.textPrimary : "#fff"
                     font.pixelSize: 16
                     font.weight: 800
@@ -364,7 +366,7 @@ Rectangle {
 
                 Text {
                     visible: !panel.hasData
-                    text: "暂无占比数据"
+                    text: I18n.t(panel.languageMode, "暂无占比数据")
                     color: panel.style ? panel.style.textTertiary : "#888"
                     font.pixelSize: 12
                 }

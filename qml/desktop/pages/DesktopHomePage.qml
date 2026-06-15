@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import "../components"
 import "../components/AppVisual.js" as AppVisual
 import "../components/TagPalette.js" as TagPalette
+import "../components/I18n.js" as I18n
 
 Item {
     id: root
@@ -19,6 +20,9 @@ Item {
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
     property string languageMode: "zh"
+
+    function tr(source) { return I18n.t(languageMode, source) }
+    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
 
     property color textPrimary: themeTextPrimary
     property color textSecondary: themeTextSecondary
@@ -230,7 +234,7 @@ Item {
             var minutes = tagMinutesToday(tag)
             result.push({
                 tag: tag,
-                label: tag,
+            label: root.tr(tag),
                 seconds: minutes * 60,
                 minutes: minutes,
                 color: tagColor(tag),
@@ -240,7 +244,7 @@ Item {
 
         result.push({
             tag: "自动软件",
-            label: "自动软件",
+            label: root.tr("自动软件"),
             seconds: softwareSeconds,
             minutes: softwareSeconds / 60,
             color: "#CFE8D8",
@@ -310,10 +314,10 @@ Item {
 
     function summaryPills() {
         return [
-            { title: "今日自动记录", value: secondsToDisplay(softwareUsageSecondsToday()), icon: "A", color: mint },
-            { title: "今日手动计时", value: secondsToDisplay(manualUsageSecondsToday()), icon: "M", color: cream },
-            { title: "当前项目", value: activeProjectName(), icon: "▶", color: blush },
-            { title: "活跃应用", value: (todaySoftwareStats ? todaySoftwareStats.length : 0) + " 个", icon: "●", color: lavender }
+            { title: root.tr("今日自动记录"), value: secondsToDisplay(softwareUsageSecondsToday()), icon: "A", color: mint },
+            { title: root.tr("今日手动计时"), value: secondsToDisplay(manualUsageSecondsToday()), icon: "M", color: cream },
+            { title: root.tr("当前项目"), value: activeProjectName(), icon: "▶", color: blush },
+            { title: root.tr("活跃应用"), value: root.sentence("appCount", {count: (todaySoftwareStats ? todaySoftwareStats.length : 0)}, (todaySoftwareStats ? todaySoftwareStats.length : 0) + " 个"), icon: "●", color: lavender }
         ]
     }
 
@@ -402,7 +406,7 @@ Item {
 
                         Text {
                             Layout.fillWidth: true
-                            text: "把今天的时间轻轻收好"
+                    text: root.tr("把今天的时间轻轻收好")
                             color: textPrimary
                             font.pixelSize: 42
                             font.bold: true
@@ -411,7 +415,7 @@ Item {
 
                         Text {
                             Layout.fillWidth: true
-                            text: nightMode ? "今晚也保持温柔的节奏，自动记录与手动计时都在这里汇合。" : "欢迎回来。自动记录、手动项目和今日节奏，都在这里安静地展开。"
+                    text: nightMode ? root.tr("今晚也保持温柔的节奏，自动记录与手动计时都在这里汇合。") : root.tr("欢迎回来。自动记录、手动项目和今日节奏，都在这里安静地展开。")
                             color: textSecondary
                             font.pixelSize: 16
                             wrapMode: Text.WordWrap
@@ -467,14 +471,14 @@ Item {
                                     spacing: 2
 
                                     Text {
-                                        text: "今日概览"
+                    text: root.tr("今日概览")
                                         color: textPrimary
                                         font.pixelSize: 18
                                         font.bold: true
                                     }
 
                                     Text {
-                                        text: "自动 + 手动"
+                    text: root.tr("自动 + 手动")
                                         color: textSecondary
                                         font.pixelSize: 12
                                     }
@@ -552,7 +556,7 @@ Item {
                                     }
 
                                     Text {
-                                        text: "今日累计"
+                    text: root.tr("今日累计")
                                         color: textSecondary
                                         font.pixelSize: 12
                                         anchors.horizontalCenter: parent.horizontalCenter
@@ -636,7 +640,7 @@ Item {
                                         spacing: 4
 
                                         Text {
-                                            text: "今日自动记录"
+                    text: root.tr("今日自动记录")
                                             color: textPrimary
                                             font.pixelSize: 24
                                             font.bold: true
@@ -764,7 +768,7 @@ Item {
                                         Text {
                                             anchors.centerIn: parent
                                             visible: topTodaySoftwareStats(5).length === 0
-                                            text: "今天还没有自动记录"
+                        text: root.tr("今天还没有自动记录")
                                             color: textSecondary
                                             font.pixelSize: 14
                                         }
@@ -796,14 +800,14 @@ Item {
                                         spacing: 4
 
                                         Text {
-                                            text: "手动项目计时"
+                    text: root.tr("手动项目计时")
                                             color: textPrimary
                                             font.pixelSize: 24
                                             font.bold: true
                                         }
 
                                         Text {
-                                            text: selectedTag + "里的项目"
+                    text: root.sentence("selectedTagProjects", {tag: root.tr(selectedTag)}, selectedTag + "里的项目")
                                             color: textSecondary
                                             font.pixelSize: 13
                                             elide: Text.ElideRight
@@ -811,7 +815,7 @@ Item {
                                     }
 
                                     SoftButton {
-                                        text: "新建"
+                    text: root.tr("新建")
                                         iconText: "+"
                                         implicitWidth: 84
                                         fillColor: buttonDark
@@ -855,7 +859,7 @@ Item {
                                                 }
 
                                                 Text {
-                                                    text: modelData.tag
+                        text: root.tr(modelData.tag)
                                                     color: textPrimary
                                                     font.pixelSize: 13
                                                     font.bold: true
@@ -927,7 +931,7 @@ Item {
                                                     spacing: 8
 
                                                     Text {
-                                                        text: "今日 " + secondsToDisplay(todaySecondsForProject(modelData.name, modelData.tag))
+                    text: root.sentence("todayDuration", {time: secondsToDisplay(todaySecondsForProject(modelData.name, modelData.tag))}, "今日 " + secondsToDisplay(todaySecondsForProject(modelData.name, modelData.tag)))
                                                         color: accentText
                                                         font.pixelSize: 12
                                                         font.bold: true
@@ -951,7 +955,7 @@ Item {
                                             }
 
                                             SoftButton {
-                                                text: "开始"
+                    text: root.tr("开始")
                                                 implicitWidth: 74
                                                 implicitHeight: 38
                                                 radius: 15
@@ -971,7 +975,7 @@ Item {
                                         Text {
                                             anchors.centerIn: parent
                                             visible: projectsForSelectedTag().length === 0
-                                            text: "这个标签里还没有项目"
+                        text: root.tr("这个标签里还没有项目")
                                             color: textSecondary
                                             font.pixelSize: 14
                                         }
@@ -1004,14 +1008,14 @@ Item {
                                     spacing: 4
 
                                     Text {
-                                        text: "本周趋势预览"
+                    text: root.tr("本周趋势预览")
                                         color: textPrimary
                                         font.pixelSize: 24
                                         font.bold: true
                                     }
 
                                     Text {
-                                        text: "用今日分布先预览节奏，保持数据来源不变"
+                    text: root.tr("用今日分布先预览节奏，保持数据来源不变")
                                         color: textSecondary
                                         font.pixelSize: 13
                                     }
@@ -1103,7 +1107,7 @@ Item {
                             spacing: 12
 
                             Text {
-                                text: "今日总结"
+                    text: root.tr("今日总结")
                                 color: textPrimary
                                 font.pixelSize: 22
                                 font.bold: true
@@ -1111,7 +1115,7 @@ Item {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: totalTodaySeconds() > 0 ? "已经留下 " + secondsToDisplay(totalTodaySeconds()) + " 的时间轨迹。" : "今天还很安静，可以从一个小项目开始。"
+                    text: totalTodaySeconds() > 0 ? root.sentence("todayTrack", {time: secondsToDisplay(totalTodaySeconds())}, "已经留下 " + secondsToDisplay(totalTodaySeconds()) + " 的时间轨迹。") : root.tr("今天还很安静，可以从一个小项目开始。")
                                 color: textSecondary
                                 font.pixelSize: 14
                                 wrapMode: Text.WordWrap
@@ -1120,7 +1124,7 @@ Item {
 
                             SoftPill {
                                 Layout.fillWidth: true
-                                title: "当前应用"
+                title: root.tr("当前应用")
                                 value: currentSoftwareName()
                                 iconText: "●"
                                 fillColor: nightMode ? "#4A526F" : "#F7F3EE"
@@ -1183,7 +1187,7 @@ Item {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: "以 8 小时为满格，展示今天的积累感。"
+                    text: root.tr("以 8 小时为满格，展示今天的积累感。")
                                 color: textSecondary
                                 font.pixelSize: 13
                                 wrapMode: Text.WordWrap
@@ -1196,7 +1200,7 @@ Item {
                                 SoftPill {
                                     Layout.fillWidth: true
                                     compact: true
-                                    title: "手动"
+                title: root.tr("手动")
                                     value: secondsToDisplay(manualUsageSecondsToday())
                                     iconText: "M"
                                     fillColor: nightMode ? "#4A526F" : "#FBF8F4"
@@ -1209,7 +1213,7 @@ Item {
                                 SoftPill {
                                     Layout.fillWidth: true
                                     compact: true
-                                    title: "自动"
+                title: root.tr("自动")
                                     value: secondsToDisplay(softwareUsageSecondsToday())
                                     iconText: "A"
                                     fillColor: nightMode ? "#4A526F" : "#FBF8F4"
@@ -1238,7 +1242,7 @@ Item {
                             spacing: 14
 
                             Text {
-                                text: "最近项目"
+                    text: root.tr("最近项目")
                                 color: textPrimary
                                 font.pixelSize: 22
                                 font.bold: true
@@ -1312,7 +1316,7 @@ Item {
                                     Text {
                                         anchors.centerIn: parent
                                         visible: recentProjects(5).length === 0
-                                        text: "还没有项目"
+                        text: root.tr("还没有项目")
                                         color: textSecondary
                                         font.pixelSize: 13
                                     }
@@ -1346,7 +1350,7 @@ Item {
             spacing: 16
 
             Text {
-                text: "删除自定义项目"
+            text: root.tr("删除自定义项目")
                 color: textPrimary
                 font.pixelSize: 24
                 font.bold: true
@@ -1355,7 +1359,7 @@ Item {
             Text {
                 width: parent.width
                 wrapMode: Text.WordWrap
-                text: "确定归档项目“" + deleteTargetProjectName + "”吗？归档后项目会从列表隐藏，历史计时和统计仍会保留。"
+            text: root.sentence("deleteProjectConfirm", {name: deleteTargetProjectName}, "确定归档项目“" + deleteTargetProjectName + "”吗？归档后项目会从列表隐藏，历史计时和统计仍会保留。")
                 color: textSecondary
                 font.pixelSize: 14
             }
@@ -1369,12 +1373,12 @@ Item {
                 spacing: 12
 
                 Button {
-                    text: "取消"
+            text: root.tr("取消")
                     onClicked: deleteProjectDialog.close()
                 }
 
                 Button {
-                    text: "确认删除"
+            text: root.tr("确认删除")
                     onClicked: {
                         if (projectManager && deleteTargetProjectName.length > 0)
                             projectManager.removeProject(deleteTargetProjectName)
@@ -1430,7 +1434,7 @@ Item {
         id: addMenu
 
         MenuItem {
-            text: "添加自定义项目"
+            text: root.tr("添加自定义项目")
             onTriggered: {
                 tagBox.currentIndex = fixedTags.indexOf(selectedTag)
                 addProjectDialog.open()
@@ -1460,7 +1464,7 @@ Item {
             spacing: 16
 
             Text {
-                text: "添加自定义项目"
+            text: root.tr("添加自定义项目")
                 color: textPrimary
                 font.pixelSize: 26
                 font.bold: true
@@ -1471,7 +1475,7 @@ Item {
                 spacing: 8
 
                 Text {
-                    text: "项目名称"
+            text: root.tr("项目名称")
                     color: accentText
                     font.pixelSize: 14
                 }
@@ -1479,7 +1483,7 @@ Item {
                 TextField {
                     id: projectNameField
                     width: parent.width
-                    placeholderText: "例如：学英语"
+            placeholderText: root.tr("例如：学英语")
                 }
             }
 
@@ -1488,7 +1492,7 @@ Item {
                 spacing: 8
 
                 Text {
-                    text: "选择标签"
+            text: root.tr("选择标签")
                     color: accentText
                     font.pixelSize: 14
                 }
@@ -1510,12 +1514,12 @@ Item {
                 spacing: 12
 
                 Button {
-                    text: "取消"
+            text: root.tr("取消")
                     onClicked: addProjectDialog.close()
                 }
 
                 Button {
-                    text: "确认添加"
+            text: root.tr("确认添加")
                     onClicked: {
                         var nameText = projectNameField.text.trim()
                         if (nameText.length > 0 && projectManager) {
