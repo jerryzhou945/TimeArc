@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
@@ -1031,7 +1032,7 @@ Item {
     Connections {
         target: memoOverlay
         function onPomodoroFinished(title) {
-            if (!root.notifyEnabled || Window.active) return;
+            if (!root.notifyEnabled || (root.Window.window && root.Window.window.active)) return;
             if (notifierLoader.item)
                 notifierLoader.item.notify("番茄钟完成", (title && title.length > 0 ? title : "专注") + " · 这一程结束了");
         }
