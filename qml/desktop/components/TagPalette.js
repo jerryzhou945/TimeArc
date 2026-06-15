@@ -1,8 +1,9 @@
+.pragma library
 // 标签调色板（单一来源）：每个 tag 一份固定语义色「ink」+ 图标。
 // 首页/日历/统计/计时四页的 tagColor() 与 TagChip 全部委托到这里，杜绝多份色表漂移。
 // 语义：学习=violet 工作=amber 运动=green 娱乐=pink 阅读=sky 社交=coral 生活=mint 其他=steel。
 // ink 直接用作 chip 文字 + 导色点；chip 底/边由 ink 低透明度派生（见 TagChip.qml）。
-.pragma library
+// （.pragma library 必须在文件前 128 字节内，否则 Qt CMake 仍会告警，见 Qt6QmlMacros.cmake LIMIT_INPUT 128）
 
 // 固定标签序列（单一来源）：便签 tag 选择器 / 日历 fixedTags 等共享，杜绝各处自带一份。
 function tagList() {
