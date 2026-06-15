@@ -32,6 +32,7 @@ Item {
     signal requestNavigate(string pageKey)
     // 快捷键变更 → Shell 重读 memo/pomodoro 全局键（设置 KV 无变更信号，故显式通知，#3）。
     signal hotkeysChanged()
+    signal languageChanged(string mode)
 
     // 记忆湖统一色板（单一事实源 G1）。夜=暗玻璃霓虹，昼=浅瓷；由 night 切换。
     MemoryLakeStyle {
@@ -1000,13 +1001,18 @@ Item {
 
                                 SettingRow {
                                     rowTitle: "界面语言"
-                                    rowSub: "切换持久化已生效；全局译文将在后续阶段开放。"
+                                    rowSub: "切换后软件名会按语言显示；界面完整译文将在后续阶段开放。"
                                     GlassComboBox {
                                         style: ml
                                         model: ["简体中文", "English", "日本語"]
                                         property var _vals: ["zh", "en", "ja"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.languageMode))
-                                        onActivated: function (i) { root.languageMode = _vals[i]; root._setStr("language_mode", _vals[i]); root.showToast("界面语言已保存") }
+                                        onActivated: function (i) {
+                                            root.languageMode = _vals[i];
+                                            root._setStr("language_mode", _vals[i]);
+                                            root.languageChanged(_vals[i]);
+                                            root.showToast("界面语言已保存");
+                                        }
                                     }
                                 }
                                 SettingRow {
@@ -1200,7 +1206,7 @@ Item {
                                                     }
                                                     Text {
                                                         Layout.fillWidth: true
-                                                        text: AppVisual.modelDisplayName(modelData)
+                                                        text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode)
                                                         color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
                                                         elide: Text.ElideRight
                                                     }

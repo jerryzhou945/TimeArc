@@ -18,6 +18,7 @@ Item {
     property color themePanelColor: "#FBF8F4"
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
+    property string languageMode: "zh"
 
     property color textPrimary: themeTextPrimary
     property color textSecondary: themeTextSecondary
@@ -138,7 +139,7 @@ Item {
     }
 
     function modelDisplayName(row) {
-        return AppVisual.modelDisplayName(row)
+        return AppVisual.modelDisplayNameForLanguage(row, languageMode)
     }
 
     function refreshTodaySoftwareStats() {

@@ -22,6 +22,7 @@ Item {
     property color themePanelColor: "#FBF8F4"
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
+    property string languageMode: "zh"
 
     // 顶栏「返回首页」/ ESC 切页：Shell 在 onLoaded 连接（已含 stats）。
     signal requestNavigate(string pageKey)
@@ -1449,7 +1450,7 @@ Item {
                                     spacing: 2
                                     Text {
                                         Layout.fillWidth: true
-                                        text: AppVisual.modelDisplayName(modelData)
+                                        text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode)
                                         color: ml.textPrimary
                                         font.pixelSize: 13; font.weight: Font.DemiBold
                                         elide: Text.ElideRight

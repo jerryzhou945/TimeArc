@@ -45,6 +45,7 @@ Item {
     // true  = 夜晚
     // =========================
     property bool nightMode: settingsRepository ? settingsRepository.getBool("night_mode", false) : false
+    property string languageMode: settingsRepository ? settingsRepository.getValue("language_mode", "zh") : "zh"
 
     // =========================
     // 背景图路径
@@ -202,6 +203,8 @@ Item {
             item.themeBorderColor = appPanelBorder;
         if ("themeAccentColor" in item)
             item.themeAccentColor = appAccentWarm;
+        if ("languageMode" in item)
+            item.languageMode = languageMode;
     }
 
     onNightModeChanged: {
@@ -209,6 +212,8 @@ Item {
             settingsRepository.setBool("night_mode", nightMode)
         applyThemeToLoadedPage();
     }
+
+    onLanguageModeChanged: applyThemeToLoadedPage()
 
     // 启动时把设置页的读层过滤推入 usageStatManager（2A 游戏/分类/合并 · 2B 逐项显隐 ·
     // 2C 标题脱敏 · 3A 软暂停），让首页/统计/记忆湖在用户打开设置页前就遵从已存偏好。
@@ -904,6 +909,10 @@ Item {
                             // #3：设置页改键 → Shell 重读 memo/pomodoro 全局键（Shortcut 即时重绑）。
                             if (item.hotkeysChanged)
                                 item.hotkeysChanged.connect(applyHotkeysFromSettings);
+                            if (item.languageChanged)
+                                item.languageChanged.connect(function (mode) {
+                                    root.languageMode = mode;
+                                });
                             if ("nightMode" in item)
                                 item.nightMode = nightMode;
                         }
