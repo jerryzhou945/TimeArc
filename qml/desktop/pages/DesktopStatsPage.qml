@@ -118,6 +118,85 @@ Item {
         return best
     }
 
+    function categoryHeatBase(category) {
+        switch (category) {
+        case "学习": return "#58A6FF"
+        case "笔记": return "#79C0FF"
+        case "开发": return "#56D364"
+        case "办公": return "#7DD3FC"
+        case "社交": return "#D2A8FF"
+        case "创作": return "#F2CC60"
+        case "游戏": return "#FFB86B"
+        case "视频": return "#FF7B72"
+        case "音乐": return "#7EE787"
+        case "浏览": return "#A5D6FF"
+        default: return "#40C463"
+        }
+    }
+
+    function heatColor(category, level) {
+        if (level <= 0)
+            return root.nightMode ? "#1F2937" : "#EBEDF0"
+        var c = Qt.lighter(categoryHeatBase(category), 1.0)
+        var h = c.hslHue
+        if (h < 0 || isNaN(h))
+            return root.nightMode ? "#39D353" : "#216E39"
+        var l = root.nightMode
+                ? (0.18 + level * 0.08)
+                : (0.88 - level * 0.10)
+        var s = Math.min(0.82, c.hslSaturation + 0.12)
+        return Qt.hsla(h, s, l, 1.0)
+    }
+
+    function dateKeyFromUnix(sec) {
+        var d = new Date(sec * 1000)
+        return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
+    }
+
+    function dayCategorySums(segs, apps) {
+        var byGroup = {}
+        for (var i = 0; i < apps.length; i++) {
+            var k = apps[i].groupKey ? apps[i].groupKey : apps[i].appId
+            if (k)
+                byGroup[k] = AppVisual.modelCategory(apps[i])
+        }
+        var out = {}
+        for (var s = 0; s < segs.length; s++) {
+            var row = segs[s]
+            var key = row.groupKey ? row.groupKey : row.appId
+            var cat = byGroup[key] || AppVisual.modelCategory(row) || "其他"
+            var list = row.segments ? row.segments : []
+            for (var j = 0; j < list.length; j++) {
+                var start = list[j].startUnixSec ? Number(list[j].startUnixSec) : 0
+                var end = list[j].endUnixSec ? Number(list[j].endUnixSec) : start
+                while (end > start) {
+                    var d = new Date(start * 1000)
+                    var next = Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0).getTime() / 1000)
+                    var partEnd = Math.min(end, next)
+                    var dk = dateKeyFromUnix(start)
+                    if (!out[dk]) out[dk] = {}
+                    out[dk][cat] = (out[dk][cat] ? out[dk][cat] : 0) + Math.max(0, partEnd - start)
+                    if (partEnd <= start) break
+                    start = partEnd
+                }
+            }
+        }
+        return out
+    }
+
+    function dominantDayCategory(daySums) {
+        var best = "其他", bestSec = -1
+        for (var k in daySums) {
+            if (k === "系统" || k === "其他") continue
+            if (daySums[k] > bestSec) { bestSec = daySums[k]; best = k }
+        }
+        if (bestSec >= 0)
+            return best
+        for (var any in daySums)
+            return any
+        return "其他"
+    }
+
     // 期次窗口（任意周/月/年；offset：0=本期、负=过去）。end 取末秒（闭区间，
     // 与 C++ matchesRange 当前周期 / dailySecondsForRange / *ForWindow 同口径）。
     function periodWindow(r, off) {
@@ -219,16 +298,17 @@ Item {
 
     // 月热力（A-2：按当月最大单日秒数分 5 级 0/≤25/≤50/≤75/>75）。
     // daily 来自 dailySecondsForRange（dayStartUnix）；兼容旧 .day 字段。
-    function computeHeat(daily) {
+    function computeHeat(daily, segs, apps) {
         var maxSec = 0
         for (var i = 0; i < daily.length; i++)
             if ((daily[i].seconds ? daily[i].seconds : 0) > maxSec) maxSec = daily[i].seconds
+        var byDayCategory = dayCategorySums(segs ? segs : [], apps ? apps : [])
         var cells = []
         if (daily.length > 0) {
             var firstDate = new Date((daily[0].dayStartUnix ? daily[0].dayStartUnix : 0) * 1000)
             var firstDow = (firstDate.getDay() + 6) % 7
             for (var p = 0; p < firstDow; p++)
-                cells.push({ level: 0, day: "", seconds: 0, empty: true })
+                cells.push({ level: 0, day: "", seconds: 0, empty: true, category: "其他" })
         }
         for (var j = 0; j < daily.length; j++) {
             var sec = daily[j].seconds ? daily[j].seconds : 0
@@ -239,10 +319,12 @@ Item {
             }
             var day = daily[j].day !== undefined ? daily[j].day
                       : new Date((daily[j].dayStartUnix ? daily[j].dayStartUnix : 0) * 1000).getDate()
-            cells.push({ level: lv, day: day, seconds: sec, empty: false })
+            var dateKey = daily[j].dayStartUnix ? dateKeyFromUnix(daily[j].dayStartUnix) : ""
+            var cat = dateKey && byDayCategory[dateKey] ? dominantDayCategory(byDayCategory[dateKey]) : "其他"
+            cells.push({ level: lv, day: day, seconds: sec, empty: false, category: cat, color: heatColor(cat, lv) })
         }
         while (cells.length > 0 && cells.length % 7 !== 0)
-            cells.push({ level: 0, day: "", seconds: 0, empty: true })
+            cells.push({ level: 0, day: "", seconds: 0, empty: true, category: "其他" })
         return cells
     }
 
@@ -409,7 +491,7 @@ Item {
         vmShareTotalText = hoursText(total)
 
         var cat = categorySums(apps)
-        vmRanking = buildRanking(apps, segs, 6)
+        vmRanking = buildRanking(apps, segs, 4)
 
         // 上一周期环比（WoW/MoM/YoY）+ 专注聚合（焦点类目连续块）。
         var prevWin = periodWindow(r, periodOffset - 1)
@@ -435,7 +517,7 @@ Item {
             var daily = usageStatManager.dailySecondsForRange(win.start, win.end)
             if (!daily) daily = []
             vmBars = []
-            vmHeat = computeHeat(daily)
+            vmHeat = computeHeat(daily, segs, apps)
             vmLine = computeWeekTrendFromDaily(daily)
             vmKeywords = monthKeywords(apps, segs, prevApps, daily)
             vmMetrics = monthMetrics(total, apps, cat, focusDays, prevSec, hasPrev)
@@ -1232,15 +1314,10 @@ Item {
         property string sub: ""
         property var cells: []
         readonly property int weekCount: Math.max(1, Math.ceil((cells ? cells.length : 0) / 7))
-        readonly property real cellSide: Math.max(9, Math.min(15, Math.floor(Math.min((heatBody.width - 26 - Math.max(0, weekCount - 1) * 4) / weekCount,
-                                                                                       (heatBody.height - 6 * 4) / 7))))
-        readonly property var levelColors: [
-            root.nightMode ? "#1F2937" : "#EBEDF0",
-            root.nightMode ? "#0E4429" : "#9BE9A8",
-            root.nightMode ? "#006D32" : "#40C463",
-            root.nightMode ? "#26A641" : "#30A14E",
-            root.nightMode ? "#39D353" : "#216E39"
-        ]
+        readonly property real gridGap: 5
+        readonly property real labelWidth: 24
+        readonly property real cellSide: Math.max(13, Math.min(34, Math.floor(Math.min((heatBody.width - labelWidth - 12 - Math.max(0, weekCount - 1) * gridGap) / weekCount,
+                                                                                      (heatBody.height - 6 * gridGap) / 7))))
         style: ml
         radius: 18
         ColumnLayout {
@@ -1260,19 +1337,19 @@ Item {
                 clip: true
                 Row {
                     anchors.centerIn: parent
-                    spacing: 8
+                    spacing: 12
                     Column {
-                        width: 18
-                        spacing: 4
+                        width: heat.labelWidth
+                        spacing: heat.gridGap
                         Repeater {
                             model: ["一", "", "三", "", "五", "", ""]
                             delegate: Text {
                                 required property var modelData
-                                width: 18
+                                width: heat.labelWidth
                                 height: heat.cellSide
                                 text: modelData
                                 color: ml.textTertiary
-                                font.pixelSize: 10
+                                font.pixelSize: Math.min(12, Math.max(10, heat.cellSide * 0.38))
                                 horizontalAlignment: Text.AlignRight
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -1281,17 +1358,17 @@ Item {
                     Grid {
                         rows: 7
                         flow: Grid.TopToBottom
-                        rowSpacing: 4
-                        columnSpacing: 4
+                        rowSpacing: heat.gridGap
+                        columnSpacing: heat.gridGap
                         Repeater {
                             model: heat.cells
                             delegate: Rectangle {
                                 required property var modelData
                                 width: heat.cellSide
                                 height: heat.cellSide
-                                radius: 3
+                                radius: Math.max(3, heat.cellSide * 0.22)
                                 opacity: modelData.empty ? 0 : 1
-                                color: heat.levelColors[Math.max(0, Math.min(4, modelData.level))]
+                                color: modelData.color ? modelData.color : root.heatColor(modelData.category, modelData.level)
                                 border.width: modelData.level === 0 ? 1 : 0
                                 border.color: root.nightMode ? "#30363D" : "#D0D7DE"
                             }
@@ -1331,7 +1408,7 @@ Item {
                     anchors.right: parent.right
                     spacing: 8
                     Repeater {
-                        model: rl.rows
+                        model: rl.rows ? rl.rows.slice(0, 4) : []
                         delegate: Rectangle {
                             required property var modelData
                             required property int index
@@ -1361,7 +1438,7 @@ Item {
                                     }
                                     Text {
                                         anchors.centerIn: parent
-                                        visible: AppVisual.modelIconSource(modelData) === "" || statsAppIconImage.status === Image.Error
+                                        visible: AppVisual.modelIconSource(modelData) === "" || statsAppIconImage.status !== Image.Ready
                                         text: AppVisual.modelIconLabel(modelData)
                                         color: nightMode ? "#FFFFFF" : "#2D2724"
                                         font.pixelSize: 14; font.weight: 900
