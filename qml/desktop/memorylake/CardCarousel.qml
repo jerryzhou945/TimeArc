@@ -200,7 +200,7 @@ Item {
             border.width: 1
             border.color: carousel.locked ? (carousel.style ? carousel.style.lockBorder : "#ff789f30")
                                           : (carousel.style ? carousel.style.cardBorder : "#ffffff14")
-            opacity: (carousel.locked || carousel.tipShown) ? 1 : 0
+            opacity: (carousel.locked || (carousel.tipShown && !carousel.laneHovered)) ? 1 : 0
             visible: opacity > 0.01
             Behavior on color { ColorAnimation { duration: 180 } }
             Behavior on opacity { NumberAnimation { duration: 260 } }
@@ -293,7 +293,7 @@ Item {
             color: carousel.style ? carousel.style.pillScrim : Qt.rgba(0, 0, 0, 0.18)
             border.width: 1
             border.color: carousel.style ? carousel.style.cardBorder : "#ffffff14"
-            opacity: (carousel.laneHovered && !carousel.locked) ? 1 : 0
+            opacity: (carousel.laneHovered && !carousel.locked) ? 0.92 : 0
             visible: opacity > 0.01
             Behavior on opacity { NumberAnimation { duration: 220 } }
             Row {

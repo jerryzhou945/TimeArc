@@ -305,6 +305,7 @@ Rectangle {
                         TagChip {
                             tag: rowBg.modelData.tag ? rowBg.modelData.tag : "其他"
                             style: panel.style
+                            languageMode: panel.languageMode
                         }
                     }
                 }

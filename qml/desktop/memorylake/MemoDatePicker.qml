@@ -1,4 +1,5 @@
 import QtQuick
+import "../components/I18n.js" as I18n
 
 // 便签截止日期/时间选择器（点开的小日历 + 24h 时:分）。自绘月历网格，不依赖 labs 日历模块，
 // 主题与备忘暗色 chrome 一致。打开时定位到 initialMs（0=当前）。选定→dueSelected(ms)；清除→dueCleared()。
@@ -7,6 +8,7 @@ Item {
     id: dp
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property bool open: false
     property double initialMs: 0
     signal dueSelected(double ms)
@@ -39,6 +41,18 @@ Item {
     function _nextMonth() { if (_m === 11) { _m = 0; _y += 1; } else _m += 1; }
     function _two(n) { return (n < 10 ? "0" : "") + n; }
     function _commit() { dp.dueSelected(new Date(_y, _m, _d, _hh, _mm, 0, 0).getTime()); }
+    function _monthLabel() {
+        if (I18n.langKey(languageMode) === "en") {
+            var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+            return months[_m] + " " + _y
+        }
+        return _y + " 年 " + (_m + 1) + " 月"
+    }
+    function _weekLabels() {
+        return I18n.langKey(languageMode) === "en"
+               ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+               : ["一", "二", "三", "四", "五", "六", "日"]
+    }
 
     readonly property color _ink: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.92)
     readonly property color _muted: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.5)
@@ -129,7 +143,7 @@ Item {
                 }
                 Text {
                     anchors.centerIn: parent
-                    text: dp._y + " 年 " + (dp._m + 1) + " 月"
+                    text: dp._monthLabel()
                     color: dp._ink; font.pixelSize: 15; font.weight: Font.DemiBold
                 }
                 Rectangle {
@@ -145,7 +159,7 @@ Item {
             Row {
                 width: parent.width
                 Repeater {
-                    model: ["一", "二", "三", "四", "五", "六", "日"]
+                    model: dp._weekLabels()
                     delegate: Text {
                         required property string modelData
                         width: col.width / 7; horizontalAlignment: Text.AlignHCenter
@@ -191,7 +205,7 @@ Item {
             // 时间 时:分（24h）。
             Row {
                 width: parent.width; spacing: 8
-                Text { anchors.verticalCenter: parent.verticalCenter; text: "时间"; color: dp._muted; font.pixelSize: 12 }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(dp.languageMode, "时间"); color: dp._muted; font.pixelSize: 12 }
                 TimeBox { from: 0; to: 23; value: dp._hh; onValueModified: (v) => dp._hh = v }
                 Text { anchors.verticalCenter: parent.verticalCenter; text: ":"; color: dp._ink; font.pixelSize: 16 }
                 TimeBox { from: 0; to: 59; value: dp._mm; onValueModified: (v) => dp._mm = v }
@@ -205,7 +219,7 @@ Item {
                     width: 72; height: 34; radius: 10; anchors.left: parent.left
                     color: clearMa.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                     border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
-                    Text { anchors.centerIn: parent; text: "清除"; color: dp._ink; font.pixelSize: 14 }
+                    Text { anchors.centerIn: parent; text: I18n.t(dp.languageMode, "清除"); color: dp._ink; font.pixelSize: 14 }
                     MouseArea { id: clearMa; anchors.fill: parent; hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor; onClicked: dp.dueCleared() }
                 }
@@ -215,7 +229,7 @@ Item {
                         GradientStop { position: 0; color: dp._aqua }
                         GradientStop { position: 1; color: dp._violet }
                     }
-                    Text { anchors.centerIn: parent; text: "确定"
+                    Text { anchors.centerIn: parent; text: I18n.t(dp.languageMode, "确定")
                            color: Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.94); font.pixelSize: 14; font.weight: Font.DemiBold }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: dp._commit() }
                 }

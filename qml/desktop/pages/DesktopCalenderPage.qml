@@ -141,12 +141,29 @@ Item {
 
     function selectedDateLabel() {
         var value = dateFromKey(selectedDateKey)
-        var weeks = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
-        return (value.getMonth() + 1) + "月" + value.getDate() + "日 " + weeks[value.getDay()]
+        var weeks = I18n.langKey(languageMode) === "en"
+                    ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+                    : ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+        return I18n.langKey(languageMode) === "en"
+               ? (monthShortLabel(value.getMonth()) + " " + value.getDate() + ", " + weeks[value.getDay()])
+               : ((value.getMonth() + 1) + "月" + value.getDate() + "日 " + weeks[value.getDay()])
     }
 
     function monthTitle() {
-        return viewedMonth.getFullYear() + "年 " + (viewedMonth.getMonth() + 1) + "月"
+        return I18n.langKey(languageMode) === "en"
+               ? (monthShortLabel(viewedMonth.getMonth()) + " " + viewedMonth.getFullYear())
+               : (viewedMonth.getFullYear() + "年 " + (viewedMonth.getMonth() + 1) + "月")
+    }
+
+    function monthShortLabel(monthIndex) {
+        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+        return months[Math.max(0, Math.min(11, monthIndex))]
+    }
+
+    function monthDayLabel(dateValue) {
+        return I18n.langKey(languageMode) === "en"
+               ? (monthShortLabel(dateValue.getMonth()) + " " + dateValue.getDate())
+               : ((dateValue.getMonth() + 1) + "月" + dateValue.getDate() + "日")
     }
 
     function buildCalendarCells() {
@@ -696,7 +713,9 @@ Item {
 
     // 周计划：选中周 7 天（一→日），每天带当天待办/事件。一次性解析 savedTodos（不逐格重析）。
     function weekDays(key) {
-        var labels = ["一", "二", "三", "四", "五", "六", "日"]
+        var labels = I18n.langKey(languageMode) === "en"
+                     ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                     : ["一", "二", "三", "四", "五", "六", "日"]
         var map = allTodosMap()
         var todayKey = dateKey(todayDate)
         var start = weekStartDate(key)
@@ -718,7 +737,7 @@ Item {
     function weekRangeLabel(key) {
         var s = weekStartDate(key)
         var e = new Date(s.getFullYear(), s.getMonth(), s.getDate() + 6)
-        return (s.getMonth() + 1) + "月" + s.getDate() + "日 – " + (e.getMonth() + 1) + "月" + e.getDate() + "日"
+        return monthDayLabel(s) + " – " + monthDayLabel(e)
     }
 
     function weekViewTaskCount(key) {
@@ -1101,7 +1120,9 @@ Item {
                         rowSpacing: 0
 
                         Repeater {
-                            model: ["一", "二", "三", "四", "五", "六", "日"]
+                            model: I18n.langKey(root.languageMode) === "en"
+                                   ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+                                   : ["一", "二", "三", "四", "五", "六", "日"]
 
                             delegate: Item {
                                 required property string modelData
@@ -1575,6 +1596,7 @@ Item {
                                                     visible: modelData.type !== "event" && modelData.type !== "focus" && modelData.tag !== ""
                                                     tag: modelData.tag
                                                     style: ml
+                                                    languageMode: root.languageMode
                                                 }
                                                 Text {
                                                     Layout.fillWidth: true
@@ -1800,7 +1822,7 @@ Item {
                                     delegate: Row {
                                         required property var modelData
                                         spacing: 5
-                                        TagChip { tag: modelData.tag; style: ml }
+                                        TagChip { tag: modelData.tag; style: ml; languageMode: root.languageMode }
                                         Text {
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: secondsToDisplay(modelData.seconds)
@@ -2146,6 +2168,7 @@ Item {
                                                     TagChip {
                                                         tag: agendaItem.tag
                                                         style: ml
+                                                        languageMode: root.languageMode
                                                     }
 
                                                     // 便签来源标记（紫，呼应便签上的「待办」勾色）：提示该行来自备忘黑板便签。
@@ -2628,6 +2651,7 @@ Item {
                             required property string modelData
                             tag: modelData
                             style: ml
+                            languageMode: root.languageMode
                             big: true
                             selected: root.todoTag === modelData
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor

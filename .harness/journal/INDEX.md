@@ -8,6 +8,11 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-15T07:55:35Z | L3 | qt-log-file-gon... | After scan_qt_log recorded warnings, attempted to read th... | [report](errors/20260615-075535-C-qt-log-file-gone-read.md) |
+| 2026-06-15T07:54:50Z | L2 | qt-warning-215b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260615-075450-C-qt-warning-215b10b9d6.md) |
+| 2026-06-15T07:54:49Z | L2 | qt-warning-215b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260615-075449-C-qt-warning-215b10b9d6.md) |
+| 2026-06-15T07:20:42Z | L3 | powershell-angl... | Used a PowerShell -Filter pattern containing angle bracke... | [report](errors/20260615-072042-C-powershell-angle-filter.md) |
+| 2026-06-15T07:20:04Z | L2 | i18n-residual-c... | English language mode still shows Chinese residual copy a... | [report](errors/20260615-072004-C-i18n-residual-chinese-copy.md) |
 | 2026-06-15T07:03:29Z | L1 | remote-branch-a... | Attempted to delete origin/codex/global-runtime-i18n afte... | [report](errors/20260615-070329-B-remote-branch-already-deleted.md) |
 | 2026-06-15T07:01:58Z | L1 | gh-cli-missing | GitHub CLI was not available while trying to publish the ... | [report](errors/20260615-070158-B-gh-cli-missing.md) |
 | 2026-06-15T06:55:30Z | L1 | build-timeout-g... | build.py timed out after 124 seconds while rebuilding aft... | [report](errors/20260615-065530-B-build-timeout-global-i18n.md) |
