@@ -1193,7 +1193,7 @@ Item {
                                                         }
                                                         Text {
                                                             anchors.centerIn: parent
-                                                            visible: appIconSource.length === 0 || appIconImage.status === Image.Error
+                                                            visible: appIconSource.length === 0 || appIconImage.status !== Image.Ready
                                                             text: AppVisual.modelIconLabel(modelData)
                                                             color: ml.aqua; font.pixelSize: 14; font.weight: Font.DemiBold
                                                         }

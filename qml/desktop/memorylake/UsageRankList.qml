@@ -115,7 +115,7 @@ Item {
                                 }
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: AppVisual.modelIconSource(row.app) === "" || rankIconImage.status === Image.Error
+                                    visible: AppVisual.modelIconSource(row.app) === "" || rankIconImage.status !== Image.Ready
                                     text: AppVisual.modelIconLabel(row.app)
                                     color: rankRoot.style ? rankRoot.style.textPrimary : "#fff"
                                     font.pixelSize: 15

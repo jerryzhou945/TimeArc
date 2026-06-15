@@ -706,7 +706,7 @@ Item {
 
                                                 Text {
                                                     anchors.centerIn: parent
-                                                    visible: modelIconSource(modelData) === "" || homeRankIconImage.status === Image.Error
+                                                    visible: modelIconSource(modelData) === "" || homeRankIconImage.status !== Image.Ready
                                                     text: modelIconLabel(modelData)
                                                     color: nightMode ? "#FFFFFF" : "#2D2724"
                                                     font.pixelSize: 17

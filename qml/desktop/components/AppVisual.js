@@ -72,6 +72,7 @@ function appColor(appId, appName, path) {
     if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#9FC7DE";
     if (containsAny(text, ["discord"])) return "#D9D0F2";
     if (containsAny(text, ["weixin", "wechat"])) return "#CFE8D8";
+    if (containsAny(text, ["wallpaper-engine", "wallpaperengine", "wallpaper engine", "wallpaperui", "wallpaper32", "wallpaper64", "webwallpaper"])) return "#C7E2EC";
     if (containsAny(text, ["qqmusic", "qqmusic.exe"])) return "#DDF1E5";
     if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"])) return "#B9B5C8";
     if (containsAny(text, ["msedge", "edge.exe"])) return "#A8D5C0";

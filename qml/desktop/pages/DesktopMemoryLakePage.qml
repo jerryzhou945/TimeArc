@@ -70,7 +70,7 @@ Item {
 
     // 氛围大背景色：优先用当前 APP 图标主色（多色 blend），缺失退回 appColor 单色。
     readonly property color ambientColor: current
-        ? AppVisual.appColor(current.appId, current.name, current.path)
+        ? AppVisual.modelAppColor(current)
         : (ml ? ml.aqua : "#9FE7EE")
     readonly property var ambientColors: (current && current.iconColors && current.iconColors.length > 0)
         ? current.iconColors
