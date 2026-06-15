@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import "../components/I18n.js" as I18n
 
 // 文字层（v88 .memo-text-layer）。暗玻璃卡 + 可编辑文本；默认点击=落光标编辑，**按住 Alt 拖动**
 // （DragHandler acceptedModifiers，非 Alt 时事件归 TextArea 编辑——避开 v88 reload 后不可拖的回归）；
@@ -9,6 +10,7 @@ Item {
     id: tl
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property bool selected: false
     property bool editing: false
     property string text: "输入文字"

@@ -117,6 +117,7 @@ Item {
 
     function tr(source) { return I18n.t(languageMode, source) }
     function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
+    onLanguageModeChanged: refreshOverview()
 
     // F2「关于与开源许可」：应用版本（MVP 常量，对齐顶层 CMakeLists project(time-arc VERSION 0.1)；
     // 真值访问器须在既有类读 PROJECT_VERSION，但该宏未注入编译期→需动冻结 src/CMakeLists，故 MVP 用常量。
@@ -274,13 +275,17 @@ Item {
     function refreshOverview() {
         if (usageStatManager && usageStatManager.foregroundSegmentsForRange) {
             var segs = usageStatManager.foregroundSegmentsForRange("day")
-            todaySwitchesText = (segs && segs.length > 0) ? (computeSwitchCount(segs) + " 次") : "—"
+            var switches = (segs && segs.length > 0) ? computeSwitchCount(segs) : 0
+            todaySwitchesText = (segs && segs.length > 0)
+                                ? sentence("switchCount", {count: switches}, switches + " 次")
+                                : "—"
         }
         var doc = _getStr("memoryLakeMemoDoc", "")
         if (doc && doc.length > 0) {
             try {
                 var o = JSON.parse(doc)
-                if (o && o.pages && o.pages.length !== undefined) memoPagesText = o.pages.length + " 页"
+                if (o && o.pages && o.pages.length !== undefined)
+                    memoPagesText = sentence("memoPagePlain", {count: o.pages.length}, o.pages.length + " 页")
             } catch (e) { /* 解析失败 → 维持「—」，不造假 */ }
         }
         // 今日番茄完成数（PomodoroWidget._recordCompletion 写 date-stamped pomodoro_today）。
@@ -289,7 +294,9 @@ Item {
         if (praw && praw.length > 0) {
             try {
                 var p = JSON.parse(praw)
-                pomodoroTodayText = (p && p.d === todayKey && p.n > 0) ? (p.n + " 个") : "0 个"
+                pomodoroTodayText = (p && p.d === todayKey && p.n > 0)
+                                    ? sentence("itemCount", {count: p.n}, p.n + " 个")
+                                    : sentence("itemCount", {count: 0}, "0 个")
             } catch (e) { /* 维持「—」 */ }
         }
     }
@@ -896,7 +903,7 @@ Item {
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 8
-                                    Text { text: "强调色"; color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                    Text { text: root.tr("强调色"); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
                                     Row {
                                         spacing: 12
                                         Repeater {
@@ -921,14 +928,14 @@ Item {
                                                     onClicked: {
                                                         root.accentColor = modelData.value
                                                         root._setStr("accent_color", modelData.value)
-                                                        root.showToast("强调色已更新")
+                                                        root.showToast(root.tr("强调色已更新"))
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                     Text {
-                                        text: "强调色已保存；全局上色将在后续阶段开放。"
+                                        text: root.tr("强调色已保存；全局上色将在后续阶段开放。")
                                         color: ml.textTertiary; font.pixelSize: 10
                                     }
                                 }
@@ -942,10 +949,10 @@ Item {
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         spacing: 1
-                                        Text { text: "白天模式色调"; color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        Text { text: root.tr("白天模式色调"); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
                                         Text {
                                             Layout.fillWidth: true
-                                            text: "切换成日间雾面玻璃色调：亮背景、深色文字、低饱和蓝紫光效。"
+                                            text: root.tr("切换成日间雾面玻璃色调：亮背景、深色文字、低饱和蓝紫光效。")
                                             color: ml.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap
                                         }
                                     }
@@ -988,7 +995,7 @@ Item {
                                         model: [root.tr("首页 Dashboard"), root.tr("备忘录"), root.tr("记忆回顾")]
                                         property var _vals: ["memorylake", "memo", "recap"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.landingPage))
-                                        onActivated: function (i) { root.landingPage = _vals[i]; root._setStr("landing_page", _vals[i]); root.showToast("默认页面已保存") }
+                                        onActivated: function (i) { root.landingPage = _vals[i]; root._setStr("landing_page", _vals[i]); root.showToast(root.tr("默认页面已保存")) }
                                     }
                                 }
                                 SettingRow {
@@ -1019,7 +1026,7 @@ Item {
                                             root.languageMode = _vals[i];
                                             root._setStr("language_mode", _vals[i]);
                                             root.languageChanged(_vals[i]);
-                                            root.showToast("界面语言已保存");
+                                            root.showToast(root.tr("界面语言已保存"));
                                         }
                                     }
                                 }
@@ -1031,7 +1038,7 @@ Item {
                                         model: [root.tr("24 小时制"), root.tr("12 小时制")]
                                         property var _vals: ["24", "12"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.timeFormat))
-                                        onActivated: function (i) { root.timeFormat = _vals[i]; root._setStr("time_format", _vals[i]); root.showToast("时间格式已保存") }
+                                        onActivated: function (i) { root.timeFormat = _vals[i]; root._setStr("time_format", _vals[i]); root.showToast(root.tr("时间格式已保存")) }
                                     }
                                 }
                             }
@@ -1164,11 +1171,11 @@ Item {
 
                                     PlaceholderNote {
                                         visible: root.appList.length === 0
-                                        text: "暂无采集到的应用记录（采集后将在此逐项显隐）。"
+                                        text: root.tr("暂无采集到的应用记录（采集后将在此逐项显隐）。")
                                     }
                                     PlaceholderNote {
                                         visible: root.appList.length > 0 && root.shownApps.length === 0
-                                        text: "没有匹配「" + root.appSearchQuery + "」的应用。"
+                                        text: root.sentence("noMatchingApps", {query: root.appSearchQuery}, "没有匹配「" + root.appSearchQuery + "」的应用。")
                                     }
 
                                     GridLayout {
@@ -1302,7 +1309,7 @@ Item {
                                     }
                                 }
                                 Text {
-                                    text: "本地占用 " + root.bytesText(root.journalBytes + root.cacheBytes) + "（相对 100MB 参考）"
+                                    text: root.sentence("localUsageSize", {size: root.bytesText(root.journalBytes + root.cacheBytes)}, "本地占用 " + root.bytesText(root.journalBytes + root.cacheBytes) + "（相对 100MB 参考）")
                                     color: ml.textTertiary; font.pixelSize: 10
                                 }
 
@@ -1346,7 +1353,7 @@ Item {
                                         radius: 11
                                         implicitWidth: permT.implicitWidth + 22; implicitHeight: 26
                                         color: ml.accentSoft; border.width: 1; border.color: ml.accentSoftBorder
-                                        Text { id: permT; anchors.centerIn: parent; text: "就绪"; color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        Text { id: permT; anchors.centerIn: parent; text: root.tr("就绪"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
                                     }
                                 }
                                 SettingRow {
@@ -1403,10 +1410,10 @@ Item {
                                     rowSub: "新开 / 重置番茄钟的初始分钟数（备忘内仍可临时调整）。"
                                     GlassComboBox {
                                         style: ml
-                                        model: ["15 分钟", "25 分钟", "30 分钟", "45 分钟", "60 分钟"]
+                                        model: [root.tr("15 分钟"), root.tr("25 分钟"), root.tr("30 分钟"), root.tr("45 分钟"), root.tr("60 分钟")]
                                         property var _vals: ["15", "25", "30", "45", "60"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.pomodoroDuration))
-                                        onActivated: function (i) { root.pomodoroDuration = _vals[i]; root._setStr("pomodoro_duration", _vals[i]); root.showToast("默认专注时长已保存") }
+                                        onActivated: function (i) { root.pomodoroDuration = _vals[i]; root._setStr("pomodoro_duration", _vals[i]); root.showToast(root.tr("默认专注时长已保存")) }
                                     }
                                 }
                                 SettingRow {
@@ -1416,8 +1423,8 @@ Item {
                                         style: ml
                                         implicitWidth: 160
                                         text: root.pomodoroTitle
-                                        placeholderText: "专注一会儿"
-                                        onEditingFinished: { root.pomodoroTitle = text; root._setStr("pomodoro_title", text); root.showToast("默认标题已保存") }
+                                        placeholderText: root.tr("专注一会儿")
+                                        onEditingFinished: { root.pomodoroTitle = text; root._setStr("pomodoro_title", text); root.showToast(root.tr("默认标题已保存")) }
                                     }
                                 }
                                 SettingRow {
@@ -1441,8 +1448,8 @@ Item {
                                     spacing: 8
                                     Repeater {
                                         model: [
-                                            { which: "memo", d: "打开 / 关闭备忘录" },
-                                            { which: "pomo", d: "打开 / 关闭番茄钟" }
+                                            { which: "memo", d: root.tr("打开 / 关闭备忘录") },
+                                            { which: "pomo", d: root.tr("打开 / 关闭番茄钟") }
                                         ]
                                         delegate: Rectangle {
                                             required property var modelData
@@ -1470,9 +1477,9 @@ Item {
                                     }
                                     Repeater {
                                         model: [
-                                            { k: "Del", d: "删除选中便签 / 对象" },
-                                            { k: "Esc", d: "关闭回顾 / 设置 / 清空选区" },
-                                            { k: "Wheel", d: "切换卡牌 / 滚动列表" }
+                                            { k: "Del", d: root.tr("删除选中便签 / 对象") },
+                                            { k: "Esc", d: root.tr("关闭回顾 / 设置 / 清空选区") },
+                                            { k: "Wheel", d: root.tr("切换卡牌 / 滚动列表") }
                                         ]
                                         delegate: Rectangle {
                                             required property var modelData
@@ -1548,7 +1555,7 @@ Item {
                                         id: dbLocCol
                                         anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
                                         spacing: 3
-                                        Text { text: "当前位置"; color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
+                                        Text { text: root.tr("当前位置"); color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
                                         Text {
                                             text: root.dbLocationText()
                                             color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold

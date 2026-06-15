@@ -276,6 +276,7 @@ Item {
                 opacity: 1 - root.briefCollapse
                 visible: opacity > 0.01
                 style: ml
+                languageMode: root.languageMode
                 model: root.todayConclusion
                 todoRemaining: calendarSync.remaining
                 transformOrigin: Item.Top

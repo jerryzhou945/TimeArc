@@ -81,6 +81,10 @@ Item {
     // ============================================================
     function rangeWord(r) { return r === "week" ? tr("周") : r === "month" ? tr("月") : tr("年") }
     function rangeLabel(r) { return r === "week" ? tr("本周") : r === "month" ? tr("本月") : tr("本年") }
+    function isEnglish() { return I18n.langKey(languageMode) === "en" }
+    function weekdayShortLabels() { return isEnglish() ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["周一", "周二", "周三", "周四", "周五", "周六", "周日"] }
+    function heatWeekLabels() { return isEnglish() ? ["Mon", "", "Wed", "", "Fri", "", ""] : ["一", "", "三", "", "五", "", ""] }
+    function monthShortLabels() { return isEnglish() ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"] }
 
     function secondsToDisplay(seconds) {
         var total = Math.max(0, Math.floor(seconds ? seconds : 0))
@@ -221,15 +225,15 @@ Item {
             var d1 = new Date(now.getFullYear(), now.getMonth() + off + 1, 1, 0, 0, 0, 0)
             return { start: Math.floor(d0.getTime() / 1000), end: Math.floor(d1.getTime() / 1000) - 1,
                      y: d0.getFullYear(), m: d0.getMonth() + 1,
-                     label: d0.getFullYear() + "年" + (d0.getMonth() + 1) + "月", kind: "month" }
+                     label: isEnglish() ? (monthShortLabels()[d0.getMonth()] + " " + d0.getFullYear()) : (d0.getFullYear() + "年" + (d0.getMonth() + 1) + "月"), kind: "month" }
         } else {
             var y = now.getFullYear() + off
             var y0 = new Date(y, 0, 1, 0, 0, 0, 0), y1 = new Date(y + 1, 0, 1, 0, 0, 0, 0)
             return { start: Math.floor(y0.getTime() / 1000), end: Math.floor(y1.getTime() / 1000) - 1,
-                     y: y, label: y + "年", kind: "year" }
+                     y: y, label: isEnglish() ? String(y) : (y + "年"), kind: "year" }
         }
     }
-    function fmtMD(d) { return (d.getMonth() + 1) + "月" + d.getDate() + "日" }
+    function fmtMD(d) { return isEnglish() ? (monthShortLabels()[d.getMonth()] + " " + d.getDate()) : ((d.getMonth() + 1) + "月" + d.getDate() + "日") }
     // 已过天数（本期到今天为止；过去期 = 整窗），供日均。
     function periodElapsedDays(win) {
         var nowSec = Math.floor(Date.now() / 1000)
@@ -273,7 +277,7 @@ Item {
         if (!usageStatManager || !usageStatManager.dailySecondsForRange) return []
         var series = usageStatManager.dailySecondsForRange(win.start, win.end)
         if (!series) series = []
-        var labels = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+        var labels = weekdayShortLabels()
         var maxSec = 1
         for (var i = 0; i < series.length; i++)
             if ((series[i].seconds ? series[i].seconds : 0) > maxSec) maxSec = series[i].seconds
@@ -290,7 +294,7 @@ Item {
         if (!usageStatManager || !usageStatManager.monthlySecondsForYear) return []
         var series = usageStatManager.monthlySecondsForYear(year)
         if (!series) series = []
-        var labels = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
+        var labels = monthShortLabels()
         var maxSec = 1
         for (var i = 0; i < series.length; i++)
             if ((series[i].seconds ? series[i].seconds : 0) > maxSec) maxSec = series[i].seconds
@@ -403,7 +407,7 @@ Item {
         var chg = changeStr(total, prevSec, hasPrev)
         return [
             { title: "本周总使用", sub: "较上周", badge: "周", value: hoursText(total),
-              change: chg.change ? (chg.change + " 较上周") : "", changeDown: chg.down },
+              change: chg.change ? (chg.change + " " + tr("较上周")) : "", changeDown: chg.down },
             { title: "日均使用", sub: "按已过天数", badge: "周", value: hoursText(total / elapsed), change: "", changeDown: false },
             { title: "最长连续使用", sub: lu ? (lu.appName ? lu.appName : "—") : "—", badge: "周",
               value: lu ? hoursText(lu.longestSec) : "—", change: "", changeDown: false },
@@ -417,7 +421,7 @@ Item {
         var crt = total > 0 ? Math.round(100 * ((cat["创作"] ? cat["创作"] : 0) + (cat["笔记"] ? cat["笔记"] : 0)) / total) : 0
         return [
             { title: "本月总使用", sub: "较上月", badge: "月", value: hoursText(total),
-              change: chg.change ? (chg.change + " 较上月") : "", changeDown: chg.down },
+              change: chg.change ? (chg.change + " " + tr("较上月")) : "", changeDown: chg.down },
             { title: "专注天数", sub: "开发/办公/笔记", badge: "月", value: sentence("dayCount", {count: focusDays}, focusDays + " 天"), change: "", changeDown: false },
             { title: "娱乐占比", sub: "游戏 + 视频", badge: "月", value: total > 0 ? (ent + "%") : "—", change: "", changeDown: false },
             { title: "创作占比", sub: "创作 + 笔记", badge: "月", value: total > 0 ? (crt + "%") : "—", change: "", changeDown: false }
@@ -431,7 +435,7 @@ Item {
         var chg = changeStr(total, prevSec, hasPrev)
         return [
             { title: "年度总使用", sub: "较上年", badge: "年", value: hoursText(total),
-              change: chg.change ? (chg.change + " 较上年") : "", changeDown: chg.down },
+              change: chg.change ? (chg.change + " " + tr("较上年")) : "", changeDown: chg.down },
             { title: "最活跃月份", sub: "按月度时长", badge: "年", value: (peakIdx >= 0 && peak > 0) ? bars[peakIdx].label : "—", change: "", changeDown: false },
             { title: "年度专注", sub: "开发/办公/笔记", badge: "年", value: focusSeconds > 0 ? hoursText(focusSeconds) : "—", change: "", changeDown: false },
             { title: "打开应用", sub: "使用过的应用", badge: "年", value: apps.length > 0 ? sentence("appCount", {count: apps.length}, apps.length + " 个") : "—", change: "", changeDown: false }
@@ -443,14 +447,14 @@ Item {
         var label = rangeLabel(r)
         if (total <= 0)
             return sentence("insightNoData", {range: label}, label + "记录较少，暂不下结论。")
-        var topName = (share.length > 0) ? share[0].name : tr("多个应用")
+        var topName = (share.length > 0) ? I18n.category(languageMode, share[0].name) : tr("多个应用")
         var topPercent = (share.length > 0) ? (share[0].percent + "%") : ""
         var s = sentence("insightMain", {
             range: label,
             app: topName,
             percent: topPercent,
             time: hoursText(total)
-        }, label + "你主要把时间花在" + (share.length > 0 ? ("「" + share[0].name + "」（" + share[0].percent + "%）") : "多个应用上") + "，共计 " + hoursText(total) + "。")
+        }, label + "你主要把时间花在" + (share.length > 0 ? ("「" + I18n.category(languageMode, share[0].name) + "」（" + share[0].percent + "%）") : "多个应用上") + "，共计 " + hoursText(total) + "。")
         var ent = (cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)
         if (total > 0 && ent / total > 0.4) s += " " + tr("其中娱乐时间占比偏高。")
         return s
@@ -1360,7 +1364,7 @@ Item {
                         width: heat.labelWidth
                         spacing: heat.gridGap
                         Repeater {
-                            model: ["一", "", "三", "", "五", "", ""]
+                            model: root.heatWeekLabels()
                             delegate: Text {
                                 required property var modelData
                                 width: heat.labelWidth

@@ -260,7 +260,7 @@ Item {
     }
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 240, oh: 0,
-                             otitle: "", ocontent: "", otext: "输入文字", osign: "",
+                             otitle: "", ocontent: "", otext: I18n.t(memo.languageMode, "输入文字"), osign: "",
                              ots: 0, odone: false, odue: 0,
                              otag: "", oisTodo: false, onid: "" });
         memo.selectedObject = objectModel.count - 1;
@@ -804,7 +804,7 @@ Item {
             Item {
                 anchors.fill: parent
                 property alias inner: stickyInner
-                StickyNote { id: stickyInner; style: memo.style }
+                StickyNote { id: stickyInner; style: memo.style; languageMode: memo.languageMode }
             }
         }
         Component {
@@ -812,7 +812,7 @@ Item {
             Item {
                 anchors.fill: parent
                 property alias inner: textInner
-                TextLayer { id: textInner; style: memo.style }
+                TextLayer { id: textInner; style: memo.style; languageMode: memo.languageMode }
             }
         }
 
@@ -1066,6 +1066,7 @@ Item {
         id: duePicker
         z: 4560               // 居中弹层，盖过工具条
         style: memo.style
+        languageMode: memo.languageMode
         property int targetIndex: -1
         function _setDue(ms) {
             if (targetIndex < 0) return;
@@ -1154,6 +1155,7 @@ Item {
         y: memo.chromeShown ? 18 : -38
         Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
         style: memo.style
+        languageMode: memo.languageMode
         pageLabels: memo.pageLabels
         pageThumbs: memo.pageThumbs          // gap #8
         currentIndex: memo.currentPage
@@ -1183,7 +1185,7 @@ Item {
         Text {
             id: hintText
             anchors.centerIn: parent
-            text: memo.toolHints[toolbar.currentTool] || ""
+            text: I18n.t(memo.languageMode, memo.toolHints[toolbar.currentTool] || "")
             color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
             font.pixelSize: 13
         }

@@ -16,6 +16,7 @@ Item {
 
     readonly property string currentText:
         (model && currentIndex >= 0 && currentIndex < model.length) ? ("" + model[currentIndex]) : ""
+    function closePopup() { pop.close() }
 
     implicitHeight: 34
     implicitWidth: Math.max(popupMinWidth, fieldText.implicitWidth + 52)
@@ -110,7 +111,7 @@ Item {
                     elide: Text.ElideRight
                 }
                 HoverHandler { id: optHov; cursorShape: Qt.PointingHandCursor }
-                TapHandler { onTapped: { combo.activated(opt.index); pop.close() } }   // 受控：不自写 currentIndex
+                TapHandler { onTapped: { combo.activated(opt.index); combo.closePopup() } }   // 受控：不自写 currentIndex
             }
         }
     }
