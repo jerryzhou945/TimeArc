@@ -424,6 +424,22 @@ QString majorKeyword(const QString& peakPeriod, qint64 topLongestSec,
   return categoryKeyword(topCat);
 }
 
+QString nonRepeatingKeyword(const QString& period, qint64 longestSec,
+                            const QString& cat) {
+  const QString raw = majorKeyword(period, longestSec, cat);
+  const QString pw = periodWord(period);
+  if (!period.isEmpty() && (raw == period || raw == pw)) {
+    return longestSec >= 60 * 60 ? QStringLiteral("沉浸") : categoryKeyword(cat);
+  }
+  return raw;
+}
+
+QString combinedKeyword(const QString& cat, const QString& keyword) {
+  const QString catKw = categoryKeyword(cat);
+  if (keyword.trimmed().isEmpty() || keyword == catKw) return catKw;
+  return QStringLiteral("%1 / %2").arg(catKw, keyword);
+}
+
 // 把所有月度会话段拍平成 24 小时直方图（按时长加权）。
 QVector<qint64> monthHourHistogram(const QVariantList& monthSegments) {
   QVector<qint64> hist(24, 0);
@@ -1331,14 +1347,14 @@ QVariantMap DailyCardService::memoryLakeRecap(const QVariantList& monthApps,
     const QVariantList segs = seg.value(QStringLiteral("segments")).toList();
     const QString period = dominantPeriod(segs);
     const QString mood = moodWord(cat, period, longestSec, sec);
-    const QString protagKw = majorKeyword(period, longestSec, cat);
+    const QString protagKw = nonRepeatingKeyword(period, longestSec, cat);
 
     const QString title = QStringLiteral("%1：%2").arg(name, mood);
     QString subtitle = QStringLiteral("%1 本月使用约 %2").arg(name, timeText);
     if (!period.isEmpty()) subtitle += QStringLiteral("，多集中在%1").arg(period);
     if (longestSec > 0) subtitle += QStringLiteral("，最长连续 %1").arg(formatDuration(longestSec));
     subtitle += QStringLiteral("。");
-    const QString kw = QStringLiteral("%1 / %2").arg(categoryKeyword(cat), protagKw);
+    const QString kw = combinedKeyword(cat, protagKw);
 
     QVariantList stats;
     stats.append(QVariantMap{{QStringLiteral("label"), QStringLiteral("月度时长")}, {QStringLiteral("value"), timeText}});
