@@ -6,6 +6,7 @@ Item {
     id: carousel
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property var apps: []
     property int selectedIndex: 0
     property int flippedIndex: -1
@@ -151,6 +152,7 @@ Item {
                         required property int index
                         required property var modelData
                         style: carousel.style
+                        languageMode: carousel.languageMode
                         app: modelData
                         selected: index === carousel.selectedIndex
                         flipped: index === carousel.flippedIndex

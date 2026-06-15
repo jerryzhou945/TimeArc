@@ -18,6 +18,7 @@ Item {
     property color themePanelColor: "#FBF8F4"
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
+    property string languageMode: "zh"
 
     // —— 当前选中的记忆 ——
     property int selectedIndex: 0
@@ -70,7 +71,7 @@ Item {
 
     // 氛围大背景色：优先用当前 APP 图标主色（多色 blend），缺失退回 appColor 单色。
     readonly property color ambientColor: current
-        ? AppVisual.appColor(current.appId, current.name, current.path)
+        ? AppVisual.modelAppColor(current)
         : (ml ? ml.aqua : "#9FE7EE")
     readonly property var ambientColors: (current && current.iconColors && current.iconColors.length > 0)
         ? current.iconColors
@@ -230,6 +231,7 @@ Item {
                         UsageRankList {
                             anchors.fill: parent
                             style: ml
+                            languageMode: root.languageMode
                             apps: root.apps
                             ranking: root.ranking
                             selectedIndex: root.selectedIndex
@@ -324,6 +326,7 @@ Item {
                     id: centerCarousel
                     anchors.fill: parent
                     style: ml
+                    languageMode: root.languageMode
                     apps: root.apps
                     selectedIndex: root.selectedIndex
                     flippedIndex: root.flippedIndex

@@ -12,6 +12,7 @@
 #include "services/adapters/apps/qq_adapter.h"
 #include "services/adapters/apps/spotify_adapter.h"
 #include "services/adapters/apps/vscode_adapter.h"
+#include "services/adapters/apps/wallpaper_engine_adapter.h"
 #include "services/adapters/apps/wechat_adapter.h"
 
 namespace TimeArcAdapters {
@@ -19,7 +20,7 @@ namespace TimeArcAdapters {
 inline QVector<AdapterDefinition> registeredDesktopAppAdapters() {
   return {chromeAppAdapter(), edgeAppAdapter(), vscodeAppAdapter(),
           spotifyAppAdapter(), wechatAppAdapter(), qqAppAdapter(),
-          jianyingAppAdapter()};
+          jianyingAppAdapter(), wallpaperEngineAppAdapter()};
 }
 
 }  // namespace TimeArcAdapters

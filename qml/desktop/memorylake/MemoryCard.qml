@@ -8,6 +8,7 @@ Item {
     id: card
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property var app
     property bool selected: false
     property bool flipped: false
@@ -170,7 +171,7 @@ Item {
                         spacing: 8
                         Text {
                             width: parent.width - (card.selected ? 36 : 26)
-                            text: card.app ? card.app.name : ""
+                            text: card.app ? AppVisual.modelDisplayNameForLanguage(card.app, card.languageMode) : ""
                             color: card.style ? card.style.textPrimary : "#fff"
                             font.pixelSize: card.selected ? 25 : 15
                             font.bold: true
@@ -285,9 +286,7 @@ Item {
                 // 淡背景：APP 专属 appColor 低透明晕染（取代游戏海报），仍是 APP 专属色调。
                 Rectangle {
                     anchors.fill: parent
-                    color: AppVisual.appColor(card.app ? card.app.appId : "",
-                                              card.app ? card.app.name : "",
-                                              card.app ? card.app.path : "")
+                    color: card.app ? AppVisual.modelAppColor(card.app) : AppVisual.appColor("", "", "")
                     opacity: 0.16
                 }
                 Rectangle {

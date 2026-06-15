@@ -82,7 +82,7 @@ Item {
     // 缺图标兜底：显示名首字（仍坐在 appColor 底上，不破版）。
     Text {
         anchors.centerIn: parent
-        visible: genCover.iconSrc === "" || coverIcon.status === Image.Error
+        visible: genCover.iconSrc === "" || coverIcon.status !== Image.Ready
         text: genCover.iconLabel
         color: Qt.rgba(1, 1, 1, genCover.night ? 0.9 : 0.78)
         font.pixelSize: Math.max(18, genCover.side * 0.6)

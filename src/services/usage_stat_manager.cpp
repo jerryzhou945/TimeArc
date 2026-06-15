@@ -267,6 +267,9 @@ QString appDisplayName(const QString& appId, const QString& appName,
   if (containsAny(text, {"weixin", "wechat"})) return "微信";
   if (containsAny(text, {"jianyingpro", "jianying", "capcut"}))
     return QString::fromUtf8(u8"剪映专业版");
+  if (containsAny(text, {"wallpaperengine", "wallpaper engine", "wallpaperui",
+                         "wallpaper32", "wallpaper64", "webwallpaper"}))
+    return "Wallpaper Engine";
   if (displayExeName == "qq.exe") return "QQ";
   if (displayExeName == "tim.exe") return "TIM";
   if (containsAny(text, {"qqscreenshot", "qqscreentshot", "qqscreen",
@@ -309,6 +312,9 @@ QString appGroupKey(const QString& appId, const QString& appName,
     return "app:wechat";
   if (containsAny(text, {"jianyingpro", "jianying", "capcut"}))
     return "app:jianying-pro";
+  if (containsAny(text, {"wallpaperengine", "wallpaper engine", "wallpaperui",
+                         "wallpaper32", "wallpaper64", "webwallpaper"}))
+    return "app:wallpaper-engine";
   if (containsAny(text, {"qqscreenshot", "qqscreentshot", "qqscreen",
                          "qqscreenclip", "qqcapture"}))
     return "app:qq-screenshot";
@@ -423,6 +429,7 @@ bool isSettingsListVisibleActivity(const QString& groupKey,
       QStringLiteral("app:spotify"),
       QStringLiteral("app:zoom"),
       QStringLiteral("app:jianying-pro"),
+      QStringLiteral("app:wallpaper-engine"),
   };
   if (kPublicApps.contains(groupKey)) return true;
 
@@ -559,7 +566,9 @@ QString classifyActivityImpl(const QString& groupKey, const QString& appId,
   if (containsAny(id, {"photoshop", "illustrator", "premiere", "afterfx",
                        "lightroom", "figma", "blender", "obs64", "obs.exe",
                        "capcut", "jianying", "davinci", "resolve.exe",
-                       "audition", "coreldraw", "3dsmax", "maya.exe"}))
+                       "audition", "coreldraw", "3dsmax", "maya.exe",
+                       "wallpaperengine", "wallpaper engine", "wallpaperui",
+                       "wallpaper32", "wallpaper64", "webwallpaper"}))
     return QStringLiteral("创作");
 
   if (containsAny(id, {"notion", "obsidian", "typora", "evernote", "youdao",

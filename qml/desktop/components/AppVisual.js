@@ -72,6 +72,7 @@ function appColor(appId, appName, path) {
     if (containsAny(text, ["code.exe", "visual studio code", "microsoft vs code"])) return "#9FC7DE";
     if (containsAny(text, ["discord"])) return "#D9D0F2";
     if (containsAny(text, ["weixin", "wechat"])) return "#CFE8D8";
+    if (containsAny(text, ["wallpaper-engine", "wallpaperengine", "wallpaper engine", "wallpaperui", "wallpaper32", "wallpaper64", "webwallpaper"])) return "#C7E2EC";
     if (containsAny(text, ["qqmusic", "qqmusic.exe"])) return "#DDF1E5";
     if (containsAny(text, ["steam.exe", "steam\\steam", "steam/steam"])) return "#B9B5C8";
     if (containsAny(text, ["msedge", "edge.exe"])) return "#A8D5C0";
@@ -164,6 +165,39 @@ function modelDisplayName(row) {
     if (row.appName && row.appName.length > 0)
         return row.appName;
     return "";
+}
+
+function englishDisplayName(row) {
+    var name = modelDisplayName(row);
+    var identity = modelIdentity(row);
+    var text = (identity + " " + name + " " + (row && row.appName ? row.appName : "") + " " + (row && row.path ? row.path : "")).toLowerCase();
+
+    if (containsAny(text, ["app:wechat", "weixin", "wechat", "微信"]))
+        return "WeChat";
+    if (containsAny(text, ["app:jianying-pro", "jianyingpro", "jianying", "capcut", "剪映"]))
+        return "CapCut";
+    if (containsAny(text, ["app:wallpaper-engine", "wallpaperengine", "wallpaper engine", "wallpaperui", "wallpaper32", "wallpaper64"]))
+        return "Wallpaper Engine";
+    if (containsAny(text, ["app:google-chrome", "chrome.exe", "google chrome", "chrome"]))
+        return "Google Chrome";
+    if (containsAny(text, ["app:vscode", "visual studio code", "vscode", "code.exe"]))
+        return "VS Code";
+    if (containsAny(text, ["app:microsoft-edge", "msedge", "edge.exe"]))
+        return "Microsoft Edge";
+    if (containsAny(text, ["app:netease-cloud-music", "cloudmusic", "netease", "网易云"]))
+        return "NetEase Cloud Music";
+    if (containsAny(text, ["app:file-explorer", "explorer.exe", "文件资源管理器"]))
+        return "File Explorer";
+    if (containsAny(text, ["app:terminal", "windowsterminal", "powershell", "cmd.exe"]))
+        return "Terminal";
+    if (containsAny(text, ["qq截图"]))
+        return "QQ Screenshot";
+
+    return name;
+}
+
+function modelDisplayNameForLanguage(row, languageMode) {
+    return languageMode === "en" ? englishDisplayName(row) : modelDisplayName(row);
 }
 
 function modelCategory(row) {

@@ -7,6 +7,7 @@ Item {
     id: rankRoot
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property var apps: []
     property var ranking: []
     property int selectedIndex: 0
@@ -115,7 +116,7 @@ Item {
                                 }
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: AppVisual.modelIconSource(row.app) === "" || rankIconImage.status === Image.Error
+                                    visible: AppVisual.modelIconSource(row.app) === "" || rankIconImage.status !== Image.Ready
                                     text: AppVisual.modelIconLabel(row.app)
                                     color: rankRoot.style ? rankRoot.style.textPrimary : "#fff"
                                     font.pixelSize: 15
@@ -131,7 +132,7 @@ Item {
                                     width: parent.width
                                     Text {
                                         width: parent.width - timeText.width
-                                        text: AppVisual.modelDisplayName(row.app)
+                                        text: AppVisual.modelDisplayNameForLanguage(row.app, rankRoot.languageMode)
                                         color: rankRoot.style ? Qt.rgba(rankRoot.style.textPrimary.r, rankRoot.style.textPrimary.g, rankRoot.style.textPrimary.b, rankRoot.style.night ? 0.82 : 1.0) : "#fff"
                                         font.pixelSize: 12
                                         elide: Text.ElideRight
