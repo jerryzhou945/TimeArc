@@ -8,6 +8,8 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-15T07:03:29Z | L1 | remote-branch-a... | Attempted to delete origin/codex/global-runtime-i18n afte... | [report](errors/20260615-070329-B-remote-branch-already-deleted.md) |
+| 2026-06-15T07:01:58Z | L1 | gh-cli-missing | GitHub CLI was not available while trying to publish the ... | [report](errors/20260615-070158-B-gh-cli-missing.md) |
 | 2026-06-15T06:55:30Z | L1 | build-timeout-g... | build.py timed out after 124 seconds while rebuilding aft... | [report](errors/20260615-065530-B-build-timeout-global-i18n.md) |
 | 2026-06-15T06:51:18Z | L2 | qt-warning-7dbd... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/components/I18... | [report](errors/20260615-065118-C-qt-warning-7dbd33b2ee.md) |
 | 2026-06-15T06:51:17Z | L2 | qt-warning-220c... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260615-065117-C-qt-warning-220cf9a712.md) |
