@@ -1,4 +1,5 @@
-import QtQuick
+﻿import QtQuick
+import "../components/I18n.js" as I18n
 
 // 月度回顾单屏：kicker + 类型化布局 + 入场转场（zoom/wipe/rise/rotate/ticket）+ 内滚动。
 // 1:1 对应设计稿 .summary-slide / 各 data-transition。
@@ -8,6 +9,7 @@ Item {
     property MemoryLakeStyle style
     property var slideData
     property var apps: []
+    property string languageMode: "zh"
     property bool active: false
     // 由 overlay 注入 = active && opened：用于在"打开瞬间"为当前屏触发入场（active 在关闭时也可能为真）。
     property bool playing: false
@@ -43,6 +45,8 @@ Item {
         kickerRise.restart()
         bodyRise.restart()
     }
+
+    function tr(source) { return I18n.t(languageMode, source) }
 
     ParallelAnimation {
         id: enterAnim
@@ -99,7 +103,7 @@ Item {
                 Text {
                     id: kickerText
                     anchors.centerIn: parent
-                    text: slide.slideData ? slide.slideData.kicker : ""
+                    text: slide.slideData ? slide.tr(slide.slideData.kicker) : ""
                     color: slide.style ? slide.style.accentText : "#9ef1ff"
                     font.pixelSize: 13
                 }
@@ -162,8 +166,8 @@ Item {
         border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
         Column {
             anchors.fill: parent; anchors.margins: 12; spacing: 4
-            Text { text: k; color: slide.tTertiary; font.pixelSize: 12 }
-            Text { text: v; color: slide.tPrimary; font.pixelSize: 20; font.bold: true }
+            Text { text: slide.tr(k); color: slide.tTertiary; font.pixelSize: 12 }
+            Text { text: slide.tr(v); color: slide.tPrimary; font.pixelSize: 20; font.bold: true }
         }
     }
 
@@ -175,8 +179,8 @@ Item {
         id: coverBody
         Column {
             spacing: 20
-            BigTitle { text: slide.slideData.title; font.pixelSize: 54 }
-            SubText { text: slide.slideData.subtitle }
+            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 54 }
+            SubText { text: slide.tr(slide.slideData.subtitle) }
             Row {
                 spacing: 18
                 Repeater {
@@ -188,7 +192,7 @@ Item {
                         border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
                         Column {
                             anchors.fill: parent; anchors.margins: 18; spacing: 8
-                            Text { text: modelData.label; color: slide.tSecondary; font.pixelSize: 13 }
+                            Text { text: slide.tr(modelData.label); color: slide.tSecondary; font.pixelSize: 13 }
                             Text { text: modelData.value; color: slide.tPrimary; font.pixelSize: 28; font.bold: true }
                         }
                     }
@@ -202,8 +206,8 @@ Item {
         id: monthMapBody
         Column {
             spacing: 20
-            BigTitle { text: slide.slideData.title }
-            SubText { text: slide.slideData.subtitle }
+            BigTitle { text: slide.tr(slide.slideData.title) }
+            SubText { text: slide.tr(slide.slideData.subtitle) }
             Row {
                 spacing: 10
                 Repeater {
@@ -258,14 +262,14 @@ Item {
                 }
                 Column {
                     anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 22; spacing: 8
-                    Text { text: slide.slideData.posterTitle; color: "#fff"; font.pixelSize: 36; font.bold: true }
-                    Text { text: slide.slideData.posterSub; color: "#ffffffb0"; font.pixelSize: 14 }
+                    Text { text: slide.tr(slide.slideData.posterTitle); color: "#fff"; font.pixelSize: 36; font.bold: true }
+                    Text { text: slide.tr(slide.slideData.posterSub); color: "#ffffffb0"; font.pixelSize: 14 }
                 }
             }
             Column {
                 width: 420; spacing: 18
-                BigTitle { width: 420; text: slide.slideData.title; font.pixelSize: 40 }
-                SubText { width: 420; text: slide.slideData.subtitle }
+                BigTitle { width: 420; text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
+                SubText { width: 420; text: slide.tr(slide.slideData.subtitle) }
                 Flow {
                     width: 420; spacing: 12
                     Repeater { model: slide.slideData.stats; delegate: StatChip { required property var modelData; k: modelData.label; v: modelData.value } }
@@ -281,8 +285,8 @@ Item {
             spacing: 24
             Column {
                 width: 430; spacing: 18
-                BigTitle { width: 430; text: slide.slideData.title; font.pixelSize: 44 }
-                SubText { width: 430; text: slide.slideData.subtitle }
+                BigTitle { width: 430; text: slide.tr(slide.slideData.title); font.pixelSize: 44 }
+                SubText { width: 430; text: slide.tr(slide.slideData.subtitle) }
                 RoundedFrame {
                     width: 430; height: 250; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
@@ -300,7 +304,7 @@ Item {
                         color: slide.style ? slide.style.cardBg : "#ffffff12"
                         border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
                         Column { anchors.fill: parent; anchors.margins: 16; spacing: 4
-                            Text { text: modelData.label; color: slide.tTertiary; font.pixelSize: 13 }
+                            Text { text: slide.tr(modelData.label); color: slide.tTertiary; font.pixelSize: 13 }
                             Text { text: modelData.value; color: slide.tPrimary; font.pixelSize: 26; font.bold: true }
                         }
                     }
@@ -314,8 +318,8 @@ Item {
         id: orbitBody
         Column {
             spacing: 18
-            BigTitle { text: slide.slideData.title; font.pixelSize: 40 }
-            SubText { text: slide.slideData.subtitle }
+            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
+            SubText { text: slide.tr(slide.slideData.subtitle) }
             Item {
                 width: parent.width; height: 360
                 RoundedFrame {
@@ -348,7 +352,7 @@ Item {
         id: articleBody
         Column {
             spacing: 18
-            BigTitle { text: slide.slideData.title; font.pixelSize: 40 }
+            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
             Row {
                 spacing: 24
                 Rectangle {
@@ -356,8 +360,8 @@ Item {
                     color: slide.style ? slide.style.cardBg : "#ffffff12"
                     border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
                     Column { anchors.fill: parent; anchors.margins: 24; spacing: 12
-                        Text { width: parent.width; text: slide.slideData.articleTitle; color: slide.tPrimary; font.pixelSize: 26; font.bold: true; wrapMode: Text.WordWrap }
-                        Text { width: parent.width; text: slide.slideData.articleBody; color: slide.tSecondary; font.pixelSize: 15; lineHeight: 1.6; wrapMode: Text.WordWrap }
+                        Text { width: parent.width; text: slide.tr(slide.slideData.articleTitle); color: slide.tPrimary; font.pixelSize: 26; font.bold: true; wrapMode: Text.WordWrap }
+                        Text { width: parent.width; text: slide.tr(slide.slideData.articleBody); color: slide.tSecondary; font.pixelSize: 15; lineHeight: 1.6; wrapMode: Text.WordWrap }
                     }
                 }
                 RoundedFrame {
@@ -374,8 +378,8 @@ Item {
         id: timelineBody
         Column {
             spacing: 18
-            BigTitle { text: slide.slideData.title; font.pixelSize: 40 }
-            SubText { text: slide.slideData.subtitle }
+            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
+            SubText { text: slide.tr(slide.slideData.subtitle) }
             Column {
                 width: parent.width; spacing: 15
                 Repeater {
@@ -389,7 +393,7 @@ Item {
                             anchors.fill: parent; anchors.margins: 16; spacing: 12
                             Row {
                                 width: parent.width
-                                Text { width: parent.width / 2; text: modelData.tag; color: slide.tSecondary; font.pixelSize: 13 }
+                Text { width: parent.width / 2; text: slide.tr(modelData.tag); color: slide.tSecondary; font.pixelSize: 13 }
                                 Text { width: parent.width / 2; horizontalAlignment: Text.AlignRight; text: modelData.apps; color: slide.tPrimary; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight }
                             }
                             Item {
@@ -419,8 +423,8 @@ Item {
         id: trendBody
         Column {
             spacing: 18
-            BigTitle { text: slide.slideData.title; font.pixelSize: 40 }
-            SubText { text: slide.slideData.subtitle }
+            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
+            SubText { text: slide.tr(slide.slideData.subtitle) }
             Rectangle {
                 width: parent.width; height: 230; radius: 28
                 color: slide.style ? slide.style.recapStage : Qt.rgba(1, 1, 1, 0.3)
@@ -465,7 +469,7 @@ Item {
         id: keywordsBody
         Column {
             spacing: 20
-            BigTitle { text: slide.slideData.title; font.pixelSize: 40 }
+            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
             Flow {
                 width: parent.width; spacing: 14
                 Repeater {
@@ -477,14 +481,14 @@ Item {
                         color: major ? (slide.style ? slide.style.accentSoft : "#63eaff20") : (slide.style ? slide.style.cardBg : "#ffffff12")
                         border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
                         Text {
-                            id: kw; anchors.centerIn: parent; text: modelData
+                    id: kw; anchors.centerIn: parent; text: slide.tr(modelData)
                             color: slide.tPrimary; font.bold: true
                             font.pixelSize: major ? 30 : 15
                         }
                     }
                 }
             }
-            SubText { text: slide.slideData.subtitle }
+            SubText { text: slide.tr(slide.slideData.subtitle) }
         }
     }
 
@@ -493,7 +497,7 @@ Item {
         id: comparisonBody
         Column {
             spacing: 20
-            BigTitle { text: slide.slideData.title; font.pixelSize: 40 }
+            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
             Flow {
                 width: parent.width; spacing: 16
                 Repeater {
@@ -505,7 +509,7 @@ Item {
                         border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
                         Column {
                             anchors.fill: parent; anchors.margins: 20; spacing: 10
-                            Text { text: modelData.label; color: slide.tSecondary; font.pixelSize: 14 }
+                    Text { text: slide.tr(modelData.label); color: slide.tSecondary; font.pixelSize: 14 }
                             Text { text: modelData.change; color: modelData.down ? (slide.style ? slide.style.changeDown : "#FF8FB5") : (slide.style ? slide.style.aqua : "#8df3ff"); font.pixelSize: 34; font.bold: true }
                             Text { width: parent.width; text: modelData.desc; color: slide.tTertiary; font.pixelSize: 12; wrapMode: Text.WordWrap }
                         }
@@ -520,8 +524,8 @@ Item {
         id: ticketBody
         Column {
             spacing: 20
-            BigTitle { text: slide.slideData.title; font.pixelSize: 44 }
-            SubText { text: slide.slideData.subtitle }
+            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 44 }
+            SubText { text: slide.tr(slide.slideData.subtitle) }
             Rectangle {
                 width: 300; height: 360; radius: 22
                 rotation: -2

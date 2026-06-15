@@ -1,4 +1,5 @@
 import QtQuick
+import "../components/I18n.js" as I18n
 
 // 中栏卡牌轮盘：水平卡轨 + 选中居中 + 滚轮切换 + 翻面锁定 + wheel-tip + 锁定徽标。
 // 1:1 对应设计稿 .cards-zone / .cards / wheel 逻辑。
@@ -206,8 +207,8 @@ Item {
             Text {
                 id: tipText
                 anchors.centerIn: parent
-                text: carousel.locked ? "已锁定：取消翻面后才能切换卡牌"
-                                      : "滚轮 / 左侧排行切换当前 APP，悬停预览"
+                text: carousel.locked ? I18n.t(carousel.languageMode, "已锁定：取消翻面后才能切换卡牌")
+                                      : I18n.t(carousel.languageMode, "滚轮 / 左侧排行切换当前 APP，悬停预览")
                 color: carousel.locked ? (carousel.style ? carousel.style.lockText : "#ffeecd")
                                        : (carousel.style ? carousel.style.textTertiary : "#888")
                 font.pixelSize: 12
@@ -306,7 +307,7 @@ Item {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "滚轮切换 · 点击展开记忆"
+                    text: I18n.t(carousel.languageMode, "滚轮切换 · 点击展开记忆")
                     color: carousel.style ? carousel.style.textSecondary : "#bbb"
                     font.pixelSize: 12
                 }
@@ -328,7 +329,7 @@ Item {
             Text {
                 id: lockText
                 anchors.centerIn: parent
-                text: "当前记忆已展开 · 再次点击卡牌返回"
+                text: I18n.t(carousel.languageMode, "当前记忆已展开 · 再次点击卡牌返回")
                 color: carousel.style ? carousel.style.lockText : "#ffeecd"
                 font.pixelSize: 12
             }

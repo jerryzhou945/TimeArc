@@ -8,6 +8,12 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-15T06:55:30Z | L1 | build-timeout-g... | build.py timed out after 124 seconds while rebuilding aft... | [report](errors/20260615-065530-B-build-timeout-global-i18n.md) |
+| 2026-06-15T06:51:18Z | L2 | qt-warning-7dbd... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/components/I18... | [report](errors/20260615-065118-C-qt-warning-7dbd33b2ee.md) |
+| 2026-06-15T06:51:17Z | L2 | qt-warning-220c... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260615-065117-C-qt-warning-220cf9a712.md) |
+| 2026-06-15T06:51:17Z | L2 | qt-warning-4107... | [WARNING] qrc:/qt/qml/time_arc/qml/main.qml:71 - qrc:/qt/... | [report](errors/20260615-065117-C-qt-warning-41071e1aed.md) |
+| 2026-06-15T06:51:17Z | L2 | qt-warning-882f... | [WARNING] :0 - QQmlApplicationEngine failed to load compo... | [report](errors/20260615-065117-C-qt-warning-882fece6aa.md) |
+| 2026-06-15T06:48:19Z | L3 | ui-rule-line-bu... | harness_check failed because .harness/rules/04-ui-convent... | [report](errors/20260615-064819-B-ui-rule-line-budget.md) |
 | 2026-06-15T05:46:42Z | L3 | remote-branch-a... | After PR #32 merge, git push origin --delete fix/ui-stats... | [report](errors/20260615-054642-C-remote-branch-already-deleted.md) |
 | 2026-06-15T05:33:14Z | L2 | qt-warning-2d52... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260615-053314-C-qt-warning-2d5254925d.md) |
 | 2026-06-15T05:31:18Z | L3 | process-check-n... | After stopping TimeArc, the follow-up Get-Process check r... | [report](errors/20260615-053118-C-process-check-nonzero.md) |

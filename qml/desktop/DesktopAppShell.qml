@@ -3,10 +3,10 @@ import QtQuick.Window
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
-import QtQuick.Window
 import time_arc
 import "memorylake"
 import "components/AppVisual.js" as AppVisual
+import "components/I18n.js" as I18n
 
 Item {
     id: root
@@ -47,6 +47,9 @@ Item {
     // =========================
     property bool nightMode: settingsRepository ? settingsRepository.getBool("night_mode", false) : false
     property string languageMode: settingsRepository ? settingsRepository.getValue("language_mode", "zh") : "zh"
+
+    function tr(source) { return I18n.t(languageMode, source) }
+    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
 
     // =========================
     // 背景图路径
@@ -566,7 +569,7 @@ Item {
 
                     // 翻面锁定时的禁用提示（对齐 v88：title「当前卡牌翻面时不可打开备忘录」）。
                     ToolTip.visible: navMouse.containsMouse && memoDisabled
-                    ToolTip.text: "当前卡牌翻面时不可打开备忘录"
+                    ToolTip.text: root.tr("当前卡牌翻面时不可打开备忘录")
 
                     Behavior on color {
                         ColorAnimation { duration: 140 }
@@ -594,18 +597,22 @@ Item {
                             spacing: 1
 
                             Text {
-                                text: modelData.title
+                                text: root.tr(modelData.title)
                                 color: isSel ? appTextPrimary : appTextSecondary
                                 font.pixelSize: 16
                                 font.weight: Font.Medium
+                                elide: Text.ElideRight
+                                width: sidebarCollapsed ? 0 : 120
                             }
 
                             Text {
-                                text: modelData.subtitle ? modelData.subtitle : ""
+                                text: modelData.subtitle ? root.tr(modelData.subtitle) : ""
                                 visible: text.length > 0
                                 color: appTextSecondary
                                 font.pixelSize: 10
                                 opacity: 0.7
+                                elide: Text.ElideRight
+                                width: sidebarCollapsed ? 0 : 120
                             }
                         }
                     }
@@ -732,7 +739,7 @@ Item {
 
                         Text {
                             visible: !sidebarCollapsed
-                            text: "收起侧栏"
+                            text: sidebarCollapsed ? root.tr("展开侧栏") : root.tr("收起侧栏")
                             color: appTextPrimary
                             font.pixelSize: 14
                             font.bold: true
@@ -807,23 +814,31 @@ Item {
                         spacing: 8
 
                         Text {
-                            text: "记忆湖陪伴"
+                            text: root.tr("记忆湖陪伴")
                             color: appTextPrimary
                             font.pixelSize: 15
                             font.bold: true
+                            elide: Text.ElideRight
+                            width: parent.width
                         }
 
                         Text {
-                            text: nightMode ? "夜晚模式中" : "白天模式中"
+                            text: nightMode ? root.tr("夜晚模式中") : root.tr("白天模式中")
                             color: nightMode ? appNightAccentText : "#2F7A5B"
                             font.pixelSize: 22
                             font.bold: true
+                            elide: Text.ElideRight
+                            width: parent.width
                         }
 
                         Text {
-                            text: nightMode ? "今晚也慢慢积累。" : "慢慢积累，也很好。"
+                            text: nightMode ? root.tr("今晚也慢慢积累。") : root.tr("慢慢积累，也很好。")
                             color: appTextSecondary
                             font.pixelSize: 13
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                            width: parent.width
                         }
                     }
                 }
@@ -966,6 +981,7 @@ Item {
         id: memoOverlay
         anchors.fill: parent
         style: mlStyle
+        languageMode: root.languageMode
         backdropSource: desktopStage
         store: settingsRepository    // UI 私有持久化（通用 key-value；非服务磁盘契约）
     }
@@ -1000,8 +1016,10 @@ Item {
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "时间的弧线 · 慢慢积累，很好"; color: appTextSecondary; font.pixelSize: 14
-            }
+            text: root.tr("时间的弧线 · 慢慢积累，很好"); color: appTextSecondary; font.pixelSize: 14
+            elide: Text.ElideRight
+            width: Math.min(parent.width, 360)
+        }
         }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: welcomeOverlay.dismiss() }
         function dismiss() { if (done || welcomeOut.running) return; welcomeSeq.stop(); welcomeOut.start(); }
@@ -1034,7 +1052,7 @@ Item {
         function onPomodoroFinished(title) {
             if (!root.notifyEnabled || (root.Window.window && root.Window.window.active)) return;
             if (notifierLoader.item)
-                notifierLoader.item.notify("番茄钟完成", (title && title.length > 0 ? title : "专注") + " · 这一程结束了");
+            notifierLoader.item.notify(root.tr("番茄钟完成"), (title && title.length > 0 ? title : root.tr("专注")) + " · " + root.tr("这一程结束了"));
         }
     }
 

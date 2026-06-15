@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
+import "../components/I18n.js" as I18n
 
 // v88「设置」页（暗玻璃全幅复刻 / 原地重皮 A-NAME）。规范：
 //   docs/settings-functional-replication.md / settings-render-pipeline-replication.md /
@@ -113,6 +114,9 @@ Item {
     // 快捷键自定义（#3）：备忘 / 番茄全局键（单字母；Shell 响应式读，hotkeysChanged 通知）。
     property string memoHotkeyKey: "N"
     property string pomodoroHotkeyKey: "P"
+
+    function tr(source) { return I18n.t(languageMode, source) }
+    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
 
     // F2「关于与开源许可」：应用版本（MVP 常量，对齐顶层 CMakeLists project(time-arc VERSION 0.1)；
     // 真值访问器须在既有类读 PROJECT_VERSION，但该宏未注入编译期→需动冻结 src/CMakeLists，故 MVP 用常量。
@@ -350,8 +354,8 @@ Item {
         appSearchField.text = ""
         if (key === "export") refreshOverview()   // 进数据概览前刷新（番茄今日完成数等无变更信号，主动重读）
     }
-    function showToast(msg) { settingsToast.message = msg; settingsToast.shown = true; toastTimer.restart() }
-    function onOff(v) { return v ? "功能已开启" : "功能已关闭" }
+    function showToast(msg) { settingsToast.message = tr(msg); settingsToast.shown = true; toastTimer.restart() }
+    function onOff(v) { return v ? tr("功能已开启") : tr("功能已关闭") }
 
     // 自定义快捷键（#3）：单字母；备忘 / 番茄不能同键；写 KV + 发 hotkeysChanged 让 Shell 重读。
     function setHotkey(which, k) {
@@ -565,21 +569,21 @@ Item {
 
     FileDialog {
         id: importDialog
-        title: "导入设置 JSON"
+        title: root.tr("导入设置 JSON")
         nameFilters: ["JSON 文件 (*.json)", "所有文件 (*)"]
         onAccepted: root.doImport(selectedFile)
     }
 
     FileDialog {
         id: restoreDialog
-        title: "选择数据库备份"
+        title: root.tr("选择数据库备份")
         nameFilters: ["数据库备份 (*.db)", "所有文件 (*)"]
         onAccepted: root.onRestoreFileChosen(selectedFile)
     }
 
     FolderDialog {
         id: dbFolderDialog
-        title: "选择数据库存放目录"
+        title: root.tr("选择数据库存放目录")
         onAccepted: root.onDbFolderChosen(selectedFolder)
     }
 
@@ -650,10 +654,10 @@ Item {
                         font.pixelSize: 11; font.weight: 800; font.letterSpacing: 0.7
                         font.capitalization: Font.AllUppercase
                     }
-                    Text { text: "设置"; color: ml.textPrimary; font.pixelSize: 22; font.weight: 800; font.letterSpacing: -0.4 }
+                    Text { text: root.tr("设置"); color: ml.textPrimary; font.pixelSize: 22; font.weight: 800; font.letterSpacing: 0 }
                     Text {
                         Layout.fillWidth: true
-                        text: "管理 TimeArc 的追踪、隐私、备忘录与视觉体验。"
+                        text: root.tr("管理 TimeArc 的追踪、隐私、备忘录与视觉体验。")
                         color: ml.textSecondary; font.pixelSize: 12; wrapMode: Text.WordWrap; lineHeight: 1.35
                     }
                 }
@@ -668,7 +672,7 @@ Item {
                     Text {
                         id: protoText
                         anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
-                        text: "数据来源说明：设置项保存在本机 SQLite；使用数据来自系统采集的本地记录，全部离线、不上传。"
+                        text: root.tr("数据来源说明：设置项保存在本机 SQLite；使用数据来自系统采集的本地记录，全部离线、不上传。")
                         color: ml.protoAmberText; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.35
                     }
                 }
@@ -705,10 +709,12 @@ Item {
                                 }
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    text: modelData.label
+                                    text: root.tr(modelData.label)
                                     color: root.currentTab === modelData.key ? ml.textPrimary : ml.textSecondary
                                     font.pixelSize: 13
                                     font.weight: root.currentTab === modelData.key ? Font.DemiBold : Font.Normal
+                                    width: 150
+                                    elide: Text.ElideRight
                                 }
                             }
                             MouseArea {
@@ -743,10 +749,10 @@ Item {
                                     required property var modelData
                                     Layout.fillWidth: true
                                     spacing: 8
-                                    Text { text: modelData.t; color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold }
+                                    Text { text: root.tr(modelData.t); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold }
                                     Text {
                                         Layout.fillWidth: true
-                                        text: modelData.d; color: ml.textTertiary; font.pixelSize: 11
+                                        text: root.tr(modelData.d); color: ml.textTertiary; font.pixelSize: 11
                                         elide: Text.ElideRight
                                     }
                                 }
@@ -763,8 +769,8 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 0
-                            Text { text: "本地数据已保护"; color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
-                            Text { text: "离线 · 无需登录"; color: ml.textTertiary; font.pixelSize: 10 }
+                            Text { text: root.tr("本地数据已保护"); color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                            Text { text: root.tr("离线 · 无需登录"); color: ml.textTertiary; font.pixelSize: 10 }
                         }
                     }
                 }
@@ -794,12 +800,14 @@ Item {
                         Layout.fillWidth: true
                         spacing: 2
                         Text {
-                            text: root.topCopy[root.currentTab].t
-                            color: ml.textPrimary; font.pixelSize: 22; font.weight: 800; font.letterSpacing: -0.4
+                            text: root.tr(root.topCopy[root.currentTab].t)
+                            color: ml.textPrimary; font.pixelSize: 22; font.weight: 800; font.letterSpacing: 0
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: root.topCopy[root.currentTab].d
+                            text: root.tr(root.topCopy[root.currentTab].d)
                             color: ml.textSecondary; font.pixelSize: 13; elide: Text.ElideRight
                         }
                     }
@@ -838,7 +846,7 @@ Item {
                         Layout.preferredWidth: root.sideCollapsed ? 160 : 240
                         style: ml
                         search: true
-                        placeholderText: "搜索设置项..."
+                        placeholderText: root.tr("搜索设置项...")
                         onTextEdited: function (t) { root.searchQuery = t }
                     }
 
@@ -977,7 +985,7 @@ Item {
                                     rowSub: "启动后显示哪个页面。"
                                     GlassComboBox {
                                         style: ml
-                                        model: ["首页 Dashboard", "备忘录", "记忆回顾"]
+                                        model: [root.tr("首页 Dashboard"), root.tr("备忘录"), root.tr("记忆回顾")]
                                         property var _vals: ["memorylake", "memo", "recap"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.landingPage))
                                         onActivated: function (i) { root.landingPage = _vals[i]; root._setStr("landing_page", _vals[i]); root.showToast("默认页面已保存") }
@@ -1001,10 +1009,10 @@ Item {
 
                                 SettingRow {
                                     rowTitle: "界面语言"
-                                    rowSub: "切换后软件名会按语言显示；界面完整译文将在后续阶段开放。"
+                                    rowSub: "切换后会立即更新全局界面文案、软件名和主要提示。"
                                     GlassComboBox {
                                         style: ml
-                                        model: ["简体中文", "English", "日本語"]
+                                        model: [root.tr("简体中文"), root.tr("English"), root.tr("日本語")]
                                         property var _vals: ["zh", "en", "ja"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.languageMode))
                                         onActivated: function (i) {
@@ -1020,7 +1028,7 @@ Item {
                                     rowSub: "影响时间图和统计记录。"
                                     GlassComboBox {
                                         style: ml
-                                        model: ["24 小时制", "12 小时制"]
+                                        model: [root.tr("24 小时制"), root.tr("12 小时制")]
                                         property var _vals: ["24", "12"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.timeFormat))
                                         onActivated: function (i) { root.timeFormat = _vals[i]; root._setStr("time_format", _vals[i]); root.showToast("时间格式已保存") }
@@ -1079,7 +1087,7 @@ Item {
                                     rowSub: "无键鼠输入超过该时间即结束当前前台计时（应用并重启采集后生效）。"
                                     GlassComboBox {
                                         style: ml
-                                        model: ["5 分钟", "10 分钟", "15 分钟", "30 分钟"]
+                                        model: [root.tr("5 分钟"), root.tr("10 分钟"), root.tr("15 分钟"), root.tr("30 分钟")]
                                         property var _vals: ["5", "10", "15", "30"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.idleTimeout))
                                         onActivated: function (i) { root.idleTimeout = _vals[i]; root._setStr("idle_timeout", _vals[i]); root.showToast(root._writeServiceConfig() ? "空闲超时已保存（应用并重启采集后生效）" : "已保存到本机，但服务配置写入失败（usage_config.json 不可写或已损坏）") }
@@ -1142,14 +1150,14 @@ Item {
                                             Layout.fillWidth: true
                                             style: ml
                                             search: true
-                                            placeholderText: "搜索应用…"
+                                            placeholderText: root.tr("搜索应用…")
                                             onTextEdited: function (t) { root.appSearchQuery = t }
                                         }
                                         Text {
                                             Layout.alignment: Qt.AlignVCenter
                                             text: root.appSearchQuery.length > 0
-                                                  ? ("搜索 " + root.filteredApps.length + " / 共 " + root.appList.length)
-                                                  : ("展示 " + root.filteredApps.length + " / 共 " + root.appList.length)
+                                                  ? root.sentence("searchAppsCount", {shown: root.filteredApps.length, total: root.appList.length}, "搜索 " + root.filteredApps.length + " / 共 " + root.appList.length)
+                                                  : root.sentence("showAppsCount", {shown: root.filteredApps.length, total: root.appList.length}, "展示 " + root.filteredApps.length + " / 共 " + root.appList.length)
                                             color: ml.textTertiary; font.pixelSize: 11
                                         }
                                     }
@@ -1226,7 +1234,7 @@ Item {
 
                                     GhostBtn {
                                         visible: root.appSearchQuery.length === 0 && root.filteredApps.length > root.appCap
-                                        label: root.appsExpanded ? "收起" : ("显示全部 " + root.filteredApps.length + " 个应用")
+                                        label: root.appsExpanded ? "收起" : root.sentence("showAllApps", {count: root.filteredApps.length}, "显示全部 " + root.filteredApps.length + " 个应用")
                                         onTapped: root.appsExpanded = !root.appsExpanded
                                     }
                                 }
@@ -1914,11 +1922,16 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 2
-                    Text { text: card.cardTitle; color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                    Text {
+                        text: root.tr(card.cardTitle)
+                        color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                    }
                     Text {
                         visible: card.cardDesc !== ""
                         Layout.fillWidth: true
-                        text: card.cardDesc; color: ml.textTertiary; font.pixelSize: 12; wrapMode: Text.WordWrap
+                        text: root.tr(card.cardDesc); color: ml.textTertiary; font.pixelSize: 12; wrapMode: Text.WordWrap
                     }
                 }
             }
@@ -1937,10 +1950,10 @@ Item {
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 1
-            Text { text: srow.rowTitle; color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; Layout.fillWidth: true; wrapMode: Text.WordWrap }
+            Text { text: root.tr(srow.rowTitle); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; Layout.fillWidth: true; wrapMode: Text.WordWrap }
             Text {
                 visible: srow.rowSub !== ""
-                text: srow.rowSub; color: ml.textTertiary; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap
+                text: root.tr(srow.rowSub); color: ml.textTertiary; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap
             }
         }
         Item {
@@ -1960,7 +1973,7 @@ Item {
 
     // 诚实占位说明（无后端/下一阶段项；不放假数据 G6）
     component PlaceholderNote: Rectangle {
-        property alias text: noteText.text
+        property string text: ""
         Layout.fillWidth: true
         Layout.preferredHeight: noteText.implicitHeight + 24
         radius: 14
@@ -1969,6 +1982,7 @@ Item {
         Text {
             id: noteText
             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
+            text: root.tr(parent.text)
             color: ml.textTertiary; font.pixelSize: 12; wrapMode: Text.WordWrap; lineHeight: 1.35
         }
     }
@@ -1987,8 +2001,8 @@ Item {
             anchors.leftMargin: 14
             anchors.verticalCenter: parent.verticalCenter
             spacing: 3
-            Text { text: tileLabel; color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
-            Text { text: tileValue; color: ml.textPrimary; font.pixelSize: 21; font.weight: 900; font.letterSpacing: -0.4 }
+            Text { text: root.tr(tileLabel); color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
+            Text { text: tileValue; color: ml.textPrimary; font.pixelSize: 21; font.weight: 900; font.letterSpacing: 0 }
         }
     }
 
@@ -1999,7 +2013,7 @@ Item {
         property bool primary: false
         property bool danger: false
         signal tapped()
-        implicitWidth: gbtnLabel.implicitWidth + 28
+        implicitWidth: Math.min(Math.max(gbtnLabel.implicitWidth + 28, 72), 190)
         height: 38
         radius: 13
         color: primary ? "transparent"
@@ -2018,10 +2032,13 @@ Item {
         Text {
             id: gbtnLabel
             anchors.centerIn: parent
-            text: gbtn.label
+            width: parent.width - 18
+            text: root.tr(gbtn.label)
             color: gbtn.primary ? ml.calBtnInk
                    : (gbtn.danger ? ml.dangerText : ml.calGlyph)
             font.pixelSize: 13; font.weight: Font.DemiBold
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
         }
         MouseArea {
             id: gbtnMa
@@ -2048,7 +2065,7 @@ Item {
         border.color: capturing ? ml.accentSoftBorder : ml.calGhostBorder
         Text {
             anchors.centerIn: parent
-            text: kc.capturing ? "按键…" : kc.keyText
+            text: kc.capturing ? root.tr("按键…") : kc.keyText
             color: kc.capturing ? ml.aqua : ml.textPrimary
             font.pixelSize: 12; font.weight: 900
         }

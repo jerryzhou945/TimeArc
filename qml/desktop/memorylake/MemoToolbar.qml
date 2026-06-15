@@ -1,4 +1,5 @@
 import QtQuick
+import "../components/I18n.js" as I18n
 
 // 备忘工具条（v88 .memo-toolbar）。居中悬浮玻璃药丸，overlay 开时从上方 10px 滑入。
 // 工具 note|text|pen|eraser 互斥，再点当前工具取消(→none)；退出键触发关闭。
@@ -8,6 +9,7 @@ Item {
     id: bar
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property bool shown: false            // overlay 开 → 滑入
     property bool revealed: true          // 灵动岛是否展开；收起时关闭悬停跟踪，
                                           // 避免栏体动画移出指针（无 hoverLeave）导致次高亮/抬升卡住
@@ -223,7 +225,7 @@ Item {
                 Text {
                     id: exitText
                     anchors.centerIn: parent
-                    text: "退出"
+                    text: I18n.t(bar.languageMode, "退出")
                     font.pixelSize: 14
                     color: eHover.containsMouse ? "#FFD2D2" : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.86)
                 }
@@ -269,7 +271,7 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "粗细"
+                text: I18n.t(bar.languageMode, "粗细")
                 color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.5)
                 font.pixelSize: 12
             }

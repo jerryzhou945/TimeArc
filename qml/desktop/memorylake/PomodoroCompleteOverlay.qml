@@ -1,4 +1,5 @@
 import QtQuick
+import "../components/I18n.js" as I18n
 
 // 番茄完成全屏庆祝弹层（v88 .pomodoro-complete-overlay）。盖在一切之上：随机文案变体、
 // 旋转 conic 光环（分段 Canvas 环近似，避免外部 GraphicalEffects 模块）、大像素番茄弹跳、
@@ -8,6 +9,7 @@ Item {
     id: comp
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     property string variant: "FOCUS COMPLETE"
     property bool shown: false
     signal closed()
@@ -83,7 +85,7 @@ Item {
         }
         Text {
             anchors { horizontalCenter: parent.horizontalCenter; bottom: closeBtn.top; bottomMargin: 14 }
-            text: "一段专注完成了"
+                text: I18n.t(comp.languageMode, "一段专注完成了")
             color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.6)
             font.pixelSize: 14
         }
@@ -115,7 +117,7 @@ Item {
             width: 132; height: 38; radius: 12
             color: closeH.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06)
             border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20)
-            Text { anchors.centerIn: parent; text: "回到备忘录"
+        Text { anchors.centerIn: parent; text: I18n.t(comp.languageMode, "回到备忘录")
                    color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.9); font.pixelSize: 14 }
             MouseArea {
                 id: closeH; anchors.fill: parent; hoverEnabled: true

@@ -35,9 +35,9 @@ desktop theme plumbing into mobile pages.
 
 ## 3. Language
 
-- QML comments, property names for UI strings, and visible text are Chinese.
-  The project is Chinese-first. Do not switch to English without a charter
-  amendment.
+- QML comments, UI-string property names, and source/fallback visible text are
+  Chinese; runtime translation helpers may present English/Japanese (or later)
+  from user settings when Chinese remains fallback and layouts stay stable.
 - C++ identifiers (symbols, method names) are English.
 - Inline comments in C++/C/Swift may be mixed (the current codebase is
   predominantly Chinese with English section banners). Continue that style.

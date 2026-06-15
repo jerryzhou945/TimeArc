@@ -77,9 +77,14 @@ with day and night modes.
   defensively so a missing plugin can't break the app). The **idle timeout** and
   **true track pause** now take real effect: they write `usage_config.json` and an
   "应用并重启采集" action restarts the service to apply them (H5). Items still without a
-  backend (real history deletion, real-time backdrop blur, global accent/i18n) stay
+  backend (real history deletion, real-time backdrop blur, global accent color) stay
   honest placeholders rather than faked; the page is read-only over the usage journal
   and never bypasses the disk contract.
+- **Runtime languages** — the settings language switch now drives global UI copy
+  at runtime. Chinese remains the source/fallback language, English is covered
+  across the main desktop flow, and Japanese has core UI coverage with fallback
+  for less common strings. The switch is presentation-only and does not change
+  service records, SQLite schema, or user-entered content.
 - **Desktop shell** — a Qt Quick interface with full day/night theming.
   The left nav follows the design order **首页 (Memory Lake) · 日历 · 统计 ·
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.

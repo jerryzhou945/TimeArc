@@ -1,4 +1,5 @@
 import QtQuick
+import "../components/I18n.js" as I18n
 
 // Calendar Sync：今日事项（与日历页同步，读 calendarManager.savedTodos 的今天 key）。
 // v88 复刻（设计稿 .today-items-compact）：玻璃底 + 左上 aqua 径向底光 + 右上**蓝色霓虹照射** +
@@ -8,6 +9,7 @@ Rectangle {
     id: panel
 
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     signal openCalendar()
 
     readonly property real gs: style ? style.glowStrength : 1.0
@@ -178,14 +180,14 @@ Rectangle {
                     font.capitalization: Font.AllUppercase
                 }
                 Text {
-                    text: "今日事项"
+                    text: I18n.t(panel.languageMode, "今日事项")
                     color: panel.style ? panel.style.textPrimary : "#fff"
                     font.pixelSize: 18
                     font.weight: 800
                     font.letterSpacing: -0.35
                 }
                 Text {
-                    text: "今天 · 与日历同步"
+                    text: I18n.t(panel.languageMode, "今天 · 与日历同步")
                     color: panel.style ? panel.style.textTertiary : "#888"
                     font.pixelSize: 11
                 }
@@ -205,7 +207,7 @@ Rectangle {
                 Behavior on color { ColorAnimation { duration: 140 } }
                 Text {
                     anchors.centerIn: parent
-                    text: "日历"
+                    text: I18n.t(panel.languageMode, "日历")
                     color: panel.style ? panel.style.accentText : "#9ef1ff"
                     font.pixelSize: 11
                     font.weight: 800
@@ -311,7 +313,7 @@ Rectangle {
             Text {
                 visible: panel.items.length === 0
                 width: parent.width
-                text: "今天还没有事项 · 去日历添加"
+                    text: I18n.t(panel.languageMode, "今天还没有事项 · 去日历添加")
                 color: panel.style ? panel.style.textTertiary : "#888"
                 font.pixelSize: 12
                 wrapMode: Text.WordWrap

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import "../components/I18n.js" as I18n
 
 // 备忘黑板·模态覆盖层（v88 #memoOverlay）。
 // **入口是动作不是路由**：盖在首页之上、底层页面原样保留，关闭后退回原处，全程不换页
@@ -12,6 +13,7 @@ Item {
 
     // 记忆湖色板（单一令牌源，G1）。由 Shell 注入。
     property MemoryLakeStyle style
+    property string languageMode: "zh"
     // 身后首页快照源（M0：QML 无实时 backdrop-filter，截首页快照重模糊当黑板磨砂底）。
     property Item backdropSource: null
 
@@ -980,7 +982,7 @@ Item {
                     color: copyMa.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20)
                                                 : Qt.rgba(0, 0, 0, 0.45)
                     border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.22)
-                    Text { id: copyT; anchors.centerIn: parent; text: "复制"
+                    Text { id: copyT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "复制")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.92); font.pixelSize: 13 }
                     MouseArea { id: copyMa; anchors.fill: parent; hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor; onClicked: memo._copySelection() }
@@ -990,7 +992,7 @@ Item {
                     color: delMa.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.75)
                                                : Qt.rgba(0, 0, 0, 0.45)
                     border.width: 1; border.color: Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.40)
-                    Text { id: delT; anchors.centerIn: parent; text: "删除"
+                    Text { id: delT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "删除")
                            color: Qt.rgba(255 / 255, 235 / 255, 235 / 255, 0.95); font.pixelSize: 13 }
                     MouseArea { id: delMa; anchors.fill: parent; hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor; onClicked: memo._deleteSelection() }
@@ -1023,6 +1025,7 @@ Item {
         // （历史 bug：悬停无动效、按下才显且卡死）。弹层(番茄/日期)再叠到工具条之上。
         z: 4520
         anchors.horizontalCenter: parent.horizontalCenter
+        languageMode: memo.languageMode
         // 收起时上移、只露 10px 提示边；靠近顶部冒出到 y=14。
         y: memo.chromeShown ? 14 : -(height - 10)
         Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
@@ -1040,6 +1043,7 @@ Item {
         id: pomodoro
         z: 4540               // 叠在工具条(z4520)之上
         style: memo.style
+        languageMode: memo.languageMode
         store: memo.store     // gap #10：番茄状态持久化（单独键 memoryLakeMemoPomodoro）
         shown: false
         onCompleted: function (v) {
@@ -1053,6 +1057,7 @@ Item {
         id: pomodoroComplete
         z: 4560               // 全屏庆祝，必须盖过工具条
         style: memo.style
+        languageMode: memo.languageMode
         onClosed: pomodoroComplete.shown = false
     }
 
@@ -1108,13 +1113,13 @@ Item {
                 spacing: 14
                 Text {
                     width: parent.width; horizontalAlignment: Text.AlignHCenter
-                    text: "清空本页墨迹？"
+                    text: I18n.t(memo.languageMode, "清空本页墨迹？")
                     color: Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.94)
                     font.pixelSize: 16; font.weight: Font.DemiBold
                 }
                 Text {
                     width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
-                    text: "仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。"
+                    text: I18n.t(memo.languageMode, "仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。")
                     color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12
                 }
                 Row {
@@ -1124,14 +1129,14 @@ Item {
                         width: 96; height: 34; radius: 10
                         color: cancelH.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                         border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
-                        Text { anchors.centerIn: parent; text: "取消"; color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
+                        Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "取消"); color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
                         MouseArea { id: cancelH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: clearConfirm.open = false }
                     }
                     Rectangle {
                         width: 96; height: 34; radius: 10
                         color: clearGoH.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.85) : Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.55)
-                        Text { anchors.centerIn: parent; text: "清空"; color: "#FFFFFF"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "清空"); color: "#FFFFFF"; font.pixelSize: 14; font.weight: Font.DemiBold }
                         MouseArea { id: clearGoH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onClicked: { memo.clearCurrentCanvas(); clearConfirm.open = false } }
                     }
@@ -1202,14 +1207,14 @@ Item {
         Text {
             id: saveStatusText
             anchors.centerIn: parent
-            text: "笔迹会自动保存"
+            text: I18n.t(memo.languageMode, "笔迹会自动保存")
             color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
             font.pixelSize: 12
         }
         Timer {
             id: fadeTimer
             interval: 1100
-            onTriggered: { saveStatus.flashOn = false; saveStatusText.text = "笔迹会自动保存"; }
+            onTriggered: { saveStatus.flashOn = false; saveStatusText.text = I18n.t(memo.languageMode, "笔迹会自动保存"); }
         }
     }
 }

@@ -197,7 +197,7 @@ function englishDisplayName(row) {
 }
 
 function modelDisplayNameForLanguage(row, languageMode) {
-    return languageMode === "en" ? englishDisplayName(row) : modelDisplayName(row);
+    return (languageMode === "en" || languageMode === "ja") ? englishDisplayName(row) : modelDisplayName(row);
 }
 
 function modelCategory(row) {

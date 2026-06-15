@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
+import "../components/I18n.js" as I18n
 
 // v88「统计」页（暗玻璃全幅复刻）。规范：docs/stats-functional-replication.md /
 // stats-render-pipeline-replication.md / stats-backend-data-gaps.md。
@@ -23,6 +24,9 @@ Item {
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
     property string languageMode: "zh"
+
+    function tr(source) { return I18n.t(languageMode, source) }
+    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
 
     // 顶栏「返回首页」/ ESC 切页：Shell 在 onLoaded 连接（已含 stats）。
     signal requestNavigate(string pageKey)
@@ -70,12 +74,13 @@ Item {
     // 切范围回到本期；offset 非 0 时复位会触发 onPeriodOffsetChanged→rebuild（单次）。
     onRangeChanged: { if (periodOffset !== 0) periodOffset = 0; else rebuild() }
     onPeriodOffsetChanged: rebuild()
+    onLanguageModeChanged: { _builtGen = -1; rebuild() }
 
     // ============================================================
     // 工具：时间格式 / 范围文案
     // ============================================================
-    function rangeWord(r) { return r === "week" ? "周" : r === "month" ? "月" : "年" }
-    function rangeLabel(r) { return r === "week" ? "本周" : r === "month" ? "本月" : "本年" }
+    function rangeWord(r) { return r === "week" ? tr("周") : r === "month" ? tr("月") : tr("年") }
+    function rangeLabel(r) { return r === "week" ? tr("本周") : r === "month" ? tr("本月") : tr("本年") }
 
     function secondsToDisplay(seconds) {
         var total = Math.max(0, Math.floor(seconds ? seconds : 0))
@@ -402,7 +407,7 @@ Item {
             { title: "日均使用", sub: "按已过天数", badge: "周", value: hoursText(total / elapsed), change: "", changeDown: false },
             { title: "最长连续使用", sub: lu ? (lu.appName ? lu.appName : "—") : "—", badge: "周",
               value: lu ? hoursText(lu.longestSec) : "—", change: "", changeDown: false },
-            { title: "切换次数", sub: "前台应用切换", badge: "周", value: total > 0 ? (sw + " 次") : "—", change: "", changeDown: false }
+            { title: "切换次数", sub: "前台应用切换", badge: "周", value: total > 0 ? sentence("switchCount", {count: sw}, sw + " 次") : "—", change: "", changeDown: false }
         ]
     }
 
@@ -413,7 +418,7 @@ Item {
         return [
             { title: "本月总使用", sub: "较上月", badge: "月", value: hoursText(total),
               change: chg.change ? (chg.change + " 较上月") : "", changeDown: chg.down },
-            { title: "专注天数", sub: "开发/办公/笔记", badge: "月", value: focusDays + " 天", change: "", changeDown: false },
+            { title: "专注天数", sub: "开发/办公/笔记", badge: "月", value: sentence("dayCount", {count: focusDays}, focusDays + " 天"), change: "", changeDown: false },
             { title: "娱乐占比", sub: "游戏 + 视频", badge: "月", value: total > 0 ? (ent + "%") : "—", change: "", changeDown: false },
             { title: "创作占比", sub: "创作 + 笔记", badge: "月", value: total > 0 ? (crt + "%") : "—", change: "", changeDown: false }
         ]
@@ -429,36 +434,42 @@ Item {
               change: chg.change ? (chg.change + " 较上年") : "", changeDown: chg.down },
             { title: "最活跃月份", sub: "按月度时长", badge: "年", value: (peakIdx >= 0 && peak > 0) ? bars[peakIdx].label : "—", change: "", changeDown: false },
             { title: "年度专注", sub: "开发/办公/笔记", badge: "年", value: focusSeconds > 0 ? hoursText(focusSeconds) : "—", change: "", changeDown: false },
-            { title: "打开应用", sub: "使用过的应用", badge: "年", value: apps.length > 0 ? (apps.length + " 个") : "—", change: "", changeDown: false }
+            { title: "打开应用", sub: "使用过的应用", badge: "年", value: apps.length > 0 ? sentence("appCount", {count: apps.length}, apps.length + " 个") : "—", change: "", changeDown: false }
         ]
     }
 
     // ====== 本地确定性洞察/建议模板（aiGenerated:false；不接真 AI、不喂原始日志 C7）======
     function buildInsight(r, share, total, cat) {
         var label = rangeLabel(r)
-        if (total <= 0) return label + "记录较少，暂不下结论。"
-        var s = label + "你主要把时间花在"
-        s += (share.length > 0) ? ("「" + share[0].name + "」（" + share[0].percent + "%）") : "多个应用上"
-        s += "，共计 " + hoursText(total) + "。"
+        if (total <= 0)
+            return sentence("insightNoData", {range: label}, label + "记录较少，暂不下结论。")
+        var topName = (share.length > 0) ? share[0].name : tr("多个应用")
+        var topPercent = (share.length > 0) ? (share[0].percent + "%") : ""
+        var s = sentence("insightMain", {
+            range: label,
+            app: topName,
+            percent: topPercent,
+            time: hoursText(total)
+        }, label + "你主要把时间花在" + (share.length > 0 ? ("「" + share[0].name + "」（" + share[0].percent + "%）") : "多个应用上") + "，共计 " + hoursText(total) + "。")
         var ent = (cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)
-        if (total > 0 && ent / total > 0.4) s += " 其中娱乐时间占比偏高。"
+        if (total > 0 && ent / total > 0.4) s += " " + tr("其中娱乐时间占比偏高。")
         return s
     }
 
     function buildRecs(r, share, total, cat) {
         var recs = []
-        if (total <= 0) { recs.push("本" + rangeWord(r) + "暂无足够数据生成建议。"); return recs }
+        if (total <= 0) { recs.push(sentence("rangeNoAdvice", {range: rangeWord(r)}, "本" + rangeWord(r) + "暂无足够数据生成建议。")); return recs }
         var topCat = topCategory(cat)
-        var sug = "继续保持当前节奏。"
-        if (topCat === "游戏") sug = "进入娱乐时段前，先完成一项关键任务。"
-        else if (topCat === "开发" || topCat === "创作" || topCat === "办公") sug = "保持专注节奏，建议每 50 分钟起身休息。"
-        else if (topCat === "笔记" || topCat === "浏览") sug = "把零散浏览沉淀成笔记，形成输出。"
-        else if (topCat === "视频" || topCat === "音乐") sug = "放松之余，预留固定的深度工作时段。"
-        else if (topCat === "社交") sug = "留意社交占用，集中处理消息更高效。"
+        var sug = tr("继续保持当前节奏。")
+        if (topCat === "游戏") sug = tr("进入娱乐时段前，先完成一项关键任务。")
+        else if (topCat === "开发" || topCat === "创作" || topCat === "办公") sug = tr("保持专注节奏，建议每 50 分钟起身休息。")
+        else if (topCat === "笔记" || topCat === "浏览") sug = tr("把零散浏览沉淀成笔记，形成输出。")
+        else if (topCat === "视频" || topCat === "音乐") sug = tr("放松之余，预留固定的深度工作时段。")
+        else if (topCat === "社交") sug = tr("留意社交占用，集中处理消息更高效。")
         recs.push(sug)
         var ent = (cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)
-        if (ent / total > 0.4) recs.push("娱乐占比约 " + Math.round(100 * ent / total) + "%，可考虑设定每日上限。")
-        else recs.push("时间结构较均衡，继续保持。")
+        if (ent / total > 0.4) recs.push(sentence("entertainmentRatioAdvice", {percent: Math.round(100 * ent / total)}, "娱乐占比约 " + Math.round(100 * ent / total) + "%，可考虑设定每日上限。"))
+        else recs.push(tr("时间结构较均衡，继续保持。"))
         return recs
     }
 
@@ -553,7 +564,7 @@ Item {
         var json = buildExportJson()
         if (!json || json.length === 0) { showToast("导出失败：数据序列化错误"); return }
         var path = usageStatManager.exportReport("timearc-" + range + "-stats", json)
-        showToast(path && path.length > 0 ? ("已导出：" + path) : "导出失败")
+        showToast(path && path.length > 0 ? sentence("exportedPath", {path: path}, "已导出：" + path) : "导出失败")
     }
 
     Connections {
@@ -599,7 +610,7 @@ Item {
     // ============================================================
     // toast（底部胶囊，复用 calToastBg 范式）
     // ============================================================
-    function showToast(msg) { statsToast.message = msg; statsToast.shown = true; toastTimer.restart() }
+    function showToast(msg) { statsToast.message = tr(msg); statsToast.shown = true; toastTimer.restart() }
 
     // ============================================================
     // 范围 Tab 数据
@@ -654,15 +665,15 @@ Item {
                             font.capitalization: Font.AllUppercase
                         }
                         Text {
-                            text: "时间统计"
+                            text: root.tr("时间统计")
                             color: ml.textPrimary
                             font.pixelSize: 22
                             font.weight: 800
-                            font.letterSpacing: -0.4
+                            font.letterSpacing: 0
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: "软件使用 · 主题 · 趋势"
+                            text: root.tr("软件使用 · 主题 · 趋势")
                             color: ml.textSecondary
                             font.pixelSize: 12
                             elide: Text.ElideRight
@@ -704,7 +715,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 1
                                     Text {
-                                        text: modelData.label + "视图"
+                                        text: root.sentence("rangeView", {range: root.tr(modelData.label)}, modelData.label + "视图")
                                         color: root.range === modelData.key ? ml.textPrimary : ml.textSecondary
                                         font.pixelSize: 14
                                         font.weight: root.range === modelData.key ? Font.DemiBold : Font.Normal
@@ -722,7 +733,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: { root.range = modelData.key; root.showToast("已切换到" + modelData.label + "视图") }
+                                onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label + "视图")) }
                             }
                         }
                     }
@@ -739,7 +750,7 @@ Item {
                         anchors.margins: 14
                         spacing: 8
                         Text {
-                            text: "本" + root.rangeWord(root.range) + "洞察"
+                            text: root.sentence("rangeInsight", {range: root.rangeWord(root.range)}, "本" + root.rangeWord(root.range) + "洞察")
                             color: ml.glowCyan
                             font.pixelSize: 11
                             font.weight: 800
@@ -757,7 +768,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: "本地生成 · 非 AI"
+                            text: root.tr("本地生成 · 非 AI")
                             color: ml.textTertiary
                             font.pixelSize: 10
                         }
@@ -789,15 +800,15 @@ Item {
                         Layout.fillWidth: true
                         spacing: 2
                         Text {
-                            text: root.rangeLabel(root.range) + "统计"
+                            text: root.sentence("rangeStats", {range: root.rangeLabel(root.range)}, root.rangeLabel(root.range) + "统计")
                             color: ml.textPrimary
                             font.pixelSize: 22
                             font.weight: 800
-                            font.letterSpacing: -0.4
+                            font.letterSpacing: 0
                         }
                         Text {
-                            text: root.hasData ? ("共 " + root.hoursText(root.vmTotalSec) + " · " + root.vmApps.length + " 个应用")
-                                               : "暂无使用记录"
+                            text: root.hasData ? root.sentence("statsTotalApps", {time: root.hoursText(root.vmTotalSec), count: root.vmApps.length}, "共 " + root.hoursText(root.vmTotalSec) + " · " + root.vmApps.length + " 个应用")
+                                               : root.tr("暂无使用记录")
                             color: ml.textSecondary
                             font.pixelSize: 13
                         }
@@ -818,14 +829,14 @@ Item {
                                 border.color: root.range === modelData.key ? ml.accentSoftBorder : ml.calGhostBorder
                                 Text {
                                     anchors.centerIn: parent
-                                    text: modelData.label
+                                    text: root.tr(modelData.label)
                                     color: root.range === modelData.key ? ml.aqua : ml.calGlyph
                                     font.pixelSize: 13; font.weight: Font.DemiBold
                                 }
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: { root.range = modelData.key; root.showToast("已切换到" + modelData.label + "视图") }
+                                    onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label + "视图")) }
                                 }
                             }
                         }
@@ -844,14 +855,14 @@ Item {
                             Text {
                                 id: periodText
                                 anchors.centerIn: parent
-                                text: root.vmPeriodLabel + (root.periodOffset === 0 ? " · 本期" : "")
+                                text: root.vmPeriodLabel + (root.periodOffset === 0 ? " · " + root.tr("本期") : "")
                                 color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold
                             }
                         }
                         StatsGhostButton {
                             glyph: "›"
                             dim: root.atCurrentPeriod
-                            onTapped: { if (!root.atCurrentPeriod) root.periodOffset += 1; else root.showToast("已是最新一期") }
+                            onTapped: { if (!root.atCurrentPeriod) root.periodOffset += 1; else root.showToast(root.tr("已是最新一期")) }
                         }
                     }
 
@@ -898,15 +909,15 @@ Item {
                                         ColumnLayout {
                                             Layout.fillWidth: true
                                             spacing: 1
-                                            Text { text: modelData.title; color: ml.textSecondary; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: modelData.sub; color: ml.textTertiary; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: root.tr(modelData.title); color: ml.textSecondary; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Text { text: root.tr(modelData.sub); color: ml.textTertiary; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
                                         }
                                         Rectangle {
                                             visible: modelData.badge !== ""
                                             radius: 13; color: ml.accentSoft
                                             border.width: 1; border.color: ml.accentSoftBorder
                                             implicitWidth: badgeT.implicitWidth + 16; implicitHeight: 24
-                                            Text { id: badgeT; anchors.centerIn: parent; text: modelData.badge; color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                            Text { id: badgeT; anchors.centerIn: parent; text: root.tr(modelData.badge); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
                                         }
                                     }
                                     Item { Layout.fillHeight: true }
@@ -940,8 +951,8 @@ Item {
                         Column {
                             anchors.centerIn: parent
                             spacing: 8
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.rangeLabel(root.range) + "还没有使用记录"; color: ml.textSecondary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "后台服务采集到数据后，这里会自动出现统计"; color: ml.textTertiary; font.pixelSize: 13 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.sentence("rangeNoRecords", {range: root.rangeLabel(root.range)}, root.rangeLabel(root.range) + "还没有使用记录"); color: ml.textSecondary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.tr("后台服务采集到数据后，这里会自动出现统计"); color: ml.textTertiary; font.pixelSize: 13 }
                         }
                     }
 
@@ -965,10 +976,11 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 262
                             style: ml
+                            languageMode: root.languageMode
                             glassStrength: 0.45
                             showInsight: false
                             titleKicker: "Category Share"
-                            titleText: "本周主题占比"
+                            titleText: root.tr("本周主题占比")
                             share: root.vmShare
                             total: root.vmShareTotalText
                         }
@@ -1003,10 +1015,11 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 262
                             style: ml
+                            languageMode: root.languageMode
                             glassStrength: 0.45
                             showInsight: false
                             titleKicker: "Category Share"
-                            titleText: "本月主题占比"
+                            titleText: root.tr("本月主题占比")
                             share: root.vmShare
                             total: root.vmShareTotalText
                         }
@@ -1062,10 +1075,11 @@ Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 262
                             style: ml
+                            languageMode: root.languageMode
                             glassStrength: 0.45
                             showInsight: false
                             titleKicker: "Category Share"
-                            titleText: "本年主题占比"
+                            titleText: root.tr("本年主题占比")
                             share: root.vmShare
                             total: root.vmShareTotalText
                         }
@@ -1133,7 +1147,7 @@ Item {
         property bool tip: false
         property bool dim: false           // 置灰（如「下一期」在本期时）
         signal tapped()
-        implicitWidth: glyph !== "" ? 38 : (gbtnLabel.implicitWidth + 28)
+        implicitWidth: glyph !== "" ? 38 : Math.min(Math.max(gbtnLabel.implicitWidth + 28, 72), 170)
         height: 38
         radius: 13
         opacity: dim ? 0.4 : 1.0
@@ -1150,10 +1164,13 @@ Item {
         Text {
             id: gbtnLabel
             anchors.centerIn: parent
-            text: gbtn.glyph !== "" ? gbtn.glyph : gbtn.label
+            width: parent.width - 16
+            text: gbtn.glyph !== "" ? gbtn.glyph : root.tr(gbtn.label)
             color: gbtn.primary ? ml.calBtnInk : ml.calGlyph
             font.pixelSize: gbtn.glyph !== "" ? 17 : 13
             font.weight: Font.DemiBold
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
         }
         MouseArea {
             id: gbtnMa
@@ -1181,8 +1198,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                Text { text: chart.title; color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { visible: chart.sub !== ""; text: chart.sub; color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
+                Text { text: root.tr(chart.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { visible: chart.sub !== ""; text: root.tr(chart.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
             }
             Item {
                 Layout.fillWidth: true
@@ -1253,8 +1270,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                Text { text: lc.title; color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { visible: lc.sub !== ""; text: lc.sub; color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
+                Text { text: root.tr(lc.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { visible: lc.sub !== ""; text: root.tr(lc.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
             }
             Item {
                 Layout.fillWidth: true
@@ -1300,7 +1317,7 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     visible: !lc.points || lc.points.length < 2
-                    text: "本月数据不足以绘制趋势"
+                    text: root.tr("本月数据不足以绘制趋势")
                     color: ml.textTertiary
                     font.pixelSize: 12
                 }
@@ -1328,8 +1345,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                Text { text: heat.title; color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { visible: heat.sub !== ""; text: heat.sub; color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
+                Text { text: root.tr(heat.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { visible: heat.sub !== ""; text: root.tr(heat.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
             }
             Item {
                 id: heatBody
@@ -1348,7 +1365,7 @@ Item {
                                 required property var modelData
                                 width: heat.labelWidth
                                 height: heat.cellSide
-                                text: modelData
+                                text: root.tr(modelData)
                                 color: ml.textTertiary
                                 font.pixelSize: Math.min(12, Math.max(10, heat.cellSide * 0.38))
                                 horizontalAlignment: Text.AlignRight
@@ -1395,8 +1412,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 2
-                Text { text: rl.title; color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { visible: rl.sub !== ""; text: rl.sub; color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
+                Text { text: root.tr(rl.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { visible: rl.sub !== ""; text: root.tr(rl.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
             }
             Item {
                 id: rlBody
@@ -1457,7 +1474,7 @@ Item {
                                     }
                                     Text {
                                         Layout.fillWidth: true
-                                        text: (AppVisual.modelCategory(modelData) !== "" ? AppVisual.modelCategory(modelData) : "应用") + " · " + modelData.sessions + " 次打开"
+                                        text: root.tr(AppVisual.modelCategory(modelData) !== "" ? AppVisual.modelCategory(modelData) : "应用") + " · " + root.sentence("openCount", {count: modelData.sessions}, modelData.sessions + " 次打开")
                                         color: ml.textTertiary
                                         font.pixelSize: 11
                                         elide: Text.ElideRight
@@ -1474,7 +1491,7 @@ Item {
                     }
                     Text {
                         visible: !rl.rows || rl.rows.length === 0
-                        text: "当前范围还没有应用记录"
+                        text: root.tr("当前范围还没有应用记录")
                         color: ml.textTertiary
                         font.pixelSize: 12
                     }
@@ -1498,12 +1515,12 @@ Item {
             spacing: 10
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: "洞察 & 建议"; color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                Text { text: root.tr("洞察 & 建议"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
                 Rectangle {
                     width: expLabel.implicitWidth + 24; height: 32; radius: 11
                     color: expMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                     border.width: 1; border.color: ml.calGhostBorder
-                    Text { id: expLabel; anchors.centerIn: parent; text: "导出报告"; color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold }
+                    Text { id: expLabel; anchors.centerIn: parent; text: root.tr("导出报告"); color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold }
                     MouseArea { id: expMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; preventStealing: true; onClicked: ic.exportRequested() }
                 }
             }
@@ -1549,7 +1566,7 @@ Item {
                         radius: 9
                         color: ml.accentSoft
                         border.width: 1; border.color: ml.accentSoftBorder
-                        Text { id: kwT; anchors.centerIn: parent; text: modelData; color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                        Text { id: kwT; anchors.centerIn: parent; text: root.tr(modelData); color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
                     }
                 }
             }
@@ -1575,7 +1592,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: modelData
+                            text: root.tr(modelData)
                             color: ml.textSecondary
                             font.pixelSize: 13
                             wrapMode: Text.WordWrap
@@ -1585,7 +1602,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: "以上为本地确定性模板生成（aiGenerated:false），非 AI、不读原始日志。"
+                text: root.tr("以上为本地确定性模板生成（aiGenerated:false），非 AI、不读原始日志。")
                 color: ml.textTertiary
                 font.pixelSize: 10
                 wrapMode: Text.WordWrap

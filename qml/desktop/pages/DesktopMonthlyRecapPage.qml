@@ -15,6 +15,7 @@ Item {
     property color themePanelColor: "#FBF8F4"
     property color themeBorderColor: "#E8E0D8"
     property color themeAccentColor: "#CFE8D8"
+    property string languageMode: "zh"
 
     // 请求切换导航页（shell 在 onLoaded 里连接）。
     signal requestNavigate(string pageKey)
@@ -56,6 +57,7 @@ Item {
         id: recap
         anchors.fill: parent
         style: ml
+        languageMode: root.languageMode
         apps: root.recapApps
         model: root.recapModel
         onExitRequested: root.requestNavigate("memorylake")
