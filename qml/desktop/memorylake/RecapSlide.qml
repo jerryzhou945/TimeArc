@@ -339,7 +339,7 @@ Item {
                         y: parent.height / 2 - 32 + Math.sin(modelData.a * Math.PI / 180) * 150
                         Column { anchors.centerIn: parent; spacing: 2
                             Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.value; color: slide.tPrimary; font.pixelSize: 20; font.bold: true }
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.label; color: slide.tTertiary; font.pixelSize: 12 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: I18n.t(slide.languageMode, modelData.label); color: slide.tTertiary; font.pixelSize: 12 }
                         }
                     }
                 }

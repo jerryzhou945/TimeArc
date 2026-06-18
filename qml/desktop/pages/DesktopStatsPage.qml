@@ -620,9 +620,9 @@ Item {
     // 范围 Tab 数据
     // ============================================================
     readonly property var rangeModel: [
-        { key: "week", label: "周", glyph: "周", en: "Week" },
-        { key: "month", label: "月", glyph: "月", en: "Month" },
-        { key: "year", label: "年", glyph: "年", en: "Year" }
+        { key: "week", label: "周", glyph: "周", glyphEn: "W", en: "Week" },
+        { key: "month", label: "月", glyph: "月", glyphEn: "M", en: "Month" },
+        { key: "year", label: "年", glyph: "年", glyphEn: "Y", en: "Year" }
     ]
 
     // ============================================================
@@ -710,7 +710,7 @@ Item {
                                     color: ml.calGhostBg
                                     Text {
                                         anchors.centerIn: parent
-                                        text: modelData.glyph
+                                        text: root.isEnglish() ? modelData.glyphEn : modelData.glyph
                                         color: root.range === modelData.key ? ml.aqua : ml.calGlyph
                                         font.pixelSize: 14; font.weight: Font.DemiBold
                                     }

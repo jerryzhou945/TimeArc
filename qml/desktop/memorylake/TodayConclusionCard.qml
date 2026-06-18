@@ -24,6 +24,10 @@ Rectangle {
         if (!source || source.length === 0)
             return ""
         if (I18n.langKey(languageMode) === "en") {
+            if (source.indexOf("为主") >= 0 && source.indexOf("今天的主要主题是：") < 0) {
+                var directTheme = source.replace("为主", "").trim()
+                return I18n.category(languageMode, directTheme) + " Focus"
+            }
             if (source.indexOf("今天的主要主题是：") === 0) {
                 var theme = source.substring("今天的主要主题是：".length)
                 if (theme.indexOf("为主") >= 0)

@@ -8,6 +8,14 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T04:11:58Z | L2 | qt-warning-d5e3... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260618-041158-C-qt-warning-d5e39ad0f2.md) |
+| 2026-06-18T04:11:58Z | L2 | qt-warning-f827... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260618-041158-C-qt-warning-f8277923d2.md) |
+| 2026-06-18T04:11:57Z | L2 | qt-warning-f827... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260618-041157-C-qt-warning-f8277923d2.md) |
+| 2026-06-18T04:11:56Z | L2 | qt-warning-f827... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260618-041156-C-qt-warning-f8277923d2.md) |
+| 2026-06-18T04:05:54Z | L3 | powershell-quot... | A Select-String command used an invalid quoted pattern wh... | [report](errors/20260618-040554-C-powershell-quote-pattern.md) |
+| 2026-06-18T04:04:14Z | L3 | rg-access-denied | ripgrep failed with Access denied while scanning QML for ... | [report](errors/20260618-040414-C-rg-access-denied.md) |
+| 2026-06-18T04:03:22Z | L2 | english-copy-gaps | English language mode still shows Chinese copy in home th... | [report](errors/20260618-040322-C-english-copy-gaps.md) |
+| 2026-06-18T04:03:03Z | L3 | stale-skill-cac... | Attempted to read superpowers skill files from stale plug... | [report](errors/20260618-040303-C-stale-skill-cache-path.md) |
 | 2026-06-15T07:55:35Z | L3 | qt-log-file-gon... | After scan_qt_log recorded warnings, attempted to read th... | [report](errors/20260615-075535-C-qt-log-file-gone-read.md) |
 | 2026-06-15T07:54:50Z | L2 | qt-warning-215b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260615-075450-C-qt-warning-215b10b9d6.md) |
 | 2026-06-15T07:54:49Z | L2 | qt-warning-215b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260615-075449-C-qt-warning-215b10b9d6.md) |
