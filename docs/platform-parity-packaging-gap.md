@@ -1,123 +1,71 @@
-# TimeArc Windows/macOS Parity Before Packaging
+# TimeArc Windows/macOS 包装前差异对比
 
-Last updated: 2026-06-18
+更新日期：2026-06-18
 
-## Summary
+## 结论
 
-The desktop UI is effectively shared across Windows and macOS because it is Qt/QML.
-The real parity gap is the background service, platform permissions, and release
-packaging. Windows is the current reference implementation. macOS has useful
-Swift scaffolding for frontmost app/window identity, idle time, and media
-assertion detection, but `TimeArcService.run()` still only keeps the process
-alive and does not yet write usage records.
+TimeArc 的桌面 UI 是 Qt/QML，同一套页面在 Windows 和 macOS 上基本一致。真正的差距不在界面，而在后台采集服务、系统权限、服务生命周期和安装包发布链路。
 
-Bottom line: Windows can be packaged first as the real product path. macOS can
-share the same UI package, but it should not be called parity until its helper
-service writes the same disk records as Windows.
+当前建议是：Windows 先进入可用 alpha/beta 包装；macOS 可以同步推进，但应等后台服务能稳定写入同一套磁盘数据后再称为功能追平版本。
 
-## Current Parity Snapshot
+## 当前差异快照
 
-| Area | Windows | macOS | Gap |
+| 模块 | Windows | macOS | 差距 |
 | --- | --- | --- | --- |
-| UI shell/pages | Shared Qt/QML | Shared Qt/QML | Low |
-| Auto-start from UI | UI starts `time-arc-service.exe` on Windows only | Not wired in `src/main.cpp` | Medium |
-| Foreground app tracking | Implemented polling loop with idle handling | App/window helpers exist, no tracker loop | High |
-| Audio/media tracking | Implemented via Windows audio tracker | Media assertion detection scaffold exists | High |
-| Storage writes | Writes SQLite/JSONL/current snapshot | No service write loop yet | High |
-| Service lifecycle | Windows verbs: install/uninstall/start/stop/status/run-service | No LaunchAgent lifecycle yet | High |
-| Single instance | Windows named mutex | Not implemented | Medium |
-| Permissions | Mostly normal user-session APIs | Accessibility and possibly automation/media permissions | Medium |
-| Packaging | Portable Windows packaging path exists but needs scripting polish | Needs `.app`/DMG/pkg, helper placement, signing/notarization | High |
+| UI 页面 | 共享 Qt/QML，当前主力验证平台 | 共享 Qt/QML | 低 |
+| UI 自动启动服务 | `src/main.cpp` 会启动 `time-arc-service.exe` | 还未从 UI 自动启动 helper | 中 |
+| 前台应用采集 | 已有完整轮询、idle 截断、session flush | 已同步最小 Swift 前台采集循环，仍需实机验证 | 中 |
+| 存储写入 | 写 SQLite、JSONL、`usage_current.json` | 已接入 shared C bridge 写同一磁盘契约 | 中 |
+| 音频/媒体采集 | WASAPI 音频 session 已接入 | 只有 IOPM media assertion 判断，还未写 media session | 高 |
+| 单实例 | Windows named mutex | 未实现 | 中 |
+| 服务生命周期 | `--install/--uninstall/--start/--stop/--status` | 未实现 LaunchAgent 方案 | 高 |
+| 权限 | 常规用户会话 API 为主 | 需要 Accessibility，后续可能需要自动化/媒体相关提示 | 中 |
+| 打包 | 更接近可包装，但仍缺一键脚本和 clean-machine QA | 需要 `.app`、helper 放置、签名、公证、权限引导 | 高 |
 
-## Evidence From Current Code
+## 本轮已同步到 macOS 的部分
 
-- `src/main.cpp::startUsageService()` starts `time-arc-service.exe` only under
-  `Q_OS_WIN`.
-- `src/service/windows/main.c` supports foreground tracking plus lifecycle verbs
-  such as `--install`, `--start`, `--stop`, and `--status`.
-- `src/service/windows/tracker/usage_tracker.c` owns the session loop, idle
-  cutoff, current snapshot writes, and final flush behavior.
-- `src/service/windows/tracker/audio_tracker.c` adds Windows audio/media usage
-  records.
-- `src/service/macos/TimeArcService.swift` currently keeps the process alive
-  with `RunLoop.current.run()`.
-- `src/service/macos/AppEnv.swift` already exposes useful primitives:
-  frontmost app identity, focused window title, idle seconds, app icon path,
-  and media assertion classification.
+- `TimeArcService.swift` 从空 RunLoop 改为最小前台采集循环。
+- 启动时调用 `ta_storage_init()`，退出路径调用 `ta_clear_current_usage()` 和 `ta_storage_shutdown()`。
+- 每秒读取 `AppEnv` 的前台 app、窗口标题、bundle 路径和 idle 秒数。
+- app 或窗口标题变化时关闭上一段 foreground session，并写入 shared storage。
+- 非 idle 时持续写 `usage_current.json` 对应的当前 session 快照。
 
-## macOS Work Needed To Match Windows
+这一步让 macOS 从“只有采样工具函数”前进到“有最小 foreground 写入闭环”。但它还不是发布级追平：缺少单实例、LaunchAgent、媒体 session、配置读取、权限恢复和 macOS 实机 smoke。
 
-1. Implement the Swift tracker loop.
-   Use `AppEnv.update()`, idle state, and frontmost app/title changes to create
-   foreground sessions equivalent to Windows `usage_tracker.c`.
+## 仍需追平的 macOS 工作
 
-2. Wire storage through the shared disk contract.
-   The macOS service must write the same SQLite/JSONL/current snapshot contract
-   as Windows. Do not introduce IPC or platform-only schemas.
+1. 实机验证前台采集。
+   检查 Accessibility 权限未授权时的行为、窗口标题为空时的 session 分割，以及 bundle path 是否能被 UI 图标 provider 正确显示。
 
-3. Add media session tracking.
-   The current `getMediaType()` scaffold can identify likely media playback,
-   but it still needs session start/update/flush behavior matching Windows audio
-   records.
+2. 补服务生命周期。
+   增加 LaunchAgent 安装/启动/停止/状态查询，并避免多个 helper 同时写同一套文件。
 
-4. Add lifecycle and single-instance behavior.
-   macOS needs a LaunchAgent-oriented start/stop/status story and a single
-   running service guard comparable to the Windows mutex.
+3. 补配置读取。
+   对齐 Windows 的启动配置读取，支持 `idle_threshold_ms` 和 `track_enabled`。
 
-5. Wire UI launch/config.
-   `src/main.cpp::startUsageService()` currently starts only the Windows helper.
-   macOS needs the bundled helper path, permission-aware failure handling, and
-   the same `usage_config.json` startup-read behavior.
+4. 补媒体采集。
+   将 `AppEnv.getMediaType()` 的判断接到 media session 写入逻辑，行为上对齐 Windows audio tracker。
 
-6. Package, sign, and notarize.
-   A macOS release needs an `.app` bundle layout, helper placement, `macdeployqt`
-   or equivalent Qt deployment, codesigning, notarization, and permission
-   onboarding copy.
+5. 补 UI 启动 helper。
+   `src/main.cpp::startUsageService()` 当前只处理 Windows，macOS 需要定位 app bundle 内 helper 并处理失败提示。
 
-## Packaging Readiness
+6. 补包装发布链路。
+   需要 `.app` bundle 布局、Qt deploy、helper 嵌入、codesign、notarization、权限引导和 clean-machine 回归。
 
-Windows can move toward packaging first. The remaining work is mostly release
-automation and compliance polish: repeatable deploy script, bundled license
-texts/NOTICE, service helper inclusion, and smoke testing on a clean machine.
+## 包装节奏建议
 
-macOS should not be treated as packaging-ready yet. The UI can package, but the
-core value of TimeArc depends on the background service. A macOS package before
-the service loop would be a UI preview rather than a feature-parity release.
-
-## Rough Catch-Up Estimate
-
-Assuming one engineer who already knows this codebase:
-
-| Target | Estimate | Notes |
+| 目标 | 预计时间 | 说明 |
 | --- | --- | --- |
-| macOS UI-only preview package | 2-4 days | App bundle + Qt deployment, limited product value |
-| macOS MVP service parity | 2-3 weeks | Foreground tracking, idle, storage writes, UI launch |
-| macOS useful beta parity | 4-6 weeks | Adds media sessions, LaunchAgent lifecycle, permissions UX |
-| macOS release-grade parity | 6-8 weeks | Adds signing/notarization, clean-machine QA, packaging automation |
+| Windows 可用 beta 包 | 3-5 天 | 一键部署脚本、带服务 helper、许可证/NOTICE、干净机器验证 |
+| macOS 前台采集 MVP | 1-2 周 | 本轮已有最小 loop，还需实机权限、配置、单实例和 UI 启动 |
+| macOS 可用 beta | 3-5 周 | 增加 LaunchAgent、媒体采集、权限 UX、打包脚本 |
+| macOS 发布级追平 | 5-7 周 | 签名、公证、卸载/升级、clean-machine 和长时间采集 QA |
 
-Fastest pragmatic route: ship a Windows alpha/beta package first, then run macOS
-as a focused parity track. Trying to package both at the same time will slow the
-Windows release without making macOS truly ready.
+如果两个人并行，macOS 可用 beta 约可压缩到 2-3 周：一人负责 Swift service/storage/media，另一人负责 LaunchAgent、权限、包装和回归。发布级追平仍建议预留 4-6 周，因为签名、公证和权限边界通常需要多轮实机安装卸载验证。
 
-With two engineers, a useful macOS beta could probably compress to about 2-4
-weeks if one person owns the Swift service loop/storage parity and the other
-owns LaunchAgent, permissions, packaging, and clean-machine QA. Release-grade
-parity still likely needs 4-6 weeks because signing, notarization, and permission
-edge cases tend to expose issues only after repeated install/uninstall testing.
+## 推荐顺序
 
-## Recommended Packaging Sequence
-
-1. Windows package hardening.
-   Script the current deploy process, include `time-arc-service.exe`, add
-   license/NOTICE files, and test on a clean Windows machine.
-
-2. macOS service MVP.
-   Implement tracker loop plus disk writes before spending time on polished DMG
-   branding.
-
-3. macOS permissions and lifecycle.
-   Add LaunchAgent install/start/stop/status and first-run permission guidance.
-
-4. macOS signed beta.
-   Only after service data appears correctly in the shared UI should packaging
-   move to codesigning/notarization polish.
+1. 先把 Windows 包装跑通，作为可交付基线。
+2. macOS 先验证 foreground 写入闭环，再做漂亮 DMG。
+3. macOS 补 LaunchAgent 和权限引导后再开放 beta。
+4. 两端都通过 clean-machine smoke 后，再进入正式发布包装。

@@ -850,6 +850,24 @@ function category(lang, source) {
     return t(lang, source)
 }
 
+function categoryList(lang, source) {
+    if (source === undefined || source === null)
+        return ""
+    var text = source.toString().trim()
+    if (text.length === 0)
+        return ""
+    var parts = text.split(/[、，,\/]+/)
+    if (parts.length <= 1)
+        return category(lang, text)
+    var out = []
+    for (var i = 0; i < parts.length; i++) {
+        var p = parts[i].trim()
+        if (p.length > 0)
+            out.push(category(lang, p))
+    }
+    return out.join(langKey(lang) === "en" ? ", " : "、")
+}
+
 function duration(lang, source) {
     if (source === undefined || source === null)
         return ""
@@ -924,7 +942,7 @@ function smartText(lang, source) {
         return sentence(lang, "continuousSessions", {
             count: m[1],
             longest: duration(lang, m[2]),
-            category: category(lang, m[3])
+            category: categoryList(lang, m[3])
         }, text)
 
     m = text.match(/^(本周|本月|本年)你主要把时间花在「(.+)」（(\d+%)），共计\s*(.+)。$/)

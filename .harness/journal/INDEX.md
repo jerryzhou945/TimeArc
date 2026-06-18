@@ -8,6 +8,13 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T15:45:48Z | L3 | app-icon-resolv... | After adding icon resolver, the structural check still fa... | [report](errors/20260618-154548-C-app-icon-resolver-check-mismatch.md) |
+| 2026-06-18T15:43:19Z | L2 | app-icon-resolv... | Expected red structural check confirmed AppIconImageProvi... | [report](errors/20260618-154319-C-app-icon-resolver-red-test.md) |
+| 2026-06-18T15:43:19Z | L2 | home-english-ca... | Expected red test confirmed I18n.smartText leaves Chinese... | [report](errors/20260618-154319-C-home-english-category-list-red-test.md) |
+| 2026-06-18T15:41:14Z | L3 | stats-service-f... | Looked for non-existent src/services/StatsService.cpp whi... | [report](errors/20260618-154114-C-stats-service-filename-case.md) |
+| 2026-06-18T15:40:18Z | L3 | rg-access-denie... | ripgrep failed with Access denied while locating remainin... | [report](errors/20260618-154018-C-rg-access-denied-english-icons-mac-doc.md) |
+| 2026-06-18T15:39:40Z | L2 | stats-app-icons... | Stats app lists frequently show initial-letter placeholde... | [report](errors/20260618-153940-C-stats-app-icons-fallback-initials.md) |
+| 2026-06-18T15:39:40Z | L2 | home-english-ge... | English Home generated summary text still contains raw Ch... | [report](errors/20260618-153940-C-home-english-generated-tags-chinese.md) |
 | 2026-06-18T15:18:40Z | L2 | home-tag-combob... | Expected red structural check confirmed Home add-project ... | [report](errors/20260618-151840-C-home-tag-combobox-red-test.md) |
 | 2026-06-18T15:17:14Z | L2 | home-tags-still... | Home page tags/categories such as 社交 and 开发 still appear ... | [report](errors/20260618-151714-C-home-tags-still-chinese.md) |
 | 2026-06-18T15:17:14Z | L3 | sandbox-doc-sea... | A parallel Select-String documentation search failed with... | [report](errors/20260618-151714-C-sandbox-doc-search-createprocess.md) |
@@ -57,7 +64,7 @@ the harness line budget intact.
 | 2026-06-14T09:41:46Z | L3 | qt-log-rotate-sandbox-denied | scan_qt_log.py could read and record the external Qt log but failed to rotate it under sandbox restrictions | [report](errors/20260614-094146-C-qt-log-rotate-sandbox-denied.md) |
 | 2026-06-14T09:18:23Z | L1 | build-output-locked-timearc | Build failed because running TimeArc.exe locked the output binary; stop the app before relinking | [report](errors/20260614-091823-C-build-output-locked-timearc.md) |
 | 2026-06-14T09:17:53Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260614-091753-B-build-failure.md) |
-| 2026-06-14T09:14:12Z | L2 | app-friendly-name-red-test | TDD red test: timearc_db_smoke fails because WeChat/JianyingPro friendly app names are not registered yet | [report](errors/20260614-091412-C-app-friendly-name-red-test.md) |
-| 2026-06-14T09:08:51Z | L2 | ui-app-label-icon-card-regressions | User-reported UI regressions: non-friendly app names, home overlay blocking cards, light sidebar icons white, missing app icons, stats overflow | [report](errors/20260614-090851-C-ui-app-label-icon-card-regressions.md) |
-| 2026-06-14T09:07:47Z | L2 | python-windowsapps-placeholder | System python points to WindowsApps placeholder and exits non-zero; using repo .local-python instead | [report](errors/20260614-090747-C-python-windowsapps-placeholder.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older and duplicate Qt warning rows omitted from INDEX; see `errors.jsonl`. | |
