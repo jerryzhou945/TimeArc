@@ -163,6 +163,28 @@ Item {
         return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
     }
 
+    function heatDateLabel(cell) {
+        if (!cell || !cell.dateKey)
+            return ""
+        var p = cell.dateKey.split("-")
+        if (p.length < 3)
+            return "" + (cell.day ? cell.day : "")
+        var m = Math.max(1, Math.min(12, parseInt(p[1]) || 1))
+        var d = parseInt(p[2]) || cell.day
+        return isEnglish() ? (monthShortLabels()[m - 1] + " " + d) : (m + "月" + d + "日")
+    }
+
+    function heatTooltipText(cell) {
+        var date = heatDateLabel(cell)
+        if (!cell || cell.empty)
+            return date.length > 0 ? sentence("heatTooltipEmpty", {date: date}, date + " · 暂无使用") : ""
+        return sentence("heatTooltip", {
+            date: date,
+            time: secondsToDisplay(cell.seconds),
+            category: I18n.category(languageMode, cell.category)
+        }, date + " · " + secondsToDisplay(cell.seconds) + " · " + I18n.category(languageMode, cell.category))
+    }
+
     function dayCategorySums(segs, apps) {
         var byGroup = {}
         for (var i = 0; i < apps.length; i++) {
@@ -318,7 +340,7 @@ Item {
             var firstDate = new Date((daily[0].dayStartUnix ? daily[0].dayStartUnix : 0) * 1000)
             var firstDow = (firstDate.getDay() + 6) % 7
             for (var p = 0; p < firstDow; p++)
-                cells.push({ level: 0, day: "", seconds: 0, empty: true, category: "其他" })
+                cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "其他" })
         }
         for (var j = 0; j < daily.length; j++) {
             var sec = daily[j].seconds ? daily[j].seconds : 0
@@ -331,10 +353,10 @@ Item {
                       : new Date((daily[j].dayStartUnix ? daily[j].dayStartUnix : 0) * 1000).getDate()
             var dateKey = daily[j].dayStartUnix ? dateKeyFromUnix(daily[j].dayStartUnix) : ""
             var cat = dateKey && byDayCategory[dateKey] ? dominantDayCategory(byDayCategory[dateKey]) : "其他"
-            cells.push({ level: lv, day: day, seconds: sec, empty: false, category: cat, color: heatColor(cat, lv) })
+            cells.push({ level: lv, day: day, dateKey: dateKey, seconds: sec, empty: false, category: cat, color: heatColor(cat, lv) })
         }
         while (cells.length > 0 && cells.length % 7 !== 0)
-            cells.push({ level: 0, day: "", seconds: 0, empty: true, category: "其他" })
+            cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "其他" })
         return cells
     }
 
@@ -1335,11 +1357,13 @@ Item {
         property string title: ""
         property string sub: ""
         property var cells: []
+        property var hoveredCell: null
         readonly property int weekCount: Math.max(1, Math.ceil((cells ? cells.length : 0) / 7))
-        readonly property real gridGap: 5
-        readonly property real labelWidth: 24
-        readonly property real cellSide: Math.max(13, Math.min(34, Math.floor(Math.min((heatBody.width - labelWidth - 12 - Math.max(0, weekCount - 1) * gridGap) / weekCount,
-                                                                                      (heatBody.height - 6 * gridGap) / 7))))
+        readonly property real gridGap: 6
+        readonly property real labelWidth: 32
+        readonly property real cellW: Math.max(22, Math.floor((heatBody.width - labelWidth - 12 - Math.max(0, weekCount - 1) * gridGap) / weekCount))
+        readonly property real cellH: Math.max(18, Math.floor((heatBody.height - 6 * gridGap) / 7))
+        readonly property real cellRadius: Math.max(4, Math.min(10, Math.min(cellW, cellH) * 0.22))
         style: ml
         radius: 18
         ColumnLayout {
@@ -1358,20 +1382,21 @@ Item {
                 Layout.fillHeight: true
                 clip: true
                 Row {
-                    anchors.centerIn: parent
+                    anchors.fill: parent
                     spacing: 12
                     Column {
                         width: heat.labelWidth
                         spacing: heat.gridGap
+                        anchors.verticalCenter: parent.verticalCenter
                         Repeater {
                             model: root.heatWeekLabels()
                             delegate: Text {
                                 required property var modelData
                                 width: heat.labelWidth
-                                height: heat.cellSide
+                                height: heat.cellH
                                 text: root.tr(modelData)
                                 color: ml.textTertiary
-                                font.pixelSize: Math.min(12, Math.max(10, heat.cellSide * 0.38))
+                                font.pixelSize: Math.min(12, Math.max(10, heat.cellH * 0.38))
                                 horizontalAlignment: Text.AlignRight
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -1382,19 +1407,59 @@ Item {
                         flow: Grid.TopToBottom
                         rowSpacing: heat.gridGap
                         columnSpacing: heat.gridGap
+                        anchors.verticalCenter: parent.verticalCenter
                         Repeater {
                             model: heat.cells
                             delegate: Rectangle {
+                                id: heatCell
                                 required property var modelData
-                                width: heat.cellSide
-                                height: heat.cellSide
-                                radius: Math.max(3, heat.cellSide * 0.22)
+                                width: heat.cellW
+                                height: heat.cellH
+                                radius: heat.cellRadius
                                 opacity: modelData.empty ? 0 : 1
                                 color: modelData.color ? modelData.color : root.heatColor(modelData.category, modelData.level)
-                                border.width: modelData.level === 0 ? 1 : 0
-                                border.color: root.nightMode ? "#30363D" : "#D0D7DE"
+                                border.width: cellMa.containsMouse || modelData.level === 0 ? 1 : 0
+                                border.color: cellMa.containsMouse ? Qt.rgba(1, 1, 1, 0.55) : (root.nightMode ? "#30363D" : "#D0D7DE")
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !modelData.empty && heat.cellW >= 34 && heat.cellH >= 22
+                                    text: modelData.day
+                                    color: modelData.level > 2 ? Qt.rgba(1, 1, 1, 0.86) : ml.textTertiary
+                                    font.pixelSize: Math.min(11, heat.cellH * 0.42)
+                                    font.weight: Font.DemiBold
+                                }
+                                MouseArea {
+                                    id: cellMa
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onEntered: heat.hoveredCell = modelData
+                                    onExited: if (heat.hoveredCell === modelData) heat.hoveredCell = null
+                                }
                             }
                         }
+                    }
+                }
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.margins: 8
+                    width: Math.min(parent.width - 16, tipText.implicitWidth + 22)
+                    height: 30
+                    radius: 15
+                    visible: heat.hoveredCell !== null && !heat.hoveredCell.empty
+                    color: ml.calToastBg
+                    border.width: 1
+                    border.color: ml.chipEventBd
+                    Text {
+                        id: tipText
+                        anchors.centerIn: parent
+                        text: heat.hoveredCell ? root.heatTooltipText(heat.hoveredCell) : ""
+                        color: ml.textPrimary
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                        width: parent.width - 16
+                        horizontalAlignment: Text.AlignHCenter
                     }
                 }
             }
@@ -1548,7 +1613,7 @@ Item {
                     id: insightText
                     anchors.fill: parent
                     anchors.margins: 12
-                    text: ic.insight
+                    text: I18n.smartText(root.languageMode, ic.insight)
                     color: ml.textSecondary
                     font.pixelSize: 13
                     lineHeight: 1.45
@@ -1596,7 +1661,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: root.tr(modelData)
+                            text: I18n.smartText(root.languageMode, modelData)
                             color: ml.textSecondary
                             font.pixelSize: 13
                             wrapMode: Text.WordWrap

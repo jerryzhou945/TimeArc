@@ -8,6 +8,10 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T06:45:44Z | L3 | get-process-aft... | After stopping TimeArc, a follow-up Get-Process check ret... | [report](errors/20260618-064544-C-get-process-after-stop-nonzero.md) |
+| 2026-06-18T06:45:11Z | L1 | build-exe-permi... | Build failed at link because TimeArc.exe could not be ove... | [report](errors/20260618-064511-C-build-exe-permission-denied.md) |
+| 2026-06-18T06:36:42Z | L3 | rg-access-denie... | ripgrep failed with Access denied while locating remainin... | [report](errors/20260618-063642-C-rg-access-denied-copy-heatmap.md) |
+| 2026-06-18T06:35:37Z | L2 | english-copy-he... | English mode still shows Chinese in Home card backs/timel... | [report](errors/20260618-063537-C-english-copy-heatmap-gaps.md) |
 | 2026-06-18T04:19:53Z | L3 | remote-branch-a... | After PR #36 merged, GitHub had already deleted the remot... | [report](errors/20260618-041953-C-remote-branch-already-deleted.md) |
 | 2026-06-18T04:11:58Z | L2 | qt-warning-d5e3... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260618-041158-C-qt-warning-d5e39ad0f2.md) |
 | 2026-06-18T04:11:58Z | L2 | qt-warning-f827... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260618-041158-C-qt-warning-f8277923d2.md) |

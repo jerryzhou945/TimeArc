@@ -34,13 +34,8 @@ Rectangle {
                     theme = theme.replace("为主", "").trim()
                 return "Today's main theme: " + I18n.category(languageMode, theme)
             }
-            var m = source.match(/^今天有\s*(\d+)\s*段连续使用，最长\s*([^，]+)，主要在(.+)。$/)
-            if (m)
-                return "Today had " + m[1] + " continuous sessions. Longest " + m[2] + ", mainly in " + I18n.category(languageMode, m[3]) + "."
-            if (source.indexOf("主要在") >= 0)
-                return source.replace("主要在", "mainly in ")
         }
-        return I18n.t(languageMode, source)
+        return I18n.smartText(languageMode, source)
     }
 
     function translateChipValue(value) {
@@ -57,7 +52,7 @@ Rectangle {
             if (time)
                 return value
         }
-        return I18n.t(languageMode, value)
+        return I18n.smartText(languageMode, value)
     }
 
     // 后端 chips（最高占比/高峰时段/建议）+ 待办剩余（QML 叠加，插在第一项之后，贴合 v88 顺序）。

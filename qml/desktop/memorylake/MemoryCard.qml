@@ -302,7 +302,7 @@ Item {
                     spacing: 14
                     Text {
                         width: parent.width
-                        text: card.app ? card.app.mood : ""
+                        text: card.app ? I18n.smartText(card.languageMode, card.app.mood) : ""
                         color: card.style ? card.style.textPrimary : "#fff"
                         font.pixelSize: card.selected ? 30 : 20
                         font.bold: true
@@ -310,7 +310,7 @@ Item {
                     }
                     Text {
                         width: parent.width
-                        text: card.app ? card.app.analysis : ""
+                        text: card.app ? I18n.smartText(card.languageMode, card.app.analysis) : ""
                         color: card.style ? card.style.textSecondary : "#bbb"
                         font.pixelSize: 14
                         lineHeight: 1.4
@@ -334,7 +334,7 @@ Item {
                                 border.color: card.style ? card.style.cardBorder : "#ffffff16"
                                 Text {
                                     anchors.centerIn: parent
-                                    text: I18n.t(card.languageMode, modelData.k) + "  " + I18n.t(card.languageMode, modelData.v)
+                                    text: I18n.t(card.languageMode, modelData.k) + "  " + I18n.smartText(card.languageMode, modelData.v)
                                     color: card.style ? card.style.textSecondary : "#ccc"
                                     font.pixelSize: 12
                                     font.bold: true
