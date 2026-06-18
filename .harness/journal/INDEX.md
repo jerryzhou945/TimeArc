@@ -8,6 +8,11 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T21:08:16Z | L2 | gh-cli-not-found | gh CLI is not available in this workspace; PR creation wi... | [report](errors/20260618-210816-B-gh-cli-not-found.md) |
+| 2026-06-18T21:03:47Z | L2 | open-issues-lin... | harness_check failed because .harness/state/open-issues.m... | [report](errors/20260618-210347-B-open-issues-line-budget.md) |
+| 2026-06-18T21:02:30Z | L2 | swiftc-not-avai... | Windows workspace has no swiftc, so macOS helper compile/... | [report](errors/20260618-210230-B-swiftc-not-available-on-windows.md) |
+| 2026-06-18T20:56:20Z | L2 | rg-access-denied | rg was denied by Windows while running red structural che... | [report](errors/20260618-205620-B-rg-access-denied.md) |
+| 2026-06-18T20:51:19Z | L3 | stale-superpowe... | Attempted to read Superpowers brainstorming/writing-plans... | [report](errors/20260618-205119-B-stale-superpowers-skill-cache-path.md) |
 | 2026-06-18T16:38:03Z | L3 | chrome-mcp-rele... | Chrome MCP failed to connect while attempting to open the... | [report](errors/20260618-163803-B-chrome-mcp-release-ui-unavailable.md) |
 | 2026-06-18T16:33:35Z | L3 | env-enumeration... | PowerShell Get-ChildItem Env: failed with duplicate key w... | [report](errors/20260618-163335-B-env-enumeration-duplicate-key.md) |
 | 2026-06-18T16:26:50Z | L3 | timearc-adapter... | Final structural check treated TimeArc display text as a ... | [report](errors/20260618-162650-B-timearc-adapter-check-overstrict.md) |
@@ -61,17 +66,17 @@ the harness line budget intact.
 | 2026-06-15T06:55:30Z | L1 | build-timeout-g... | build.py timed out after 124 seconds while rebuilding aft... | [report](errors/20260615-065530-B-build-timeout-global-i18n.md) |
 | 2026-06-15T06:51:18Z | L2 | qt-warning-7dbd... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/components/I18... | [report](errors/20260615-065118-C-qt-warning-7dbd33b2ee.md) |
 | 2026-06-15T06:51:17Z | L2 | qt-warning-220c... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260615-065117-C-qt-warning-220cf9a712.md) |
-| 2026-06-15T06:51:17Z | L2 | qt-warning-4107... | [WARNING] qrc:/qt/qml/time_arc/qml/main.qml:71 - qrc:/qt/... | [report](errors/20260615-065117-C-qt-warning-41071e1aed.md) |
-| 2026-06-15T06:51:17Z | L2 | qt-warning-882f... | [WARNING] :0 - QQmlApplicationEngine failed to load compo... | [report](errors/20260615-065117-C-qt-warning-882fece6aa.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-06-15T06:48:19Z | L3 | ui-rule-line-bu... | harness_check failed because .harness/rules/04-ui-convent... | [report](errors/20260615-064819-B-ui-rule-line-budget.md) |
 | 2026-06-15T05:46:42Z | L3 | remote-branch-a... | After PR #32 merge, git push origin --delete fix/ui-stats... | [report](errors/20260615-054642-C-remote-branch-already-deleted.md) |
-| 2026-06-15T05:33:14Z | L2 | qt-warning-2d52... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260615-053314-C-qt-warning-2d5254925d.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-06-15T05:31:18Z | L3 | process-check-n... | After stopping TimeArc, the follow-up Get-Process check r... | [report](errors/20260615-053118-C-process-check-nonzero.md) |
 | 2026-06-15T05:30:19Z | L1 | ui-followup-bui... | Harness build failed after UI follow-up commits; inspecti... | [report](errors/20260615-053019-C-ui-followup-build-failure.md) |
 | 2026-06-15T05:30:05Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260615-053005-B-build-failure.md) |
 | 2026-06-15T05:15:18Z | L3 | missing-adapter... | Looked for a non-existent adapter_registry.cpp; desktop a... | [report](errors/20260615-051518-C-missing-adapter-registry-cpp.md) |
 | 2026-06-15T05:13:56Z | L3 | powershell-sele... | Used Select-Object -Index with a string range; PowerShell... | [report](errors/20260615-051356-C-powershell-select-index-range.md) |
-| 2026-06-15T05:12:24Z | L2 | ui-stats-memory... | Stats heatmap underfills its card, monthly top apps overf... | [report](errors/20260615-051224-C-ui-stats-memorylake-language-followups.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-06-15T05:11:52Z | L3 | rg-access-denied | rg.exe failed with Access is denied while searching UI re... | [report](errors/20260615-051152-C-rg-access-denied.md) |
 | 2026-06-14T09:59:59Z | L3 | gh-cli-missing-... | GitHub publish flow requested but gh is not available in ... | [report](errors/20260614-095959-C-gh-cli-missing-for-pr-flow.md) |
 | 2026-06-14T09:54:42Z | L3 | errors-jsonl-po... | PowerShell Set-Content rewrote errors.jsonl with a non-UT... | [report](errors/20260614-095442-C-errors-jsonl-powershell-encoding.md) |

@@ -86,9 +86,12 @@ G2/G3 打磨 ───────────(随手)
 - [ ] **B3（可选低优）Windows `rename` 非原子覆盖**（`usage_storage.c` 现先 `remove`）——转 SQLite WAL 时再 revisit。
 
 ### C. 跨平台服务（**非 Windows**）
-- [ ] **C1 macOS tracker 主循环接线**
-  现状：`TimeArcService.swift` 是空 `RunLoop.run()`；`AppEnv.swift` 采样原语就绪；参照
-  `windows/.../usage_tracker.c` 契约。Track B · macOS · 大。
+- [~] **C1 macOS tracker 主循环接线**
+  2026-06-19 已补 Swift helper 的 foreground 写入、`usage_config.json`
+  配置读取（`idle_threshold_ms` / `track_enabled`）、单实例文件锁、媒体
+  assertion -> `source=audio` session 写入、SIGTERM/SIGINT flush。剩余：
+  Mac-host 编译与权限 smoke、LaunchAgent 生命周期、UI 自动启动、签名/公证/DMG
+  包装链路。Track B · macOS · 大。
 - [ ] **C2 Linux 服务从零实现**
   现状：`src/service/linux/main.c` 0 字节。需 X11 + Wayland 前台采样、idle 检测、PipeWire/PulseAudio
   音频、单实例守卫。Track B · Linux · 大。
