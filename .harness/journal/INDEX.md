@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T15:18:40Z | L2 | home-tag-combob... | Expected red structural check confirmed Home add-project ... | [report](errors/20260618-151840-C-home-tag-combobox-red-test.md) |
+| 2026-06-18T15:17:14Z | L2 | home-tags-still... | Home page tags/categories such as 社交 and 开发 still appear ... | [report](errors/20260618-151714-C-home-tags-still-chinese.md) |
+| 2026-06-18T15:17:14Z | L3 | sandbox-doc-sea... | A parallel Select-String documentation search failed with... | [report](errors/20260618-151714-C-sandbox-doc-search-createprocess.md) |
 | 2026-06-18T07:20:07Z | L3 | get-process-no-... | Get-Process TimeArc returned non-zero while checking for ... | [report](errors/20260618-072007-C-get-process-no-timearc-after-scan.md) |
 | 2026-06-18T07:19:43Z | L3 | harness-check-s... | harness_check failed because the new C session log linked... | [report](errors/20260618-071943-C-harness-check-session-link.md) |
 | 2026-06-18T07:19:24Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260618-071924-C-qt-warning-60b8e32bf0.md) |

@@ -79,6 +79,16 @@ Item {
     // 调色板与图标统一委托到 TagPalette.js（单一来源，杜绝多页色表漂移）。
     function tagColor(tag) { return TagPalette.tagColor(tag) }
     function tagIcon(tag) { return TagPalette.tagIcon(tag) }
+    function fixedTagOptions() {
+        var out = []
+        for (var i = 0; i < fixedTags.length; i++)
+            out.push({ value: fixedTags[i], text: root.tr(fixedTags[i]) })
+        return out
+    }
+    function selectedComboTag() {
+        var item = tagBox.currentIndex >= 0 ? tagBox.model[tagBox.currentIndex] : null
+        return item && item.value ? item.value : selectedTag
+    }
 
     function minutesToDisplay(minutes) {
         var total = Math.max(0, Math.floor(minutes ? minutes : 0))
@@ -1500,7 +1510,9 @@ Item {
                 ComboBox {
                     id: tagBox
                     width: parent.width
-                    model: fixedTags
+                    model: root.fixedTagOptions()
+                    textRole: "text"
+                    valueRole: "value"
                     currentIndex: 0
                 }
             }
@@ -1523,8 +1535,9 @@ Item {
                     onClicked: {
                         var nameText = projectNameField.text.trim()
                         if (nameText.length > 0 && projectManager) {
-                            projectManager.addProject(nameText, tagBox.currentText)
-                            selectedTag = tagBox.currentText
+                            var tagValue = root.selectedComboTag()
+                            projectManager.addProject(nameText, tagValue)
+                            selectedTag = tagValue
                             projectNameField.text = ""
                             tagBox.currentIndex = fixedTags.indexOf(selectedTag)
                             ringCanvas.requestPaint()
