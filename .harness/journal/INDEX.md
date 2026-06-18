@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T16:38:03Z | L3 | chrome-mcp-rele... | Chrome MCP failed to connect while attempting to open the... | [report](errors/20260618-163803-B-chrome-mcp-release-ui-unavailable.md) |
 | 2026-06-18T16:33:35Z | L3 | env-enumeration... | PowerShell Get-ChildItem Env: failed with duplicate key w... | [report](errors/20260618-163335-B-env-enumeration-duplicate-key.md) |
 | 2026-06-18T16:26:50Z | L3 | timearc-adapter... | Final structural check treated TimeArc display text as a ... | [report](errors/20260618-162650-B-timearc-adapter-check-overstrict.md) |
 | 2026-06-18T16:24:31Z | L1 | timearc-db-smok... | After clearing the Qt test data directory, timearc_db_smo... | [report](errors/20260618-162431-B-timearc-db-smoke-test-dir-create.md) |
