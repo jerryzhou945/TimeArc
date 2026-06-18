@@ -84,6 +84,12 @@ Item {
         }
         contentItem: ListView {
             id: list
+            property var comboStyle: combo.style
+            property int comboCurrentIndex: combo.currentIndex
+            function activateIndex(i) {
+                combo.activated(i)
+                combo.closePopup()
+            }
             clip: true
             implicitHeight: contentHeight
             model: combo.model
@@ -92,11 +98,12 @@ Item {
                 id: opt
                 required property int index
                 required property var modelData
+                readonly property var owner: ListView.view
                 width: ListView.view ? ListView.view.width : 0
                 height: 34
                 radius: 8
-                color: (optHov.hovered || opt.index === combo.currentIndex)
-                       ? (combo.style ? combo.style.accentSoft : Qt.rgba(0.62, 0.90, 0.93, 0.075))
+                color: (optHov.hovered || opt.index === opt.owner.comboCurrentIndex)
+                       ? (opt.owner.comboStyle ? opt.owner.comboStyle.accentSoft : Qt.rgba(0.62, 0.90, 0.93, 0.075))
                        : "transparent"
                 Text {
                     anchors.left: parent.left
@@ -105,13 +112,13 @@ Item {
                     anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
                     text: "" + opt.modelData
-                    color: combo.style ? combo.style.textPrimary : Qt.rgba(1, 1, 1, 0.88)
+                    color: opt.owner.comboStyle ? opt.owner.comboStyle.textPrimary : Qt.rgba(1, 1, 1, 0.88)
                     font.pixelSize: 13
-                    font.weight: (opt.index === combo.currentIndex) ? Font.DemiBold : Font.Normal
+                    font.weight: (opt.index === opt.owner.comboCurrentIndex) ? Font.DemiBold : Font.Normal
                     elide: Text.ElideRight
                 }
                 HoverHandler { id: optHov; cursorShape: Qt.PointingHandCursor }
-                TapHandler { onTapped: { combo.activated(opt.index); combo.closePopup() } }   // 受控：不自写 currentIndex
+                TapHandler { onTapped: opt.owner.activateIndex(opt.index) }   // 受控：不自写 currentIndex
             }
         }
     }

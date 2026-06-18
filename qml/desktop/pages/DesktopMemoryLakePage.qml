@@ -22,6 +22,20 @@ Item {
     property string languageMode: "zh"
 
     function tr(source) { return I18n.t(languageMode, source) }
+    function translateThemeText(source) {
+        if (!source || source.length === 0)
+            return ""
+        if (I18n.langKey(languageMode) === "en") {
+            if (source.indexOf("为主") >= 0) {
+                var theme = source.replace("为主", "").trim()
+                return I18n.category(languageMode, theme) + " Focus"
+            }
+            var m = source.match(/^今天有\s*(\d+)\s*段连续使用，最长\s*([^，]+)，主要在(.+)。$/)
+            if (m)
+                return "Today had " + m[1] + " continuous sessions. Longest " + m[2] + ", mainly in " + I18n.category(languageMode, m[3]) + "."
+        }
+        return tr(source)
+    }
 
     // —— 当前选中的记忆 ——
     property int selectedIndex: 0
@@ -193,10 +207,10 @@ Item {
                             text: root.tr(root.todayTheme.kicker); color: ml.aqua; font.pixelSize: 11; opacity: 0.9
                             font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
                         }
-                        Text { text: root.tr(root.todayTheme.title); color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
+                        Text { text: root.translateThemeText(root.todayTheme.title); color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
                         Text {
                             width: parent.width
-                            text: root.tr(root.todayTheme.desc)
+                            text: root.translateThemeText(root.todayTheme.desc)
                             color: ml.textSecondary
                             font.pixelSize: 12
                             wrapMode: Text.WordWrap

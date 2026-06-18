@@ -582,7 +582,7 @@ Item {
 
                                     Text {
                                         Layout.fillWidth: true
-                                        text: modelData.label
+                                        text: I18n.category(root.languageMode, modelData.label)
                                         color: textSecondary
                                         font.pixelSize: 12
                                         elide: Text.ElideRight
@@ -1069,7 +1069,7 @@ Item {
 
                                         Text {
                                             Layout.fillWidth: true
-                                            text: modelData.label
+                                            text: I18n.category(root.languageMode, modelData.label)
                                             color: textSecondary
                                             font.pixelSize: 11
                                             horizontalAlignment: Text.AlignHCenter

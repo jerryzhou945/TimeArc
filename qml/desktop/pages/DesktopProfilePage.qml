@@ -164,8 +164,9 @@ Item {
         var resPath = root._licenseResPath(file)
         var t = settingsRepository ? settingsRepository.readTextFile(resPath) : ""
         licenseViewer.bodyText = (t && t.length > 0) ? t
-            : "（许可文本载入为空：" + file + "）\n查无资源 " + resPath
-              + "；请确认已编入 resources/CMakeLists.txt 的 TIME_ARC_RESOURCE_FILES。"
+            : root.sentence("localLicenseEmpty", {file: file, path: resPath},
+                  "（许可文本载入为空：" + file + "）\n查无资源 " + resPath
+                  + "；请确认已编入 resources/CMakeLists.txt 的 TIME_ARC_RESOURCE_FILES。")
         licenseViewer.shown = true
     }
 
@@ -1009,7 +1010,7 @@ Item {
                             }
 
                             SettingsCard {
-                                badge: "文"
+                                badge: "Aa"
                                 cardTitle: "语言与时间"
                                 cardDesc: "控制界面的基础文本和时间显示方式。"
                                 keywords: "语言 时间格式 单位 language time"
@@ -1633,14 +1634,14 @@ Item {
                                         id: aboutCol
                                         anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
                                         spacing: 3
-                                        Text { text: "应用"; color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
+                                        Text { text: root.tr("应用"); color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
                                         Text {
-                                            text: "TimeArc · 本地版本 " + root.appVersion
+                                            text: root.sentence("localVersion", {version: root.appVersion}, "TimeArc · 本地版本 " + root.appVersion)
                                             color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
                                             width: parent.width; wrapMode: Text.WordWrap
                                         }
                                         Text {
-                                            text: "本项目以 GPL-3.0-or-later 授权；Qt 以 LGPL-3.0 动态链接。"
+                                            text: root.tr("本项目以 GPL-3.0-or-later 授权；Qt 以 LGPL-3.0 动态链接。")
                                             color: ml.textTertiary; font.pixelSize: 11
                                             width: parent.width; wrapMode: Text.WordWrap
                                         }
@@ -1674,14 +1675,14 @@ Item {
                                                 }
                                                 Item { Layout.fillWidth: true }
                                                 Text {
-                                                    text: compRow.comp.linkage
+                                                    text: root.tr(compRow.comp.linkage)
                                                     color: ml.textTertiary; font.pixelSize: 10
                                                     font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3
                                                 }
                                             }
                                             Text {
                                                 Layout.fillWidth: true
-                                                text: compRow.comp.license
+                                                text: root.tr(compRow.comp.license)
                                                 color: ml.textSecondary; font.pixelSize: 11; wrapMode: Text.WordWrap
                                             }
                                             Flow {
@@ -1691,8 +1692,8 @@ Item {
                                                     model: compRow.comp.texts
                                                     delegate: GhostBtn {
                                                         required property var modelData
-                                                        label: modelData.btn
-                                                        onTapped: root.showLicenseText(modelData.file, compRow.comp.name, compRow.comp.license)
+                                                        label: root.tr(modelData.btn)
+                                                        onTapped: root.showLicenseText(modelData.file, compRow.comp.name, root.tr(compRow.comp.license))
                                                     }
                                                 }
                                             }
@@ -1701,7 +1702,7 @@ Item {
                                 }
 
                                 PlaceholderNote {
-                                    text: "全文文件位于 resources/licenses/，已内嵌 qrc 随包分发；无网络也可阅读。新增第三方依赖时须同步补充对应文本与本卡条目（rules/06 §4(3)）。"
+                                    text: root.tr("全文文件位于 resources/licenses/，已内嵌 qrc 随包分发；无网络也可阅读。新增第三方依赖时须同步补充对应文本与本卡条目（rules/06 §4(3)）。")
                                 }
                             }
                         }

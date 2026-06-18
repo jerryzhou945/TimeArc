@@ -1965,7 +1965,7 @@ Item {
                                     border.color: ml.calGhostBorder
                                     Text {
                                         anchors.centerIn: parent
-                                        text: selDayCard.selPhoto === "" ? "+ 添加照片" : "+ 更换照片"
+                                        text: selDayCard.selPhoto === "" ? "+ " + root.tr("添加照片") : "+ " + root.tr("更换照片")
                                         color: ml.calGlyph
                                         font.pixelSize: 13
                                     }
@@ -2042,7 +2042,7 @@ Item {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: modelData.label
+                                        text: root.tr(modelData.label)
                                         color: sidePanelMode === modelData.key ? ml.calBtnInk : ml.textSecondary
                                         font.pixelSize: 13
                                         font.weight: sidePanelMode === modelData.key ? Font.Bold : Font.DemiBold
