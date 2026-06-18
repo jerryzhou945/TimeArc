@@ -130,31 +130,31 @@ Item {
 
     function categoryHeatBase(category) {
         switch (category) {
-        case "学习": return "#58A6FF"
-        case "笔记": return "#79C0FF"
-        case "开发": return "#56D364"
-        case "办公": return "#7DD3FC"
-        case "社交": return "#D2A8FF"
-        case "创作": return "#F2CC60"
-        case "游戏": return "#FFB86B"
-        case "视频": return "#FF7B72"
-        case "音乐": return "#7EE787"
-        case "浏览": return "#A5D6FF"
-        default: return "#40C463"
+        case "学习": return "#76B7F2"
+        case "笔记": return "#8BC6F0"
+        case "开发": return "#7ECF9A"
+        case "办公": return "#7DD6D0"
+        case "社交": return "#BBA7F2"
+        case "创作": return "#E7C86E"
+        case "游戏": return "#F2B279"
+        case "视频": return "#EE8F9A"
+        case "音乐": return "#9FDFAE"
+        case "浏览": return "#A9CBEF"
+        default: return "#8BCF9A"
         }
     }
 
     function heatColor(category, level) {
         if (level <= 0)
-            return root.nightMode ? "#1F2937" : "#EBEDF0"
+            return root.nightMode ? "#202A36" : "#EDF1F4"
         var c = Qt.lighter(categoryHeatBase(category), 1.0)
         var h = c.hslHue
         if (h < 0 || isNaN(h))
-            return root.nightMode ? "#39D353" : "#216E39"
+            return root.nightMode ? "#78C98F" : "#9ED9A8"
         var l = root.nightMode
-                ? (0.18 + level * 0.08)
-                : (0.88 - level * 0.10)
-        var s = Math.min(0.82, c.hslSaturation + 0.12)
+                ? (0.24 + level * 0.055)
+                : (0.90 - level * 0.065)
+        var s = Math.min(0.56, Math.max(0.34, c.hslSaturation * 0.72))
         return Qt.hsla(h, s, l, 1.0)
     }
 
@@ -1359,11 +1359,12 @@ Item {
         property var cells: []
         property var hoveredCell: null
         readonly property int weekCount: Math.max(1, Math.ceil((cells ? cells.length : 0) / 7))
-        readonly property real gridGap: 6
-        readonly property real labelWidth: 32
-        readonly property real cellW: Math.max(22, Math.floor((heatBody.width - labelWidth - 12 - Math.max(0, weekCount - 1) * gridGap) / weekCount))
-        readonly property real cellH: Math.max(18, Math.floor((heatBody.height - 6 * gridGap) / 7))
-        readonly property real cellRadius: Math.max(4, Math.min(10, Math.min(cellW, cellH) * 0.22))
+        readonly property real gridGap: 7
+        readonly property real labelWidth: 36
+        readonly property real availableCellByWidth: (heatBody.width - labelWidth - 14 - Math.max(0, weekCount - 1) * gridGap) / weekCount
+        readonly property real availableCellByHeight: (heatBody.height - 6 * gridGap) / 7
+        readonly property real cellSide: Math.max(20, Math.min(38, Math.floor(Math.min(availableCellByWidth, availableCellByHeight))))
+        readonly property real cellRadius: Math.max(5, Math.min(9, cellSide * 0.22))
         style: ml
         radius: 18
         ColumnLayout {
@@ -1382,7 +1383,10 @@ Item {
                 Layout.fillHeight: true
                 clip: true
                 Row {
-                    anchors.fill: parent
+                    id: heatGridWrap
+                    anchors.centerIn: parent
+                    width: heat.labelWidth + 14 + heat.weekCount * heat.cellSide + Math.max(0, heat.weekCount - 1) * heat.gridGap
+                    height: 7 * heat.cellSide + 6 * heat.gridGap
                     spacing: 12
                     Column {
                         width: heat.labelWidth
@@ -1393,10 +1397,10 @@ Item {
                             delegate: Text {
                                 required property var modelData
                                 width: heat.labelWidth
-                                height: heat.cellH
+                                height: heat.cellSide
                                 text: root.tr(modelData)
                                 color: ml.textTertiary
-                                font.pixelSize: Math.min(12, Math.max(10, heat.cellH * 0.38))
+                                font.pixelSize: 11
                                 horizontalAlignment: Text.AlignRight
                                 verticalAlignment: Text.AlignVCenter
                             }
@@ -1413,19 +1417,23 @@ Item {
                             delegate: Rectangle {
                                 id: heatCell
                                 required property var modelData
-                                width: heat.cellW
-                                height: heat.cellH
+                                width: heat.cellSide
+                                height: heat.cellSide
                                 radius: heat.cellRadius
                                 opacity: modelData.empty ? 0 : 1
                                 color: modelData.color ? modelData.color : root.heatColor(modelData.category, modelData.level)
-                                border.width: cellMa.containsMouse || modelData.level === 0 ? 1 : 0
-                                border.color: cellMa.containsMouse ? Qt.rgba(1, 1, 1, 0.55) : (root.nightMode ? "#30363D" : "#D0D7DE")
+                                border.width: 1
+                                border.color: cellMa.containsMouse
+                                    ? Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.65)
+                                    : (modelData.level === 0 ? (root.nightMode ? "#2E3947" : "#D7DEE5") : Qt.rgba(1, 1, 1, root.nightMode ? 0.08 : 0.34))
+                                scale: cellMa.containsMouse ? 1.08 : 1
+                                Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: !modelData.empty && heat.cellW >= 34 && heat.cellH >= 22
+                                    visible: !modelData.empty && heat.cellSide >= 28
                                     text: modelData.day
-                                    color: modelData.level > 2 ? Qt.rgba(1, 1, 1, 0.86) : ml.textTertiary
-                                    font.pixelSize: Math.min(11, heat.cellH * 0.42)
+                                    color: modelData.level > 2 ? Qt.rgba(1, 1, 1, 0.82) : ml.textTertiary
+                                    font.pixelSize: Math.min(11, heat.cellSide * 0.38)
                                     font.weight: Font.DemiBold
                                 }
                                 MouseArea {
@@ -1635,7 +1643,7 @@ Item {
                         radius: 9
                         color: ml.accentSoft
                         border.width: 1; border.color: ml.accentSoftBorder
-                        Text { id: kwT; anchors.centerIn: parent; text: root.tr(modelData); color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                        Text { id: kwT; anchors.centerIn: parent; text: I18n.smartText(root.languageMode, modelData); color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
                     }
                 }
             }
