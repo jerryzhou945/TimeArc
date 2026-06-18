@@ -47,7 +47,7 @@ Every platform service must:
   The tracker stays in the interactive user session. A true SCM Session-0
   service is deferred.
 
-### macOS - foreground/config/media MVP, LaunchAgent pending
+### macOS - foreground/config/media/lifecycle MVP, Mac smoke pending
 
 - `AppEnv.swift`: frontmost app via `NSWorkspace`, idle via `CGEventSource`,
   media playback via `IOPMCopyAssertionsByProcess`.
@@ -57,10 +57,13 @@ Every platform service must:
   `~/.timearc/usage/usage_config.json` for `idle_threshold_ms` and
   `track_enabled`, takes a per-user file lock, writes foreground sessions,
   writes media assertions as `source=audio`, clears current state on idle/exit,
-  and flushes pending sessions on `SIGTERM`/`SIGINT`.
-- Still pending: Mac-host compile smoke, Accessibility permission UX,
-  LaunchAgent install/start/stop/status, UI auto-start, packaging, signing, and
-  notarization.
+  flushes pending sessions on `SIGTERM`/`SIGINT`, and provides
+  `--install`/`--uninstall`/`--start`/`--stop`/`--status` verbs backed by a
+  per-user LaunchAgent.
+- `src/main.cpp::startUsageService()`: starts the macOS helper when found in a
+  bundle-adjacent, install-prefix, or development-build location.
+- Still pending: Mac-host compile/runtime smoke, Accessibility permission UX,
+  final helper bundle layout, packaging, signing, and notarization.
 
 ### Linux - not started
 

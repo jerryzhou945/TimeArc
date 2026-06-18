@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T21:27:51Z | L2 | staged-diff-tra... | git diff --cached --check found trailing whitespace in th... | [report](errors/20260618-212751-B-staged-diff-trailing-whitespace.md) |
+| 2026-06-18T21:25:26Z | L2 | open-issues-lin... | harness_check failed because .harness/state/open-issues.m... | [report](errors/20260618-212526-B-open-issues-line-budget.md) |
+| 2026-06-18T21:21:18Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260618-212118-B-build-failure.md) |
 | 2026-06-18T21:08:16Z | L2 | gh-cli-not-found | gh CLI is not available in this workspace; PR creation wi... | [report](errors/20260618-210816-B-gh-cli-not-found.md) |
 | 2026-06-18T21:03:47Z | L2 | open-issues-lin... | harness_check failed because .harness/state/open-issues.m... | [report](errors/20260618-210347-B-open-issues-line-budget.md) |
 | 2026-06-18T21:02:30Z | L2 | swiftc-not-avai... | Windows workspace has no swiftc, so macOS helper compile/... | [report](errors/20260618-210230-B-swiftc-not-available-on-windows.md) |
@@ -64,8 +67,8 @@ the harness line budget intact.
 | 2026-06-15T07:03:29Z | L1 | remote-branch-a... | Attempted to delete origin/codex/global-runtime-i18n afte... | [report](errors/20260615-070329-B-remote-branch-already-deleted.md) |
 | 2026-06-15T07:01:58Z | L1 | gh-cli-missing | GitHub CLI was not available while trying to publish the ... | [report](errors/20260615-070158-B-gh-cli-missing.md) |
 | 2026-06-15T06:55:30Z | L1 | build-timeout-g... | build.py timed out after 124 seconds while rebuilding aft... | [report](errors/20260615-065530-B-build-timeout-global-i18n.md) |
-| 2026-06-15T06:51:18Z | L2 | qt-warning-7dbd... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/components/I18... | [report](errors/20260615-065118-C-qt-warning-7dbd33b2ee.md) |
-| 2026-06-15T06:51:17Z | L2 | qt-warning-220c... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260615-065117-C-qt-warning-220cf9a712.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-06-15T06:48:19Z | L3 | ui-rule-line-bu... | harness_check failed because .harness/rules/04-ui-convent... | [report](errors/20260615-064819-B-ui-rule-line-budget.md) |

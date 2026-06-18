@@ -5,6 +5,224 @@ import Foundation
 import Darwin
 import Dispatch
 
+private enum MacServiceLifecycle {
+	private static let label = "com.timearc.usage-service"
+	private static let plistName = "\(label).plist"
+	private static let lockName = "time-arc-service.lock"
+
+	static func dispatch(arguments: [String]) -> Int32? {
+		guard arguments.count >= 2 else {
+			return nil
+		}
+
+		switch arguments[1] {
+		case "--install":
+			return install()
+		case "--uninstall":
+			return uninstall()
+		case "--start":
+			return start()
+		case "--stop":
+			return stop()
+		case "--status":
+			return status()
+		default:
+			fputs(
+				"TimeArc macOS service\nusage: time-arc-service [--install|--uninstall|--start|--stop|--status]\n",
+				stderr
+			)
+			return 2
+		}
+	}
+
+	private static var usageDirectoryURL: URL {
+		FileManager.default.homeDirectoryForCurrentUser
+			.appendingPathComponent(".timearc")
+			.appendingPathComponent("usage")
+	}
+
+	private static var lockURL: URL {
+		usageDirectoryURL.appendingPathComponent(lockName)
+	}
+
+	private static var launchAgentsDirectoryURL: URL {
+		FileManager.default.homeDirectoryForCurrentUser
+			.appendingPathComponent("Library")
+			.appendingPathComponent("LaunchAgents")
+	}
+
+	private static var launchAgentURL: URL {
+		launchAgentsDirectoryURL.appendingPathComponent(plistName)
+	}
+
+	private static var launchctlDomain: String {
+		"gui/\(getuid())"
+	}
+
+	private static var launchctlService: String {
+		"\(launchctlDomain)/\(label)"
+	}
+
+	private static func install() -> Int32 {
+		let executable = currentExecutablePath()
+		do {
+			try FileManager.default.createDirectory(
+				at: launchAgentsDirectoryURL,
+				withIntermediateDirectories: true
+			)
+			try plistContent(executablePath: executable)
+				.write(to: launchAgentURL, atomically: true, encoding: .utf8)
+		} catch {
+			fputs("install: failed to write LaunchAgent plist\n", stderr)
+			return 1
+		}
+
+		_ = runLaunchctl(["bootout", launchctlDomain, launchAgentURL.path])
+		let code = runLaunchctl(["bootstrap", launchctlDomain, launchAgentURL.path])
+		if code != 0 {
+			fputs("install: LaunchAgent written but launchctl bootstrap failed\n", stderr)
+			return 1
+		}
+		print("autostart registered (LaunchAgent)")
+		return 0
+	}
+
+	private static func uninstall() -> Int32 {
+		_ = stop()
+		do {
+			if FileManager.default.fileExists(atPath: launchAgentURL.path) {
+				try FileManager.default.removeItem(at: launchAgentURL)
+			}
+		} catch {
+			fputs("uninstall: failed to remove LaunchAgent plist\n", stderr)
+			return 1
+		}
+		print("autostart unregistered")
+		return 0
+	}
+
+	private static func start() -> Int32 {
+		if FileManager.default.fileExists(atPath: launchAgentURL.path) {
+			let bootstrapCode = runLaunchctl(["bootstrap", launchctlDomain, launchAgentURL.path])
+			let kickCode = runLaunchctl(["kickstart", "-k", launchctlService])
+			if bootstrapCode == 0 || kickCode == 0 {
+				print("tracker started")
+				return 0
+			}
+		}
+
+		do {
+			let process = Process()
+			process.executableURL = URL(fileURLWithPath: currentExecutablePath())
+			process.arguments = []
+			try process.run()
+			print("tracker started")
+			return 0
+		} catch {
+			fputs("start: failed to launch tracker\n", stderr)
+			return 1
+		}
+	}
+
+	private static func stop() -> Int32 {
+		if FileManager.default.fileExists(atPath: launchAgentURL.path) {
+			_ = runLaunchctl(["bootout", launchctlDomain, launchAgentURL.path])
+		}
+
+		if let pid = runningPid(), isProcessAlive(pid) {
+			if kill(pid, SIGTERM) != 0 {
+				fputs("stop: failed to signal tracker\n", stderr)
+				return 1
+			}
+			print("stop requested")
+			return 0
+		}
+
+		print("tracker not running")
+		return 0
+	}
+
+	private static func status() -> Int32 {
+		let registered = FileManager.default.fileExists(atPath: launchAgentURL.path)
+		let running = runningPid().map(isProcessAlive) ?? false
+		print("autostart=\(registered ? "on" : "off")")
+		print("running=\(running ? "yes" : "no")")
+		return registered ? 0 : 1
+	}
+
+	private static func currentExecutablePath() -> String {
+		let rawPath = CommandLine.arguments.first ?? "time-arc-service"
+		let url: URL
+		if rawPath.hasPrefix("/") {
+			url = URL(fileURLWithPath: rawPath)
+		} else {
+			url = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+				.appendingPathComponent(rawPath)
+		}
+		return url.standardizedFileURL.path
+	}
+
+	private static func plistContent(executablePath: String) -> String {
+		let path = xmlEscaped(executablePath)
+		return """
+		<?xml version="1.0" encoding="UTF-8"?>
+		<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+		<plist version="1.0">
+		<dict>
+		    <key>Label</key>
+		    <string>\(label)</string>
+		    <key>ProgramArguments</key>
+		    <array>
+		        <string>\(path)</string>
+		    </array>
+		    <key>RunAtLoad</key>
+		    <true/>
+		    <key>KeepAlive</key>
+		    <false/>
+		</dict>
+		</plist>
+		"""
+	}
+
+	private static func xmlEscaped(_ value: String) -> String {
+		value
+			.replacingOccurrences(of: "&", with: "&amp;")
+			.replacingOccurrences(of: "\"", with: "&quot;")
+			.replacingOccurrences(of: "'", with: "&apos;")
+			.replacingOccurrences(of: "<", with: "&lt;")
+			.replacingOccurrences(of: ">", with: "&gt;")
+	}
+
+	private static func runLaunchctl(_ arguments: [String]) -> Int32 {
+		let process = Process()
+		process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+		process.arguments = arguments
+		do {
+			try process.run()
+			process.waitUntilExit()
+			return process.terminationStatus
+		} catch {
+			return 1
+		}
+	}
+
+	private static func runningPid() -> Int32? {
+		guard let text = try? String(contentsOf: lockURL, encoding: .utf8),
+		      let pid = Int32(text.trimmingCharacters(in: .whitespacesAndNewlines)),
+		      pid > 0 else {
+			return nil
+		}
+		return pid
+	}
+
+	private static func isProcessAlive(_ pid: Int32) -> Bool {
+		if kill(pid, 0) == 0 {
+			return true
+		}
+		return errno == EPERM
+	}
+}
+
 final class TimeArcService {
 	private struct ActiveSession {
 		let appID: String
@@ -370,6 +588,9 @@ final class TimeArcService {
 struct TimeArcServiceMain {
 	static func main() {
 		autoreleasepool {
+			if let exitCode = MacServiceLifecycle.dispatch(arguments: CommandLine.arguments) {
+				exit(exitCode)
+			}
 			let exitCode = TimeArcService().run()
 			exit(exitCode)
 		}
