@@ -1,4 +1,6 @@
 import QtQuick
+import "../components/I18n.js" as I18n
+import "../components/AppVisual.js" as AppVisual
 
 // 右栏详情卡：标题 + 封面 + 类别/时长 + 心情 + 分析，跟随当前 APP。
 // 1:1 对应设计稿 .detail-panel。
@@ -7,6 +9,7 @@ Rectangle {
 
     property MemoryLakeStyle style
     property var app
+    property string languageMode: "zh"
 
     radius: 18
     color: style ? style.cardBg : "#0e1422"
@@ -21,7 +24,7 @@ Rectangle {
             x: 15
             topPadding: 14
             width: parent.width - 30
-            text: (detail.app ? detail.app.name : "") + " · 使用时间分布"
+            text: (detail.app ? AppVisual.modelDisplayNameForLanguage(detail.app, detail.languageMode) : "") + " · " + I18n.t(detail.languageMode, "使用时间分布")
             color: detail.style ? detail.style.textPrimary : "#fff"
             font.pixelSize: 16
             font.bold: true
@@ -54,19 +57,19 @@ Rectangle {
             topPadding: 12
             spacing: 6
             Text {
-                text: detail.app ? (detail.app.type + " · " + detail.app.time) : ""
+                text: detail.app ? (I18n.t(detail.languageMode, detail.app.type) + " · " + detail.app.time) : ""
                 color: detail.style ? detail.style.textTertiary : "#888"
                 font.pixelSize: 12
             }
             Text {
-                text: detail.app ? detail.app.mood : ""
+                text: detail.app ? I18n.smartText(detail.languageMode, detail.app.mood) : ""
                 color: detail.style ? detail.style.textPrimary : "#fff"
                 font.pixelSize: 21
                 font.bold: true
             }
             Text {
                 width: parent.width
-                text: detail.app ? detail.app.analysis : ""
+                text: detail.app ? I18n.smartText(detail.languageMode, detail.app.analysis) : ""
                 color: detail.style ? detail.style.textSecondary : "#bbb"
                 font.pixelSize: 13
                 lineHeight: 1.6

@@ -30,11 +30,8 @@ Item {
                 var theme = source.replace("为主", "").trim()
                 return I18n.category(languageMode, theme) + " Focus"
             }
-            var m = source.match(/^今天有\s*(\d+)\s*段连续使用，最长\s*([^，]+)，主要在(.+)。$/)
-            if (m)
-                return "Today had " + m[1] + " continuous sessions. Longest " + m[2] + ", mainly in " + I18n.category(languageMode, m[3]) + "."
         }
-        return tr(source)
+        return I18n.smartText(languageMode, source)
     }
 
     // —— 当前选中的记忆 ——
@@ -488,6 +485,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 16
                             style: ml
+                            languageMode: root.languageMode
                             app: root.current
                         }
                     }

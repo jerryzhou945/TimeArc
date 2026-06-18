@@ -142,6 +142,7 @@ var en = {
     "放松之余，预留固定的深度工作时段。": "Reserve fixed deep-work blocks alongside relaxation.",
     "留意社交占用，集中处理消息更高效。": "Watch social time and batch messages for efficiency.",
     "时间结构较均衡，继续保持。": "Your time structure is balanced. Keep it up.",
+    "继续保持": "Keep it up",
     "CONTROL CENTER": "CONTROL CENTER",
     "管理 TimeArc 的追踪、隐私、备忘录与视觉体验。": "Manage TimeArc tracking, privacy, memo, and visual experience.",
     "数据来源说明：设置项保存在本机 SQLite；使用数据来自系统采集的本地记录，全部离线、不上传。": "Data note: settings are stored in local SQLite; usage data comes from local system records and stays offline.",
@@ -172,6 +173,7 @@ var en = {
     "隐私与数据": "Privacy & Data",
     "仅本地保存": "Local only",
     "隐藏窗口标题": "Hide window titles",
+    "隐藏敏感窗口标题": "Hide sensitive window titles",
     "匿名化导出": "Anonymize export",
     "备忘与番茄钟": "Memo & Pomodoro",
     "通知提醒": "Notifications",
@@ -202,6 +204,11 @@ var en = {
     "查看许可全文": "View License Text",
     "GPL-3.0-or-later（本项目自身，= 仓库根 LICENSE）": "GPL-3.0-or-later, this project itself; see repository root LICENSE",
     "全文文件位于 resources/licenses/，已内嵌 qrc 随包分发；无网络也可阅读。新增第三方依赖时须同步补充对应文本与本卡条目（rules/06 §4(3)）。": "Full texts live under resources/licenses/ and are embedded in the qrc bundle for offline access. Add matching text and a card entry when adding third-party dependencies.",
+    "使用时间图 · 时间河流": "Usage Timeline · Time River",
+    "纵轴 0–24 时": "0–24h axis",
+    "今天没有该应用的使用时段": "No usage periods for this app today",
+    "启动": "Launches",
+    "最长": "Longest",
     "通用": "General",
     "追踪与应用": "Tracking & Apps",
     "界面语言已保存": "Interface language saved",
@@ -738,7 +745,13 @@ var sentencesEn = {
     "memoPagePlain": "{count} pages",
     "localUsageSize": "Local usage {size} (relative to 100 MB reference)",
     "topThemeInsight": "Top theme today: {name} ({percent}%)",
-    "projectCountPlain": "{count} projects"
+    "projectCountPlain": "{count} projects",
+    "timesCount": "{count} times",
+    "heatTooltip": "{date} · {time} · {category}",
+    "heatTooltipEmpty": "{date} · No usage",
+    "monthlyAppAnalysis": "{app} was used about {time} this month, mostly during {period}. Longest continuous session: {longest}.",
+    "todayAppAnalysis": "{app} was used about {time} today, mostly during {period}. Longest continuous session: {longest}.",
+    "continuousSessions": "Today had {count} continuous sessions. Longest {longest}, mainly in {category}."
 }
 
 var sentencesJa = {
@@ -811,6 +824,73 @@ function tag(lang, source) {
 
 function category(lang, source) {
     return t(lang, source)
+}
+
+function duration(lang, source) {
+    if (source === undefined || source === null)
+        return ""
+    var text = source.toString()
+    if (langKey(lang) === "en")
+        return text.replace(/^约\s*/, "about ")
+    return t(lang, text)
+}
+
+function smartText(lang, source) {
+    if (source === undefined || source === null)
+        return source
+    var text = source.toString()
+    if (text.length === 0)
+        return ""
+    var direct = t(lang, text)
+    if (direct !== text)
+        return direct
+    if (langKey(lang) !== "en")
+        return text
+
+    var m = text.match(/^(.+):\s*(.+)使用$/)
+    if (m)
+        return m[1] + ": " + category(lang, m[2]) + " use"
+
+    m = text.match(/^(.+)\s*本月使用约\s*([^，]+)，多集中在(.+)，最长连续\s*([^。]+)。$/)
+    if (m)
+        return sentence(lang, "monthlyAppAnalysis", {
+            app: m[1],
+            time: m[2],
+            period: category(lang, m[3]),
+            longest: duration(lang, m[4])
+        }, text)
+
+    m = text.match(/^(.+)\s*今天使用约\s*([^，]+)，多集中在(.+)，最长连续\s*([^。]+)。$/)
+    if (m)
+        return sentence(lang, "todayAppAnalysis", {
+            app: m[1],
+            time: m[2],
+            period: category(lang, m[3]),
+            longest: duration(lang, m[4])
+        }, text)
+
+    m = text.match(/^今天有\s*(\d+)\s*段连续使用，最长\s*([^，]+)，主要在(.+)。$/)
+    if (m)
+        return sentence(lang, "continuousSessions", {
+            count: m[1],
+            longest: duration(lang, m[2]),
+            category: category(lang, m[3])
+        }, text)
+
+    m = text.match(/^(本周|本月|本年)你主要把时间花在「(.+)」（(\d+%)），共计\s*(.+)。$/)
+    if (m)
+        return sentence(lang, "insightMain", {
+            range: t(lang, m[1]),
+            app: category(lang, m[2]),
+            percent: m[3],
+            time: m[4]
+        }, text)
+
+    m = text.match(/^(\d+)\s*次$/)
+    if (m)
+        return sentence(lang, "timesCount", {count: m[1]}, text)
+
+    return text.replace(/约\s*/g, "about ")
 }
 
 function appName(row, languageMode, appVisual) {
