@@ -15,12 +15,12 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
   Needed: X11 + Wayland foreground sampling, idle detection, audio (likely
   PipeWire / PulseAudio), and a single-instance guard. See
   [`../rules/02-platform-boundaries.md`](../rules/02-platform-boundaries.md) §3.
-- **macOS service does not sample yet.** `TimeArcService.swift` is
-  `RunLoop.current.run()` with no tracker. `AppEnv.swift` primitives are
-  ready. The Windows `usage_tracker.c` loop is the reference contract.
+- **macOS lifecycle/packaging still open.** Helper now writes foreground/media
+  sessions, reads idle/track config, and guards single-instance. Remaining:
+  Mac smoke, Accessibility UX, LaunchAgent, UI auto-start, signing/notarization.
 - **Windows background autostart shipped (B1 Route A).** `win_service.c` verbs
-  `--install/--uninstall/--start/--stop/--status` + a Settings toggle register an
-  opt-in per-user logon task (schtasks; Run-key fallback) keeping the tracker in the user session. SCM Session-0 (Route B) deferred; see [`B1 kickoff`](../../docs/b1-windows-service-scm-kickoff.md).
+  + Settings toggle register an opt-in per-user logon task; SCM Session-0
+  (Route B) deferred. See [`B1 kickoff`](../../docs/b1-windows-service-scm-kickoff.md).
 
 ## Storage
 
