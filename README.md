@@ -150,7 +150,9 @@ with day and night modes.
   `docs/memory-lake-home-art-implementation-spec.md`,
   `docs/memory-lake-art-lighting-qml-cookbook.md`.
 - **Native app icons in statistics** — the usage UI surfaces each
-  tracked app's system icon via a Qt image provider.
+  tracked app's system icon via a Qt image provider. TimeArc itself is
+  mapped to the built-in T brand mark so self-tracking rows do not fall back
+  to a blank or generic executable icon.
 - **Mainland China browser-site split** - common websites opened inside
   Chrome, Edge, Firefox, and other supported browsers can be grouped as
   independent `site:*` activities in the UI, with preset brand colors and

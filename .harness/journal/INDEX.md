@@ -8,6 +8,20 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T16:33:35Z | L3 | env-enumeration... | PowerShell Get-ChildItem Env: failed with duplicate key w... | [report](errors/20260618-163335-B-env-enumeration-duplicate-key.md) |
+| 2026-06-18T16:26:50Z | L3 | timearc-adapter... | Final structural check treated TimeArc display text as a ... | [report](errors/20260618-162650-B-timearc-adapter-check-overstrict.md) |
+| 2026-06-18T16:24:31Z | L1 | timearc-db-smok... | After clearing the Qt test data directory, timearc_db_smo... | [report](errors/20260618-162431-B-timearc-db-smoke-test-dir-create.md) |
+| 2026-06-18T16:23:39Z | L3 | get-process-no-... | Get-Process timearc_db_smoke returned non-zero while chec... | [report](errors/20260618-162339-B-get-process-no-db-smoke.md) |
+| 2026-06-18T16:23:20Z | L1 | timearc-db-smok... | After fixing TimeArc adapter matching, ctest still failed... | [report](errors/20260618-162320-B-timearc-db-smoke-test-data-dir.md) |
+| 2026-06-18T16:20:45Z | L1 | timearc-db-smok... | ctest --test-dir build --output-on-failure reported timea... | [report](errors/20260618-162045-B-timearc-db-smoke-ctest.md) |
+| 2026-06-18T16:17:38Z | L3 | get-process-no-... | Get-Process TimeArc returned non-zero while checking for ... | [report](errors/20260618-161738-B-get-process-no-timearc-before-build.md) |
+| 2026-06-18T16:16:17Z | L2 | timearc-adapter... | Expected red structural check confirmed TimeArc is not ye... | [report](errors/20260618-161617-B-timearc-adapter-red-test.md) |
+| 2026-06-18T16:05:06Z | L3 | select-string-p... | Select-String pattern array was quoted incorrectly around... | [report](errors/20260618-160506-B-select-string-pattern-quoting.md) |
+| 2026-06-18T16:05:06Z | L3 | adapter-registr... | Looked for activity_adapter_registry.cpp, but the adapter... | [report](errors/20260618-160506-B-adapter-registry-path.md) |
+| 2026-06-18T16:04:22Z | L3 | dist-missing-probe | Probed dist/ directly before checking existence; Get-Chil... | [report](errors/20260618-160422-B-dist-missing-probe.md) |
+| 2026-06-18T16:03:59Z | L3 | powershell-sear... | Used Get-ChildItem with multiple bare positional paths an... | [report](errors/20260618-160359-B-powershell-search-syntax.md) |
+| 2026-06-18T16:03:19Z | L3 | rg-access-denied | rg was approved but failed to execute with Access is deni... | [report](errors/20260618-160319-B-rg-access-denied.md) |
+| 2026-06-18T16:02:35Z | L3 | python-entrypoint | Assumed bare python would run harness, but it resolved to... | [report](errors/20260618-160235-B-python-entrypoint.md) |
 | 2026-06-18T15:45:48Z | L3 | app-icon-resolv... | After adding icon resolver, the structural check still fa... | [report](errors/20260618-154548-C-app-icon-resolver-check-mismatch.md) |
 | 2026-06-18T15:43:19Z | L2 | app-icon-resolv... | Expected red structural check confirmed AppIconImageProvi... | [report](errors/20260618-154319-C-app-icon-resolver-red-test.md) |
 | 2026-06-18T15:43:19Z | L2 | home-english-ca... | Expected red test confirmed I18n.smartText leaves Chinese... | [report](errors/20260618-154319-C-home-english-category-list-red-test.md) |
@@ -60,7 +74,7 @@ the harness line budget intact.
 | 2026-06-15T05:11:52Z | L3 | rg-access-denied | rg.exe failed with Access is denied while searching UI re... | [report](errors/20260615-051152-C-rg-access-denied.md) |
 | 2026-06-14T09:59:59Z | L3 | gh-cli-missing-... | GitHub publish flow requested but gh is not available in ... | [report](errors/20260614-095959-C-gh-cli-missing-for-pr-flow.md) |
 | 2026-06-14T09:54:42Z | L3 | errors-jsonl-po... | PowerShell Set-Content rewrote errors.jsonl with a non-UT... | [report](errors/20260614-095442-C-errors-jsonl-powershell-encoding.md) |
-| 2026-06-14T09:42:55Z | L2 | zero-byte-timearc-exe | Runtime launch failed because build/TimeArc.exe was zero bytes after prior relink/start attempt | [report](errors/20260614-094255-C-zero-byte-timearc-exe.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-06-14T09:41:46Z | L3 | qt-log-rotate-sandbox-denied | scan_qt_log.py could read and record the external Qt log but failed to rotate it under sandbox restrictions | [report](errors/20260614-094146-C-qt-log-rotate-sandbox-denied.md) |
 | 2026-06-14T09:18:23Z | L1 | build-output-locked-timearc | Build failed because running TimeArc.exe locked the output binary; stop the app before relinking | [report](errors/20260614-091823-C-build-output-locked-timearc.md) |
 | 2026-06-14T09:17:53Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260614-091753-B-build-failure.md) |
