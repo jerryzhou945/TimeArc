@@ -69,6 +69,28 @@ void applyWin11RoundedCorners(QWindow* window) {
 }
 #endif
 
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+QString findMacUsageServicePath(const QString& appDir) {
+  const QString exe = QStringLiteral("time-arc-service");
+  const QStringList candidates = {
+      QDir(appDir).filePath(exe),
+      QDir(appDir).filePath(QStringLiteral("../Helpers/") + exe),
+      QDir(appDir).filePath(QStringLiteral("../../../bin/") + exe),
+      QDir(appDir).filePath(QStringLiteral("../../../") + exe),
+      QDir(appDir).filePath(QStringLiteral("src/service/") + exe),
+      QDir(appDir).filePath(QStringLiteral("../src/service/") + exe),
+  };
+
+  for (const QString& candidate : candidates) {
+    const QFileInfo info(candidate);
+    if (info.exists() && info.isFile() && info.isExecutable()) {
+      return info.absoluteFilePath();
+    }
+  }
+  return {};
+}
+#endif
+
 void startUsageService() {
 #if defined(Q_OS_WIN)
   const QString appDir = QCoreApplication::applicationDirPath();
@@ -76,6 +98,13 @@ void startUsageService() {
   if (!QFileInfo::exists(servicePath)) return;
 
   QProcess::startDetached(servicePath, QStringList(), appDir);
+#elif defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  const QString appDir = QCoreApplication::applicationDirPath();
+  const QString servicePath = findMacUsageServicePath(appDir);
+  if (servicePath.isEmpty()) return;
+
+  QProcess::startDetached(servicePath, QStringList(),
+                          QFileInfo(servicePath).absolutePath());
 #endif
 }
 
