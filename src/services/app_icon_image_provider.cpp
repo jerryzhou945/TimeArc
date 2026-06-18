@@ -1,13 +1,108 @@
 #include "app_icon_image_provider.h"
 
+#include <QDir>
 #include <QFileIconProvider>
 #include <QFileInfo>
 #include <QFont>
 #include <QIcon>
 #include <QPainter>
+#include <QRegularExpression>
+#include <QSettings>
 #include <QSize>
+#include <QStandardPaths>
 #include <QUrl>
 #include <QtGlobal>
+
+namespace {
+
+QString existingPathOrEmpty(const QString& path) {
+  const QFileInfo info(path);
+  if (!info.exists()) return QString();
+  return info.absoluteFilePath();
+}
+
+QString appPathRegistryValue(const QString& exeName) {
+#if defined(Q_OS_WIN)
+  // Windows App Paths lets us recover native icons when QML only has an app id.
+  const QStringList keys = {
+      QStringLiteral("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows"
+                     "\\CurrentVersion\\App Paths\\") +
+          exeName,
+      QStringLiteral("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows"
+                     "\\CurrentVersion\\App Paths\\") +
+          exeName,
+      QStringLiteral("HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft"
+                     "\\Windows\\CurrentVersion\\App Paths\\") +
+          exeName};
+  for (const QString& key : keys) {
+    QSettings settings(key, QSettings::NativeFormat);
+    QString value = settings.value(QStringLiteral(".")).toString().trimmed();
+    if (value.isEmpty())
+      value = settings.value(QStringLiteral("Default")).toString().trimmed();
+    const QString found = existingPathOrEmpty(value);
+    if (!found.isEmpty()) return found;
+  }
+#else
+  Q_UNUSED(exeName);
+#endif
+  return QString();
+}
+
+QStringList knownExecutableCandidates(const QString& rawIdentity) {
+  QString id = rawIdentity.trimmed().toLower();
+  if (id.startsWith(QStringLiteral("app:"))) id = id.mid(4);
+  id.replace(QRegularExpression(QStringLiteral("[^a-z0-9._-]+")),
+             QStringLiteral("-"));
+
+  if (id == QStringLiteral("vscode")) return {QStringLiteral("Code.exe")};
+  if (id == QStringLiteral("google-chrome")) return {QStringLiteral("chrome.exe")};
+  if (id == QStringLiteral("microsoft-edge")) return {QStringLiteral("msedge.exe")};
+  if (id == QStringLiteral("wechat")) return {QStringLiteral("WeChat.exe")};
+  if (id == QStringLiteral("jianying-pro") || id == QStringLiteral("capcut"))
+    return {QStringLiteral("JianyingPro.exe"), QStringLiteral("CapCut.exe")};
+  if (id == QStringLiteral("wallpaper-engine"))
+    return {QStringLiteral("wallpaper64.exe"), QStringLiteral("wallpaper32.exe"),
+            QStringLiteral("wallpaperui.exe")};
+  if (id == QStringLiteral("steam")) return {QStringLiteral("steam.exe")};
+  if (id == QStringLiteral("discord")) return {QStringLiteral("Discord.exe")};
+  if (id == QStringLiteral("netease-cloud-music"))
+    return {QStringLiteral("cloudmusic.exe")};
+  if (id == QStringLiteral("file-explorer"))
+    return {QStringLiteral("explorer.exe")};
+  if (id == QStringLiteral("terminal"))
+    return {QStringLiteral("WindowsTerminal.exe"), QStringLiteral("wt.exe")};
+
+  if (id.endsWith(QStringLiteral(".exe"))) return {id};
+  return {id + QStringLiteral(".exe")};
+}
+
+QString resolveIconFile(const QString& identity) {
+  const QString raw = QUrl::fromPercentEncoding(identity.toUtf8()).trimmed();
+  const QString direct = existingPathOrEmpty(raw);
+  if (!direct.isEmpty()) return direct;
+
+#if defined(Q_OS_WIN)
+  for (const QString& exe : knownExecutableCandidates(raw)) {
+    const QString fromRegistry = appPathRegistryValue(exe);
+    if (!fromRegistry.isEmpty()) return fromRegistry;
+
+    const QString fromPath = QStandardPaths::findExecutable(exe);
+    if (!fromPath.isEmpty()) return fromPath;
+
+    if (exe.compare(QStringLiteral("explorer.exe"), Qt::CaseInsensitive) == 0) {
+      const QString explorer =
+          QDir::fromNativeSeparators(qEnvironmentVariable("WINDIR")) +
+          QStringLiteral("/explorer.exe");
+      const QString found = existingPathOrEmpty(explorer);
+      if (!found.isEmpty()) return found;
+    }
+  }
+#endif
+
+  return raw;
+}
+
+}  // namespace
 
 AppIconImageProvider::AppIconImageProvider()
     : QQuickImageProvider(QQuickImageProvider::Pixmap) {}
@@ -19,7 +114,7 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
   const int requestedSide =
       qMax(requestedSize.width(), requestedSize.height());
   const int side = qBound(16, requestedSide > 0 ? requestedSide : 64, 256);
-  const QString path = QUrl::fromPercentEncoding(id.toUtf8()).trimmed();
+  const QString path = resolveIconFile(id);
 
   QPixmap pixmap;
   if (!path.isEmpty()) {
