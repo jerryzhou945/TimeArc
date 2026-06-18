@@ -69,6 +69,16 @@ var en = {
     "选择标签": "Choose Tag",
     "确认添加": "Add",
     "自动软件": "Auto Apps",
+    "微信": "WeChat",
+    "剪映": "CapCut",
+    "剪映专业版": "CapCut",
+    "网易云音乐": "NetEase Cloud Music",
+    "文件资源管理器": "File Explorer",
+    "浏览器": "Browser",
+    "企业微信": "WeCom",
+    "飞书": "Lark",
+    "钉钉": "DingTalk",
+    "腾讯会议": "Tencent Meeting",
     "学习": "Study",
     "工作": "Work",
     "运动": "Exercise",
@@ -260,6 +270,18 @@ var en = {
     "关键词": "Keywords",
     "深夜": "Late Night",
     "清晨": "Early Morning",
+    "凌晨": "Late Night",
+    "中午": "Noon",
+    "午间": "Midday",
+    "上午使用": "Morning Use",
+    "午间使用": "Midday Use",
+    "下午使用": "Afternoon Use",
+    "傍晚使用": "Evening Use",
+    "夜晚使用": "Night Use",
+    "深夜使用": "Late Night Use",
+    "沟通": "Communication",
+    "日常": "Daily",
+    "年后": "Post New Year",
     "上午": "Morning",
     "下午": "Afternoon",
     "傍晚": "Evening",
@@ -751,6 +773,8 @@ var sentencesEn = {
     "heatTooltipEmpty": "{date} · No usage",
     "monthlyAppAnalysis": "{app} was used about {time} this month, mostly during {period}. Longest continuous session: {longest}.",
     "todayAppAnalysis": "{app} was used about {time} today, mostly during {period}. Longest continuous session: {longest}.",
+    "todayAppAnalysisWithLaunches": "{app} was used {time} today, mostly around {period}. Longest session: {longest}. Opened {launches} times.",
+    "monthlyAppAnalysisWithLaunches": "{app} was used {time} this month, mostly around {period}. Longest session: {longest}. Opened {launches} times.",
     "continuousSessions": "Today had {count} continuous sessions. Longest {longest}, mainly in {category}."
 }
 
@@ -831,7 +855,7 @@ function duration(lang, source) {
         return ""
     var text = source.toString()
     if (langKey(lang) === "en")
-        return text.replace(/^约\s*/, "about ")
+        return text.replace(/^约\s*/, "about ").replace(/^about\s*/, "about ")
     return t(lang, text)
 }
 
@@ -851,22 +875,48 @@ function smartText(lang, source) {
     if (m)
         return m[1] + ": " + category(lang, m[2]) + " use"
 
+    m = text.match(/^(.+)使用$/)
+    if (m) {
+        var translatedUsePrefix = t(lang, m[1])
+        return translatedUsePrefix !== m[1] ? translatedUsePrefix + " Use" : category(lang, m[1]) + " Use"
+    }
+
     m = text.match(/^(.+)\s*本月使用约\s*([^，]+)，多集中在(.+)，最长连续\s*([^。]+)。$/)
     if (m)
         return sentence(lang, "monthlyAppAnalysis", {
-            app: m[1],
+            app: t(lang, m[1].trim()),
             time: m[2],
             period: category(lang, m[3]),
             longest: duration(lang, m[4])
         }, text)
 
+    m = text.match(/^(.+)\s*本月使用\s*(约\s*|about\s*)?([^，]+)，主要在(.+)，单次最长\s*([^，]+)，共打开\s*(\d+)\s*次。$/)
+    if (m)
+        return sentence(lang, "monthlyAppAnalysisWithLaunches", {
+            app: t(lang, m[1].trim()),
+            time: duration(lang, (m[2] ? m[2] : "") + m[3]),
+            period: t(lang, m[4]),
+            longest: duration(lang, m[5]),
+            launches: m[6]
+        }, text)
+
     m = text.match(/^(.+)\s*今天使用约\s*([^，]+)，多集中在(.+)，最长连续\s*([^。]+)。$/)
     if (m)
         return sentence(lang, "todayAppAnalysis", {
-            app: m[1],
+            app: t(lang, m[1].trim()),
             time: m[2],
             period: category(lang, m[3]),
             longest: duration(lang, m[4])
+        }, text)
+
+    m = text.match(/^(.+)\s*今天使用\s*(约\s*|about\s*)?([^，]+)，主要在(.+)，单次最长\s*([^，]+)，共打开\s*(\d+)\s*次。$/)
+    if (m)
+        return sentence(lang, "todayAppAnalysisWithLaunches", {
+            app: t(lang, m[1].trim()),
+            time: duration(lang, (m[2] ? m[2] : "") + m[3]),
+            period: t(lang, m[4]),
+            longest: duration(lang, m[5]),
+            launches: m[6]
         }, text)
 
     m = text.match(/^今天有\s*(\d+)\s*段连续使用，最长\s*([^，]+)，主要在(.+)。$/)

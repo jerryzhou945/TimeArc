@@ -8,6 +8,11 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-18T07:20:07Z | L3 | get-process-no-... | Get-Process TimeArc returned non-zero while checking for ... | [report](errors/20260618-072007-C-get-process-no-timearc-after-scan.md) |
+| 2026-06-18T07:19:43Z | L3 | harness-check-s... | harness_check failed because the new C session log linked... | [report](errors/20260618-071943-C-harness-check-session-link.md) |
+| 2026-06-18T07:19:24Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260618-071924-C-qt-warning-60b8e32bf0.md) |
+| 2026-06-18T07:15:59Z | L1 | remaining-engli... | build.py failed after remaining English copy and heatmap ... | [report](errors/20260618-071559-C-remaining-english-heatmap-build-failure.md) |
+| 2026-06-18T07:10:59Z | L2 | remaining-engli... | English mode still shows Chinese generated keywords/card-... | [report](errors/20260618-071059-C-remaining-english-keywords-heatmap.md) |
 | 2026-06-18T06:45:44Z | L3 | get-process-aft... | After stopping TimeArc, a follow-up Get-Process check ret... | [report](errors/20260618-064544-C-get-process-after-stop-nonzero.md) |
 | 2026-06-18T06:45:11Z | L1 | build-exe-permi... | Build failed at link because TimeArc.exe could not be ove... | [report](errors/20260618-064511-C-build-exe-permission-denied.md) |
 | 2026-06-18T06:36:42Z | L3 | rg-access-denie... | ripgrep failed with Access denied while locating remainin... | [report](errors/20260618-063642-C-rg-access-denied-copy-heatmap.md) |
