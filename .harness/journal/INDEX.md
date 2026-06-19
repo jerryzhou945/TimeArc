@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-06-19T07:57:02Z | L2 | recursive-selec... | A recursive Select-String audit tried to read directories... | [report](errors/20260619-075702-A-recursive-select-string-directories.md) |
 | 2026-06-18T21:27:51Z | L2 | staged-diff-tra... | git diff --cached --check found trailing whitespace in th... | [report](errors/20260618-212751-B-staged-diff-trailing-whitespace.md) |
 | 2026-06-18T21:25:26Z | L2 | open-issues-lin... | harness_check failed because .harness/state/open-issues.m... | [report](errors/20260618-212526-B-open-issues-line-budget.md) |
 | 2026-06-18T21:21:18Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260618-212118-B-build-failure.md) |
@@ -63,7 +64,7 @@ the harness line budget intact.
 | 2026-06-15T07:54:50Z | L2 | qt-warning-215b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260615-075450-C-qt-warning-215b10b9d6.md) |
 | 2026-06-15T07:54:49Z | L2 | qt-warning-215b... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Gla... | [report](errors/20260615-075449-C-qt-warning-215b10b9d6.md) |
 | 2026-06-15T07:20:42Z | L3 | powershell-angl... | Used a PowerShell -Filter pattern containing angle bracke... | [report](errors/20260615-072042-C-powershell-angle-filter.md) |
-| 2026-06-15T07:20:04Z | L2 | i18n-residual-c... | English language mode still shows Chinese residual copy a... | [report](errors/20260615-072004-C-i18n-residual-chinese-copy.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-06-15T07:03:29Z | L1 | remote-branch-a... | Attempted to delete origin/codex/global-runtime-i18n afte... | [report](errors/20260615-070329-B-remote-branch-already-deleted.md) |
 | 2026-06-15T07:01:58Z | L1 | gh-cli-missing | GitHub CLI was not available while trying to publish the ... | [report](errors/20260615-070158-B-gh-cli-missing.md) |
 | 2026-06-15T06:55:30Z | L1 | build-timeout-g... | build.py timed out after 124 seconds while rebuilding aft... | [report](errors/20260615-065530-B-build-timeout-global-i18n.md) |
