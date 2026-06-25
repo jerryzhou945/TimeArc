@@ -250,7 +250,12 @@ QString appDisplayName(const QString& appId, const QString& appName,
   const QString displayExeName =
       QFileInfo(!path.trimmed().isEmpty() ? path : appName).fileName().toLower();
 
-  if (containsAny(text, {"cloudmusic", "netease"})) return "网易云音乐";
+  if (containsAny(text, {"uu.exe", "uu\\", "uu/", "uu accelerator",
+                         "uu booster", "netease\\uu", "netease/uu"}))
+    return "UU Accelerator";
+  if (containsAny(text, {"cloudmusic", "cloudmusic.exe",
+                         "netease cloud music", "orpheus"}))
+    return "网易云音乐";
   if (displayExeName == "r5apex.exe" || displayExeName == "r5apex_dx12.exe" ||
       containsAny(text, {"apex legends"}))
     return "Apex Legends";
@@ -260,6 +265,8 @@ QString appDisplayName(const QString& appId, const QString& appName,
   if (containsAny(text, {"searchhost.exe", "searchapp.exe"})) return "Windows Search";
   if (containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome"}))
     return "Google Chrome";
+  if (containsAny(text, {"codex"}))
+    return "Codex";
   if (containsAny(text,
                   {"code.exe", "visual studio code", "microsoft vs code"}))
     return "VS Code";
@@ -322,7 +329,11 @@ QString appGroupKey(const QString& appId, const QString& appName,
     return "app:qq";
   if (exeName == "tim")
     return "app:tim";
-  if (containsAny(text, {"cloudmusic", "netease"}))
+  if (containsAny(text, {"uu.exe", "uu\\", "uu/", "uu accelerator",
+                         "uu booster", "netease\\uu", "netease/uu"}))
+    return "app:uu-accelerator";
+  if (containsAny(text, {"cloudmusic", "cloudmusic.exe",
+                         "netease cloud music", "orpheus"}))
     return "app:netease-cloud-music";
   if (exeName == "r5apex" || exeName == "r5apex_dx12" ||
       containsAny(text, {"apex legends"}))
@@ -338,6 +349,8 @@ QString appGroupKey(const QString& appId, const QString& appName,
     return "app:windows-system";
   if (containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome"}))
     return "app:google-chrome";
+  if (containsAny(text, {"codex"}))
+    return "app:codex";
   if (containsAny(text,
                   {"code.exe", "visual studio code", "microsoft vs code"}))
     return "app:vscode";
@@ -414,9 +427,11 @@ bool isSettingsListVisibleActivity(const QString& groupKey,
       QStringLiteral("app:wechat"),
       QStringLiteral("app:qq"),
       QStringLiteral("app:tim"),
+      QStringLiteral("app:uu-accelerator"),
       QStringLiteral("app:netease-cloud-music"),
       QStringLiteral("app:apex-legends"),
       QStringLiteral("app:google-chrome"),
+      QStringLiteral("app:codex"),
       QStringLiteral("app:vscode"),
       QStringLiteral("app:discord"),
       QStringLiteral("app:qq-music"),
@@ -518,6 +533,10 @@ QString classifyActivityImpl(const QString& groupKey, const QString& appId,
                         "audiodg.exe", "widgets.exe", "nvcontainer.exe"}))
     return QStringLiteral("系统");
 
+  if (containsAny(id, {"uu.exe", "uu\\", "uu/", "uu accelerator",
+                       "uu booster", "netease\\uu", "netease/uu"}))
+    return QStringLiteral("游戏");
+
   // 浏览器：先按 exe 认定，再**仅用站点专名标题词**细分到 视频/音乐，否则 浏览。
   if (containsAny(id, {"chrome.exe", "google\\chrome", "msedge", "edge.exe",
                        "firefox", "opera.exe", "brave", "vivaldi", "360se",
@@ -531,7 +550,7 @@ QString classifyActivityImpl(const QString& groupKey, const QString& appId,
     return QStringLiteral("浏览");
   }
 
-  if (containsAny(id, {"code.exe", "vscode", "devenv", "clion", "pycharm",
+  if (containsAny(id, {"codex", "code.exe", "vscode", "devenv", "clion", "pycharm",
                        "idea64", "goland", "webstorm", "rider", "qtcreator",
                        "android studio", "sublime_text", "notepad++", "neovim",
                        "powershell", "windowsterminal", "cmd.exe", "conemu",
@@ -543,7 +562,8 @@ QString classifyActivityImpl(const QString& groupKey, const QString& appId,
                        "qqlive", "mpv.exe", "mpc-hc", "iqiyi", "youku"}))
     return QStringLiteral("视频");
 
-  if (containsAny(id, {"qqmusic", "cloudmusic", "netease", "spotify", "kugou",
+  if (containsAny(id, {"qqmusic", "cloudmusic", "netease cloud music",
+                       "spotify", "kugou",
                        "kuwo", "foobar"}))
     return QStringLiteral("音乐");
 
