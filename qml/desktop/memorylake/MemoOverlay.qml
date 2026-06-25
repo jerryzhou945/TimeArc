@@ -214,6 +214,8 @@ Item {
     property int _histAt: -1
     property bool _restoring: false
     readonly property int _histMax: 40
+    readonly property bool canUndo: _histAt > 0
+    readonly property bool canRedo: _histAt >= 0 && _histAt < _hist.length - 1
 
     function _snapshot() { return { objects: _snapshotObjects(), canvas: inkCanvas.exportDataURL() }; }
     function _histReset() { _hist = [_snapshot()]; _histAt = 0; }
@@ -1032,9 +1034,13 @@ Item {
         style: memo.style
         shown: memo.open
         revealed: memo.chromeShown
+        canUndo: memo.canUndo
+        canRedo: memo.canRedo
         onExitRequested: memo.open = false
         onPomodoroRequested: pomodoro.shown = !pomodoro.shown
         onClearRequested: clearConfirm.open = true
+        onUndoRequested: memo.undo()
+        onRedoRequested: memo.redo()
         onCurrentToolChanged: if (currentTool !== "select") memo._clearSelection()
     }
 

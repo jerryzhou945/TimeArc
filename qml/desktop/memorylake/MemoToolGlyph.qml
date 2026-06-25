@@ -91,6 +91,21 @@ Item {
                 ctx.lineTo(w * 0.655, h * 0.78); ctx.lineTo(w * 0.70, h * 0.35); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(w * 0.44, h * 0.41); ctx.lineTo(w * 0.455, h * 0.72); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(w * 0.56, h * 0.41); ctx.lineTo(w * 0.545, h * 0.72); ctx.stroke();
+            } else if (g.kind === "undo" || g.kind === "redo") {
+                var flip = g.kind === "redo" ? -1 : 1;
+                ctx.save();
+                ctx.translate(w * 0.5, h * 0.5);
+                ctx.scale(flip, 1);
+                ctx.translate(-w * 0.5, -h * 0.5);
+                ctx.beginPath();
+                ctx.moveTo(w * 0.38, h * 0.30);
+                ctx.lineTo(w * 0.20, h * 0.48);
+                ctx.lineTo(w * 0.38, h * 0.66);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(w * 0.52, h * 0.52, w * 0.24, Math.PI * 1.05, Math.PI * 1.90);
+                ctx.stroke();
+                ctx.restore();
             }
         }
         Component.onCompleted: requestPaint()
