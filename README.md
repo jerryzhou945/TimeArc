@@ -72,9 +72,10 @@ with day and night modes.
   The app-management tab lists real captured apps for per-app hide; the pomodoro card
   drives the memo blackboard's real countdown (default duration/title/celebration);
   memo & pomodoro hotkeys are user-customizable; a one-shot welcome animation is gated
-  by `show_welcome`; and **system notifications** (pomodoro-complete-in-background) use
+  by `show_welcome`; and **system notifications** plus the resident tray menu use
   `qml/desktop/memorylake/NotifierTray.qml` (a `Qt.labs.platform` tray, loaded
-  defensively so a missing plugin can't break the app). The **idle timeout** and
+  defensively so a missing plugin can't break the app). The tray can restore the
+  hidden window and provides the explicit quit path. The **idle timeout** and
   **true track pause** now take real effect: they write `usage_config.json` and an
   "应用并重启采集" action restarts the service to apply them (H5). Items still without a
   backend (real history deletion, real-time backdrop blur, global accent color) stay
@@ -89,7 +90,10 @@ with day and night modes.
   The left nav follows the design order **首页 (Memory Lake) · 日历 · 统计 ·
   设置 · 备忘**, with **记忆湖 / Monthly Recap pinned separately at the bottom**.
   Memory Lake is the home/landing page; the Timer page is reached when a
-  calendar to-do starts timing.
+  calendar to-do starts timing. The desktop UI is single-instance on Windows:
+  repeated `TimeArc.exe` launches focus the existing window instead of opening
+  another one. Closing the window hides it to the system tray; the tray menu is
+  the explicit app-exit path while the background collector can keep recording.
 - **Frameless window chrome** — the desktop window drops the native OS title
   bar for an immersive custom chrome (QQ-Music style): a brand app icon
   top-left and minimize / maximize / close controls top-right, floating over a
@@ -111,7 +115,8 @@ with day and night modes.
   (Alt-drag), a **multi-page archive folder** (switch / add / delete / **rename** / drag-**reorder**,
   max 10, each page owns its own ink + objects and shows a **row thumbnail**), a marquee
   **select tool** (copy / delete / move / scale across ink *and* objects, with a clipboard —
-  **Ctrl+C / Ctrl+V** across pages — and **Ctrl+Z** undo), and a **persisted pomodoro widget**
+  **Ctrl+C / Ctrl+V** across pages — and visible toolbar **undo / redo** controls
+  backed by **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y**), and a **persisted pomodoro widget**
   (editable title, collapses to a pixel tomato while running, full-screen completion celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
   1920×1080 logical canvas uniformly scaled to fit the window (16:9). Everything
   **auto-persists** to a UI-private store (`SettingsRepository`), kept **off the service↔UI
@@ -373,10 +378,11 @@ that root. If your Qt lives elsewhere, set `run.local.cmd` or `TIMEARC_QT_ROOT` 
 
 Launch `TimeArc`. On Windows it will auto-spawn `time-arc-service` from
 the same directory (detached); Settings → 追踪与应用 also offers an opt-in
-"开机自动在后台采集" toggle that registers a per-user logon task so the
+"随系统登录自动启动后台采集" toggle that registers a per-user logon task so the
 tracker starts at login (B1 Route A — it always runs in the interactive user
-session, never Session 0, so capture stays correct). On macOS the service is not yet started
-by the UI. The desktop nav is **首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
+session, never Session 0, so capture stays correct). Closing the desktop window
+hides it to the system tray; use the tray menu to restore the window or explicitly
+quit the UI. On macOS the service is not yet started by the UI. The desktop nav is **首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
 with **记忆湖 / Monthly Recap** pinned at the bottom; the Timer page opens when a
 calendar to-do starts timing. Memory Lake is the landing page.
 

@@ -14,9 +14,13 @@ Item {
     property bool revealed: true          // 灵动岛是否展开；收起时关闭悬停跟踪，
                                           // 避免栏体动画移出指针（无 hoverLeave）导致次高亮/抬升卡住
     property string currentTool: "pen"
+    property bool canUndo: false
+    property bool canRedo: false
     signal exitRequested()
     signal pomodoroRequested()
     signal clearRequested()                // gap #4：清空本页墨迹（由覆盖层弹确认）
+    signal undoRequested()
+    signal redoRequested()
 
     // 笔宽（gap #3）：默认取 style，工具条选档覆盖；笔/橡皮各一组「细/中/粗」预设。
     property real penWidth: style ? style.memoPenWidth : 4
@@ -202,6 +206,55 @@ Item {
                     hoverEnabled: bar.revealed
                     cursorShape: Qt.PointingHandCursor
                     onClicked: bar.clearRequested()
+                }
+            }
+
+            // 撤销 / 重做：显式按钮，避免只靠快捷键发现。
+            Item {
+                width: 38; height: 38
+                anchors.verticalCenter: parent.verticalCenter
+                opacity: bar.canUndo ? 1.0 : 0.38
+                Rectangle {
+                    anchors.fill: parent; radius: 8
+                    visible: undoHover.containsMouse && bar.canUndo
+                    color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10)
+                    border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.18)
+                }
+                MemoToolGlyph {
+                    anchors.centerIn: parent
+                    kind: "undo"
+                    glyphColor: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.86)
+                }
+                MouseArea {
+                    id: undoHover
+                    anchors.fill: parent
+                    hoverEnabled: bar.revealed && bar.canUndo
+                    cursorShape: bar.canUndo ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: if (bar.canUndo) bar.undoRequested()
+                }
+            }
+
+            Item {
+                width: 38; height: 38
+                anchors.verticalCenter: parent.verticalCenter
+                opacity: bar.canRedo ? 1.0 : 0.38
+                Rectangle {
+                    anchors.fill: parent; radius: 8
+                    visible: redoHover.containsMouse && bar.canRedo
+                    color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.10)
+                    border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.18)
+                }
+                MemoToolGlyph {
+                    anchors.centerIn: parent
+                    kind: "redo"
+                    glyphColor: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.86)
+                }
+                MouseArea {
+                    id: redoHover
+                    anchors.fill: parent
+                    hoverEnabled: bar.revealed && bar.canRedo
+                    cursorShape: bar.canRedo ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    onClicked: if (bar.canRedo) bar.redoRequested()
                 }
             }
 

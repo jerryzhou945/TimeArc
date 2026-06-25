@@ -7,6 +7,8 @@ ApplicationWindow {
     id: appWindow
 
     property bool useMobileShell: mobilePreview || width <= 720
+    property bool forceQuit: false
+    property bool hideToTrayOnClose: !mobilePreview
 
     // 无边框化（去掉 Win11 原生白色标题栏，改用自绘沉浸式 chrome）。
     // 仅真桌面无边框；移动预览（开发工具）保留原生边框，方便挪窗/关闭。
@@ -27,6 +29,19 @@ ApplicationWindow {
     visible: true
     title: qsTr("TimeArc")
     color: "#F6F1EA"
+
+    function restoreFromTray() {
+        visible = true
+        if (visibility === Window.Minimized)
+            showNormal()
+        raise()
+        requestActivate()
+    }
+
+    function quitFromTray() {
+        forceQuit = true
+        Qt.quit()
+    }
 
     // G-WIN 恢复窗口位置：关闭时保存归一化几何（仅普通窗口态——无边框最大化的 visibility 报
     // FullScreen，跳过以免存成全屏尺寸），启动时按「启动时恢复上次位置」恢复。只写 UI 私有
@@ -50,13 +65,19 @@ ApplicationWindow {
             }
         }
     }
-    onClosing: {
-        if (mobilePreview || !settingsRepository) return;
-        if (visibility !== Window.Windowed) return;   // 仅存普通窗口几何
-        settingsRepository.setValue("window_width", "" + Math.round(width));
-        settingsRepository.setValue("window_height", "" + Math.round(height));
-        settingsRepository.setValue("window_x", "" + Math.round(x));
-        settingsRepository.setValue("window_y", "" + Math.round(y));
+    onClosing: function (close) {
+        if (!mobilePreview && settingsRepository && visibility === Window.Windowed) {
+            settingsRepository.setValue("window_width", "" + Math.round(width));
+            settingsRepository.setValue("window_height", "" + Math.round(height));
+            settingsRepository.setValue("window_x", "" + Math.round(x));
+            settingsRepository.setValue("window_y", "" + Math.round(y));
+        }
+        if (hideToTrayOnClose && !forceQuit) {
+            close.accepted = false
+            hide()
+            if (shellLoader.item && shellLoader.item.notifyClosedToTray)
+                shellLoader.item.notifyClosedToTray()
+        }
     }
 
     Loader {
@@ -71,6 +92,8 @@ ApplicationWindow {
         DesktopAppShell {
             anchors.fill: parent
             topReserve: appWindow.chromeReserve
+            onTrayShowRequested: appWindow.restoreFromTray()
+            onTrayQuitRequested: appWindow.quitFromTray()
         }
     }
 

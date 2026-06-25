@@ -35,6 +35,46 @@
 
 namespace {
 
+#if defined(Q_OS_WIN)
+const wchar_t* kTimeArcUiMutexName = L"Local\\TimeArcUiSingleInstance";
+
+struct ExistingWindowSearch {
+  DWORD current_pid = 0;
+  HWND hwnd = nullptr;
+};
+
+BOOL CALLBACK findTimeArcWindowProc(HWND hwnd, LPARAM lparam) {
+  auto* search = reinterpret_cast<ExistingWindowSearch*>(lparam);
+  if (!search || !IsWindowVisible(hwnd)) return TRUE;
+
+  wchar_t title[256] = {};
+  GetWindowTextW(hwnd, title,
+                 static_cast<int>(sizeof(title) / sizeof(title[0])));
+  if (wcscmp(title, L"TimeArc") != 0) return TRUE;
+
+  DWORD pid = 0;
+  GetWindowThreadProcessId(hwnd, &pid);
+  if (pid == 0 || pid == search->current_pid) return TRUE;
+
+  search->hwnd = hwnd;
+  return FALSE;
+}
+
+void activateExistingTimeArcWindow() {
+  ExistingWindowSearch search;
+  search.current_pid = GetCurrentProcessId();
+  EnumWindows(findTimeArcWindowProc, reinterpret_cast<LPARAM>(&search));
+  if (!search.hwnd) return;
+
+  if (IsIconic(search.hwnd)) {
+    ShowWindow(search.hwnd, SW_RESTORE);
+  } else {
+    ShowWindow(search.hwnd, SW_SHOW);
+  }
+  SetForegroundWindow(search.hwnd);
+}
+#endif
+
 bool hasMobilePreviewArg(int argc, char* argv[]) {
   for (int i = 1; i < argc; ++i) {
     const QString arg = QString::fromLocal8Bit(argv[i]);
@@ -111,6 +151,16 @@ void startUsageService() {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+#if defined(Q_OS_WIN)
+  HANDLE uiInstanceMutex =
+      CreateMutexW(nullptr, TRUE, kTimeArcUiMutexName);
+  if (uiInstanceMutex && GetLastError() == ERROR_ALREADY_EXISTS) {
+    activateExistingTimeArcWindow();
+    CloseHandle(uiInstanceMutex);
+    return 0;
+  }
+#endif
+
   const bool mobilePreview =
       hasMobilePreviewArg(argc, argv) ||
       qEnvironmentVariableIsSet("TIMEARC_MOBILE_PREVIEW");
@@ -198,5 +248,14 @@ int main(int argc, char* argv[]) {
       qobject_cast<QWindow*>(engine.rootObjects().constFirst()));
 #endif
 
-  return app.exec();
+  const int rc = app.exec();
+
+#if defined(Q_OS_WIN)
+  if (uiInstanceMutex) {
+    ReleaseMutex(uiInstanceMutex);
+    CloseHandle(uiInstanceMutex);
+  }
+#endif
+
+  return rc;
 }
