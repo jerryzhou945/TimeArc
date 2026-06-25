@@ -1,23 +1,48 @@
 import QtQuick
 import Qt.labs.platform as Platform
 
-// 系统通知（G-NOTIFY）：用 Qt.labs.platform 的 SystemTrayIcon（QGuiApplication 即可，纯 QML，
-// 不新建 C++ 源 / 不动冻结构建文件）。独立文件 + 命名空间导入，避免与 QtQuick.Controls 的
-// Menu/MenuItem 命名冲突；由 Shell 经 Loader 加载，平台无此插件时 Loader 静默失败、不拖垮整页。
-// 托盘图标仅在 notify_enabled 时显示，是 showMessage 的必要载体（Windows 原生气泡通知）。
+// 系统托盘与通知载体。Loader 加载失败时由调用方容错；本组件不引入新的 C++/CMake 依赖。
 Item {
     id: notifier
-    property bool notifyOn: false   // 不用 enabled：会遮蔽 Item.enabled（基类成员）触发告警
+
+    property bool notifyOn: false
+    property bool stayResident: true
     property url iconSource
+
+    signal showRequested()
+    signal quitRequested()
 
     Platform.SystemTrayIcon {
         id: tray
-        visible: notifier.notifyOn
+        visible: notifier.stayResident || notifier.notifyOn
         icon.source: notifier.iconSource
         tooltip: "TimeArc"
+        menu: trayMenu
+
+        onActivated: function (reason) {
+            if (reason === Platform.SystemTrayIcon.Trigger
+                    || reason === Platform.SystemTrayIcon.DoubleClick)
+                notifier.showRequested()
+        }
     }
 
-    // 发一条系统通知（关 / 无托盘则静默跳过）。
+    Platform.Menu {
+        id: trayMenu
+        Platform.MenuItem {
+            text: "打开 TimeArc"
+            onTriggered: notifier.showRequested()
+        }
+        Platform.MenuItem {
+            text: "后台采集继续运行"
+            enabled: false
+        }
+        Platform.MenuSeparator {}
+        Platform.MenuItem {
+            text: "退出 TimeArc"
+            onTriggered: notifier.quitRequested()
+        }
+    }
+
     function notify(title, message) {
         if (!notifier.notifyOn) return;
         tray.showMessage(title, message);
