@@ -12,6 +12,11 @@ def require(text, needle, label):
         raise AssertionError(f"missing {label}: {needle}")
 
 
+def reject(text, needle, label):
+    if needle in text:
+        raise AssertionError(f"unexpected {label}: {needle}")
+
+
 def main():
     main_cpp = read("src/main.cpp")
     main_qml = read("qml/main.qml")
@@ -20,12 +25,18 @@ def main():
     toolbar_qml = read("qml/desktop/memorylake/MemoToolbar.qml")
     memo_qml = read("qml/desktop/memorylake/MemoOverlay.qml")
     settings_qml = read("qml/desktop/pages/DesktopProfilePage.qml")
+    settings_cpp = read("src/services/settings_repository.cpp")
+    usage_cpp = read("src/services/usage_stat_manager.cpp")
 
     require(main_cpp, "TimeArcUiSingleInstance", "UI single-instance mutex")
     require(main_cpp, "activateExistingTimeArcWindow", "existing-window activation")
+    reject(main_cpp, "IsWindowVisible(hwnd)", "hidden tray window activation filter")
+    require(main_cpp, "--start-in-tray", "UI autostart tray launch argument")
+    require(main_cpp, "startInTray", "QML start-in-tray context")
 
     require(main_qml, "hideToTrayOnClose", "close-to-tray gate")
     require(main_qml, "close.accepted = false", "close event cancellation")
+    require(main_qml, "visible: !startInTray", "autostart launches hidden to tray")
     require(shell_qml, "trayShowRequested", "tray show bridge")
     require(shell_qml, "trayQuitRequested", "tray quit bridge")
     require(tray_qml, "Platform.Menu", "tray context menu")
@@ -41,12 +52,19 @@ def main():
     require(memo_qml, "onRedoRequested", "redo button handler")
 
     require(settings_qml, "setAutostartEnabled(c)", "autostart mutation")
-    require(settings_qml, "开机自启设置失败", "autostart failure feedback")
-    require(settings_qml, "随系统登录自动启动后台采集", "discoverable autostart copy")
+    require(settings_cpp, "QCoreApplication::applicationFilePath()", "autostart registers UI executable")
+    require(settings_cpp, "uiAutostartCommand", "autostart uses UI launch command")
+    require(settings_cpp, "--start-in-tray", "autostart starts UI in tray")
 
     require(shell_qml, "pageGuideModel", "page visual guidance model")
     require(shell_qml, "guideRail", "page guide rail")
-    require(shell_qml, "下一步", "next-step guidance copy")
+    require(shell_qml, "readonly property bool prefersLightChrome: nightMode", "day chrome uses dark glyphs")
+    reject(shell_qml, "nightMode || fullBleedPage", "day full-bleed light chrome")
+
+    require(usage_cpp, "app:codex", "Codex has its own activity group")
+    require(usage_cpp, "app:uu-accelerator", "UU accelerator has its own activity group")
+    reject(usage_cpp, 'containsAny(text, {"cloudmusic", "netease"})',
+           "generic NetEase app matching")
 
     print("desktop UX static checks passed")
 

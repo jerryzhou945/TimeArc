@@ -45,7 +45,7 @@ struct ExistingWindowSearch {
 
 BOOL CALLBACK findTimeArcWindowProc(HWND hwnd, LPARAM lparam) {
   auto* search = reinterpret_cast<ExistingWindowSearch*>(lparam);
-  if (!search || !IsWindowVisible(hwnd)) return TRUE;
+  if (!search) return TRUE;
 
   wchar_t title[256] = {};
   GetWindowTextW(hwnd, title,
@@ -80,6 +80,17 @@ bool hasMobilePreviewArg(int argc, char* argv[]) {
     const QString arg = QString::fromLocal8Bit(argv[i]);
     if (arg == QStringLiteral("--mobile") ||
         arg == QStringLiteral("--mobile-preview")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool hasStartInTrayArg(int argc, char* argv[]) {
+  for (int i = 1; i < argc; ++i) {
+    const QString arg = QString::fromLocal8Bit(argv[i]);
+    if (arg == QStringLiteral("--start-in-tray") ||
+        arg == QStringLiteral("--tray")) {
       return true;
     }
   }
@@ -164,6 +175,7 @@ int main(int argc, char* argv[]) {
   const bool mobilePreview =
       hasMobilePreviewArg(argc, argv) ||
       qEnvironmentVariableIsSet("TIMEARC_MOBILE_PREVIEW");
+  const bool startInTray = hasStartInTrayArg(argc, argv) && !mobilePreview;
 
   QGuiApplication app(argc, argv);
   QCoreApplication::setOrganizationName("TimeArc");
@@ -234,6 +246,7 @@ int main(int argc, char* argv[]) {
   engine.rootContext()->setContextProperty("usageStatManager",
                                            &usageStatManager);
   engine.rootContext()->setContextProperty("mobilePreview", mobilePreview);
+  engine.rootContext()->setContextProperty("startInTray", startInTray);
 
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,

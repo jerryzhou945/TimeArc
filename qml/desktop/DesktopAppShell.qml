@@ -17,7 +17,7 @@ Item {
     property int topReserve: 0
     // 暴露给 WindowChrome：备忘黑板开启时让位隐藏；深底页（记忆湖/夜晚）时标题栏改用浅色线条。
     readonly property bool memoOpen: memoOverlay.open
-    readonly property bool prefersLightChrome: nightMode || fullBleedPage
+    readonly property bool prefersLightChrome: nightMode
     signal trayShowRequested()
     signal trayQuitRequested()
 

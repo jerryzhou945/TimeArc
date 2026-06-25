@@ -362,6 +362,43 @@ QString serviceExePath() {
       .filePath(QStringLiteral("time-arc-service.exe"));
 }
 
+QString uiAutostartRunKey() {
+  return QStringLiteral(
+      "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+}
+
+QString uiAutostartValueName() { return QStringLiteral("TimeArc"); }
+
+QString quotedNativePath(const QString& path) {
+  QString escaped = QDir::toNativeSeparators(path);
+  escaped.replace(QStringLiteral("\""), QStringLiteral("\\\""));
+  return QStringLiteral("\"") + escaped + QStringLiteral("\"");
+}
+
+QString uiAutostartCommand() {
+  return quotedNativePath(QCoreApplication::applicationFilePath()) +
+         QStringLiteral(" --start-in-tray");
+}
+
+QString readUiAutostartCommand() {
+  QSettings runKey(uiAutostartRunKey(), QSettings::NativeFormat);
+  return runKey.value(uiAutostartValueName()).toString().trimmed();
+}
+
+bool writeUiAutostartCommand() {
+  QSettings runKey(uiAutostartRunKey(), QSettings::NativeFormat);
+  runKey.setValue(uiAutostartValueName(), uiAutostartCommand());
+  runKey.sync();
+  return runKey.status() == QSettings::NoError;
+}
+
+bool removeUiAutostartCommand() {
+  QSettings runKey(uiAutostartRunKey(), QSettings::NativeFormat);
+  runKey.remove(uiAutostartValueName());
+  runKey.sync();
+  return runKey.status() == QSettings::NoError;
+}
+
 // 同步运行一个 service 动词，捕获 stdout；返回退出码（启动失败 -1）。纯 UI→子进程
 // 命令（守 I1），不经磁盘契约。CREATE_NO_WINDOW 隐藏 service（console 程序）窗口。
 int runServiceVerb(const QString& verb, QString* out = nullptr) {
@@ -394,9 +431,11 @@ bool SettingsRepository::autostartSupported() const {
 
 bool SettingsRepository::autostartEnabled() {
 #if defined(Q_OS_WIN)
-  QString out;
-  if (runServiceVerb(QStringLiteral("--status"), &out) < 0) return false;
-  return out.contains(QStringLiteral("autostart=on"));
+  const QString command = readUiAutostartCommand();
+  return command.contains(QCoreApplication::applicationFilePath(),
+                          Qt::CaseInsensitive) &&
+         command.contains(QStringLiteral("--start-in-tray"),
+                          Qt::CaseInsensitive);
 #else
   return false;
 #endif
@@ -404,9 +443,11 @@ bool SettingsRepository::autostartEnabled() {
 
 bool SettingsRepository::setAutostartEnabled(bool enabled) {
 #if defined(Q_OS_WIN)
-  const QString verb =
-      enabled ? QStringLiteral("--install") : QStringLiteral("--uninstall");
-  return runServiceVerb(verb) == 0;
+  // Clear the older service-only registration path. The UI now starts in the
+  // tray at logon and then launches the collector through main.cpp, matching
+  // user expectation that TimeArc itself is available after reboot.
+  runServiceVerb(QStringLiteral("--uninstall"));
+  return enabled ? writeUiAutostartCommand() : removeUiAutostartCommand();
 #else
   Q_UNUSED(enabled);
   return false;

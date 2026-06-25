@@ -1070,8 +1070,8 @@ Item {
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "随系统登录自动启动后台采集"
-                                    rowSub: "开机进入桌面后自动启动 TimeArc 后台采集；关闭仅停自启，不删除历史记录。"
+                                    rowTitle: "随系统登录启动 TimeArc"
+                                    rowSub: "开机进入桌面后自动启动到托盘，并继续后台采集；关闭仅停自启，不删除历史记录。"
                                     GlassSwitch {
                                         style: ml; checked: root.autostartEnabled
                                         onToggled: function (c) {
@@ -1079,9 +1079,9 @@ Item {
                                             var ok = settingsRepository.setAutostartEnabled(c)
                                             root.autostartEnabled = settingsRepository.autostartEnabled()
                                             if (!ok || root.autostartEnabled !== c)
-                                                root.showToast("开机自启设置失败：请检查 time-arc-service.exe 是否随应用一起安装")
+                                                root.showToast("开机自启设置失败：请检查当前用户启动项权限")
                                             else
-                                                root.showToast(root.autostartEnabled ? "已设为开机自启（登录后台采集）" : "已关闭开机自启")
+                                                root.showToast(root.autostartEnabled ? "已设为开机自启（启动到托盘并后台采集）" : "已关闭开机自启")
                                         }
                                     }
                                 }

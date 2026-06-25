@@ -26,7 +26,7 @@ ApplicationWindow {
     height: mobilePreview ? 844 : 810
     minimumWidth: mobilePreview ? 360 : 1280
     minimumHeight: mobilePreview ? 600 : 720
-    visible: true
+    visible: !startInTray
     title: qsTr("TimeArc")
     color: "#F6F1EA"
 
