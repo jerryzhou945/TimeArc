@@ -57,7 +57,7 @@ Item {
         var x = 0;
         for (var j = 0; j < selectedIndex; j++)
             x += 156 + spacing;
-        var selW = (flippedIndex === selectedIndex) ? 434 : 310;
+        var selW = 340;
         x += selW / 2;
         return x;
     }
