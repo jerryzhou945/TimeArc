@@ -316,28 +316,102 @@ Item {
                         lineHeight: 1.4
                         wrapMode: Text.WordWrap
                     }
-                    Row {
+                    Column {
                         width: parent.width
-                        spacing: 10
-                        Repeater {
-                            model: card.app ? [
-                                { k: "启动", v: card.app.launches },
-                                { k: "最长", v: card.app.longest }
-                            ] : []
-                            delegate: Rectangle {
-                                required property var modelData
-                                width: (parent.width - 10) / 2
-                                height: 44
-                                radius: 14
-                                color: card.style ? card.style.cardBg : "#ffffff12"
-                                border.width: 1
-                                border.color: card.style ? card.style.cardBorder : "#ffffff16"
+                        spacing: 8
+                        Rectangle {
+                            width: parent.width
+                            height: 58
+                            radius: 16
+                            color: card.style ? card.style.cardBg : "#ffffff12"
+                            border.width: 1
+                            border.color: card.style ? card.style.cardBorder : "#ffffff16"
+                            Column {
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 3
                                 Text {
-                                    anchors.centerIn: parent
-                                    text: I18n.t(card.languageMode, modelData.k) + "  " + I18n.smartText(card.languageMode, modelData.v)
+                                    width: parent.width
+                                    text: I18n.t(card.languageMode, "总使用")
                                     color: card.style ? card.style.textSecondary : "#ccc"
-                                    font.pixelSize: 12
-                                    font.bold: true
+                                    font.pixelSize: 11
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    width: parent.width
+                                    text: card.app ? I18n.smartText(card.languageMode, card.app.totalTime || card.app.time) : "0m"
+                                    color: card.style ? card.style.accentText : "#9FE7EE"
+                                    font.pixelSize: 22
+                                    font.weight: Font.Bold
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+                        Row {
+                            width: parent.width
+                            spacing: 8
+                            Repeater {
+                                model: card.app ? [
+                                    { k: "本年", v: card.app.yearTime },
+                                    { k: "本月", v: card.app.monthTime },
+                                    { k: "今日", v: card.app.dayTime }
+                                ] : []
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: (parent.width - 16) / 3
+                                    height: 52
+                                    radius: 14
+                                    color: card.style ? card.style.cardBg : "#ffffff12"
+                                    border.width: 1
+                                    border.color: card.style ? card.style.cardBorder : "#ffffff16"
+                                    Column {
+                                        anchors.centerIn: parent
+                                        width: parent.width - 12
+                                        spacing: 2
+                                        Text {
+                                            width: parent.width
+                                            text: I18n.t(card.languageMode, modelData.k)
+                                            color: card.style ? card.style.textTertiary : "#aaa"
+                                            font.pixelSize: 10
+                                            horizontalAlignment: Text.AlignHCenter
+                                            elide: Text.ElideRight
+                                        }
+                                        Text {
+                                            width: parent.width
+                                            text: I18n.smartText(card.languageMode, modelData.v || "0m")
+                                            color: card.style ? card.style.textPrimary : "#fff"
+                                            font.pixelSize: 13
+                                            font.weight: Font.Bold
+                                            horizontalAlignment: Text.AlignHCenter
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Row {
+                            width: parent.width
+                            spacing: 10
+                            Repeater {
+                                model: card.app ? [
+                                    { k: "启动", v: card.app.launches },
+                                    { k: "最长", v: card.app.longest }
+                                ] : []
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: (parent.width - 10) / 2
+                                    height: 40
+                                    radius: 14
+                                    color: card.style ? card.style.cardBg : "#ffffff12"
+                                    border.width: 1
+                                    border.color: card.style ? card.style.cardBorder : "#ffffff16"
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: I18n.t(card.languageMode, modelData.k) + "  " + I18n.smartText(card.languageMode, modelData.v)
+                                        color: card.style ? card.style.textSecondary : "#ccc"
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                    }
                                 }
                             }
                         }

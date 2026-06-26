@@ -34,11 +34,13 @@ Item {
     // 快捷键变更 → Shell 重读 memo/pomodoro 全局键（设置 KV 无变更信号，故显式通知，#3）。
     signal hotkeysChanged()
     signal languageChanged(string mode)
+    signal accentChanged(string color)
 
     // 记忆湖统一色板（单一事实源 G1）。夜=暗玻璃霓虹，昼=浅瓷；由 night 切换。
     MemoryLakeStyle {
         id: ml
         night: root.nightMode
+        accentSeed: root.accentColor
         injectedTextPrimary: root.themeTextPrimary
         injectedTextSecondary: root.themeTextSecondary
     }
@@ -449,6 +451,7 @@ Item {
     }
     function restoreVisualDefaults() {
         accentColor = "#9FE7EE"; _setStr("accent_color", accentColor)
+        accentChanged(accentColor)
         blurStrength = 24;       _setStr("blur_strength", "24")
         showWelcome = true;      _setBool("show_welcome", true)
         showToast("视觉设置已恢复默认")
@@ -929,6 +932,7 @@ Item {
                                                     onClicked: {
                                                         root.accentColor = modelData.value
                                                         root._setStr("accent_color", modelData.value)
+                                                        root.accentChanged(modelData.value)
                                                         root.showToast(root.tr("强调色已更新"))
                                                     }
                                                 }
@@ -936,7 +940,7 @@ Item {
                                         }
                                     }
                                     Text {
-                                        text: root.tr("强调色已保存；全局上色将在后续阶段开放。")
+                                        text: root.tr("强调色已应用到全局高亮、导航、热力与卡片光效。")
                                         color: ml.textTertiary; font.pixelSize: 10
                                     }
                                 }

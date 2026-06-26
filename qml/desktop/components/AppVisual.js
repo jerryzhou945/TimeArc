@@ -66,6 +66,7 @@ function appColor(appId, appName, path) {
     if (containsAny(text, ["bilibili", "b23.tv"])) return "#FABECF";
     if (containsAny(text, ["cloudmusic", "netease", "wycloudmusic"])) return "#D98E9F";
     if (containsAny(text, ["apex legends", "r5apex"])) return "#E6C7B8";
+    if (containsAny(text, ["app:codex", "openai codex", "codex.exe"])) return "#BFD7EA";
     if (containsAny(text, ["nvidia", "nvcontainer"])) return "#C9E8BA";
     if (containsAny(text, ["service host", "windows-system", "svchost", "runtime broker", "windows search"])) return "#C8D6E5";
     if (containsAny(text, ["chrome.exe", "google\\chrome", "google/chrome"])) return "#BFD7EA";
@@ -124,7 +125,7 @@ function appIconSource(appId, path) {
         return site.icon;
 
     var raw = path ? path.toString() : "";
-    if (raw.length === 0 && identity.indexOf("app:") !== 0 && identity.indexOf("site:") !== 0)
+    if (raw.length === 0 && identity.indexOf("site:") !== 0)
         raw = identity;
     if (raw.length === 0)
         return "";
@@ -180,6 +181,8 @@ function englishDisplayName(row) {
         return "Wallpaper Engine";
     if (containsAny(text, ["app:google-chrome", "chrome.exe", "google chrome", "chrome"]))
         return "Google Chrome";
+    if (containsAny(text, ["app:codex", "openai codex", "codex.exe"]))
+        return "Codex";
     if (containsAny(text, ["app:vscode", "visual studio code", "vscode", "code.exe"]))
         return "VS Code";
     if (containsAny(text, ["app:microsoft-edge", "msedge", "edge.exe"]))

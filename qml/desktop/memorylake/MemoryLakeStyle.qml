@@ -9,7 +9,8 @@ QtObject {
     property bool night: true
 
     // 霓虹强调色（两套主题共用，白天略降发光）
-    readonly property color aqua: "#9FE7EE"
+    property color accentSeed: "#9FE7EE"
+    readonly property color aqua: accentSeed
     readonly property color violet: "#9B8BFF"
     readonly property color pink: "#D88AAC"
 

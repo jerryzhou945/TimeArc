@@ -49,6 +49,7 @@ Item {
     MemoryLakeStyle {
         id: ml
         night: root.nightMode
+        accentSeed: root.themeAccentColor
         injectedTextPrimary: root.themeTextPrimary
         injectedTextSecondary: root.themeTextSecondary
     }

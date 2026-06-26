@@ -46,6 +46,9 @@ inline AdapterMetadata resolveDesktopApp(const AdapterInput& input) {
         containsAnyLower(identity, adapter.processNames)) {
       return metadataFromDefinition(adapter, 0.92, input);
     }
+    if (containsAnyLower(input.title, adapter.titleHints)) {
+      return metadataFromDefinition(adapter, 0.78, input);
+    }
   }
 
   return genericDesktopAppMetadata(input);
