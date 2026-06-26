@@ -26,6 +26,9 @@ def main():
     memo_qml = read("qml/desktop/memorylake/MemoOverlay.qml")
     memory_style_qml = read("qml/desktop/memorylake/MemoryLakeStyle.qml")
     memory_card_qml = read("qml/desktop/memorylake/MemoryCard.qml")
+    card_carousel_qml = read("qml/desktop/memorylake/CardCarousel.qml")
+    generative_cover_qml = read("qml/desktop/memorylake/GenerativeCover.qml")
+    usage_rank_qml = read("qml/desktop/memorylake/UsageRankList.qml")
     memory_page_qml = read("qml/desktop/pages/DesktopMemoryLakePage.qml")
     stats_qml = read("qml/desktop/pages/DesktopStatsPage.qml")
     calendar_qml = read("qml/desktop/pages/DesktopCalenderPage.qml")
@@ -89,12 +92,20 @@ def main():
 
     require(stats_qml, 'title: "高频应用"; sub: "本月使用排行"', "monthly ranking card")
     require(stats_qml, 'title: "活跃热力"; sub: "本月每日强度', "monthly heatmap card")
-    if stats_qml.find('title: "高频应用"; sub: "本月使用排行"') > stats_qml.find('title: "活跃热力"; sub: "本月每日强度'):
-        raise AssertionError("monthly ranking must render before monthly heatmap")
+    ranking_pos = stats_qml.find('title: "高频应用"; sub: "本月使用排行"')
+    insight_pos = stats_qml.find("keywords: root.vmKeywords")
+    heat_pos = stats_qml.find('title: "活跃热力"; sub: "本月每日强度')
+    if not (ranking_pos < insight_pos < heat_pos):
+        raise AssertionError("monthly layout must be ranking, insight, then full-width heatmap")
+    require(stats_qml, "Layout.preferredHeight: 220", "monthly heatmap uses compact GitHub-style height")
+    require(stats_qml, "heatMonthLabels", "GitHub-style heatmap month labels")
+    require(stats_qml, 'model: [0, 1, 2, 3, 4]', "GitHub-style heatmap legend")
+    reject(stats_qml, "text: modelData.day", "heatmap cells should not show day numbers")
     require(stats_qml, "columnSpacing: heat.columnGap", "heatmap stretches columns")
     reject(stats_qml, "id: heatGridWrap\n                    anchors.centerIn: parent", "heatmap centered grid")
 
     require(app_visual_js, 'identity.indexOf("site:") !== 0', "app ids can resolve icons")
+    require(icon_provider_cpp, "resolvedIconPathCache", "app icon path resolution cache")
     require(icon_provider_cpp, "iconPixmapCache", "app icon provider cache")
     require(icon_provider_cpp, "normalizedIconPixmap", "app icon transparent-padding trim")
     require(icon_provider_cpp, "Stardew Valley.exe", "Stardew icon candidate")
@@ -113,6 +124,12 @@ def main():
     require(memory_card_qml, "card.app.yearTime", "card back year duration")
     require(memory_card_qml, "card.app.monthTime", "card back month duration")
     require(memory_card_qml, "card.app.dayTime", "card back day duration")
+    reject(memory_card_qml, "flipped ? 434", "card flip should not resize width")
+    reject(memory_card_qml, "flipped ? 616", "card flip should not resize height")
+    require(card_carousel_qml, "var selW = 340", "carousel center offset uses stable selected width")
+    require(generative_cover_qml, "asynchronous: false", "home cover icons render from cache synchronously")
+    require(usage_rank_qml, "asynchronous: false", "home ranking icons render from cache synchronously")
+    require(stats_qml, "asynchronous: false; smooth: true", "stats ranking icons render from cache synchronously")
 
     print("desktop UX static checks passed")
 
