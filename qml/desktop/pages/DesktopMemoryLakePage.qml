@@ -92,11 +92,85 @@ Item {
         : [ambientColor]
     readonly property bool hasAmbient: hasData
 
+    function secondsToDisplay(seconds) {
+        var total = Math.max(0, Math.floor(seconds ? seconds : 0))
+        if (total <= 0) return "0m"
+        if (total < 60) return "<1m"
+        var h = Math.floor(total / 3600)
+        var m = Math.floor((total % 3600) / 60)
+        if (h > 0) return h + "h " + m + "m"
+        return m + "m"
+    }
+
+    function usageKey(row) {
+        if (!row)
+            return ""
+        if (row.groupKey && row.groupKey.length > 0)
+            return row.groupKey
+        if (row.appId && row.appId.length > 0)
+            return row.appId
+        if (row.adapterIdentifier && row.adapterIdentifier.length > 0)
+            return row.adapterIdentifier
+        return AppVisual.modelIdentity(row)
+    }
+
+    function usageIndex(rows) {
+        var out = {}
+        if (!rows)
+            return out
+        for (var i = 0; i < rows.length; i++) {
+            var key = usageKey(rows[i])
+            if (key.length > 0)
+                out[key] = rows[i]
+        }
+        return out
+    }
+
+    function usageTextFor(index, key, fallbackText) {
+        var row = index[key]
+        if (!row)
+            return fallbackText ? fallbackText : "0m"
+        if (row.time && row.time.length > 0)
+            return row.time
+        return secondsToDisplay(row.seconds)
+    }
+
+    function enrichDurations(model) {
+        if (!model || !model.apps || !usageStatManager || !usageStatManager.activeSoftwareForRange)
+            return model
+
+        var day = usageIndex(usageStatManager.activeSoftwareForRange("day"))
+        var month = usageIndex(usageStatManager.activeSoftwareForRange("month"))
+        var year = usageIndex(usageStatManager.activeSoftwareForRange("year"))
+        var all = usageIndex(usageStatManager.activeSoftwareForRange("all"))
+        var appsOut = []
+
+        for (var i = 0; i < model.apps.length; i++) {
+            var src = model.apps[i]
+            var copy = {}
+            for (var k in src)
+                copy[k] = src[k]
+            var key = usageKey(copy)
+            copy.dayTime = usageTextFor(day, key, copy.time)
+            copy.monthTime = usageTextFor(month, key, copy.dayTime)
+            copy.yearTime = usageTextFor(year, key, copy.monthTime)
+            copy.totalTime = usageTextFor(all, key, copy.yearTime)
+            appsOut.push(copy)
+        }
+
+        var out = {}
+        for (var prop in model)
+            out[prop] = model[prop]
+        out.apps = appsOut
+        return out
+    }
+
     function recomputeDayModel() {
         if (!usageStatManager || !dailyCardService) { root.dayModel = ({}); return; }
-        root.dayModel = dailyCardService.memoryLakeDay(
+        var model = dailyCardService.memoryLakeDay(
             usageStatManager.activeSoftwareForRange("day"),
             usageStatManager.foregroundSegmentsForRange("day"));
+        root.dayModel = enrichDurations(model)
     }
 
     // 月度回顾已拆为独立页面 DesktopMonthlyRecapPage（菜单底部「记忆湖」）。
@@ -123,6 +197,7 @@ Item {
     MemoryLakeStyle {
         id: ml
         night: root.nightMode
+        accentSeed: root.themeAccentColor
         injectedTextPrimary: root.themeTextPrimary
         injectedTextSecondary: root.themeTextSecondary
     }

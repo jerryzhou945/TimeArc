@@ -26,6 +26,7 @@ Item {
     MemoryLakeStyle {
         id: mlStyle
         night: root.nightMode
+        accentSeed: root.accentColor
         injectedTextPrimary: root.appTextPrimary
         injectedTextSecondary: root.appTextSecondary
     }
@@ -49,6 +50,7 @@ Item {
     // =========================
     property bool nightMode: settingsRepository ? settingsRepository.getBool("night_mode", false) : false
     property string languageMode: settingsRepository ? settingsRepository.getValue("language_mode", "zh") : "zh"
+    property string accentColor: settingsRepository ? settingsRepository.getValue("accent_color", "#9FE7EE") : "#9FE7EE"
 
     function tr(source) { return I18n.t(languageMode, source) }
     function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
@@ -87,7 +89,7 @@ Item {
     readonly property color mlNavSelected: mlStyle.accentSoft
     readonly property color mlNavSelectedBorder: mlStyle.accentSoftBorder
     readonly property color mlNavSoft: nightMode ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.45)
-    readonly property color mlNavAccent: nightMode ? mlStyle.aqua : "#CFE8D8"
+    readonly property color mlNavAccent: mlStyle.aqua
 
     // =========================
     // 全局主题颜色
@@ -117,7 +119,7 @@ Item {
 
     // 强调色（logo 圆点 / 强调按钮）
     // 白天偏奶茶，夜晚偏柔和蓝紫；记忆湖偏霓虹 aqua
-    property color appAccentWarm: fullBleedPage ? mlNavAccent : (nightMode ? "#8E93D8" : "#CFE8D8")
+    property color appAccentWarm: fullBleedPage ? mlNavAccent : accentColor
     property color appAccentWarmText: fullBleedPage ? "#05070D" : (nightMode ? "#F8F7FF" : "#2D2724")
 
     // 左下角陪伴卡片
@@ -251,6 +253,7 @@ Item {
     }
 
     onLanguageModeChanged: applyThemeToLoadedPage()
+    onAccentColorChanged: applyThemeToLoadedPage()
 
     // 启动时把设置页的读层过滤推入 usageStatManager（2A 游戏/分类/合并 · 2B 逐项显隐 ·
     // 2C 标题脱敏 · 3A 软暂停），让首页/统计/记忆湖在用户打开设置页前就遵从已存偏好。
@@ -1007,6 +1010,11 @@ Item {
                             // #3：设置页改键 → Shell 重读 memo/pomodoro 全局键（Shortcut 即时重绑）。
                             if (item.hotkeysChanged)
                                 item.hotkeysChanged.connect(applyHotkeysFromSettings);
+                            if (item.accentChanged)
+                                item.accentChanged.connect(function (color) {
+                                    root.accentColor = color;
+                                    root.applyThemeToLoadedPage();
+                                });
                             if (item.languageChanged)
                                 item.languageChanged.connect(function (mode) {
                                     root.languageMode = mode;

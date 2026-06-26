@@ -35,6 +35,7 @@ Item {
     MemoryLakeStyle {
         id: ml
         night: root.nightMode
+        accentSeed: root.themeAccentColor
         injectedTextPrimary: root.themeTextPrimary
         injectedTextSecondary: root.themeTextSecondary
     }
@@ -146,15 +147,15 @@ Item {
 
     function heatColor(category, level) {
         if (level <= 0)
-            return root.nightMode ? "#202A36" : "#EDF1F4"
+            return root.nightMode ? "#161B22" : "#EBEDF0"
         var c = Qt.lighter(categoryHeatBase(category), 1.0)
         var h = c.hslHue
         if (h < 0 || isNaN(h))
             return root.nightMode ? "#78C98F" : "#9ED9A8"
         var l = root.nightMode
-                ? (0.24 + level * 0.055)
-                : (0.90 - level * 0.065)
-        var s = Math.min(0.56, Math.max(0.34, c.hslSaturation * 0.72))
+                ? (0.20 + level * 0.075)
+                : (0.88 - level * 0.080)
+        var s = Math.min(0.68, Math.max(0.42, c.hslSaturation * 0.86))
         return Qt.hsla(h, s, l, 1.0)
     }
 
@@ -1056,19 +1057,19 @@ Item {
                             title: "周趋势"; sub: "本月各周 active 时长"
                             points: root.vmLine
                         }
-                        StatsHeatmap {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 7
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 320
-                            title: "活跃热力"; sub: "本月每日强度（按当月峰值分级）"
-                            cells: root.vmHeat
-                        }
                         StatsRankingList {
                             Layout.columnSpan: root.sideCollapsed ? 12 : 5
                             Layout.fillWidth: true
                             Layout.preferredHeight: 320
                             title: "高频应用"; sub: "本月使用排行"
                             rows: root.vmRanking
+                        }
+                        StatsHeatmap {
+                            Layout.columnSpan: root.sideCollapsed ? 12 : 7
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 320
+                            title: "活跃热力"; sub: "本月每日强度（按当月峰值分级）"
+                            cells: root.vmHeat
                         }
                         StatsInsightCard {
                             Layout.columnSpan: 12
@@ -1361,9 +1362,14 @@ Item {
         readonly property int weekCount: Math.max(1, Math.ceil((cells ? cells.length : 0) / 7))
         readonly property real gridGap: 7
         readonly property real labelWidth: 36
-        readonly property real availableCellByWidth: (heatBody.width - labelWidth - 14 - Math.max(0, weekCount - 1) * gridGap) / weekCount
+        readonly property real labelGap: 14
+        readonly property real gridAvailableWidth: Math.max(1, heatBody.width - labelWidth - labelGap)
+        readonly property real availableCellByWidth: (gridAvailableWidth - Math.max(0, weekCount - 1) * gridGap) / weekCount
         readonly property real availableCellByHeight: (heatBody.height - 6 * gridGap) / 7
-        readonly property real cellSide: Math.max(20, Math.min(38, Math.floor(Math.min(availableCellByWidth, availableCellByHeight))))
+        readonly property real cellSide: Math.max(20, Math.min(42, Math.floor(Math.min(availableCellByWidth, availableCellByHeight))))
+        readonly property real columnGap: weekCount > 1
+            ? Math.max(gridGap, Math.floor((gridAvailableWidth - weekCount * cellSide) / Math.max(1, weekCount - 1)))
+            : gridGap
         readonly property real cellRadius: Math.max(5, Math.min(9, cellSide * 0.22))
         style: ml
         radius: 18
@@ -1384,10 +1390,11 @@ Item {
                 clip: true
                 Row {
                     id: heatGridWrap
-                    anchors.centerIn: parent
-                    width: heat.labelWidth + 14 + heat.weekCount * heat.cellSide + Math.max(0, heat.weekCount - 1) * heat.gridGap
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
                     height: 7 * heat.cellSide + 6 * heat.gridGap
-                    spacing: 12
+                    spacing: heat.labelGap
                     Column {
                         width: heat.labelWidth
                         spacing: heat.gridGap
@@ -1410,7 +1417,7 @@ Item {
                         rows: 7
                         flow: Grid.TopToBottom
                         rowSpacing: heat.gridGap
-                        columnSpacing: heat.gridGap
+                        columnSpacing: heat.columnGap
                         anchors.verticalCenter: parent.verticalCenter
                         Repeater {
                             model: heat.cells

@@ -4,9 +4,14 @@
 #include <QFileIconProvider>
 #include <QFileInfo>
 #include <QFont>
+#include <QHash>
 #include <QIcon>
+#include <QImage>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QPainter>
 #include <QRegularExpression>
+#include <QRect>
 #include <QSettings>
 #include <QSize>
 #include <QStandardPaths>
@@ -54,6 +59,8 @@ QStringList knownExecutableCandidates(const QString& rawIdentity) {
   id.replace(QRegularExpression(QStringLiteral("[^a-z0-9._-]+")),
              QStringLiteral("-"));
 
+  if (id == QStringLiteral("codex"))
+    return {QStringLiteral("Codex.exe")};
   if (id == QStringLiteral("vscode")) return {QStringLiteral("Code.exe")};
   if (id == QStringLiteral("google-chrome")) return {QStringLiteral("chrome.exe")};
   if (id == QStringLiteral("microsoft-edge")) return {QStringLiteral("msedge.exe")};
@@ -64,6 +71,11 @@ QStringList knownExecutableCandidates(const QString& rawIdentity) {
     return {QStringLiteral("wallpaper64.exe"), QStringLiteral("wallpaper32.exe"),
             QStringLiteral("wallpaperui.exe")};
   if (id == QStringLiteral("steam")) return {QStringLiteral("steam.exe")};
+  if (id == QStringLiteral("stardew-valley"))
+    return {QStringLiteral("Stardew Valley.exe"),
+            QStringLiteral("StardewValley.exe")};
+  if (id == QStringLiteral("apex-legends"))
+    return {QStringLiteral("r5apex.exe"), QStringLiteral("r5apex_dx12.exe")};
   if (id == QStringLiteral("discord")) return {QStringLiteral("Discord.exe")};
   if (id == QStringLiteral("netease-cloud-music"))
     return {QStringLiteral("cloudmusic.exe")};
@@ -102,6 +114,41 @@ QString resolveIconFile(const QString& identity) {
   return raw;
 }
 
+QRect nonTransparentBounds(const QImage& image) {
+  QRect bounds;
+  for (int y = 0; y < image.height(); ++y) {
+    const QRgb* line = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+    for (int x = 0; x < image.width(); ++x) {
+      if (qAlpha(line[x]) > 8) {
+        const QRect pixelRect(x, y, 1, 1);
+        bounds = bounds.isNull() ? pixelRect : bounds.united(pixelRect);
+      }
+    }
+  }
+  return bounds;
+}
+
+QPixmap normalizedIconPixmap(const QPixmap& source, int side) {
+  if (source.isNull()) return source;
+
+  QImage image = source.toImage().convertToFormat(QImage::Format_ARGB32);
+  const QRect bounds = nonTransparentBounds(image);
+  if (!bounds.isNull()) {
+    const bool hasWidePadding =
+        bounds.width() < image.width() * 0.82 ||
+        bounds.height() < image.height() * 0.82 ||
+        bounds.left() > 2 || bounds.top() > 2;
+    if (hasWidePadding) image = image.copy(bounds);
+  }
+
+  QPixmap pixmap = QPixmap::fromImage(image);
+  if (pixmap.width() != side || pixmap.height() != side) {
+    pixmap = pixmap.scaled(side, side, Qt::KeepAspectRatio,
+                           Qt::SmoothTransformation);
+  }
+  return pixmap;
+}
+
 }  // namespace
 
 AppIconImageProvider::AppIconImageProvider()
@@ -115,6 +162,23 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
       qMax(requestedSize.width(), requestedSize.height());
   const int side = qBound(16, requestedSide > 0 ? requestedSide : 64, 256);
   const QString path = resolveIconFile(id);
+  const QString cacheKey = path + QChar(0x1f) + QString::number(side);
+
+  static QHash<QString, QPixmap> iconPixmapCache;
+  static QMutex iconPixmapCacheMutex;
+  {
+    QMutexLocker locker(&iconPixmapCacheMutex);
+    const auto it = iconPixmapCache.constFind(cacheKey);
+    if (it != iconPixmapCache.constEnd()) {
+      QPixmap cached = *it;
+      if (requestedSize.isValid() && !requestedSize.isEmpty()) {
+        cached = cached.scaled(requestedSize, Qt::KeepAspectRatio,
+                               Qt::SmoothTransformation);
+      }
+      if (size) *size = cached.size();
+      return cached;
+    }
+  }
 
   QPixmap pixmap;
   if (!path.isEmpty()) {
@@ -122,11 +186,17 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
     if (fileInfo.exists()) {
       QFileIconProvider iconProvider;
       const QIcon icon = iconProvider.icon(fileInfo);
-      pixmap = icon.pixmap(side, side);
+      pixmap = normalizedIconPixmap(icon.pixmap(side, side), side);
     }
   }
 
   if (pixmap.isNull()) pixmap = fallbackPixmap(path, side);
+
+  {
+    QMutexLocker locker(&iconPixmapCacheMutex);
+    if (iconPixmapCache.size() > 512) iconPixmapCache.clear();
+    iconPixmapCache.insert(cacheKey, pixmap);
+  }
 
   if (requestedSize.isValid() && !requestedSize.isEmpty()) {
     pixmap = pixmap.scaled(requestedSize, Qt::KeepAspectRatio,

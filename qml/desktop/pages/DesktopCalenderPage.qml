@@ -92,6 +92,7 @@ Item {
     MemoryLakeStyle {
         id: ml
         night: root.nightMode
+        accentSeed: root.themeAccentColor
         injectedTextPrimary: root.themeTextPrimary
         injectedTextSecondary: root.themeTextSecondary
     }
@@ -244,13 +245,25 @@ Item {
         }
     }
 
+    function normalizedImageSource(path) {
+        var s = path ? ("" + path).trim() : ""
+        if (s === "")
+            return ""
+        if (s.indexOf("file:") === 0 || s.indexOf("qrc:") === 0 || s.indexOf("image:") === 0)
+            return s
+        s = s.replace(/\\/g, "/")
+        if (/^[A-Za-z]:\//.test(s))
+            return "file:///" + encodeURI(s)
+        return s
+    }
+
     function backgroundForDate(key) {
         var manual = manualPhotoMap()
         if (manual[key] && manual[key] !== "")
-            return manual[key]
+            return normalizedImageSource(manual[key])
 
         var images = chatImagesForDate(key)
-        return images.length > 0 ? images[0] : ""
+        return images.length > 0 ? normalizedImageSource(images[0]) : ""
     }
 
     function selectedPhotoSource() {
@@ -259,7 +272,7 @@ Item {
 
     function setManualPhotoForSelectedDate(path) {
         var map = manualPhotoMap()
-        map[selectedDateKey] = path
+        map[selectedDateKey] = normalizedImageSource(path)
         if (calendarManager)
             calendarManager.setDayPhotos(JSON.stringify(map))
         refreshCalendar()
@@ -1882,6 +1895,7 @@ Item {
                                 opacity: ml.night ? 0.55 : 0.5
                                 smooth: true
                                 asynchronous: true
+                                cache: false
                             }
 
                             // 照片可读压暗（顶透 → 底实 calPageBottom）
