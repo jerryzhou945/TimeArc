@@ -161,22 +161,7 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
   const int requestedSide =
       qMax(requestedSize.width(), requestedSize.height());
   const int side = qBound(16, requestedSide > 0 ? requestedSide : 64, 256);
-  const QString identity = QUrl::fromPercentEncoding(id.toUtf8()).trimmed();
-
-  static QHash<QString, QString> resolvedIconPathCache;
-  static QMutex resolvedIconPathCacheMutex;
-  QString path;
-  {
-    QMutexLocker locker(&resolvedIconPathCacheMutex);
-    const auto it = resolvedIconPathCache.constFind(identity);
-    if (it != resolvedIconPathCache.constEnd()) path = *it;
-  }
-  if (path.isEmpty()) {
-    path = resolveIconFile(identity);
-    QMutexLocker locker(&resolvedIconPathCacheMutex);
-    if (resolvedIconPathCache.size() > 512) resolvedIconPathCache.clear();
-    resolvedIconPathCache.insert(identity, path);
-  }
+  const QString path = resolveIconFile(id);
   const QString cacheKey = path + QChar(0x1f) + QString::number(side);
 
   static QHash<QString, QPixmap> iconPixmapCache;

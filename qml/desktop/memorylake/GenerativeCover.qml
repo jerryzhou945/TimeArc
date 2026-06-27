@@ -73,7 +73,7 @@ Item {
         sourceSize.width: 256
         sourceSize.height: 256
         fillMode: Image.PreserveAspectFit
-        asynchronous: false
+        asynchronous: true
         smooth: true
         mipmap: true
         visible: genCover.iconSrc !== "" && status === Image.Ready
