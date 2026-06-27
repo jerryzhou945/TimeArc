@@ -130,30 +130,18 @@ Item {
     }
 
     function categoryHeatBase(category) {
-        var accent = Qt.lighter(root.themeAccentColor, 1.0)
-        var h = accent.hslHue
-        if (h < 0 || isNaN(h))
-            h = 0.42
-        var s = Math.min(0.68, Math.max(0.40, accent.hslSaturation * 0.85))
-        var l = root.nightMode ? 0.48 : 0.62
-        function shifted(delta, satDelta) {
-            var nh = h + delta
-            while (nh < 0) nh += 1
-            while (nh > 1) nh -= 1
-            return Qt.hsla(nh, Math.min(0.72, Math.max(0.36, s + satDelta)), l, 1.0)
-        }
         switch (category) {
-        case "学习": return shifted(0.05, 0.03)
-        case "笔记": return shifted(0.10, -0.02)
-        case "开发": return shifted(0.00, 0.04)
-        case "办公": return shifted(-0.06, -0.01)
-        case "社交": return shifted(0.18, 0.02)
-        case "创作": return shifted(-0.16, 0.04)
-        case "游戏": return shifted(-0.24, 0.03)
-        case "视频": return shifted(0.28, 0.02)
-        case "音乐": return shifted(-0.10, 0.01)
-        case "浏览": return shifted(0.08, -0.04)
-        default: return shifted(0.00, 0.00)
+        case "学习": return "#76B7F2"
+        case "笔记": return "#8BC6F0"
+        case "开发": return "#7ECF9A"
+        case "办公": return "#7DD6D0"
+        case "社交": return "#BBA7F2"
+        case "创作": return "#E7C86E"
+        case "游戏": return "#F2B279"
+        case "视频": return "#EE8F9A"
+        case "音乐": return "#9FDFAE"
+        case "浏览": return "#A9CBEF"
+        default: return "#8BCF9A"
         }
     }
 
@@ -1070,27 +1058,27 @@ Item {
                             points: root.vmLine
                         }
                         StatsRankingList {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 4
+                            Layout.columnSpan: root.sideCollapsed ? 12 : 5
                             Layout.fillWidth: true
                             Layout.preferredHeight: 320
                             title: "高频应用"; sub: "本月使用排行"
                             rows: root.vmRanking
                         }
-                        StatsInsightCard {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 8
+                        StatsHeatmap {
+                            Layout.columnSpan: root.sideCollapsed ? 12 : 7
                             Layout.fillWidth: true
                             Layout.preferredHeight: 320
+                            title: "活跃热力"; sub: "本月每日强度（按当月峰值分级）"
+                            cells: root.vmHeat
+                        }
+                        StatsInsightCard {
+                            Layout.columnSpan: 12
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 260
                             insight: root.vmInsight
                             recs: root.vmRecs
                             keywords: root.vmKeywords
                             onExportRequested: root.doExport()
-                        }
-                        StatsHeatmap {
-                            Layout.columnSpan: 12
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 220
-                            title: "活跃热力"; sub: "本月每日强度（按当月峰值分级）"
-                            cells: root.vmHeat
                         }
                     }
 
@@ -1372,17 +1360,17 @@ Item {
         property var cells: []
         property var hoveredCell: null
         readonly property int weekCount: Math.max(1, Math.ceil((cells ? cells.length : 0) / 7))
-        readonly property real gridGap: 4
-        readonly property real labelWidth: 34
-        readonly property real labelGap: 12
+        readonly property real gridGap: 7
+        readonly property real labelWidth: 36
+        readonly property real labelGap: 14
         readonly property real gridAvailableWidth: Math.max(1, heatBody.width - labelWidth - labelGap)
         readonly property real availableCellByWidth: (gridAvailableWidth - Math.max(0, weekCount - 1) * gridGap) / weekCount
-        readonly property real availableCellByHeight: Math.max(1, (heatBody.height - 26 - 6 * gridGap) / 7)
-        readonly property real cellSide: Math.max(10, Math.min(15, Math.floor(Math.min(availableCellByWidth, availableCellByHeight))))
+        readonly property real availableCellByHeight: (heatBody.height - 6 * gridGap) / 7
+        readonly property real cellSide: Math.max(20, Math.min(42, Math.floor(Math.min(availableCellByWidth, availableCellByHeight))))
         readonly property real columnGap: weekCount > 1
-            ? Math.max(gridGap, Math.min(10, Math.floor((gridAvailableWidth - weekCount * cellSide) / Math.max(1, weekCount - 1))))
+            ? Math.max(gridGap, Math.floor((gridAvailableWidth - weekCount * cellSide) / Math.max(1, weekCount - 1)))
             : gridGap
-        readonly property real cellRadius: Math.max(2, Math.min(3, cellSide * 0.22))
+        readonly property real cellRadius: Math.max(5, Math.min(9, cellSide * 0.22))
         style: ml
         radius: 18
         ColumnLayout {
@@ -1401,39 +1389,10 @@ Item {
                 Layout.fillHeight: true
                 clip: true
                 Row {
-                    id: heatMonthLabels
-                    anchors.left: heatGridWrap.left
-                    anchors.leftMargin: heat.labelWidth + heat.labelGap
-                    anchors.top: parent.top
-                    spacing: heat.columnGap
-                    height: 16
-                    Repeater {
-                        model: heat.weekCount
-                        delegate: Text {
-                            required property int index
-                            width: heat.cellSide
-                            text: {
-                                var cell = heat.cells && index * 7 < heat.cells.length ? heat.cells[index * 7] : null
-                                if (!cell || !cell.dateKey || cell.empty)
-                                    return ""
-                                var parts = cell.dateKey.split("-")
-                                if (parts.length < 2)
-                                    return ""
-                                var m = Math.max(1, Math.min(12, parseInt(parts[1]) || 1))
-                                return index === 0 || (cell.day && Number(cell.day) <= 7) ? root.monthShortLabels()[m - 1] : ""
-                            }
-                            color: ml.textTertiary
-                            font.pixelSize: 11
-                            elide: Text.ElideRight
-                        }
-                    }
-                }
-                Row {
                     id: heatGridWrap
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.topMargin: 20
+                    anchors.verticalCenter: parent.verticalCenter
                     height: 7 * heat.cellSide + 6 * heat.gridGap
                     spacing: heat.labelGap
                     Column {
@@ -1468,14 +1427,22 @@ Item {
                                 width: heat.cellSide
                                 height: heat.cellSide
                                 radius: heat.cellRadius
-                                opacity: modelData.empty ? 0.45 : 1
+                                opacity: modelData.empty ? 0 : 1
                                 color: modelData.color ? modelData.color : root.heatColor(modelData.category, modelData.level)
                                 border.width: 1
                                 border.color: cellMa.containsMouse
                                     ? Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.65)
-                                    : (modelData.level === 0 ? (root.nightMode ? "#252D3A" : "#D8DEE4") : Qt.rgba(1, 1, 1, root.nightMode ? 0.07 : 0.26))
+                                    : (modelData.level === 0 ? (root.nightMode ? "#2E3947" : "#D7DEE5") : Qt.rgba(1, 1, 1, root.nightMode ? 0.08 : 0.34))
                                 scale: cellMa.containsMouse ? 1.08 : 1
                                 Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: !modelData.empty && heat.cellSide >= 28
+                                    text: modelData.day
+                                    color: modelData.level > 2 ? Qt.rgba(1, 1, 1, 0.82) : ml.textTertiary
+                                    font.pixelSize: Math.min(11, heat.cellSide * 0.38)
+                                    font.weight: Font.DemiBold
+                                }
                                 MouseArea {
                                     id: cellMa
                                     anchors.fill: parent
@@ -1486,26 +1453,6 @@ Item {
                             }
                         }
                     }
-                }
-                Row {
-                    anchors.left: heatGridWrap.left
-                    anchors.leftMargin: heat.labelWidth + heat.labelGap
-                    anchors.bottom: parent.bottom
-                    height: 18
-                    spacing: 5
-                    Text { text: root.tr("Less"); color: ml.textTertiary; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
-                    Repeater {
-                        model: [0, 1, 2, 3, 4]
-                        delegate: Rectangle {
-                            required property int modelData
-                            width: 10; height: 10; radius: 2
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: root.heatColor("开发", modelData)
-                            border.width: 1
-                            border.color: root.nightMode ? "#252D3A" : "#D8DEE4"
-                        }
-                    }
-                    Text { text: root.tr("More"); color: ml.textTertiary; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
                 }
                 Rectangle {
                     anchors.right: parent.right
@@ -1588,7 +1535,7 @@ Item {
                                         source: AppVisual.modelIconSource(modelData)
                                         sourceSize.width: 64; sourceSize.height: 64
                                         fillMode: Image.PreserveAspectFit
-                                        asynchronous: false; smooth: true; mipmap: true
+                                        asynchronous: true; smooth: true; mipmap: true
                                         visible: source != "" && status === Image.Ready
                                     }
                                     Text {

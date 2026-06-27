@@ -32,16 +32,17 @@ Item {
     signal hoverEnter()
     signal hoverLeave()
 
-    // 布局宽高：翻面不再改变卡牌几何尺寸，避免 3D 翻转时触发整条 Row 重排。
-    readonly property int layoutW: selected ? 340 : 156
-    readonly property int layoutH: selected ? 500 : 310
+    // 布局宽高（选中 310×440；翻面时整体放大 40% → 434×616，翻回恢复。
+    // 用 layoutW 作为 Row 排布宽度，翻面变宽时会自动把相邻卡牌挤开。）
+    readonly property int layoutW: selected ? (flipped ? 434 : 310) : 156
+    readonly property int layoutH: selected ? (flipped ? 616 : 440) : 310
 
     width: layoutW
     height: layoutH
 
     // 选中放大走品牌「柔落」缓动（与翻面同曲线，整卡运动一致），让选卡过渡更整体。
-    Behavior on width { enabled: !card.flipped; NumberAnimation { duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
-    Behavior on height { enabled: !card.flipped; NumberAnimation { duration: 260; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
+    Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
+    Behavior on height { NumberAnimation { duration: 360; easing.type: Easing.Bezier; easing.bezierCurve: card.style ? card.style.easeSoft : [0.2, 0.8, 0.2, 1, 1, 1] } }
 
     // .card.is-selected{ scale(1.01) }；非选中 .88；锁定时其它卡 .25；预览微放大
     scale: selected ? 1.01 : (previewed ? 0.96 : 0.88)
@@ -52,7 +53,7 @@ Item {
     // 翻面角度提升为卡片级属性：底灯据此做 3D 透视收束 + 高光绽放（见下方 ambientGlow）。
     property real flipAngle: flipped ? 180 : 0
     Behavior on flipAngle {
-        NumberAnimation { duration: 460; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] }
+        NumberAnimation { duration: 680; easing.type: Easing.Bezier; easing.bezierCurve: [0.2, 0.8, 0.2, 1, 1, 1] }
     }
 
     // 选中卡牌氛围底灯 + 翻面光效。让光像是卡片自身发出、随 3D 转动守恒，而非呆板的亮方块：
@@ -120,7 +121,7 @@ Item {
             // 让 Flipable 旋转的是这张已抗锯齿的单一纹理（圆角 + 描边一起重采样，无旋转锯齿台阶）。
             // 仅 selected 开（只有选中卡会翻面），避免给 9 张卡都建 FBO。
             layer.enabled: card.selected
-            layer.samples: 2
+            layer.samples: 4
             layer.smooth: true
 
             // 整张正面（底色 + 封面图 + 文本 + 顶层边缘光）先按方角合成，再用单一圆角遮罩统一裁切。
@@ -132,7 +133,7 @@ Item {
                 anchors.fill: parent
                 visible: false
                 layer.enabled: true
-                layer.samples: 2        // 选中卡翻转时保持抗锯齿，同时降低 FBO 成本
+                layer.samples: 4        // 关键：给 layer FBO 开多重采样，否则边缘无抗锯齿
                 layer.smooth: true
 
                 // 底色（方角，统一交给下方遮罩裁圆）
@@ -244,7 +245,7 @@ Item {
                 antialiasing: true
                 visible: false
                 layer.enabled: true
-                layer.samples: 2
+                layer.samples: 4        // 多重采样让圆角遮罩边缘平滑，消除黑色锯齿噪边
                 layer.smooth: true
             }
             MultiEffect {
@@ -266,7 +267,7 @@ Item {
             // 同正面：整张背面（底色 + 淡背景图 + 暗罩 + 文本 + 顶层边缘光）合成进一张多重采样 layer，
             // Flipable 旋转的是这张单一已抗锯齿纹理。仅 selected 开（只有选中卡会翻面）。
             layer.enabled: card.selected
-            layer.samples: 2
+            layer.samples: 4
             layer.smooth: true
 
             // 背面整面方角合成，再单一圆角遮罩一次裁切（含边缘光），避免方角/图片溢出卡片圆角。
@@ -275,7 +276,7 @@ Item {
                 anchors.fill: parent
                 visible: false
                 layer.enabled: true
-                layer.samples: 2
+                layer.samples: 4
                 layer.smooth: true
 
                 // 底色（方角，交给下方遮罩裁圆）
@@ -432,7 +433,7 @@ Item {
                 anchors.fill: parent
                 visible: false
                 layer.enabled: true
-                layer.samples: 2
+                layer.samples: 4        // 与正面一致：多重采样平滑圆角遮罩边缘
                 layer.smooth: true
                 antialiasing: true
                 color: "white"

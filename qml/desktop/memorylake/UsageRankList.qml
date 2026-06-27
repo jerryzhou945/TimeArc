@@ -109,7 +109,7 @@ Item {
                                         sourceSize.width: 64
                                         sourceSize.height: 64
                                         fillMode: Image.PreserveAspectFit
-                                        asynchronous: false
+                                        asynchronous: true
                                         smooth: true
                                         mipmap: true
                                         visible: source != "" && status === Image.Ready
