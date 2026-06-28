@@ -6,349 +6,516 @@
   <title>TimeArc Mobile v88 Prototype</title>
   <style>
     :root {
-      --bg-0: #05070d;
-      --bg-1: #090d16;
-      --bg-2: #0d1320;
-      --panel: rgba(11, 16, 27, .82);
-      --panel-soft: rgba(255, 255, 255, .055);
-      --panel-sunken: rgba(3, 7, 14, .36);
-      --border: rgba(255, 255, 255, .11);
-      --border-soft: rgba(255, 255, 255, .065);
-      --text: rgba(255, 255, 255, .88);
-      --muted: rgba(255, 255, 255, .56);
-      --faint: rgba(255, 255, 255, .34);
-      --aqua: #9fe7ee;
-      --aqua-2: #82efff;
+      --bg0: #03060d;
+      --bg1: #08111e;
+      --bg2: #171019;
+      --ink: #f7fbff;
+      --muted: rgba(247, 251, 255, .66);
+      --faint: rgba(247, 251, 255, .42);
+      --hair: rgba(255, 255, 255, .12);
+      --panel: rgba(255, 255, 255, .075);
+      --panel2: rgba(255, 255, 255, .11);
+      --aqua: #83f0ff;
       --violet: #9b8bff;
-      --pink: #d88aac;
-      --gold: #ffe6a3;
-      --shadow: rgba(0, 0, 0, .58);
+      --pink: #f08ab7;
+      --gold: #ffe59a;
+      --green: #92f0bd;
+      color: var(--ink);
       color-scheme: dark;
-      font-family: Inter, "SF Pro Display", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      font-family: "PingFang SC", "SF Pro Display", "Noto Sans SC", "Microsoft YaHei", Inter, sans-serif;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
       min-height: 100vh;
-      color: var(--text);
       background:
-        radial-gradient(circle at 9% 4%, rgba(106, 237, 255, .16), transparent 31%),
-        radial-gradient(circle at 92% 7%, rgba(206, 92, 255, .13), transparent 34%),
-        radial-gradient(circle at 55% 100%, rgba(216, 138, 172, .10), transparent 36%),
-        linear-gradient(145deg, var(--bg-0), var(--bg-1) 48%, var(--bg-2));
-      overflow-x: auto;
-    }
-
-    .stage {
-      min-width: 1720px;
-      padding: 34px;
-    }
-
-    .board {
-      position: relative;
-      display: grid;
-      grid-template-columns: repeat(4, 390px);
-      gap: 28px;
-      padding: 30px;
-      border: 1px solid rgba(255, 255, 255, .18);
-      border-radius: 30px;
-      background:
-        radial-gradient(circle at 18% 0%, rgba(106, 237, 255, .12), transparent 34%),
-        radial-gradient(circle at 90% 10%, rgba(206, 92, 255, .12), transparent 32%),
-        rgba(8, 10, 18, .72);
-      box-shadow: 0 34px 100px rgba(0, 0, 0, .68), inset 0 1px 0 rgba(255, 255, 255, .12);
-      backdrop-filter: blur(28px) saturate(150%);
-    }
-
-    .phone-wrap {
-      display: grid;
-      gap: 12px;
-    }
-
-    .label {
-      padding-left: 10px;
-      color: rgba(245, 250, 255, .72);
-      font-size: 14px;
-      letter-spacing: 0;
-    }
-
-    .phone {
-      position: relative;
-      width: 390px;
-      height: 844px;
+        radial-gradient(circle at 9% 2%, rgba(131, 240, 255, .25), transparent 29%),
+        radial-gradient(circle at 92% 0%, rgba(155, 139, 255, .22), transparent 34%),
+        radial-gradient(circle at 54% 105%, rgba(240, 138, 183, .16), transparent 38%),
+        linear-gradient(135deg, var(--bg0), var(--bg1) 48%, var(--bg2));
       overflow: hidden;
-      border-radius: 38px;
-      border: 1px solid rgba(255, 255, 255, .16);
-      background:
-        radial-gradient(circle at 20% 0%, rgba(159, 231, 238, .13), transparent 36%),
-        radial-gradient(circle at 92% 7%, rgba(155, 139, 255, .12), transparent 35%),
-        linear-gradient(180deg, rgba(16, 23, 39, .95), rgba(6, 8, 14, .96));
-      box-shadow: 0 30px 75px rgba(0, 0, 0, .56), inset 0 1px 0 rgba(255, 255, 255, .12);
     }
 
-    .phone::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(255, 255, 255, .028) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, .024) 1px, transparent 1px);
-      background-size: 28px 28px;
-      mask-image: linear-gradient(to bottom, transparent, #000 15%, #000 84%, transparent);
-      pointer-events: none;
-    }
-
-    .phone::after {
-      content: "";
-      position: absolute;
-      left: 126px;
-      top: 12px;
-      width: 138px;
-      height: 26px;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, .42);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
-    }
-
-    .screen {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      padding: 54px 18px 18px;
-    }
-
-    .titlebar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      min-height: 48px;
-      padding: 0 4px 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, .07);
-    }
-
-    .eyebrow {
-      margin: 0 0 4px;
-      color: var(--faint);
-      font-size: 12px;
+    button {
+      border: 0;
+      color: inherit;
+      font: inherit;
+      background: none;
+      cursor: pointer;
     }
 
     h1, h2, h3, p {
       margin: 0;
     }
 
-    h1 {
-      font-size: 24px;
-      line-height: 1.1;
-      letter-spacing: 0;
-    }
-
-    h2 {
-      font-size: 20px;
-      line-height: 1.15;
-      letter-spacing: 0;
-    }
-
-    h3 {
-      font-size: 15px;
-      letter-spacing: 0;
-    }
-
-    .chip {
-      display: inline-grid;
+    .stage {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
       place-items: center;
-      min-height: 30px;
-      padding: 0 12px;
-      border: 1px solid rgba(159, 231, 238, .18);
+      padding: 22px;
+    }
+
+    .preview-board {
+      position: relative;
+      width: min(1160px, calc(100vw - 44px));
+      height: min(900px, calc(100vh - 44px));
+      min-height: 760px;
+      display: grid;
+      grid-template-columns: 1fr 430px 1fr;
+      align-items: center;
+      gap: 30px;
+      padding: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 34px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .035)),
+        rgba(4, 8, 15, .72);
+      box-shadow: 0 38px 120px rgba(0, 0, 0, .58), inset 0 1px 0 rgba(255, 255, 255, .11);
+    }
+
+    .preview-board::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .026) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .022) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(circle at 50% 38%, #000, transparent 78%);
+      pointer-events: none;
+    }
+
+    .board-copy {
+      position: relative;
+      z-index: 1;
+      align-self: end;
+      padding: 0 0 24px 10px;
+    }
+
+    .board-copy small {
+      display: inline-flex;
+      height: 32px;
+      align-items: center;
+      padding: 0 13px;
+      border: 1px solid rgba(131, 240, 255, .25);
       border-radius: 999px;
-      color: rgba(223, 250, 255, .86);
-      background: rgba(159, 231, 238, .075);
+      color: #b8f8ff;
+      background: rgba(131, 240, 255, .09);
       font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .06em;
+    }
+
+    .board-copy h1 {
+      max-width: 320px;
+      margin-top: 18px;
+      font-size: 46px;
+      line-height: 1.04;
+      font-weight: 900;
+    }
+
+    .board-copy p {
+      max-width: 340px;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .side-notes {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 12px;
+      align-self: end;
+      padding-bottom: 24px;
+    }
+
+    .note-card {
+      min-height: 100px;
+      padding: 18px;
+      border: 1px solid var(--hair);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, .06);
+      backdrop-filter: blur(16px);
+    }
+
+    .note-card span {
+      color: var(--faint);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .note-card strong {
+      display: block;
+      margin-top: 9px;
+      color: var(--ink);
+      font-size: 24px;
+      line-height: 1.05;
+    }
+
+    .phone {
+      position: relative;
+      z-index: 2;
+      width: 390px;
+      height: 844px;
+      justify-self: center;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 42px;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(131, 240, 255, .17), transparent 36%),
+        radial-gradient(circle at 88% 2%, rgba(155, 139, 255, .16), transparent 34%),
+        linear-gradient(180deg, rgba(17, 24, 39, .98), rgba(5, 8, 15, .98) 68%, #08060d);
+      box-shadow:
+        0 34px 90px rgba(0, 0, 0, .62),
+        0 0 80px rgba(131, 240, 255, .12),
+        inset 0 1px 0 rgba(255, 255, 255, .13);
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      left: 126px;
+      top: 12px;
+      z-index: 20;
+      width: 138px;
+      height: 26px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .44);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+    }
+
+    .phone::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .026) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .021) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 82%, transparent);
+      pointer-events: none;
+    }
+
+    .screen {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 52px 18px 16px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      min-height: 58px;
+      padding: 0 2px 14px;
+    }
+
+    .eyebrow {
+      color: var(--faint);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .topbar h1 {
+      margin-top: 5px;
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    .date-pill,
+    .soft-pill {
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 12px;
+      border: 1px solid rgba(131, 240, 255, .20);
+      border-radius: 999px;
+      color: rgba(223, 250, 255, .88);
+      background: rgba(131, 240, 255, .085);
+      font-size: 12px;
+      font-weight: 800;
       white-space: nowrap;
     }
 
+    .page {
+      display: none;
+      min-height: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .page.active {
+      display: block;
+      animation: pageIn .34s cubic-bezier(.16, .9, .2, 1);
+    }
+
+    .scroll-page {
+      height: 100%;
+      overflow-y: auto;
+      padding: 8px 0 16px;
+      scrollbar-width: none;
+    }
+
+    .scroll-page::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
     .glass {
-      border: 1px solid var(--border);
+      border: 1px solid var(--hair);
       border-radius: 24px;
-      background: var(--panel-soft);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .10), 0 18px 44px rgba(0, 0, 0, .26);
-      backdrop-filter: blur(18px) saturate(135%);
+      background: var(--panel);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .10),
+        0 18px 44px rgba(0, 0, 0, .22);
+      backdrop-filter: blur(18px) saturate(140%);
     }
 
     .tabbar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-top: auto;
-      padding: 9px;
-      border: 1px solid rgba(255, 255, 255, .09);
-      border-radius: 22px;
-      background: rgba(3, 7, 14, .42);
+      gap: 7px;
+      min-height: 66px;
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 24px;
+      background: rgba(3, 7, 14, .58);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
     }
 
     .tab {
       display: grid;
       place-items: center;
-      height: 42px;
-      border-radius: 15px;
-      color: rgba(245, 250, 255, .44);
-      font-size: 18px;
+      gap: 3px;
+      min-width: 0;
+      border-radius: 17px;
+      color: rgba(247, 251, 255, .42);
+      transition: color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    .tab svg {
+      width: 21px;
+      height: 21px;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .tab span {
+      font-size: 10px;
+      font-weight: 800;
     }
 
     .tab.active {
-      color: rgba(223, 250, 255, .96);
-      background: rgba(159, 231, 238, .11);
-      box-shadow: inset 0 0 0 1px rgba(159, 231, 238, .22), 0 0 28px rgba(130, 239, 255, .12);
+      color: rgba(226, 252, 255, .98);
+      background: rgba(131, 240, 255, .11);
+      box-shadow: inset 0 0 0 1px rgba(131, 240, 255, .22), 0 0 24px rgba(131, 240, 255, .11);
     }
 
-    .home-cards {
+    .home-view {
+      height: 100%;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 12px;
+      padding-top: 2px;
+    }
+
+    .card-stage {
       position: relative;
+      min-height: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .075);
+      border-radius: 30px;
+      background:
+        radial-gradient(circle at 50% 36%, rgba(131, 240, 255, .16), transparent 35%),
+        radial-gradient(circle at 50% 86%, rgba(240, 138, 183, .12), transparent 40%),
+        rgba(3, 7, 14, .26);
+    }
+
+    .card-stage::before {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(131, 240, 255, .18), transparent 66%);
+      filter: blur(8px);
+    }
+
+    .app-card {
+      position: relative;
+      width: 304px;
+      height: 506px;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--app), white 10%);
+      border-radius: 31px;
+      background:
+        radial-gradient(circle at 50% 37%, color-mix(in srgb, var(--app), transparent 75%), transparent 36%),
+        radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--app2), transparent 82%), transparent 58%),
+        linear-gradient(180deg, #0f1827, #090d16 58%, #150c14);
+      box-shadow:
+        0 28px 76px rgba(0, 0, 0, .56),
+        0 0 44px color-mix(in srgb, var(--app), transparent 78%),
+        inset 0 1px 0 rgba(255, 255, 255, .14);
+      transition: transform .34s cubic-bezier(.16, .9, .2, 1);
+    }
+
+    .card-cover {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 214px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, .30), transparent 15%),
+        radial-gradient(circle at 48% 48%, color-mix(in srgb, var(--app), transparent 62%), transparent 42%),
+        linear-gradient(140deg, color-mix(in srgb, var(--app), white 52%), color-mix(in srgb, var(--pink), white 44%) 54%, color-mix(in srgb, var(--app2), white 48%));
+    }
+
+    .card-cover::after {
+      content: "";
+      position: absolute;
+      inset: 118px 0 0;
+      background: linear-gradient(transparent, rgba(9, 13, 22, .90));
+    }
+
+    .app-emblem {
+      position: relative;
+      z-index: 2;
+      width: 96px;
+      height: 96px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .20);
+      border-radius: 28px;
+      color: #071018;
+      background:
+        radial-gradient(circle at 58% 36%, rgba(255, 255, 255, .90) 0 11%, transparent 12%),
+        conic-gradient(from 210deg, var(--app), var(--app2), var(--gold), var(--app));
+      box-shadow: 0 20px 44px rgba(0, 0, 0, .25), 0 0 34px color-mix(in srgb, var(--app), transparent 68%);
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .card-copy {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 22px;
+    }
+
+    .serial {
+      color: rgba(247, 251, 255, .46);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+
+    .card-copy h2 {
+      margin-top: 7px;
+      font-size: 32px;
+      line-height: 1.02;
+      font-weight: 900;
+    }
+
+    .card-copy p {
+      margin-top: 8px;
+      color: var(--faint);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .time-chip {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 3px;
+      margin-top: 14px;
+      padding: 11px 14px;
+      border: 1px solid rgba(131, 240, 255, .22);
+      border-radius: 17px;
+      color: #dffbff;
+      background: rgba(131, 240, 255, .10);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+      font-size: 23px;
+      font-weight: 900;
+    }
+
+    .time-chip small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .card-progress {
+      height: 8px;
+      margin-top: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .card-progress span {
+      display: block;
+      width: var(--w);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--aqua), var(--violet), var(--pink));
+      box-shadow: 0 0 18px rgba(131, 240, 255, .22);
+    }
+
+    .carousel-actions {
       display: flex;
       align-items: center;
       justify-content: center;
-      flex: 1;
-      min-height: 0;
-      margin: 18px 0 16px;
-      border-radius: 28px;
-      border: 1px solid rgba(255, 255, 255, .08);
-      background:
-        linear-gradient(90deg, transparent 49.7%, rgba(159, 231, 238, .16) 50%, transparent 50.3%),
-        rgba(3, 7, 14, .28);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
-      overflow: hidden;
+      gap: 12px;
     }
 
-    .home-cards::before {
-      content: "";
-      position: absolute;
-      width: 240px;
-      height: 240px;
-      left: 62px;
-      top: 90px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(130, 239, 255, .20), transparent 66%);
-      filter: blur(10px);
-    }
-
-    .card-rail {
-      position: absolute;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      transform: translateX(-92px);
-    }
-
-    .memory-card {
-      position: relative;
-      width: 156px;
-      height: 310px;
-      flex: 0 0 auto;
-      overflow: hidden;
-      border-radius: 26px;
-      border: 1px solid rgba(255, 255, 255, .14);
-      background: rgba(7, 9, 16, .82);
-      opacity: .42;
-      transform: scale(.88);
-      box-shadow: 0 16px 42px rgba(0, 0, 0, .38);
-    }
-
-    .memory-card.selected {
-      width: 310px;
-      height: 474px;
-      opacity: 1;
-      transform: translateY(-4px) scale(1);
-      border-color: rgba(158, 241, 255, .72);
-      box-shadow:
-        0 0 0 1px rgba(130, 239, 255, .18),
-        0 28px 78px rgba(0, 0, 0, .60),
-        0 0 46px rgba(130, 239, 255, .20);
-    }
-
-    .cover {
-      position: relative;
-      height: 128px;
-      background:
-        radial-gradient(circle at 35% 22%, rgba(255, 255, 255, .28), transparent 19%),
-        radial-gradient(circle at 66% 36%, rgba(155, 139, 255, .46), transparent 28%),
-        linear-gradient(145deg, #16263c, #0b101b 58%, #1f3354);
-    }
-
-    .selected .cover {
-      height: 210px;
-    }
-
-    .cover::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to bottom, transparent 20%, rgba(7, 9, 16, .72));
-    }
-
-    .app-mark {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      z-index: 1;
+    .round-btn {
+      width: 42px;
+      height: 42px;
       display: grid;
       place-items: center;
-      width: 84px;
-      height: 84px;
-      border-radius: 24px;
-      background: linear-gradient(145deg, rgba(130, 239, 255, .95), rgba(155, 139, 255, .92));
-      color: rgba(4, 8, 14, .92);
-      font-size: 30px;
-      font-weight: 800;
-      transform: translate(-50%, -48%);
-      box-shadow: 0 16px 44px rgba(130, 239, 255, .18);
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .07);
+      color: rgba(247, 251, 255, .72);
+      font-size: 22px;
     }
 
-    .card-body {
-      display: grid;
-      gap: 13px;
-      padding: 18px;
+    .dots {
+      display: flex;
+      gap: 7px;
+      align-items: center;
     }
 
-    .app-type {
-      color: var(--faint);
-      font-size: 13px;
-    }
-
-    .time-pill {
-      justify-self: start;
-      padding: 12px 17px;
-      border: 1px solid rgba(159, 231, 238, .24);
-      border-radius: 16px;
-      color: rgba(223, 250, 255, .92);
-      background: rgba(159, 231, 238, .085);
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    .progress {
-      height: 8px;
-      overflow: hidden;
+    .dot {
+      width: 7px;
+      height: 7px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, .055);
+      background: rgba(255, 255, 255, .28);
+      transition: width .2s ease, background .2s ease;
     }
 
-    .progress span {
-      display: block;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--aqua-2), var(--violet), var(--pink));
-      box-shadow: 0 0 18px rgba(130, 239, 255, .22);
-    }
-
-    .page-content {
-      display: grid;
-      gap: 14px;
-      padding-top: 16px;
+    .dot.active {
+      width: 24px;
+      background: linear-gradient(90deg, var(--aqua), var(--pink));
     }
 
     .segment {
@@ -356,214 +523,410 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
       padding: 8px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, .09);
-      background: rgba(3, 7, 14, .34);
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 22px;
+      background: rgba(3, 7, 14, .42);
     }
 
-    .seg {
-      display: grid;
-      place-items: center;
-      height: 36px;
-      border-radius: 14px;
+    .seg-btn {
+      height: 38px;
+      border-radius: 15px;
       color: var(--muted);
       font-size: 13px;
+      font-weight: 900;
     }
 
-    .seg.active {
-      color: rgba(223, 250, 255, .95);
-      background: rgba(159, 231, 238, .11);
-      box-shadow: inset 0 0 0 1px rgba(159, 231, 238, .24);
+    .seg-btn.active {
+      color: #071018;
+      background: linear-gradient(135deg, var(--aqua), var(--gold));
+      box-shadow: 0 0 22px rgba(131, 240, 255, .16);
     }
 
-    .metric {
-      padding: 18px;
+    .stats-hero {
+      position: relative;
+      min-height: 178px;
+      margin-top: 12px;
+      padding: 20px;
+      overflow: hidden;
+      border-color: rgba(131, 240, 255, .18);
+      background:
+        radial-gradient(circle at 80% 20%, rgba(255, 229, 154, .24), transparent 28%),
+        radial-gradient(circle at 14% 12%, rgba(131, 240, 255, .18), transparent 34%),
+        rgba(255, 255, 255, .075);
     }
 
-    .metric strong {
+    .stats-hero::after {
+      content: "";
+      position: absolute;
+      right: -64px;
+      bottom: -92px;
+      width: 238px;
+      height: 238px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, .15);
+      box-shadow: inset 0 0 0 28px rgba(131, 240, 255, .045), inset 0 0 0 68px rgba(155, 139, 255, .04);
+    }
+
+    .stats-hero span,
+    .mini-stat span,
+    .section-title span {
+      color: var(--faint);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .stats-hero strong {
+      position: relative;
+      z-index: 1;
       display: block;
-      margin-top: 8px;
-      color: var(--text);
-      font-size: 34px;
-      line-height: 1;
-      letter-spacing: 0;
+      margin-top: 10px;
+      color: #fff5c9;
+      font-size: 50px;
+      line-height: .95;
+      font-weight: 900;
+      text-shadow: 0 0 24px rgba(255, 229, 154, .22);
     }
 
-    .metric p, .report p, .setting p {
+    .stats-hero p {
+      position: relative;
+      z-index: 1;
+      max-width: 240px;
+      margin-top: 12px;
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.5;
+      line-height: 1.55;
     }
 
     .mini-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .mini {
-      min-height: 104px;
-      padding: 15px;
-      border-radius: 21px;
-      background: rgba(255, 255, 255, .045);
-      border: 1px solid rgba(255, 255, 255, .075);
-    }
-
-    .mini span {
-      display: block;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 11px;
       margin-top: 12px;
-      color: rgba(223, 250, 255, .92);
-      font-size: 22px;
-      font-weight: 800;
     }
 
-    .river {
-      height: 178px;
-      padding: 18px;
-      overflow: hidden;
+    .mini-stat {
+      min-height: 100px;
+      padding: 15px;
+    }
+
+    .mini-stat strong {
+      display: block;
+      margin-top: 11px;
+      font-size: 25px;
+      line-height: 1;
+    }
+
+    .river-card,
+    .rank-card {
+      margin-top: 12px;
+      padding: 16px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
     }
 
     .bars {
-      display: flex;
+      height: 130px;
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 9px;
       align-items: end;
-      justify-content: space-between;
-      height: 112px;
-      padding-top: 16px;
+      padding-top: 18px;
     }
 
     .bar {
-      width: 28px;
-      border-radius: 999px;
-      background: linear-gradient(180deg, rgba(130, 239, 255, .85), rgba(155, 139, 255, .42));
-      box-shadow: 0 0 24px rgba(130, 239, 255, .13);
+      min-height: 22px;
+      border-radius: 999px 999px 8px 8px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .78), rgba(131, 240, 255, .78), rgba(155, 139, 255, .46));
+      box-shadow: 0 0 18px rgba(131, 240, 255, .16);
     }
 
-    .report-cover {
+    .rank-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 11px;
+      align-items: center;
+    }
+
+    .mini-icon {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      color: #071018;
+      background: var(--c);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .rank-row h3 {
+      font-size: 14px;
+      line-height: 1.1;
+      font-weight: 900;
+    }
+
+    .rank-row p {
+      margin-top: 4px;
+      color: var(--faint);
+      font-size: 11px;
+    }
+
+    .rank-row strong {
+      color: #fff5c9;
+      font-size: 15px;
+    }
+
+    .lake-cover {
       position: relative;
-      min-height: 218px;
-      padding: 18px;
+      min-height: 260px;
       overflow: hidden;
-      border-color: rgba(159, 231, 238, .34);
+      padding: 22px;
+      border-color: rgba(255, 229, 154, .26);
       background:
-        radial-gradient(circle at 30% 20%, rgba(130, 239, 255, .22), transparent 35%),
-        radial-gradient(circle at 76% 28%, rgba(155, 139, 255, .18), transparent 34%),
-        rgba(255, 255, 255, .055);
-    }
-
-    .report-cover h2 {
-      position: relative;
-      z-index: 1;
-      max-width: 210px;
-      font-size: 28px;
-      line-height: 1.12;
+        radial-gradient(circle at 55% 28%, rgba(255, 229, 154, .30), transparent 20%),
+        radial-gradient(circle at 22% 44%, rgba(131, 240, 255, .22), transparent 36%),
+        linear-gradient(160deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .045));
     }
 
     .lake-orbit {
       position: absolute;
-      right: -36px;
-      bottom: -38px;
-      width: 210px;
-      height: 210px;
+      right: -76px;
+      bottom: -86px;
+      width: 250px;
+      height: 250px;
       border-radius: 50%;
-      border: 1px solid rgba(159, 231, 238, .18);
+      border: 1px solid rgba(255, 255, 255, .15);
       background:
-        radial-gradient(circle, rgba(5, 7, 13, .72) 0 29%, transparent 30%),
-        conic-gradient(from 130deg, rgba(130, 239, 255, .76), rgba(155, 139, 255, .55), rgba(216, 138, 172, .48), rgba(130, 239, 255, .76));
-      box-shadow: 0 0 42px rgba(130, 239, 255, .10);
+        radial-gradient(circle, rgba(4, 8, 15, .72) 0 32%, transparent 33%),
+        conic-gradient(from 210deg, rgba(131, 240, 255, .68), rgba(155, 139, 255, .55), rgba(240, 138, 183, .46), rgba(255, 229, 154, .64), rgba(131, 240, 255, .68));
+      box-shadow: 0 0 58px rgba(255, 229, 154, .12), inset 0 0 0 22px rgba(255, 255, 255, .035);
+    }
+
+    .lake-cover h2 {
+      position: relative;
+      z-index: 1;
+      max-width: 250px;
+      margin-top: 14px;
+      font-size: 36px;
+      line-height: 1.02;
+      font-weight: 900;
+    }
+
+    .lake-cover p {
+      position: relative;
+      z-index: 1;
+      max-width: 230px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .story-strip {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 82%;
+      gap: 12px;
+      margin: 12px -18px 0;
+      padding: 0 18px 4px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+
+    .story-strip::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    .story-card {
+      min-height: 160px;
+      padding: 17px;
+      scroll-snap-align: center;
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      background:
+        radial-gradient(circle at 78% 22%, color-mix(in srgb, var(--tone), transparent 70%), transparent 30%),
+        rgba(255, 255, 255, .075);
+    }
+
+    .story-card span {
+      color: color-mix(in srgb, var(--tone), white 32%);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .story-card strong {
+      display: block;
+      margin-top: 12px;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .story-card p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
     }
 
     .report-list {
       display: grid;
       gap: 11px;
+      margin-top: 12px;
     }
 
-    .report {
+    .report-row {
+      min-height: 78px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      min-height: 76px;
+      gap: 12px;
       padding: 14px;
     }
 
-    .badge {
+    .report-row h3 {
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .report-row p {
+      margin-top: 5px;
+      color: var(--faint);
+      font-size: 12px;
+    }
+
+    .notice {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 auto;
       display: grid;
       place-items: center;
-      width: 28px;
-      height: 28px;
       border-radius: 50%;
-      color: rgba(12, 9, 4, .92);
-      background: var(--gold);
+      color: #160c05;
+      background: linear-gradient(135deg, var(--gold), #ff9fc7);
+      box-shadow: 0 0 24px rgba(255, 229, 154, .22);
       font-weight: 900;
-      box-shadow: 0 0 26px rgba(255, 230, 163, .18);
     }
 
-    .profile {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-height: 92px;
-      padding: 16px;
-      background:
-        linear-gradient(135deg, rgba(159, 231, 238, .17), rgba(155, 139, 255, .11)),
-        rgba(255, 255, 255, .055);
-    }
-
-    .avatar {
-      display: grid;
-      place-items: center;
-      width: 54px;
-      height: 54px;
-      border-radius: 18px;
-      color: rgba(4, 8, 14, .9);
-      background: linear-gradient(135deg, var(--aqua), var(--violet));
-      font-weight: 900;
+    .chev {
+      color: rgba(247, 251, 255, .38);
       font-size: 22px;
     }
 
-    .settings {
-      display: grid;
-      gap: 10px;
+    .profile-card {
+      min-height: 116px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 17px;
+      background:
+        linear-gradient(135deg, rgba(131, 240, 255, .17), rgba(155, 139, 255, .11)),
+        rgba(255, 255, 255, .065);
     }
 
-    .setting {
+    .avatar {
+      width: 60px;
+      height: 60px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      color: #071018;
+      background:
+        radial-gradient(circle at 60% 35%, rgba(255, 255, 255, .90) 0 9%, transparent 10%),
+        conic-gradient(from 210deg, var(--aqua), var(--violet), var(--pink), var(--gold), var(--aqua));
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 0 28px rgba(131, 240, 255, .18);
+    }
+
+    .profile-card h2 {
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .profile-card p {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .setting-group {
+      display: grid;
+      gap: 9px;
+      margin-top: 12px;
+      padding: 10px;
+    }
+
+    .setting-row {
+      min-height: 62px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      min-height: 62px;
-      padding: 12px 14px;
+      gap: 12px;
+      padding: 11px 12px;
+      border: 1px solid rgba(255, 255, 255, .075);
       border-radius: 19px;
-      border: 1px solid rgba(255, 255, 255, .07);
-      background: rgba(255, 255, 255, .042);
-    }
-
-    .iconbox {
-      display: grid;
-      place-items: center;
-      width: 34px;
-      height: 34px;
-      border-radius: 11px;
-      margin-right: 10px;
-      background: rgba(159, 231, 238, .10);
-      color: rgba(223, 250, 255, .92);
+      background: rgba(255, 255, 255, .045);
     }
 
     .setting-left {
       display: flex;
       align-items: center;
+      gap: 11px;
       min-width: 0;
     }
 
-    .chev {
-      color: rgba(245, 250, 255, .38);
-      font-size: 22px;
+    .setting-icon {
+      width: 36px;
+      height: 36px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      color: #dffbff;
+      background: rgba(131, 240, 255, .10);
+    }
+
+    .setting-icon svg {
+      width: 19px;
+      height: 19px;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .setting-row h3 {
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .setting-row p {
+      margin-top: 4px;
+      color: var(--faint);
+      font-size: 12px;
     }
 
     .switch {
       position: relative;
       width: 46px;
       height: 27px;
+      flex: 0 0 auto;
       border-radius: 999px;
-      background: linear-gradient(90deg, rgba(130, 239, 255, .72), rgba(155, 139, 255, .62));
+      background: linear-gradient(90deg, rgba(131, 240, 255, .75), rgba(155, 139, 255, .68));
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16);
     }
 
@@ -576,269 +939,370 @@
       height: 19px;
       border-radius: 50%;
       background: #fff;
-      box-shadow: 0 5px 14px rgba(0, 0, 0, .26);
+      box-shadow: 0 5px 14px rgba(0, 0, 0, .28);
     }
 
-    @media (max-width: 900px) {
-      .stage {
-        min-width: 0;
-        padding: 18px;
-      }
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(16px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
-      .board {
-        grid-template-columns: 390px;
-        width: max-content;
-        padding: 20px;
+    @media (max-width: 920px) {
+      body { overflow: auto; }
+      .stage {
+        height: auto;
+        min-height: 100vh;
+        padding: 12px;
+      }
+      .preview-board {
+        width: 100%;
+        height: auto;
+        min-height: auto;
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+      .board-copy,
+      .side-notes {
+        display: none;
+      }
+      .phone {
+        width: min(390px, calc(100vw - 28px));
+        height: 844px;
       }
     }
   </style>
 </head>
 <body>
   <main class="stage">
-    <section class="board" aria-label="TimeArc mobile v88 prototype">
-      <article class="phone-wrap">
-        <div class="label">首页</div>
-        <div class="phone">
-          <div class="screen">
-            <div class="titlebar">
-              <div>
-                <p class="eyebrow">TIMEARC</p>
-                <h1>今日卡牌</h1>
-              </div>
-              <span class="chip">6月25日</span>
-            </div>
-            <section class="home-cards" aria-label="应用卡牌">
-              <div class="card-rail">
-                <div class="memory-card">
-                  <div class="cover"><div class="app-mark">F</div></div>
-                  <div class="card-body">
-                    <h3>Figma</h3>
-                    <p class="app-type">设计</p>
-                  </div>
-                </div>
-                <div class="memory-card selected">
-                  <div class="cover"><div class="app-mark">V</div></div>
-                  <div class="card-body">
-                    <h2>VS Code</h2>
-                    <p class="app-type">开发工具</p>
-                    <div class="time-pill">2小时46分</div>
-                    <div class="progress"><span style="width: 74%"></span></div>
-                  </div>
-                </div>
-                <div class="memory-card">
-                  <div class="cover"><div class="app-mark">C</div></div>
-                  <div class="card-body">
-                    <h3>Chrome</h3>
-                    <p class="app-type">浏览</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-            <nav class="tabbar" aria-label="底部导航">
-              <div class="tab active">⌂</div>
-              <div class="tab">◌</div>
-              <div class="tab">◇</div>
-              <div class="tab">☰</div>
-            </nav>
-          </div>
-        </div>
-      </article>
+    <section class="preview-board" aria-label="TimeArc 手机端原型">
+      <aside class="board-copy">
+        <small>TIMEARC MOBILE V88</small>
+        <h1>四个页面，一套移动端时间故事</h1>
+        <p>首页只保留应用卡牌；统计压缩成周、月、年；记忆湖转成手机报告；我的页面保持桌面端设置的秩序感。</p>
+      </aside>
 
-      <article class="phone-wrap">
-        <div class="label">统计</div>
-        <div class="phone">
-          <div class="screen">
-            <div class="titlebar">
-              <div>
-                <p class="eyebrow">STATS</p>
-                <h1>统计</h1>
-              </div>
-              <span class="chip">周视图</span>
+      <article class="phone">
+        <div class="screen">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow" id="pageKicker">TIMEARC</p>
+              <h1 id="pageTitle">今日卡牌</h1>
             </div>
-            <div class="page-content">
-              <div class="segment">
-                <div class="seg active">周</div>
-                <div class="seg">月</div>
-                <div class="seg">年</div>
+            <span class="date-pill" id="pagePill">6月28日</span>
+          </header>
+
+          <section class="page active" id="page-home">
+            <div class="home-view">
+              <div class="card-stage" id="cardStage">
+                <article class="app-card" id="appCard"></article>
               </div>
-              <section class="glass metric">
-                <p>本周记录</p>
-                <strong>42小时18分</strong>
-              </section>
-              <div class="mini-grid">
-                <section class="mini glass">
-                  <p>深度工作</p>
-                  <span>18.6h</span>
-                </section>
-                <section class="mini glass">
-                  <p>沟通协作</p>
-                  <span>9.4h</span>
-                </section>
-                <section class="mini glass">
-                  <p>工具使用</p>
-                  <span>11.2h</span>
-                </section>
-                <section class="mini glass">
-                  <p>其它</p>
-                  <span>3.1h</span>
-                </section>
+              <div class="carousel-actions">
+                <button class="round-btn" id="prevCard" type="button" aria-label="上一张卡牌">‹</button>
+                <div class="dots" id="cardDots" aria-hidden="true"></div>
+                <button class="round-btn" id="nextCard" type="button" aria-label="下一张卡牌">›</button>
               </div>
-              <section class="river glass">
-                <h3>时间河流</h3>
-                <div class="bars">
-                  <div class="bar" style="height: 42%"></div>
-                  <div class="bar" style="height: 58%"></div>
-                  <div class="bar" style="height: 49%"></div>
-                  <div class="bar" style="height: 76%"></div>
-                  <div class="bar" style="height: 64%"></div>
-                  <div class="bar" style="height: 91%"></div>
-                  <div class="bar" style="height: 57%"></div>
+            </div>
+          </section>
+
+          <section class="page" id="page-stats">
+            <div class="scroll-page">
+              <div class="segment" id="statsSegment"></div>
+              <section class="stats-hero glass" id="statsHero"></section>
+              <div class="mini-grid" id="statsMinis"></div>
+              <section class="river-card glass">
+                <div class="section-title">
+                  <h3>时间河流</h3>
+                  <span id="riverNote">7 天</span>
                 </div>
+                <div class="bars" id="statsBars"></div>
+              </section>
+              <section class="rank-card glass">
+                <div class="section-title">
+                  <h3>应用排行</h3>
+                  <span>Top 5</span>
+                </div>
+                <div class="rank-list" id="rankList"></div>
               </section>
             </div>
-            <nav class="tabbar" aria-label="底部导航">
-              <div class="tab">⌂</div>
-              <div class="tab active">◌</div>
-              <div class="tab">◇</div>
-              <div class="tab">☰</div>
-            </nav>
-          </div>
-        </div>
-      </article>
+          </section>
 
-      <article class="phone-wrap">
-        <div class="label">记忆湖</div>
-        <div class="phone">
-          <div class="screen">
-            <div class="titlebar">
-              <div>
-                <p class="eyebrow">MEMORY LAKE</p>
-                <h1>记忆湖</h1>
-              </div>
-              <span class="chip">报告</span>
-            </div>
-            <div class="page-content">
-              <section class="report-cover glass">
-                <p class="eyebrow">年度报告</p>
-                <h2>2026 年度记忆报告</h2>
+          <section class="page" id="page-lake">
+            <div class="scroll-page">
+              <section class="lake-cover glass">
+                <span class="soft-pill">2026 月度报告</span>
+                <h2>你的六月，像一条发光的时间河</h2>
+                <p>168h45m 被整理成称号、峰值日、应用主角和一张分享海报。</p>
                 <div class="lake-orbit"></div>
               </section>
+              <div class="story-strip">
+                <article class="story-card" style="--tone: var(--gold)">
+                  <span>月度称号</span>
+                  <strong>深夜创作型</strong>
+                  <p>创作、搜索、整理和夜间推进，是这个月最明显的轨迹。</p>
+                </article>
+                <article class="story-card" style="--tone: var(--aqua)">
+                  <span>峰值日</span>
+                  <strong>06.18</strong>
+                  <p>这一天记录了 9h42m，是本月最亮的一段时间。</p>
+                </article>
+                <article class="story-card" style="--tone: var(--pink)">
+                  <span>应用主角</span>
+                  <strong>VS Code</strong>
+                  <p>50h31m 的陪伴，让它成为六月最强主角。</p>
+                </article>
+              </div>
               <div class="report-list">
-                <section class="report glass">
+                <article class="report-row glass">
                   <div>
                     <h3>六月月度报告</h3>
-                    <p>本月记录正在更新</p>
+                    <p>新鲜生成，可查看分享海报</p>
                   </div>
-                  <div class="badge">!</div>
-                </section>
-                <section class="report glass">
+                  <span class="notice">!</span>
+                </article>
+                <article class="report-row glass">
                   <div>
-                    <h3>第 25 周周报</h3>
-                    <p>有新的应用片段</p>
+                    <h3>第 26 周报告</h3>
+                    <p>本周时间节律已更新</p>
                   </div>
-                  <div class="badge">!</div>
-                </section>
-                <section class="report glass">
+                  <span class="notice">!</span>
+                </article>
+                <article class="report-row glass">
+                  <div>
+                    <h3>2026 年度报告</h3>
+                    <p>年度记忆正在积累</p>
+                  </div>
+                  <span class="chev">›</span>
+                </article>
+                <article class="report-row glass">
                   <div>
                     <h3>五月月度报告</h3>
                     <p>已归档</p>
                   </div>
                   <span class="chev">›</span>
-                </section>
+                </article>
               </div>
             </div>
-            <nav class="tabbar" aria-label="底部导航">
-              <div class="tab">⌂</div>
-              <div class="tab">◌</div>
-              <div class="tab active">◇</div>
-              <div class="tab">☰</div>
-            </nav>
-          </div>
+          </section>
+
+          <section class="page" id="page-me">
+            <div class="scroll-page">
+              <section class="profile-card glass">
+                <div class="avatar">T</div>
+                <div>
+                  <h2>TimeArc 本地记录</h2>
+                  <p>数据保存在这台设备上</p>
+                </div>
+              </section>
+              <section class="setting-group glass" id="settingsList"></section>
+            </div>
+          </section>
+
+          <nav class="tabbar" aria-label="底部导航" id="tabbar"></nav>
         </div>
       </article>
 
-      <article class="phone-wrap">
-        <div class="label">我的</div>
-        <div class="phone">
-          <div class="screen">
-            <div class="titlebar">
-              <div>
-                <p class="eyebrow">SETTINGS</p>
-                <h1>我的</h1>
-              </div>
-              <span class="chip">同步中</span>
-            </div>
-            <div class="page-content">
-              <section class="profile glass">
-                <div class="avatar">L</div>
-                <div>
-                  <h2>Lenovo</h2>
-                  <p>TimeArc 本地记录</p>
-                </div>
-              </section>
-              <section class="settings glass" style="padding: 10px;">
-                <div class="setting">
-                  <div class="setting-left">
-                    <div class="iconbox">↻</div>
-                    <div>
-                      <h3>数据与同步</h3>
-                      <p>本地数据库</p>
-                    </div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="setting">
-                  <div class="setting-left">
-                    <div class="iconbox">◐</div>
-                    <div>
-                      <h3>外观主题</h3>
-                      <p>跟随桌面端</p>
-                    </div>
-                  </div>
-                  <div class="switch"></div>
-                </div>
-                <div class="setting">
-                  <div class="setting-left">
-                    <div class="iconbox">◎</div>
-                    <div>
-                      <h3>记录规则</h3>
-                      <p>应用采样设置</p>
-                    </div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="setting">
-                  <div class="setting-left">
-                    <div class="iconbox">□</div>
-                    <div>
-                      <h3>隐私与备份</h3>
-                      <p>导出、恢复、清理</p>
-                    </div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-                <div class="setting">
-                  <div class="setting-left">
-                    <div class="iconbox">i</div>
-                    <div>
-                      <h3>关于 TimeArc</h3>
-                      <p>版本与许可</p>
-                    </div>
-                  </div>
-                  <span class="chev">›</span>
-                </div>
-              </section>
-            </div>
-            <nav class="tabbar" aria-label="底部导航">
-              <div class="tab">⌂</div>
-              <div class="tab">◌</div>
-              <div class="tab">◇</div>
-              <div class="tab active">☰</div>
-            </nav>
-          </div>
+      <aside class="side-notes">
+        <div class="note-card">
+          <span>HOME</span>
+          <strong>纯卡牌横滑</strong>
         </div>
-      </article>
+        <div class="note-card">
+          <span>REPORT</span>
+          <strong>手机年度报告感</strong>
+        </div>
+        <div class="note-card">
+          <span>STYLE</span>
+          <strong>桌面端玻璃光效</strong>
+        </div>
+      </aside>
     </section>
   </main>
+
+  <script>
+    const icons = {
+      home: '<svg viewBox="0 0 24 24"><path d="M3 10.8 12 3l9 7.8"></path><path d="M5.5 9.5V21h13V9.5"></path><path d="M9.5 21v-6h5v6"></path></svg>',
+      stats: '<svg viewBox="0 0 24 24"><path d="M4 19V5"></path><path d="M4 19h16"></path><path d="M8 16v-5"></path><path d="M12 16V8"></path><path d="M16 16v-9"></path></svg>',
+      lake: '<svg viewBox="0 0 24 24"><path d="M4 16c2.4-2 4.8-2 7.2 0 2.4 2 4.8 2 7.2 0"></path><path d="M4 11c2.4-2 4.8-2 7.2 0 2.4 2 4.8 2 7.2 0"></path><path d="M7 6h10"></path></svg>',
+      me: '<svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path><path d="M4.5 21a7.5 7.5 0 0 1 15 0"></path></svg>',
+      db: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="7" ry="3"></ellipse><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"></path><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"></path></svg>',
+      theme: '<svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.1 0 1.6-1.3.8-2.1-.5-.5-.2-1.4.6-1.4H15a6 6 0 0 0 0-12Z"></path><path d="M7.5 10h.01"></path><path d="M9.5 6.8h.01"></path><path d="M14 6.7h.01"></path></svg>',
+      rule: '<svg viewBox="0 0 24 24"><path d="M4 5h16"></path><path d="M4 12h16"></path><path d="M4 19h16"></path><path d="M8 5v14"></path></svg>',
+      lock: '<svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>',
+      info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>'
+    };
+
+    const tabs = [
+      { id: "home", label: "首页", kicker: "TIMEARC", title: "今日卡牌", pill: "6月28日", icon: icons.home },
+      { id: "stats", label: "统计", kicker: "STATS", title: "统计", pill: "周 / 月 / 年", icon: icons.stats },
+      { id: "lake", label: "记忆湖", kicker: "MEMORY LAKE", title: "报告", pill: "新报告", icon: icons.lake },
+      { id: "me", label: "我的", kicker: "SETTINGS", title: "我的", pill: "本地同步", icon: icons.me }
+    ];
+
+    const cards = [
+      { name: "VS Code", type: "开发工具", time: "2h 46m", percent: 76, icon: "VS", color: "#83f0ff", color2: "#9b8bff", serial: "DEV MEMORY CARD" },
+      { name: "Chrome", type: "浏览与检索", time: "1h 32m", percent: 52, icon: "Ch", color: "#92f0bd", color2: "#ffe59a", serial: "BROWSE MEMORY CARD" },
+      { name: "Figma", type: "视觉设计", time: "58m", percent: 38, icon: "Fg", color: "#f08ab7", color2: "#9b8bff", serial: "DESIGN MEMORY CARD" },
+      { name: "WeChat", type: "沟通协作", time: "42m", percent: 28, icon: "Wx", color: "#92f0bd", color2: "#83f0ff", serial: "CHAT MEMORY CARD" },
+      { name: "Terminal", type: "系统操作", time: "31m", percent: 22, icon: "Tm", color: "#ffe59a", color2: "#83f0ff", serial: "SYSTEM MEMORY CARD" }
+    ];
+
+    const stats = {
+      week: {
+        label: "周",
+        total: "42h 18m",
+        desc: "本周最明显的节奏是下午推进，晚上收尾。",
+        river: "7 天",
+        bars: [42, 58, 49, 76, 64, 91, 57],
+        minis: [["深度工作", "18.6h"], ["沟通协作", "9.4h"], ["工具使用", "11.2h"], ["其它", "3.1h"]],
+        rank: [["VS", "VS Code", "开发工具", "12h 36m", "#83f0ff"], ["Ch", "Chrome", "浏览", "8h 12m", "#ffe59a"], ["Fg", "Figma", "设计", "5h 48m", "#f08ab7"]]
+      },
+      month: {
+        label: "月",
+        total: "168h 45m",
+        desc: "六月像一条时间河，创作和检索构成主要流向。",
+        river: "30 天",
+        bars: [34, 46, 28, 42, 55, 61, 44],
+        minis: [["专注天数", "24天"], ["峰值日", "06.18"], ["月度称号", "深夜创作型"], ["Top App", "VS Code"]],
+        rank: [["VS", "VS Code", "创作主角", "50h31m", "#83f0ff"], ["Ch", "Chrome", "查找阅读", "34h02m", "#ffe59a"], ["Fg", "Figma", "视觉推演", "22h14m", "#f08ab7"]]
+      },
+      year: {
+        label: "年",
+        total: "812h 20m",
+        desc: "今年的时间正在形成长期轨迹，年度报告会持续积累。",
+        river: "12 月",
+        bars: [50, 61, 44, 73, 68, 82, 37],
+        minis: [["记录月份", "6个"], ["最长月份", "6月"], ["稳定应用", "Chrome"], ["年度称号", "轨迹收藏家"]],
+        rank: [["Ch", "Chrome", "长期陪伴", "186h", "#ffe59a"], ["VS", "VS Code", "开发工具", "162h", "#83f0ff"], ["Wx", "WeChat", "沟通", "96h", "#92f0bd"]]
+      }
+    };
+
+    const settings = [
+      ["数据与同步", "本地数据库、备份与导出", icons.db, "›"],
+      ["外观主题", "跟随桌面端风格", icons.theme, "switch"],
+      ["记录规则", "应用采样、忽略名单", icons.rule, "›"],
+      ["隐私与备份", "导出、恢复、清理", icons.lock, "›"],
+      ["关于 TimeArc", "版本与许可", icons.info, "›"]
+    ];
+
+    let activeTab = "home";
+    let cardIndex = 0;
+    let statsRange = "week";
+    let dragStart = null;
+
+    const pageKicker = document.getElementById("pageKicker");
+    const pageTitle = document.getElementById("pageTitle");
+    const pagePill = document.getElementById("pagePill");
+    const tabbar = document.getElementById("tabbar");
+    const appCard = document.getElementById("appCard");
+    const cardDots = document.getElementById("cardDots");
+    const cardStage = document.getElementById("cardStage");
+
+    function renderTabs() {
+      tabbar.innerHTML = tabs.map(tab => `
+        <button class="tab ${tab.id === activeTab ? "active" : ""}" type="button" data-tab="${tab.id}">
+          ${tab.icon}
+          <span>${tab.label}</span>
+        </button>
+      `).join("");
+      tabbar.querySelectorAll(".tab").forEach(btn => {
+        btn.addEventListener("click", () => setTab(btn.dataset.tab));
+      });
+    }
+
+    function setTab(id) {
+      activeTab = id;
+      const tab = tabs.find(item => item.id === id);
+      pageKicker.textContent = tab.kicker;
+      pageTitle.textContent = tab.title;
+      pagePill.textContent = tab.pill;
+      document.querySelectorAll(".page").forEach(page => page.classList.toggle("active", page.id === `page-${id}`));
+      renderTabs();
+    }
+
+    function renderCard(direction = 0) {
+      const card = cards[cardIndex];
+      appCard.style.setProperty("--app", card.color);
+      appCard.style.setProperty("--app2", card.color2);
+      appCard.style.transform = `translateX(${direction * 14}px) scale(.985)`;
+      appCard.innerHTML = `
+        <div class="card-cover"><div class="app-emblem">${card.icon}</div></div>
+        <div class="card-copy">
+          <div class="serial">${card.serial}</div>
+          <h2>${card.name}</h2>
+          <p>${card.type}</p>
+          <div class="time-chip">${card.time}<small>今日</small></div>
+          <div class="card-progress"><span style="--w:${card.percent}%"></span></div>
+        </div>
+      `;
+      window.setTimeout(() => { appCard.style.transform = ""; }, 120);
+      cardDots.innerHTML = cards.map((_, i) => `<span class="dot ${i === cardIndex ? "active" : ""}"></span>`).join("");
+    }
+
+    function shiftCard(step) {
+      cardIndex = (cardIndex + step + cards.length) % cards.length;
+      renderCard(step > 0 ? 1 : -1);
+    }
+
+    function renderStats() {
+      const current = stats[statsRange];
+      document.getElementById("statsSegment").innerHTML = Object.entries(stats).map(([key, value]) => `
+        <button class="seg-btn ${key === statsRange ? "active" : ""}" type="button" data-range="${key}">${value.label}</button>
+      `).join("");
+      document.querySelectorAll(".seg-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          statsRange = btn.dataset.range;
+          renderStats();
+        });
+      });
+      document.getElementById("statsHero").innerHTML = `
+        <span>${current.label}度总览</span>
+        <strong>${current.total}</strong>
+        <p>${current.desc}</p>
+      `;
+      document.getElementById("statsMinis").innerHTML = current.minis.map(([label, value]) => `
+        <article class="mini-stat glass"><span>${label}</span><strong>${value}</strong></article>
+      `).join("");
+      document.getElementById("riverNote").textContent = current.river;
+      document.getElementById("statsBars").innerHTML = current.bars.map(value => `<span class="bar" style="height:${value}%"></span>`).join("");
+      document.getElementById("rankList").innerHTML = current.rank.map(([icon, name, tag, time, color]) => `
+        <div class="rank-row">
+          <div class="mini-icon" style="--c:${color}">${icon}</div>
+          <div><h3>${name}</h3><p>${tag}</p></div>
+          <strong>${time}</strong>
+        </div>
+      `).join("");
+    }
+
+    function renderSettings() {
+      document.getElementById("settingsList").innerHTML = settings.map(([title, desc, icon, action]) => `
+        <article class="setting-row">
+          <div class="setting-left">
+            <div class="setting-icon">${icon}</div>
+            <div>
+              <h3>${title}</h3>
+              <p>${desc}</p>
+            </div>
+          </div>
+          ${action === "switch" ? '<div class="switch"></div>' : `<span class="chev">${action}</span>`}
+        </article>
+      `).join("");
+    }
+
+    document.getElementById("prevCard").addEventListener("click", () => shiftCard(-1));
+    document.getElementById("nextCard").addEventListener("click", () => shiftCard(1));
+    cardStage.addEventListener("pointerdown", event => { dragStart = event.clientX; });
+    cardStage.addEventListener("pointerup", event => {
+      if (dragStart === null) return;
+      const delta = event.clientX - dragStart;
+      if (Math.abs(delta) > 36) shiftCard(delta < 0 ? 1 : -1);
+      dragStart = null;
+    });
+
+    renderTabs();
+    renderCard();
+    renderStats();
+    renderSettings();
+    setTab("home");
+  </script>
 </body>
 </html>
