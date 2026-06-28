@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TimeArc Share Card Levels</title>
+  <style>
+    :root {
+      --bg0: #03050b;
+      --bg1: #08101d;
+      --bg2: #15101a;
+      --white: #f6fbff;
+      --muted: rgba(246, 251, 255, .62);
+      --faint: rgba(246, 251, 255, .38);
+      --aqua: #82efff;
+      --violet: #9b8bff;
+      --pink: #d88aac;
+      --gold: #ffe6a3;
+      color: var(--white);
+      color-scheme: dark;
+      font-family: Inter, "SF Pro Display", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(130, 239, 255, .24), transparent 30%),
+        radial-gradient(circle at 92% 4%, rgba(155, 139, 255, .22), transparent 32%),
+        radial-gradient(circle at 50% 100%, rgba(216, 138, 172, .16), transparent 38%),
+        linear-gradient(135deg, var(--bg0), var(--bg1) 48%, var(--bg2));
+      overflow-x: auto;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .stage {
+      min-width: 1680px;
+      padding: 36px;
+    }
+
+    .board {
+      position: relative;
+      padding: 34px;
+      border: 1px solid rgba(255, 255, 255, .16);
+      border-radius: 34px;
+      background: rgba(255, 255, 255, .035);
+      box-shadow: 0 38px 120px rgba(0, 0, 0, .62), inset 0 1px 0 rgba(255, 255, 255, .10);
+      overflow: hidden;
+    }
+
+    .board::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, .026) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .022) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(circle at 50% 32%, #000, transparent 78%);
+      pointer-events: none;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 28px;
+    }
+
+    h1, h2, h3, p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 38px;
+      letter-spacing: 0;
+      line-height: 1.12;
+    }
+
+    .hero p {
+      max-width: 980px;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      padding: 9px;
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .045);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+      white-space: nowrap;
+    }
+
+    .toolbar button {
+      height: 38px;
+      padding: 0 16px;
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 999px;
+      color: rgba(246, 251, 255, .74);
+      background: rgba(255, 255, 255, .045);
+      cursor: pointer;
+    }
+
+    .toolbar button.active {
+      color: #071018;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--aqua), var(--gold));
+      box-shadow: 0 0 28px rgba(130, 239, 255, .22);
+      font-weight: 800;
+    }
+
+    .level-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(5, 292px);
+      gap: 30px 24px;
+    }
+
+    .card-slot {
+      display: grid;
+      gap: 12px;
+    }
+
+    .slot-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0 6px;
+    }
+
+    .slot-head strong {
+      font-size: 14px;
+    }
+
+    .slot-head span {
+      color: var(--faint);
+      font-size: 12px;
+    }
+
+    .flip-shell {
+      width: 292px;
+      height: 424px;
+      perspective: 1300px;
+      cursor: pointer;
+    }
+
+    .card-3d {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform .74s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .flip-shell.flipped .card-3d,
+    .board.show-back .card-3d {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border: var(--rim) solid color-mix(in srgb, var(--rim-color), transparent var(--rim-fade));
+      border-radius: 31px;
+      backface-visibility: hidden;
+      background:
+        radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--accent), transparent calc(84% - var(--power) * 1%)), transparent 34%),
+        radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--accent2), transparent calc(88% - var(--power) * 1%)), transparent 52%),
+        linear-gradient(180deg, #0f1827, #090d16 56%, #130c14);
+      box-shadow:
+        0 26px 72px rgba(0, 0, 0, .56),
+        0 0 calc(10px + var(--power) * .82px) color-mix(in srgb, var(--glow), transparent calc(94% - var(--power) * .46%)),
+        inset 0 1px 0 rgba(255, 255, 255, .14);
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+      background:
+        radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--shine), transparent calc(72% - var(--power) * .62%)), transparent 14%),
+        radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--accent), transparent calc(78% - var(--power) * .48%)), transparent 42%),
+        radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--accent2), transparent calc(86% - var(--power) * .36%)), transparent 62%),
+        linear-gradient(180deg, #0d1523, #080b13 50%, #160c15);
+    }
+
+    .card-back::before {
+      content: "";
+      position: absolute;
+      inset: calc(18px - var(--power) * .04px);
+      border-radius: 24px;
+      border: 1px solid color-mix(in srgb, var(--shine), transparent calc(91% - var(--power) * .55%));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+    }
+
+    .cover {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 214px;
+      background:
+        radial-gradient(circle at 50% 46%, rgba(255, 255, 255, .30), transparent 15%),
+        radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--accent), transparent calc(76% - var(--power) * .50%)), transparent 42%),
+        linear-gradient(140deg, color-mix(in srgb, var(--accent), #f4f4f4 52%), color-mix(in srgb, var(--pink), #f4f4f4 42%) 52%, color-mix(in srgb, var(--accent2), #ffffff 40%));
+    }
+
+    .cover::after {
+      content: "";
+      position: absolute;
+      inset: 126px 0 0;
+      background: linear-gradient(transparent, rgba(9, 13, 22, .88));
+    }
+
+    .serial {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      padding: 7px 12px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 999px;
+      color: rgba(255, 255, 255, .62);
+      background: rgba(5, 7, 13, .34);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .06em;
+    }
+
+    .badge {
+      position: absolute;
+      left: 50%;
+      top: calc(76px - var(--power) * .11px);
+      width: calc(80px + var(--power) * .26px);
+      height: calc(80px + var(--power) * .26px);
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, .24), rgba(255, 255, 255, .08) 48%, transparent 70%);
+      filter:
+        drop-shadow(0 16px 32px color-mix(in srgb, var(--glow), transparent 70%))
+        drop-shadow(0 0 calc(var(--power) * .38px) color-mix(in srgb, var(--shine), transparent 74%));
+      transform: translateX(-50%);
+      z-index: 3;
+    }
+
+    .chrome {
+      width: 80%;
+      height: 80%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, #70a7f7 0 16%, #fff 17% 24%, transparent 25%),
+        conic-gradient(#ff6b5d 0 34%, #ffd257 34% 66%, #4ccb86 66% 100%);
+    }
+
+    .ring,
+    .back-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--ring-color), transparent calc(91% - var(--power) * .42%));
+      box-shadow: 0 0 calc(8px + var(--power) * .35px) color-mix(in srgb, var(--ring-color), transparent calc(94% - var(--power) * .38%));
+      pointer-events: none;
+    }
+
+    .ring {
+      left: 50%;
+      top: 104px;
+      transform: translate(-50%, -50%);
+    }
+
+    .back-ring {
+      left: 50%;
+      top: 194px;
+      transform: translate(-50%, -50%);
+    }
+
+    .spark {
+      position: absolute;
+      width: var(--spark-size);
+      height: var(--spark-size);
+      border-radius: 2px;
+      background: var(--shine);
+      transform: translate(-50%, -50%) rotate(45deg);
+      opacity: var(--spark-opacity);
+      box-shadow: 0 0 calc(9px + var(--power) * .18px) color-mix(in srgb, var(--shine), transparent 45%);
+      pointer-events: none;
+    }
+
+    .front-body {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 22px;
+      z-index: 4;
+    }
+
+    .front-body h2 {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .tagline {
+      min-height: 40px;
+      margin-top: 10px;
+      color: rgba(246, 251, 255, .54);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .today-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .today-row strong {
+      color: var(--time-color);
+      font-size: calc(38px + var(--power) * .08px);
+      line-height: .86;
+      font-weight: 950;
+      text-shadow: 0 0 calc(12px + var(--power) * .30px) color-mix(in srgb, var(--time-color), transparent 72%);
+    }
+
+    .today-row span {
+      color: rgba(255, 255, 255, .45);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .total-note {
+      margin-top: 20px;
+      color: rgba(255, 255, 255, .50);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .energy {
+      height: calc(6px + var(--power) * .035px);
+      margin-top: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .075);
+    }
+
+    .energy i {
+      display: block;
+      height: 100%;
+      width: var(--energy);
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--pink), var(--accent2) 48%, var(--shine));
+      box-shadow: 0 0 calc(10px + var(--power) * .24px) color-mix(in srgb, var(--shine), transparent 64%);
+    }
+
+    .poster-badge {
+      position: absolute;
+      right: 24px;
+      top: 24px;
+      z-index: 4;
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .10);
+      backdrop-filter: blur(18px);
+    }
+
+    .poster-content {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 24px 24px 22px;
+    }
+
+    .kicker {
+      color: color-mix(in srgb, var(--shine), transparent 18%);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .12em;
+    }
+
+    .poster-content h2 {
+      margin-top: 9px;
+      font-size: 30px;
+      line-height: 1.05;
+    }
+
+    .poster-content p {
+      width: 210px;
+      margin-top: 10px;
+      color: rgba(246, 251, 255, .58);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .huge-time-wrap {
+      display: grid;
+      place-items: center;
+      flex: 1;
+      min-height: 0;
+      padding-top: 10px;
+    }
+
+    .huge-time {
+      max-width: 100%;
+      color: var(--time-color);
+      font-size: calc(52px + var(--power) * .19px);
+      line-height: .92;
+      font-weight: 950;
+      text-align: center;
+      letter-spacing: 0;
+      text-shadow:
+        0 0 calc(14px + var(--power) * .44px) color-mix(in srgb, var(--time-color), transparent 68%),
+        0 0 calc(var(--power) * .82px) color-mix(in srgb, var(--shine), transparent 83%);
+    }
+
+    .huge-label {
+      margin-top: 12px;
+      color: rgba(255, 255, 255, .50);
+      font-size: 13px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .data-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid color-mix(in srgb, var(--shine), transparent 76%);
+    }
+
+    .pill {
+      min-height: 55px;
+      padding: 10px 9px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 17px;
+      background: rgba(255, 255, 255, .075);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
+    }
+
+    .pill small {
+      display: block;
+      color: rgba(255, 255, 255, .48);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .pill strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .signature {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 15px;
+      color: rgba(255, 255, 255, .40);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .signature b {
+      color: color-mix(in srgb, var(--shine), transparent 10%);
+    }
+
+    .legend {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
+      margin-top: 30px;
+      padding: 13px;
+      border: 1px solid rgba(255, 255, 255, .09);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .035);
+    }
+
+    .legend-item {
+      min-height: 50px;
+      padding: 9px;
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, .045);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .legend-item strong {
+      display: block;
+      color: var(--time-color);
+      font-size: 13px;
+    }
+
+    @media (max-width: 980px) {
+      .stage { min-width: 0; padding: 18px; }
+      .hero { align-items: start; flex-direction: column; }
+      .level-grid { grid-template-columns: 292px; }
+      .legend { grid-template-columns: 1fr 1fr; width: 292px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <section id="board" class="board">
+      <header class="hero">
+        <div>
+          <h1>TimeArc 应用时间卡牌 · 10 级美术草稿</h1>
+          <p>每张卡都可点击翻转。累计时间越长，边框、光环、粒子、字体颜色和阴影会明显增强。背面保留“累计时间”作为中间主视觉，底部只留本年、本月、今日三项数据。</p>
+        </div>
+        <div class="toolbar" aria-label="视图切换">
+          <button id="showFront" class="active" type="button">全部正面</button>
+          <button id="showBack" type="button">全部背面</button>
+        </div>
+      </header>
+
+      <section id="cards" class="level-grid" aria-label="10 个等级卡牌"></section>
+      <section id="legend" class="legend" aria-label="等级说明"></section>
+    </section>
+  </main>
+
+  <script>
+    const levels = [
+      {
+        level: 1, name: "微光", range: "0-10m", total: "3m", year: "3m", month: "3m", today: "3m",
+        headline: "初次照面", copy: "只是被轻轻点亮的一小段记录。",
+        accent: "#8fd2dc", accent2: "#9fb7cf", shine: "#cfd8df", glow: "#82efff", timeColor: "#dbe6ea",
+        power: 8, rings: 0, sparks: 0, rim: 1, rimFade: 80, energy: "12%"
+      },
+      {
+        level: 2, name: "点亮", range: "10m-30m", total: "18m", year: "18m", month: "18m", today: "6m",
+        headline: "短暂停留", copy: "它开始在今天留下一个可见的点。",
+        accent: "#82efff", accent2: "#9fb7ff", shine: "#dffaff", glow: "#82efff", timeColor: "#dffaff",
+        power: 18, rings: 1, sparks: 2, rim: 1, rimFade: 72, energy: "20%"
+      },
+      {
+        level: 3, name: "清晰", range: "30m-1h", total: "47m", year: "47m", month: "47m", today: "16m",
+        headline: "进入视野", copy: "使用痕迹开始从背景里浮出来。",
+        accent: "#82efff", accent2: "#78b7ff", shine: "#b8f5ff", glow: "#82efff", timeColor: "#b8f5ff",
+        power: 28, rings: 2, sparks: 4, rim: 1, rimFade: 64, energy: "30%"
+      },
+      {
+        level: 4, name: "光轨", range: "1h-3h", total: "2h 10m", year: "2h 10m", month: "2h 10m", today: "22m",
+        headline: "形成轨迹", copy: "时间开始绕着这个应用留下光轨。",
+        accent: "#82efff", accent2: "#9b8bff", shine: "#9fe7ee", glow: "#82efff", timeColor: "#9fe7ee",
+        power: 38, rings: 3, sparks: 6, rim: 1, rimFade: 56, energy: "40%"
+      },
+      {
+        level: 5, name: "沉浸", range: "3h-8h", total: "5h 42m", year: "5h 42m", month: "5h 42m", today: "41m",
+        headline: "今日常驻", copy: "它已经不只是打开，而是停留。",
+        accent: "#7fdcff", accent2: "#9b8bff", shine: "#dffaff", glow: "#82efff", timeColor: "#dffaff",
+        power: 50, rings: 4, sparks: 8, rim: 1.2, rimFade: 46, energy: "52%"
+      },
+      {
+        level: 6, name: "记忆湖", range: "8h-15h", total: "12h 36m", year: "12h 36m", month: "12h 36m", today: "1h 08m",
+        headline: "记忆成湖", copy: "时间不再是线，开始变成一片湖面。",
+        accent: "#82efff", accent2: "#c586ff", shine: "#d7c7ff", glow: "#9b8bff", timeColor: "#d7c7ff",
+        power: 62, rings: 5, sparks: 10, rim: 1.4, rimFade: 38, energy: "64%"
+      },
+      {
+        level: 7, name: "共鸣", range: "15h-30h", total: "25h 08m", year: "25h 08m", month: "18h 20m", today: "1h 36m",
+        headline: "稳定共鸣", copy: "这个应用已经与你建立稳定关系。",
+        accent: "#9b8bff", accent2: "#d88aac", shine: "#f0d6ff", glow: "#c586ff", timeColor: "#f0d6ff",
+        power: 74, rings: 6, sparks: 14, rim: 1.6, rimFade: 30, energy: "74%"
+      },
+      {
+        level: 8, name: "纪念", range: "30h-60h", total: "50h 31m", year: "50h 31m", month: "7h 50m", today: "1m",
+        headline: "长期陪伴", copy: "这不是一次打开，是一段稳定形成的时间关系。",
+        accent: "#82efff", accent2: "#d88aac", shine: "#ffe6a3", glow: "#ffe6a3", timeColor: "#fff4c6",
+        power: 84, rings: 7, sparks: 18, rim: 1.9, rimFade: 22, energy: "84%"
+      },
+      {
+        level: 9, name: "珍藏", range: "60h-120h", total: "96h 20m", year: "96h 20m", month: "22h 14m", today: "2h 26m",
+        headline: "时间珍藏", copy: "它已经成为你时间地图里很亮的一块。",
+        accent: "#9fe7ee", accent2: "#ffb4d0", shine: "#ffe6a3", glow: "#ffe6a3", timeColor: "#ffe6a3",
+        power: 93, rings: 8, sparks: 24, rim: 2.1, rimFade: 14, energy: "92%"
+      },
+      {
+        level: 10, name: "传说", range: "120h+", total: "168h 45m", year: "168h 45m", month: "34h 02m", today: "3h 18m",
+        headline: "时间传说", copy: "它几乎成了这段生活的一个入口。",
+        accent: "#ffe6a3", accent2: "#82efff", shine: "#fff2b8", glow: "#ffe6a3", timeColor: "#fff2b8",
+        power: 100, rings: 9, sparks: 34, rim: 2.4, rimFade: 7, energy: "100%"
+      }
+    ];
+
+    const cards = document.querySelector("#cards");
+    const legend = document.querySelector("#legend");
+    const board = document.querySelector("#board");
+    const showFront = document.querySelector("#showFront");
+    const showBack = document.querySelector("#showBack");
+
+    function chromeBadge() {
+      return `<div class="badge"><div class="chrome"></div></div>`;
+    }
+
+    function ringMarkup(count, back = false) {
+      return Array.from({ length: count }, (_, i) => {
+        const size = back ? 132 + i * 22 : 86 + i * 23;
+        const color = i % 3 === 0 ? "var(--shine)" : i % 3 === 1 ? "var(--accent)" : "var(--accent2)";
+        const cls = back ? "back-ring" : "ring";
+        return `<span class="${cls}" style="width:${size}px;height:${size}px;--ring-color:${color};"></span>`;
+      }).join("");
+    }
+
+    function sparkMarkup(count) {
+      const cx = 146;
+      const cy = 150;
+      return Array.from({ length: count }, (_, i) => {
+        const angle = (i / Math.max(count, 1)) * Math.PI * 2;
+        const radius = 82 + (i % 5) * 16;
+        const x = cx + Math.cos(angle) * radius;
+        const y = cy + Math.sin(angle) * (radius * 1.16);
+        const size = 3 + (i % 4);
+        const opacity = .34 + (i % 6) * .08;
+        return `<span class="spark" style="left:${x}px;top:${y}px;--spark-size:${size}px;--spark-opacity:${opacity};"></span>`;
+      }).join("");
+    }
+
+    function cardStyle(level) {
+      return [
+        `--accent:${level.accent}`,
+        `--accent2:${level.accent2}`,
+        `--shine:${level.shine}`,
+        `--glow:${level.glow}`,
+        `--time-color:${level.timeColor}`,
+        `--power:${level.power}`,
+        `--rim:${level.rim}px`,
+        `--rim-fade:${level.rimFade}%`,
+        `--energy:${level.energy}`,
+        `--pink:#d88aac`
+      ].join(";");
+    }
+
+    function renderCard(level) {
+      return `
+        <article class="card-slot">
+          <div class="slot-head">
+            <strong>Lv${level.level} · ${level.name}</strong>
+            <span>${level.range}</span>
+          </div>
+          <div class="flip-shell" style="${cardStyle(level)}" tabindex="0" role="button" aria-label="翻转 Lv${level.level} 卡牌">
+            <div class="card-3d">
+              <section class="card-face card-front">
+                <div class="cover"></div>
+                ${ringMarkup(level.rings)}
+                ${sparkMarkup(Math.floor(level.sparks * .6))}
+                ${chromeBadge()}
+                <div class="serial">MEMORY Lv${level.level}</div>
+                <div class="front-body">
+                  <h2>Chrome</h2>
+                  <p class="tagline">${level.copy}</p>
+                  <div class="today-row"><strong>${level.today}</strong><span>今日使用</span></div>
+                  <div class="total-note">累计 ${level.total}</div>
+                  <div class="energy"><i></i></div>
+                </div>
+              </section>
+              <section class="card-face card-back">
+                ${ringMarkup(level.rings + 2, true)}
+                ${sparkMarkup(level.sparks)}
+                <div class="poster-badge"><div class="chrome"></div></div>
+                <div class="poster-content">
+                  <div class="kicker">CHROME MEMORY CARD</div>
+                  <h2>${level.headline}</h2>
+                  <p>${level.copy}</p>
+                  <div class="huge-time-wrap">
+                    <div>
+                      <div class="huge-time">${level.total}</div>
+                      <div class="huge-label">累计使用时间</div>
+                    </div>
+                  </div>
+                  <div class="data-row">
+                    <div class="pill"><small>本年</small><strong>${level.year}</strong></div>
+                    <div class="pill"><small>本月</small><strong>${level.month}</strong></div>
+                    <div class="pill"><small>今日</small><strong>${level.today}</strong></div>
+                  </div>
+                  <div class="signature"><span>TimeArc · 2026.06.28</span><b>Lv${level.level}</b></div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    cards.innerHTML = levels.map(renderCard).join("");
+    legend.innerHTML = levels.map(level => `
+      <div class="legend-item" style="${cardStyle(level)}">
+        <strong>Lv${level.level} ${level.name}</strong>
+        <span>${level.range}<br>${level.total}</span>
+      </div>
+    `).join("");
+
+    document.querySelectorAll(".flip-shell").forEach(card => {
+      card.addEventListener("click", () => card.classList.toggle("flipped"));
+      card.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          card.classList.toggle("flipped");
+        }
+      });
+    });
+
+    showFront.addEventListener("click", () => {
+      board.classList.remove("show-back");
+      showFront.classList.add("active");
+      showBack.classList.remove("active");
+    });
+
+    showBack.addEventListener("click", () => {
+      board.classList.add("show-back");
+      showBack.classList.add("active");
+      showFront.classList.remove("active");
+    });
+  </script>
+</body>
+</html>
