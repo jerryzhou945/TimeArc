@@ -23,6 +23,9 @@
 - [life-timeline-product-direction.md](life-timeline-product-direction.md) — 生命时间线产品方向。
 - [card-ai-development-spec.md](card-ai-development-spec.md) — 卡片 / AI 开发规格。
 - [future-coding-harness.md](future-coding-harness.md) — 未来编码 harness 设想。
+- [desktop-mobile-next-plan.md](desktop-mobile-next-plan.md) — 桌面端剩余缺陷/修补清单 + 手机端制作流程与测试计划。
+- [mobile/android-usage-time-collection-plan.md](mobile/android-usage-time-collection-plan.md) — 安卓软件使用时长获取方案：UsageStats 主方案、实时记录备用方案、优先级执行与测试计划。
+- [mobile/android-usage-backend-implementation-report.md](mobile/android-usage-backend-implementation-report.md) — Android 使用时长后端采集 P0-P5 实施报告。
 
 ## 记忆湖（首页 / 回顾 / 备忘黑板）
 
