@@ -33,6 +33,18 @@ class MobileUsageRepository : public QObject {
       const QString& startDateLocal,
       const QString& endDateLocal,
       const QString& platform);
+
+  Q_INVOKABLE bool addUsageSession(const QString& deviceId,
+                                   const QString& packageName,
+                                   const QString& appName,
+                                   const QString& displayName,
+                                   qint64 sessionStartUnixSec,
+                                   qint64 sessionEndUnixSec,
+                                   const QString& source);
+
+  Q_INVOKABLE QVariantList getSessionsByRange(qint64 startUnixSec,
+                                              qint64 endUnixSec,
+                                              const QString& platform);
 };
 
 #endif

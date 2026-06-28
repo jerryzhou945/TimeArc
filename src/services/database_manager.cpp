@@ -339,6 +339,21 @@ CREATE TABLE IF NOT EXISTS device_usage_summaries (
 );
 )SQL")) &&
          executeQuery(QStringLiteral(R"SQL(
+CREATE TABLE IF NOT EXISTS device_usage_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    app_identifier TEXT NOT NULL,
+    package_name TEXT NOT NULL,
+    session_start_unix_sec INTEGER NOT NULL,
+    session_end_unix_sec INTEGER NOT NULL,
+    duration_sec INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(platform, device_id, app_identifier, session_start_unix_sec, session_end_unix_sec, source)
+);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
 CREATE TABLE IF NOT EXISTS tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
@@ -518,6 +533,14 @@ ON device_usage_summaries(platform, date_local);
          executeQuery(QStringLiteral(R"SQL(
 CREATE INDEX IF NOT EXISTS idx_device_usage_app
 ON device_usage_summaries(platform, app_identifier, date_local);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
+CREATE INDEX IF NOT EXISTS idx_device_usage_sessions_time
+ON device_usage_sessions(platform, session_start_unix_sec, session_end_unix_sec);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
+CREATE INDEX IF NOT EXISTS idx_device_usage_sessions_app
+ON device_usage_sessions(platform, app_identifier);
 )SQL")) &&
          executeQuery(QStringLiteral(R"SQL(
 CREATE INDEX IF NOT EXISTS idx_apps_identifier

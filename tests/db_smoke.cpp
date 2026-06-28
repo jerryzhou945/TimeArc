@@ -589,6 +589,7 @@ int main(int argc, char* argv[]) {
       QStringLiteral("frontmost_sessions"),
       QStringLiteral("media_sessions"),
       QStringLiteral("device_usage_summaries"),
+      QStringLiteral("device_usage_sessions"),
       QStringLiteral("manual_projects"),
       QStringLiteral("manual_sessions"),
       QStringLiteral("tags"),
@@ -643,6 +644,18 @@ int main(int argc, char* argv[]) {
       {"created_at", "INTEGER", 1},
       {"updated_at", "INTEGER", 1},
   };
+  const ExpectedColumn deviceUsageSessionColumns[] = {
+      {"id", "INTEGER", 0},
+      {"platform", "TEXT", 1},
+      {"device_id", "TEXT", 1},
+      {"app_identifier", "TEXT", 1},
+      {"package_name", "TEXT", 1},
+      {"session_start_unix_sec", "INTEGER", 1},
+      {"session_end_unix_sec", "INTEGER", 1},
+      {"duration_sec", "INTEGER", 1},
+      {"source", "TEXT", 1},
+      {"created_at", "INTEGER", 1},
+  };
   struct TableSchema {
     QString name;
     const ExpectedColumn* columns;
@@ -657,6 +670,8 @@ int main(int argc, char* argv[]) {
        static_cast<int>(std::size(mediaColumns))},
       {QStringLiteral("device_usage_summaries"), deviceUsageColumns,
        static_cast<int>(std::size(deviceUsageColumns))},
+      {QStringLiteral("device_usage_sessions"), deviceUsageSessionColumns,
+       static_cast<int>(std::size(deviceUsageSessionColumns))},
   };
   for (const TableSchema& table : schemaParityTables) {
     QString mismatch;
@@ -756,6 +771,39 @@ int main(int argc, char* argv[]) {
   if (androidApp.value(QStringLiteral("platform")).toString() !=
       QStringLiteral("android")) {
     return fail(QStringLiteral("Mobile usage did not upsert Android app row."));
+  }
+  if (!mobileUsageRepository.addUsageSession(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.spotify.music"),
+          QStringLiteral("Spotify"),
+          QStringLiteral("Spotify"),
+          1782700000,
+          1782700125,
+          QStringLiteral("android_usage_events"))) {
+    return fail(QStringLiteral("Mobile usage session insert failed."));
+  }
+  if (!mobileUsageRepository.addUsageSession(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.spotify.music"),
+          QStringLiteral("Spotify"),
+          QStringLiteral("Spotify"),
+          1782700000,
+          1782700125,
+          QStringLiteral("android_usage_events"))) {
+    return fail(QStringLiteral("Mobile duplicate session insert failed."));
+  }
+  const QVariantList mobileSessions = mobileUsageRepository.getSessionsByRange(
+      1782700000, 1782700200, QStringLiteral("android"));
+  if (mobileSessions.size() != 1) {
+    return fail(QStringLiteral("Mobile usage session was not deduplicated."));
+  }
+  const QVariantMap mobileSession = mobileSessions.first().toMap();
+  if (mobileSession.value(QStringLiteral("durationSec")).toInt() != 125 ||
+      mobileSession.value(QStringLiteral("appIdentifier")).toString() !=
+          QStringLiteral("android:com.spotify.music") ||
+      mobileSession.value(QStringLiteral("source")).toString() !=
+          QStringLiteral("android_usage_events")) {
+    return fail(QStringLiteral("Mobile usage session fields are incorrect."));
   }
 
   int projectChangedCount = 0;

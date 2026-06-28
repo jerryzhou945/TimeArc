@@ -17,6 +17,7 @@ const QString kAndroidPlatform = QStringLiteral("android");
 const QString kAndroidPrefix = QStringLiteral("android:");
 const QString kFallbackDeviceId = QStringLiteral("android-device");
 const QString kDefaultSource = QStringLiteral("android_usage_stats_aggregate");
+const QString kEventsSource = QStringLiteral("android_usage_events");
 
 QSqlDatabase database() {
   QSqlDatabase db = QSqlDatabase::database(kConnectionName);
@@ -72,6 +73,23 @@ QVariantMap usageMapFromQuery(const QSqlQuery& query) {
   row.insert(QStringLiteral("updatedAt"), query.value(13).toLongLong());
   row.insert(QStringLiteral("displayName"), query.value(14).toString());
   row.insert(QStringLiteral("appIconPath"), query.value(15).toString());
+  return row;
+}
+
+QVariantMap sessionMapFromQuery(const QSqlQuery& query) {
+  QVariantMap row;
+  row.insert(QStringLiteral("id"), query.value(0));
+  row.insert(QStringLiteral("platform"), query.value(1).toString());
+  row.insert(QStringLiteral("deviceId"), query.value(2).toString());
+  row.insert(QStringLiteral("appIdentifier"), query.value(3).toString());
+  row.insert(QStringLiteral("packageName"), query.value(4).toString());
+  row.insert(QStringLiteral("sessionStartUnixSec"), query.value(5).toLongLong());
+  row.insert(QStringLiteral("sessionEndUnixSec"), query.value(6).toLongLong());
+  row.insert(QStringLiteral("durationSec"), query.value(7).toInt());
+  row.insert(QStringLiteral("source"), query.value(8).toString());
+  row.insert(QStringLiteral("createdAt"), query.value(9).toLongLong());
+  row.insert(QStringLiteral("displayName"), query.value(10).toString());
+  row.insert(QStringLiteral("appIconPath"), query.value(11).toString());
   return row;
 }
 
@@ -298,4 +316,144 @@ WHERE platform = :platform
   }
 
   return query.value(0).toInt();
+}
+
+bool MobileUsageRepository::addUsageSession(const QString& deviceId,
+                                            const QString& packageName,
+                                            const QString& appName,
+                                            const QString& displayName,
+                                            qint64 sessionStartUnixSec,
+                                            qint64 sessionEndUnixSec,
+                                            const QString& source) {
+  const QString normalizedPackage = androidPackageForIdentifier(packageName);
+  const QString appIdentifier = androidAppIdentifierForPackage(normalizedPackage);
+  if (normalizedPackage.isEmpty() || appIdentifier.isEmpty()) {
+    qWarning() << "Cannot add Android usage session with empty package name.";
+    return false;
+  }
+  if (sessionEndUnixSec <= sessionStartUnixSec) {
+    qWarning() << "Cannot add Android usage session with invalid range:"
+               << sessionStartUnixSec << sessionEndUnixSec;
+    return false;
+  }
+
+  AppRepository appRepository;
+  const QString normalizedAppName =
+      appName.trimmed().isEmpty() ? normalizedPackage : appName.trimmed();
+  const QString normalizedDisplayName =
+      displayName.trimmed().isEmpty() ? normalizedAppName : displayName.trimmed();
+  if (!appRepository.upsertApp(appIdentifier, normalizedAppName,
+                               normalizedDisplayName, QString(),
+                               normalizedPackage, kAndroidPlatform)) {
+    return false;
+  }
+
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) return false;
+
+  const qint64 now = QDateTime::currentSecsSinceEpoch();
+  QSqlQuery query(db);
+  if (!query.prepare(QStringLiteral(R"SQL(
+INSERT OR IGNORE INTO device_usage_sessions (
+    platform,
+    device_id,
+    app_identifier,
+    package_name,
+    session_start_unix_sec,
+    session_end_unix_sec,
+    duration_sec,
+    source,
+    created_at
+) VALUES (
+    :platform,
+    :device_id,
+    :app_identifier,
+    :package_name,
+    :session_start_unix_sec,
+    :session_end_unix_sec,
+    :duration_sec,
+    :source,
+    :created_at
+);
+)SQL"))) {
+    qWarning() << "Failed to prepare addUsageSession:"
+               << query.lastError().text();
+    return false;
+  }
+
+  query.bindValue(QStringLiteral(":platform"), kAndroidPlatform);
+  query.bindValue(QStringLiteral(":device_id"), normalizeDeviceId(deviceId));
+  query.bindValue(QStringLiteral(":app_identifier"), appIdentifier);
+  query.bindValue(QStringLiteral(":package_name"), normalizedPackage);
+  query.bindValue(QStringLiteral(":session_start_unix_sec"),
+                  sessionStartUnixSec);
+  query.bindValue(QStringLiteral(":session_end_unix_sec"), sessionEndUnixSec);
+  query.bindValue(QStringLiteral(":duration_sec"),
+                  static_cast<int>(sessionEndUnixSec - sessionStartUnixSec));
+  query.bindValue(QStringLiteral(":source"),
+                  source.trimmed().isEmpty() ? kEventsSource
+                                             : source.trimmed());
+  query.bindValue(QStringLiteral(":created_at"), now);
+
+  if (!query.exec()) {
+    qWarning() << "Failed to add Android usage session:"
+               << query.lastError().text();
+    return false;
+  }
+  return true;
+}
+
+QVariantList MobileUsageRepository::getSessionsByRange(qint64 startUnixSec,
+                                                       qint64 endUnixSec,
+                                                       const QString& platform) {
+  QVariantList rows;
+  if (endUnixSec <= startUnixSec) {
+    qWarning() << "Invalid Android usage session query range:" << startUnixSec
+               << endUnixSec;
+    return rows;
+  }
+
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) return rows;
+
+  QSqlQuery query(db);
+  if (!query.prepare(QStringLiteral(R"SQL(
+SELECT
+    dus.id,
+    dus.platform,
+    dus.device_id,
+    dus.app_identifier,
+    dus.package_name,
+    dus.session_start_unix_sec,
+    dus.session_end_unix_sec,
+    dus.duration_sec,
+    dus.source,
+    dus.created_at,
+    COALESCE(NULLIF(a.display_name, ''), a.app_name, dus.package_name) AS display_name,
+    a.app_icon_path
+FROM device_usage_sessions dus
+LEFT JOIN apps a ON a.app_identifier = dus.app_identifier
+WHERE dus.platform = :platform
+  AND dus.session_start_unix_sec < :end_unix_sec
+  AND dus.session_end_unix_sec > :start_unix_sec
+ORDER BY dus.session_start_unix_sec ASC;
+)SQL"))) {
+    qWarning() << "Failed to prepare getSessionsByRange:"
+               << query.lastError().text();
+    return rows;
+  }
+
+  query.bindValue(QStringLiteral(":platform"), normalizePlatform(platform));
+  query.bindValue(QStringLiteral(":start_unix_sec"), startUnixSec);
+  query.bindValue(QStringLiteral(":end_unix_sec"), endUnixSec);
+  if (!query.exec()) {
+    qWarning() << "Failed to query Android usage sessions:"
+               << query.lastError().text();
+    return rows;
+  }
+
+  while (query.next()) {
+    rows.append(sessionMapFromQuery(query));
+  }
+  return rows;
 }
