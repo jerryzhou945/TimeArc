@@ -172,7 +172,7 @@ with day and night modes.
 | Platform | Status      | Notes                                                  |
 |----------|-------------|--------------------------------------------------------|
 | Windows  | functional  | Foreground + WASAPI audio + idle; the tracker runs in the user session, with an opt-in logon autostart (Settings → 追踪与应用; B1 Route A). A true SCM/Session-0 service (Route B) is deferred. |
-| Android  | backend scaffold | Usage Access bridge, UsageStats aggregate reader, UsageEvents recent-session reader, WorkManager scheduler, and C++ SQLite repositories are in place. Android framework calls live under `android/`; shared storage/query code lives under `src/services/mobile/`. |
+| Android  | backend scaffold | Usage Access bridge, UsageStats aggregate reader, UsageEvents recent-session reader, WorkManager scheduler, C++ SQLite repositories, and a QML-facing `MobileUsageService` dashboard adapter are in place. Android framework calls live under `android/`; shared storage/query code lives under `src/services/mobile/`. |
 | macOS    | in progress | `NSWorkspace` + `CGEventSource` + `IOPMCopyAssertionsByProcess` primitives are in place; tracker main loop not yet wired. |
 | Linux    | not started | Target both X11 and Wayland; audio likely via PipeWire. |
 

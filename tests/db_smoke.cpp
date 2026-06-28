@@ -27,6 +27,7 @@
 #include "services/manual_project_repository.h"
 #include "services/media_session_repository.h"
 #include "services/mobile/mobile_usage_repository.h"
+#include "services/mobile/mobile_usage_service.h"
 #include "services/settings_repository.h"
 #include "services/stats_service.h"
 #include "services/calendar_manager.h"
@@ -765,6 +766,39 @@ int main(int argc, char* argv[]) {
           QStringLiteral("2026-06-29"), QStringLiteral("2026-06-29"),
           QStringLiteral("android")) != 150) {
     return fail(QStringLiteral("Mobile usage total aggregation failed."));
+  }
+  if (!mobileUsageRepository.upsertDailyUsageSummary(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.google.android.youtube"),
+          QStringLiteral("YouTube"),
+          QStringLiteral("YouTube"),
+          QStringLiteral("2026-06-29"),
+          1782662400,
+          1782748800,
+          3700,
+          QStringLiteral("android_usage_stats_aggregate"))) {
+    return fail(QStringLiteral("Second mobile usage summary insert failed."));
+  }
+  MobileUsageService mobileUsageService(&mobileUsageRepository);
+  const QVariantMap mobileDashboard = mobileUsageService.getUsageDashboard(
+      QStringLiteral("2026-06-29"), QStringLiteral("2026-06-29"));
+  if (mobileDashboard.value(QStringLiteral("totalSec")).toInt() != 3850 ||
+      mobileDashboard.value(QStringLiteral("totalText")).toString() !=
+          QStringLiteral("1h 4m")) {
+    return fail(QStringLiteral("Mobile usage dashboard total failed."));
+  }
+  const QVariantList dashboardApps =
+      mobileDashboard.value(QStringLiteral("topApps")).toList();
+  if (dashboardApps.size() != 2) {
+    return fail(QStringLiteral("Mobile usage dashboard top app count failed."));
+  }
+  const QVariantMap firstDashboardApp = dashboardApps.first().toMap();
+  if (firstDashboardApp.value(QStringLiteral("displayName")).toString() !=
+          QStringLiteral("YouTube") ||
+      firstDashboardApp.value(QStringLiteral("durationText")).toString() !=
+          QStringLiteral("1h 1m") ||
+      firstDashboardApp.value(QStringLiteral("sharePct")).toInt() != 96) {
+    return fail(QStringLiteral("Mobile usage dashboard top app fields failed."));
   }
   const QVariantMap androidApp = appRepository.getAppByIdentifier(
       QStringLiteral("android:com.spotify.music"));
