@@ -320,6 +320,40 @@ CREATE TABLE IF NOT EXISTS media_sessions (
 );
 )SQL")) &&
          executeQuery(QStringLiteral(R"SQL(
+CREATE TABLE IF NOT EXISTS device_usage_summaries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    app_identifier TEXT NOT NULL,
+    package_name TEXT NOT NULL,
+    date_local TEXT NOT NULL,
+    range_start_unix_sec INTEGER NOT NULL,
+    range_end_unix_sec INTEGER NOT NULL,
+    foreground_sec INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    first_synced_at INTEGER NOT NULL,
+    last_synced_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    UNIQUE(platform, device_id, app_identifier, date_local, source)
+);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
+CREATE TABLE IF NOT EXISTS device_usage_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    platform TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    app_identifier TEXT NOT NULL,
+    package_name TEXT NOT NULL,
+    session_start_unix_sec INTEGER NOT NULL,
+    session_end_unix_sec INTEGER NOT NULL,
+    duration_sec INTEGER NOT NULL,
+    source TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    UNIQUE(platform, device_id, app_identifier, session_start_unix_sec, session_end_unix_sec, source)
+);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
 CREATE TABLE IF NOT EXISTS tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
@@ -491,6 +525,22 @@ ON media_sessions(app_identifier);
          executeQuery(QStringLiteral(R"SQL(
 CREATE UNIQUE INDEX IF NOT EXISTS idx_media_unique_record
 ON media_sessions(app_identifier, media_type, media_title, start_unix_sec, end_unix_sec);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
+CREATE INDEX IF NOT EXISTS idx_device_usage_date
+ON device_usage_summaries(platform, date_local);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
+CREATE INDEX IF NOT EXISTS idx_device_usage_app
+ON device_usage_summaries(platform, app_identifier, date_local);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
+CREATE INDEX IF NOT EXISTS idx_device_usage_sessions_time
+ON device_usage_sessions(platform, session_start_unix_sec, session_end_unix_sec);
+)SQL")) &&
+         executeQuery(QStringLiteral(R"SQL(
+CREATE INDEX IF NOT EXISTS idx_device_usage_sessions_app
+ON device_usage_sessions(platform, app_identifier);
 )SQL")) &&
          executeQuery(QStringLiteral(R"SQL(
 CREATE INDEX IF NOT EXISTS idx_apps_identifier

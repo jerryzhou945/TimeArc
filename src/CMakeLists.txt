@@ -11,6 +11,9 @@ set(TIME_ARC_DATABASE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/services/manual_project_repository.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/media_session_repository.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/media_session_repository.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/mobile/mobile_usage_repository.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/mobile/mobile_usage_repository.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/mobile/android_usage_jni_bridge.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/settings_repository.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/settings_repository.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/stats_service.cpp
