@@ -172,6 +172,7 @@ with day and night modes.
 | Platform | Status      | Notes                                                  |
 |----------|-------------|--------------------------------------------------------|
 | Windows  | functional  | Foreground + WASAPI audio + idle; the tracker runs in the user session, with an opt-in logon autostart (Settings → 追踪与应用; B1 Route A). A true SCM/Session-0 service (Route B) is deferred. |
+| Android  | backend scaffold | Usage Access bridge, UsageStats aggregate reader, UsageEvents recent-session reader, WorkManager scheduler, and C++ SQLite repositories are in place. Android framework calls live under `android/`; shared storage/query code lives under `src/services/mobile/`. |
 | macOS    | in progress | `NSWorkspace` + `CGEventSource` + `IOPMCopyAssertionsByProcess` primitives are in place; tracker main loop not yet wired. |
 | Linux    | not started | Target both X11 and Wayland; audio likely via PipeWire. |
 
@@ -216,6 +217,13 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   memo blackboard doc are routed through SQLite-backed repositories/settings.
   Legacy QSettings data for those UI-owned items is migrated into SQLite on
   startup without deleting the old QSettings keys.
+- Android mobile usage collection uses the system UsageStats APIs from Java in
+  `android/src/main/java/com/timearc/mobile/usage/`. Aggregated per-app daily
+  foreground time is stored in `device_usage_summaries`; recent UsageEvents
+  foreground/background pairs are stored in `device_usage_sessions`. App
+  identity is normalized as `android:<package_name>` so desktop and mobile data
+  can be merged by the presentation layer without losing platform/source
+  precision.
 
 ## Adapter Support
 
