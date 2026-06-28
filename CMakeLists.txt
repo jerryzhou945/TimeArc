@@ -50,6 +50,11 @@ set_target_properties(time-arc PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+if(ANDROID)
+    set_property(TARGET time-arc PROPERTY
+        QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/android")
+endif()
+
 target_link_libraries(time-arc
     PRIVATE
         Qt6::Core

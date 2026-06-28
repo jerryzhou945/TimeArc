@@ -19,6 +19,9 @@ def reject(text, needle, label):
 
 def main():
     main_cpp = read("src/main.cpp")
+    cmake_root = read("CMakeLists.txt")
+    android_gradle = read("android/build.gradle") if (ROOT / "android/build.gradle").exists() else ""
+    android_manifest = read("android/src/main/AndroidManifest.xml")
     main_qml = read("qml/main.qml")
     shell_qml = read("qml/desktop/DesktopAppShell.qml")
     mobile_shell_qml = read("qml/mobile/MobileAppShell.qml")
@@ -47,6 +50,14 @@ def main():
     require(main_cpp, "--start-in-tray", "UI autostart tray launch argument")
     require(main_cpp, "startInTray", "QML start-in-tray context")
     require(main_cpp, "mobileUsageService", "mobile usage service context")
+    require(cmake_root, "QT_ANDROID_PACKAGE_SOURCE_DIR", "Android package source dir")
+    require(android_gradle, "androidx.work:work-runtime", "Android WorkManager dependency")
+    require(android_gradle, "src/main/java", "Android Java source directory")
+    require(android_manifest, "android.permission.PACKAGE_USAGE_STATS",
+            "Android usage stats permission")
+    require(android_manifest, "org.qtproject.qt.android.bindings.QtActivity",
+            "Qt Android activity")
+    require(android_manifest, "android.app.lib_name", "Qt Android lib metadata")
 
     require(main_qml, "hideToTrayOnClose", "close-to-tray gate")
     require(main_qml, "close.accepted = false", "close event cancellation")
