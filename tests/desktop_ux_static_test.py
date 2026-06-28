@@ -28,6 +28,7 @@ def main():
     memory_card_qml = read("qml/desktop/memorylake/MemoryCard.qml")
     memory_page_qml = read("qml/desktop/pages/DesktopMemoryLakePage.qml")
     stats_qml = read("qml/desktop/pages/DesktopStatsPage.qml")
+    mobile_stats_qml = read("qml/mobile/pages/MobileStatsPage.qml")
     calendar_qml = read("qml/desktop/pages/DesktopCalenderPage.qml")
     settings_qml = read("qml/desktop/pages/DesktopProfilePage.qml")
     app_visual_js = read("qml/desktop/components/AppVisual.js")
@@ -43,6 +44,7 @@ def main():
     reject(main_cpp, "IsWindowVisible(hwnd)", "hidden tray window activation filter")
     require(main_cpp, "--start-in-tray", "UI autostart tray launch argument")
     require(main_cpp, "startInTray", "QML start-in-tray context")
+    require(main_cpp, "mobileUsageService", "mobile usage service context")
 
     require(main_qml, "hideToTrayOnClose", "close-to-tray gate")
     require(main_qml, "close.accepted = false", "close event cancellation")
@@ -113,6 +115,13 @@ def main():
     require(memory_card_qml, "card.app.yearTime", "card back year duration")
     require(memory_card_qml, "card.app.monthTime", "card back month duration")
     require(memory_card_qml, "card.app.dayTime", "card back day duration")
+
+    require(mobile_stats_qml, "mobileUsageService.getDashboardForRange",
+            "mobile stats reads backend dashboard")
+    require(mobile_stats_qml, "dashboard.topApps",
+            "mobile stats renders backend top apps")
+    reject(mobile_stats_qml, 'VSCode', "mobile stats no static desktop app data")
+    reject(mobile_stats_qml, 'Steam', "mobile stats no static game data")
 
     print("desktop UX static checks passed")
 

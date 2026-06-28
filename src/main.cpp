@@ -23,6 +23,8 @@
 #include "services/frontmost_session_repository.h"
 #include "services/manual_project_repository.h"
 #include "services/media_session_repository.h"
+#include "services/mobile/mobile_usage_repository.h"
+#include "services/mobile/mobile_usage_service.h"
 #include "services/settings_repository.h"
 #include "services/stats_service.h"
 #include "services/tag_repository.h"
@@ -208,6 +210,7 @@ int main(int argc, char* argv[]) {
   AppRepository appRepository;
   SettingsRepository settingsRepository;
   FrontmostSessionRepository frontmostRepository;
+  MobileUsageRepository mobileUsageRepository;
   ManualProjectRepository manualProjectRepository;
   if (!settingsRepository.migrateLegacyQSettings(&manualProjectRepository)) {
     qWarning() << "Legacy QSettings migration did not complete.";
@@ -217,6 +220,7 @@ int main(int argc, char* argv[]) {
   MediaSessionRepository mediaRepository;
   StatsService statsService(&frontmostRepository, &mediaRepository,
                             &manualProjectRepository);
+  MobileUsageService mobileUsageService(&mobileUsageRepository);
   DailyCardService dailyCardService(&statsService, &frontmostRepository);
   TagRepository tagRepository;
   TimerManager timerManager;
@@ -235,6 +239,8 @@ int main(int argc, char* argv[]) {
                                            &manualProjectRepository);
   engine.rootContext()->setContextProperty("mediaRepository",
                                            &mediaRepository);
+  engine.rootContext()->setContextProperty("mobileUsageService",
+                                           &mobileUsageService);
   engine.rootContext()->setContextProperty("settingsRepository",
                                            &settingsRepository);
   engine.rootContext()->setContextProperty("statsService", &statsService);
