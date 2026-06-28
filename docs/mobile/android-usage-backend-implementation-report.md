@@ -26,6 +26,9 @@
 - `.harness/tools/build.py` 通过。
 - `ctest --test-dir build --output-on-failure -R timearc_db_smoke` 通过。
 - `.harness/tools/harness_check.py` 通过。
+- Android Emulator `TimeArc_API36_Pixel` 启动通过：Android 16，`sdk_gphone64_x86_64`。
+- `adb shell am start -a android.settings.USAGE_ACCESS_SETTINGS` 可打开 Usage Access 设置页。
+- `adb shell dumpsys usagestats` 可看到最近 UsageEvents 与包级 usage stats，说明模拟器系统侧数据源可用。
 
 ## 相关提交
 
