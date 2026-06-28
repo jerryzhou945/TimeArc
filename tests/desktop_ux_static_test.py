@@ -21,6 +21,7 @@ def main():
     main_cpp = read("src/main.cpp")
     main_qml = read("qml/main.qml")
     shell_qml = read("qml/desktop/DesktopAppShell.qml")
+    mobile_shell_qml = read("qml/mobile/MobileAppShell.qml")
     tray_qml = read("qml/desktop/memorylake/NotifierTray.qml")
     toolbar_qml = read("qml/desktop/memorylake/MemoToolbar.qml")
     memo_qml = read("qml/desktop/memorylake/MemoOverlay.qml")
@@ -29,6 +30,7 @@ def main():
     memory_page_qml = read("qml/desktop/pages/DesktopMemoryLakePage.qml")
     stats_qml = read("qml/desktop/pages/DesktopStatsPage.qml")
     mobile_stats_qml = read("qml/mobile/pages/MobileStatsPage.qml")
+    mobile_settings_qml = read("qml/mobile/pages/MobileSettingsPage.qml")
     calendar_qml = read("qml/desktop/pages/DesktopCalenderPage.qml")
     settings_qml = read("qml/desktop/pages/DesktopProfilePage.qml")
     app_visual_js = read("qml/desktop/components/AppVisual.js")
@@ -122,6 +124,17 @@ def main():
             "mobile stats renders backend top apps")
     reject(mobile_stats_qml, 'VSCode', "mobile stats no static desktop app data")
     reject(mobile_stats_qml, 'Steam', "mobile stats no static game data")
+
+    require(mobile_shell_qml, "mobileUsageService.refreshUsageAccessState",
+            "mobile shell refreshes Android usage access")
+    require(mobile_shell_qml, "mobileUsageService.requestImmediateSync",
+            "mobile shell queues Android usage sync")
+    require(mobile_settings_qml, "mobileUsageService.openUsageAccessSettings",
+            "mobile settings opens Usage Access")
+    require(mobile_settings_qml, "mobileUsageService.requestImmediateSync",
+            "mobile settings triggers usage sync")
+    require(mobile_settings_qml, "mobileUsageService.syncStatusText",
+            "mobile settings shows usage sync status")
 
     print("desktop UX static checks passed")
 

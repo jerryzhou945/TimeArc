@@ -35,6 +35,13 @@ Rectangle {
         }
     }
 
+    Component.onCompleted: {
+        if (typeof mobileUsageService !== "undefined" && mobileUsageService) {
+            mobileUsageService.refreshUsageAccessState()
+            mobileUsageService.requestImmediateSync()
+        }
+    }
+
     Rectangle {
         id: tabBar
         anchors.left: parent.left
