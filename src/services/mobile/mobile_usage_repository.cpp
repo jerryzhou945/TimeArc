@@ -3,9 +3,13 @@
 #include <QDate>
 #include <QDateTime>
 #include <QDebug>
+#include <QDir>
+#include <QCoreApplication>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QStandardPaths>
+#include <QThread>
 #include <QVariantMap>
 
 #include "services/app_repository.h"
@@ -18,8 +22,38 @@ const QString kAndroidPrefix = QStringLiteral("android:");
 const QString kFallbackDeviceId = QStringLiteral("android-device");
 const QString kDefaultSource = QStringLiteral("android_usage_stats_aggregate");
 const QString kEventsSource = QStringLiteral("android_usage_events");
+const QString kObservedConfidence = QStringLiteral("observed");
+const QString kEstimatedConfidence = QStringLiteral("estimated");
 
 QSqlDatabase database() {
+#ifdef Q_OS_ANDROID
+  const QCoreApplication* app = QCoreApplication::instance();
+  if (app != nullptr && QThread::currentThread() != app->thread()) {
+    const QString connectionName = QStringLiteral("%1_%2")
+                                       .arg(kConnectionName)
+                                       .arg(reinterpret_cast<quintptr>(
+                                                QThread::currentThreadId()),
+                                            0, 16);
+    QSqlDatabase db = QSqlDatabase::contains(connectionName)
+                          ? QSqlDatabase::database(connectionName)
+                          : QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                      connectionName);
+    if (db.databaseName().isEmpty()) {
+      const QString appDataLocation =
+          QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+      db.setDatabaseName(
+          QDir(appDataLocation).filePath(QStringLiteral("timearc.db")));
+    }
+    if (!db.isOpen() && !db.open()) {
+      qWarning() << "Database is not open:" << db.lastError().text();
+      return db;
+    }
+    QSqlQuery(QStringLiteral("PRAGMA busy_timeout = 5000;"), db);
+    QSqlQuery(QStringLiteral("PRAGMA journal_mode = WAL;"), db);
+    return db;
+  }
+#endif
+
   QSqlDatabase db = QSqlDatabase::database(kConnectionName);
   if (!db.isValid() || !db.isOpen()) {
     qWarning() << "Database is not open.";
@@ -40,6 +74,12 @@ QString normalizeDeviceId(const QString& deviceId) {
 QString normalizeSource(const QString& source) {
   const QString trimmed = source.trimmed();
   return trimmed.isEmpty() ? kDefaultSource : trimmed;
+}
+
+QString normalizeConfidence(const QString& confidence) {
+  const QString trimmed = confidence.trimmed().toLower();
+  return trimmed == kEstimatedConfidence ? kEstimatedConfidence
+                                         : kObservedConfidence;
 }
 
 bool isIsoDate(const QString& value) {
@@ -87,9 +127,10 @@ QVariantMap sessionMapFromQuery(const QSqlQuery& query) {
   row.insert(QStringLiteral("sessionEndUnixSec"), query.value(6).toLongLong());
   row.insert(QStringLiteral("durationSec"), query.value(7).toInt());
   row.insert(QStringLiteral("source"), query.value(8).toString());
-  row.insert(QStringLiteral("createdAt"), query.value(9).toLongLong());
-  row.insert(QStringLiteral("displayName"), query.value(10).toString());
-  row.insert(QStringLiteral("appIconPath"), query.value(11).toString());
+  row.insert(QStringLiteral("confidence"), query.value(9).toString());
+  row.insert(QStringLiteral("createdAt"), query.value(10).toLongLong());
+  row.insert(QStringLiteral("displayName"), query.value(11).toString());
+  row.insert(QStringLiteral("appIconPath"), query.value(12).toString());
   return row;
 }
 
@@ -324,7 +365,8 @@ bool MobileUsageRepository::addUsageSession(const QString& deviceId,
                                             const QString& displayName,
                                             qint64 sessionStartUnixSec,
                                             qint64 sessionEndUnixSec,
-                                            const QString& source) {
+                                            const QString& source,
+                                            const QString& confidence) {
   const QString normalizedPackage = androidPackageForIdentifier(packageName);
   const QString appIdentifier = androidAppIdentifierForPackage(normalizedPackage);
   if (normalizedPackage.isEmpty() || appIdentifier.isEmpty()) {
@@ -363,6 +405,7 @@ INSERT OR IGNORE INTO device_usage_sessions (
     session_end_unix_sec,
     duration_sec,
     source,
+    confidence,
     created_at
 ) VALUES (
     :platform,
@@ -373,6 +416,7 @@ INSERT OR IGNORE INTO device_usage_sessions (
     :session_end_unix_sec,
     :duration_sec,
     :source,
+    :confidence,
     :created_at
 );
 )SQL"))) {
@@ -393,6 +437,7 @@ INSERT OR IGNORE INTO device_usage_sessions (
   query.bindValue(QStringLiteral(":source"),
                   source.trimmed().isEmpty() ? kEventsSource
                                              : source.trimmed());
+  query.bindValue(QStringLiteral(":confidence"), normalizeConfidence(confidence));
   query.bindValue(QStringLiteral(":created_at"), now);
 
   if (!query.exec()) {
@@ -428,6 +473,7 @@ SELECT
     dus.session_end_unix_sec,
     dus.duration_sec,
     dus.source,
+    dus.confidence,
     dus.created_at,
     COALESCE(NULLIF(a.display_name, ''), a.app_name, dus.package_name) AS display_name,
     a.app_icon_path

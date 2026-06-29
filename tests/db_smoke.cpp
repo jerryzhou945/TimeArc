@@ -27,6 +27,7 @@
 #include "services/manual_project_repository.h"
 #include "services/media_session_repository.h"
 #include "services/mobile/mobile_usage_repository.h"
+#include "services/mobile/mobile_usage_service.h"
 #include "services/settings_repository.h"
 #include "services/stats_service.h"
 #include "services/calendar_manager.h"
@@ -654,6 +655,7 @@ int main(int argc, char* argv[]) {
       {"session_end_unix_sec", "INTEGER", 1},
       {"duration_sec", "INTEGER", 1},
       {"source", "TEXT", 1},
+      {"confidence", "TEXT", 1},
       {"created_at", "INTEGER", 1},
   };
   struct TableSchema {
@@ -766,6 +768,39 @@ int main(int argc, char* argv[]) {
           QStringLiteral("android")) != 150) {
     return fail(QStringLiteral("Mobile usage total aggregation failed."));
   }
+  if (!mobileUsageRepository.upsertDailyUsageSummary(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.google.android.youtube"),
+          QStringLiteral("YouTube"),
+          QStringLiteral("YouTube"),
+          QStringLiteral("2026-06-29"),
+          1782662400,
+          1782748800,
+          3700,
+          QStringLiteral("android_usage_stats_aggregate"))) {
+    return fail(QStringLiteral("Second mobile usage summary insert failed."));
+  }
+  MobileUsageService mobileUsageService(&mobileUsageRepository);
+  const QVariantMap mobileDashboard = mobileUsageService.getUsageDashboard(
+      QStringLiteral("2026-06-29"), QStringLiteral("2026-06-29"));
+  if (mobileDashboard.value(QStringLiteral("totalSec")).toInt() != 3850 ||
+      mobileDashboard.value(QStringLiteral("totalText")).toString() !=
+          QStringLiteral("1h 4m")) {
+    return fail(QStringLiteral("Mobile usage dashboard total failed."));
+  }
+  const QVariantList dashboardApps =
+      mobileDashboard.value(QStringLiteral("topApps")).toList();
+  if (dashboardApps.size() != 2) {
+    return fail(QStringLiteral("Mobile usage dashboard top app count failed."));
+  }
+  const QVariantMap firstDashboardApp = dashboardApps.first().toMap();
+  if (firstDashboardApp.value(QStringLiteral("displayName")).toString() !=
+          QStringLiteral("YouTube") ||
+      firstDashboardApp.value(QStringLiteral("durationText")).toString() !=
+          QStringLiteral("1h 1m") ||
+      firstDashboardApp.value(QStringLiteral("sharePct")).toInt() != 96) {
+    return fail(QStringLiteral("Mobile usage dashboard top app fields failed."));
+  }
   const QVariantMap androidApp = appRepository.getAppByIdentifier(
       QStringLiteral("android:com.spotify.music"));
   if (androidApp.value(QStringLiteral("platform")).toString() !=
@@ -787,14 +822,25 @@ int main(int argc, char* argv[]) {
           QStringLiteral("com.spotify.music"),
           QStringLiteral("Spotify"),
           QStringLiteral("Spotify"),
+          1782700200,
+          1782700300,
+          QStringLiteral("android_usage_events"),
+          QStringLiteral("estimated"))) {
+    return fail(QStringLiteral("Estimated mobile usage session insert failed."));
+  }
+  if (!mobileUsageRepository.addUsageSession(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.spotify.music"),
+          QStringLiteral("Spotify"),
+          QStringLiteral("Spotify"),
           1782700000,
           1782700125,
           QStringLiteral("android_usage_events"))) {
     return fail(QStringLiteral("Mobile duplicate session insert failed."));
   }
   const QVariantList mobileSessions = mobileUsageRepository.getSessionsByRange(
-      1782700000, 1782700200, QStringLiteral("android"));
-  if (mobileSessions.size() != 1) {
+      1782700000, 1782700400, QStringLiteral("android"));
+  if (mobileSessions.size() != 2) {
     return fail(QStringLiteral("Mobile usage session was not deduplicated."));
   }
   const QVariantMap mobileSession = mobileSessions.first().toMap();
@@ -802,8 +848,17 @@ int main(int argc, char* argv[]) {
       mobileSession.value(QStringLiteral("appIdentifier")).toString() !=
           QStringLiteral("android:com.spotify.music") ||
       mobileSession.value(QStringLiteral("source")).toString() !=
-          QStringLiteral("android_usage_events")) {
+          QStringLiteral("android_usage_events") ||
+      mobileSession.value(QStringLiteral("confidence")).toString() !=
+          QStringLiteral("observed")) {
     return fail(QStringLiteral("Mobile usage session fields are incorrect."));
+  }
+  const QVariantMap estimatedMobileSession = mobileSessions.last().toMap();
+  if (estimatedMobileSession.value(QStringLiteral("durationSec")).toInt() !=
+          100 ||
+      estimatedMobileSession.value(QStringLiteral("confidence")).toString() !=
+          QStringLiteral("estimated")) {
+    return fail(QStringLiteral("Estimated mobile usage session fields failed."));
   }
 
   int projectChangedCount = 0;

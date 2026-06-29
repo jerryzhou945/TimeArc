@@ -19,8 +19,12 @@ def reject(text, needle, label):
 
 def main():
     main_cpp = read("src/main.cpp")
+    cmake_root = read("CMakeLists.txt")
+    android_gradle = read("android/build.gradle") if (ROOT / "android/build.gradle").exists() else ""
+    android_manifest = read("android/src/main/AndroidManifest.xml")
     main_qml = read("qml/main.qml")
     shell_qml = read("qml/desktop/DesktopAppShell.qml")
+    mobile_shell_qml = read("qml/mobile/MobileAppShell.qml")
     tray_qml = read("qml/desktop/memorylake/NotifierTray.qml")
     toolbar_qml = read("qml/desktop/memorylake/MemoToolbar.qml")
     memo_qml = read("qml/desktop/memorylake/MemoOverlay.qml")
@@ -28,6 +32,8 @@ def main():
     memory_card_qml = read("qml/desktop/memorylake/MemoryCard.qml")
     memory_page_qml = read("qml/desktop/pages/DesktopMemoryLakePage.qml")
     stats_qml = read("qml/desktop/pages/DesktopStatsPage.qml")
+    mobile_stats_qml = read("qml/mobile/pages/MobileStatsPage.qml")
+    mobile_settings_qml = read("qml/mobile/pages/MobileSettingsPage.qml")
     calendar_qml = read("qml/desktop/pages/DesktopCalenderPage.qml")
     settings_qml = read("qml/desktop/pages/DesktopProfilePage.qml")
     app_visual_js = read("qml/desktop/components/AppVisual.js")
@@ -43,6 +49,15 @@ def main():
     reject(main_cpp, "IsWindowVisible(hwnd)", "hidden tray window activation filter")
     require(main_cpp, "--start-in-tray", "UI autostart tray launch argument")
     require(main_cpp, "startInTray", "QML start-in-tray context")
+    require(main_cpp, "mobileUsageService", "mobile usage service context")
+    require(cmake_root, "QT_ANDROID_PACKAGE_SOURCE_DIR", "Android package source dir")
+    require(android_gradle, "androidx.work:work-runtime", "Android WorkManager dependency")
+    require(android_gradle, "src/main/java", "Android Java source directory")
+    require(android_manifest, "android.permission.PACKAGE_USAGE_STATS",
+            "Android usage stats permission")
+    require(android_manifest, "org.qtproject.qt.android.bindings.QtActivity",
+            "Qt Android activity")
+    require(android_manifest, "android.app.lib_name", "Qt Android lib metadata")
 
     require(main_qml, "hideToTrayOnClose", "close-to-tray gate")
     require(main_qml, "close.accepted = false", "close event cancellation")
@@ -113,6 +128,24 @@ def main():
     require(memory_card_qml, "card.app.yearTime", "card back year duration")
     require(memory_card_qml, "card.app.monthTime", "card back month duration")
     require(memory_card_qml, "card.app.dayTime", "card back day duration")
+
+    require(mobile_stats_qml, "mobileUsageService.getDashboardForRange",
+            "mobile stats reads backend dashboard")
+    require(mobile_stats_qml, "dashboard.topApps",
+            "mobile stats renders backend top apps")
+    reject(mobile_stats_qml, 'VSCode', "mobile stats no static desktop app data")
+    reject(mobile_stats_qml, 'Steam', "mobile stats no static game data")
+
+    require(mobile_shell_qml, "mobileUsageService.refreshUsageAccessState",
+            "mobile shell refreshes Android usage access")
+    require(mobile_shell_qml, "mobileUsageService.requestImmediateSync",
+            "mobile shell queues Android usage sync")
+    require(mobile_settings_qml, "mobileUsageService.openUsageAccessSettings",
+            "mobile settings opens Usage Access")
+    require(mobile_settings_qml, "mobileUsageService.requestImmediateSync",
+            "mobile settings triggers usage sync")
+    require(mobile_settings_qml, "mobileUsageService.syncStatusText",
+            "mobile settings shows usage sync status")
 
     print("desktop UX static checks passed")
 

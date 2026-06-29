@@ -6,14 +6,15 @@ import time_arc
 ApplicationWindow {
     id: appWindow
 
-    property bool useMobileShell: mobilePreview || width <= 720
+    property bool runningOnAndroid: Qt.platform.os === "android"
+    property bool useMobileShell: runningOnAndroid || mobilePreview || width <= 720
     property bool forceQuit: false
-    property bool hideToTrayOnClose: !mobilePreview
+    property bool hideToTrayOnClose: !(runningOnAndroid || mobilePreview)
 
     // 无边框化（去掉 Win11 原生白色标题栏，改用自绘沉浸式 chrome）。
     // 仅真桌面无边框；移动预览（开发工具）保留原生边框，方便挪窗/关闭。
     // MinMaxButtonsHint：即便无边框，Windows 仍启用最小化动画 + Win+方向键贴靠。
-    readonly property bool frameless: !mobilePreview
+    readonly property bool frameless: !(runningOnAndroid || mobilePreview)
     flags: frameless ? (Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinMaxButtonsHint)
                      : Qt.Window
     // 自绘标题栏高度 = 各 shell 顶部为交互内容预留的高度（背景仍铺到顶边，保沉浸）。
@@ -22,10 +23,10 @@ ApplicationWindow {
     // 桌面默认 16:9（1440x810），可自由缩放、全屏铺满（不再锁 16:10——那会让 16:9 屏右侧露桌面）。
     // 最小取 1280x720（标准 16:9 下限）：记忆湖三栏需 ~1240px 宽中间卡牌才不会被左右栏遮住；
     // 960 宽时 300+310 两栏几乎贴合、中卡被遮（实测），故以 1280x720 作可用下限。
-    width: mobilePreview ? 390 : 1440
-    height: mobilePreview ? 844 : 810
-    minimumWidth: mobilePreview ? 360 : 1280
-    minimumHeight: mobilePreview ? 600 : 720
+    width: useMobileShell ? 390 : 1440
+    height: useMobileShell ? 844 : 810
+    minimumWidth: useMobileShell ? 360 : 1280
+    minimumHeight: useMobileShell ? 600 : 720
     visible: !startInTray
     title: qsTr("TimeArc")
     color: "#F6F1EA"

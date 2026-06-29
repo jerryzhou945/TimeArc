@@ -176,6 +176,40 @@ void warnIfDbPathDivergesFromService(const QString& uiPath) {
   }
 }
 
+bool tableHasColumn(const QString& tableName, const QString& columnName) {
+  QSqlDatabase db = QSqlDatabase::database(kConnectionName);
+  if (!db.isValid() || !db.isOpen()) return false;
+
+  QSqlQuery query(db);
+  if (!query.exec(QStringLiteral("PRAGMA table_info(%1);").arg(tableName))) {
+    qWarning() << "tableHasColumn failed:" << query.lastError().text();
+    return false;
+  }
+
+  while (query.next()) {
+    if (query.value(1).toString() == columnName) return true;
+  }
+  return false;
+}
+
+bool ensureDeviceUsageSessionConfidenceColumn() {
+  if (tableHasColumn(QStringLiteral("device_usage_sessions"),
+                     QStringLiteral("confidence"))) {
+    return true;
+  }
+
+  QSqlDatabase db = QSqlDatabase::database(kConnectionName);
+  QSqlQuery query(db);
+  if (!query.exec(QStringLiteral(
+          "ALTER TABLE device_usage_sessions "
+          "ADD COLUMN confidence TEXT NOT NULL DEFAULT 'observed';"))) {
+    qWarning() << "Failed to add device_usage_sessions.confidence:"
+               << query.lastError().text();
+    return false;
+  }
+  return true;
+}
+
 // Accept either a plain filesystem path or a file:// URL (the QML FileDialog
 // hands back file:// URLs). Returns a local filesystem path.
 QString toLocalPath(const QString& pathOrUrl) {
@@ -194,6 +228,7 @@ bool DatabaseManager::initialize() {
   if (!openDatabase()) return false;
   if (!configureDatabase()) return false;
   if (!createTables()) return false;
+  if (!ensureDeviceUsageSessionConfidenceColumn()) return false;
   if (!insertDefaultTags()) return false;
   if (!insertDefaultSettings()) return false;
   if (!createIndexes()) return false;
@@ -349,6 +384,7 @@ CREATE TABLE IF NOT EXISTS device_usage_sessions (
     session_end_unix_sec INTEGER NOT NULL,
     duration_sec INTEGER NOT NULL,
     source TEXT NOT NULL,
+    confidence TEXT NOT NULL DEFAULT 'observed',
     created_at INTEGER NOT NULL,
     UNIQUE(platform, device_id, app_identifier, session_start_unix_sec, session_end_unix_sec, source)
 );

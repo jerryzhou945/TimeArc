@@ -9,20 +9,40 @@ Rectangle {
     color: theme.bg
 
     property int selectedSegment: 0
-    property var segments: ["今天", "7天", "30天"]
-    property var bars: [
-        { "label": "开发", "value": "4h20m", "pct": 82, "colorKey": "accent" },
-        { "label": "娱乐", "value": "2h15m", "pct": 43, "colorKey": "amber" },
-        { "label": "音乐/视频", "value": "3h12m", "pct": 61, "colorKey": "green" },
-        { "label": "社交", "value": "1h05m", "pct": 20, "colorKey": "textMuted" }
+    property var segments: [
+        { "label": "今天", "range": "day" },
+        { "label": "7天", "range": "7d" },
+        { "label": "30天", "range": "30d" }
     ]
-    property var topApps: [
-        { "name": "VSCode", "time": "3h10m", "colorKey": "accent", "initial": "V" },
-        { "name": "Steam", "time": "1h35m", "colorKey": "amber", "initial": "S" },
-        { "name": "WeChat", "time": "1h12m", "colorKey": "green", "initial": "W" },
-        { "name": "Chrome", "time": "58m", "colorKey": "textMuted", "initial": "C" },
-        { "name": "Spotify", "time": "46m", "colorKey": "red", "initial": "Sp" }
-    ]
+    property var dashboard: ({ "totalText": "0s", "topApps": [], "empty": true })
+    property var topApps: dashboard.topApps || []
+
+    function reloadDashboard() {
+        if (typeof mobileUsageService === "undefined" || !mobileUsageService) {
+            dashboard = {
+                "totalText": "0s",
+                "topApps": [],
+                "empty": true,
+                "syncStatusText": "移动端数据服务未连接"
+            }
+            return
+        }
+        dashboard = mobileUsageService.getDashboardForRange(segments[selectedSegment].range)
+    }
+
+    Component.onCompleted: reloadDashboard()
+
+    Connections {
+        target: typeof mobileUsageService === "undefined" ? null : mobileUsageService
+
+        function onDataChanged() {
+            root.reloadDashboard()
+        }
+
+        function onStatusChanged() {
+            root.reloadDashboard()
+        }
+    }
 
     Column {
         anchors.fill: parent
@@ -49,7 +69,7 @@ Rectangle {
                     width: parent.width
                     theme: root.theme
                     title: "统计"
-                    subtitle: "只看最重要的变化"
+                    subtitle: "Android 使用时长"
                 }
 
                 Rectangle {
@@ -67,23 +87,27 @@ Rectangle {
                         spacing: 6
 
                         Text {
-                            text: "今日记录"
+                            text: root.segments[root.selectedSegment].label + "记录"
                             color: root.theme.textMuted
                             font.pixelSize: 12
                         }
 
                         Text {
-                            text: "7h42m"
+                            width: parent.width
+                            text: root.dashboard.totalText || "0s"
                             color: root.theme.textPrimary
                             font.pixelSize: 36
                             font.weight: Font.Bold
-                            font.letterSpacing: -1
+                            font.letterSpacing: 0
+                            elide: Text.ElideRight
                         }
 
                         Text {
-                            text: "↗ 比昨天 +38m"
-                            color: root.theme.green
+                            width: parent.width
+                            text: root.dashboard.syncStatusText || "等待 Android 使用数据同步"
+                            color: root.dashboard.empty ? root.theme.textMuted : root.theme.green
                             font.pixelSize: 12
+                            wrapMode: Text.WordWrap
                         }
                     }
                 }
@@ -113,7 +137,7 @@ Rectangle {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: modelData
+                                    text: modelData.label
                                     color: index === root.selectedSegment ? root.theme.textPrimary : root.theme.textMuted
                                     font.pixelSize: 13
                                     font.weight: index === root.selectedSegment ? Font.Medium : Font.Normal
@@ -121,7 +145,10 @@ Rectangle {
 
                                 MouseArea {
                                     anchors.fill: parent
-                                    onClicked: root.selectedSegment = index
+                                    onClicked: {
+                                        root.selectedSegment = index
+                                        root.reloadDashboard()
+                                    }
                                 }
                             }
                         }
@@ -130,62 +157,55 @@ Rectangle {
 
                 Rectangle {
                     width: parent.width
-                    height: categoryColumn.implicitHeight + 32
+                    height: sourceColumn.implicitHeight + 32
                     radius: 18
                     color: root.theme.card
                     border.color: root.theme.border
                     border.width: 1
 
                     Column {
-                        id: categoryColumn
+                        id: sourceColumn
                         anchors.fill: parent
                         anchors.margins: 16
-                        spacing: 13
+                        spacing: 12
 
                         Text {
-                            text: "时间分类"
+                            text: "数据来源"
                             color: root.theme.textMuted
                             font.pixelSize: 12
                         }
 
-                        Repeater {
-                            model: root.bars
+                        Row {
+                            width: parent.width
 
-                            Column {
-                                width: parent.width
-                                spacing: 6
+                            Text {
+                                width: parent.width - sourceValue.width
+                                text: "Android UsageStats"
+                                color: root.theme.textSecondary
+                                font.pixelSize: 13
+                                elide: Text.ElideRight
+                            }
 
-                                Row {
-                                    width: parent.width
-                                    Text {
-                                        width: parent.width - valueText.width
-                                        text: modelData.label
-                                        color: root.theme.textSecondary
-                                        font.pixelSize: 13
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        id: valueText
-                                        text: modelData.value
-                                        color: root.theme.textPrimary
-                                        font.pixelSize: 13
-                                        font.weight: Font.Medium
-                                    }
-                                }
+                            Text {
+                                id: sourceValue
+                                text: root.dashboard.empty ? "等待同步" : "已入库"
+                                color: root.theme.textPrimary
+                                font.pixelSize: 13
+                                font.weight: Font.Medium
+                            }
+                        }
 
-                                Rectangle {
-                                    width: parent.width
-                                    height: 6
-                                    radius: 3
-                                    color: root.theme.border
+                        Rectangle {
+                            width: parent.width
+                            height: 6
+                            radius: 3
+                            color: root.theme.border
 
-                                    Rectangle {
-                                        width: parent.width * modelData.pct / 100
-                                        height: parent.height
-                                        radius: 3
-                                        color: root.theme.colorFor(modelData.colorKey)
-                                    }
-                                }
+                            Rectangle {
+                                width: parent.width * (root.dashboard.empty ? 0 : 1)
+                                height: parent.height
+                                radius: 3
+                                color: root.theme.accent
                             }
                         }
                     }
@@ -212,12 +232,23 @@ Rectangle {
                             font.pixelSize: 12
                         }
 
+                        Text {
+                            width: parent.width
+                            visible: root.topApps.length === 0
+                            text: "还没有 Android 使用数据。授权后打开手机端，TimeArc 会读取系统 UsageStats 并写入数据库。"
+                            color: root.theme.textSecondary
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: 13
+                            topPadding: 12
+                            bottomPadding: 4
+                        }
+
                         Repeater {
                             model: root.topApps
 
                             Item {
                                 width: parent.width
-                                height: 42
+                                height: 44
 
                                 Row {
                                     anchors.fill: parent
@@ -235,7 +266,7 @@ Rectangle {
                                         Text {
                                             anchors.centerIn: parent
                                             text: modelData.initial
-                                            color: root.theme.colorFor(modelData.colorKey)
+                                            color: root.theme.accent
                                             font.pixelSize: 11
                                             font.weight: Font.DemiBold
                                         }
@@ -244,7 +275,7 @@ Rectangle {
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
                                         width: parent.width - 112
-                                        text: modelData.name
+                                        text: modelData.displayName || modelData.packageName
                                         color: root.theme.textSecondary
                                         font.pixelSize: 13
                                         elide: Text.ElideRight
@@ -253,7 +284,7 @@ Rectangle {
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
                                         width: 54
-                                        text: modelData.time
+                                        text: modelData.durationText
                                         color: root.theme.textPrimary
                                         font.pixelSize: 13
                                         font.weight: Font.Medium

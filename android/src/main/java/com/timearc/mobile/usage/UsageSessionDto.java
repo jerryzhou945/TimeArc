@@ -8,6 +8,7 @@ public final class UsageSessionDto {
     public final long endTimeMs;
     public final long durationMs;
     public final String source;
+    public final String confidence;
 
     public UsageSessionDto(
             String packageName,
@@ -15,7 +16,8 @@ public final class UsageSessionDto {
             String appLabel,
             long startTimeMs,
             long endTimeMs,
-            String source) {
+            String source,
+            String confidence) {
         this.packageName = packageName;
         this.appIdentifier = appIdentifier;
         this.appLabel = appLabel;
@@ -23,5 +25,8 @@ public final class UsageSessionDto {
         this.endTimeMs = endTimeMs;
         this.durationMs = Math.max(0L, endTimeMs - startTimeMs);
         this.source = source;
+        this.confidence = confidence == null || confidence.isEmpty()
+                ? "observed"
+                : confidence;
     }
 }

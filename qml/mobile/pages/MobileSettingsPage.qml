@@ -14,6 +14,21 @@ Rectangle {
     property bool afk: true
     property bool quietBlue: true
 
+    function usageStatusText() {
+        if (typeof mobileUsageService === "undefined" || !mobileUsageService)
+            return "服务未连接"
+        return mobileUsageService.syncStatusText
+    }
+
+    function runAction(action) {
+        if (typeof mobileUsageService === "undefined" || !mobileUsageService)
+            return
+        if (action === "usageAccess")
+            mobileUsageService.openUsageAccessSettings()
+        else if (action === "syncNow")
+            mobileUsageService.requestImmediateSync()
+    }
+
     Column {
         anchors.fill: parent
 
@@ -39,15 +54,25 @@ Rectangle {
                     width: parent.width
                     theme: root.theme
                     title: "设置"
-                    subtitle: "本地数据与显示"
+                    subtitle: "本地数据与 Android 使用统计"
                 }
 
                 SettingsSection {
                     width: parent.width
-                    title: "记录"
+                    title: "Android 使用记录"
                     theme: root.theme
                     rows: [
-                        { "label": "自动记录", "switchKey": "autoRecord" },
+                        { "label": "Usage Access 权限", "value": root.usageStatusText(), "arrow": true, "action": "usageAccess" },
+                        { "label": "立即同步使用时长", "value": "读取系统记录", "arrow": true, "action": "syncNow" },
+                        { "label": "自动同步", "switchKey": "autoRecord" }
+                    ]
+                }
+
+                SettingsSection {
+                    width: parent.width
+                    title: "桌面端记录"
+                    theme: root.theme
+                    rows: [
                         { "label": "AFK 空闲检测", "switchKey": "afk" },
                         { "label": "最小记录片段", "value": "1 分钟", "arrow": true }
                     ]
@@ -58,29 +83,8 @@ Rectangle {
                     title: "隐私"
                     theme: root.theme
                     rows: [
-                        { "label": "标题记录", "value": "可按应用关闭", "arrow": true },
-                        { "label": "本地优先", "value": "数据保存在本机" }
-                    ]
-                }
-
-                SettingsSection {
-                    width: parent.width
-                    title: "应用管理"
-                    theme: root.theme
-                    rows: [
-                        { "label": "应用分类与颜色", "arrow": true },
-                        { "label": "排除统计的应用", "arrow": true }
-                    ]
-                }
-
-                SettingsSection {
-                    width: parent.width
-                    title: "数据"
-                    theme: root.theme
-                    rows: [
-                        { "label": "导出备份", "arrow": true },
-                        { "label": "恢复备份", "arrow": true },
-                        { "label": "清理历史记录", "arrow": true }
+                        { "label": "标题记录", "value": "桌面端按应用管理", "arrow": true },
+                        { "label": "本地优先", "value": "SQLite 数据库" }
                     ]
                 }
 
@@ -177,6 +181,7 @@ Rectangle {
                             onSwitchToggled: function(v) {
                                 root.setChecked(modelData.switchKey, v)
                             }
+                            onClicked: root.runAction(modelData.action || "")
                         }
 
                         Rectangle {

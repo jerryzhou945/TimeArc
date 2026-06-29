@@ -339,8 +339,8 @@ qml/mobile/components/
 - [x] 新增 `UsageAccessBridge.kt`。（实现为 Java：`UsageAccessBridge.java`。）
 - [x] 实现 `hasUsageAccess(context): Boolean`。
 - [x] 实现 `openUsageAccessSettings(activity)`。
-- [ ] C++ `android_usage_bridge` 暴露 `hasUsageAccess()`。
-- [ ] QML 权限页根据授权状态切换按钮和说明。
+- [x] C++ `android_usage_bridge` 暴露 `hasUsageAccess()`。（通过 `MobileUsageService.refreshUsageAccessState()` 暴露给 QML。）
+- [x] QML 权限页根据授权状态切换按钮和说明。（先接入 `MobileSettingsPage` 权限入口与状态文字。）
 
 验收：
 
@@ -401,11 +401,11 @@ qml/mobile/components/
 ### P5：WorkManager 周期同步
 
 - [x] 新增 `UsageSyncWorker.kt`。（实现为 Java：`UsageSyncWorker.java`。）
-- [ ] App 启动/回前台时触发一次同步。
+- [x] App 启动/回前台时触发一次同步。（当前已在 `MobileAppShell.Component.onCompleted` 触发；前后台恢复钩子仍可继续增强。）
 - [x] WorkManager 周期任务触发日增量同步。
 - [x] 无权限时任务安全退出。
 - [x] 网络不可用时只写本地库，等待后续同步。
-- [ ] 记录最近同步状态和错误原因。
+- [x] 记录最近同步状态和错误原因。（当前先暴露 `syncStatus` / `syncStatusText` 到 QML；持久化 lastSyncAt 待后续。）
 
 验收：
 
@@ -431,12 +431,12 @@ qml/mobile/components/
 
 ### P7：后端暴露给 QML
 
-- [ ] 在现有 `StatsService` 或新服务中注册跨端统计 QObject。
+- [x] 在现有 `StatsService` 或新服务中注册跨端统计 QObject。（已注册 Android-only `MobileUsageService`；跨端 P6 service 未完成。）
 - [ ] 暴露 `refreshUsage(range, platformFilter)`。
 - [ ] 暴露 `usageRows` model。
 - [ ] 每行包含 `displayName`、`totalSec`、`desktopSec`、`mobileSec`、`platformBreakdown`。
-- [ ] 暴露 `permissionState` 和 `lastSyncAt`。
-- [ ] QML 只绑定 model，不直接访问数据库。
+- [x] 暴露 `permissionState` 和 `lastSyncAt`。（已暴露权限/同步状态文本；持久化 `lastSyncAt` 待后续。）
+- [x] QML 只绑定 model，不直接访问数据库。
 
 验收：
 
@@ -450,9 +450,9 @@ qml/mobile/components/
 - [ ] 新增 `MobileUsageStatsPage.qml`。
 - [ ] 新增 `MobilePlatformBreakdown.qml`。
 - [ ] 新增 `MobileUsageAppRow.qml`。
-- [ ] 手机端显示总时长、App 排名、平台拆分、最近同步状态。
+- [x] 手机端显示总时长、App 排名、平台拆分、最近同步状态。（已显示 Android 总时长、App 排名、数据源状态；桌面/手机平台拆分待 P6。）
 - [ ] 桌面端统计页后续接入同一跨端 service。
-- [ ] 对 Android 数据明确标记为 App 级统计。
+- [x] 对 Android 数据明确标记为 App 级统计。
 
 验收：
 
