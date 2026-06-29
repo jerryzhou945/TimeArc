@@ -15,6 +15,8 @@ import java.util.Map;
 
 public final class UsageEventsReader {
     public static final String SOURCE_USAGE_EVENTS = "android_usage_events";
+    public static final String CONFIDENCE_OBSERVED = "observed";
+    public static final String CONFIDENCE_ESTIMATED = "estimated";
 
     private UsageEventsReader() {}
 
@@ -73,7 +75,8 @@ public final class UsageEventsReader {
                     resolveAppLabel(packageManager, packageName),
                     startTimeMs,
                     eventTimeMs,
-                    SOURCE_USAGE_EVENTS));
+                    SOURCE_USAGE_EVENTS,
+                    CONFIDENCE_OBSERVED));
         }
 
         for (Map.Entry<String, Long> entry : openSessions.entrySet()) {
@@ -86,7 +89,8 @@ public final class UsageEventsReader {
                         resolveAppLabel(packageManager, packageName),
                         startTimeMs,
                         endMs,
-                        SOURCE_USAGE_EVENTS));
+                        SOURCE_USAGE_EVENTS,
+                        CONFIDENCE_ESTIMATED));
             }
         }
 

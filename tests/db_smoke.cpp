@@ -655,6 +655,7 @@ int main(int argc, char* argv[]) {
       {"session_end_unix_sec", "INTEGER", 1},
       {"duration_sec", "INTEGER", 1},
       {"source", "TEXT", 1},
+      {"confidence", "TEXT", 1},
       {"created_at", "INTEGER", 1},
   };
   struct TableSchema {
@@ -821,14 +822,25 @@ int main(int argc, char* argv[]) {
           QStringLiteral("com.spotify.music"),
           QStringLiteral("Spotify"),
           QStringLiteral("Spotify"),
+          1782700200,
+          1782700300,
+          QStringLiteral("android_usage_events"),
+          QStringLiteral("estimated"))) {
+    return fail(QStringLiteral("Estimated mobile usage session insert failed."));
+  }
+  if (!mobileUsageRepository.addUsageSession(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.spotify.music"),
+          QStringLiteral("Spotify"),
+          QStringLiteral("Spotify"),
           1782700000,
           1782700125,
           QStringLiteral("android_usage_events"))) {
     return fail(QStringLiteral("Mobile duplicate session insert failed."));
   }
   const QVariantList mobileSessions = mobileUsageRepository.getSessionsByRange(
-      1782700000, 1782700200, QStringLiteral("android"));
-  if (mobileSessions.size() != 1) {
+      1782700000, 1782700400, QStringLiteral("android"));
+  if (mobileSessions.size() != 2) {
     return fail(QStringLiteral("Mobile usage session was not deduplicated."));
   }
   const QVariantMap mobileSession = mobileSessions.first().toMap();
@@ -836,8 +848,17 @@ int main(int argc, char* argv[]) {
       mobileSession.value(QStringLiteral("appIdentifier")).toString() !=
           QStringLiteral("android:com.spotify.music") ||
       mobileSession.value(QStringLiteral("source")).toString() !=
-          QStringLiteral("android_usage_events")) {
+          QStringLiteral("android_usage_events") ||
+      mobileSession.value(QStringLiteral("confidence")).toString() !=
+          QStringLiteral("observed")) {
     return fail(QStringLiteral("Mobile usage session fields are incorrect."));
+  }
+  const QVariantMap estimatedMobileSession = mobileSessions.last().toMap();
+  if (estimatedMobileSession.value(QStringLiteral("durationSec")).toInt() !=
+          100 ||
+      estimatedMobileSession.value(QStringLiteral("confidence")).toString() !=
+          QStringLiteral("estimated")) {
+    return fail(QStringLiteral("Estimated mobile usage session fields failed."));
   }
 
   int projectChangedCount = 0;

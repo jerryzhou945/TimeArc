@@ -95,6 +95,8 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncRecentSessions(
   const jfieldID endField = fieldId(env, sessionClass, "endTimeMs", "J");
   const jfieldID sourceField =
       fieldId(env, sessionClass, "source", "Ljava/lang/String;");
+  const jfieldID confidenceField =
+      fieldId(env, sessionClass, "confidence", "Ljava/lang/String;");
   env->DeleteLocalRef(first);
 
   MobileUsageRepository repository;
@@ -106,6 +108,9 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncRecentSessions(
         env, static_cast<jstring>(env->GetObjectField(session, labelField)));
     const QString source = javaString(
         env, static_cast<jstring>(env->GetObjectField(session, sourceField)));
+    const QString confidence = javaString(
+        env, static_cast<jstring>(
+                 env->GetObjectField(session, confidenceField)));
     const jlong startMs = env->GetLongField(session, startField);
     const jlong endMs = env->GetLongField(session, endField);
     const qint64 startSec = startMs / 1000LL;
@@ -115,7 +120,8 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncRecentSessions(
       continue;
     }
     const bool ok = repository.addUsageSession(
-        QString(), packageName, appLabel, appLabel, startSec, endSec, source);
+        QString(), packageName, appLabel, appLabel, startSec, endSec, source,
+        confidence);
     env->DeleteLocalRef(session);
     if (!ok) return JNI_FALSE;
   }

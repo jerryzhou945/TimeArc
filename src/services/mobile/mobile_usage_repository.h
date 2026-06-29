@@ -40,7 +40,8 @@ class MobileUsageRepository : public QObject {
                                    const QString& displayName,
                                    qint64 sessionStartUnixSec,
                                    qint64 sessionEndUnixSec,
-                                   const QString& source);
+                                   const QString& source,
+                                   const QString& confidence = QString());
 
   Q_INVOKABLE QVariantList getSessionsByRange(qint64 startUnixSec,
                                               qint64 endUnixSec,
