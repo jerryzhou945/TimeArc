@@ -6,7 +6,7 @@
 #ifdef Q_OS_ANDROID
 #include <QGuiApplication>
 #include <QJniObject>
-#include <QNativeInterface>
+#include <QtCore/qcoreapplication_platform.h>
 #endif
 
 #include <algorithm>

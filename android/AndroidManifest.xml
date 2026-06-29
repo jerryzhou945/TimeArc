@@ -6,9 +6,11 @@
     android:versionCode="-- %%INSERT_VERSION_CODE%% --"
     android:versionName="-- %%INSERT_VERSION_NAME%% --">
 
+    <!-- %%INSERT_PERMISSIONS -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
+    <!-- %%INSERT_FEATURES -->
 
     <supports-screens
         android:anyDensity="true"

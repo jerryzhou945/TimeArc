@@ -108,9 +108,14 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncRecentSessions(
         env, static_cast<jstring>(env->GetObjectField(session, sourceField)));
     const jlong startMs = env->GetLongField(session, startField);
     const jlong endMs = env->GetLongField(session, endField);
+    const qint64 startSec = startMs / 1000LL;
+    const qint64 endSec = endMs / 1000LL;
+    if (endSec <= startSec) {
+      env->DeleteLocalRef(session);
+      continue;
+    }
     const bool ok = repository.addUsageSession(
-        QString(), packageName, appLabel, appLabel, startMs / 1000LL,
-        endMs / 1000LL, source);
+        QString(), packageName, appLabel, appLabel, startSec, endSec, source);
     env->DeleteLocalRef(session);
     if (!ok) return JNI_FALSE;
   }

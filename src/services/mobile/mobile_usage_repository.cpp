@@ -3,9 +3,13 @@
 #include <QDate>
 #include <QDateTime>
 #include <QDebug>
+#include <QDir>
+#include <QCoreApplication>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QStandardPaths>
+#include <QThread>
 #include <QVariantMap>
 
 #include "services/app_repository.h"
@@ -20,6 +24,34 @@ const QString kDefaultSource = QStringLiteral("android_usage_stats_aggregate");
 const QString kEventsSource = QStringLiteral("android_usage_events");
 
 QSqlDatabase database() {
+#ifdef Q_OS_ANDROID
+  const QCoreApplication* app = QCoreApplication::instance();
+  if (app != nullptr && QThread::currentThread() != app->thread()) {
+    const QString connectionName = QStringLiteral("%1_%2")
+                                       .arg(kConnectionName)
+                                       .arg(reinterpret_cast<quintptr>(
+                                                QThread::currentThreadId()),
+                                            0, 16);
+    QSqlDatabase db = QSqlDatabase::contains(connectionName)
+                          ? QSqlDatabase::database(connectionName)
+                          : QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                      connectionName);
+    if (db.databaseName().isEmpty()) {
+      const QString appDataLocation =
+          QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+      db.setDatabaseName(
+          QDir(appDataLocation).filePath(QStringLiteral("timearc.db")));
+    }
+    if (!db.isOpen() && !db.open()) {
+      qWarning() << "Database is not open:" << db.lastError().text();
+      return db;
+    }
+    QSqlQuery(QStringLiteral("PRAGMA busy_timeout = 5000;"), db);
+    QSqlQuery(QStringLiteral("PRAGMA journal_mode = WAL;"), db);
+    return db;
+  }
+#endif
+
   QSqlDatabase db = QSqlDatabase::database(kConnectionName);
   if (!db.isValid() || !db.isOpen()) {
     qWarning() << "Database is not open.";
