@@ -227,6 +227,15 @@ int main(int argc, char* argv[]) {
   ProjectManager projectManager(&manualProjectRepository);
   UsageStatManager usageStatManager;
 
+#if defined(Q_OS_ANDROID)
+  QObject::connect(&app, &QGuiApplication::applicationStateChanged,
+                   &mobileUsageService, [&](Qt::ApplicationState state) {
+                     if (state == Qt::ApplicationActive) {
+                       mobileUsageService.requestImmediateSync();
+                     }
+                   });
+#endif
+
   engine.addImageProvider(QStringLiteral("appicon"), new AppIconImageProvider);
 
   engine.rootContext()->setContextProperty("databaseManager",
