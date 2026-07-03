@@ -42,6 +42,8 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncAggregatedUsage
       fieldId(env, recordClass, "packageName", "Ljava/lang/String;");
   const jfieldID labelField =
       fieldId(env, recordClass, "appLabel", "Ljava/lang/String;");
+  const jfieldID iconField =
+      fieldId(env, recordClass, "appIconPath", "Ljava/lang/String;");
   const jfieldID foregroundField =
       fieldId(env, recordClass, "totalTimeInForegroundMs", "J");
   const jfieldID sourceField =
@@ -60,12 +62,15 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncAggregatedUsage
         env, static_cast<jstring>(env->GetObjectField(record, packageField)));
     const QString appLabel = javaString(
         env, static_cast<jstring>(env->GetObjectField(record, labelField)));
+    const QString appIconPath = javaString(
+        env, static_cast<jstring>(env->GetObjectField(record, iconField)));
     const QString source = javaString(
         env, static_cast<jstring>(env->GetObjectField(record, sourceField)));
     const jlong foregroundMs = env->GetLongField(record, foregroundField);
     const bool ok = repository.upsertDailyUsageSummary(
         QString(), packageName, appLabel, appLabel, localDate.toString(Qt::ISODate),
-        beginSec, endSec, static_cast<int>(foregroundMs / 1000LL), source);
+        beginSec, endSec, static_cast<int>(foregroundMs / 1000LL), source,
+        appIconPath);
     env->DeleteLocalRef(record);
     if (!ok) return JNI_FALSE;
   }
@@ -91,6 +96,8 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncRecentSessions(
       fieldId(env, sessionClass, "packageName", "Ljava/lang/String;");
   const jfieldID labelField =
       fieldId(env, sessionClass, "appLabel", "Ljava/lang/String;");
+  const jfieldID iconField =
+      fieldId(env, sessionClass, "appIconPath", "Ljava/lang/String;");
   const jfieldID startField = fieldId(env, sessionClass, "startTimeMs", "J");
   const jfieldID endField = fieldId(env, sessionClass, "endTimeMs", "J");
   const jfieldID sourceField =
@@ -106,6 +113,8 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncRecentSessions(
         env, static_cast<jstring>(env->GetObjectField(session, packageField)));
     const QString appLabel = javaString(
         env, static_cast<jstring>(env->GetObjectField(session, labelField)));
+    const QString appIconPath = javaString(
+        env, static_cast<jstring>(env->GetObjectField(session, iconField)));
     const QString source = javaString(
         env, static_cast<jstring>(env->GetObjectField(session, sourceField)));
     const QString confidence = javaString(
@@ -121,7 +130,7 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncRecentSessions(
     }
     const bool ok = repository.addUsageSession(
         QString(), packageName, appLabel, appLabel, startSec, endSec, source,
-        confidence);
+        confidence, appIconPath);
     env->DeleteLocalRef(session);
     if (!ok) return JNI_FALSE;
   }

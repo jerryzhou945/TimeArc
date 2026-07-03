@@ -721,6 +721,10 @@ int main(int argc, char* argv[]) {
       QStringLiteral("com.spotify.music")) {
     return fail(QStringLiteral("Android package normalization failed."));
   }
+  const QString spotifyIconPath = QStringLiteral(
+      "/data/user/0/com.timearc.app/files/app-icons/com.spotify.music.png");
+  const QString youtubeIconPath = QStringLiteral(
+      "/data/user/0/com.timearc.app/files/app-icons/com.google.android.youtube.png");
   if (!mobileUsageRepository.upsertDailyUsageSummary(
           QStringLiteral("pixel-usage-smoke"),
           QStringLiteral("com.spotify.music"),
@@ -730,8 +734,18 @@ int main(int argc, char* argv[]) {
           1782662400,
           1782748800,
           120,
-          QStringLiteral("android_usage_stats_aggregate"))) {
+          QStringLiteral("android_usage_stats_aggregate"),
+          spotifyIconPath)) {
     return fail(QStringLiteral("Mobile usage summary insert failed."));
+  }
+  const QVariantMap spotifyAppAfterIconInsert = appRepository.getAppByIdentifier(
+      QStringLiteral("android:com.spotify.music"));
+  if (spotifyAppAfterIconInsert.value(QStringLiteral("appIconPath")).toString() !=
+      spotifyIconPath) {
+    return fail(QStringLiteral("Mobile usage first icon insert failed: %1")
+                    .arg(spotifyAppAfterIconInsert
+                             .value(QStringLiteral("appIconPath"))
+                             .toString()));
   }
   if (!mobileUsageRepository.upsertDailyUsageSummary(
           QStringLiteral("pixel-usage-smoke"),
@@ -742,7 +756,8 @@ int main(int argc, char* argv[]) {
           1782662400,
           1782748800,
           150,
-          QStringLiteral("android_usage_stats_aggregate"))) {
+          QStringLiteral("android_usage_stats_aggregate"),
+          QString())) {
     return fail(QStringLiteral("Mobile usage summary upsert failed."));
   }
   const QVariantList mobileRows = mobileUsageRepository.getUsageByDateRange(
@@ -760,8 +775,18 @@ int main(int argc, char* argv[]) {
       mobileRow.value(QStringLiteral("source")).toString() !=
           QStringLiteral("android_usage_stats_aggregate") ||
       mobileRow.value(QStringLiteral("displayName")).toString() !=
-          QStringLiteral("Spotify")) {
-    return fail(QStringLiteral("Mobile usage summary fields are incorrect."));
+          QStringLiteral("Spotify") ||
+      mobileRow.value(QStringLiteral("appIconPath")).toString() !=
+          spotifyIconPath) {
+    return fail(QStringLiteral(
+                    "Mobile usage summary fields are incorrect: id=%1 package=%2 "
+                    "foreground=%3 source=%4 display=%5 icon=%6")
+                    .arg(mobileRow.value(QStringLiteral("appIdentifier")).toString(),
+                         mobileRow.value(QStringLiteral("packageName")).toString())
+                    .arg(mobileRow.value(QStringLiteral("foregroundSec")).toInt())
+                    .arg(mobileRow.value(QStringLiteral("source")).toString(),
+                         mobileRow.value(QStringLiteral("displayName")).toString(),
+                         mobileRow.value(QStringLiteral("appIconPath")).toString()));
   }
   if (mobileUsageRepository.getTotalForegroundSecondsByDateRange(
           QStringLiteral("2026-06-29"), QStringLiteral("2026-06-29"),
@@ -777,7 +802,8 @@ int main(int argc, char* argv[]) {
           1782662400,
           1782748800,
           3700,
-          QStringLiteral("android_usage_stats_aggregate"))) {
+          QStringLiteral("android_usage_stats_aggregate"),
+          youtubeIconPath)) {
     return fail(QStringLiteral("Second mobile usage summary insert failed."));
   }
   MobileUsageService mobileUsageService(&mobileUsageRepository);
@@ -798,7 +824,9 @@ int main(int argc, char* argv[]) {
           QStringLiteral("YouTube") ||
       firstDashboardApp.value(QStringLiteral("durationText")).toString() !=
           QStringLiteral("1h 1m") ||
-      firstDashboardApp.value(QStringLiteral("sharePct")).toInt() != 96) {
+      firstDashboardApp.value(QStringLiteral("sharePct")).toInt() != 96 ||
+      firstDashboardApp.value(QStringLiteral("appIconPath")).toString() !=
+          youtubeIconPath) {
     return fail(QStringLiteral("Mobile usage dashboard top app fields failed."));
   }
   const QVariantMap androidApp = appRepository.getAppByIdentifier(
@@ -806,6 +834,10 @@ int main(int argc, char* argv[]) {
   if (androidApp.value(QStringLiteral("platform")).toString() !=
       QStringLiteral("android")) {
     return fail(QStringLiteral("Mobile usage did not upsert Android app row."));
+  }
+  if (androidApp.value(QStringLiteral("appIconPath")).toString() !=
+      spotifyIconPath) {
+    return fail(QStringLiteral("Mobile usage did not persist Android app icon."));
   }
   if (!mobileUsageRepository.addUsageSession(
           QStringLiteral("pixel-usage-smoke"),

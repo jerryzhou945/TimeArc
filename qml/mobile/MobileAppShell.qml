@@ -10,6 +10,27 @@ Rectangle {
 
     property string currentTab: "home"
     property string languageMode: settingsRepository ? settingsRepository.getValue("language_mode", "zh") : "zh"
+
+    function ensureUsageAccessOnboarding() {
+        if (typeof mobileUsageService === "undefined" || !mobileUsageService)
+            return
+
+        var granted = mobileUsageService.refreshUsageAccessState()
+        if (granted) {
+            mobileUsageService.requestImmediateSync()
+            return
+        }
+
+        root.currentTab = "settings"
+        if (typeof settingsRepository === "undefined" || !settingsRepository)
+            return
+
+        var prompted = settingsRepository.getValue("android_usage_access_prompted", "")
+        if (prompted !== "1") {
+            settingsRepository.setValue("android_usage_access_prompted", "1")
+            mobileUsageService.openUsageAccessSettings()
+        }
+    }
     // 无边框窗口顶部预留高度（移动预览默认保留原生边框 ⇒ 0；防御性接收，便于未来移动端 chrome）。
     property int topReserve: 0
 
@@ -36,10 +57,7 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        if (typeof mobileUsageService !== "undefined" && mobileUsageService) {
-            mobileUsageService.refreshUsageAccessState()
-            mobileUsageService.requestImmediateSync()
-        }
+        root.ensureUsageAccessOnboarding()
     }
 
     Rectangle {

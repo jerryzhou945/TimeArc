@@ -23,7 +23,8 @@ class MobileUsageRepository : public QObject {
       qint64 rangeStartUnixSec,
       qint64 rangeEndUnixSec,
       int foregroundSec,
-      const QString& source);
+      const QString& source,
+      const QString& appIconPath = QString());
 
   Q_INVOKABLE QVariantList getUsageByDateRange(const QString& startDateLocal,
                                                const QString& endDateLocal,
@@ -41,7 +42,8 @@ class MobileUsageRepository : public QObject {
                                    qint64 sessionStartUnixSec,
                                    qint64 sessionEndUnixSec,
                                    const QString& source,
-                                   const QString& confidence = QString());
+                                   const QString& confidence = QString(),
+                                   const QString& appIconPath = QString());
 
   Q_INVOKABLE QVariantList getSessionsByRange(qint64 startUnixSec,
                                               qint64 endUnixSec,

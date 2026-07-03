@@ -4,6 +4,7 @@ public final class UsageRecordDto {
     public final String packageName;
     public final String appIdentifier;
     public final String appLabel;
+    public final String appIconPath;
     public final long firstTimeStampMs;
     public final long lastTimeStampMs;
     public final long totalTimeInForegroundMs;
@@ -14,6 +15,7 @@ public final class UsageRecordDto {
             String packageName,
             String appIdentifier,
             String appLabel,
+            String appIconPath,
             long firstTimeStampMs,
             long lastTimeStampMs,
             long totalTimeInForegroundMs,
@@ -22,6 +24,7 @@ public final class UsageRecordDto {
         this.packageName = packageName;
         this.appIdentifier = appIdentifier;
         this.appLabel = appLabel;
+        this.appIconPath = appIconPath == null ? "" : appIconPath;
         this.firstTimeStampMs = firstTimeStampMs;
         this.lastTimeStampMs = lastTimeStampMs;
         this.totalTimeInForegroundMs = totalTimeInForegroundMs;
