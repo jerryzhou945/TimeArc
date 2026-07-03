@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import "../components"
 
 Rectangle {
@@ -157,6 +158,7 @@ Rectangle {
                         height: parent.height
                         text: "☰"
                         color: root.theme.textPrimary
+                        font.family: root.theme.fontFamily
                         font.pixelSize: 28
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -166,6 +168,7 @@ Rectangle {
                         height: parent.height
                         text: "TimeArc"
                         color: root.theme.textSecondary
+                        font.family: root.theme.fontFamily
                         font.pixelSize: 15
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -176,6 +179,7 @@ Rectangle {
                         height: parent.height
                         text: "↻"
                         color: root.theme.textPrimary
+                        font.family: root.theme.fontFamily
                         font.pixelSize: 23
                         horizontalAlignment: Text.AlignRight
                         verticalAlignment: Text.AlignVCenter
@@ -187,65 +191,102 @@ Rectangle {
                     }
                 }
 
-                Row {
+                Column {
                     id: profileStrip
-                    anchors.left: parent.left
-                    anchors.right: parent.right
+                    anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: statusBar.bottom
-                    anchors.leftMargin: 24
-                    anchors.rightMargin: 24
-                    anchors.topMargin: 58
-                    height: 74
-                    spacing: 12
+                    anchors.topMargin: 54
+                    width: parent.width - 42
+                    height: 158
+                    spacing: 7
 
                     Rectangle {
-                        width: 58
-                        height: 58
-                        radius: 29
-                        anchors.verticalCenter: parent.verticalCenter
+                        width: 72
+                        height: 72
+                        radius: 36
+                        anchors.horizontalCenter: parent.horizontalCenter
                         color: root.theme.card
-                        border.color: root.theme.border
-                        border.width: 1
+                        border.color: root.withAlpha(root.theme.textPrimary, root.theme.isDark ? 0.78 : 0.88)
+                        border.width: 3
 
                         Rectangle {
                             anchors.fill: parent
                             anchors.margins: 5
                             radius: width / 2
                             gradient: Gradient {
-                                GradientStop { position: 0.0; color: root.theme.isDark ? "#24455D" : "#DDECF5" }
-                                GradientStop { position: 1.0; color: root.theme.isDark ? "#0A1624" : "#F8FBFD" }
+                                GradientStop { position: 0.0; color: root.theme.isDark ? "#CFE8F5" : "#FFFFFF" }
+                                GradientStop { position: 0.58; color: root.theme.isDark ? "#789EB6" : "#D9EDF8" }
+                                GradientStop { position: 1.0; color: root.theme.isDark ? "#0A1A2A" : "#B7D4E6" }
+                            }
+                        }
+
+                        Rectangle {
+                            width: 26
+                            height: 26
+                            radius: 13
+                            x: parent.width - width + 1
+                            y: parent.height - height + 1
+                            color: root.theme.card
+                            border.color: root.theme.border
+                            border.width: 1
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "T"
+                                color: root.theme.accentText
+                                font.family: root.theme.fontFamily
+                                font.pixelSize: 14
+                                font.weight: Font.Bold
                             }
                         }
 
                         Text {
                             anchors.centerIn: parent
-                            text: "T"
-                            color: root.theme.accentText
-                            font.pixelSize: 27
+                            text: "Arc"
+                            color: root.theme.isDark ? "#102235" : "#174E72"
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 16
                             font.weight: Font.Bold
                         }
                     }
 
-                    Column {
-                        width: parent.width - 70
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 7
+                    Text {
+                        width: parent.width
+                        text: "TimeArc Mobile"
+                        color: root.theme.textPrimary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 24
+                        font.weight: Font.DemiBold
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "已使用 TimeArc " + root.activeDays + " 天 · 总共 " + root.totalHours + " 小时"
+                        color: root.theme.textSecondary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 13
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideRight
+                    }
+
+                    Rectangle {
+                        width: badgeText.implicitWidth + 22
+                        height: 24
+                        radius: 12
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        color: root.withAlpha(root.theme.card, root.theme.isDark ? 0.58 : 0.78)
+                        border.color: root.withAlpha(root.theme.accent, 0.30)
+                        border.width: 1
 
                         Text {
-                            width: parent.width
-                            text: "TimeArc Mobile"
-                            color: root.theme.textPrimary
-                            font.pixelSize: 23
-                            font.weight: Font.DemiBold
-                            elide: Text.ElideRight
-                        }
-
-                        Text {
-                            width: parent.width
-                            text: "使用 " + root.activeDays + " 天 · 累计 " + root.totalHours + " 小时 · " + root.cardRangeLabel + "卡牌"
+                            id: badgeText
+                            anchors.centerIn: parent
+                            text: "TimeArc 记录徽章"
                             color: root.theme.textSecondary
-                            font.pixelSize: 13
-                            elide: Text.ElideRight
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 12
                         }
                     }
                 }
@@ -257,26 +298,26 @@ Rectangle {
                     anchors.top: profileStrip.bottom
                     anchors.leftMargin: 24
                     anchors.rightMargin: 24
-                    anchors.topMargin: 8
-                    height: 56
+                    anchors.topMargin: 5
+                    height: 48
                     spacing: 0
 
                     ProfileMetric {
                         width: parent.width / 3
-                        value: root.dashboard.totalText || "0s"
-                        label: "今日"
+                        value: root.activeDays + " 天"
+                        label: "使用"
+                    }
+
+                    ProfileMetric {
+                        width: parent.width / 3
+                        value: root.totalHours + " 小时"
+                        label: "累计"
                     }
 
                     ProfileMetric {
                         width: parent.width / 3
                         value: "" + (root.totalDashboard.appCount || root.dashboard.appCount || 0)
                         label: "应用"
-                    }
-
-                    ProfileMetric {
-                        width: parent.width / 3
-                        value: root.totalDashboard.averageDailyText || "0s"
-                        label: "日均"
                     }
                 }
 
@@ -432,6 +473,7 @@ Rectangle {
             width: parent.width
             text: value
             color: root.theme.textPrimary
+            font.family: root.theme.fontFamily
             font.pixelSize: 18
             font.weight: Font.DemiBold
             horizontalAlignment: Text.AlignHCenter
@@ -442,6 +484,7 @@ Rectangle {
             width: parent.width
             text: label
             color: root.theme.textMuted
+            font.family: root.theme.fontFamily
             font.pixelSize: 12
             horizontalAlignment: Text.AlignHCenter
         }
@@ -457,6 +500,8 @@ Rectangle {
         property int cardIndex: 0
         property bool selected: false
         property bool flipped: false
+        readonly property int faceRadius: 28
+        readonly property int faceMargin: selected ? 0 : 8
 
         signal clicked()
         signal openUsageAccess()
@@ -496,20 +541,18 @@ Rectangle {
 
         Rectangle {
             anchors.fill: parent
-            anchors.margins: selected ? 0 : 8
-            radius: 28
-            color: card.theme.card
-            border.color: selected ? card.theme.accentBorder : card.theme.borderSoft
-            border.width: 1
+            anchors.margins: card.faceMargin + 4
+            radius: card.faceRadius
+            color: root.withAlpha(card.theme.accent, selected ? 0.08 : 0.0)
+            border.width: 0
 
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: -3
-                radius: 31
+                radius: card.faceRadius + 3
                 color: "transparent"
-                border.color: root.withAlpha(card.theme.accent, selected ? 0.30 : 0.12)
-                border.width: selected ? 2 : 1
-                opacity: selected ? 1 : 0.45
+                border.width: 0
+                opacity: 0
             }
         }
 
@@ -523,7 +566,7 @@ Rectangle {
 
         Flipable {
             anchors.fill: parent
-            anchors.margins: selected ? 0 : 8
+            anchors.margins: card.faceMargin
 
             transform: Rotation {
                 origin.x: card.width / 2
@@ -537,11 +580,18 @@ Rectangle {
             front: Item {
                 anchors.fill: parent
 
+                Item {
+                    id: frontFaceSource
+                    anchors.fill: parent
+                    visible: false
+                    layer.enabled: true
+                    layer.samples: 4
+                    layer.smooth: true
+
                 Rectangle {
                     anchors.fill: parent
-                    radius: 28
+                    radius: card.faceRadius
                     color: card.theme.card
-                    clip: true
 
                     Rectangle {
                         anchors.left: parent.left
@@ -590,6 +640,7 @@ Rectangle {
                             visible: !cardIcon.visible
                             text: card.safeApp().initial || "T"
                             color: card.theme.accentText
+                            font.family: card.theme.fontFamily
                             font.pixelSize: 34
                             font.weight: Font.Bold
                         }
@@ -606,6 +657,7 @@ Rectangle {
                             width: parent.width
                             text: card.appName()
                             color: card.theme.textPrimary
+                            font.family: card.theme.fontFamily
                             font.pixelSize: 25
                             font.weight: Font.DemiBold
                             elide: Text.ElideRight
@@ -615,6 +667,7 @@ Rectangle {
                             width: parent.width
                             text: card.isEmptyApp() ? "等待授权或同步" : "Android 应用 · " + card.rangeLabel
                             color: card.theme.textMuted
+                            font.family: card.theme.fontFamily
                             font.pixelSize: 13
                             elide: Text.ElideRight
                         }
@@ -632,6 +685,7 @@ Rectangle {
                                 anchors.centerIn: parent
                                 text: card.safeApp().durationText || "0s"
                                 color: card.theme.accentText
+                                font.family: card.theme.fontFamily
                                 font.pixelSize: 19
                                 font.weight: Font.Bold
                             }
@@ -659,22 +713,61 @@ Rectangle {
                             width: parent.width
                             text: card.isEmptyApp() ? "点击翻面查看授权操作" : "点击翻面查看记录细节"
                             color: card.theme.textMuted
+                            font.family: card.theme.fontFamily
                             font.pixelSize: 11
                             elide: Text.ElideRight
                         }
                     }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: card.faceRadius
+                        color: "transparent"
+                        border.color: card.selected ? card.theme.accentBorder : card.theme.borderSoft
+                        border.width: card.selected ? 2 : 1
+                    }
+                }
+                }
+
+                Rectangle {
+                    id: frontFaceMask
+                    anchors.fill: parent
+                    radius: card.faceRadius
+                    color: "white"
+                    antialiasing: true
+                    visible: false
+                    layer.enabled: true
+                    layer.samples: 4
+                    layer.smooth: true
+                }
+
+                MultiEffect {
+                    anchors.fill: parent
+                    source: frontFaceSource
+                    maskEnabled: true
+                    maskSource: frontFaceMask
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 0.24
                 }
             }
 
             back: Item {
                 anchors.fill: parent
 
+                Item {
+                    id: backFaceSource
+                    anchors.fill: parent
+                    visible: false
+                    layer.enabled: true
+                    layer.samples: 4
+                    layer.smooth: true
+
                 Rectangle {
                     anchors.fill: parent
-                    radius: 28
+                    radius: card.faceRadius
                     color: card.theme.card
                     border.color: card.theme.border
-                    border.width: 1
+                    border.width: 0
 
                     Rectangle {
                         anchors.fill: parent
@@ -692,6 +785,7 @@ Rectangle {
                             width: parent.width
                             text: card.isEmptyApp() ? "需要使用情况访问权限" : card.appName()
                             color: card.theme.textPrimary
+                            font.family: card.theme.fontFamily
                             font.pixelSize: 24
                             font.weight: Font.DemiBold
                             wrapMode: Text.WordWrap
@@ -705,15 +799,16 @@ Rectangle {
                                   ? "TimeArc 会读取 Android 系统已记录的应用前台使用时长，然后写入本地 SQLite。"
                                   : "来源 Android UsageStats，已按应用合并后进入 TimeArc 数据库。"
                             color: card.theme.textSecondary
+                            font.family: card.theme.fontFamily
                             font.pixelSize: 13
                             lineHeight: 1.35
                             wrapMode: Text.WordWrap
                         }
 
-                        DetailLine { label: "时长"; value: card.safeApp().durationText || "0s"; theme: card.theme }
-                        DetailLine { label: "占比"; value: card.shareText(); theme: card.theme }
-                        DetailLine { label: "排行"; value: card.isEmptyApp() ? "待同步" : root.rankText(card.cardIndex); theme: card.theme }
-                        DetailLine { label: "包名"; value: card.packageText(); theme: card.theme }
+                        DetailLine { width: parent.width; label: "时长"; value: card.safeApp().durationText || "0s"; theme: card.theme }
+                        DetailLine { width: parent.width; label: "占比"; value: card.shareText(); theme: card.theme }
+                        DetailLine { width: parent.width; label: "排行"; value: card.isEmptyApp() ? "待同步" : root.rankText(card.cardIndex); theme: card.theme }
+                        DetailLine { width: parent.width; label: "包名"; value: card.packageText(); theme: card.theme }
 
                         Row {
                             width: parent.width
@@ -738,6 +833,36 @@ Rectangle {
                             }
                         }
                     }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: card.faceRadius
+                        color: "transparent"
+                        border.color: card.selected ? card.theme.accentBorder : card.theme.borderSoft
+                        border.width: card.selected ? 2 : 1
+                    }
+                }
+                }
+
+                Rectangle {
+                    id: backFaceMask
+                    anchors.fill: parent
+                    radius: card.faceRadius
+                    color: "white"
+                    antialiasing: true
+                    visible: false
+                    layer.enabled: true
+                    layer.samples: 4
+                    layer.smooth: true
+                }
+
+                MultiEffect {
+                    anchors.fill: parent
+                    source: backFaceSource
+                    maskEnabled: true
+                    maskSource: backFaceMask
+                    maskThresholdMin: 0.5
+                    maskSpreadAtMin: 0.24
                 }
             }
         }
@@ -755,6 +880,7 @@ Rectangle {
             width: 44
             text: label
             color: theme.textMuted
+            font.family: theme.fontFamily
             font.pixelSize: 12
             verticalAlignment: Text.AlignVCenter
         }
@@ -763,6 +889,7 @@ Rectangle {
             width: parent.width - 54
             text: value
             color: theme.textPrimary
+            font.family: theme.fontFamily
             font.pixelSize: 13
             font.weight: Font.Medium
             elide: Text.ElideRight
@@ -785,6 +912,7 @@ Rectangle {
             anchors.centerIn: parent
             text: label
             color: primary ? (theme.isDark ? "#06101A" : "#FFFFFF") : theme.textPrimary
+            font.family: theme.fontFamily
             font.pixelSize: 13
             font.weight: Font.DemiBold
         }
@@ -837,6 +965,7 @@ Rectangle {
                     visible: !appImage.visible
                     text: app.initial || "?"
                     color: theme.accentText
+                    font.family: theme.fontFamily
                     font.pixelSize: 15
                     font.weight: Font.DemiBold
                 }
@@ -851,6 +980,7 @@ Rectangle {
                     width: parent.width
                     text: app.displayName || app.packageName || "未知应用"
                     color: theme.textPrimary
+                    font.family: theme.fontFamily
                     font.pixelSize: 16
                     font.weight: Font.Medium
                     elide: Text.ElideRight
@@ -880,6 +1010,7 @@ Rectangle {
                     width: parent.width
                     text: app.durationText || "0s"
                     color: theme.textPrimary
+                    font.family: theme.fontFamily
                     font.pixelSize: 15
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
@@ -890,6 +1021,7 @@ Rectangle {
                     width: parent.width
                     text: rank
                     color: theme.textMuted
+                    font.family: theme.fontFamily
                     font.pixelSize: 12
                     horizontalAlignment: Text.AlignRight
                 }

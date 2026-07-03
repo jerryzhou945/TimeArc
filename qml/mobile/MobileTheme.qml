@@ -5,6 +5,10 @@ QtObject {
 
     property bool isDark: true
 
+    readonly property string fontFamily: Qt.platform.os === "windows"
+                                         ? "Microsoft YaHei UI"
+                                         : (Qt.platform.os === "android" ? "Noto Sans CJK SC" : "PingFang SC")
+
     readonly property color bg: isDark ? "#060A10" : "#F7F9FC"
     readonly property color bgTop: isDark ? "#0B2740" : "#EAF3FA"
     readonly property color bgMid: isDark ? "#081A2A" : "#F3F7FB"

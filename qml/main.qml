@@ -30,6 +30,9 @@ ApplicationWindow {
     visible: !startInTray
     title: qsTr("TimeArc")
     color: "#F6F1EA"
+    font.family: Qt.platform.os === "windows"
+                 ? "Microsoft YaHei UI"
+                 : (Qt.platform.os === "android" ? "Noto Sans CJK SC" : "PingFang SC")
 
     function restoreFromTray() {
         visible = true
