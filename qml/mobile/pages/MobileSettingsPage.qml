@@ -8,7 +8,7 @@ Rectangle {
 
     signal darkModeChanged(bool enabled)
 
-    color: "#07131F"
+    color: theme.bg
 
     property bool autoSync: true
     property bool mergeDevices: true
@@ -78,9 +78,9 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.00; color: "#0B263A" }
-            GradientStop { position: 0.42; color: "#0A1928" }
-            GradientStop { position: 1.00; color: "#07131F" }
+            GradientStop { position: 0.00; color: root.theme.bgTop }
+            GradientStop { position: 0.38; color: root.theme.bgMid }
+            GradientStop { position: 1.00; color: root.theme.bgBottom }
         }
     }
 
@@ -97,6 +97,7 @@ Rectangle {
             width: parent.width
             height: parent.height - y
             clip: true
+            boundsBehavior: Flickable.StopAtBounds
             contentHeight: content.implicitHeight + 24
 
             Column {
@@ -107,11 +108,21 @@ Rectangle {
 
                 Rectangle {
                     width: parent.width
-                    height: 168
+                    height: 156
                     radius: 24
-                    color: "#132538DD"
-                    border.color: "#FFFFFF18"
+                    color: root.theme.card
+                    border.color: root.theme.borderSoft
                     border.width: 1
+                    clip: true
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        height: 78
+                        color: root.theme.accentSoft
+                        opacity: root.theme.isDark ? 0.22 : 0.82
+                    }
 
                     Row {
                         anchors.fill: parent
@@ -119,31 +130,33 @@ Rectangle {
                         spacing: 14
 
                         Rectangle {
-                            width: 72
-                            height: 72
-                            radius: 36
-                            color: "#EAF8FF"
+                            width: 68
+                            height: 68
+                            radius: 34
+                            color: root.theme.cardElevated
+                            border.color: root.theme.border
+                            border.width: 1
                             anchors.verticalCenter: parent.verticalCenter
 
                             Text {
                                 anchors.centerIn: parent
                                 text: "T"
-                                color: "#0B1C2B"
-                                font.pixelSize: 36
+                                color: root.theme.accentText
+                                font.pixelSize: 33
                                 font.weight: Font.Bold
                             }
                         }
 
                         Column {
-                            width: parent.width - 86
+                            width: parent.width - 82
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 8
 
                             Text {
                                 width: parent.width
                                 text: "TimeArc Mobile"
-                                color: "#FFFFFF"
-                                font.pixelSize: 24
+                                color: root.theme.textPrimary
+                                font.pixelSize: 23
                                 font.weight: Font.DemiBold
                                 elide: Text.ElideRight
                             }
@@ -151,7 +164,7 @@ Rectangle {
                             Text {
                                 width: parent.width
                                 text: "记录 " + (root.totalDashboard.activeDays || 0) + " 天 · 累计 " + (root.totalDashboard.totalText || "0s")
-                                color: "#B8CAD8"
+                                color: root.theme.textSecondary
                                 font.pixelSize: 13
                                 elide: Text.ElideRight
                             }
@@ -159,7 +172,7 @@ Rectangle {
                             Text {
                                 width: parent.width
                                 text: root.usageStatusText()
-                                color: "#8DE8F2"
+                                color: root.theme.accentText
                                 font.pixelSize: 12
                                 elide: Text.ElideRight
                             }
@@ -174,18 +187,21 @@ Rectangle {
 
                     StatusTile {
                         width: (parent.width - 20) / 3
+                        theme: root.theme
                         label: "权限"
                         value: root.usageAccessText()
                     }
 
                     StatusTile {
                         width: (parent.width - 20) / 3
+                        theme: root.theme
                         label: "数据库"
                         value: "SQLite"
                     }
 
                     StatusTile {
                         width: (parent.width - 20) / 3
+                        theme: root.theme
                         label: "应用"
                         value: "" + (root.totalDashboard.appCount || 0)
                     }
@@ -193,6 +209,7 @@ Rectangle {
 
                 SettingsGroup {
                     width: parent.width
+                    theme: root.theme
                     title: "安卓使用数据"
                     rows: [
                         { "label": "使用情况访问权限", "desc": "打开系统 Usage Access 授权页", "value": root.usageAccessText(), "action": "usageAccess" },
@@ -203,6 +220,7 @@ Rectangle {
 
                 SettingsGroup {
                     width: parent.width
+                    theme: root.theme
                     title: "呈现与隐私"
                     rows: [
                         { "label": "跨设备合并", "desc": "后续与桌面端累计计算后统一展示", "switchKey": "mergeDevices" },
@@ -213,17 +231,18 @@ Rectangle {
 
                 SettingsGroup {
                     width: parent.width
+                    theme: root.theme
                     title: "外观"
                     rows: [
-                        { "label": "深色模式", "desc": "移动端沉浸背景与高对比文字", "switchKey": "darkMode" },
-                        { "label": "主页样式", "desc": "个人页 + 使用排行", "value": "移动端" }
+                        { "label": "白色模式", "desc": "切换为冷白背景与深色文字", "switchKey": "lightMode" },
+                        { "label": "主页样式", "desc": "应用卡牌 + 下滑排行", "value": "卡牌" }
                     ]
                 }
 
                 Text {
                     width: parent.width
                     text: "TimeArc · Android UsageStats · 本地优先"
-                    color: "#8FA4B7"
+                    color: root.theme.textMuted
                     font.pixelSize: 11
                     horizontalAlignment: Text.AlignHCenter
                     topPadding: 4
@@ -239,8 +258,8 @@ Rectangle {
             return mergeDevices
         if (key === "hideDesktopTitles")
             return hideDesktopTitles
-        if (key === "darkMode")
-            return theme.isDark
+        if (key === "lightMode")
+            return !theme.isDark
         return false
     }
 
@@ -251,8 +270,8 @@ Rectangle {
             mergeDevices = value
         else if (key === "hideDesktopTitles")
             hideDesktopTitles = value
-        else if (key === "darkMode")
-            darkModeChanged(value)
+        else if (key === "lightMode")
+            darkModeChanged(!value)
     }
 
     function runAction(action) {
@@ -263,12 +282,13 @@ Rectangle {
     }
 
     component StatusTile: Rectangle {
+        required property var theme
         property string label: ""
         property string value: ""
 
         radius: 18
-        color: "#142235DD"
-        border.color: "#FFFFFF12"
+        color: theme.card
+        border.color: theme.borderSoft
         border.width: 1
 
         Column {
@@ -279,7 +299,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: label
-                color: "#8FA4B7"
+                color: theme.textMuted
                 font.pixelSize: 11
                 elide: Text.ElideRight
             }
@@ -287,7 +307,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: value
-                color: "#FFFFFF"
+                color: theme.textPrimary
                 font.pixelSize: 14
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
@@ -298,6 +318,7 @@ Rectangle {
     component SettingsGroup: Column {
         id: group
 
+        required property var theme
         property string title: ""
         property var rows: []
 
@@ -306,7 +327,7 @@ Rectangle {
         Text {
             width: parent.width
             text: group.title
-            color: "#FFFFFF"
+            color: group.theme.textPrimary
             font.pixelSize: 17
             font.weight: Font.DemiBold
         }
@@ -315,8 +336,8 @@ Rectangle {
             width: parent.width
             height: rowsColumn.implicitHeight
             radius: 20
-            color: "#101B29DD"
-            border.color: "#FFFFFF14"
+            color: group.theme.card
+            border.color: group.theme.borderSoft
             border.width: 1
 
             Column {
@@ -327,7 +348,10 @@ Rectangle {
                     model: group.rows
 
                     SettingRow {
+                        required property var modelData
+
                         width: rowsColumn.width
+                        theme: group.theme
                         label: modelData.label
                         desc: modelData.desc
                         value: modelData.value || ""
@@ -345,6 +369,7 @@ Rectangle {
     }
 
     component SettingRow: Item {
+        required property var theme
         property string label: ""
         property string desc: ""
         property string value: ""
@@ -371,7 +396,7 @@ Rectangle {
                 Text {
                     width: parent.width
                     text: label
-                    color: "#FFFFFF"
+                    color: theme.textPrimary
                     font.pixelSize: 14
                     font.weight: Font.Medium
                     elide: Text.ElideRight
@@ -380,7 +405,7 @@ Rectangle {
                 Text {
                     width: parent.width
                     text: desc
-                    color: "#8FA4B7"
+                    color: theme.textMuted
                     font.pixelSize: 12
                     elide: Text.ElideRight
                 }
@@ -401,7 +426,7 @@ Rectangle {
                 width: 82
                 anchors.verticalCenter: parent.verticalCenter
                 text: hasArrow ? "›" : value
-                color: hasArrow ? "#8FA4B7" : "#D7E6F0"
+                color: hasArrow ? theme.textMuted : theme.textSecondary
                 font.pixelSize: hasArrow ? 24 : 12
                 horizontalAlignment: Text.AlignRight
                 elide: Text.ElideRight

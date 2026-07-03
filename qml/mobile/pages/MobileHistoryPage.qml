@@ -6,7 +6,7 @@ Rectangle {
 
     required property var theme
 
-    color: "#07131F"
+    color: theme.bg
 
     property var monthDashboard: emptyDashboard()
     property var yearDashboard: emptyDashboard()
@@ -61,9 +61,9 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.00; color: "#0B263A" }
-            GradientStop { position: 0.42; color: "#0A1928" }
-            GradientStop { position: 1.00; color: "#07131F" }
+            GradientStop { position: 0.00; color: root.theme.bgTop }
+            GradientStop { position: 0.42; color: root.theme.bgMid }
+            GradientStop { position: 1.00; color: root.theme.bgBottom }
         }
     }
 
@@ -91,7 +91,7 @@ Rectangle {
                 Text {
                     width: parent.width
                     text: "记忆湖"
-                    color: "#FFFFFF"
+                    color: root.theme.textPrimary
                     font.pixelSize: 30
                     font.weight: Font.DemiBold
                 }
@@ -99,7 +99,7 @@ Rectangle {
                 Text {
                     width: parent.width
                     text: "先沿用桌面端月度报告的组织方式，把安卓端使用时长变成可回看的时间报告。"
-                    color: "#B8CAD8"
+                    color: root.theme.textSecondary
                     font.pixelSize: 13
                     wrapMode: Text.WordWrap
                     lineHeight: 1.3
@@ -138,8 +138,8 @@ Rectangle {
                     width: parent.width
                     height: lakeList.implicitHeight + 28
                     radius: 20
-                    color: "#101B29DD"
-                    border.color: "#FFFFFF14"
+                    color: root.theme.card
+                    border.color: root.theme.borderSoft
                     border.width: 1
 
                     Column {
@@ -156,7 +156,7 @@ Rectangle {
                             Text {
                                 width: parent.width - 90
                                 text: "报告片段"
-                                color: "#FFFFFF"
+                                color: root.theme.textPrimary
                                 font.pixelSize: 18
                                 font.weight: Font.DemiBold
                             }
@@ -164,7 +164,7 @@ Rectangle {
                             Text {
                                 width: 90
                                 text: "预览"
-                                color: "#8FA4B7"
+                                color: root.theme.textMuted
                                 font.pixelSize: 12
                                 horizontalAlignment: Text.AlignRight
                             }
@@ -207,8 +207,8 @@ Rectangle {
 
         height: 190
         radius: 24
-        color: "#14273ADD"
-        border.color: "#FFFFFF18"
+        color: root.theme.card
+        border.color: root.theme.borderSoft
         border.width: 1
 
         Rectangle {
@@ -216,8 +216,8 @@ Rectangle {
             radius: parent.radius
             opacity: 0.65
             gradient: Gradient {
-                GradientStop { position: 0.0; color: "#2E7196" }
-                GradientStop { position: 1.0; color: "#14273A00" }
+                GradientStop { position: 0.0; color: root.theme.accentSoft }
+                GradientStop { position: 1.0; color: "transparent" }
             }
         }
 
@@ -228,7 +228,7 @@ Rectangle {
 
             Text {
                 text: badge
-                color: "#DDF8FF"
+                color: root.theme.accentText
                 font.pixelSize: 13
                 font.weight: Font.Medium
             }
@@ -236,7 +236,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: title
-                color: "#FFFFFF"
+                color: root.theme.textPrimary
                 font.pixelSize: 27
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
@@ -245,7 +245,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: subtitle
-                color: "#C8D8E5"
+                color: root.theme.textSecondary
                 font.pixelSize: 13
                 wrapMode: Text.WordWrap
             }
@@ -255,7 +255,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: total + " · " + detail
-                color: "#FFFFFF"
+                color: root.theme.textPrimary
                 font.pixelSize: 15
                 font.weight: Font.Medium
                 elide: Text.ElideRight
@@ -269,8 +269,8 @@ Rectangle {
         property string desc: ""
 
         radius: 18
-        color: "#152335DD"
-        border.color: "#FFFFFF12"
+        color: root.theme.card
+        border.color: root.theme.borderSoft
         border.width: 1
 
         Column {
@@ -281,7 +281,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: label
-                color: "#8FA4B7"
+                color: root.theme.textMuted
                 font.pixelSize: 12
                 elide: Text.ElideRight
             }
@@ -289,7 +289,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: value
-                color: "#FFFFFF"
+                color: root.theme.textPrimary
                 font.pixelSize: 22
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
@@ -298,7 +298,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: desc
-                color: "#B8CAD8"
+                color: root.theme.textSecondary
                 font.pixelSize: 12
                 elide: Text.ElideRight
             }
@@ -320,13 +320,13 @@ Rectangle {
                 width: 42
                 height: 42
                 radius: 14
-                color: "#EAF8FF"
+                color: root.theme.accentSoft
                 anchors.verticalCenter: parent.verticalCenter
 
                 Text {
                     anchors.centerIn: parent
                     text: token
-                    color: "#0B1C2B"
+                    color: root.theme.accentText
                     font.pixelSize: 15
                     font.weight: Font.Bold
                 }
@@ -340,7 +340,7 @@ Rectangle {
                 Text {
                     width: parent.width
                     text: title
-                    color: "#FFFFFF"
+                    color: root.theme.textPrimary
                     font.pixelSize: 15
                     font.weight: Font.Medium
                     elide: Text.ElideRight
@@ -349,7 +349,7 @@ Rectangle {
                 Text {
                     width: parent.width
                     text: desc
-                    color: "#8FA4B7"
+                    color: root.theme.textMuted
                     font.pixelSize: 12
                     elide: Text.ElideRight
                 }
@@ -359,7 +359,7 @@ Rectangle {
                 width: 24
                 height: parent.height
                 text: "›"
-                color: "#8FA4B7"
+                color: root.theme.textMuted
                 font.pixelSize: 26
                 horizontalAlignment: Text.AlignRight
                 verticalAlignment: Text.AlignVCenter

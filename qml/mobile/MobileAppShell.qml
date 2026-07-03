@@ -10,6 +10,19 @@ Rectangle {
     property string currentTab: "home"
     property int topReserve: 0
 
+    function loadThemePreference() {
+        if (typeof settingsRepository === "undefined" || !settingsRepository)
+            return
+        var mode = settingsRepository.getValue("mobile_theme_mode", "dark")
+        mobileTheme.isDark = mode !== "light"
+    }
+
+    function setDarkMode(enabled) {
+        mobileTheme.isDark = enabled
+        if (typeof settingsRepository !== "undefined" && settingsRepository)
+            settingsRepository.setValue("mobile_theme_mode", enabled ? "dark" : "light")
+    }
+
     function ensureUsageAccessOnboarding() {
         if (typeof mobileUsageService === "undefined" || !mobileUsageService)
             return
@@ -54,6 +67,7 @@ Rectangle {
     }
 
     Component.onCompleted: {
+        root.loadThemePreference()
         root.ensureUsageAccessOnboarding()
     }
 
@@ -137,7 +151,7 @@ Rectangle {
         MobileSettingsPage {
             theme: mobileTheme
             onDarkModeChanged: function(enabled) {
-                mobileTheme.isDark = enabled
+                root.setDarkMode(enabled)
             }
         }
     }

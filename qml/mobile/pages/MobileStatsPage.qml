@@ -6,7 +6,7 @@ Rectangle {
 
     required property var theme
 
-    color: "#07131F"
+    color: theme.bg
 
     property int selectedSegment: 1
     property var periods: [
@@ -56,6 +56,11 @@ Rectangle {
         return "file:///" + value
     }
 
+    function rankText(index) {
+        var n = index + 1
+        return n < 10 ? "0" + n : "" + n
+    }
+
     Component.onCompleted: reloadDashboard()
 
     Connections {
@@ -73,9 +78,9 @@ Rectangle {
     Rectangle {
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.00; color: "#0B263A" }
-            GradientStop { position: 0.36; color: "#0A1827" }
-            GradientStop { position: 1.00; color: "#07131F" }
+            GradientStop { position: 0.00; color: root.theme.bgTop }
+            GradientStop { position: 0.40; color: root.theme.bgMid }
+            GradientStop { position: 1.00; color: root.theme.bgBottom }
         }
     }
 
@@ -92,6 +97,7 @@ Rectangle {
             width: parent.width
             height: parent.height - y
             clip: true
+            boundsBehavior: Flickable.StopAtBounds
             contentHeight: content.implicitHeight + 24
 
             Column {
@@ -103,15 +109,15 @@ Rectangle {
                 Text {
                     width: parent.width
                     text: "统计"
-                    color: "#FFFFFF"
-                    font.pixelSize: 30
+                    color: root.theme.textPrimary
+                    font.pixelSize: 29
                     font.weight: Font.DemiBold
                 }
 
                 Text {
                     width: parent.width
-                    text: "Android UsageStats 写入数据库后的聚合视图"
-                    color: "#B8CAD8"
+                    text: "按系统 UsageStats 写入数据库后的聚合结果查看应用使用时间。"
+                    color: root.theme.textSecondary
                     font.pixelSize: 13
                     wrapMode: Text.WordWrap
                 }
@@ -121,6 +127,7 @@ Rectangle {
                     height: 42
                     contentWidth: periodRow.implicitWidth
                     interactive: contentWidth > width
+                    boundsBehavior: Flickable.StopAtBounds
                     clip: true
 
                     Row {
@@ -132,6 +139,10 @@ Rectangle {
                             model: root.periods
 
                             RangeTab {
+                                required property var modelData
+                                required property int index
+
+                                theme: root.theme
                                 label: modelData.label
                                 active: index === root.selectedSegment
                                 onClicked: {
@@ -145,11 +156,21 @@ Rectangle {
 
                 Rectangle {
                     width: parent.width
-                    height: 178
+                    height: 176
                     radius: 22
-                    color: "#122133DD"
-                    border.color: "#FFFFFF18"
+                    color: root.theme.card
+                    border.color: root.theme.borderSoft
                     border.width: 1
+
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        height: 74
+                        radius: parent.radius
+                        color: root.theme.accentSoft
+                        opacity: root.theme.isDark ? 0.18 : 0.82
+                    }
 
                     Column {
                         anchors.fill: parent
@@ -159,14 +180,14 @@ Rectangle {
                         Text {
                             width: parent.width
                             text: root.periods[root.selectedSegment].label + "使用时间"
-                            color: "#B8CAD8"
+                            color: root.theme.textSecondary
                             font.pixelSize: 13
                         }
 
                         Text {
                             width: parent.width
                             text: root.dashboard.totalText || "0s"
-                            color: "#FFFFFF"
+                            color: root.theme.textPrimary
                             font.pixelSize: 42
                             font.weight: Font.Bold
                             elide: Text.ElideRight
@@ -175,7 +196,7 @@ Rectangle {
                         Text {
                             width: parent.width
                             text: root.dashboard.empty ? (root.dashboard.syncStatusText || "等待数据同步") : "已按应用合并排行，避免跨天重复显示"
-                            color: root.dashboard.empty ? "#B8CAD8" : "#8DE8F2"
+                            color: root.dashboard.empty ? root.theme.textSecondary : root.theme.accentText
                             font.pixelSize: 13
                             wrapMode: Text.WordWrap
                         }
@@ -189,18 +210,21 @@ Rectangle {
 
                     StatTile {
                         width: (parent.width - 20) / 3
+                        theme: root.theme
                         label: "记录天数"
                         value: "" + (root.dashboard.activeDays || 0)
                     }
 
                     StatTile {
                         width: (parent.width - 20) / 3
+                        theme: root.theme
                         label: "应用数"
                         value: "" + (root.dashboard.appCount || 0)
                     }
 
                     StatTile {
                         width: (parent.width - 20) / 3
+                        theme: root.theme
                         label: "日均"
                         value: root.dashboard.averageDailyText || "0s"
                     }
@@ -210,8 +234,8 @@ Rectangle {
                     width: parent.width
                     height: appListColumn.implicitHeight + 28
                     radius: 20
-                    color: "#101B29DD"
-                    border.color: "#FFFFFF14"
+                    color: root.theme.card
+                    border.color: root.theme.borderSoft
                     border.width: 1
 
                     Column {
@@ -228,7 +252,7 @@ Rectangle {
                             Text {
                                 width: parent.width - 90
                                 text: "应用排行"
-                                color: "#FFFFFF"
+                                color: root.theme.textPrimary
                                 font.pixelSize: 18
                                 font.weight: Font.DemiBold
                             }
@@ -236,7 +260,7 @@ Rectangle {
                             Text {
                                 width: 90
                                 text: root.periods[root.selectedSegment].label
-                                color: "#8FA4B7"
+                                color: root.theme.textMuted
                                 font.pixelSize: 12
                                 horizontalAlignment: Text.AlignRight
                             }
@@ -246,7 +270,7 @@ Rectangle {
                             width: parent.width
                             visible: root.topApps.length === 0
                             text: "暂无安卓使用时长。授权后回到 TimeArc，系统数据会同步到本地 SQLite。"
-                            color: "#B8CAD8"
+                            color: root.theme.textSecondary
                             font.pixelSize: 13
                             wrapMode: Text.WordWrap
                         }
@@ -255,8 +279,13 @@ Rectangle {
                             model: root.topApps
 
                             AppStatRow {
+                                required property var modelData
+                                required property int index
+
                                 width: parent.width
+                                theme: root.theme
                                 app: modelData
+                                rank: root.rankText(index)
                                 iconUrl: root.iconSource(modelData.appIconPath)
                             }
                         }
@@ -269,6 +298,7 @@ Rectangle {
     component RangeTab: Rectangle {
         id: tab
 
+        required property var theme
         property string label: ""
         property bool active: false
         signal clicked()
@@ -276,14 +306,14 @@ Rectangle {
         width: Math.max(58, label.length * 20)
         height: 34
         radius: 17
-        color: active ? "#EAF8FF" : "#FFFFFF12"
-        border.color: active ? "#EAF8FF" : "#FFFFFF18"
+        color: active ? theme.accent : theme.card
+        border.color: active ? theme.accentBorder : theme.borderSoft
         border.width: 1
 
         Text {
             anchors.centerIn: parent
             text: tab.label
-            color: tab.active ? "#0B1C2B" : "#D7E6F0"
+            color: tab.active ? (theme.isDark ? "#06101A" : "#FFFFFF") : theme.textSecondary
             font.pixelSize: 13
             font.weight: tab.active ? Font.DemiBold : Font.Medium
         }
@@ -295,12 +325,13 @@ Rectangle {
     }
 
     component StatTile: Rectangle {
+        required property var theme
         property string label: ""
         property string value: ""
 
         radius: 18
-        color: "#152335DD"
-        border.color: "#FFFFFF12"
+        color: theme.card
+        border.color: theme.borderSoft
         border.width: 1
 
         Column {
@@ -311,7 +342,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: label
-                color: "#8FA4B7"
+                color: theme.textMuted
                 font.pixelSize: 12
                 elide: Text.ElideRight
             }
@@ -319,7 +350,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: value
-                color: "#FFFFFF"
+                color: theme.textPrimary
                 font.pixelSize: 20
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
@@ -328,8 +359,10 @@ Rectangle {
     }
 
     component AppStatRow: Item {
+        required property var theme
         property var app: ({})
         property string iconUrl: ""
+        property string rank: "01"
 
         height: 58
 
@@ -341,7 +374,7 @@ Rectangle {
                 width: 38
                 height: 38
                 radius: 10
-                color: "#243246"
+                color: theme.cardElevated
                 anchors.verticalCenter: parent.verticalCenter
                 clip: true
 
@@ -360,21 +393,21 @@ Rectangle {
                     anchors.centerIn: parent
                     visible: !appIcon.visible
                     text: app.initial || "?"
-                    color: "#DDF8FF"
+                    color: theme.accentText
                     font.pixelSize: 13
                     font.weight: Font.DemiBold
                 }
             }
 
             Column {
-                width: parent.width - 110
+                width: parent.width - 126
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 6
 
                 Text {
                     width: parent.width
                     text: app.displayName || app.packageName || "未知应用"
-                    color: "#FFFFFF"
+                    color: theme.textPrimary
                     font.pixelSize: 14
                     font.weight: Font.Medium
                     elide: Text.ElideRight
@@ -384,26 +417,39 @@ Rectangle {
                     width: parent.width
                     height: 5
                     radius: 3
-                    color: "#314052"
+                    color: theme.rankTrack
 
                     Rectangle {
                         width: parent.width * Math.max(0.04, Math.min(1, (app.sharePct || 0) / 100))
                         height: parent.height
                         radius: parent.radius
-                        color: "#8DE8F2"
+                        color: theme.accent
                     }
                 }
             }
 
-            Text {
-                width: 62
+            Column {
+                width: 78
                 anchors.verticalCenter: parent.verticalCenter
-                text: app.durationText || "0s"
-                color: "#EAF8FF"
-                font.pixelSize: 13
-                font.weight: Font.DemiBold
-                horizontalAlignment: Text.AlignRight
-                elide: Text.ElideRight
+                spacing: 4
+
+                Text {
+                    width: parent.width
+                    text: app.durationText || "0s"
+                    color: theme.textPrimary
+                    font.pixelSize: 13
+                    font.weight: Font.DemiBold
+                    horizontalAlignment: Text.AlignRight
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    width: parent.width
+                    text: rank
+                    color: theme.textMuted
+                    font.pixelSize: 11
+                    horizontalAlignment: Text.AlignRight
+                }
             }
         }
     }
