@@ -121,6 +121,7 @@ bool AppRepository::upsertApp(const QString& appIdentifier,
       appName.trimmed().isEmpty() ? normalizedIdentifier : appName;
   const QString normalizedDisplayName =
       displayName.trimmed().isEmpty() ? normalizedAppName : displayName;
+  const QString normalizedIconPath = iconPath.trimmed();
   const QString normalizedPlatform =
       platform.trimmed().isEmpty() ? QStringLiteral("windows") : platform;
   const qint64 now = QDateTime::currentSecsSinceEpoch();
@@ -152,7 +153,11 @@ INSERT INTO apps (
 ON CONFLICT(app_identifier) DO UPDATE SET
     app_name = excluded.app_name,
     display_name = excluded.display_name,
-    app_icon_path = excluded.app_icon_path,
+    app_icon_path = CASE
+        WHEN excluded.app_icon_path IS NULL OR excluded.app_icon_path = ''
+            THEN apps.app_icon_path
+        ELSE excluded.app_icon_path
+    END,
     executable_path = excluded.executable_path,
     platform = excluded.platform,
     updated_at = excluded.updated_at;
@@ -164,7 +169,7 @@ ON CONFLICT(app_identifier) DO UPDATE SET
   query.bindValue(QStringLiteral(":app_identifier"), normalizedIdentifier);
   query.bindValue(QStringLiteral(":app_name"), normalizedAppName);
   query.bindValue(QStringLiteral(":display_name"), normalizedDisplayName);
-  query.bindValue(QStringLiteral(":app_icon_path"), iconPath);
+  query.bindValue(QStringLiteral(":app_icon_path"), normalizedIconPath);
   query.bindValue(QStringLiteral(":executable_path"), executablePath);
   query.bindValue(QStringLiteral(":platform"), normalizedPlatform);
   query.bindValue(QStringLiteral(":created_at"), now);

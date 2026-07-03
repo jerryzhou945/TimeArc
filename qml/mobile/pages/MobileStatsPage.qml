@@ -17,6 +17,18 @@ Rectangle {
     property var dashboard: ({ "totalText": "0s", "topApps": [], "empty": true })
     property var topApps: dashboard.topApps || []
 
+    function iconSource(path) {
+        var value = (path || "").toString().trim()
+        if (value.length === 0)
+            return ""
+        if (value.indexOf("file://") === 0 || value.indexOf("qrc:/") === 0 || value.indexOf("image://") === 0)
+            return value
+        value = value.replace(/\\/g, "/")
+        if (value.charAt(0) === "/")
+            return "file://" + value
+        return "file:///" + value
+    }
+
     function reloadDashboard() {
         if (typeof mobileUsageService === "undefined" || !mobileUsageService) {
             dashboard = {
@@ -262,9 +274,22 @@ Rectangle {
                                         color: root.theme.cardElevated
                                         border.color: root.theme.border
                                         border.width: 1
+                                        clip: true
+
+                                        Image {
+                                            id: appIcon
+                                            anchors.fill: parent
+                                            anchors.margins: 3
+                                            source: root.iconSource(modelData.appIconPath)
+                                            visible: source !== "" && status !== Image.Error
+                                            fillMode: Image.PreserveAspectFit
+                                            smooth: true
+                                            asynchronous: true
+                                        }
 
                                         Text {
                                             anchors.centerIn: parent
+                                            visible: appIcon.source === "" || appIcon.status === Image.Error
                                             text: modelData.initial
                                             color: root.theme.accent
                                             font.pixelSize: 11

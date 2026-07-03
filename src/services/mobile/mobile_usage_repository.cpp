@@ -163,7 +163,8 @@ bool MobileUsageRepository::upsertDailyUsageSummary(
     qint64 rangeStartUnixSec,
     qint64 rangeEndUnixSec,
     int foregroundSec,
-    const QString& source) {
+    const QString& source,
+    const QString& appIconPath) {
   const QString normalizedPackage = androidPackageForIdentifier(packageName);
   const QString appIdentifier = androidAppIdentifierForPackage(normalizedPackage);
   if (normalizedPackage.isEmpty() || appIdentifier.isEmpty()) {
@@ -186,8 +187,9 @@ bool MobileUsageRepository::upsertDailyUsageSummary(
       appName.trimmed().isEmpty() ? normalizedPackage : appName.trimmed();
   const QString normalizedDisplayName =
       displayName.trimmed().isEmpty() ? normalizedAppName : displayName.trimmed();
+  const QString normalizedAppIconPath = appIconPath.trimmed();
   if (!appRepository.upsertApp(appIdentifier, normalizedAppName,
-                               normalizedDisplayName, QString(),
+                               normalizedDisplayName, normalizedAppIconPath,
                                normalizedPackage, kAndroidPlatform)) {
     return false;
   }
@@ -366,7 +368,8 @@ bool MobileUsageRepository::addUsageSession(const QString& deviceId,
                                             qint64 sessionStartUnixSec,
                                             qint64 sessionEndUnixSec,
                                             const QString& source,
-                                            const QString& confidence) {
+                                            const QString& confidence,
+                                            const QString& appIconPath) {
   const QString normalizedPackage = androidPackageForIdentifier(packageName);
   const QString appIdentifier = androidAppIdentifierForPackage(normalizedPackage);
   if (normalizedPackage.isEmpty() || appIdentifier.isEmpty()) {
@@ -384,8 +387,9 @@ bool MobileUsageRepository::addUsageSession(const QString& deviceId,
       appName.trimmed().isEmpty() ? normalizedPackage : appName.trimmed();
   const QString normalizedDisplayName =
       displayName.trimmed().isEmpty() ? normalizedAppName : displayName.trimmed();
+  const QString normalizedAppIconPath = appIconPath.trimmed();
   if (!appRepository.upsertApp(appIdentifier, normalizedAppName,
-                               normalizedDisplayName, QString(),
+                               normalizedDisplayName, normalizedAppIconPath,
                                normalizedPackage, kAndroidPlatform)) {
     return false;
   }
