@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../components"
+import "../../desktop/components/AppVisual.js" as AppVisual
 
 Rectangle {
     id: root
@@ -90,6 +91,35 @@ Rectangle {
         return Qt.rgba(c.r, c.g, c.b, a)
     }
 
+    function appIdentity(app) {
+        var value = app || ({})
+        return value.appIdentifier || value.packageName || value.displayName || value.appIconPath || "android:timearc"
+    }
+
+    function appDisplayName(app) {
+        var value = app || ({})
+        return value.displayName || value.packageName || "未知应用"
+    }
+
+    function appPath(app) {
+        var value = app || ({})
+        return value.appIconPath || value.packageName || ""
+    }
+
+    function appBaseColor(app) {
+        if ((app || ({})).empty === true)
+            return theme.accent
+        return AppVisual.appColor(appIdentity(app), appDisplayName(app), appPath(app))
+    }
+
+    function appAmbientColor(app) {
+        return AppVisual.ambientTone(appBaseColor(app), theme.isDark)
+    }
+
+    function appCoverColor(app) {
+        return AppVisual.coverTone(appBaseColor(app), theme.isDark)
+    }
+
     Component.onCompleted: reloadDashboard()
 
     Connections {
@@ -106,20 +136,7 @@ Rectangle {
 
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.00; color: root.theme.bgTop }
-            GradientStop { position: 0.42; color: root.theme.bgMid }
-            GradientStop { position: 1.00; color: root.theme.bgBottom }
-        }
-    }
-
-    Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        height: Math.round(parent.height * 0.46)
-        color: root.theme.isDark ? "#123C5D" : "#DCEFF8"
-        opacity: root.theme.isDark ? 0.22 : 0.62
+        color: root.theme.bg
     }
 
     Flickable {
@@ -195,15 +212,15 @@ Rectangle {
                     id: profileStrip
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.top: statusBar.bottom
-                    anchors.topMargin: 54
+                    anchors.topMargin: 48
                     width: parent.width - 42
-                    height: 158
-                    spacing: 7
+                    height: 138
+                    spacing: 5
 
                     Rectangle {
-                        width: 72
-                        height: 72
-                        radius: 36
+                        width: 62
+                        height: 62
+                        radius: 31
                         anchors.horizontalCenter: parent.horizontalCenter
                         color: root.theme.card
                         border.color: root.withAlpha(root.theme.textPrimary, root.theme.isDark ? 0.78 : 0.88)
@@ -213,17 +230,13 @@ Rectangle {
                             anchors.fill: parent
                             anchors.margins: 5
                             radius: width / 2
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: root.theme.isDark ? "#CFE8F5" : "#FFFFFF" }
-                                GradientStop { position: 0.58; color: root.theme.isDark ? "#789EB6" : "#D9EDF8" }
-                                GradientStop { position: 1.0; color: root.theme.isDark ? "#0A1A2A" : "#B7D4E6" }
-                            }
+                            color: root.theme.isDark ? "#DDEAF3" : "#FFFFFF"
                         }
 
                         Rectangle {
-                            width: 26
-                            height: 26
-                            radius: 13
+                            width: 22
+                            height: 22
+                            radius: 11
                             x: parent.width - width + 1
                             y: parent.height - height + 1
                             color: root.theme.card
@@ -235,7 +248,7 @@ Rectangle {
                                 text: "T"
                                 color: root.theme.accentText
                                 font.family: root.theme.fontFamily
-                                font.pixelSize: 14
+                                font.pixelSize: 12
                                 font.weight: Font.Bold
                             }
                         }
@@ -245,7 +258,7 @@ Rectangle {
                             text: "Arc"
                             color: root.theme.isDark ? "#102235" : "#174E72"
                             font.family: root.theme.fontFamily
-                            font.pixelSize: 16
+                            font.pixelSize: 14
                             font.weight: Font.Bold
                         }
                     }
@@ -255,7 +268,7 @@ Rectangle {
                         text: "TimeArc Mobile"
                         color: root.theme.textPrimary
                         font.family: root.theme.fontFamily
-                        font.pixelSize: 24
+                        font.pixelSize: 22
                         font.weight: Font.DemiBold
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
@@ -266,15 +279,15 @@ Rectangle {
                         text: "已使用 TimeArc " + root.activeDays + " 天 · 总共 " + root.totalHours + " 小时"
                         color: root.theme.textSecondary
                         font.family: root.theme.fontFamily
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideRight
                     }
 
                     Rectangle {
                         width: badgeText.implicitWidth + 22
-                        height: 24
-                        radius: 12
+                        height: 22
+                        radius: 11
                         anchors.horizontalCenter: parent.horizontalCenter
                         color: root.withAlpha(root.theme.card, root.theme.isDark ? 0.58 : 0.78)
                         border.color: root.withAlpha(root.theme.accent, 0.30)
@@ -286,7 +299,7 @@ Rectangle {
                             text: "TimeArc 记录徽章"
                             color: root.theme.textSecondary
                             font.family: root.theme.fontFamily
-                            font.pixelSize: 12
+                            font.pixelSize: 11
                         }
                     }
                 }
@@ -298,8 +311,8 @@ Rectangle {
                     anchors.top: profileStrip.bottom
                     anchors.leftMargin: 24
                     anchors.rightMargin: 24
-                    anchors.topMargin: 5
-                    height: 48
+                    anchors.topMargin: 4
+                    height: 44
                     spacing: 0
 
                     ProfileMetric {
@@ -473,7 +486,7 @@ Rectangle {
             width: parent.width
             text: value
             color: root.theme.textPrimary
-            font.family: root.theme.fontFamily
+            font.family: root.theme.numberFontFamily
             font.pixelSize: 18
             font.weight: Font.DemiBold
             horizontalAlignment: Text.AlignHCenter
@@ -532,6 +545,18 @@ Rectangle {
             return Math.max(0, Math.min(100, value.sharePct || 0)) + "%"
         }
 
+        function coverColor() {
+            return root.appCoverColor(safeApp())
+        }
+
+        function ambientColor() {
+            return root.appAmbientColor(safeApp())
+        }
+
+        function edgeColor() {
+            return root.withAlpha(coverColor(), card.theme.isDark ? 0.72 : 0.92)
+        }
+
         scale: selected ? 1.0 : 0.92
         opacity: selected ? 1.0 : 0.58
 
@@ -543,7 +568,7 @@ Rectangle {
             anchors.fill: parent
             anchors.margins: card.faceMargin + 4
             radius: card.faceRadius
-            color: root.withAlpha(card.theme.accent, selected ? 0.08 : 0.0)
+            color: root.withAlpha(card.coverColor(), selected ? (card.theme.isDark ? 0.16 : 0.28) : 0.0)
             border.width: 0
 
             Rectangle {
@@ -598,18 +623,7 @@ Rectangle {
                         anchors.right: parent.right
                         anchors.top: parent.top
                         height: Math.round(parent.height * 0.47)
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: card.theme.isDark ? "#31556A" : "#E4F2F8" }
-                            GradientStop { position: 1.0; color: card.theme.isDark ? "#6D3D46" : "#F5E9EE" }
-                        }
-                    }
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        height: Math.round(parent.height * 0.47)
-                        color: root.withAlpha(card.theme.bgBottom, card.theme.isDark ? 0.10 : 0.18)
+                        color: card.coverColor()
                     }
 
                     Rectangle {
@@ -619,8 +633,8 @@ Rectangle {
                         width: 104
                         height: 104
                         radius: 24
-                        color: card.theme.isDark ? "#C70B121A" : "#D8FFFFFF"
-                        border.color: root.withAlpha(card.theme.textPrimary, card.theme.isDark ? 0.12 : 0.18)
+                        color: root.withAlpha(card.ambientColor(), card.theme.isDark ? 0.84 : 0.92)
+                        border.color: root.withAlpha(card.theme.textPrimary, card.theme.isDark ? 0.14 : 0.20)
                         border.width: 1
                         clip: true
 
@@ -639,7 +653,7 @@ Rectangle {
                             anchors.centerIn: parent
                             visible: !cardIcon.visible
                             text: card.safeApp().initial || "T"
-                            color: card.theme.accentText
+                            color: card.theme.textPrimary
                             font.family: card.theme.fontFamily
                             font.pixelSize: 34
                             font.weight: Font.Bold
@@ -676,8 +690,8 @@ Rectangle {
                             width: timeLabel.implicitWidth + 24
                             height: 42
                             radius: 15
-                            color: card.theme.accentSoft
-                            border.color: card.theme.accentBorder
+                            color: root.withAlpha(card.ambientColor(), card.theme.isDark ? 0.58 : 0.76)
+                            border.color: root.withAlpha(card.edgeColor(), card.theme.isDark ? 0.58 : 0.72)
                             border.width: 1
 
                             Text {
@@ -685,7 +699,7 @@ Rectangle {
                                 anchors.centerIn: parent
                                 text: card.safeApp().durationText || "0s"
                                 color: card.theme.accentText
-                                font.family: card.theme.fontFamily
+                                font.family: card.theme.numberFontFamily
                                 font.pixelSize: 19
                                 font.weight: Font.Bold
                             }
@@ -701,11 +715,7 @@ Rectangle {
                                 width: parent.width * Math.max(0.03, Math.min(1, (card.safeApp().sharePct || 0) / 100))
                                 height: parent.height
                                 radius: parent.radius
-                                gradient: Gradient {
-                                    orientation: Gradient.Horizontal
-                                    GradientStop { position: 0.0; color: card.theme.accent }
-                                    GradientStop { position: 1.0; color: card.theme.isDark ? "#B0A7FF" : "#7B8BE8" }
-                                }
+                                color: card.edgeColor()
                             }
                         }
 
@@ -723,7 +733,7 @@ Rectangle {
                         anchors.fill: parent
                         radius: card.faceRadius
                         color: "transparent"
-                        border.color: card.selected ? card.theme.accentBorder : card.theme.borderSoft
+                        border.color: card.selected ? card.edgeColor() : card.theme.borderSoft
                         border.width: card.selected ? 2 : 1
                     }
                 }
@@ -772,8 +782,8 @@ Rectangle {
                     Rectangle {
                         anchors.fill: parent
                         radius: parent.radius
-                        color: card.theme.accentSoft
-                        opacity: card.theme.isDark ? 0.16 : 0.62
+                        color: card.ambientColor()
+                        opacity: card.theme.isDark ? 0.20 : 0.68
                     }
 
                     Column {
@@ -838,7 +848,7 @@ Rectangle {
                         anchors.fill: parent
                         radius: card.faceRadius
                         color: "transparent"
-                        border.color: card.selected ? card.theme.accentBorder : card.theme.borderSoft
+                        border.color: card.selected ? card.edgeColor() : card.theme.borderSoft
                         border.width: card.selected ? 2 : 1
                     }
                 }
@@ -889,7 +899,7 @@ Rectangle {
             width: parent.width - 54
             text: value
             color: theme.textPrimary
-            font.family: theme.fontFamily
+            font.family: (label === "时长" || label === "占比" || label === "排行") ? theme.numberFontFamily : theme.fontFamily
             font.pixelSize: 13
             font.weight: Font.Medium
             elide: Text.ElideRight
@@ -1010,7 +1020,7 @@ Rectangle {
                     width: parent.width
                     text: app.durationText || "0s"
                     color: theme.textPrimary
-                    font.family: theme.fontFamily
+                    font.family: theme.numberFontFamily
                     font.pixelSize: 15
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
@@ -1021,7 +1031,7 @@ Rectangle {
                     width: parent.width
                     text: rank
                     color: theme.textMuted
-                    font.family: theme.fontFamily
+                    font.family: theme.numberFontFamily
                     font.pixelSize: 12
                     horizontalAlignment: Text.AlignRight
                 }

@@ -7,12 +7,15 @@ QtObject {
 
     readonly property string fontFamily: Qt.platform.os === "windows"
                                          ? "Microsoft YaHei UI"
-                                         : (Qt.platform.os === "android" ? "Noto Sans CJK SC" : "PingFang SC")
+                                         : (Qt.platform.os === "android" ? "HarmonyOS Sans SC" : "PingFang SC")
+    readonly property string numberFontFamily: Qt.platform.os === "windows"
+                                               ? "Bahnschrift"
+                                               : (Qt.platform.os === "android" ? "Roboto" : "DIN Alternate")
 
     readonly property color bg: isDark ? "#060A10" : "#F7F9FC"
-    readonly property color bgTop: isDark ? "#0B2740" : "#EAF3FA"
-    readonly property color bgMid: isDark ? "#081A2A" : "#F3F7FB"
-    readonly property color bgBottom: isDark ? "#060A10" : "#FFFFFF"
+    readonly property color bgTop: bg
+    readonly property color bgMid: bg
+    readonly property color bgBottom: bg
     readonly property color card: isDark ? "#0F1722" : "#FFFFFF"
     readonly property color cardElevated: isDark ? "#162131" : "#EEF3F8"
     readonly property color cardSoft: isDark ? "#101C2A" : "#F4F7FA"

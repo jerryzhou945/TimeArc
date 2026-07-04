@@ -77,11 +77,7 @@ Rectangle {
 
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.00; color: root.theme.bgTop }
-            GradientStop { position: 0.38; color: root.theme.bgMid }
-            GradientStop { position: 1.00; color: root.theme.bgBottom }
-        }
+        color: root.theme.bg
     }
 
     Column {
@@ -308,6 +304,7 @@ Rectangle {
                 width: parent.width
                 text: value
                 color: theme.textPrimary
+                font.family: theme.numberFontFamily
                 font.pixelSize: 14
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight

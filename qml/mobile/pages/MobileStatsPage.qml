@@ -77,11 +77,7 @@ Rectangle {
 
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.00; color: root.theme.bgTop }
-            GradientStop { position: 0.40; color: root.theme.bgMid }
-            GradientStop { position: 1.00; color: root.theme.bgBottom }
-        }
+        color: root.theme.bg
     }
 
     Column {
@@ -188,6 +184,7 @@ Rectangle {
                             width: parent.width
                             text: root.dashboard.totalText || "0s"
                             color: root.theme.textPrimary
+                            font.family: root.theme.numberFontFamily
                             font.pixelSize: 42
                             font.weight: Font.Bold
                             elide: Text.ElideRight
@@ -351,6 +348,7 @@ Rectangle {
                 width: parent.width
                 text: value
                 color: theme.textPrimary
+                font.family: theme.numberFontFamily
                 font.pixelSize: 20
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
@@ -437,6 +435,7 @@ Rectangle {
                     width: parent.width
                     text: app.durationText || "0s"
                     color: theme.textPrimary
+                    font.family: theme.numberFontFamily
                     font.pixelSize: 13
                     font.weight: Font.DemiBold
                     horizontalAlignment: Text.AlignRight
@@ -447,6 +446,7 @@ Rectangle {
                     width: parent.width
                     text: rank
                     color: theme.textMuted
+                    font.family: theme.numberFontFamily
                     font.pixelSize: 11
                     horizontalAlignment: Text.AlignRight
                 }

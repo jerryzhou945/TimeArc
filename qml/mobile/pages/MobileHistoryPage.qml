@@ -60,11 +60,7 @@ Rectangle {
 
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.00; color: root.theme.bgTop }
-            GradientStop { position: 0.42; color: root.theme.bgMid }
-            GradientStop { position: 1.00; color: root.theme.bgBottom }
-        }
+        color: root.theme.bg
     }
 
     Column {
@@ -212,13 +208,13 @@ Rectangle {
         border.width: 1
 
         Rectangle {
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 74
             radius: parent.radius
-            opacity: 0.65
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: root.theme.accentSoft }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
+            color: root.theme.accentSoft
+            opacity: root.theme.isDark ? 0.22 : 0.72
         }
 
         Column {
@@ -290,6 +286,7 @@ Rectangle {
                 width: parent.width
                 text: value
                 color: root.theme.textPrimary
+                font.family: root.theme.numberFontFamily
                 font.pixelSize: 22
                 font.weight: Font.DemiBold
                 elide: Text.ElideRight
