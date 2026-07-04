@@ -829,6 +829,37 @@ int main(int argc, char* argv[]) {
           youtubeIconPath) {
     return fail(QStringLiteral("Mobile usage dashboard top app fields failed."));
   }
+  if (!mobileUsageRepository.upsertDailyUsageSummary(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.spotify.music"),
+          QStringLiteral("Spotify"),
+          QStringLiteral("Spotify"),
+          QStringLiteral("2026-06-30"),
+          1782748800,
+          1782835200,
+          60,
+          QStringLiteral("android_usage_stats_aggregate"),
+          QString())) {
+    return fail(QStringLiteral("Mobile usage second-day summary insert failed."));
+  }
+  const QVariantMap mobileMultiDayDashboard =
+      mobileUsageService.getUsageDashboard(QStringLiteral("2026-06-29"),
+                                           QStringLiteral("2026-06-30"));
+  const QVariantList multiDayApps =
+      mobileMultiDayDashboard.value(QStringLiteral("topApps")).toList();
+  if (mobileMultiDayDashboard.value(QStringLiteral("activeDays")).toInt() != 2 ||
+      mobileMultiDayDashboard.value(QStringLiteral("appCount")).toInt() != 2 ||
+      multiDayApps.size() != 2) {
+    return fail(QStringLiteral("Mobile dashboard app/day aggregation failed."));
+  }
+  const QVariantMap secondDashboardApp = multiDayApps.at(1).toMap();
+  if (secondDashboardApp.value(QStringLiteral("displayName")).toString() !=
+          QStringLiteral("Spotify") ||
+      secondDashboardApp.value(QStringLiteral("foregroundSec")).toInt() != 210 ||
+      secondDashboardApp.value(QStringLiteral("durationText")).toString() !=
+          QStringLiteral("3m")) {
+    return fail(QStringLiteral("Mobile dashboard did not merge app rows."));
+  }
   const QVariantMap androidApp = appRepository.getAppByIdentifier(
       QStringLiteral("android:com.spotify.music"));
   if (androidApp.value(QStringLiteral("platform")).toString() !=

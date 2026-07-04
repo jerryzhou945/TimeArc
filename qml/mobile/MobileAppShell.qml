@@ -1,7 +1,6 @@
 import QtQuick
 import "components"
 import "pages"
-import "../desktop/components/I18n.js" as I18n
 
 Rectangle {
     id: root
@@ -9,7 +8,20 @@ Rectangle {
     color: mobileTheme.bg
 
     property string currentTab: "home"
-    property string languageMode: settingsRepository ? settingsRepository.getValue("language_mode", "zh") : "zh"
+    property int topReserve: 0
+
+    function loadThemePreference() {
+        if (typeof settingsRepository === "undefined" || !settingsRepository)
+            return
+        var mode = settingsRepository.getValue("mobile_theme_mode", "dark")
+        mobileTheme.isDark = mode !== "light"
+    }
+
+    function setDarkMode(enabled) {
+        mobileTheme.isDark = enabled
+        if (typeof settingsRepository !== "undefined" && settingsRepository)
+            settingsRepository.setValue("mobile_theme_mode", enabled ? "dark" : "light")
+    }
 
     function ensureUsageAccessOnboarding() {
         if (typeof mobileUsageService === "undefined" || !mobileUsageService)
@@ -31,8 +43,6 @@ Rectangle {
             mobileUsageService.openUsageAccessSettings()
         }
     }
-    // 无边框窗口顶部预留高度（移动预览默认保留原生边框 ⇒ 0；防御性接收，便于未来移动端 chrome）。
-    property int topReserve: 0
 
     MobileTheme {
         id: mobileTheme
@@ -57,6 +67,7 @@ Rectangle {
     }
 
     Component.onCompleted: {
+        root.loadThemePreference()
         root.ensureUsageAccessOnboarding()
     }
 
@@ -79,7 +90,7 @@ Rectangle {
             MobileTabButton {
                 width: parent.width / 4
                 theme: mobileTheme
-                label: I18n.t(root.languageMode, "首页")
+                label: "首页"
                 iconName: "home"
                 active: root.currentTab === "home"
                 onClicked: root.currentTab = "home"
@@ -88,7 +99,7 @@ Rectangle {
             MobileTabButton {
                 width: parent.width / 4
                 theme: mobileTheme
-                label: I18n.t(root.languageMode, "统计")
+                label: "统计"
                 iconName: "stats"
                 active: root.currentTab === "stats"
                 onClicked: root.currentTab = "stats"
@@ -97,7 +108,7 @@ Rectangle {
             MobileTabButton {
                 width: parent.width / 4
                 theme: mobileTheme
-                label: I18n.t(root.languageMode, "历史")
+                label: "记忆湖"
                 iconName: "history"
                 active: root.currentTab === "history"
                 onClicked: root.currentTab = "history"
@@ -106,7 +117,7 @@ Rectangle {
             MobileTabButton {
                 width: parent.width / 4
                 theme: mobileTheme
-                label: I18n.t(root.languageMode, "设置")
+                label: "我的"
                 iconName: "settings"
                 active: root.currentTab === "settings"
                 onClicked: root.currentTab = "settings"
@@ -140,7 +151,7 @@ Rectangle {
         MobileSettingsPage {
             theme: mobileTheme
             onDarkModeChanged: function(enabled) {
-                mobileTheme.isDark = enabled
+                root.setDarkMode(enabled)
             }
         }
     }
