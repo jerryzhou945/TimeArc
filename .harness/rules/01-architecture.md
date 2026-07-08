@@ -66,7 +66,7 @@ repository layer.
 | `ProjectManager` | `ManualProjectRepository` / SQLite | Manual projects, timer sessions, archive-hidden deletes, range aggregation. |
 | `TimerManager` | in-memory | Manual stopwatch. Commits through `ProjectManager`. |
 | `UsageStatManager` | journal files on disk | Reads service JSONL/current snapshot for the legacy usage surface. |
-| `StatsService` | SQLite repositories | Aggregates foreground, media, and manual project data for desktop summaries. |
+| `StatsService` | service DB read repos + GUI DB manual repo | Aggregates foreground, media, and manual project data for desktop summaries. |
 
 `AppIconImageProvider` is a passive `image://appicon/<path>` provider.
 

@@ -179,10 +179,10 @@ Item {
 
     // —— H5 服务侧配置（空闲超时 / 真停采集）——
     // idle 选单是分钟串（"5"/"10"/…），后台服务要毫秒。两进程经磁盘 usage_config.json
-    // 通信（守 I1，无 IPC）：C++ writeServiceConfig 原子 RMW 写入并保留 D2 的 db_path 键。
+    // 通信（守 I1，无 IPC）：C++ writeServiceConfig 原子 RMW 写入并保留 D2 的 db_dir 键。
     function _idleMs() { return (parseInt(root.idleTimeout) || 5) * 60000 }
     // 返回写盘是否成功：usage_config.json 损坏/不可写时 mergeUsageConfig 拒写并返回
-    // false（守 D2 db_path 键不被覆盖）。调用方据此提示，避免「假成功」。无写入通道
+    // false（守 D2 db_dir 键不被覆盖）。调用方据此提示，避免「假成功」。无写入通道
     // （如平台未绑定）视为 true，不报假失败、保持旧行为。
     function _writeServiceConfig() {
         if (databaseManager && databaseManager.writeServiceConfig)
@@ -508,8 +508,7 @@ Item {
         root.askConfirm(title, "已保存到：\n" + p, "打开文件夹", false,
             function () { Qt.openUrlExternally(root._folderUrlOf(p)) })
     }
-    // D1 备份（整库）：C++ backupDatabase 用 VACUUM INTO 取一致快照写 下载/文档/AppData，
-    // 只读、不扰 live；返回完整路径或空串（失败诚实报错 G6）。
+    // GUI 数据库备份：C++ backupDatabase 用 VACUUM INTO 备份 timearc.db。
     function doBackupDatabase() {
         if (!databaseManager || !databaseManager.backupDatabase) { showToast("备份暂不可用"); return }
         var p = databaseManager.backupDatabase()
@@ -526,28 +525,25 @@ Item {
             return
         }
         var msg = "完整性 " + info.integrity
-                + "\n前台 " + info.frontmostRows + " 条 · 音频 " + info.mediaRows + " 条 · 应用 " + info.appRows + " 个"
-                + "\n时间范围 " + root._unixDate(info.minUnixSec) + " ~ " + root._unixDate(info.maxUnixSec)
-                + "\n\n将用所选备份覆盖当前全部记录，且需先停止后台采集。"
+                + "\n设置 " + info.settingsRows + " 条 · 项目 " + info.manualProjectRows
+                + " 个 · 手动记录 " + info.manualSessionRows + " 条 · 应用 " + info.appRows + " 个"
+                + "\n\n将用所选备份覆盖当前 GUI 数据库（timearc.db）。"
         root.askConfirm("恢复数据库", msg, "恢复", true, function () { root.doRestoreConfirmed("" + fileUrl) })
     }
     function doRestoreConfirmed(fileUrl) {
         if (!databaseManager || !databaseManager.restoreDatabase) { showToast("恢复暂不可用"); return }
         var ok = databaseManager.restoreDatabase("" + fileUrl)
-        if (!ok) showToast("恢复失败：备份无效或数据库被后台采集占用")
+        if (!ok) showToast("恢复失败：备份无效或 GUI 数据库不可替换")
         // 成功路径由 databaseManager.databaseRestored 信号触发重启提示
     }
 
-    // D2 数据位置：选目录把整库迁到用户所选目录（更大磁盘 / 同步盘），并切换两进程共用的
-    // usage_config.json db_path 指针。C++ relocateDatabaseTo 负责原子序（搬+校验新库 → 确认旧库
-    // 未被占用 → 切指针 → 重开 → 任一步失败回滚），UI 只做确认 + 结果反馈（诚实失败 G6）。
+    // D2 服务数据位置：选目录只更新 usage_config.json db_dir 指针。GUI 不移动或写入
+    // timearc_service.db；后台服务会在下次启动时写入该目录。
     function dbLocationText() {
         return (databaseManager && databaseManager.currentDatabaseLocationDir)
             ? ("" + databaseManager.currentDatabaseLocationDir()) : "—"
     }
-    // 迁移/还原前**自动**停止后台采集（settingsRepository.stopBackgroundCollection：优雅停 +
-    // 轮询等到真正释放数据库），再执行迁移。Qt.callLater 让确认弹层先关闭再做这段短暂阻塞活。
-    // 即便停采集失败/服务仍占用，迁移自身的锁探也会诚实失败回退（绝不 split-brain）。
+    // 更新指针前尽量停止后台采集，让下一次启动读取新目录。
     function _stopThenMigrate(migrateFn) {
         Qt.callLater(function () {
             if (settingsRepository && settingsRepository.stopBackgroundCollection)
@@ -557,20 +553,20 @@ Item {
     }
     function onDbFolderChosen(folderUrl) {
         if (!databaseManager || !databaseManager.relocateDatabaseTo) { showToast("迁移暂不可用"); return }
-        root.askConfirm("迁移数据库位置",
-            "将把整个使用数据库迁移到所选目录，并切换两进程共用的数据库位置指针。\n迁移会自动先停止后台采集；完成后请按提示重启应用以恢复采集。",
-            "迁移", true, function () { root._stopThenMigrate(function () { return databaseManager.relocateDatabaseTo("" + folderUrl) }) })
+        root.askConfirm("设置服务数据库目录",
+            "将把后台服务数据库目录切换到所选位置。GUI 不移动现有数据库文件；后台服务会在重启后写入该目录。",
+            "设置", true, function () { root._stopThenMigrate(function () { return databaseManager.relocateDatabaseTo("" + folderUrl) }) })
     }
     function doRestoreDefaultLocation() {
         if (!databaseManager || !databaseManager.restoreDefaultDatabaseLocation) { showToast("迁移暂不可用"); return }
         root.askConfirm("还原默认数据库位置",
-            "将把数据库迁回默认位置并清除位置指针。会自动先停止后台采集，完成后请重启应用。",
+            "将清除服务数据库目录指针，后台服务下次启动会回到默认位置。",
             "还原", true, function () { root._stopThenMigrate(function () { return databaseManager.restoreDefaultDatabaseLocation() }) })
     }
     function _afterRelocate(res) {
         if (res && res.ok) {
             root.askConfirm("迁移成功",
-                "数据库已迁移到：\n" + res.newPath
+                "服务数据库位置已设置为：\n" + res.newPath
                     + "\n\n需要重启应用（并重启后台采集）以让两进程加载新位置，是否立即退出？",
                 "立即退出", false, function () { Qt.quit() })
         } else {
@@ -1546,12 +1542,12 @@ Item {
                                 }
                             }
 
-                            // D2：数据库位置（用户可选目录 + 安全迁移 + 还原默认）
+                            // D2：服务数据库目录（用户可选目录 + 还原默认）
                             SettingsCard {
                                 badge: "⇧"; wide: true
-                                cardTitle: "数据库位置"
-                                cardDesc: "把整个使用数据库迁到所选目录（更大的磁盘 / 同步盘），并切换两进程共用的位置指针；全程安全可回滚。迁移会自动停止后台采集，完成后请重启应用。"
-                                keywords: "数据库 位置 迁移 路径 磁盘 db_path 重定向 relocate 移动"
+                                cardTitle: "服务数据库目录"
+                                cardDesc: "选择后台服务写入 timearc_service.db 的目录；GUI 只更新位置指针，不移动数据库文件。完成后请重启采集。"
+                                keywords: "数据库 位置 目录 路径 磁盘 db_dir 重定向 service"
 
                                 Rectangle {
                                     Layout.fillWidth: true
@@ -1574,7 +1570,7 @@ Item {
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
-                                    GhostBtn { label: "迁移到…"; primary: true; onTapped: dbFolderDialog.open() }
+                                    GhostBtn { label: "设置目录…"; primary: true; onTapped: dbFolderDialog.open() }
                                     GhostBtn {
                                         label: "还原默认位置"
                                         opacity: enabled ? 1 : 0.45

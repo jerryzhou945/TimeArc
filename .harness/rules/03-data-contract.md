@@ -10,39 +10,45 @@ is a bug.
 
 ## 1. Files on disk
 
-Root directory from `usage_paths.c`:
-- Windows: `%LOCALAPPDATA%\TimeArc\usage\`, fallback `%APPDATA%\TimeArc\usage\`.
-- Unix: `~/.timearc/usage/`.
+The service-owned SQLite history DB lives in the platform service-data directory:
+- Windows: `%APPDATA%\TimeArc\service\timearc_service.db`.
+- macOS: `~/Library/Application Support/TimeArc/service/timearc_service.db`.
+- Linux: `${XDG_DATA_HOME:-~/.local/share}/TimeArc/service/timearc_service.db`.
 
 | Filename                  | Writer                      | Reader         | Shape                               |
 |---------------------------|-----------------------------|----------------|-------------------------------------|
-| `timearc.db`              | service + UI SQLite writers  | **UI (primary history read)** | app/session/settings tables (SQLite) |
+| `timearc_service.db`      | service only                | UI read-only primary history | `apps`, `frontmost_sessions`, `media_sessions` |
+| `timearc.db`              | GUI only                    | GUI            | settings/tags/manual/mobile/UI tables |
 | `usage_records.jsonl`     | service (append)            | UI fallback / import | one JSON record per line, UTF-8 |
 | `usage_current.json`      | service (atomic overwrite)  | UI (poll read) | single JSON record + `live`, `updated_unix_sec` |
 
-SQLite (`timearc.db`) is the UI's **primary** history source as of A1
-(`CHARTER` v0.2). The Qt app uses `QStandardPaths::AppDataLocation`; the Windows
-service mirrors that path as `%APPDATA%\TimeArc\TimeArc\timearc.db`. The service
-still **dual-writes** JSONL (append-only) as a fallback, and the UI falls back
-to JSONL when the DB is missing/empty (and can be forced via
-`TIMEARC_USAGE_SOURCE=jsonl`). The live snapshot stays JSON (no SQLite
-equivalent). Canonical shared-table DDL is owned by `database_manager.cpp`; the
-service inline DDL must stay column-compatible (asserted by `tests/db_smoke.cpp`).
-The enable-before JSONL tail was backfilled once into SQLite (idempotent,
-`usage_jsonl_backfill_v1_done`). JSONL retirement is a future milestone (A1 S5).
+SQLite (`timearc_service.db`) is the UI's **primary** history source as of A1
+(`CHARTER` v0.2), but as of `CHARTER` v0.6 the service is its only writer. The
+service and UI resolve it through the same `usage_config.json` `db_dir` pointer,
+then append the locked filename. The UI opens it read-only and falls back to JSONL
+when the DB is missing/empty (and can be forced via `TIMEARC_USAGE_SOURCE=jsonl`).
+The live snapshot stays JSON (no SQLite equivalent). The GUI's original
+`timearc.db` is separate and GUI-only; it owns settings, tags, manual project
+state, Android/mobile sync tables, and UI app metadata. No process writes the
+other process's SQLite file.
 
-**DB path (D2, `CHARTER` v0.3).** The `timearc.db` path above is the **default** and is
-**redirectable** to a user-chosen location via the `db_path` key in `usage_config.json`,
-read identically by the service (`make_db_path`) and the UI (`databasePath`), with a
-fail-safe fallback to the default when absent/unreadable. Relocation runs with the
-service stopped and keeps a backup (see invariant D1).
+**DB path (D2, `CHARTER` v0.5).** The filename is locked to
+`timearc_service.db`; only the containing directory is configurable via
+`usage_config.json` `db_dir`. The service resolves it through shared
+`get_database_path`, and the UI mirrors the same config-first logic for its
+read-only service-history connection. Absent, unreadable, malformed, or empty
+`db_dir` falls back to the default. A non-empty configured `db_dir` wins; actual
+open/create failures surface at database-open time. GUI "relocation" only writes
+the `db_dir` pointer; it never copies, vacuums, restores, or writes
+`timearc_service.db`. The old `db_path` key is ignored and removed by the next
+UI DB-location write.
 
 **Service config (H5, `CHARTER` v0.4).** `usage_config.json` also carries two UI→service behavior keys
 the service reads at startup (`timearc_read_service_config`): `idle_threshold_ms` (int;
 fills `TimeArcUsageTrackerConfig.idle_threshold_ms`, clamped 1s–24h) and `track_enabled`
 (bool; `false` = the service collects nothing and self-exits — a *true pause*, never a
 deletion). The UI writes them via `DatabaseManager::writeServiceConfig`; both the D2
-db_path writer and the H5 idle/track writer share one atomic read-modify-write
+db_dir writer and the H5 idle/track writer share one atomic read-modify-write
 (`mergeUsageConfig`) that preserves the other's keys. Absent/invalid keys → compile-time
 defaults (fail-safe = today's behavior). This is a sanctioned UI→service direction over
 the same disk channel D2 opened (no IPC; honors I1) and supersedes the earlier

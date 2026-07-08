@@ -11,12 +11,16 @@
 
 namespace {
 
-const QString kConnectionName = QStringLiteral("timearc");
+const QString kConnectionName = QStringLiteral("timearc_service");
 
 QSqlDatabase database() {
-  QSqlDatabase db = QSqlDatabase::database(kConnectionName);
+  if (!QSqlDatabase::contains(kConnectionName)) {
+    qWarning() << "Service history database connection is not available.";
+    return QSqlDatabase();
+  }
+  QSqlDatabase db = QSqlDatabase::database(kConnectionName, false);
   if (!db.isValid() || !db.isOpen()) {
-    qWarning() << "Database is not open.";
+    qWarning() << "Service history database is not open.";
   }
   return db;
 }
@@ -74,76 +78,15 @@ bool FrontmostSessionRepository::addFrontmostSession(
     int durationSec,
     int activeSec,
     int idleSec) {
-  const QString normalizedIdentifier = appIdentifier.trimmed();
-  if (normalizedIdentifier.isEmpty()) {
-    qWarning() << "Cannot add frontmost session with empty app_identifier.";
-    return false;
-  }
-
-  if (!validateRange(startUnixSec, endUnixSec)) return false;
-
-  if (durationSec < 0 || activeSec < 0 || idleSec < 0) {
-    qWarning() << "Frontmost session duration values cannot be negative:"
-               << durationSec << activeSec << idleSec;
-    return false;
-  }
-
-  const int correctedDurationSec =
-      static_cast<int>(endUnixSec - startUnixSec);
-  const qint64 now = QDateTime::currentSecsSinceEpoch();
-
-  QSqlDatabase db = database();
-  if (!db.isValid() || !db.isOpen()) return false;
-
-  QSqlQuery query(db);
-  if (!query.prepare(QStringLiteral(R"SQL(
-INSERT OR IGNORE INTO frontmost_sessions (
-    app_identifier,
-    window_title,
-    start_unix_sec,
-    end_unix_sec,
-    duration_sec,
-    active_sec,
-    idle_sec,
-    created_at
-) VALUES (
-    :app_identifier,
-    :window_title,
-    :start_unix_sec,
-    :end_unix_sec,
-    :duration_sec,
-    :active_sec,
-    :idle_sec,
-    :created_at
-);
-)SQL"))) {
-    qWarning() << "Failed to prepare addFrontmostSession:"
-               << query.lastError().text();
-    return false;
-  }
-
-  query.bindValue(QStringLiteral(":app_identifier"), normalizedIdentifier);
-  query.bindValue(QStringLiteral(":window_title"), windowTitle);
-  query.bindValue(QStringLiteral(":start_unix_sec"), startUnixSec);
-  query.bindValue(QStringLiteral(":end_unix_sec"), endUnixSec);
-  query.bindValue(QStringLiteral(":duration_sec"), correctedDurationSec);
-  query.bindValue(QStringLiteral(":active_sec"), activeSec);
-  query.bindValue(QStringLiteral(":idle_sec"), idleSec);
-  query.bindValue(QStringLiteral(":created_at"), now);
-
-  if (!query.exec()) {
-    qWarning() << "Failed to add frontmost session:"
-               << query.lastError().text();
-    return false;
-  }
-
-  if (query.numRowsAffected() == 0) {
-    qDebug() << "Duplicate frontmost session skipped:" << normalizedIdentifier
-             << windowTitle << startUnixSec << endUnixSec;
-    return true;
-  }
-
-  return true;
+  Q_UNUSED(appIdentifier);
+  Q_UNUSED(windowTitle);
+  Q_UNUSED(startUnixSec);
+  Q_UNUSED(endUnixSec);
+  Q_UNUSED(durationSec);
+  Q_UNUSED(activeSec);
+  Q_UNUSED(idleSec);
+  qWarning() << "Frontmost history is service-owned; GUI writes are disabled.";
+  return false;
 }
 
 QVariantList FrontmostSessionRepository::getSessionsByRange(

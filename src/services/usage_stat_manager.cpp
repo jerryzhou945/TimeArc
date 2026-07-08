@@ -684,11 +684,9 @@ QJsonDocument parseJsonLine(const QByteArray& line) {
   return QJsonDocument();
 }
 
-// A1: SQLite history read source (S2). The DatabaseManager-owned connection is
-// already open by the time UsageStatManager is constructed (main.cpp opens it
-// before the manager). frontmost/media sessions JOIN apps to restore the
-// app_name/path richness the JSONL records carry inline.
-const QString kTimearcConnection = QStringLiteral("timearc");
+// SQLite history read source. The GUI opens this as a read-only service DB
+// connection; the service process is the only writer.
+const QString kTimearcConnection = QStringLiteral("timearc_service");
 
 // On Windows the JSONL app_id and path are the same exe path (verified) and the
 // service writes app_identifier = app_id, executable_path = path. So
@@ -887,7 +885,8 @@ int UsageStatManager::appendSqliteSessionsSince(QList<UsageRecord>* out,
                                                 const QString& sql,
                                                 const QString& source,
                                                 qint64* sinceMaxId) const {
-  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection);
+  if (!QSqlDatabase::contains(kTimearcConnection)) return 0;
+  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection, false);
   if (!db.isValid() || !db.isOpen()) return 0;
   QSqlQuery query(db);
   if (!query.prepare(sql)) {
@@ -927,7 +926,11 @@ int UsageStatManager::appendSqliteSessionsSince(QList<UsageRecord>* out,
 }
 
 void UsageStatManager::refreshHistoryFromSqlite() {
-  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection);
+  if (!QSqlDatabase::contains(kTimearcConnection)) {
+    refreshHistoryFromJsonl();
+    return;
+  }
+  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection, false);
   qint64 maxFront = 0;
   qint64 maxMedia = 0;
   const bool ok = sqliteMaxIds(db, &maxFront, &maxMedia);
@@ -1015,7 +1018,8 @@ bool UsageStatManager::loadAllJsonlRecords(QList<UsageRecord>* out) const {
 }
 
 bool UsageStatManager::loadAllSqliteRecords(QList<UsageRecord>* out) const {
-  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection);
+  if (!QSqlDatabase::contains(kTimearcConnection)) return false;
+  QSqlDatabase db = QSqlDatabase::database(kTimearcConnection, false);
   qint64 maxFront = 0;
   qint64 maxMedia = 0;
   if (!sqliteMaxIds(db, &maxFront, &maxMedia)) return false;

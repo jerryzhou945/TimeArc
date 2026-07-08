@@ -54,7 +54,7 @@ Every platform service must:
 - `WindowIdentifying.swift`: focused-window title via accessibility API.
 - `AppInfo.swift`, `BinaryFloatingPoint+ToUInt.swift`: helpers.
 - `TimeArcService.swift`: initializes shared storage, reads
-  `~/.timearc/usage/usage_config.json` for `idle_threshold_ms` and
+  `~/Library/Application Support/TimeArc/usage/usage_config.json` for `idle_threshold_ms` and
   `track_enabled`, takes a per-user file lock, writes foreground sessions,
   writes media assertions as `source=audio`, clears current state on idle/exit,
   flushes pending sessions on `SIGTERM`/`SIGINT`, and provides

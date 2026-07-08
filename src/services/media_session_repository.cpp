@@ -11,12 +11,16 @@
 
 namespace {
 
-const QString kConnectionName = QStringLiteral("timearc");
+const QString kConnectionName = QStringLiteral("timearc_service");
 
 QSqlDatabase database() {
-  QSqlDatabase db = QSqlDatabase::database(kConnectionName);
+  if (!QSqlDatabase::contains(kConnectionName)) {
+    qWarning() << "Service history database connection is not available.";
+    return QSqlDatabase();
+  }
+  QSqlDatabase db = QSqlDatabase::database(kConnectionName, false);
   if (!db.isValid() || !db.isOpen()) {
-    qWarning() << "Database is not open.";
+    qWarning() << "Service history database is not open.";
   }
   return db;
 }
@@ -39,16 +43,6 @@ QString formatDuration(int seconds) {
   }
 
   return QStringLiteral("%1h %2m").arg(hours).arg(remainingMinutes);
-}
-
-QString normalizedMediaType(const QString& mediaType) {
-  const QString value = mediaType.trimmed().toLower();
-  if (value == QStringLiteral("audio") || value == QStringLiteral("video") ||
-      value == QStringLiteral("unknown")) {
-    return value;
-  }
-
-  return QStringLiteral("unknown");
 }
 
 bool validateRange(qint64 startUnixSec, qint64 endUnixSec) {
@@ -83,72 +77,14 @@ bool MediaSessionRepository::addMediaSession(const QString& appIdentifier,
                                              qint64 startUnixSec,
                                              qint64 endUnixSec,
                                              int playbackSec) {
-  const QString normalizedIdentifier = appIdentifier.trimmed();
-  if (normalizedIdentifier.isEmpty()) {
-    qWarning() << "Cannot add media session with empty app_identifier.";
-    return false;
-  }
-
-  if (!validateRange(startUnixSec, endUnixSec)) return false;
-
-  if (playbackSec < 0) {
-    qWarning() << "Media playbackSec cannot be negative:" << playbackSec;
-    return false;
-  }
-
-  const int correctedPlaybackSec =
-      static_cast<int>(endUnixSec - startUnixSec);
-  const qint64 now = QDateTime::currentSecsSinceEpoch();
-
-  QSqlDatabase db = database();
-  if (!db.isValid() || !db.isOpen()) return false;
-
-  QSqlQuery query(db);
-  if (!query.prepare(QStringLiteral(R"SQL(
-INSERT OR IGNORE INTO media_sessions (
-    app_identifier,
-    media_type,
-    media_title,
-    start_unix_sec,
-    end_unix_sec,
-    playback_sec,
-    created_at
-) VALUES (
-    :app_identifier,
-    :media_type,
-    :media_title,
-    :start_unix_sec,
-    :end_unix_sec,
-    :playback_sec,
-    :created_at
-);
-)SQL"))) {
-    qWarning() << "Failed to prepare addMediaSession:"
-               << query.lastError().text();
-    return false;
-  }
-
-  query.bindValue(QStringLiteral(":app_identifier"), normalizedIdentifier);
-  query.bindValue(QStringLiteral(":media_type"), normalizedMediaType(mediaType));
-  query.bindValue(QStringLiteral(":media_title"), mediaTitle);
-  query.bindValue(QStringLiteral(":start_unix_sec"), startUnixSec);
-  query.bindValue(QStringLiteral(":end_unix_sec"), endUnixSec);
-  query.bindValue(QStringLiteral(":playback_sec"), correctedPlaybackSec);
-  query.bindValue(QStringLiteral(":created_at"), now);
-
-  if (!query.exec()) {
-    qWarning() << "Failed to add media session:" << query.lastError().text();
-    return false;
-  }
-
-  if (query.numRowsAffected() == 0) {
-    qDebug() << "Duplicate media session skipped:" << normalizedIdentifier
-             << normalizedMediaType(mediaType) << mediaTitle << startUnixSec
-             << endUnixSec;
-    return true;
-  }
-
-  return true;
+  Q_UNUSED(appIdentifier);
+  Q_UNUSED(mediaType);
+  Q_UNUSED(mediaTitle);
+  Q_UNUSED(startUnixSec);
+  Q_UNUSED(endUnixSec);
+  Q_UNUSED(playbackSec);
+  qWarning() << "Media history is service-owned; GUI writes are disabled.";
+  return false;
 }
 
 QVariantList MediaSessionRepository::getSessionsByRange(qint64 startUnixSec,

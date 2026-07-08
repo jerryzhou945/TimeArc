@@ -122,6 +122,160 @@ bool columnsMatch(const QSqlDatabase& db, const QString& tableName,
   return true;
 }
 
+bool execSql(QSqlDatabase db, const QString& sql, QString* error) {
+  QSqlQuery query(db);
+  if (!query.exec(sql)) {
+    *error = query.lastError().text();
+    return false;
+  }
+  return true;
+}
+
+bool createServiceHistoryDatabase(const QString& path, QString* error) {
+  QDir dir(QFileInfo(path).absolutePath());
+  if (!dir.exists() && !dir.mkpath(QStringLiteral("."))) {
+    *error = QStringLiteral("could not create parent dir");
+    return false;
+  }
+
+  static int counter = 0;
+  const QString conn =
+      QStringLiteral("service_seed_") + QString::number(++counter);
+  bool ok = true;
+  {
+    QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), conn);
+    db.setDatabaseName(path);
+    if (!db.open()) {
+      *error = db.lastError().text();
+      ok = false;
+    }
+    if (ok)
+      ok = execSql(db,
+                   QStringLiteral(
+                       "CREATE TABLE IF NOT EXISTS apps ("
+                       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                       "app_identifier TEXT NOT NULL UNIQUE,"
+                       "app_name TEXT NOT NULL,"
+                       "display_name TEXT,"
+                       "app_icon_path TEXT,"
+                       "executable_path TEXT,"
+                       "platform TEXT DEFAULT 'windows',"
+                       "created_at INTEGER NOT NULL,"
+                       "updated_at INTEGER NOT NULL"
+                       ");"),
+                   error);
+    if (ok)
+      ok = execSql(db,
+                   QStringLiteral(
+                       "CREATE TABLE IF NOT EXISTS frontmost_sessions ("
+                       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                       "app_identifier TEXT NOT NULL,"
+                       "window_title TEXT,"
+                       "start_unix_sec INTEGER NOT NULL,"
+                       "end_unix_sec INTEGER NOT NULL,"
+                       "duration_sec INTEGER NOT NULL,"
+                       "active_sec INTEGER NOT NULL,"
+                       "idle_sec INTEGER DEFAULT 0,"
+                       "created_at INTEGER NOT NULL"
+                       ");"),
+                   error);
+    if (ok)
+      ok = execSql(db,
+                   QStringLiteral(
+                       "CREATE TABLE IF NOT EXISTS media_sessions ("
+                       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                       "app_identifier TEXT NOT NULL,"
+                       "media_type TEXT NOT NULL,"
+                       "media_title TEXT,"
+                       "start_unix_sec INTEGER NOT NULL,"
+                       "end_unix_sec INTEGER NOT NULL,"
+                       "playback_sec INTEGER NOT NULL,"
+                       "created_at INTEGER NOT NULL"
+                       ");"),
+                   error);
+    db.close();
+  }
+  QSqlDatabase::removeDatabase(conn);
+  return ok;
+}
+
+bool seedServiceApp(QSqlDatabase db,
+                    const QString& appIdentifier,
+                    const QString& appName,
+                    const QString& displayName,
+                    const QString& executablePath,
+                    const QString& platform,
+                    QString* error) {
+  QSqlQuery query(db);
+  query.prepare(QStringLiteral(
+      "INSERT OR IGNORE INTO apps (app_identifier, app_name, display_name, "
+      "app_icon_path, executable_path, platform, created_at, updated_at) "
+      "VALUES (:id, :name, :display, '', :path, :platform, :now, :now);"));
+  query.bindValue(QStringLiteral(":id"), appIdentifier);
+  query.bindValue(QStringLiteral(":name"), appName);
+  query.bindValue(QStringLiteral(":display"), displayName);
+  query.bindValue(QStringLiteral(":path"), executablePath);
+  query.bindValue(QStringLiteral(":platform"), platform);
+  query.bindValue(QStringLiteral(":now"), QDateTime::currentSecsSinceEpoch());
+  if (!query.exec()) {
+    *error = query.lastError().text();
+    return false;
+  }
+  return true;
+}
+
+bool seedServiceFrontmost(QSqlDatabase db,
+                          const QString& appIdentifier,
+                          const QString& windowTitle,
+                          qint64 startUnixSec,
+                          qint64 endUnixSec,
+                          QString* error) {
+  QSqlQuery query(db);
+  query.prepare(QStringLiteral(
+      "INSERT OR IGNORE INTO frontmost_sessions (app_identifier, window_title, "
+      "start_unix_sec, end_unix_sec, duration_sec, active_sec, idle_sec, "
+      "created_at) VALUES (:id, :title, :start, :end, :dur, :dur, 0, :now);"));
+  query.bindValue(QStringLiteral(":id"), appIdentifier);
+  query.bindValue(QStringLiteral(":title"), windowTitle);
+  query.bindValue(QStringLiteral(":start"), startUnixSec);
+  query.bindValue(QStringLiteral(":end"), endUnixSec);
+  query.bindValue(QStringLiteral(":dur"),
+                  static_cast<int>(endUnixSec - startUnixSec));
+  query.bindValue(QStringLiteral(":now"), QDateTime::currentSecsSinceEpoch());
+  if (!query.exec()) {
+    *error = query.lastError().text();
+    return false;
+  }
+  return true;
+}
+
+bool seedServiceMedia(QSqlDatabase db,
+                      const QString& appIdentifier,
+                      const QString& mediaType,
+                      const QString& mediaTitle,
+                      qint64 startUnixSec,
+                      qint64 endUnixSec,
+                      QString* error) {
+  QSqlQuery query(db);
+  query.prepare(QStringLiteral(
+      "INSERT OR IGNORE INTO media_sessions (app_identifier, media_type, "
+      "media_title, start_unix_sec, end_unix_sec, playback_sec, created_at) "
+      "VALUES (:id, :type, :title, :start, :end, :dur, :now);"));
+  query.bindValue(QStringLiteral(":id"), appIdentifier);
+  query.bindValue(QStringLiteral(":type"), mediaType);
+  query.bindValue(QStringLiteral(":title"), mediaTitle);
+  query.bindValue(QStringLiteral(":start"), startUnixSec);
+  query.bindValue(QStringLiteral(":end"), endUnixSec);
+  query.bindValue(QStringLiteral(":dur"),
+                  static_cast<int>(endUnixSec - startUnixSec));
+  query.bindValue(QStringLiteral(":now"), QDateTime::currentSecsSinceEpoch());
+  if (!query.exec()) {
+    *error = query.lastError().text();
+    return false;
+  }
+  return true;
+}
+
 bool hasInsertedSession(const QVariantList& sessions,
                         const QString& appIdentifier,
                         qint64 startUnixSec,
@@ -309,6 +463,9 @@ int main(int argc, char* argv[]) {
   QCoreApplication::setOrganizationName(QStringLiteral("TimeArc"));
   QCoreApplication::setApplicationName(QStringLiteral("TimeArc"));
   QStandardPaths::setTestModeEnabled(true);
+  const QString testDataOverride =
+      QDir::temp().filePath(QStringLiteral("timearc-db-smoke-appdata"));
+  qputenv("TIMEARC_TEST_APPDATA", testDataOverride.toUtf8());
 
   TimeArcAdapters::AdapterInput unknownWebsite;
   unknownWebsite.url =
@@ -552,8 +709,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  const QString testDataPath =
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+  const QString testDataPath = testDataOverride;
   if (testDataPath.isEmpty()) {
     return fail(QStringLiteral("Qt test AppDataLocation is empty."));
   }
@@ -568,6 +724,14 @@ int main(int argc, char* argv[]) {
   QSettings::setPath(QSettings::IniFormat, QSettings::UserScope,
                      QDir(testDataPath).filePath(QStringLiteral("settings")));
   seedLegacyQSettings();
+
+  const QString serviceDatabasePath =
+      QDir(testDataPath).filePath(QStringLiteral("timearc_service.db"));
+  QString serviceSeedError;
+  if (!createServiceHistoryDatabase(serviceDatabasePath, &serviceSeedError)) {
+    return fail(QStringLiteral("Could not create service history database: %1")
+                    .arg(serviceSeedError));
+  }
 
   DatabaseManager databaseManager;
   if (!databaseManager.initialize()) {
@@ -585,10 +749,13 @@ int main(int argc, char* argv[]) {
     return fail(QStringLiteral("Smoke database connection is not open."));
   }
 
-  const QStringList requiredTables = {
+  if (QDir::cleanPath(databasePath) ==
+      QDir::cleanPath(databaseManager.getServiceDatabasePath())) {
+    return fail(QStringLiteral("GUI and service databases resolved to the same path."));
+  }
+
+  const QStringList guiTables = {
       QStringLiteral("apps"),
-      QStringLiteral("frontmost_sessions"),
-      QStringLiteral("media_sessions"),
       QStringLiteral("device_usage_summaries"),
       QStringLiteral("device_usage_sessions"),
       QStringLiteral("manual_projects"),
@@ -598,17 +765,48 @@ int main(int argc, char* argv[]) {
       QStringLiteral("schema_migrations"),
   };
 
-  for (const QString& tableName : requiredTables) {
+  for (const QString& tableName : guiTables) {
     if (!tableExists(db, tableName)) {
-      return fail(QStringLiteral("Required table is missing: %1").arg(tableName));
+      return fail(QStringLiteral("GUI table is missing: %1").arg(tableName));
+    }
+  }
+  if (tableExists(db, QStringLiteral("frontmost_sessions")) ||
+      tableExists(db, QStringLiteral("media_sessions"))) {
+    return fail(QStringLiteral("GUI database unexpectedly owns service history tables."));
+  }
+
+  QSqlDatabase serviceDb = databaseManager.serviceDatabase();
+  if (!serviceDb.isValid() || !serviceDb.isOpen()) {
+    return fail(QStringLiteral("Service history database connection is not open."));
+  }
+  const QStringList serviceTables = {
+      QStringLiteral("apps"),
+      QStringLiteral("frontmost_sessions"),
+      QStringLiteral("media_sessions"),
+  };
+  for (const QString& tableName : serviceTables) {
+    if (!tableExists(serviceDb, tableName)) {
+      return fail(QStringLiteral("Service table is missing: %1").arg(tableName));
+    }
+  }
+  {
+    QSqlQuery tableQuery(serviceDb);
+    if (!tableQuery.exec(QStringLiteral(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name NOT LIKE 'sqlite_%' ORDER BY name;"))) {
+      return fail(QStringLiteral("Could not enumerate service DB tables: %1")
+                      .arg(tableQuery.lastError().text()));
+    }
+    QStringList names;
+    while (tableQuery.next()) names << tableQuery.value(0).toString();
+    if (names != serviceTables) {
+      return fail(QStringLiteral("Service DB has unexpected user tables: %1")
+                      .arg(names.join(QStringLiteral(","))));
     }
   }
 
-  // A1: assert the UI-created shared usage tables match the canonical column
-  // shape, pinning the UI DatabaseManager DDL. NOTE: this runs only the UI DDL
-  // (the service C DDL in usage_storage.c is not linked here), so it catches
-  // UI-side drift; the service inline DDL must be kept in lockstep manually and
-  // is verified cross-process by the real service+UI end-to-end run.
+  // Assert both DB contracts: service-owned history tables in the service DB,
+  // GUI-owned app/mobile tables in the GUI DB.
   const ExpectedColumn appsColumns[] = {
       {"id", "INTEGER", 0},          {"app_identifier", "TEXT", 1},
       {"app_name", "TEXT", 1},       {"display_name", "TEXT", 0},
@@ -666,10 +864,6 @@ int main(int argc, char* argv[]) {
   const TableSchema schemaParityTables[] = {
       {QStringLiteral("apps"), appsColumns,
        static_cast<int>(std::size(appsColumns))},
-      {QStringLiteral("frontmost_sessions"), frontmostColumns,
-       static_cast<int>(std::size(frontmostColumns))},
-      {QStringLiteral("media_sessions"), mediaColumns,
-       static_cast<int>(std::size(mediaColumns))},
       {QStringLiteral("device_usage_summaries"), deviceUsageColumns,
        static_cast<int>(std::size(deviceUsageColumns))},
       {QStringLiteral("device_usage_sessions"), deviceUsageSessionColumns,
@@ -678,7 +872,22 @@ int main(int argc, char* argv[]) {
   for (const TableSchema& table : schemaParityTables) {
     QString mismatch;
     if (!columnsMatch(db, table.name, table.columns, table.count, &mismatch)) {
-      return fail(QStringLiteral("Schema parity drift: %1").arg(mismatch));
+      return fail(QStringLiteral("GUI schema drift: %1").arg(mismatch));
+    }
+  }
+  const TableSchema serviceSchemaTables[] = {
+      {QStringLiteral("apps"), appsColumns,
+       static_cast<int>(std::size(appsColumns))},
+      {QStringLiteral("frontmost_sessions"), frontmostColumns,
+       static_cast<int>(std::size(frontmostColumns))},
+      {QStringLiteral("media_sessions"), mediaColumns,
+       static_cast<int>(std::size(mediaColumns))},
+  };
+  for (const TableSchema& table : serviceSchemaTables) {
+    QString mismatch;
+    if (!columnsMatch(serviceDb, table.name, table.columns, table.count,
+                      &mismatch)) {
+      return fail(QStringLiteral("Service schema drift: %1").arg(mismatch));
     }
   }
 
@@ -966,10 +1175,30 @@ int main(int argc, char* argv[]) {
     return fail(QStringLiteral("Unable to create a positive smoke interval."));
   }
 
-  if (!frontmostRepository.addFrontmostSession(
-          appIdentifier, QStringLiteral("Smoke Window"), startUnixSec,
-          endUnixSec, expectedDuration, expectedDuration, 0)) {
-    return fail(QStringLiteral("Failed to insert smoke frontmost session."));
+  {
+    const QString conn = QStringLiteral("service_seed_live");
+    {
+      QSqlDatabase writer =
+          QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), conn);
+      writer.setDatabaseName(serviceDatabasePath);
+      if (!writer.open()) {
+        return fail(QStringLiteral("Could not open service writer fixture: %1")
+                        .arg(writer.lastError().text()));
+      }
+      QString error;
+      if (!seedServiceApp(writer, appIdentifier,
+                          QStringLiteral("SmokeApp.exe"),
+                          QStringLiteral("Smoke App"), appIdentifier,
+                          QStringLiteral("windows"), &error) ||
+          !seedServiceFrontmost(writer, appIdentifier,
+                                QStringLiteral("Smoke Window"), startUnixSec,
+                                endUnixSec, &error)) {
+        return fail(QStringLiteral("Failed to seed service frontmost row: %1")
+                        .arg(error));
+      }
+      writer.close();
+    }
+    QSqlDatabase::removeDatabase(conn);
   }
 
   const QVariantList sessions =
@@ -999,10 +1228,26 @@ int main(int argc, char* argv[]) {
   const qint64 mediaStart = startUnixSec + 1;
   const qint64 mediaEnd = qMax(mediaStart + 1, endUnixSec);
   const int mediaDuration = static_cast<int>(mediaEnd - mediaStart);
-  if (!mediaRepository.addMediaSession(appIdentifier, QStringLiteral("audio"),
-                                       mediaTitle, mediaStart, mediaEnd,
-                                       mediaDuration)) {
-    return fail(QStringLiteral("Failed to insert smoke media session."));
+  Q_UNUSED(mediaDuration);
+  {
+    const QString conn = QStringLiteral("service_seed_media");
+    {
+      QSqlDatabase writer =
+          QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), conn);
+      writer.setDatabaseName(serviceDatabasePath);
+      if (!writer.open()) {
+        return fail(QStringLiteral("Could not open service media fixture: %1")
+                        .arg(writer.lastError().text()));
+      }
+      QString error;
+      if (!seedServiceMedia(writer, appIdentifier, QStringLiteral("audio"),
+                            mediaTitle, mediaStart, mediaEnd, &error)) {
+        return fail(QStringLiteral("Failed to seed service media row: %1")
+                        .arg(error));
+      }
+      writer.close();
+    }
+    QSqlDatabase::removeDatabase(conn);
   }
   const QVariantList mediaSessions =
       mediaRepository.getSessionsByRange(mediaStart - 1, mediaEnd + 1);
@@ -1272,7 +1517,7 @@ int main(int argc, char* argv[]) {
     return fail(QStringLiteral("Local memo clear did not reload as empty."));
   }
 
-  // ---- D1: whole-DB backup / inspect / restore round-trip --------------------
+  // ---- GUI DB backup / inspect / restore round-trip --------------------------
   // Exercises DatabaseManager::backupDatabase / inspectBackup / restoreDatabase
   // (folded into the already-linked database_manager.cpp; no USM symbols).
   {
@@ -1286,16 +1531,7 @@ int main(int argc, char* argv[]) {
     QFile::remove(d1Bad);
     QFile::remove(d1Empty);
 
-    auto tableCount = [](QSqlDatabase d, const QString& t) -> qlonglong {
-      QSqlQuery c(d);
-      if (c.exec(QStringLiteral("SELECT COUNT(*) FROM ") + t +
-                 QStringLiteral(";")) &&
-          c.next())
-        return c.value(0).toLongLong();
-      return -1;
-    };
-
-    qlonglong liveFront = -1, liveMedia = -1, afterDelete = -1;
+    const QString backupKey = QStringLiteral("d1_backup_restore_marker");
     // Release main()'s long-lived handle so restoreDatabase can fully close the
     // connection (else Windows keeps the file locked and the swap fails).
     db = QSqlDatabase();
@@ -1304,53 +1540,16 @@ int main(int argc, char* argv[]) {
       if (!live.isValid() || !live.isOpen())
         return fail(QStringLiteral("D1: live connection unavailable."));
 
-      // Seed known rows so the round-trip has identifiable data to lose/recover.
-      QSqlQuery insApp(live);
-      insApp.prepare(QStringLiteral(
-          "INSERT OR IGNORE INTO apps (app_identifier, app_name, display_name, "
-          "app_icon_path, executable_path, platform, created_at, updated_at) "
-          "VALUES ('d1.roundtrip', 'D1', 'D1', '', '', 'windows', 1700000000, "
-          "1700000000);"));
-      if (!insApp.exec())
-        return fail(QStringLiteral("D1: seed app insert failed: %1")
-                        .arg(insApp.lastError().text()));
-
-      QSqlQuery insF(live);
-      insF.prepare(QStringLiteral(
-          "INSERT OR IGNORE INTO frontmost_sessions (app_identifier, "
-          "window_title, start_unix_sec, end_unix_sec, duration_sec, "
-          "active_sec, idle_sec, created_at) VALUES ('d1.roundtrip', :title, "
-          ":s, :e, 50, 50, 0, 1700000000);"));
-      for (int i = 0; i < 3; ++i) {
-        insF.bindValue(QStringLiteral(":title"),
-                       QStringLiteral("D1 win %1").arg(i));
-        insF.bindValue(QStringLiteral(":s"), 1700000000 + i * 100);
-        insF.bindValue(QStringLiteral(":e"), 1700000000 + i * 100 + 50);
-        if (!insF.exec())
-          return fail(QStringLiteral("D1: seed frontmost insert failed: %1")
-                          .arg(insF.lastError().text()));
-      }
-
-      QSqlQuery insM(live);
-      insM.prepare(QStringLiteral(
-          "INSERT OR IGNORE INTO media_sessions (app_identifier, media_type, "
-          "media_title, start_unix_sec, end_unix_sec, playback_sec, "
-          "created_at) VALUES ('d1.roundtrip', 'audio', :title, :s, :e, 30, "
-          "1700000000);"));
-      for (int i = 0; i < 2; ++i) {
-        insM.bindValue(QStringLiteral(":title"),
-                       QStringLiteral("D1 audio %1").arg(i));
-        insM.bindValue(QStringLiteral(":s"), 1700001000 + i * 100);
-        insM.bindValue(QStringLiteral(":e"), 1700001000 + i * 100 + 30);
-        if (!insM.exec())
-          return fail(QStringLiteral("D1: seed media insert failed: %1")
-                          .arg(insM.lastError().text()));
-      }
-
-      liveFront = tableCount(live, QStringLiteral("frontmost_sessions"));
-      liveMedia = tableCount(live, QStringLiteral("media_sessions"));
-      if (liveFront <= 0 || liveMedia <= 0)
-        return fail(QStringLiteral("D1: session tables empty before backup."));
+      QSqlQuery seed(live);
+      seed.prepare(QStringLiteral(
+          "INSERT INTO settings (key, value, updated_at) "
+          "VALUES (:key, 'before-backup', 1700000000) "
+          "ON CONFLICT(key) DO UPDATE SET value='before-backup', "
+          "updated_at=1700000000;"));
+      seed.bindValue(QStringLiteral(":key"), backupKey);
+      if (!seed.exec())
+        return fail(QStringLiteral("D1: seed setting failed: %1")
+                        .arg(seed.lastError().text()));
 
       // Backup to an explicit temp path.
       const QString written = databaseManager.backupDatabase(d1Bak);
@@ -1366,37 +1565,32 @@ int main(int argc, char* argv[]) {
       if (insp.value(QStringLiteral("integrity")).toString() !=
           QStringLiteral("ok"))
         return fail(QStringLiteral("D1: inspectBackup integrity != ok."));
-      if (insp.value(QStringLiteral("frontmostRows")).toLongLong() !=
-              liveFront ||
-          insp.value(QStringLiteral("mediaRows")).toLongLong() != liveMedia)
-        return fail(QStringLiteral(
-            "D1: inspectBackup counts disagree with the live tables."));
+      if (insp.value(QStringLiteral("settingsRows")).toLongLong() <= 0)
+        return fail(QStringLiteral("D1: inspectBackup did not report GUI rows."));
 
       // Mutate the live DB, confirm the loss.
-      QSqlQuery del(live);
-      if (!del.exec(QStringLiteral(
-              "DELETE FROM frontmost_sessions WHERE app_identifier = "
-              "'d1.roundtrip';")))
-        return fail(QStringLiteral("D1: delete of seeded rows failed."));
-      afterDelete = tableCount(live, QStringLiteral("frontmost_sessions"));
-      if (afterDelete >= liveFront)
-        return fail(QStringLiteral("D1: row count did not drop after delete."));
+      QSqlQuery mutate(live);
+      mutate.prepare(QStringLiteral(
+          "UPDATE settings SET value='after-backup' WHERE key=:key;"));
+      mutate.bindValue(QStringLiteral(":key"), backupKey);
+      if (!mutate.exec())
+        return fail(QStringLiteral("D1: setting mutation failed."));
     }  // 'live' destroyed -> no lingering reference for the swap
 
-    // Restore: counts must recover.
+    // Restore: the backed-up setting value must recover.
     if (!databaseManager.restoreDatabase(d1Bak))
       return fail(QStringLiteral("D1: restoreDatabase returned false."));
     QSqlDatabase restored = databaseManager.database();
     if (!restored.isValid() || !restored.isOpen())
       return fail(QStringLiteral("D1: connection not reopened after restore."));
-    const qlonglong afterRestore =
-        tableCount(restored, QStringLiteral("frontmost_sessions"));
-    if (afterRestore != liveFront)
-      return fail(
-          QStringLiteral(
-              "D1: restore did not recover row count (got %1, want %2).")
-              .arg(afterRestore)
-              .arg(liveFront));
+    QSqlQuery restoredValue(restored);
+    restoredValue.prepare(QStringLiteral(
+        "SELECT value FROM settings WHERE key=:key LIMIT 1;"));
+    restoredValue.bindValue(QStringLiteral(":key"), backupKey);
+    if (!restoredValue.exec() || !restoredValue.next() ||
+        restoredValue.value(0).toString() != QStringLiteral("before-backup")) {
+      return fail(QStringLiteral("D1: restore did not recover GUI setting."));
+    }
 
     // Bad-file rejection: a non-sqlite file must be refused.
     {
@@ -1412,7 +1606,7 @@ int main(int argc, char* argv[]) {
       return fail(
           QStringLiteral("D1: inspectBackup accepted a non-sqlite file."));
 
-    // Missing-tables rejection: a valid sqlite db without the contract tables.
+    // Missing-tables rejection: a valid sqlite db without the GUI contract tables.
     {
       QSqlDatabase ed = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
                                                   QStringLiteral("d1_empty"));
@@ -1439,10 +1633,10 @@ int main(int argc, char* argv[]) {
         << QStringLiteral("D1 backup/inspect/restore round-trip ok.");
   }
 
-  // ---- D2: cross-process db_path pointer + UI relocation round-trip ----------
-  // S1: databasePath() honors usage_config.json db_path (resolve / absent /
-  // corrupt / unusable-parent -> default). S2: relocateDatabaseTo moves the DB
-  // and databasePath follows; restoreDefaultDatabaseLocation round-trips back.
+  // ---- D2: cross-process db_dir pointer + UI relocation round-trip ----------
+  // S1: getServiceDatabasePath() honors usage_config.json db_dir (resolve / absent /
+  // corrupt -> default; configured db_dir wins). S2: relocateDatabaseTo writes
+  // only the pointer; restoreDefaultDatabaseLocation clears it.
   // In test mode the pointer lives under the test-mode AppData (testDataPath),
   // so this never touches the real user's usage dir. Pure QtCore + QtSql (no USM).
   {
@@ -1457,22 +1651,22 @@ int main(int argc, char* argv[]) {
       return ok;
     };
     auto removeConfig = [&]() { QFile::remove(configPath); };
-    auto configDbPath = [&]() -> QString {
+    auto configDbDir = [&]() -> QString {
       QFile f(configPath);
       if (!f.exists() || !f.open(QIODevice::ReadOnly)) return QString();
       const QByteArray b = f.readAll();
       f.close();
       const QJsonDocument d = QJsonDocument::fromJson(b);
       return d.isObject()
-                 ? d.object().value(QStringLiteral("db_path")).toString()
+                 ? d.object().value(QStringLiteral("db_dir")).toString()
                  : QString();
     };
     auto cleaned = [](const QString& p) { return QDir::cleanPath(p); };
 
     removeConfig();
-    const QString defaultDbPath = databaseManager.getDatabasePath();
-    if (cleaned(defaultDbPath) != cleaned(databasePath)) {
-      return fail(QStringLiteral("D2 S1: default path drifted from the original."));
+    const QString defaultDbPath = databaseManager.getServiceDatabasePath();
+    if (cleaned(defaultDbPath) != cleaned(serviceDatabasePath)) {
+      return fail(QStringLiteral("D2 S1: service default path drifted from the original."));
     }
 
     // S1 state 1: a usable redirect wins.
@@ -1480,30 +1674,30 @@ int main(int argc, char* argv[]) {
     QDir(customDir).removeRecursively();
     QDir().mkpath(customDir);
     const QString customDb =
-        QDir::cleanPath(QDir(customDir).filePath(QStringLiteral("timearc.db")));
+        QDir::cleanPath(QDir(customDir).filePath(QStringLiteral("timearc_service.db")));
     {
       QJsonObject o;
-      o.insert(QStringLiteral("db_path"), customDb);
+      o.insert(QStringLiteral("db_dir"), customDir);
       o.insert(QStringLiteral("idle_threshold_ms"), 300000);  // H5-shared key
       if (!writeConfig(QJsonDocument(o).toJson()))
         return fail(QStringLiteral("D2 S1: could not write redirect config."));
     }
-    if (cleaned(databaseManager.getDatabasePath()) != customDb)
-      return fail(QStringLiteral("D2 S1: redirect db_path was not honored."));
+    if (cleaned(databaseManager.getServiceDatabasePath()) != customDb)
+      return fail(QStringLiteral("D2 S1: redirect db_dir was not honored."));
 
     // S1 state 2: key absent -> default.
     if (!writeConfig(QByteArrayLiteral("{\"idle_threshold_ms\":300000}")))
       return fail(QStringLiteral("D2 S1: could not write absent-key config."));
-    if (cleaned(databaseManager.getDatabasePath()) != cleaned(defaultDbPath))
-      return fail(QStringLiteral("D2 S1: absent db_path did not fall back."));
+    if (cleaned(databaseManager.getServiceDatabasePath()) != cleaned(defaultDbPath))
+      return fail(QStringLiteral("D2 S1: absent db_dir did not fall back."));
 
     // S1 state 3: corrupt JSON -> default.
     if (!writeConfig(QByteArrayLiteral("{ this is not valid json ")))
       return fail(QStringLiteral("D2 S1: could not write corrupt config."));
-    if (cleaned(databaseManager.getDatabasePath()) != cleaned(defaultDbPath))
+    if (cleaned(databaseManager.getServiceDatabasePath()) != cleaned(defaultDbPath))
       return fail(QStringLiteral("D2 S1: corrupt config did not fall back."));
 
-    // S1 state 4: unusable parent (db_path under a regular file) -> default.
+    // S1 state 4: db_dir wins even before its path is opened/created.
     const QString blocker =
         QDir::temp().filePath(QStringLiteral("timearc-d2-blocker"));
     QFile::remove(blocker);
@@ -1516,56 +1710,27 @@ int main(int argc, char* argv[]) {
     }
     {
       QJsonObject o;
-      o.insert(QStringLiteral("db_path"),
-               QDir(blocker).filePath(QStringLiteral("sub/timearc.db")));
+      o.insert(QStringLiteral("db_dir"), QDir(blocker).filePath(QStringLiteral("sub")));
       if (!writeConfig(QJsonDocument(o).toJson()))
         return fail(QStringLiteral("D2 S1: could not write unusable config."));
     }
-    if (cleaned(databaseManager.getDatabasePath()) != cleaned(defaultDbPath))
-      return fail(QStringLiteral("D2 S1: unusable parent did not fall back."));
+    const QString unusableDb =
+        QDir::cleanPath(QDir(blocker).filePath(QStringLiteral("sub/timearc_service.db")));
+    if (cleaned(databaseManager.getServiceDatabasePath()) != unusableDb)
+      return fail(QStringLiteral("D2 S1: configured db_dir was not prioritized."));
     QFile::remove(blocker);
     removeConfig();
 
-    // S2: relocation round-trip. Start at default with an identifiable row.
-    if (cleaned(databaseManager.getDatabasePath()) != cleaned(defaultDbPath))
+    // S2: db_dir pointer round-trip. The GUI no longer moves or writes the
+    // service DB file; it only updates the config the service reads at startup.
+    if (cleaned(databaseManager.getServiceDatabasePath()) != cleaned(defaultDbPath))
       return fail(QStringLiteral("D2 S2: not at default before relocate."));
-
-    qlonglong beforeFront = -1;
-    {
-      QSqlDatabase live = databaseManager.database();
-      if (!live.isValid() || !live.isOpen())
-        return fail(QStringLiteral("D2 S2: live connection unavailable."));
-      QSqlQuery insApp(live);
-      insApp.prepare(QStringLiteral(
-          "INSERT OR IGNORE INTO apps (app_identifier, app_name, display_name, "
-          "app_icon_path, executable_path, platform, created_at, updated_at) "
-          "VALUES ('d2.relocate', 'D2', 'D2', '', '', 'windows', 1700000000, "
-          "1700000000);"));
-      if (!insApp.exec())
-        return fail(QStringLiteral("D2 S2: seed app insert failed: %1")
-                        .arg(insApp.lastError().text()));
-      QSqlQuery insF(live);
-      insF.prepare(QStringLiteral(
-          "INSERT OR IGNORE INTO frontmost_sessions (app_identifier, "
-          "window_title, start_unix_sec, end_unix_sec, duration_sec, "
-          "active_sec, idle_sec, created_at) VALUES ('d2.relocate', 'D2 win', "
-          "1700050000, 1700050050, 50, 50, 0, 1700000000);"));
-      if (!insF.exec())
-        return fail(QStringLiteral("D2 S2: seed frontmost insert failed: %1")
-                        .arg(insF.lastError().text()));
-      QSqlQuery c(live);
-      if (c.exec(QStringLiteral("SELECT COUNT(*) FROM frontmost_sessions;")) &&
-          c.next())
-        beforeFront = c.value(0).toLongLong();
-    }  // release the live handle before the relocate closes the connection
-    if (beforeFront <= 0)
-      return fail(QStringLiteral("D2 S2: no rows before relocate."));
 
     const QString d2Dir = QDir::temp().filePath(QStringLiteral("timearc-d2-reloc"));
     QDir(d2Dir).removeRecursively();
     QDir().mkpath(d2Dir);
     const QString movedDb =
-        QDir::cleanPath(QDir(d2Dir).filePath(QStringLiteral("timearc.db")));
+        QDir::cleanPath(QDir(d2Dir).filePath(QStringLiteral("timearc_service.db")));
 
     // Pass the file:// URL form the QML FolderDialog actually hands back (NOT a
     // plain path), so this exercises the toLocalPath URL->path conversion the
@@ -1576,68 +1741,35 @@ int main(int argc, char* argv[]) {
     if (!mv.value(QStringLiteral("ok")).toBool())
       return fail(QStringLiteral("D2 S2: relocate failed: %1")
                       .arg(mv.value(QStringLiteral("error")).toString()));
-    if (cleaned(databaseManager.getDatabasePath()) != movedDb)
-      return fail(QStringLiteral("D2 S2: databasePath did not follow the move."));
-    if (!QFileInfo::exists(movedDb))
-      return fail(QStringLiteral("D2 S2: moved DB file is missing."));
-    if (cleaned(configDbPath()) != movedDb)
-      return fail(QStringLiteral("D2 S2: pointer was not written to the new path."));
-    if (QFileInfo::exists(defaultDbPath))
-      return fail(QStringLiteral("D2 S2: old default DB was not removed."));
-    {
-      QSqlDatabase live = databaseManager.database();
-      QSqlQuery c(live);
-      qlonglong got = -1;
-      if (c.exec(QStringLiteral("SELECT COUNT(*) FROM frontmost_sessions;")) &&
-          c.next())
-        got = c.value(0).toLongLong();
-      if (got != beforeFront)
-        return fail(QStringLiteral("D2 S2: row count changed after move "
-                                   "(got %1, want %2).")
-                        .arg(got)
-                        .arg(beforeFront));
-      QSqlQuery sc(live);
-      if (!(sc.exec(QStringLiteral("SELECT 1 FROM frontmost_sessions WHERE "
-                                   "app_identifier = 'd2.relocate' LIMIT 1;")) &&
-            sc.next()))
-        return fail(QStringLiteral("D2 S2: seeded row missing after move."));
-    }
+    if (cleaned(databaseManager.getServiceDatabasePath()) != movedDb)
+      return fail(QStringLiteral("D2 S2: service path did not follow db_dir."));
+    if (cleaned(configDbDir()) != cleaned(d2Dir))
+      return fail(QStringLiteral("D2 S2: pointer was not written to the new dir."));
+    if (QFileInfo::exists(movedDb))
+      return fail(QStringLiteral("D2 S2: GUI unexpectedly created service DB."));
 
     // Round-trip: restore default (clears the pointer).
     const QVariantMap rv = databaseManager.restoreDefaultDatabaseLocation();
     if (!rv.value(QStringLiteral("ok")).toBool())
       return fail(QStringLiteral("D2 S2: restore-default failed: %1")
                       .arg(rv.value(QStringLiteral("error")).toString()));
-    if (cleaned(databaseManager.getDatabasePath()) != cleaned(defaultDbPath))
-      return fail(QStringLiteral("D2 S2: databasePath did not return to default."));
+    if (cleaned(databaseManager.getServiceDatabasePath()) != cleaned(defaultDbPath))
+      return fail(QStringLiteral("D2 S2: service path did not return to default."));
     if (!QFileInfo::exists(defaultDbPath))
       return fail(QStringLiteral("D2 S2: default DB missing after restore."));
-    if (!configDbPath().isEmpty())
+    if (!configDbDir().isEmpty())
       return fail(QStringLiteral("D2 S2: pointer was not cleared on restore."));
-    if (QFileInfo::exists(movedDb))
-      return fail(QStringLiteral("D2 S2: moved DB not removed after restore."));
-    {
-      QSqlDatabase live = databaseManager.database();
-      QSqlQuery c(live);
-      qlonglong got = -1;
-      if (c.exec(QStringLiteral("SELECT COUNT(*) FROM frontmost_sessions;")) &&
-          c.next())
-        got = c.value(0).toLongLong();
-      if (got != beforeFront)
-        return fail(QStringLiteral(
-            "D2 S2: row count changed after restore-default."));
-    }
 
     QDir(d2Dir).removeRecursively();
     QDir(customDir).removeRecursively();
     removeConfig();
     qInfo().noquote()
-        << QStringLiteral("D2 db-path pointer + relocate round-trip ok.");
+        << QStringLiteral("D2 db-dir pointer + relocate round-trip ok.");
   }
 
   // ---- H5: UI->service config channel (idle / track) -------------------------
   // DatabaseManager::writeServiceConfig writes idle_threshold_ms + track_enabled
-  // into the SAME usage_config.json the D2 db_path lives in, through the shared
+  // into the SAME usage_config.json the D2 db_dir lives in, through the shared
   // mergeUsageConfig RMW helper. Asserts: values land with the right types,
   // idleMs<=0 omits the key, and -- the headline invariant (#3) -- the two
   // writers preserve each other's keys in BOTH directions. Test mode keeps the
@@ -1680,35 +1812,35 @@ int main(int argc, char* argv[]) {
         return fail(QStringLiteral("H5: track_enabled not updated to true."));
     }
 
-    // 3. Invariant #3 forward: the H5 writer preserves a pre-existing D2 db_path.
+    // 3. Invariant #3 forward: the H5 writer preserves a pre-existing D2 db_dir.
     {
       QJsonObject seed;
-      seed.insert(QStringLiteral("db_path"),
-                  QStringLiteral("D:/somewhere/timearc.db"));
+      seed.insert(QStringLiteral("db_dir"),
+                  QStringLiteral("D:/somewhere"));
       QFile f(configPath);
       if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate) ||
           f.write(QJsonDocument(seed).toJson()) < 0)
-        return fail(QStringLiteral("H5: could not seed db_path before write."));
+        return fail(QStringLiteral("H5: could not seed db_dir before write."));
       f.close();
     }
     if (!databaseManager.writeServiceConfig(600000, false))
-      return fail(QStringLiteral("H5: writeServiceConfig over db_path failed."));
+      return fail(QStringLiteral("H5: writeServiceConfig over db_dir failed."));
     {
       const QJsonObject o = readConfigObj();
-      if (o.value(QStringLiteral("db_path")).toString() !=
-          QStringLiteral("D:/somewhere/timearc.db"))
-        return fail(QStringLiteral("H5: writer clobbered the D2 db_path key."));
+      if (o.value(QStringLiteral("db_dir")).toString() !=
+          QStringLiteral("D:/somewhere"))
+        return fail(QStringLiteral("H5: writer clobbered the D2 db_dir key."));
       if (o.value(QStringLiteral("idle_threshold_ms")).toInt() != 600000 ||
           o.value(QStringLiteral("track_enabled")).toBool() != false)
-        return fail(QStringLiteral("H5: idle/track not co-written with db_path."));
+        return fail(QStringLiteral("H5: idle/track not co-written with db_dir."));
     }
     QFile::remove(configPath);
 
     // 4. Invariant #3 reverse: the D2 writer (relocate / restore-default, which
     //    funnel through the same helper) preserves the H5 idle/track keys. Set
-    //    idle/track, relocate (writes db_path) and assert idle/track survive next
-    //    to it, then restore-default (clears db_path) and assert idle/track STILL
-    //    survive -- only db_path is removed.
+    //    idle/track, relocate (writes db_dir) and assert idle/track survive next
+    //    to it, then restore-default (clears db_dir) and assert idle/track STILL
+    //    survive -- only db_dir is removed.
     if (!databaseManager.writeServiceConfig(900000, false))
       return fail(QStringLiteral("H5: pre-relocate writeServiceConfig failed."));
     const QString h5Dir = QDir::temp().filePath(QStringLiteral("timearc-h5-reloc"));
@@ -1721,8 +1853,8 @@ int main(int argc, char* argv[]) {
                       .arg(h5mv.value(QStringLiteral("error")).toString()));
     {
       const QJsonObject o = readConfigObj();
-      if (o.value(QStringLiteral("db_path")).toString().isEmpty())
-        return fail(QStringLiteral("H5: relocate did not write db_path."));
+      if (o.value(QStringLiteral("db_dir")).toString().isEmpty())
+        return fail(QStringLiteral("H5: relocate did not write db_dir."));
       if (o.value(QStringLiteral("idle_threshold_ms")).toInt() != 900000 ||
           o.value(QStringLiteral("track_enabled")).toBool() != false)
         return fail(QStringLiteral("H5: D2 writer clobbered the H5 idle/track keys."));
@@ -1733,8 +1865,8 @@ int main(int argc, char* argv[]) {
                       .arg(h5rv.value(QStringLiteral("error")).toString()));
     {
       const QJsonObject o = readConfigObj();
-      if (o.contains(QStringLiteral("db_path")))
-        return fail(QStringLiteral("H5: restore-default did not clear db_path."));
+      if (o.contains(QStringLiteral("db_dir")))
+        return fail(QStringLiteral("H5: restore-default did not clear db_dir."));
       if (o.value(QStringLiteral("idle_threshold_ms")).toInt() != 900000 ||
           o.value(QStringLiteral("track_enabled")).toBool() != false)
         return fail(QStringLiteral("H5: restore-default clobbered the H5 keys."));
@@ -1746,7 +1878,7 @@ int main(int argc, char* argv[]) {
     //    NOT be silently overwritten (that would truncate the other writer's key).
     //    writeServiceConfig refuses (returns false) and leaves the file byte-intact.
     {
-      const QByteArray garbage = QByteArrayLiteral("{ not valid json :: db_path");
+      const QByteArray garbage = QByteArrayLiteral("{ not valid json :: db_dir");
       QFile f(configPath);
       if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate) ||
           f.write(garbage) != garbage.size())
