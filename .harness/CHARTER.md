@@ -35,7 +35,7 @@ defaults to the platform service-data dir (`%APPDATA%\TimeArc\service`,
 `~/Library/Application Support/TimeArc/service`,
 `${XDG_DATA_HOME:-~/.local/share}/TimeArc/service`) and is redirectable via
 `usage_config.json` `db_dir` (service and UI append `timearc_service.db`; UI only
-writes the pointer, never the DB). Other paths from `usage_paths.c`. A field
+writes the pointer, never the DB). Other paths from `database_path.c`. A field
 rename/type change, a service-table DDL change, or a file move requires a charter
 amendment + migration plan.
 
@@ -66,8 +66,8 @@ Editing any file in this list requires filing a change proposal at
 - `src/service/shared/data_bridge.h`
 - `src/service/shared/usage_record.h`
 - `src/service/shared/usage_record.schema.json`
-- `src/service/shared/usage_paths.h`
-- `src/service/shared/usage_paths.c`
+- `src/service/shared/database_path.h`
+- `src/service/shared/database_path.c`
 - `src/service/shared/app_info.h`
 - `src/service/shared/app_env.h`
 - `src/include/util.h`
@@ -91,18 +91,9 @@ Bump the version below.
 ## 5. Charter version
 
 - **v0.1** — initial draft (`0.1`, 33 commits): Windows tracker end-to-end; macOS primitives only; Linux stub empty.
-- **v0.2** — A1 SQLite primary-source migration. I2: `timearc.db` elevated to primary
-  history contract + UI read source; JSONL kept as fallback. `rules/03` §1. Proposal: `journal/sessions/20260609-1614-B-a1-sqlite-storage-migration-kickoff.md`.
-- **v0.3** — D2 user-selectable DB path. I2: `timearc.db` path defaults but is
-  **redirectable** via `usage_config.json` `db_path` (both read one pointer; fail-safe).
-  Proposal: `journal/sessions/20260610-1705-B-d2-db-path-pointer-proposal.md`.
-- **v0.4** — H5 service-config control channel (I1). UI writes `usage_config.json`
-  `idle_threshold_ms` (runtime idle, 1s–24h) + `track_enabled` (`false` = service
-  self-exits = true pause, no deletion), read at service startup via the shared D2
-  RMW; supersedes A-TRACKPAUSE. Proposal: `journal/sessions/20260609-0150-B-service-config-proposal.md`.
-- **v0.5** — Lock service DB filename to `timearc_service.db` and replace full
-  `db_path` customization with directory-only `usage_config.json` `db_dir`.
-  Proposal: `journal/sessions/20260709-0014-B-db-dir-service-db.md`.
-- **v0.6** — Split SQLite ownership: service-only `timearc_service.db` history
-  and GUI-only `timearc.db` app state. Proposal:
-  `journal/sessions/20260709-0037-B-split-service-gui-dbs.md`.
+- **v0.2** — A1 SQLite primary-source migration: `timearc.db` primary history + JSONL fallback. Proposal: `journal/sessions/20260609-1614-B-a1-sqlite-storage-migration-kickoff.md`.
+- **v0.3** — D2 user-selectable DB path via `usage_config.json` `db_path`. Proposal: `journal/sessions/20260610-1705-B-d2-db-path-pointer-proposal.md`.
+- **v0.4** — H5 service config keys `idle_threshold_ms` + `track_enabled`. Proposal: `journal/sessions/20260609-0150-B-service-config-proposal.md`.
+- **v0.5** — Lock service DB filename and replace `db_path` with `db_dir`. Proposal: `journal/sessions/20260709-0014-B-db-dir-service-db.md`.
+- **v0.6** — Split SQLite ownership: service `timearc_service.db`, GUI `timearc.db`. Proposal: `journal/sessions/20260709-0037-B-split-service-gui-dbs.md`.
+- **v0.7** — Rename DB-path resolver files to `database_path.*`; no on-disk change. Proposal: `journal/sessions/20260709-1727-B-database-path-rename.md`.

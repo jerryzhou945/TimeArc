@@ -18,6 +18,50 @@ and the Qt statistics layer can share one format.
 | `start_unix_sec` | int64 | Session start time in Unix seconds. |
 | `duration_sec` | uint64 | Session duration in seconds. |
 
+## Service SQLite Database
+
+`timearc_service.db` is the service-owned primary history store. The service is
+the only writer; the Qt app opens it read-only.
+
+`database_storage.*` owns SQLite lifecycle, schema, statements, transactions,
+and table writes. `data_bridge.c` only adapts the public C bridge functions to
+the storage API.
+
+### `apps`
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| `app_id` | text | Stable app identifier. |
+| `platform` | text | Producer platform: `windows`, `macos`, or `linux`. |
+| `display_name` | text | Localized app name. |
+| `icon_path` | text | Path to the app icon. |
+| `executable_path` | text | Path to the app executable. |
+| `created_at` | int64 | App record creation time in Unix seconds. |
+| `updated_at` | int64 | App record last update time in Unix seconds. |
+
+### `frontmost_sessions`
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| `app_id` | text | Stable app identifier. |
+| `window_title` | text | Active window title captured for the usage session. |
+| `start_unix_sec` | int64 | Session start time in Unix seconds. |
+| `end_unix_sec` | int64 | Session end time in Unix seconds. |
+| `duration_sec` | int64 | Generated column: `end_unix_sec - start_unix_sec`. |
+| `active_sec` | int64 | Active time in seconds. |
+| `idle_sec` | int64 | Generated column: `duration_sec - active_sec`. |
+
+### `media_sessions`
+
+| Column | Type | Meaning |
+| --- | --- | --- |
+| `app_id` | text | Stable app identifier. |
+| `media_type` | text | Media type: `audio`, `video`, or `unknown`. |
+| `media_title` | text | Media title. |
+| `start_unix_sec` | int64 | Session start time in Unix seconds. |
+| `end_unix_sec` | int64 | Session end time in Unix seconds. |
+| `duration_sec` | int64 | Generated column: `end_unix_sec - start_unix_sec`. |
+
 ## Platform Mapping
 
 Windows:
@@ -79,7 +123,7 @@ On macOS, `app_id` should be the bundle id, while `path` should be the app path.
 Keeping both fields avoids platform-specific meaning leaking into the Qt stats
 layer.
 
-## Why `end_unix_sec` Is Not Stored
+## Why JSONL Does Not Store `end_unix_sec`
 
 The end time is derived as:
 
@@ -87,15 +131,16 @@ The end time is derived as:
 end_unix_sec = start_unix_sec + duration_sec
 ```
 
-Keeping only `start_unix_sec` and `duration_sec` avoids inconsistent records
-where the end time disagrees with the duration. Query code can derive the end
-boundary when needed.
+JSONL keeps only `start_unix_sec` and `duration_sec` to avoid inconsistent
+records where the end time disagrees with the duration. SQLite stores
+`end_unix_sec` and derives `duration_sec` as a generated column instead.
 
-## Why `idle` Is Not Stored
+## Why JSONL Does Not Store `idle`
 
 Idle detection is tracker control logic. If the user becomes idle, the tracker
 closes the current session and writes the active duration. Storage does not need
-to know why the session ended for the first version.
+to know why the session ended in JSONL. SQLite stores `active_sec` and derives
+`idle_sec` as a generated column.
 
 ## Bridge Function Shape
 

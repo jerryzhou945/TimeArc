@@ -3,25 +3,20 @@
 
 #include <stdio.h>
 
-typedef struct sqlite3 sqlite3;
+#include "util.h"
 
 // Windows 存储上下文。
 //
-// JSONL 与 SQLite 是两个**都已实装、生产默认同时启用**的历史后端（见
-// usage_storage.c timearc_storage_init(&g,1,1)）；UI 历史读源正由 JSONL 迁往
-// SQLite（A1）。current_path 指向实时快照文件，供 Qt UI 每几秒读取一次当前应用。
+// JSONL 与 SQLite 是两个生产默认同时启用的历史后端。JSONL/current 快照
+// 仍由 Windows storage 文件管理；SQLite 连接和 DDL 由 shared/database_storage.*
+// 管理。current_path 指向实时快照文件，供 Qt UI 每几秒读取一次当前应用。
 typedef struct TimeArcStorageContext {
-  // SQLite is forward-declared so this header does not force every caller to
-  // include sqlite3.h; the backend itself is fully implemented (see
-  // timearc_storage_write_sqlite) and enabled by default.
-  sqlite3* db;
-
   // JSONL history backend; each line is one usage record (append-only).
   FILE* jsonl_fp;
 
-  char db_path[4096];
-  char jsonl_path[4096];
-  char current_path[4096];
+  char db_path[TA_MAX_PATH_BYTES];
+  char jsonl_path[TA_MAX_PATH_BYTES];
+  char current_path[TA_MAX_PATH_BYTES];
   char table_name[128];
 
   int use_sqlite;

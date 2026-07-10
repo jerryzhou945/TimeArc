@@ -7,6 +7,8 @@ extern "C" {
 
 #include <stdint.h>
 
+#include "util.h"
+
 // TimeArcUsageRecord 是磁盘历史记录协议的 C 结构体版本。
 //
 // tracker 结束一段 session 后会生成它，storage 再把它写成 JSONL。
@@ -19,16 +21,16 @@ typedef struct TimeArcUsageRecord {
   char source[32];
 
   // 稳定应用身份。Windows 使用完整 exe 路径，macOS 使用 bundle id。
-  char app_id[4096];
+  char app_id[TA_MAX_PATH_BYTES];
 
   // 短应用名，例如 "chrome.exe" 或 "Safari"。
-  char app_name[256];
+  char app_name[TA_MAX_NAME_BYTES];
 
   // session 期间采集到的前台窗口标题。
-  char window_title[512];
+  char window_title[TA_MAX_TITLE_BYTES];
 
   // Windows 完整 exe 路径或 macOS app 路径。
-  char path[4096];
+  char path[TA_MAX_PATH_BYTES];
 
   // session 开始时间，Unix 秒。
   int64_t start_unix_sec;

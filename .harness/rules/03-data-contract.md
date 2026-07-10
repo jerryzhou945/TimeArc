@@ -17,7 +17,7 @@ The service-owned SQLite history DB lives in the platform service-data directory
 
 | Filename                  | Writer                      | Reader         | Shape                               |
 |---------------------------|-----------------------------|----------------|-------------------------------------|
-| `timearc_service.db`      | service only                | UI read-only primary history | `apps`, `frontmost_sessions`, `media_sessions` |
+| `timearc_service.db`      | service only                | UI read-only primary history | `apps(app_id, platform, display_name, icon_path, executable_path, created_at, updated_at)`, `frontmost_sessions(app_id, window_title, start_unix_sec, end_unix_sec, duration_sec generated, active_sec, idle_sec generated)`, `media_sessions(app_id, media_type, media_title, start_unix_sec, end_unix_sec, duration_sec generated)` |
 | `timearc.db`              | GUI only                    | GUI            | settings/tags/manual/mobile/UI tables |
 | `usage_records.jsonl`     | service (append)            | UI fallback / import | one JSON record per line, UTF-8 |
 | `usage_current.json`      | service (atomic overwrite)  | UI (poll read) | single JSON record + `live`, `updated_unix_sec` |
@@ -43,16 +43,11 @@ the `db_dir` pointer; it never copies, vacuums, restores, or writes
 `timearc_service.db`. The old `db_path` key is ignored and removed by the next
 UI DB-location write.
 
-**Service config (H5, `CHARTER` v0.4).** `usage_config.json` also carries two UI→service behavior keys
-the service reads at startup (`timearc_read_service_config`): `idle_threshold_ms` (int;
-fills `TimeArcUsageTrackerConfig.idle_threshold_ms`, clamped 1s–24h) and `track_enabled`
-(bool; `false` = the service collects nothing and self-exits — a *true pause*, never a
-deletion). The UI writes them via `DatabaseManager::writeServiceConfig`; both the D2
-db_dir writer and the H5 idle/track writer share one atomic read-modify-write
-(`mergeUsageConfig`) that preserves the other's keys. Absent/invalid keys → compile-time
-defaults (fail-safe = today's behavior). This is a sanctioned UI→service direction over
-the same disk channel D2 opened (no IPC; honors I1) and supersedes the earlier
-A-TRACKPAUSE UI-only approximation. Proposal:
+**Service config (H5, `CHARTER` v0.4).** `usage_config.json` also carries
+`idle_threshold_ms` (clamped 1s-24h) and `track_enabled` (`false` = service
+self-exits, no deletion). The UI writes them via
+`DatabaseManager::writeServiceConfig`; D2 and H5 share `mergeUsageConfig`, an
+atomic RMW that preserves the other's keys. Absent/invalid keys use compile-time defaults; the channel is disk-only and honors I1. Proposal:
 `journal/sessions/20260609-0150-B-service-config-proposal.md`.
 
 ## 2. Record shape

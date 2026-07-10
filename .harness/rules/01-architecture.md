@@ -14,7 +14,7 @@ message.
 │  Shared contract  (src/service/shared/)                       │
 │    ├─ data_bridge.h — C ABI for trackers                      │
 │    ├─ usage_record.h/.schema.json — on-disk record            │
-│    ├─ usage_paths.h/.c — where journal files live             │
+│    ├─ database_path.h/.c — service DB path resolver           │
 │    └─ app_info.h / app_env.h — sampling structs               │
 ├───────────────────────────────────────────────────────────────┤
 │  Service layer  (src/service/<platform>/)                     │
@@ -34,7 +34,7 @@ message.
 | `src/main.cpp`        | `services/*.h`, Qt headers                                 |
 | `src/services/*.cpp`  | Qt headers, its own `.h`, other `services/*.h`. **NO** service-layer headers. |
 | `src/service/shared/*.h`| C stdlib only. **No** Qt, **no** platform headers (clients include these). |
-| `src/service/shared/*.c`| May switch on `#ifdef _WIN32` etc. internally (see `usage_paths.c`). |
+| `src/service/shared/*.c`| May switch on `#ifdef _WIN32` etc. internally (see `database_path.c`). |
 | `src/service/windows/*`| `service/shared/*`, Windows SDK headers                   |
 | `src/service/macos/*` | `service/shared/*`, Cocoa/Foundation/etc.                  |
 | `src/service/linux/*` | `service/shared/*`, POSIX/X11/Wayland headers              |

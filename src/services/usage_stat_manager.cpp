@@ -43,7 +43,7 @@ struct UsageInterval {
 };
 
 QString usageDataDir() {
-  // 必须和 service/shared/usage_paths.c 的 Windows 路径保持一致，
+  // 必须和 service/shared/database_path.c 的 Windows 路径保持一致，
   // UI 才能读到后台服务写出的 JSONL/current 文件。
   const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
   QString base = env.value("LOCALAPPDATA");

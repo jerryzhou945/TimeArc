@@ -32,7 +32,7 @@ in the commit message body.
 - [ ] Nothing written to disk violates
       [`../rules/03-data-contract.md`](../rules/03-data-contract.md).
 - [ ] If `usage_record.h`, `usage_record.schema.json`,
-      `data_bridge.h`, or `usage_paths.*` changed, there is a charter
+      `data_bridge.h`, or `database_path.*` changed, there is a charter
       amendment and a data migration note.
 - [ ] If you added a new `source` value (beyond `foreground|audio`), it is in
       the schema enum **and** handled by `UsageStatManager`.
