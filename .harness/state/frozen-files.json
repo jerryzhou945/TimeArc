@@ -9,11 +9,7 @@
     },
     {
       "path": "src/service/shared/usage_record.h",
-      "sha256": "49352ff54d35b3e8529bf7146b998c8101f6c9792b92684d57c212d26d721861"
-    },
-    {
-      "path": "src/service/shared/usage_record.schema.json",
-      "sha256": "ccf347d064f5741f96ce089bec02d6cd8f4e8a17a825252efaab0789ead36eb9"
+      "sha256": "0d6790d1a4b8a28911813f25d721458424ac0a8ee552469a2e83dcfa5b6c15a9"
     },
     {
       "path": "src/service/shared/database_path.h",
@@ -21,7 +17,7 @@
     },
     {
       "path": "src/service/shared/database_path.c",
-      "sha256": "2dd28a1d0311c9f7f04e73b59b26b1dfd61147d01981d1ab01f37955df0d7b45"
+      "sha256": "f3bd903f2c5f709e396c0c241c438b3241d546f204eede9404fae0a5efaace64"
     },
     {
       "path": "src/service/shared/app_info.h",
@@ -49,11 +45,11 @@
     },
     {
       "path": ".harness/CHARTER.md",
-      "sha256": "2db0126297a9c4a66534fd0ef84301b7b3b9b8ab7b57b571e5b64dc58136f82a"
+      "sha256": "2ab27e1cf7b9b7fd6497bd75c8ce8f80369857ee993f579db724e08dee67394b"
     },
     {
       "path": ".harness/AGENTS.md",
-      "sha256": "0858b1122b0f5b9d3c51808f7a6f71587200eea2f2d8b4533fdaa524df655ae8"
+      "sha256": "b397efbc9749c21f428167b33ad4144302959ebbc22e7faf244f3327f65ba068"
     },
     {
       "path": "AGENTS.md",

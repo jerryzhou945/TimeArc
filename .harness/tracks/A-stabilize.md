@@ -57,8 +57,6 @@ First word is one of: `Refine`, `Clean up`, `Polish`, `Simplify`, `Rename`,
 
 ## Typical wins in this repo right now
 
-- UTF-8 escaping in the `usage_current.json` writer (mechanical cleanup fits
-  here; behavioral changes belong in track C).
 - Consolidating color constants in the three big QML pages
   (`DesktopHomePage`, `DesktopStatsPage`, `DesktopCalenderPage`).
 - Extracting the repeated `copy_string` helper family.

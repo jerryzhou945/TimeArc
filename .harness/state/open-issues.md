@@ -24,13 +24,11 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 
 ## Storage
 
-- **SQLite history migration (A1) S1–S5 — DONE** (`CHARTER` v0.8).
+- **SQLite usage migration (A1) — DONE** (`CHARTER` v0.9).
   `timearc_service.db` is the sole automatic-usage history store; the UI is read-only.
   [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
 - **Whole-DB backup/restore (D1) — DONE (S1+S2, PR #40).** `DatabaseManager`
   `backupDatabase`/`inspectBackup`/`restoreDatabase` + Settings UI; S3 retention deferred.
-- **Windows live-snapshot replacement has a visibility gap.** `usage_storage.c`
-  removes the old `usage_current.json` before rename; consider `ReplaceFile`.
 
 ## UI
 

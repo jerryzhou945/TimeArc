@@ -1,0 +1,18 @@
+[  0%] Built target time-arc-parson
+[  1%] Copying time-arc qml sources into build dir
+[  1%] Built target time-arc_copy_qml
+[  1%] Built target time-arc_copy_res
+[  1%] Built target generate_qmlls_build_ini_file
+[  1%] Running qmlimportscanner for time-arc
+[  1%] Built target time-arc_qmlimportscan
+[  3%] Built target time-arc-sqlite3
+[  3%] Built target time-arc_autogen_timestamp_deps
+[  3%] Built target time-arc_autogen
+[  3%] Running AUTOMOC file extraction for target time-arc
+[  4%] Running rcc for resource time-arc_raw_qml_0
+[  4%] Generating .rcc/qmlcache/time-arc_qml/desktop/components/I18n_js.cpp
+[  4%] Running AUTOMOC file extraction for target time-arc
+[  4%] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/I18n_js.cpp.o
+[  6%] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[  7%] Linking CXX executable TimeArc
+[100%] Built target time-arc

@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-11T14:17:14Z | L1 | live-snapshot-r... | cmake --build exited 2 | [report](errors/20260711-141714-B-live-snapshot-retirement-ui-build.md) |
+| 2026-07-11T14:16:33Z | L1 | live-snapshot-r... | cmake --build exited 1 | [report](errors/20260711-141633-B-live-snapshot-retirement-ui-build.md) |
+| 2026-07-11T14:09:40Z | L3 | missing-bridge-... | Inspection assumed a macOS bridging-header filename that ... | [report](errors/20260711-140940-B-missing-bridge-header-path.md) |
 | 2026-07-11T13:54:48Z | L3 | unlisted-frozen... | Changed a stale comment in frozen database_path.c before ... | [report](errors/20260711-135448-B-unlisted-frozen-comment.md) |
 | 2026-07-11T13:54:30Z | L2 | db-smoke-idempo... | DB smoke test failed on the pre-existing legacy project m... | [report](errors/20260711-135430-B-db-smoke-idempotence.md) |
 | 2026-07-11T13:51:09Z | L3 | stale-patch-con... | A multi-file documentation patch failed because the Track... | [report](errors/20260711-135109-B-stale-patch-context.md) |

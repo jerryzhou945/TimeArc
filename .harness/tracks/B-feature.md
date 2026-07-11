@@ -64,5 +64,5 @@ Examples from the existing log that match: `Audio/Video tracking for macOS`,
 
 ## SQLite migration status
 
-Migration is complete: the service database is the sole history backend and
-the UI opens it read-only. JSON is retained only for live state and config.
+Migration is complete: the service database is the sole automatic-usage
+backend and the UI opens it read-only. JSON is retained only for config.

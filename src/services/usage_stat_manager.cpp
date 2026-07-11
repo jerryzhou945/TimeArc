@@ -10,13 +10,8 @@
 #include <QHash>
 #include <QIcon>
 #include <QImage>
-#include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonParseError>
-#include <QJsonValue>
 #include <QMap>
 #include <QPixmap>
-#include <QProcessEnvironment>
 #include <QRegularExpression>
 #include <QSet>
 #include <QSqlDatabase>
@@ -41,29 +36,6 @@ struct UsageInterval {
   qint64 start = 0;
   qint64 end = 0;
 };
-
-QString usageDataDir() {
-  // 必须和 service/shared/database_path.c 的 Windows 路径保持一致，
-  // UI 才能读到后台服务写出的 usage_current.json。
-  const QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-  QString base = env.value("LOCALAPPDATA");
-  if (base.trimmed().isEmpty()) base = env.value("APPDATA");
-  if (base.trimmed().isEmpty()) base = QDir::homePath();
-
-  return QDir(base).filePath("TimeArc/usage");
-}
-
-qint64 jsonInteger(const QJsonObject& object, const QString& key) {
-  const QJsonValue value = object.value(key);
-  if (value.isDouble()) return static_cast<qint64>(value.toDouble());
-  if (value.isString()) return value.toString().toLongLong();
-  return 0;
-}
-
-quint64 jsonUnsignedInteger(const QJsonObject& object, const QString& key) {
-  const qint64 value = jsonInteger(object, key);
-  return value > 0 ? static_cast<quint64>(value) : 0;
-}
 
 bool containsAny(const QString& text, std::initializer_list<QString> words) {
   for (const QString& word : words) {
@@ -669,12 +641,6 @@ QStringList iconDominantColors(const QString& path) {
   return colors;
 }
 
-QJsonDocument parseJsonDocument(const QByteArray& content) {
-  QJsonParseError error;
-  const QJsonDocument doc = QJsonDocument::fromJson(content, &error);
-  return error.error == QJsonParseError::NoError ? doc : QJsonDocument();
-}
-
 // SQLite history read source. The GUI opens this as a read-only service DB
 // connection; the service process is the only writer.
 const QString kTimearcConnection = QStringLiteral("timearc_service");
@@ -729,10 +695,9 @@ int UsageStatManager::allSoftwareMinutes() const {
 }
 
 void UsageStatManager::refresh() {
-  // refresh 是 UI 的数据入口：增量装载 SQLite 历史，再叠加 JSON current 实时快照。最后
-  // emit。增量守卫令空闲 5s tick 近乎零成本（无新行→不自增 recordsGeneration→统计页跳过重算）。
+  // refresh 是 UI 的数据入口：增量装载 SQLite 历史后 emit。增量守卫令空闲
+  // 5s tick 近乎零成本（无新行→不自增 recordsGeneration→统计页跳过重算）。
   refreshHistoryFromSqlite();
-  refreshLiveSnapshot();
   emit usageStatsChanged();
 }
 
@@ -786,7 +751,6 @@ int UsageStatManager::appendSqliteSessionsSince(QList<UsageRecord>* out,
     const qlonglong dur = query.value(5).toLongLong();
     record.durationSec = dur > 0 ? static_cast<quint64>(dur) : 0;
     record.source = source;
-    record.live = false;
     // Reject invalid or empty session rows before aggregation.
     if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
     if (record.appId.trimmed().isEmpty() && record.appName.trimmed().isEmpty())
@@ -847,43 +811,6 @@ void UsageStatManager::refreshHistoryFromSqlite() {
   if (full || added > 0) ++m_recordsGeneration;
 }
 
-void UsageStatManager::refreshLiveSnapshot() {
-  // live 快照始终来自 usage_current.json（无 SQLite 等价物，混合架构保留 JSON live）。
-  m_hasCurrentRecord = false;
-  QFile currentFile(currentFilePath());
-  if (currentFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-    const QByteArray content = currentFile.readAll().trimmed();
-    const QJsonDocument doc = parseJsonDocument(content);
-    if (doc.isObject()) {
-      const QJsonObject object = doc.object();
-      if (object.value("platform").toString() == "windows") {
-        UsageRecord currentRecord = parseLiveRecordObject(object);
-        const qint64 updatedUnixSec =
-            currentRecord.updatedUnixSec > 0
-                ? currentRecord.updatedUnixSec
-                : currentRecord.startUnixSec +
-                      static_cast<qint64>(currentRecord.durationSec);
-        const qint64 nowUnixSec = QDateTime::currentSecsSinceEpoch();
-
-        // current 文件是覆盖写的实时快照。超过 15 秒没更新就视为 service 已停或
-        // session 已结束，避免 UI 一直显示陈旧的“正在使用”。
-        if (currentRecord.startUnixSec > 0 &&
-            (!currentRecord.appId.trimmed().isEmpty() ||
-             !currentRecord.appName.trimmed().isEmpty()) &&
-            updatedUnixSec > 0 && nowUnixSec - updatedUnixSec <= 15) {
-          currentRecord.durationSec =
-              nowUnixSec > currentRecord.startUnixSec
-                  ? static_cast<quint64>(nowUnixSec -
-                                         currentRecord.startUnixSec)
-                  : 0;
-          m_currentRecord = currentRecord;
-          m_hasCurrentRecord = true;
-        }
-      }
-    }
-  }
-}
-
 QVariantList UsageStatManager::softwareForRange(const QString& range) const {
   return activeSoftwareForRange(range);
 }
@@ -923,7 +850,6 @@ QVariantList UsageStatManager::aggregateSoftware(
     QVector<UsageInterval> foregroundIntervals;
     QVector<UsageInterval> audioIntervals;
     QMap<QString, quint64> categorySeconds;  // 按窗口标题逐记录分类、时长加权
-    bool live = false;
     bool hasForeground = false;
     bool hasAudio = false;
   };
@@ -972,15 +898,10 @@ QVariantList UsageStatManager::aggregateSoftware(
     aggregate.categorySeconds[classifyActivity(
         key, record.appId, record.appName, record.path, record.windowTitle)] +=
         record.durationSec;
-    aggregate.live = aggregate.live || record.live;
   };
 
   for (const UsageRecord& record : m_records) {
     addRecord(record);
-  }
-
-  if (m_hasCurrentRecord && m_trackingActive) {
-    addRecord(m_currentRecord);  // 3A 软暂停：关追踪时不纳入 live 记录（历史不删）
   }
 
   QVariantList result;
@@ -1059,7 +980,6 @@ QVariantList UsageStatManager::aggregateSoftware(
     item["audioSeconds"] = static_cast<qlonglong>(audioSeconds);
     item["foregroundTime"] = secondsToTimeText(foregroundSeconds);
     item["audioTime"] = secondsToTimeText(audioSeconds);
-    item["live"] = aggregate.live;
     QString subtitle;
     if (aggregate.hasForeground && aggregate.hasAudio) {
       subtitle = "Foreground + audio";
@@ -1067,9 +987,6 @@ QVariantList UsageStatManager::aggregateSoftware(
       subtitle = "Audio playback";
     } else {
       subtitle = "Foreground usage";
-    }
-    if (aggregate.live) {
-      subtitle += " - Live";
     }
     const QString subtitleName =
         aggregate.groupKey.startsWith("site:")
@@ -1123,89 +1040,6 @@ int UsageStatManager::aggregateSoftwareSecondsForRange(
              : static_cast<int>(total);
 }
 
-QString UsageStatManager::currentFilePath() const {
-  return QDir(usageDataDir()).filePath("usage_current.json");
-}
-
-UsageStatManager::UsageRecord UsageStatManager::parseLiveRecordObject(
-    const QJsonObject& object) const {
-  UsageRecord record;
-  record.appId = object.value("app_id").toString();
-  record.source = normalizedSource(object.value("source").toString());
-  record.appName = object.value("app_name").toString();
-  record.windowTitle = object.value("window_title").toString();
-  record.path = object.value("path").toString();
-  record.startUnixSec = jsonInteger(object, "start_unix_sec");
-  record.durationSec = jsonUnsignedInteger(object, "duration_sec");
-  record.updatedUnixSec = jsonInteger(object, "updated_unix_sec");
-  record.live = true;
-  return record;
-}
-
-QVariantMap UsageStatManager::recordToVariantMap(
-    const UsageRecord& record) const {
-  // currentSoftware 只返回当前一条 live record，不走完整聚合；但仍复用 activity
-  // 识别，保证 Chrome/B 站显示逻辑和列表一致。
-  const QString appName = !record.appName.trimmed().isEmpty()
-                              ? record.appName
-                              : QFileInfo(record.path).fileName();
-  const QString groupKey =
-      activityGroupKey(record.appId, appName, record.path, record.windowTitle);
-  const QString displayName =
-      activityDisplayName(groupKey, record.appId, appName, record.path);
-  const TimeArcAdapters::AdapterInput adapterInput = adapterInputFromActivity(
-      record.appId, appName, record.path, record.windowTitle, record.source);
-  const TimeArcAdapters::AdapterMetadata adapterMetadata =
-      adapterMetadataForIdentifier(groupKey, adapterInput);
-
-  QVariantMap item;
-  item["groupKey"] = groupKey;
-  item["appId"] = groupKey;
-  item["appName"] = appName;
-  item["name"] = displayName;
-  item["path"] = record.path;
-  // 2C 标题脱敏（读出端，G-HIDETITLE）：开「隐藏敏感标题」→ windowTitle 用类别替换。
-  // 当前 UI 各页均不展示 windowTitle（隐私原则：标题绝不显示）；此处对读出层唯一会带出
-  // 标题的字段做边界脱敏（采集/分类仍保留原文，符合 §2.8「输出端脱敏」）。
-  item["windowTitle"] =
-      m_hideTitles ? classifyActivity(groupKey, record.appId, appName,
-                                      record.path, record.windowTitle)
-                   : record.windowTitle;
-  if (const TimeArcSiteCatalog::SiteDefinition* site =
-          siteForGroupKey(groupKey)) {
-    item["siteDomain"] = site->domain;
-    item["brandColor"] = site->brandColor;
-    item["iconLabel"] = site->iconLabel;
-    item["iconSource"] = site->iconSource;
-  }
-  applyAdapterMetadata(&item, adapterMetadata, record.path);
-  if (!adapterMetadata.category.trimmed().isEmpty()) {
-    item["category"] = adapterMetadata.category;
-  }
-  item["source"] = record.source;
-  item["seconds"] = static_cast<qlonglong>(record.durationSec);
-  item["minutes"] = static_cast<int>(record.durationSec / 60);
-  item["time"] = secondsToTimeText(record.durationSec);
-  item["live"] = record.live;
-  QString subtitle =
-      record.source == "audio" ? "Audio playback" : "Foreground usage";
-  if (record.live) {
-    subtitle += " - Live";
-  }
-  item["note"] = subtitle;
-  item["subtitle"] = subtitle;
-  return item;
-}
-
-QVariantMap UsageStatManager::currentSoftware() const {
-  // 3A 软暂停：关「追踪正在运行的应用」→ 不返回当前 live app（首页「当前应用」显示等待）。
-  if (!m_hasCurrentRecord || !m_trackingActive) {
-    return QVariantMap();
-  }
-
-  return recordToVariantMap(m_currentRecord);
-}
-
 QVariantList UsageStatManager::foregroundSegmentsImpl(
     const std::function<bool(const UsageRecord&)>& inWindow) const {
   // 只看前台记录（service 已按"同 exe+同窗口标题连续"切会话；浏览器换标签标题
@@ -1249,7 +1083,6 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
   };
 
   for (const UsageRecord& record : m_records) addRecord(record);
-  if (m_hasCurrentRecord && m_trackingActive) addRecord(m_currentRecord);  // 3A
 
   // 相邻会话间隙 <= 60s 视为同一次连续使用。
   constexpr qint64 kMergeGapSec = 60;
@@ -1381,7 +1214,6 @@ QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
     byDay[d.day()][key].append({record.startUnixSec, end});
   };
   for (const UsageRecord& record : m_records) add(record);
-  if (m_hasCurrentRecord && m_trackingActive) add(m_currentRecord);  // 3A 软暂停一致
 
   QVariantList result;
   // 当月只覆盖到"今天"为止——绝不把尚未发生的未来天补成 0，否则趋势会被未来的
@@ -1436,7 +1268,6 @@ QVariantList UsageStatManager::dailySecondsForRange(qint64 startUnixSec,
     byDay[d.toString(Qt::ISODate)][key].append({record.startUnixSec, recEnd});
   };
   for (const UsageRecord& record : m_records) add(record);
-  if (m_hasCurrentRecord && m_trackingActive) add(m_currentRecord);  // 3A 软暂停一致
 
   for (QDate d = startDate; d <= endDate; d = d.addDays(1)) {
     qint64 total = 0;
@@ -1474,7 +1305,6 @@ QVariantList UsageStatManager::monthlySecondsForYear(int year) const {
     byMonth[d.month()][key].append({record.startUnixSec, end});
   };
   for (const UsageRecord& record : m_records) add(record);
-  if (m_hasCurrentRecord && m_trackingActive) add(m_currentRecord);  // 3A 软暂停一致
 
   const QDate today = QDate::currentDate();
   int upTo = 12;
@@ -1533,7 +1363,6 @@ QVariantMap UsageStatManager::focusStatsForWindow(qint64 startUnixSec,
     intervals.append({record.startUnixSec, end});
   };
   for (const UsageRecord& record : m_records) add(record);
-  if (m_hasCurrentRecord && m_trackingActive) add(m_currentRecord);  // 3A 软暂停一致
 
   std::sort(intervals.begin(), intervals.end(),
             [](const UsageInterval& a, const UsageInterval& b) {
@@ -1591,7 +1420,8 @@ QString UsageStatManager::exportReport(const QString& fileBaseName,
       QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
   if (dir.isEmpty())
     dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-  if (dir.isEmpty()) dir = usageDataDir();
+  if (dir.isEmpty())
+    dir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
   QDir().mkpath(dir);
 
   QString base = fileBaseName;
@@ -1638,7 +1468,6 @@ QString UsageStatManager::effectiveGroupKey(const UsageRecord& record) const {
 
 void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
                                       bool mergeSimilar, bool hideTitles,
-                                      bool trackingActive,
                                       const QStringList& hiddenKeys) {
   // UI 私有读层偏好（启动 + 开关变更时由 QML 推入）。只影响 UI 聚合读出，
   // 不写/不删 usage、不动磁盘契约/服务。
@@ -1646,13 +1475,12 @@ void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
   const bool changed =
       m_autoClassify != autoClassify || m_gameClassify != gameClassify ||
       m_mergeSimilar != mergeSimilar || m_hideTitles != hideTitles ||
-      m_trackingActive != trackingActive || m_hiddenKeys != hidden;
+      m_hiddenKeys != hidden;
   if (!changed) return;
   m_autoClassify = autoClassify;
   m_gameClassify = gameClassify;
   m_mergeSimilar = mergeSimilar;
   m_hideTitles = hideTitles;
-  m_trackingActive = trackingActive;
   m_hiddenKeys = hidden;
   // 读层口径变化：自增代际让统计页“无新数据则跳过重算”的守卫失效，强制重算 + 刷新各页。
   ++m_recordsGeneration;
@@ -1693,7 +1521,6 @@ QVariantList UsageStatManager::allApps() const {
     entry.intervals.append({record.startUnixSec, endUnixSec});
   };
   for (const UsageRecord& record : m_records) addApp(record);
-  if (m_hasCurrentRecord) addApp(m_currentRecord);
 
   QVariantList result;
   for (AppListEntry& entry : seen) {

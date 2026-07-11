@@ -239,12 +239,12 @@ Item {
         pomodoroHotkeyKey= _getStr("pomodoro_hotkey_key", "P")
     }
 
-    // —— 读层过滤推入（2A 游戏/分类/合并 · 2B 显隐 · 2C 标题 · 3A 软暂停）——
+    // —— 读层过滤推入（2A 游戏/分类/合并 · 2B 显隐 · 2C 标题）——
     // 把本页开关推进 usageStatManager 读出层；只影响 UI 聚合，不写/不删 usage（G4/I1/I2）。
     function pushReadFilters() {
         if (usageStatManager && usageStatManager.setReadFilters)
             usageStatManager.setReadFilters(autoClassify, gameMode, mergeWindows,
-                                            hideTitles, trackRunning, hiddenApps)
+                                            hideTitles, hiddenApps)
     }
     function parseHiddenApps() {
         try { var a = JSON.parse(_getStr("hidden_apps", "[]")); return Array.isArray(a) ? a : [] }

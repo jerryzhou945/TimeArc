@@ -2,7 +2,7 @@
 
 `usage_record` is the normalized cross-platform protocol for completed app
 usage sessions. Windows and macOS may collect activity differently, but both
-services map the same fields into SQLite history and the live JSON snapshot.
+services map the same fields into SQLite history.
 
 ## Fields
 
@@ -148,9 +148,3 @@ arrays:
 - C callers can pass normal strings.
 - The implementation can still copy into `TimeArcUsageRecord` internally.
 - The ABI stays small and stable.
-
-## Live Snapshot Example
-
-```json
-{"platform":"windows","source":"foreground","app_id":"C:/Program Files/Google/Chrome/Application/chrome.exe","app_name":"chrome.exe","window_title":"YouTube - Google Chrome","path":"C:/Program Files/Google/Chrome/Application/chrome.exe","start_unix_sec":1713386400,"duration_sec":60,"live":1,"updated_unix_sec":1713386460}
-```

@@ -69,17 +69,6 @@ static void close_session(const AppInfo* app, int64_t start_sec,
                         (uint64_t)(end_sec - start_sec));
 }
 
-static void write_current_session(const AppInfo* app, int64_t start_sec,
-                                  int64_t now_sec) {
-  if (app == NULL || app->exec_path[0] == '\0' || now_sec < start_sec) {
-    return;
-  }
-
-  ta_write_current_usage("windows", app->exec_path, app->app_name,
-                         app->window_title, app->exec_path, start_sec,
-                         (uint64_t)(now_sec - start_sec), now_sec);
-}
-
 int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   TimeArcUsageTrackerConfig active_config = {
       .poll_interval_ms = TIMEARC_USAGE_POLL_INTERVAL_MS,
@@ -97,12 +86,11 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
     active_config.track_enabled = config->track_enabled ? 1 : 0;
   }
 
-  // H5「真停采集」：追踪关闭时根本不进采集循环——不写历史、不写 live 快照、不轮询
-  // 音频。清掉可能残留的 live 文件后立即返回；进程随之退出、释放单实例 mutex，于是
+  // H5「真停采集」：追踪关闭时根本不进采集循环——不写历史、不轮询音频。
+  // 进程随之退出、释放单实例 mutex，于是
   // `--status` 报 running=no（诚实反映「未在采集」）。重启后读到 track_enabled=1 才
   // 恢复（startup-read，与 idle 阈值一致）。绝不回溯删除既有记录（append-only）。
   if (!active_config.track_enabled) {
-    ta_clear_current_usage();
     return 0;
   }
 
@@ -136,8 +124,6 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
         memset(&current_app, 0, sizeof(current_app));
         has_session = 0;
       }
-      ta_clear_current_usage();
-
       tracker_wait(stop_event, (DWORD)active_config.poll_interval_ms);
       continue;
     }
@@ -159,8 +145,6 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
       session_start_sec = now_sec;
     }
 
-    write_current_session(&current_app, session_start_sec, now_sec);
-
     tracker_wait(stop_event, (DWORD)active_config.poll_interval_ms);
   }
 
@@ -170,7 +154,6 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   }
   timearc_audio_tracker_flush(&audio_state, final_sec);
   timearc_audio_tracker_shutdown();
-  ta_clear_current_usage();
 
   if (stop_event != NULL) {
     CloseHandle(stop_event);

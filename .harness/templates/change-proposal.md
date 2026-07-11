@@ -39,8 +39,8 @@ explain the effect on the producer (service) side and the consumer (UI) side.
 
 ## 4. Migration plan
 
-If existing on-disk records (`timearc_service.db`, `usage_current.json`, or
-legacy artifacts) are interpreted differently after this change, describe:
+If existing on-disk records (`timearc_service.db` or legacy artifacts) are
+interpreted differently after this change, describe:
 
 - What old records look like.
 - What new records look like.

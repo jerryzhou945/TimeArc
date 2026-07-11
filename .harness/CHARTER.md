@@ -22,12 +22,10 @@ sanctioned control file `usage_config.json` (db dir / idle / track) it reads at
 startup — disk-only, no IPC; the UI must not link service code. A single service is
 guaranteed by a named mutex (`Local\TimeArcUsageService` on Windows); same on new platforms.
 
-**I2. Data contract on disk.** The record schema is
-`src/service/shared/usage_record.schema.json` for the JSON live snapshot. The
-service writes history exclusively to SQLite `timearc_service.db` (only tables
+**I2. Data contract on disk.** The service writes automatic usage exclusively
+to SQLite `timearc_service.db` (only tables
 `apps`/`frontmost_sessions`/`media_sessions`; service is the only writer).
-Live: `usage_current.json` (atomic overwrite). The UI opens
-`timearc_service.db` read-only for history. The GUI writes its own SQLite
+The UI opens `timearc_service.db` read-only for history. The GUI writes its own SQLite
 `timearc.db` for settings/tags/manual projects/mobile sync/UI state; the service
 never reads or writes it. Service SQLite filename is locked; its directory
 defaults to the platform service-data dir (`%APPDATA%\TimeArc\service`,
@@ -64,7 +62,6 @@ Editing any file in this list requires filing a change proposal at
 
 - `src/service/shared/data_bridge.h`
 - `src/service/shared/usage_record.h`
-- `src/service/shared/usage_record.schema.json`
 - `src/service/shared/database_path.h`
 - `src/service/shared/database_path.c`
 - `src/service/shared/app_info.h`
@@ -97,3 +94,4 @@ Bump the version below.
 - **v0.6** — Split SQLite ownership: service `timearc_service.db`, GUI `timearc.db`. Proposal: `journal/sessions/20260709-0037-B-split-service-gui-dbs.md`.
 - **v0.7** — Rename DB-path resolver files to `database_path.*`; no on-disk change. Proposal: `journal/sessions/20260709-1727-B-database-path-rename.md`.
 - **v0.8** — Retire JSONL usage history; `timearc_service.db` is the sole historical store and JSON remains live/config only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.
+- **v0.9** — Retire the JSON live snapshot and schema; automatic usage now crosses the process boundary through `timearc_service.db` only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.

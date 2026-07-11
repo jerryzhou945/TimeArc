@@ -53,8 +53,8 @@ int main(int argc, char** argv) {
 
   SetConsoleCtrlHandler(console_handler, TRUE);
 
-  // 防止同时启动多个采集进程。否则多个进程会同时写 service DB
-  // 和 usage_current.json，历史记录与实时状态都会变得不可预测。
+  // 防止同时启动多个采集进程。否则多个进程会同时写 service DB，
+  // 历史记录会变得不可预测。
   HANDLE instance_mutex = CreateMutexA(NULL, TRUE, TIMEARC_INSTANCE_MUTEX_NAME);
   if (instance_mutex == NULL) {
     fprintf(stderr, "failed to create TimeArc service mutex\n");

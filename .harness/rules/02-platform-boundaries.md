@@ -19,12 +19,12 @@ Win/Linux builds only. macOS Swift code uses the `data_bridge.h` C ABI via an
 
 Every platform service must:
 
-1. Produce records that validate against `usage_record.schema.json`.
+1. Produce normalized sessions matching `usage_record.h` and the service tables.
 2. Call `ta_storage_init()` before the first write and `ta_storage_shutdown()`
    on exit.
 3. Split foreground sessions when either `app_id` or `window_title` changes.
 4. Honor an idle threshold (default 60 s). While idle, close the foreground
-   session and clear the live snapshot.
+   session.
 5. Guarantee single-instance by some OS-appropriate mechanism.
 6. Flush pending sessions on orderly shutdown.
 7. Keep storage access behind the shared bridge unless a signed change proposal
@@ -41,7 +41,7 @@ Every platform service must:
 - `platform/active_app_win.c`: `GetForegroundWindow` + `GetWindowText` + exe path.
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
 - `platform/idle_win.c`: `GetLastInputInfo`.
-- `storage/usage_storage.c`: SQLite history writes + atomic rename for live snapshot.
+- `storage/usage_storage.c`: SQLite history writes.
 - `service/win_service.c`: user-session autostart verbs
   (`--install`/`--uninstall`/`--start`/`--stop`/`--status`) via `schtasks`/Run-key.
   The tracker stays in the interactive user session. A true SCM Session-0
@@ -78,8 +78,8 @@ Adding, say, FreeBSD or Android-host support:
    probes are needed.
 2. Extend `src/service/CMakeLists.txt` in the existing `if(APPLE)/elseif(WIN32)/
    elseif(UNIX)` chain.
-3. Add `<name>` to the enum in `usage_record.schema.json` (data-contract change
-   goes through rule 03).
+3. Document the platform identifier and SQLite mapping in `usage_record.md`
+   (data-contract change goes through rule 03).
 4. Document in the main `README.md` project structure section.
 
 ## 5. Platform-specific conventions

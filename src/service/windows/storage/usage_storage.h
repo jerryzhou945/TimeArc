@@ -9,22 +9,13 @@
 // Windows 采集端的落盘层。
 //
 // tracker 只负责决定“这一段从什么时候到什么时候”；这里负责把标准化后的
-// TimeArcUsageRecord 写入 shared/database_storage.* 管理的 SQLite 历史库，
-// 或覆盖 usage_current.json 实时快照。
+// TimeArcUsageRecord 写入 shared/database_storage.* 管理的 SQLite 历史库。
 int timearc_storage_init(TimeArcStorageContext* context);
 void timearc_storage_close(TimeArcStorageContext* context);
 
 // Persist one normalized usage record to the service database.
 int timearc_storage_write_record(TimeArcStorageContext* context,
                                  const TimeArcUsageRecord* record);
-
-// Overwrite the live checkpoint for the currently active in-memory session.
-// This file is read by the Qt UI for realtime display and is not historical
-// storage.
-int timearc_storage_write_current_record(TimeArcStorageContext* context,
-                                         const TimeArcUsageRecord* record,
-                                         int64_t updated_unix_sec);
-void timearc_storage_clear_current_record(TimeArcStorageContext* context);
 
 // H5 (UI→service config channel): read the service-behavior keys the UI writes
 // into `<usageDir>/usage_config.json`. Fills *idle_threshold_ms (from the

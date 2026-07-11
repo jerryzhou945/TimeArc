@@ -57,7 +57,7 @@ seed — future agents, match this style.
 
 ## Journal slug
 
-`YYYYMMDD-HHMM-C-<topic>` — e.g., `20260430-1030-C-live-json-cr-escape`.
+`YYYYMMDD-HHMM-C-<topic>` — e.g., `20260430-1030-C-service-db-open`.
 
 ## L3 (agent self-report) sub-case
 
@@ -72,5 +72,4 @@ track C still applies, with two tweaks:
 ## Current bug candidates (cross-reference `state/open-issues.md`)
 
 - UTF-8 validation TODO in `usage_storage.c` (behavioral bug potential).
-- Windows `remove`+`rename` race on `usage_current.json` under crash.
 - `DesktopMemoryLakePage` placeholder showing as functional (UX bug).

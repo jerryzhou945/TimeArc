@@ -91,7 +91,7 @@ desktop-only (`DesktopAppShell`); no mobile equivalent yet.
 Memo content (canvas ink, sticky notes, text layers, pages) is **UI-private local
 state**, outside the service↔UI disk contract — persist it via a C++ manager
 (`QObject` + `Q_PROPERTY`), never QML `localStorage`/`LocalStorage` (§4) and never
-service database/live/config paths. New memo components live in `qml/desktop/memorylake/`; all
+service database/config paths. New memo components live in `qml/desktop/memorylake/`; all
 colors/easings come from `MemoryLakeStyle` (no inline hex). Specs:
 `docs/memory-lake-memo-functional-replication.md` + `…-memo-render-pipeline-replication.md`.
 

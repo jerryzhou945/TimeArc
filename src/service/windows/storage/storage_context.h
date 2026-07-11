@@ -5,13 +5,11 @@
 
 // Windows 存储上下文。
 //
-// SQLite 是唯一历史后端，连接和 DDL 由 shared/database_storage.* 管理。
-// current_path 指向 JSON 实时快照文件，供 Qt UI 每几秒读取一次当前应用。
+// SQLite 是唯一使用记录后端，连接和 DDL 由 shared/database_storage.* 管理。
 typedef struct TimeArcStorageContext {
   char db_path[TA_MAX_PATH_BYTES];
-  char current_path[TA_MAX_PATH_BYTES];
 
-  // Set only after the database and live-snapshot path initialize successfully.
+  // Set only after the service database initializes successfully.
   int initialized;
 } TimeArcStorageContext;
 

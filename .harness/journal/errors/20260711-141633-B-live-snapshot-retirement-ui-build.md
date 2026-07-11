@@ -1,0 +1,37 @@
+# Error Report - live-snapshot-retirement-ui-build
+
+## Metadata
+
+- Level: **L1**
+- Track: **B**
+- Topic: live-snapshot-retirement-ui-build
+- Recorded: 2026-07-11T14:16:33Z
+- Session: (unknown)
+- Platform: n-a
+- Tooling: (fill in)
+
+## 1. What happened
+
+cmake --build exited 1
+
+## 2. Evidence
+
+```
+Error: could not load cache
+```
+
+## 3. Root cause
+
+- Immediate cause:
+- Underlying cause:
+- Why the harness/checklists did not prevent it:
+
+## 4. Fix
+
+- Files changed:
+- Short description:
+- Commit:
+
+## 5. Prevention
+
+Concrete harness upgrade, or 'one-off, no harness change'.

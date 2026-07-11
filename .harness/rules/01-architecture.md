@@ -13,14 +13,14 @@ message.
 ├───────────────────────────────────────────────────────────────┤
 │  Shared contract  (src/service/shared/)                       │
 │    ├─ data_bridge.h — C ABI for trackers                      │
-│    ├─ usage_record.h/.schema.json — session/live contract     │
+│    ├─ usage_record.h — normalized session contract            │
 │    ├─ database_path.h/.c — service DB path resolver           │
 │    └─ app_info.h / app_env.h — sampling structs               │
 ├───────────────────────────────────────────────────────────────┤
 │  Service layer  (src/service/<platform>/)                     │
 │    ├─ tracker/ — foreground + audio sampling loops            │
 │    ├─ platform/ — OS-specific probes (active app, idle, audio)│
-│    ├─ storage/ — SQLite history + live-snapshot writer        │
+│    ├─ storage/ — SQLite usage writer                          │
 │    └─ service/ — OS service registration (Windows: TODO)      │
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -65,7 +65,7 @@ repository layer.
 | `CalendarManager` | `SettingsRepository` / SQLite settings | Todos, day photos, selected date. Legacy QSettings is fallback/migration input only. |
 | `ProjectManager` | `ManualProjectRepository` / SQLite | Manual projects, timer sessions, archive-hidden deletes, range aggregation. |
 | `TimerManager` | in-memory | Manual stopwatch. Commits through `ProjectManager`. |
-| `UsageStatManager` | service DB + live snapshot | Reads SQLite history and `usage_current.json` for the usage surfaces. |
+| `UsageStatManager` | service DB | Reads SQLite history for the usage surfaces. |
 | `StatsService` | service DB read repos + GUI DB manual repo | Aggregates foreground, media, and manual project data for desktop summaries. |
 
 `AppIconImageProvider` is a passive `image://appicon/<path>` provider.
@@ -77,8 +77,8 @@ Do not add new cross-manager signals without a short note in
 A "new subsystem" (say, keyboard-input heatmap) lands as:
 
 1. A new sampling module under the correct platform folder.
-2. A new source string in `usage_record.schema.json` **if** it produces records
-   — this is a data-contract change (see rule 03).
+2. A documented source mapping in `usage_record.md` and the SQLite writer
+   **if** it produces records — this is a data-contract change (see rule 03).
 3. A new aggregation path in `UsageStatManager` or a new manager.
 4. A new QML page wired through `*AppShell.qml`.
 

@@ -79,7 +79,7 @@ with day and night modes.
   **true track pause** now take real effect: they write `usage_config.json` and an
   "应用并重启采集" action restarts the service to apply them (H5). Items still without a
   backend (real history deletion, real-time backdrop blur, global accent color) stay
-  honest placeholders rather than faked; the page is read-only over the usage journal
+  honest placeholders rather than faked; the page is read-only over the service database
   and never bypasses the disk contract.
 - **Runtime languages** — the settings language switch now drives global UI copy
   at runtime. Chinese remains the source/fallback language, English is covered
@@ -188,7 +188,6 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 |   C++17              |          |  Swift (macOS)        |
 |                      |          |                       |
 |   reads              | <----    |  writes               |
-|   usage_current.json |  <----   |  usage_current.json   |
 |   timearc_service.db |  <----   |  timearc_service.db   |
 |   writes timearc.db  |          |                       |
 +----------------------+          +-----------------------+
@@ -198,10 +197,8 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 
 - The UI launches and may spawn the service (see
   `src/main.cpp::startUsageService`) but does not link against its code.
-- The live-snapshot schema is defined in
-  `src/service/shared/usage_record.schema.json`; fields include
-  `platform`, `source` (`foreground` | `audio`), `app_id`, `app_name`,
-  `window_title`, `path`, `start_unix_sec`, `duration_sec`.
+- The normalized session fields and SQLite mapping are documented in
+  `src/service/shared/usage_record.md`.
 - `data_bridge.h` is the cross-language C ABI used by Swift (macOS) and
   C (Windows/Linux) tracker code to submit sessions to the storage
   layer.
@@ -211,7 +208,7 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   writes its own `timearc.db` for settings,
   tags, manual projects, mobile sync, and other UI state.
 - Current desktop data split: automatic foreground-app and media usage
-  still come from the real service capture path and journal/database session
+  still come from the real service capture path and database session
   readers; manual projects, timer sessions, calendar todos, night mode, and the
   memo blackboard doc are routed through SQLite-backed repositories/settings.
   Legacy QSettings data for those UI-owned items is migrated into SQLite on
@@ -279,7 +276,7 @@ Important limits remain:
 | Service (Win)    | C11 (WinAPI, WASAPI `IAudioMeterInformation`, PSAPI, COM)       |
 | Service (macOS)  | Swift 5+ (`NSWorkspace`, Accessibility API, IOKit power mgmt)   |
 | Service (Linux)  | C11 — X11 + Wayland planned                                     |
-| Storage          | Service-owned SQLite `timearc_service.db` is the sole automatic-usage history source; GUI-owned `timearc.db` stores settings/tags/manual/mobile/UI state; atomic JSON live snapshot |
+| Storage          | Service-owned SQLite `timearc_service.db` is the sole automatic-usage store; GUI-owned `timearc.db` stores settings/tags/manual/mobile/UI state |
 | Build            | CMake 3.16+, Qt's `qt_standard_project_setup(REQUIRES 6.8)`     |
 | Persistence (UI) | SQLite settings/repositories; legacy QSettings is migrated and retained for rollback |
 | Third-party      | SQLite (vendored, public domain), Parson (vendored, MIT)        |
@@ -400,7 +397,6 @@ calendar to-do starts timing. Memory Lake is the landing page.
 
 Files written in the usage directory:
 
-- `usage_current.json` - atomic overwrite, UI-polled live snapshot.
 - `usage_config.json` - UI-written service configuration and DB-directory pointer.
 
 The service SQLite file is separate from the usage directory. Its filename is
