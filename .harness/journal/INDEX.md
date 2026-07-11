@@ -8,6 +8,13 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-11T13:54:48Z | L3 | unlisted-frozen... | Changed a stale comment in frozen database_path.c before ... | [report](errors/20260711-135448-B-unlisted-frozen-comment.md) |
+| 2026-07-11T13:54:30Z | L2 | db-smoke-idempo... | DB smoke test failed on the pre-existing legacy project m... | [report](errors/20260711-135430-B-db-smoke-idempotence.md) |
+| 2026-07-11T13:51:09Z | L3 | stale-patch-con... | A multi-file documentation patch failed because the Track... | [report](errors/20260711-135109-B-stale-patch-context.md) |
+| 2026-07-11T13:43:30Z | L1 | baseline-build | cmake --build exited 2 | [report](errors/20260711-134330-B-baseline-build.md) |
+| 2026-07-11T13:39:37Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260711-133937-B-build-failure.md) |
+| 2026-07-11T13:38:01Z | L3 | git-readonly-br... | Creating the required feature branch failed because the s... | [report](errors/20260711-133801-B-git-readonly-branch.md) |
+| 2026-07-11T13:37:36Z | L3 | missing-dev-branch | Git workflow check assumed a local dev branch, but this c... | [report](errors/20260711-133736-B-missing-dev-branch.md) |
 | 2026-07-10T13:58:47Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260710-135847-B-build-failure.md) |
 | 2026-07-09T10:11:45Z | L3 | shell-backtick-... | Ran rg with unescaped Markdown backticks in the shell pat... | [report](errors/20260709-101145-B-shell-backtick-pattern.md) |
 | 2026-07-09T10:01:09Z | L2 | preflight-froze... | Preflight failed because frozen files src/service/shared/... | [report](errors/20260709-100109-B-preflight-frozen-drift.md) |

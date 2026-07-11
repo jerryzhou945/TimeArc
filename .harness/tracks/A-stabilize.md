@@ -40,8 +40,8 @@ On top of `checklists/before-commit.md`:
 
 - [ ] **No-behavior-delta statement** in the commit body: "Observable behavior
       unchanged; journal output byte-identical on smoke test."
-- [ ] Smoke test: run UI + service for ≥ 60 s, diff the first N lines of
-      `usage_records.jsonl` against a pre-change run. Differences must be
+- [ ] Smoke test: run UI + service for ≥ 60 s and compare newly inserted
+      service-DB sessions against a pre-change run. Differences must be
       explainable by timestamps alone.
 - [ ] No new warnings on the default build configuration.
 
@@ -57,8 +57,8 @@ First word is one of: `Refine`, `Clean up`, `Polish`, `Simplify`, `Rename`,
 
 ## Typical wins in this repo right now
 
-- UTF-8 escaping and validation in `usage_storage.c` (comment TODO already
-  there; mechanical cleanup fits here, behavioral fix is track C).
+- UTF-8 escaping in the `usage_current.json` writer (mechanical cleanup fits
+  here; behavioral changes belong in track C).
 - Consolidating color constants in the three big QML pages
   (`DesktopHomePage`, `DesktopStatsPage`, `DesktopCalenderPage`).
 - Extracting the repeated `copy_string` helper family.

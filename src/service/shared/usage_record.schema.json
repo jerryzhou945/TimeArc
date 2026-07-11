@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://timearc.local/schema/usage_record.schema.json",
-  "title": "TimeArc Usage Record",
+  "title": "TimeArc Current Usage Snapshot",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,7 +11,9 @@
     "window_title",
     "path",
     "start_unix_sec",
-    "duration_sec"
+    "duration_sec",
+    "live",
+    "updated_unix_sec"
   ],
   "properties": {
     "platform": {
@@ -47,6 +49,13 @@
     "duration_sec": {
       "type": "integer",
       "minimum": 0
+    },
+    "live": {
+      "type": "integer",
+      "const": 1
+    },
+    "updated_unix_sec": {
+      "type": "integer"
     }
   }
 }

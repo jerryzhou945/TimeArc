@@ -23,12 +23,11 @@ startup — disk-only, no IPC; the UI must not link service code. A single servi
 guaranteed by a named mutex (`Local\TimeArcUsageService` on Windows); same on new platforms.
 
 **I2. Data contract on disk.** The record schema is
-`src/service/shared/usage_record.schema.json`. The service writes history to
-SQLite `timearc_service.db` (**primary**; only tables
-`apps`/`frontmost_sessions`/`media_sessions`; service is the only writer) and
-`usage_records.jsonl` (append-only fallback). Live: `usage_current.json` (atomic
-overwrite). The UI opens `timearc_service.db` read-only for history and falls
-back to JSONL when it is missing/empty. The GUI writes its own SQLite
+`src/service/shared/usage_record.schema.json` for the JSON live snapshot. The
+service writes history exclusively to SQLite `timearc_service.db` (only tables
+`apps`/`frontmost_sessions`/`media_sessions`; service is the only writer).
+Live: `usage_current.json` (atomic overwrite). The UI opens
+`timearc_service.db` read-only for history. The GUI writes its own SQLite
 `timearc.db` for settings/tags/manual projects/mobile sync/UI state; the service
 never reads or writes it. Service SQLite filename is locked; its directory
 defaults to the platform service-data dir (`%APPDATA%\TimeArc\service`,
@@ -97,3 +96,4 @@ Bump the version below.
 - **v0.5** — Lock service DB filename and replace `db_path` with `db_dir`. Proposal: `journal/sessions/20260709-0014-B-db-dir-service-db.md`.
 - **v0.6** — Split SQLite ownership: service `timearc_service.db`, GUI `timearc.db`. Proposal: `journal/sessions/20260709-0037-B-split-service-gui-dbs.md`.
 - **v0.7** — Rename DB-path resolver files to `database_path.*`; no on-disk change. Proposal: `journal/sessions/20260709-1727-B-database-path-rename.md`.
+- **v0.8** — Retire JSONL usage history; `timearc_service.db` is the sole historical store and JSON remains live/config only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.

@@ -57,7 +57,7 @@ seed — future agents, match this style.
 
 ## Journal slug
 
-`YYYYMMDD-HHMM-C-<topic>` — e.g., `20260430-1030-C-jsonl-cr-escape`.
+`YYYYMMDD-HHMM-C-<topic>` — e.g., `20260430-1030-C-live-json-cr-escape`.
 
 ## L3 (agent self-report) sub-case
 

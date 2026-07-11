@@ -146,7 +146,7 @@ static int build_usage_config_path(char* out_path, size_t out_path_size) {
   return join_path(out_path, out_path_size, usage_dir, "usage_config.json");
 }
 
-// Default DB storage is separate from the legacy JSONL/current usage directory:
+// Default DB storage is separate from the live/config usage directory:
 // service history lives under the platform service-data location.
 static int build_default_database_dir(char* out_path, size_t out_path_size) {
 #ifdef _WIN32

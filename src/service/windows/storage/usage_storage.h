@@ -9,18 +9,12 @@
 // Windows 采集端的落盘层。
 //
 // tracker 只负责决定“这一段从什么时候到什么时候”；这里负责把标准化后的
-// TimeArcUsageRecord 写成 JSONL 历史记录、写入 shared/database_storage.* 管理的
-// SQLite 历史库，或覆盖 usage_current.json 实时快照。Initialize a storage
-// context with the requested backends. JSONL and SQLite are both enabled
-// together in production via timearc_storage_init_global() ->
-// timearc_storage_init(&g, 1, 1). The flags stay so a build can opt one
-// backend out; they are not stubs.
-int timearc_storage_init(TimeArcStorageContext* context,
-                         int use_jsonl,
-                         int use_sqlite);
+// TimeArcUsageRecord 写入 shared/database_storage.* 管理的 SQLite 历史库，
+// 或覆盖 usage_current.json 实时快照。
+int timearc_storage_init(TimeArcStorageContext* context);
 void timearc_storage_close(TimeArcStorageContext* context);
 
-// Persist one normalized usage record through every enabled backend.
+// Persist one normalized usage record to the service database.
 int timearc_storage_write_record(TimeArcStorageContext* context,
                                  const TimeArcUsageRecord* record);
 
@@ -31,10 +25,6 @@ int timearc_storage_write_current_record(TimeArcStorageContext* context,
                                          const TimeArcUsageRecord* record,
                                          int64_t updated_unix_sec);
 void timearc_storage_clear_current_record(TimeArcStorageContext* context);
-
-int timearc_storage_init_sqlite(TimeArcStorageContext* context);
-int timearc_storage_write_sqlite(TimeArcStorageContext* context,
-                                 const TimeArcUsageRecord* record);
 
 // H5 (UI→service config channel): read the service-behavior keys the UI writes
 // into `<usageDir>/usage_config.json`. Fills *idle_threshold_ms (from the

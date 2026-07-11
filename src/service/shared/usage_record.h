@@ -9,10 +9,10 @@ extern "C" {
 
 #include "util.h"
 
-// TimeArcUsageRecord 是磁盘历史记录协议的 C 结构体版本。
+// TimeArcUsageRecord 是跨平台采集 session 的标准化 C 结构体。
 //
-// tracker 结束一段 session 后会生成它，storage 再把它写成 JSONL。
-// 字段含义要和 usage_record.schema.json / usage_record.md 保持一致。
+// tracker 结束一段 session 后会生成它，storage 将历史写入 SQLite；同一字段
+// 也用于生成 usage_current.json 实时快照。字段含义要和 usage_record.md 保持一致。
 typedef struct TimeArcUsageRecord {
   // 产生记录的平台，例如 "windows" 或 "macos"。
   char platform[32];

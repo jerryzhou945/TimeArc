@@ -291,10 +291,9 @@ static void write_json_field(FILE* file, const char* name, const char* value) {
   write_json_string(file, value);
 }
 
-static void write_usage_record_object(FILE* file,
-                                      const TimeArcUsageRecord* record,
-                                      int live,
-                                      int64_t updated_unix_sec) {
+static void write_current_usage_object(FILE* file,
+                                       const TimeArcUsageRecord* record,
+                                       int64_t updated_unix_sec) {
   fputc('{', file);
   write_json_field(file, "platform", record->platform);
   fputc(',', file);
@@ -311,25 +310,9 @@ static void write_usage_record_object(FILE* file,
           (long long)record->start_unix_sec);
   fprintf(file, ",\"duration_sec\":%llu",
           (unsigned long long)record->duration_sec);
-  if (live) {
-    fputs(",\"live\":1", file);
-    fprintf(file, ",\"updated_unix_sec\":%lld", (long long)updated_unix_sec);
-  }
+  fputs(",\"live\":1", file);
+  fprintf(file, ",\"updated_unix_sec\":%lld", (long long)updated_unix_sec);
   fputc('}', file);
-}
-
-static int timearc_storage_write_jsonl(TimeArcStorageContext* context,
-                                       const TimeArcUsageRecord* record) {
-  if (context == NULL || record == NULL || context->jsonl_fp == NULL) {
-    return -1;
-  }
-
-  FILE* file = context->jsonl_fp;
-  write_usage_record_object(file, record, 0, 0);
-  fputc('\n', file);
-  fflush(file);
-
-  return ferror(file) ? -1 : 0;
 }
 
 int timearc_storage_write_current_record(TimeArcStorageContext* context,
@@ -352,7 +335,7 @@ int timearc_storage_write_current_record(TimeArcStorageContext* context,
     return -1;
   }
 
-  write_usage_record_object(file, record, 1, updated_unix_sec);
+  write_current_usage_object(file, record, updated_unix_sec);
   fputc('\n', file);
   fflush(file);
 
@@ -380,15 +363,7 @@ void timearc_storage_clear_current_record(TimeArcStorageContext* context) {
   remove(context->current_path);
 }
 
-int timearc_storage_init_sqlite(TimeArcStorageContext* context) {
-  if (context == NULL || context->db_path[0] == '\0') {
-    return -1;
-  }
-
-  return database_storage_open();
-}
-
-int timearc_storage_write_sqlite(TimeArcStorageContext* context,
+static int write_database_record(TimeArcStorageContext* context,
                                  const TimeArcUsageRecord* record) {
   if (context == NULL || record == NULL) {
     return -1;
@@ -459,23 +434,12 @@ int timearc_storage_write_sqlite(TimeArcStorageContext* context,
   return 0;
 }
 
-int timearc_storage_init(TimeArcStorageContext* context,
-                         int use_jsonl,
-                         int use_sqlite) {
+int timearc_storage_init(TimeArcStorageContext* context) {
   if (context == NULL) {
     return -1;
   }
 
   memset(context, 0, sizeof(*context));
-  context->use_jsonl = use_jsonl ? 1 : 0;
-  context->use_sqlite = use_sqlite ? 1 : 0;
-  copy_string(context->table_name, sizeof(context->table_name),
-              "frontmost_sessions");
-
-  if (make_usage_file_path(context->jsonl_path, sizeof(context->jsonl_path),
-                           "usage_records.jsonl") != 0) {
-    return -1;
-  }
   if (make_usage_file_path(context->current_path, sizeof(context->current_path),
                            "usage_current.json") != 0) {
     return -1;
@@ -484,14 +448,7 @@ int timearc_storage_init(TimeArcStorageContext* context,
     return -1;
   }
 
-  if (context->use_jsonl) {
-    context->jsonl_fp = fopen(context->jsonl_path, "ab");
-    if (context->jsonl_fp == NULL) {
-      return -1;
-    }
-  }
-
-  if (context->use_sqlite && timearc_storage_init_sqlite(context) != 0) {
+  if (database_storage_open() != 0) {
     timearc_storage_close(context);
     return -1;
   }
@@ -505,14 +462,7 @@ void timearc_storage_close(TimeArcStorageContext* context) {
     return;
   }
 
-  if (context->jsonl_fp != NULL) {
-    fclose(context->jsonl_fp);
-    context->jsonl_fp = NULL;
-  }
-
-  if (context->use_sqlite) {
-    database_storage_close();
-  }
+  database_storage_close();
 
   context->initialized = 0;
 }
@@ -523,22 +473,7 @@ int timearc_storage_write_record(TimeArcStorageContext* context,
     return -1;
   }
 
-  int wrote = 0;
-  if (context->use_jsonl) {
-    if (timearc_storage_write_jsonl(context, record) != 0) {
-      return -1;
-    }
-    wrote = 1;
-  }
-
-  if (context->use_sqlite) {
-    if (timearc_storage_write_sqlite(context, record) != 0) {
-      return -1;
-    }
-    wrote = 1;
-  }
-
-  return wrote ? 0 : -1;
+  return write_database_record(context, record);
 }
 
 TimeArcStorageContext* timearc_storage_global_context(void) {
@@ -550,7 +485,7 @@ int timearc_storage_init_global(void) {
     return 0;
   }
 
-  return timearc_storage_init(&g_storage, 1, 1);
+  return timearc_storage_init(&g_storage);
 }
 
 void timearc_storage_shutdown_global(void) {

@@ -7,9 +7,9 @@ Details live in `CHARTER.md`, `rules/*.md`, and `tracks/*.md`.
 
 TimeArc is a Qt6/QML time-tracking app with a **two-process** architecture:
 a UI app (`TimeArc`) and a native background service (`time-arc-service`)
-that samples foreground apps and audio sessions to a JSONL log plus a live
-snapshot. Target platforms: Windows (most complete), macOS (in progress),
-Linux (not started). If this is new, stop and read `CHARTER.md` §1–2.
+that stores foreground/audio history in a service-owned SQLite database plus a
+JSON live snapshot. Target platforms: Windows (most complete), macOS (in
+progress), Linux (not started). If this is new, stop and read `CHARTER.md` §1–2.
 
 ## 2. Pick your track
 

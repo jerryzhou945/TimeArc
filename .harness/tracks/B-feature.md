@@ -57,18 +57,12 @@ Examples from the existing log that match: `Audio/Video tracking for macOS`,
 - Linux service: X11 + Wayland sampling, PipeWire audio, single-instance guard.
 - macOS service main loop: mirror Windows `usage_tracker.c` contract.
 - Windows SCM registration: Route A (user-session logon autostart) shipped in `win_service.c` (PR #37); Route B (true SCM Session-0 broker) deferred.
-- SQLite writer + migrator (see the SQLite plan in `tracks/B-feature.md`
-  §Playbook below).
+- SQLite history storage is complete; future work must preserve its sole-writer contract.
 - Memory Lake data model + UI.
 - Third-party license page in QML.
 - User-config JSON parser using bundled Parson.
 
-## Playbook — SQLite migration (moved from rules/03)
+## SQLite migration status
 
-1. Implement `timearc_storage_write_sqlite`, gated by the existing
-   `use_sqlite` flag.
-2. Ship a read-only SQLite consumer in `UsageStatManager`, feature-flagged.
-3. Ship a one-shot migrator that produces `usage_records.jsonl.bak` and
-   refuses to proceed if the row counts disagree.
-4. Flip `use_sqlite` default-on; keep JSONL writing for N releases.
-5. Retire JSONL after N releases; final `rules/03` amendment.
+Migration is complete: the service database is the sole history backend and
+the UI opens it read-only. JSON is retained only for live state and config.

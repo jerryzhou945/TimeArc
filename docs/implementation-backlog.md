@@ -38,7 +38,7 @@ F1 动态 Qt ──> F2 许可证页 ─(临近发版里程碑)
 G2/G3 打磨 ───────────(随手)
 ```
 
-优先级直觉：**A1 是地基**，S1–S4 已落地并合并（SQLite 升 UI 主历史读源 + 回填 + 翻转，`CHARTER` v0.2）——**D1/D2（导出-备份 / DB 路径迁移）已解锁**，A1 仅剩 **S5**（退役 JSONL 写入，未来发版）；**B1**（Windows 用户会话自启 Route A）亦已实装合并、Route B 暂缓；
+优先级直觉：**A1 是地基**，S1–S5 已完成（SQLite 回填、翻转与旧历史流退役，`CHARTER` v0.8）——**D1/D2（导出-备份 / DB 路径迁移）已解锁**；**B1**（Windows 用户会话自启 Route A）亦已实装合并、Route B 暂缓；
 **E\*** 最大最敏感、门控；**C/F** 按平台/发版节奏。
 设置页剩余（**§H**）：**H1 时间格式**可随手做（P1，注意散落已验收页）；**H5 服务侧配置 S1+S2 已实装**（idle/真停，PR #42；S3 删历史暂缓）；
 **H3/H4**（强调色全局 + i18n）= 产品门控 **3E**；**H2** 依赖先有「分享图导出」特性；**H6** 受 QML 天花板、保留占位。
@@ -55,14 +55,14 @@ G2/G3 打磨 ───────────(随手)
 - [x] **P1 JSON 字符串 UTF-8 校验** — 见 B2。commit `74cc033`。
 
 ### A. 存储 / 数据层（keystone · 跨平台 · UI+service 共享契约）
-- [~] **A1 SQLite 升主数据源 + JSONL 回填 — S1–S4 已完成（`CHARTER` v0.2）**；见
+- [x] **A1 SQLite 历史迁移 — S1–S5 已完成（`CHARTER` v0.8）**；见
   [`a1-sqlite-storage-migration-kickoff.md`](a1-sqlite-storage-migration-kickoff.md) + 实现 log
   `.harness/journal/sessions/20260609-1643-B-a1-sqlite-primary-impl.md`。
   - [x] **S1** 对齐去过时：去 stub 注释 + `db_smoke` schema-parity 断言（仅 UI DDL）+ DatabaseManager 路径不等告警。
   - [x] **S2** UsageStatManager 加 SQLite 读源（folded、flag）+ 双读 parity 自检（保 D5/增量守卫/读层过滤/live）。
   - [x] **S3** 一次性回填全部 JSONL（`.bak`+事务+**按唯一键对账非行数**+幂等 `usage_jsonl_backfill_v1_done`；stage-all 不靠 start 阈值，防乱序音频漏）。
   - [x] **S4** 翻转主源 SQLite（JSONL 兜底）+ `CHARTER` I2 修订（timearc.db 升一等主契约）+ 版本 v0.1→v0.2 + `rules/03`。
-  - [ ] **S5（本轮不做）** 退役 JSONL 写入 + 移除 UI JSONL 读路径 + 最终 `rules/03` 修订 +（可选）删遗留 QSettings。
+  - [x] **S5** 退役旧历史流写入和 UI fallback/parity 读路径，完成 `rules/03` / Charter 最终修订；旧文件不自动删除。
   实测：回填后 SQLite==JSONL（week/month/year/all 全 diff 0、记录 53108==53108）。Track B · 平台跨 · `usage_paths` db 访问器未加。
 - [ ] **A2 跨天手动 session 按天拆分/分摊**
   现状：靠重叠区间查询保留，未按天 split/prorate。Track B · UI(`project_manager`) · 中 · 提案：否。

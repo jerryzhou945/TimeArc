@@ -188,7 +188,6 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 |   C++17              |          |  Swift (macOS)        |
 |                      |          |                       |
 |   reads              | <----    |  writes               |
-|   usage_records.jsonl|          |  usage_records.jsonl  |
 |   usage_current.json |  <----   |  usage_current.json   |
 |   timearc_service.db |  <----   |  timearc_service.db   |
 |   writes timearc.db  |          |                       |
@@ -199,7 +198,7 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 
 - The UI launches and may spawn the service (see
   `src/main.cpp::startUsageService`) but does not link against its code.
-- Record schema is defined in
+- The live-snapshot schema is defined in
   `src/service/shared/usage_record.schema.json`; fields include
   `platform`, `source` (`foreground` | `audio`), `app_id`, `app_name`,
   `window_title`, `path`, `start_unix_sec`, `duration_sec`.
@@ -208,8 +207,8 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   layer.
 - SQLite history is split by ownership: `timearc_service.db` is written only by
   the service and contains `apps`, `frontmost_sessions`, and `media_sessions`;
-  the UI opens it read-only as the primary history source and falls back to JSONL
-  when it is missing/empty. The GUI writes its own `timearc.db` for settings,
+  the UI opens it read-only as the sole automatic-usage history source. The GUI
+  writes its own `timearc.db` for settings,
   tags, manual projects, mobile sync, and other UI state.
 - Current desktop data split: automatic foreground-app and media usage
   still come from the real service capture path and journal/database session
@@ -262,9 +261,8 @@ state. The main data loop is now closed for the desktop surfaces below:
 
 Important limits remain:
 
-- `timearc_service.db` is now the UI's primary history source, but JSONL is not
-  yet retired: the service still dual-writes JSONL as a fallback and the UI
-  falls back to it when the DB is missing/empty.
+- If `timearc_service.db` is missing, empty, or unreadable, automatic-usage
+  history is empty until the service database becomes available.
 - Legacy QSettings project/session/todo/memo/night-mode data is migrated
   idempotently into SQLite when possible, but the old QSettings data is kept
   for rollback rather than deleted.
@@ -281,8 +279,7 @@ Important limits remain:
 | Service (Win)    | C11 (WinAPI, WASAPI `IAudioMeterInformation`, PSAPI, COM)       |
 | Service (macOS)  | Swift 5+ (`NSWorkspace`, Accessibility API, IOKit power mgmt)   |
 | Service (Linux)  | C11 — X11 + Wayland planned                                     |
-| Storage (today)  | Service-owned SQLite `timearc_service.db` is read-only primary history for the UI (JSONL fallback); GUI-owned `timearc.db` stores settings/tags/manual/mobile/UI state; atomic JSON live snapshot |
-| Storage (planned)| Retire JSONL after the SQLite-primary migration soaks (A1 S5)   |
+| Storage          | Service-owned SQLite `timearc_service.db` is the sole automatic-usage history source; GUI-owned `timearc.db` stores settings/tags/manual/mobile/UI state; atomic JSON live snapshot |
 | Build            | CMake 3.16+, Qt's `qt_standard_project_setup(REQUIRES 6.8)`     |
 | Persistence (UI) | SQLite settings/repositories; legacy QSettings is migrated and retained for rollback |
 | Third-party      | SQLite (vendored, public domain), Parson (vendored, MIT)        |
@@ -403,8 +400,8 @@ calendar to-do starts timing. Memory Lake is the landing page.
 
 Files written in the usage directory:
 
-- `usage_records.jsonl` - append-only history, one JSON record per line.
 - `usage_current.json` - atomic overwrite, UI-polled live snapshot.
+- `usage_config.json` - UI-written service configuration and DB-directory pointer.
 
 The service SQLite file is separate from the usage directory. Its filename is
 locked to `timearc_service.db`, and it defaults to the platform service-data directory:
@@ -413,7 +410,7 @@ locked to `timearc_service.db`, and it defaults to the platform service-data dir
 `${XDG_DATA_HOME:-~/.local/share}/TimeArc/service/timearc_service.db` on Linux.
 It is written only by the service and contains only `apps`,
 `frontmost_sessions`, and `media_sessions`. The UI opens it read-only as the
-primary history source; JSONL is dual-written as a fallback.
+sole automatic-usage history source.
 
 The GUI has its own SQLite file, `timearc.db`, in Qt's app-data location. It is
 written only by the GUI and stores settings, tags, manual projects/sessions,
@@ -437,7 +434,7 @@ for projects/sessions, calendar todos, and night mode is
 migrated once on startup when possible. The migration is idempotent and keeps
 the legacy QSettings data in place; it does not make SQLite the only source
 for automatic foreground/media usage; that history comes from service-owned
-`timearc_service.db` or JSONL fallback.
+`timearc_service.db`.
 
 A separate log produced by the Qt message handler (harness journal) is
 written to `<GenericDataLocation>/TimeArc/logs/harness-qt.log`.
@@ -620,9 +617,9 @@ See `.harness/CHARTER.md` for invariants and frozen files;
 - [x] Windows background autostart (B1 Route A): per-user logon task /
       Run-key via `win_service.c` lifecycle verbs, with a Settings toggle.
       A true SCM Session-0 service (Route B) remains deferred.
-- [x] Make SQLite the primary on-disk history source with a one-shot JSONL
-      backfill/migrator (A1 S1–S4). Remaining: retire JSONL writing after a
-      soak period (A1 S5).
+- [x] Complete the SQLite history migration (A1 S1–S5): backfill legacy data,
+      make `timearc_service.db` the sole history store, and retire the legacy
+      history stream.
 - [x] Compile Qt as dynamically-linked libraries in release builds to satisfy the
       LGPL-3.0 combination posture (F1). Qt already links dynamically — verified by
       `tools/verify-linkage.ps1` (Qt6*.dll imports, no static Qt) — and

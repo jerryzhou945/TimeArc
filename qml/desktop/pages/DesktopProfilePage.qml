@@ -12,7 +12,7 @@ import "../components/I18n.js" as I18n
 //   （已把 "settings" 加入 fullBleedPage + 栅格 visible + requestNavigate 路由）；本页只放内容。
 // 契约：保留 nightMode + nightModeToggled（白天模式开关，不自写 night_mode，由 Shell 持久化）；
 //   新增 requestNavigate（返回首页 / Esc）。设置项经 settingsRepository KV 即时持久化（G3）。
-// 红线：对 usage jsonl/db 只读（G4/I1/I2）；无后端项（番茄/通知/真删历史）走隐藏/占位，不写死假值（G6）。
+// 红线：对 service DB 只读（G4/I1/I2）；无后端项（番茄/通知/真删历史）走隐藏/占位，不写死假值（G6）。
 Item {
     id: root
     anchors.fill: parent
@@ -74,7 +74,7 @@ Item {
     property bool memoAutosave: true
 
     // —— Phase 2 只读派生（onCompleted + usageStatsChanged 刷新；真实只读，不造假 G6）——
-    property real journalBytes: 0      // usage_records.jsonl 字节
+    property real historyBytes: 0      // timearc_service.db 字节
     property real cacheBytes: 0        // timearc.db 字节（UI 派生/缓存库）
     property int usageRecordCount: 0   // 已解析记录条数
     property string todaySwitchesText: "—"   // 今日前台切换次数（QML 派生）
@@ -268,7 +268,8 @@ Item {
     // 存储概览（G-STORAGE）：只读文件字节 + 记录数。
     function refreshStorage() {
         if (!usageStatManager) return
-        journalBytes = usageStatManager.fileSizeBytes(usageStatManager.usageRecordsPath)
+        historyBytes = (databaseManager && databaseManager.getServiceDatabasePath)
+                       ? usageStatManager.fileSizeBytes(databaseManager.getServiceDatabasePath()) : 0
         cacheBytes = (databaseManager && databaseManager.getDatabasePath)
                      ? usageStatManager.fileSizeBytes(databaseManager.getDatabasePath()) : 0
         usageRecordCount = usageStatManager.recordCount()
@@ -1304,7 +1305,7 @@ Item {
                                     Rectangle {
                                         height: parent.height
                                         radius: parent.radius
-                                        width: parent.width * Math.max(0.02, Math.min(1, (root.journalBytes + root.cacheBytes) / (100 * 1024 * 1024)))
+                                        width: parent.width * Math.max(0.02, Math.min(1, (root.historyBytes + root.cacheBytes) / (100 * 1024 * 1024)))
                                         gradient: Gradient {
                                             orientation: Gradient.Horizontal
                                             GradientStop { position: 0; color: ml.aqua }
@@ -1313,7 +1314,7 @@ Item {
                                     }
                                 }
                                 Text {
-                                    text: root.sentence("localUsageSize", {size: root.bytesText(root.journalBytes + root.cacheBytes)}, "本地占用 " + root.bytesText(root.journalBytes + root.cacheBytes) + "（相对 100MB 参考）")
+                                    text: root.sentence("localUsageSize", {size: root.bytesText(root.historyBytes + root.cacheBytes)}, "本地占用 " + root.bytesText(root.historyBytes + root.cacheBytes) + "（相对 100MB 参考）")
                                     color: ml.textTertiary; font.pixelSize: 10
                                 }
 
@@ -1323,6 +1324,7 @@ Item {
                                     columnSpacing: 10
                                     rowSpacing: 10
                                     MetricTile { tileLabel: "缓存"; tileValue: root.bytesText(root.cacheBytes) }
+                                    MetricTile { tileLabel: "历史库"; tileValue: root.bytesText(root.historyBytes) }
                                     MetricTile { tileLabel: "记录"; tileValue: root.usageRecordCount > 0 ? ("" + root.usageRecordCount) : "0" }
                                 }
 

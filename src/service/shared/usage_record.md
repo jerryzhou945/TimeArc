@@ -1,9 +1,8 @@
 # TimeArc Usage Record Protocol
 
-`usage_record` is the stored cross-platform protocol for completed app usage
-sessions. Windows and macOS may collect app activity differently, but both
-services should write records that fit one shared JSON shape so JSONL, SQLite,
-and the Qt statistics layer can share one format.
+`usage_record` is the normalized cross-platform protocol for completed app
+usage sessions. Windows and macOS may collect activity differently, but both
+services map the same fields into SQLite history and the live JSON snapshot.
 
 ## Fields
 
@@ -123,7 +122,7 @@ On macOS, `app_id` should be the bundle id, while `path` should be the app path.
 Keeping both fields avoids platform-specific meaning leaking into the Qt stats
 layer.
 
-## Why JSONL Does Not Store `end_unix_sec`
+## Derived End Time
 
 The end time is derived as:
 
@@ -131,16 +130,14 @@ The end time is derived as:
 end_unix_sec = start_unix_sec + duration_sec
 ```
 
-JSONL keeps only `start_unix_sec` and `duration_sec` to avoid inconsistent
-records where the end time disagrees with the duration. SQLite stores
-`end_unix_sec` and derives `duration_sec` as a generated column instead.
+The bridge carries `start_unix_sec` and `duration_sec`; SQLite stores
+`end_unix_sec` and derives `duration_sec` as a generated column.
 
-## Why JSONL Does Not Store `idle`
+## Idle Mapping
 
 Idle detection is tracker control logic. If the user becomes idle, the tracker
-closes the current session and writes the active duration. Storage does not need
-to know why the session ended in JSONL. SQLite stores `active_sec` and derives
-`idle_sec` as a generated column.
+closes the current session and writes its active duration. SQLite stores
+`active_sec` and derives `idle_sec` as a generated column.
 
 ## Bridge Function Shape
 
@@ -152,8 +149,8 @@ arrays:
 - The implementation can still copy into `TimeArcUsageRecord` internally.
 - The ABI stays small and stable.
 
-## JSONL Example
+## Live Snapshot Example
 
 ```json
-{"platform":"windows","source":"foreground","app_id":"C:/Program Files/Google/Chrome/Application/chrome.exe","app_name":"chrome.exe","window_title":"YouTube - Google Chrome","path":"C:/Program Files/Google/Chrome/Application/chrome.exe","start_unix_sec":1713386400,"duration_sec":60}
+{"platform":"windows","source":"foreground","app_id":"C:/Program Files/Google/Chrome/Application/chrome.exe","app_name":"chrome.exe","window_title":"YouTube - Google Chrome","path":"C:/Program Files/Google/Chrome/Application/chrome.exe","start_unix_sec":1713386400,"duration_sec":60,"live":1,"updated_unix_sec":1713386460}
 ```

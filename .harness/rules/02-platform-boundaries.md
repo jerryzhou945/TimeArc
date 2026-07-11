@@ -41,7 +41,7 @@ Every platform service must:
 - `platform/active_app_win.c`: `GetForegroundWindow` + `GetWindowText` + exe path.
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
 - `platform/idle_win.c`: `GetLastInputInfo`.
-- `storage/usage_storage.c`: JSONL append + atomic rename for live snapshot.
+- `storage/usage_storage.c`: SQLite history writes + atomic rename for live snapshot.
 - `service/win_service.c`: user-session autostart verbs
   (`--install`/`--uninstall`/`--start`/`--stop`/`--status`) via `schtasks`/Run-key.
   The tracker stays in the interactive user session. A true SCM Session-0

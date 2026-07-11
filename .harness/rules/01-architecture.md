@@ -13,14 +13,14 @@ message.
 ├───────────────────────────────────────────────────────────────┤
 │  Shared contract  (src/service/shared/)                       │
 │    ├─ data_bridge.h — C ABI for trackers                      │
-│    ├─ usage_record.h/.schema.json — on-disk record            │
+│    ├─ usage_record.h/.schema.json — session/live contract     │
 │    ├─ database_path.h/.c — service DB path resolver           │
 │    └─ app_info.h / app_env.h — sampling structs               │
 ├───────────────────────────────────────────────────────────────┤
 │  Service layer  (src/service/<platform>/)                     │
 │    ├─ tracker/ — foreground + audio sampling loops            │
 │    ├─ platform/ — OS-specific probes (active app, idle, audio)│
-│    ├─ storage/ — JSONL + live-snapshot writer                 │
+│    ├─ storage/ — SQLite history + live-snapshot writer        │
 │    └─ service/ — OS service registration (Windows: TODO)      │
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -65,7 +65,7 @@ repository layer.
 | `CalendarManager` | `SettingsRepository` / SQLite settings | Todos, day photos, selected date. Legacy QSettings is fallback/migration input only. |
 | `ProjectManager` | `ManualProjectRepository` / SQLite | Manual projects, timer sessions, archive-hidden deletes, range aggregation. |
 | `TimerManager` | in-memory | Manual stopwatch. Commits through `ProjectManager`. |
-| `UsageStatManager` | journal files on disk | Reads service JSONL/current snapshot for the legacy usage surface. |
+| `UsageStatManager` | service DB + live snapshot | Reads SQLite history and `usage_current.json` for the usage surfaces. |
 | `StatsService` | service DB read repos + GUI DB manual repo | Aggregates foreground, media, and manual project data for desktop summaries. |
 
 `AppIconImageProvider` is a passive `image://appicon/<path>` provider.
