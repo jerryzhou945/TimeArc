@@ -19,7 +19,7 @@ Win/Linux builds only. macOS Swift code uses the `data_bridge.h` C ABI via an
 
 Every platform service must:
 
-1. Produce normalized sessions matching `usage_record.h` and the service tables.
+1. Produce app and session fields matching `data_bridge.h` and the service tables.
 2. Submit completed app/session data through the shared `data_bridge.h` API.
 3. Split foreground sessions when either `app_id` or `window_title` changes.
 4. Honor an idle threshold (default 60 s). While idle, close the foreground
@@ -78,8 +78,8 @@ Adding, say, FreeBSD or Android-host support:
    probes are needed.
 2. Extend `src/service/CMakeLists.txt` in the existing `if(APPLE)/elseif(WIN32)/
    elseif(UNIX)` chain.
-3. Document the platform identifier and SQLite mapping in `usage_record.md`
-   (data-contract change goes through rule 03).
+3. Document the platform identifier and SQLite mapping in
+   `rules/03-data-contract.md`.
 4. Document in the main `README.md` project structure section.
 
 ## 5. Platform-specific conventions

@@ -61,7 +61,6 @@ Editing any file in this list requires filing a change proposal at
 `state/frozen-files.json`.
 
 - `src/service/shared/data_bridge.h`
-- `src/service/shared/usage_record.h`
 - `src/service/shared/database_path.h`
 - `src/service/shared/database_path.c`
 - `src/service/shared/app_info.h`
@@ -95,3 +94,4 @@ Bump the version below.
 - **v0.7** — Rename DB-path resolver files to `database_path.*`; no on-disk change. Proposal: `journal/sessions/20260709-1727-B-database-path-rename.md`.
 - **v0.8** — Retire JSONL usage history; `timearc_service.db` is the sole historical store and JSON remains live/config only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.
 - **v0.9** — Retire the JSON live snapshot and schema; automatic usage now crosses the process boundary through `timearc_service.db` only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.
+- **v0.10** — Retire the unused aggregate usage-record header; the table-specific `data_bridge.h` API and SQLite schema are the service contract. Proposal: `journal/sessions/20260712-2043-B-retire-usage-record-contract.md`.

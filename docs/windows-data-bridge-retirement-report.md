@@ -22,7 +22,7 @@
   源文件完成定向 C11 语法检查。
 - `git diff --check` 检查补丁格式。
 - 全仓搜索确认 Windows 构建和代码不再引用 `windows/storage`、
-  `usage_storage.*`、`TimeArcStorageContext` 或 `ta_write_usage_record*`。
+  `usage_storage.*`、`TimeArcStorageContext` 或旧聚合写入 API。
 - 仍需在 Windows Qt 工具链上完成真实编译与 60 秒采集 smoke test。
 
 ## 已知缺口

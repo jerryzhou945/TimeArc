@@ -13,7 +13,6 @@ message.
 ├───────────────────────────────────────────────────────────────┤
 │  Shared contract  (src/service/shared/)                       │
 │    ├─ data_bridge.h — C ABI for trackers                      │
-│    ├─ usage_record.h — normalized session contract            │
 │    ├─ database_storage.* — SQLite writer behind the bridge    │
 │    ├─ database_path.h/.c — service DB path resolver           │
 │    └─ app_info.h / app_env.h — sampling structs               │
@@ -77,8 +76,8 @@ Do not add new cross-manager signals without a short note in
 A "new subsystem" (say, keyboard-input heatmap) lands as:
 
 1. A new sampling module under the correct platform folder.
-2. A documented source mapping in `usage_record.md` and the SQLite writer
-   **if** it produces records — this is a data-contract change (see rule 03).
+2. A documented source mapping in `rules/03-data-contract.md` and the SQLite
+   writer **if** it produces records — this is a data-contract change.
 3. A new aggregation path in `UsageStatManager` or a new manager.
 4. A new QML page wired through `*AppShell.qml`.
 

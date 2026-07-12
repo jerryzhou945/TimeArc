@@ -30,7 +30,7 @@ One session, one track. If you catch yourself doing two, split the session.
 2. Your track file (`tracks/<letter>-*.md`).
 3. Rule files matching what your diff touches:
    - `src/` C++/C/Swift → `rules/01-architecture.md`, `rules/02-platform-boundaries.md`
-   - `usage_record.*` / `data_bridge.h` / `database_path.*` → `rules/03-data-contract.md`
+   - `data_bridge.h` / `database_storage.*` / `database_path.*` → `rules/03-data-contract.md`
    - `qml/` → `rules/04-ui-conventions.md`
    - any `CMakeLists.txt` → `rules/05-build-system.md`
    - new dep or license-relevant → `rules/06-licensing.md`

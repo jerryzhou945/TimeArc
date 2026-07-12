@@ -26,9 +26,9 @@ Keep entries short: *what's wrong, where, and what's the minimum fix?*
 - **Windows platform storage adapter — DONE.** Windows foreground/audio
   trackers now submit app and session rows through `shared/data_bridge.h`;
   `src/service/windows/storage/` has been retired.
-- **SQLite usage migration (A1) — DONE** (`CHARTER` v0.9).
-  `timearc_service.db` is the sole automatic-usage history store; the UI is read-only.
-  [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
+- **SQLite usage migration (A1) — DONE** (`CHARTER` v0.9). `timearc_service.db`
+  is the sole history store; UI is read-only. [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
+- **Shared usage contract cleanup — DONE** (`CHARTER` v0.10): bridge + three SQLite tables.
 - **Whole-DB backup/restore (D1) — DONE (S1+S2, PR #40).** `DatabaseManager`
   `backupDatabase`/`inspectBackup`/`restoreDatabase` + Settings UI; S3 retention deferred.
 

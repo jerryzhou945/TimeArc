@@ -197,8 +197,8 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 
 - The UI launches and may spawn the service (see
   `src/main.cpp::startUsageService`) but does not link against its code.
-- The normalized session fields and SQLite mapping are documented in
-  `src/service/shared/usage_record.md`.
+- Session fields and their SQLite mapping are documented in
+  `.harness/rules/03-data-contract.md`.
 - `data_bridge.h` is the cross-language C ABI used by Swift (macOS) and
   C (Windows/Linux) tracker code to submit sessions to the storage
   layer.

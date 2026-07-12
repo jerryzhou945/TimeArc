@@ -8,6 +8,11 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-12T12:51:24Z | L2 | qt-warning-2cf2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Mem... | [report](errors/20260712-125124-C-qt-warning-2cf241971f.md) |
+| 2026-07-12T12:51:13Z | L3 | qt-log-rotate-s... | scan_qt_log.py could read the Qt log but sandbox permissi... | [report](errors/20260712-125113-B-qt-log-rotate-sandbox.md) |
+| 2026-07-12T12:51:02Z | L2 | qt-warning-2cf2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Mem... | [report](errors/20260712-125102-C-qt-warning-2cf241971f.md) |
+| 2026-07-12T12:50:18Z | L1 | open-issues-lin... | harness_check found .harness/state/open-issues.md at 102 ... | [report](errors/20260712-125018-B-open-issues-line-budget.md) |
+| 2026-07-12T12:43:37Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260712-124337-B-build-failure.md) |
 | 2026-07-12T09:39:48Z | L2 | db-smoke-legacy... | Updated service-schema smoke built successfully, but full... | [report](errors/20260712-093948-C-db-smoke-legacy-state.md) |
 | 2026-07-12T09:39:03Z | L1 | ui-service-sche... | cmake --build exited 1 | [report](errors/20260712-093903-C-ui-service-schema-read.md) |
 | 2026-07-12T09:30:01Z | L3 | preflight-froze... | Track C preflight still fails solely because the already-... | [report](errors/20260712-093001-C-preflight-frozen-hash.md) |
@@ -76,7 +81,7 @@ the harness line budget intact.
 | 2026-06-18T21:08:16Z | L2 | gh-cli-not-found | gh CLI is not available in this workspace; PR creation wi... | [report](errors/20260618-210816-B-gh-cli-not-found.md) |
 | 2026-06-18T21:03:47Z | L2 | open-issues-lin... | harness_check failed because .harness/state/open-issues.m... | [report](errors/20260618-210347-B-open-issues-line-budget.md) |
 | 2026-06-18T21:02:30Z | L2 | swiftc-not-avai... | Windows workspace has no swiftc, so macOS helper compile/... | [report](errors/20260618-210230-B-swiftc-not-available-on-windows.md) |
-| 2026-06-18T20:56:20Z | L2 | rg-access-denied | rg was denied by Windows while running red structural che... | [report](errors/20260618-205620-B-rg-access-denied.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-06-18T20:51:19Z | L3 | stale-superpowe... | Attempted to read Superpowers brainstorming/writing-plans... | [report](errors/20260618-205119-B-stale-superpowers-skill-cache-path.md) |
 | 2026-06-18T16:38:03Z | L3 | chrome-mcp-rele... | Chrome MCP failed to connect while attempting to open the... | [report](errors/20260618-163803-B-chrome-mcp-release-ui-unavailable.md) |
 | 2026-06-18T16:33:35Z | L3 | env-enumeration... | PowerShell Get-ChildItem Env: failed with duplicate key w... | [report](errors/20260618-163335-B-env-enumeration-duplicate-key.md) |
@@ -86,5 +91,5 @@ the harness line budget intact.
 | 2026-06-18T16:23:20Z | L1 | timearc-db-smok... | After fixing TimeArc adapter matching, ctest still failed... | [report](errors/20260618-162320-B-timearc-db-smoke-test-data-dir.md) |
 | 2026-06-18T16:20:45Z | L1 | timearc-db-smok... | ctest --test-dir build --output-on-failure reported timea... | [report](errors/20260618-162045-B-timearc-db-smoke-ctest.md) |
 | 2026-06-18T16:17:38Z | L3 | get-process-no-... | Get-Process TimeArc returned non-zero while checking for ... | [report](errors/20260618-161738-B-get-process-no-timearc-before-build.md) |
-| 2026-06-18T16:16:17Z | L2 | timearc-adapter... | Expected red structural check confirmed TimeArc is not ye... | [report](errors/20260618-161617-B-timearc-adapter-red-test.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

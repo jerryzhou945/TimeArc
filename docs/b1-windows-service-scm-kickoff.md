@@ -319,7 +319,7 @@ I1 现把「UI may start the service via `startUsageService` + `Local\` mutex」
    - Route B 的 SCM STOP：`ServiceMain` 收 `SERVICE_CONTROL_STOP` → 报 `SERVICE_STOP_PENDING` + 足够 `dwWaitHint`
      → 给 worker 发优雅停（同上具名事件，跨会话用 `Global\\` 命名 + DACL，见 §4.3）→ 等 worker flush 完再报
      `SERVICE_STOPPED`；wait-hint 太短 SCM 会强杀丢 flush。
-5. **磁盘契约零改动**（I2 / rules/03）：B1 是**纯进程生命周期**特性。**不动** `usage_record.schema.json`、记录字段、
+5. **磁盘契约零改动**（I2 / rules/03）：B1 是**纯进程生命周期**特性。**不动** SQLite 表契约、记录字段、
    `usage_paths` 路径、`usage_records.jsonl`/`usage_current.json`/`timearc.db` 的写法，**不新增 UI↔service 数据方向**
    （区别于 service-config 提案那种「UI→service 通道」）。这条让 B1 与 A1 无冲突、且无需 I2 提案。
 6. **许可姿态（I6）**：只用 Windows 系统库/系统 exe，不引入新第三方依赖（§3）。

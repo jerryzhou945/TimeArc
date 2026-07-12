@@ -1,7 +1,6 @@
 set(TIME_ARC_SERVICE_SHARED_COMMON_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/shared/data_bridge.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shared/database_storage.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/shared/usage_record.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shared/database_path.h
 )
 

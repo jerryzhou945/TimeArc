@@ -8,10 +8,6 @@
       "sha256": "55769dfa333fa1fd15b8bdc79e1f34b85eacf08eb501e3c1d16c999c0bb0e920"
     },
     {
-      "path": "src/service/shared/usage_record.h",
-      "sha256": "0d6790d1a4b8a28911813f25d721458424ac0a8ee552469a2e83dcfa5b6c15a9"
-    },
-    {
       "path": "src/service/shared/database_path.h",
       "sha256": "e5f934f1784ec00bfe7ee1e02074fa79c9e5b98d58a3db7c9763e605902f4755"
     },
@@ -41,15 +37,15 @@
     },
     {
       "path": "src/service/CMakeLists.txt",
-      "sha256": "4988cd249d7f406adbe5f3eb7e0e856fa9c976c853ed98b55b3b3d11d54dc148"
+      "sha256": "073168ac93183e56c370acb88d6757671233473ebd810a2192bf046a40ac94c5"
     },
     {
       "path": ".harness/CHARTER.md",
-      "sha256": "2ab27e1cf7b9b7fd6497bd75c8ce8f80369857ee993f579db724e08dee67394b"
+      "sha256": "73ef37e0b383ecc7180bfd4d8ca5de88d5eb9299b50ebb440734c9f6c38c7971"
     },
     {
       "path": ".harness/AGENTS.md",
-      "sha256": "b397efbc9749c21f428167b33ad4144302959ebbc22e7faf244f3327f65ba068"
+      "sha256": "0be67747d5959a3f527d7a85abd663e9caed2332a80e2da997706376951a64b6"
     },
     {
       "path": "AGENTS.md",
