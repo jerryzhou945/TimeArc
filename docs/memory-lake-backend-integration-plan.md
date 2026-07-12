@@ -433,7 +433,7 @@
 ## 9. 数据契约 / 隐私 / 安全边界（不可逾越，保证 2）
 - **安全面与现用数据一致**：只复用首页/Stats/DailyCard 已在用的**只读管理器**（§2.1）；
   任何新方法**只组合这些管理器，不自己开文件 / 开库 / 读磁盘 / 加网络** → 不引入任何新攻击面或新失败点。
-- 只读现有接口；**不改 `usage_record.*` / `data_bridge.h` / `usage_paths.*` 磁盘 schema**；不加 IPC/socket/共享内存（CLAUDE.md / rule 03）。
+- 只读现有接口；**不改 `data_bridge.h` / `database_storage.*` / `database_path.*` 或 SQLite 表契约**；不加 IPC/socket/共享内存（CLAUDE.md / rule 03）。
 - 文案/关键词=**本地确定性模板**，**不把原始日志/窗口标题喂 AI**（rule 07 §5）。
 - 不新增第三方库；不顺手重构其它页面（rule 07 §4）。
 
@@ -446,8 +446,8 @@
 
 ### 🔴 绝不可改（除非先填变更提案 `.harness/templates/change-proposal.md` → `journal/sessions/`）
 这些是**冻结文件**（哈希锁定）：
-- 磁盘契约 / 服务共享头：`src/service/shared/data_bridge.h`、`usage_record.h`、`usage_record.schema.json`、
-  `usage_paths.h`、`usage_paths.c`、`app_info.h`、`app_env.h`
+- 磁盘契约 / 服务共享头：`src/service/shared/data_bridge.h`、`database_path.h`、
+  `database_path.c`、`app_info.h`、`app_env.h`
 - `src/include/util.h`
 - 构建根：`CMakeLists.txt`、`src/CMakeLists.txt`、`src/service/CMakeLists.txt`
 - 治理：`.harness/CHARTER.md`、`.harness/AGENTS.md`、`AGENTS.md`
@@ -505,4 +505,3 @@
 **各阶段通用**
 - [ ] `build.py` 干净、`scan_qt_log.py` 无新增 QML 告警、`harness_check.py` 通过；真机 `run.cmd` 走查留 session log。
 - [ ] 所有"与预期不符"已记入 `docs/memory-lake-integration-issues.md`；无任何展示值用假数据顶替（§1.6 / §10）。
-

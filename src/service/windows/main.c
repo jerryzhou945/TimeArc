@@ -1,6 +1,5 @@
-#include "data_bridge.h"
+#include "service_config.h"
 #include "service/win_service.h"
-#include "storage/usage_storage.h"  // timearc_read_service_config (H5)
 #include "tracker/usage_tracker.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -53,8 +52,8 @@ int main(int argc, char** argv) {
 
   SetConsoleCtrlHandler(console_handler, TRUE);
 
-  // 防止同时启动多个采集进程。否则多个进程会同时写 usage_records.jsonl
-  // 和 usage_current.json，历史记录与实时状态都会变得不可预测。
+  // 防止同时启动多个采集进程。否则多个进程会同时写 service DB，
+  // 历史记录会变得不可预测。
   HANDLE instance_mutex = CreateMutexA(NULL, TRUE, TIMEARC_INSTANCE_MUTEX_NAME);
   if (instance_mutex == NULL) {
     fprintf(stderr, "failed to create TimeArc service mutex\n");
@@ -63,13 +62,6 @@ int main(int argc, char** argv) {
   if (GetLastError() == ERROR_ALREADY_EXISTS) {
     CloseHandle(instance_mutex);
     return 0;
-  }
-
-  // 先初始化存储，再启动轮询；这样 tracker 在焦点变化或空闲时可以立刻落盘。
-  if (ta_storage_init() != 0) {
-    fprintf(stderr, "failed to initialize TimeArc usage storage\n");
-    CloseHandle(instance_mutex);
-    return 1;
   }
 
   // 轮询间隔、空闲阈值、采集开关集中放在配置里。先填编译期默认（＝今天行为），
@@ -91,7 +83,6 @@ int main(int argc, char** argv) {
           (long long)config.idle_threshold_ms, config.track_enabled);
 
   int result = timearc_usage_tracker_run(&config);
-  ta_storage_shutdown();
   ReleaseMutex(instance_mutex);
   CloseHandle(instance_mutex);
   return result;

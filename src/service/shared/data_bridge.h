@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Jeff Zhang
 
-// DataBridge 是平台采集代码和存储层之间的 C 接口。
-//
-// tracker 不需要知道 JSONL/SQLite/current 文件怎么写，只调用这些函数提交
-// 已经标准化的 session。Swift/macOS 和 C/Windows 都可以使用同一组接口。
-// DataBridge provides database-related functionalities.
+// DataBridge provides database update APIs for the service layer.
 
 #ifndef TIMEARC_SRC_SERVICE_SHARED_DATA_BRIDGE_H
 #define TIMEARC_SRC_SERVICE_SHARED_DATA_BRIDGE_H
@@ -17,6 +13,8 @@
 // TA_SWIFT_NAME - annotate a C function with a custom name to be used in Swift.
 // Always follow the Swift naming conventions when specifying the name.
 #define TA_SWIFT_NAME(name) __attribute__((swift_name(#name)))
+#else
+#define TA_SWIFT_NAME(name)
 #endif  // __has_attribute(swift_name)
 #endif  // defined(__has_attribute)
 
@@ -24,55 +22,20 @@
 extern "C" {
 #endif
 
-int ta_storage_init(void);
-void ta_storage_shutdown(void);
+// update_apps - update the apps table.
+int update_apps(const char* app_id, const char* platform, const char* display_name,
+                const char* icon_path, const char* executable_path, int64_t updated_at)
+    TA_SWIFT_NAME(updateApps(appId:platform:displayName:iconPath:executablePath:updatedAt:));
 
-// 写入一条已结束的 foreground session。老调用点默认 source=foreground。
-int ta_write_usage_record(
-    const char* platform,
-    const char* app_id,
-    const char* app_name,
-    const char* window_title,
-    const char* path,
-    int64_t start_unix_sec,
-    uint64_t duration_sec);
+// update_frontmost - update the frontmost_sessions table.
+int update_frontmost(const char* app_id, const char* window_title, int64_t start_unix_sec,
+                     int64_t end_unix_sec, int64_t active_sec)
+    TA_SWIFT_NAME(updateFrontmost(appId:windowTitle:startUnixSec:endUnixSec:activeSec:));
 
-// 写入一条已结束的 session，并显式指定 source，例如 audio。
-int ta_write_usage_record_with_source(
-    const char* platform,
-    const char* source,
-    const char* app_id,
-    const char* app_name,
-    const char* window_title,
-    const char* path,
-    int64_t start_unix_sec,
-    uint64_t duration_sec);
-
-// 覆盖当前正在进行的 foreground session 快照，供 UI 实时显示。
-int ta_write_current_usage(
-    const char* platform,
-    const char* app_id,
-    const char* app_name,
-    const char* window_title,
-    const char* path,
-    int64_t start_unix_sec,
-    uint64_t duration_sec,
-    int64_t updated_unix_sec);
-
-// 覆盖当前正在进行的 session 快照，并显式指定 source。
-int ta_write_current_usage_with_source(
-    const char* platform,
-    const char* source,
-    const char* app_id,
-    const char* app_name,
-    const char* window_title,
-    const char* path,
-    int64_t start_unix_sec,
-    uint64_t duration_sec,
-    int64_t updated_unix_sec);
-
-// 清除实时快照。用户空闲、采集退出或没有前台 session 时会调用。
-void ta_clear_current_usage(void);
+// update_media - update the media_sessions table.
+int update_media(const char* app_id, const char* media_type, const char* media_title,
+                 int64_t start_unix_sec, int64_t end_unix_sec)
+    TA_SWIFT_NAME(updateMedia(appId:mediaType:mediaTitle:startUnixSec:endUnixSec:));
 
 #if defined(__cplusplus)
 }

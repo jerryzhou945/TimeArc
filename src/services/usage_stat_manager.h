@@ -11,17 +11,15 @@
 
 #include <functional>
 
-class QJsonObject;
 class QSqlDatabase;
 
 // 自动使用统计服务。
 //
-// 这个类运行在 Qt UI 进程中，读取 Windows service 写出的 JSONL/current 文件，
+// 这个类运行在 Qt UI 进程中，读取 service SQLite 历史，
 // 再聚合成 QML 可直接展示的 QVariantMap 列表。它不负责采集，只负责读取、
 // 归类、合并 foreground/audio 时间段，以及给当前页面提供实时状态。
 class UsageStatManager : public QObject {
   Q_OBJECT
-  Q_PROPERTY(QString usageRecordsPath READ usageRecordsPath CONSTANT)
   Q_PROPERTY(int todaySoftwareMinutes READ todaySoftwareMinutes NOTIFY usageStatsChanged)
   Q_PROPERTY(int monthSoftwareMinutes READ monthSoftwareMinutes NOTIFY usageStatsChanged)
   Q_PROPERTY(int yearSoftwareMinutes READ yearSoftwareMinutes NOTIFY usageStatsChanged)
@@ -30,14 +28,13 @@ class UsageStatManager : public QObject {
  public:
   explicit UsageStatManager(QObject* parent = nullptr);
 
-  QString usageRecordsPath() const;
   int todaySoftwareMinutes() const;
   int monthSoftwareMinutes() const;
   int yearSoftwareMinutes() const;
   int allSoftwareMinutes() const;
 
   Q_INVOKABLE void refresh();
-  // 数据代际：m_records 真实变化（全量重读或增量追加）时自增；live current 快照变化不计。
+  // 数据代际：m_records 真实变化（全量重读或增量追加）时自增。
   // 供 UI（统计页）跳过无新数据的重算（避免 5s Timer 每次都做昂贵聚合 → 长期卡顿）。
   Q_INVOKABLE int recordsGeneration() const { return m_recordsGeneration; }
   // active = foreground + audio 合并视图；重叠时间会按区间合并，避免双算。
@@ -51,7 +48,6 @@ class UsageStatManager : public QObject {
   Q_INVOKABLE int activeSoftwareSecondsForRange(const QString& range) const;
   Q_INVOKABLE int foregroundSoftwareSecondsForRange(const QString& range) const;
   Q_INVOKABLE int audioSecondsForRange(const QString& range) const;
-  Q_INVOKABLE QVariantMap currentSoftware() const;
 
   // 记忆湖：把区间内每个 app 的前台记录（同首页只读路径的 m_records）按
   // activity key 分组、相邻间隙 <= 60s 合并成"会话段"，用于推导 launches /
@@ -99,31 +95,24 @@ class UsageStatManager : public QObject {
   Q_INVOKABLE double fileSizeBytes(const QString& path) const;
   Q_INVOKABLE int recordCount() const;
 
-  // 设置页读层过滤（2A 游戏/分类/合并 · 2B 逐项显隐 · 2C 标题脱敏 · 3A 软暂停）：
+  // 设置页读层过滤（2A 游戏/分类/合并 · 2B 逐项显隐 · 2C 标题脱敏）：
   // 把 UI 私有偏好推入读出聚合层。只影响 UI 读出，不写/不删 usage，不动磁盘契约/服务。
-  // 默认无过滤（不脱敏/不隐藏/全分类/合并/计 live）= 与历史逐字节一致（首页/统计/记忆湖不回归）。变更后发
+  // 默认无过滤（不脱敏/不隐藏/全分类/合并）= 与历史逐字节一致。变更后发
   // usageStatsChanged 并自增 recordsGeneration，令各消费页重算。
   Q_INVOKABLE void setReadFilters(bool autoClassify, bool gameClassify,
                                   bool mergeSimilar, bool hideTitles,
-                                  bool trackingActive,
                                   const QStringList& hiddenKeys);
   // 逐项显隐选单（2B / G-HIDEAPP）：去重列出已采集到的 app，供设置页应用清单勾选。
   // 每项 {groupKey, name, appName, path, hidden}。忽略隐藏集做枚举（含被隐藏项，标 hidden），
   // 让用户能取消隐藏。只读自身记录，不开新数据路径。
   Q_INVOKABLE QVariantList allApps() const;
 
-  // A1 双读 parity 自检：分别从 JSONL 与 SQLite **全量**装载历史（不动生产 m_records，
-  // 排除 live），用同一聚合核心对比 week/month/year/all 总时长 + "all" 排行 top10。
-  // 返回 {jsonl:{totals,top,topNames}, sqlite:{...}, jsonl/sqliteRecordCount, *Available}。
-  // 差异应仅限可解释的去重/启用前尾巴（见 kickoff §0.3）。诊断用，env 门控调用，不改读出。
-  Q_INVOKABLE QVariantMap sqliteParityReport();
-
 signals:
   void usageStatsChanged();
 
  private:
   struct UsageRecord {
-    // 对应 usage_record JSON 的字段；live 表示来自 usage_current.json。
+    // SQLite session 的 UI 归一化字段。
     QString appId;
     QString source;
     QString appName;
@@ -131,24 +120,12 @@ signals:
     QString path;
     qint64 startUnixSec = 0;
     quint64 durationSec = 0;
-    qint64 updatedUnixSec = 0;
-    bool live = false;
   };
 
   QList<UsageRecord> m_records;
-  UsageRecord m_currentRecord;
-  bool m_hasCurrentRecord = false;
-  // 增量解析状态（JSONL 追加写）：上次已解析到的字节偏移 + 文件大小。size 变小=轮转/截断→全量重读。
   int m_recordsGeneration = 0;
-  qint64 m_recordsParsedSize = -1;
-  qint64 m_recordsParsedOffset = 0;
-
-  // A1 历史读源选择。S2 默认 JSONL（flag OFF）；S4 翻转为 SQLite（DB 缺失/空→回退 JSONL）。
-  // 可经环境变量 TIMEARC_USAGE_SOURCE=sqlite|jsonl 覆盖（测试 / 紧急回滚，无需重编）。
-  enum class HistorySource { None, Jsonl, Sqlite };
-  HistorySource m_recordsSource = HistorySource::None;  // 上次装载来源（切源即全量重载）
-  bool m_useSqliteSource = false;
-  // SQLite 增量高水位：仅装载 id 大于上次的新行（append-only），替代 JSONL 字节偏移。
+  bool m_historyInitialized = false;
+  // SQLite 增量高水位：仅装载 rowid 大于上次的新行。
   qint64 m_sqliteFrontmostMaxId = 0;
   qint64 m_sqliteMediaMaxId = 0;
 
@@ -157,29 +134,15 @@ signals:
   bool m_gameClassify = true;    // 关 → 游戏类别降级为「其他」（不识别游戏）
   bool m_mergeSimilar = true;    // 关 → 多进程变体按 exe 细分（站点仍单列）
   bool m_hideTitles = false;     // 类默认不脱敏（保字节一致契约）；UI 默认开由 KV 启动推入
-  bool m_trackingActive = true;  // 关 → 不纳入 live current 记录（软暂停，不删历史）
   QSet<QString> m_hiddenKeys;    // 逐项显隐：被排除出聚合的 group key 集
 
-  QString recordsFilePath() const;
-  QString currentFilePath() const;
-  // A1 历史装载分派（refresh 内部）：按读源增量装载历史进 m_records；live 快照独立装载。
-  void refreshHistoryFromJsonl();
-  void refreshHistoryFromSqlite();  // DB 不可用/空 → 内部回退 refreshHistoryFromJsonl
-  void refreshLiveSnapshot();
-  // 单行 JSONL → 历史记录（与 refresh 同款过滤：windows / start>0 / dur>0 / 标识非空）。
-  bool tryParseHistoryLine(const QByteArray& line, UsageRecord* out) const;
-  bool loadAllJsonlRecords(QList<UsageRecord>* out) const;   // 全量（parity 自检用）
-  bool loadAllSqliteRecords(QList<UsageRecord>* out) const;  // 全量（parity 自检用）
-  // SQLite 高水位 MAX(id)（空表→0；连接坏→false）。
+  void refreshHistoryFromSqlite();
+  // SQLite 高水位 MAX(rowid)（空表→0；连接坏→false）。
   bool sqliteMaxIds(QSqlDatabase& db, qint64* maxFront, qint64* maxMedia) const;
-  // 装载 id > *sinceMaxId 的会话行（JOIN apps 还原 app_name/path）追加进 out，更新水位。
-  // sql 须产出 7 列：app_identifier, app_name, path, title, start, duration, id。
+  // 装载 rowid > *sinceMaxId 的会话行（JOIN apps 还原名称/path）追加进 out，更新水位。
+  // sql 须产出 7 列：app_id, display_name, path, title, start, duration, rowid。
   int appendSqliteSessionsSince(QList<UsageRecord>* out, const QString& sql,
                                 const QString& source, qint64* sinceMaxId) const;
-  // parity 自检：对当前 m_records 算 week/month/year/all 总时长 + "all" top10。
-  QVariantMap paritySnapshot() const;
-  UsageRecord parseRecordObject(const QJsonObject& object, bool live) const;
-  QVariantMap recordToVariantMap(const UsageRecord& record) const;
   // 读层有效 group key：按当前过滤标志返回记录的有效分组键（合并关→exe 细键），
   // 被隐藏的 app 返回空串（调用方据此跳过）。
   QString effectiveGroupKey(const UsageRecord& record) const;

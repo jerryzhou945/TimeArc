@@ -1,10 +1,8 @@
 # Open Issues
 
-Known-broken or known-incomplete things. This is the working document; once
-an item is fixed, move it out of here and into a session log / error report.
+Known-broken or incomplete; move fixed items into a session log/error report.
 
-Keep entries short. Link to a rule or file where possible. Entries should
-answer: *what's wrong, where's the code, what's the minimum fix?*
+Keep entries short: *what's wrong, where, and what's the minimum fix?*
 
 > Actionable, dependency-ordered backlog (track tags + change-proposal flags):
 > [`../../docs/implementation-backlog.md`](../../docs/implementation-backlog.md).
@@ -21,16 +19,18 @@ answer: *what's wrong, where's the code, what's the minimum fix?*
 - **Windows background autostart shipped (B1 Route A).** `win_service.c` verbs
   + Settings toggle register an opt-in per-user logon task; SCM Session-0
   (Route B) deferred. See [`B1 kickoff`](../../docs/b1-windows-service-scm-kickoff.md).
+- **Windows idle counter breaks after ~49.7 days uptime.** `idle_win.c` mixes 64/32-bit ticks; use wrap-safe `DWORD` subtraction.
 
 ## Storage
 
-- **SQLite primary-source migration (A1) S1–S4 DONE** (`CHARTER` v0.2). UI reads
-  SQLite primary + JSONL fallback; tail backfilled once. Remaining = **A1 S5** (retire
-  JSONL after soak). [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
+- **Windows platform storage adapter — DONE.** Windows foreground/audio
+  trackers now submit app and session rows through `shared/data_bridge.h`;
+  `src/service/windows/storage/` has been retired.
+- **SQLite usage migration (A1) — DONE** (`CHARTER` v0.9). `timearc_service.db`
+  is the sole history store; UI is read-only. [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
+- **Shared usage contract cleanup — DONE** (`CHARTER` v0.10): bridge + three SQLite tables.
 - **Whole-DB backup/restore (D1) — DONE (S1+S2, PR #40).** `DatabaseManager`
   `backupDatabase`/`inspectBackup`/`restoreDatabase` + Settings UI; S3 retention deferred.
-- **Windows `rename` is non-atomic over existing files.** `usage_storage.c`
-  already `remove`s first; revisit if we move to SQLite with WAL.
 
 ## UI
 

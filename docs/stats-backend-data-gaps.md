@@ -64,14 +64,12 @@
 **range 取值 = `day/month/year/all`，无 `week`**（`usage_stat_manager.cpp:946–962 matchesRange`，
 锚定 `QDate::currentDate()`；`ProjectManager::rangeStartUnix` 同样无 week）。
 
-**原始数据契约（一切派生最终读这里）**：service 写
-`%LOCALAPPDATA%/TimeArc/usage/usage_records.jsonl`（历史，追加，每行一条）+
-`usage_current.json`（实时快照 ≤15s）。每条 `TimeArcUsageRecord =
-{platform, source(foreground|audio), app_id(=Win 完整 exe 路径), app_name, window_title,
-path, start_unix_sec, duration_sec}`（`usage_record.h:14–38`）。**源头不含**：结束时间戳、
-category/tag/focus 标记、idle、打开次数、process_id（落盘前丢弃）。SQLite（StatsService/
-FrontmostSessionRepository 用）`frontmost_sessions` 在**生产环境不可靠**（UI 写入器
-`addFrontmostSession` 仅 db_smoke 测试用）——**统计页走 JSONL 路径，不依赖该 SQLite**。
+**原始数据契约（一切派生最终读这里）**：service 独占写
+`timearc_service.db`，UI 只读。`apps` 保存平台、显示名、图标和可执行路径；
+`frontmost_sessions` 保存窗口标题、起止时间和 active/idle 秒数；
+`media_sessions` 保存媒体类型、标题和起止时间。源头不含 category/tag/focus
+标记或打开次数；这些仍由 UI 读模型派生。统计页通过
+`UsageStatManager`/`StatsService` 的 service-DB repositories 读取这三张表。
 
 ---
 

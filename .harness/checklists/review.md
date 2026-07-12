@@ -21,10 +21,10 @@ Designed to take ~10 minutes on a normal PR.
 
 ## 3. Data contract
 
-- [ ] Records still validate against the JSON Schema (spot-check a line of
-      new `usage_records.jsonl` output if sampling behavior changed).
-- [ ] No implicit semantic change to `source`, `duration_sec`, segmentation
-      rules, or idle handling without an accompanying amendment.
+- [ ] New service rows match the SQLite table contract (spot-check
+      `timearc_service.db` if sampling behavior changed).
+- [ ] No implicit semantic change to session duration, segmentation rules, or
+      idle handling without an accompanying amendment.
 
 ## 4. Platform work
 

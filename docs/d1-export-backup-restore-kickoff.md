@@ -116,8 +116,8 @@ S1 整库备份(VACUUM INTO 一致快照) ──> S2 校验 + 恢复(停服 + .p
 `qml/desktop/pages/DesktopProfilePage.qml`、`src/main.cpp`（入口，敏感但非冻结，慎改/本轮多半不需）。
 
 **冻结（改前须先填 `.harness/templates/change-proposal.md` 进 `journal/sessions/` + 更新 `state/frozen-files.json`）**：
-`src/service/shared/{data_bridge.h, usage_record.h, usage_record.schema.json, usage_paths.h, usage_paths.c,
-app_info.h, app_env.h}`、`src/include/util.h`、`CMakeLists.txt`(顶层)、`src/CMakeLists.txt`、
+`src/service/shared/{data_bridge.h, database_path.h, database_path.c, app_info.h, app_env.h}`、
+`src/include/util.h`、`CMakeLists.txt`(顶层)、`src/CMakeLists.txt`、
 `src/service/CMakeLists.txt`、`.harness/CHARTER.md`、`.harness/AGENTS.md`、`AGENTS.md`。
 
 **关键事实**：

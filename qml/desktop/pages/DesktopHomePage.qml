@@ -219,22 +219,6 @@ Item {
         return "暂无进行中"
     }
 
-    function currentSoftwareName() {
-        if (!usageStatManager)
-            return "等待记录"
-        var current = usageStatManager.currentSoftware()
-        if (!current)
-            return "等待记录"
-        var adapterName = modelDisplayName(current)
-        if (adapterName.length > 0)
-            return adapterName
-        if (current.name && current.name.length > 0)
-            return current.name
-        if (current.appName && current.appName.length > 0)
-            return current.appName
-        return "等待记录"
-    }
-
     function allTodayDistributionStats() {
         var result = []
         var softwareSeconds = softwareUsageSecondsToday()
@@ -654,13 +638,6 @@ Item {
                                             color: textPrimary
                                             font.pixelSize: 24
                                             font.bold: true
-                                        }
-
-                                        Text {
-                                            text: currentSoftwareName()
-                                            color: textSecondary
-                                            font.pixelSize: 13
-                                            elide: Text.ElideRight
                                         }
                                     }
 
@@ -1130,18 +1107,6 @@ Item {
                                 font.pixelSize: 14
                                 wrapMode: Text.WordWrap
                                 lineHeight: 1.18
-                            }
-
-                            SoftPill {
-                                Layout.fillWidth: true
-                title: root.tr("当前应用")
-                                value: currentSoftwareName()
-                                iconText: "●"
-                                fillColor: nightMode ? "#4A526F" : "#F7F3EE"
-                                strokeColor: softBorder
-                                accentColor: mint
-                                titleColor: textSecondary
-                                valueColor: textPrimary
                             }
                         }
                     }

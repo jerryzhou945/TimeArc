@@ -138,9 +138,11 @@ Daily Card should start in the UI layer:
 
 Schema changes are expensive:
 
-- Prefer derived summary/card files before changing `usage_record`.
-- If `usage_record` changes, file a change proposal first.
-- If a new `source` is added, update schema and reader logic together.
+- Prefer derived summary/card files before changing the service tables.
+- If `data_bridge.h` or the SQLite table contract changes, file a change
+  proposal first.
+- If a new session kind is added, update the bridge, schema, and reader logic
+  together.
 
 ## AI Development Rules
 

@@ -1,0 +1,11 @@
+[  0%] Built target time-arc-parson
+[  1%] Built target time-arc_copy_qml
+[  1%] Built target time-arc_copy_res
+[  1%] Built target generate_qmlls_build_ini_file
+[  1%] Built target time-arc_qmlimportscan
+[  3%] Built target time-arc-sqlite3
+[  3%] Built target time-arc_autogen_timestamp_deps
+[  3%] Built target time-arc_autogen
+[  4%] Generating meta_types/qt6time-arc_metatypes.json
+[  4%] Generating meta_types/qt6time-arc_metatypes.json
+[100%] Built target time-arc

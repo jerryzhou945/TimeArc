@@ -7,9 +7,9 @@ Details live in `CHARTER.md`, `rules/*.md`, and `tracks/*.md`.
 
 TimeArc is a Qt6/QML time-tracking app with a **two-process** architecture:
 a UI app (`TimeArc`) and a native background service (`time-arc-service`)
-that samples foreground apps and audio sessions to a JSONL log plus a live
-snapshot. Target platforms: Windows (most complete), macOS (in progress),
-Linux (not started). If this is new, stop and read `CHARTER.md` §1–2.
+that stores foreground/audio usage in a service-owned SQLite database. Target
+platforms: Windows (most complete), macOS (in progress), Linux (not started).
+If this is new, stop and read `CHARTER.md` §1–2.
 
 ## 2. Pick your track
 
@@ -30,7 +30,7 @@ One session, one track. If you catch yourself doing two, split the session.
 2. Your track file (`tracks/<letter>-*.md`).
 3. Rule files matching what your diff touches:
    - `src/` C++/C/Swift → `rules/01-architecture.md`, `rules/02-platform-boundaries.md`
-   - `usage_record.*` / `data_bridge.h` / `usage_paths.*` → `rules/03-data-contract.md`
+   - `data_bridge.h` / `database_storage.*` / `database_path.*` → `rules/03-data-contract.md`
    - `qml/` → `rules/04-ui-conventions.md`
    - any `CMakeLists.txt` → `rules/05-build-system.md`
    - new dep or license-relevant → `rules/06-licensing.md`

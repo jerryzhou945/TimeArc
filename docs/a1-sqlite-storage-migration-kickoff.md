@@ -167,8 +167,8 @@ SQLite 读路径，产出与 JSONL **逐窗口等价**的聚合，默认仍以 J
 `stats_service`）、`tests/db_smoke.cpp`、`src/main.cpp`（入口，敏感但非冻结，慎改）。
 
 **冻结（改前须先填 `.harness/templates/change-proposal.md` 进 `journal/sessions/`，并更新 `state/frozen-files.json`）**：
-`src/service/shared/{data_bridge.h, usage_record.h, usage_record.schema.json, usage_paths.h, usage_paths.c,
-app_info.h, app_env.h}`、`src/include/util.h`、`CMakeLists.txt`(顶层)、`src/CMakeLists.txt`、
+`src/service/shared/{data_bridge.h, database_path.h, database_path.c, app_info.h, app_env.h}`、
+`src/include/util.h`、`CMakeLists.txt`(顶层)、`src/CMakeLists.txt`、
 `src/service/CMakeLists.txt`、`.harness/CHARTER.md`、`.harness/AGENTS.md`、`AGENTS.md`。
 
 **关键事实**：
