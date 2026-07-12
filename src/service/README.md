@@ -11,8 +11,10 @@ write the same service-owned usage database.
 The service SQLite database is resolved by `shared/database_path.*`. Its
 locked filename is `timearc_service.db`. `shared/database_storage.*` owns the
 SQLite connection, schema, statements, transactions, and table writes.
-`shared/data_bridge.c` is only the public bridge wrapper around that storage
-API. The Qt app opens that database read-only for history.
+`shared/data_bridge.c` exposes the public table-write bridge around that
+storage API. Windows trackers submit completed foreground and audio sessions
+directly through the bridge; there is no platform-specific storage adapter.
+The Qt app opens that database read-only for history.
 
 The database has exactly three service-owned tables:
 

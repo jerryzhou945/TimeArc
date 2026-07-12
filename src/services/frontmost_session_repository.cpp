@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <QDebug>
+#include <QFileInfo>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -19,6 +20,11 @@ QSqlDatabase database() {
     return QSqlDatabase();
   }
   QSqlDatabase db = QSqlDatabase::database(kConnectionName, false);
+  if (db.isValid() && !db.isOpen() && QFileInfo::exists(db.databaseName()) &&
+      !db.open()) {
+    qWarning() << "Unable to open service history database:"
+               << db.lastError().text();
+  }
   if (!db.isValid() || !db.isOpen()) {
     qWarning() << "Service history database is not open.";
   }
@@ -101,19 +107,19 @@ QVariantList FrontmostSessionRepository::getSessionsByRange(
   QSqlQuery query(db);
   if (!query.prepare(QStringLiteral(R"SQL(
 SELECT
-    fs.id,
-    fs.app_identifier,
+    fs.rowid,
+    fs.app_id,
     fs.window_title,
     fs.start_unix_sec,
     fs.end_unix_sec,
     fs.duration_sec,
     fs.active_sec,
     fs.idle_sec,
-    fs.created_at,
-    COALESCE(NULLIF(a.display_name, ''), a.app_name, fs.app_identifier) AS display_name,
-    a.app_icon_path
+    fs.start_unix_sec,
+    COALESCE(NULLIF(a.display_name, ''), fs.app_id) AS display_name,
+    a.icon_path
 FROM frontmost_sessions fs
-LEFT JOIN apps a ON a.app_identifier = fs.app_identifier
+LEFT JOIN apps a ON a.app_id = fs.app_id
 WHERE fs.start_unix_sec < :end_unix_sec
   AND fs.end_unix_sec > :start_unix_sec
 ORDER BY fs.start_unix_sec ASC;
@@ -164,8 +170,8 @@ QVariantList FrontmostSessionRepository::getIntervalsByRange(
   QSqlQuery query(db);
   if (!query.prepare(QStringLiteral(R"SQL(
 SELECT
-    id,
-    app_identifier,
+    rowid,
+    app_id,
     start_unix_sec,
     end_unix_sec,
     duration_sec,
@@ -249,19 +255,18 @@ QVariantList FrontmostSessionRepository::getTodayFrontmostRanking() {
   QSqlQuery query(db);
   if (!query.prepare(QStringLiteral(R"SQL(
 SELECT
-    fs.app_identifier,
-    COALESCE(NULLIF(a.display_name, ''), a.app_name, fs.app_identifier) AS display_name,
-    a.app_icon_path,
+    fs.app_id,
+    COALESCE(NULLIF(a.display_name, ''), fs.app_id) AS display_name,
+    a.icon_path,
     SUM(fs.active_sec) AS total_sec
 FROM frontmost_sessions fs
-LEFT JOIN apps a ON a.app_identifier = fs.app_identifier
+LEFT JOIN apps a ON a.app_id = fs.app_id
 WHERE fs.start_unix_sec < :end_unix_sec
   AND fs.end_unix_sec > :start_unix_sec
 GROUP BY
-    fs.app_identifier,
+    fs.app_id,
     a.display_name,
-    a.app_name,
-    a.app_icon_path
+    a.icon_path
 HAVING total_sec > 0
 ORDER BY total_sec DESC;
 )SQL"))) {

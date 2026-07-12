@@ -125,7 +125,7 @@ signals:
   QList<UsageRecord> m_records;
   int m_recordsGeneration = 0;
   bool m_historyInitialized = false;
-  // SQLite 增量高水位：仅装载 id 大于上次的新行。
+  // SQLite 增量高水位：仅装载 rowid 大于上次的新行。
   qint64 m_sqliteFrontmostMaxId = 0;
   qint64 m_sqliteMediaMaxId = 0;
 
@@ -137,10 +137,10 @@ signals:
   QSet<QString> m_hiddenKeys;    // 逐项显隐：被排除出聚合的 group key 集
 
   void refreshHistoryFromSqlite();
-  // SQLite 高水位 MAX(id)（空表→0；连接坏→false）。
+  // SQLite 高水位 MAX(rowid)（空表→0；连接坏→false）。
   bool sqliteMaxIds(QSqlDatabase& db, qint64* maxFront, qint64* maxMedia) const;
-  // 装载 id > *sinceMaxId 的会话行（JOIN apps 还原 app_name/path）追加进 out，更新水位。
-  // sql 须产出 7 列：app_identifier, app_name, path, title, start, duration, id。
+  // 装载 rowid > *sinceMaxId 的会话行（JOIN apps 还原名称/path）追加进 out，更新水位。
+  // sql 须产出 7 列：app_id, display_name, path, title, start, duration, rowid。
   int appendSqliteSessionsSince(QList<UsageRecord>* out, const QString& sql,
                                 const QString& source, qint64* sinceMaxId) const;
   // 读层有效 group key：按当前过滤标志返回记录的有效分组键（合并关→exe 细键），

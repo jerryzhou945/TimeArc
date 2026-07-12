@@ -338,6 +338,11 @@ bool DatabaseManager::openServiceDatabaseReadOnly() {
       db.close();
       db.setDatabaseName(path);
       db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+    } else {
+      QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                  kServiceConnectionName);
+      db.setDatabaseName(path);
+      db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
     }
     qInfo().noquote() << "Service SQLite database is not present yet:" << path;
     return true;

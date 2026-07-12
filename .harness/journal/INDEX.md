@@ -8,6 +8,21 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-12T09:39:48Z | L2 | db-smoke-legacy... | Updated service-schema smoke built successfully, but full... | [report](errors/20260712-093948-C-db-smoke-legacy-state.md) |
+| 2026-07-12T09:39:03Z | L1 | ui-service-sche... | cmake --build exited 1 | [report](errors/20260712-093903-C-ui-service-schema-read.md) |
+| 2026-07-12T09:30:01Z | L3 | preflight-froze... | Track C preflight still fails solely because the already-... | [report](errors/20260712-093001-C-preflight-frozen-hash.md) |
+| 2026-07-12T09:24:43Z | L3 | stale-error-rep... | Error-report evidence patch failed because its context re... | [report](errors/20260712-092443-C-stale-error-report-patch.md) |
+| 2026-07-12T09:24:01Z | L3 | sqlite-cli-missing | Direct inspection of copied timearc_service.db could not ... | [report](errors/20260712-092401-C-sqlite-cli-missing.md) |
+| 2026-07-12T09:20:12Z | L3 | service-output-... | Assumed the service binary would be emitted under build/s... | [report](errors/20260712-092012-C-service-output-location-assumption.md) |
+| 2026-07-12T08:40:01Z | L3 | missing-cmake-p... | Diagnostic rg included nonexistent CMakePresets.json and ... | [report](errors/20260712-084001-C-missing-cmake-presets.md) |
+| 2026-07-12T08:38:56Z | L2 | windows-collect... | On Windows, the app builds and runs but service-collected... | [report](errors/20260712-083856-C-windows-collection-not-visible.md) |
+| 2026-07-12T08:38:48Z | L3 | preflight-drift | Preflight failed during Windows collection diagnosis: ope... | [report](errors/20260712-083848-C-preflight-drift.md) |
+| 2026-07-12T08:31:49Z | L3 | rg-option-pattern | Read-only inspection search failed because an rg pattern ... | [report](errors/20260712-083149-A-rg-option-pattern.md) |
+| 2026-07-12T08:30:45Z | L3 | preflight-drift | Preflight failed during read-only Windows service inspect... | [report](errors/20260712-083045-A-preflight-drift.md) |
+| 2026-07-12T07:58:45Z | L2 | preflight-drift | Preflight found open-issues.md over 100 lines and frozen ... | [report](errors/20260712-075845-A-preflight-drift.md) |
+| 2026-07-12T07:49:15Z | L1 | build-failure | cmake --build exited 2 | [report](errors/20260712-074915-B-build-failure.md) |
+| 2026-07-12T07:36:52Z | L3 | git-branch-perm... | Creating feat/shared-service-data-bridge failed because t... | [report](errors/20260712-073652-B-git-branch-permission.md) |
+| 2026-07-12T07:36:33Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260712-073633-B-build-failure.md) |
 | 2026-07-11T14:17:14Z | L1 | live-snapshot-r... | cmake --build exited 2 | [report](errors/20260711-141714-B-live-snapshot-retirement-ui-build.md) |
 | 2026-07-11T14:16:33Z | L1 | live-snapshot-r... | cmake --build exited 1 | [report](errors/20260711-141633-B-live-snapshot-retirement-ui-build.md) |
 | 2026-07-11T14:09:40Z | L3 | missing-bridge-... | Inspection assumed a macOS bridging-header filename that ... | [report](errors/20260711-140940-B-missing-bridge-header-path.md) |

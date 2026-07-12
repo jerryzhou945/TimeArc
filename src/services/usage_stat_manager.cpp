@@ -645,31 +645,31 @@ QStringList iconDominantColors(const QString& path) {
 // connection; the service process is the only writer.
 const QString kTimearcConnection = QStringLiteral("timearc_service");
 
-// The service writes app_identifier = app_id and executable_path = path. So
-// app_identifier rebuilds appId, executable_path rebuilds path, apps.app_name
-// rebuilds app_name, reconstructing the identity tuple used by aggregation.
+// The service writes app_id as the stable identity, display_name as the short
+// app name, and executable_path as path. Keep the seven-column normalized read
+// shape consumed below while using SQLite rowid as the incremental watermark.
 const QString kSqlFrontmostSince = QStringLiteral(R"SQL(
-SELECT fs.app_identifier,
-       COALESCE(NULLIF(a.app_name, ''), fs.app_identifier),
-       COALESCE(NULLIF(a.executable_path, ''), fs.app_identifier),
-       fs.window_title, fs.start_unix_sec, fs.duration_sec, fs.id
+SELECT fs.app_id,
+       COALESCE(NULLIF(a.display_name, ''), fs.app_id),
+       COALESCE(NULLIF(a.executable_path, ''), fs.app_id),
+       fs.window_title, fs.start_unix_sec, fs.duration_sec, fs.rowid
 FROM frontmost_sessions fs
-LEFT JOIN apps a ON a.app_identifier = fs.app_identifier
-WHERE fs.id > :sinceId
-ORDER BY fs.id ASC;
+LEFT JOIN apps a ON a.app_id = fs.app_id
+WHERE fs.rowid > :sinceId
+ORDER BY fs.rowid ASC;
 )SQL");
 
 // media_sessions is the audio side of the D5 union (the whole table is audio:
-// the service only ever writes media_type='audio'). playback_sec -> duration.
+// the service only ever writes media_type='audio').
 const QString kSqlMediaSince = QStringLiteral(R"SQL(
-SELECT ms.app_identifier,
-       COALESCE(NULLIF(a.app_name, ''), ms.app_identifier),
-       COALESCE(NULLIF(a.executable_path, ''), ms.app_identifier),
-       ms.media_title, ms.start_unix_sec, ms.playback_sec, ms.id
+SELECT ms.app_id,
+       COALESCE(NULLIF(a.display_name, ''), ms.app_id),
+       COALESCE(NULLIF(a.executable_path, ''), ms.app_id),
+       ms.media_title, ms.start_unix_sec, ms.duration_sec, ms.rowid
 FROM media_sessions ms
-LEFT JOIN apps a ON a.app_identifier = ms.app_identifier
-WHERE ms.id > :sinceId
-ORDER BY ms.id ASC;
+LEFT JOIN apps a ON a.app_id = ms.app_id
+WHERE ms.rowid > :sinceId
+ORDER BY ms.rowid ASC;
 )SQL");
 
 }  // namespace
@@ -708,8 +708,10 @@ bool UsageStatManager::sqliteMaxIds(QSqlDatabase& db, qint64* maxFront,
   if (!db.isValid() || !db.isOpen()) return false;
   QSqlQuery query(db);
   if (!query.exec(QStringLiteral(
-          "SELECT (SELECT COALESCE(MAX(id), 0) FROM frontmost_sessions), "
-          "(SELECT COALESCE(MAX(id), 0) FROM media_sessions);"))) {
+          "SELECT (SELECT COALESCE(MAX(rowid), 0) FROM frontmost_sessions), "
+          "(SELECT COALESCE(MAX(rowid), 0) FROM media_sessions);"))) {
+    qWarning() << "UsageStatManager: failed to read SQLite watermarks:"
+               << query.lastError().text();
     return false;
   }
   if (!query.next()) return false;
@@ -773,6 +775,11 @@ void UsageStatManager::refreshHistoryFromSqlite() {
     return;
   }
   QSqlDatabase db = QSqlDatabase::database(kTimearcConnection, false);
+  if (db.isValid() && !db.isOpen() && QFileInfo::exists(db.databaseName()) &&
+      !db.open()) {
+    qWarning() << "UsageStatManager: failed to open service SQLite database:"
+               << db.databaseName() << db.lastError().text();
+  }
   qint64 maxFront = 0;
   qint64 maxMedia = 0;
   const bool ok = sqliteMaxIds(db, &maxFront, &maxMedia);

@@ -60,7 +60,8 @@ on silence > `TIMEARC_AUDIO_SILENCE_GRACE_SEC` (3 s), and every
 records are dropped at the service.
 
 **D4. UTF-8 everywhere.** Platform code must UTF-8-encode strings before
-calling `ta_write_usage_record*`; SQLite receives those bridge strings.
+calling the functions declared by `data_bridge.h`; SQLite receives those
+bridge strings.
 
 **D5. UI read model.** `UsageStatManager` merges `foreground` and `audio`
 intervals by union (simultaneous foreground + audio does not double-count

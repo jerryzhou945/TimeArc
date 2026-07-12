@@ -64,9 +64,12 @@ static void close_session(const AppInfo* app, int64_t start_sec,
     return;
   }
 
-  ta_write_usage_record("windows", app->exec_path, app->app_name,
-                        app->window_title, app->exec_path, start_sec,
-                        (uint64_t)(end_sec - start_sec));
+  if (update_apps(app->exec_path, "windows", app->app_name, "",
+                  app->exec_path, end_sec) != 0) {
+    return;
+  }
+  update_frontmost(app->exec_path, app->window_title, start_sec, end_sec,
+                   end_sec - start_sec);
 }
 
 int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {

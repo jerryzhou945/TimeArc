@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <QDebug>
+#include <QFileInfo>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -19,6 +20,11 @@ QSqlDatabase database() {
     return QSqlDatabase();
   }
   QSqlDatabase db = QSqlDatabase::database(kConnectionName, false);
+  if (db.isValid() && !db.isOpen() && QFileInfo::exists(db.databaseName()) &&
+      !db.open()) {
+    qWarning() << "Unable to open service history database:"
+               << db.lastError().text();
+  }
   if (!db.isValid() || !db.isOpen()) {
     qWarning() << "Service history database is not open.";
   }
@@ -98,18 +104,18 @@ QVariantList MediaSessionRepository::getSessionsByRange(qint64 startUnixSec,
   QSqlQuery query(db);
   if (!query.prepare(QStringLiteral(R"SQL(
 SELECT
-    ms.id,
-    ms.app_identifier,
+    ms.rowid,
+    ms.app_id,
     ms.media_type,
     ms.media_title,
     ms.start_unix_sec,
     ms.end_unix_sec,
-    ms.playback_sec,
-    ms.created_at,
-    COALESCE(NULLIF(a.display_name, ''), a.app_name, ms.app_identifier) AS display_name,
-    a.app_icon_path
+    ms.duration_sec,
+    ms.start_unix_sec,
+    COALESCE(NULLIF(a.display_name, ''), ms.app_id) AS display_name,
+    a.icon_path
 FROM media_sessions ms
-LEFT JOIN apps a ON a.app_identifier = ms.app_identifier
+LEFT JOIN apps a ON a.app_id = ms.app_id
 WHERE ms.start_unix_sec < :end_unix_sec
   AND ms.end_unix_sec > :start_unix_sec
 ORDER BY ms.start_unix_sec ASC;
@@ -158,12 +164,12 @@ QVariantList MediaSessionRepository::getIntervalsByRange(qint64 startUnixSec,
   QSqlQuery query(db);
   if (!query.prepare(QStringLiteral(R"SQL(
 SELECT
-    id,
-    app_identifier,
+    rowid,
+    app_id,
     media_type,
     start_unix_sec,
     end_unix_sec,
-    playback_sec
+    duration_sec
 FROM media_sessions
 WHERE start_unix_sec < :end_unix_sec
   AND end_unix_sec > :start_unix_sec
@@ -207,7 +213,7 @@ int MediaSessionRepository::getTotalPlaybackSecondsByRange(
 
   QSqlQuery query(db);
   if (!query.prepare(QStringLiteral(R"SQL(
-SELECT COALESCE(SUM(playback_sec), 0)
+SELECT COALESCE(SUM(duration_sec), 0)
 FROM media_sessions
 WHERE start_unix_sec < :end_unix_sec
   AND end_unix_sec > :start_unix_sec;
@@ -241,23 +247,22 @@ QVariantList MediaSessionRepository::getTodayMediaRanking() {
   QSqlQuery query(db);
   if (!query.prepare(QStringLiteral(R"SQL(
 SELECT
-    ms.app_identifier,
-    COALESCE(NULLIF(a.display_name, ''), a.app_name, ms.app_identifier) AS display_name,
-    a.app_icon_path,
+    ms.app_id,
+    COALESCE(NULLIF(a.display_name, ''), ms.app_id) AS display_name,
+    a.icon_path,
     ms.media_type,
     ms.media_title,
-    SUM(ms.playback_sec) AS total_sec
+    SUM(ms.duration_sec) AS total_sec
 FROM media_sessions ms
-LEFT JOIN apps a ON a.app_identifier = ms.app_identifier
+LEFT JOIN apps a ON a.app_id = ms.app_id
 WHERE ms.start_unix_sec < :end_unix_sec
   AND ms.end_unix_sec > :start_unix_sec
 GROUP BY
-    ms.app_identifier,
+    ms.app_id,
     ms.media_type,
     ms.media_title,
     a.display_name,
-    a.app_name,
-    a.app_icon_path
+    a.icon_path
 HAVING total_sec > 0
 ORDER BY total_sec DESC;
 )SQL"))) {

@@ -8,7 +8,7 @@ has to provide.
 `src/service/CMakeLists.txt` selects exactly one platform source set:
 
 - `APPLE` -> `macos/*.swift`
-- `WIN32` -> `windows/{main.c, tracker/*.c, platform/*.c, storage/*.c, service/*.c}`
+- `WIN32` -> `windows/{main.c, service_config.c, tracker/*.c, platform/*.c, service/*.c}`
 - `UNIX` (non-APPLE) -> `linux/main.c`
 
 Headers in `src/service/shared/app_info.h` and `app_env.h` are included from
@@ -20,8 +20,7 @@ Win/Linux builds only. macOS Swift code uses the `data_bridge.h` C ABI via an
 Every platform service must:
 
 1. Produce normalized sessions matching `usage_record.h` and the service tables.
-2. Call `ta_storage_init()` before the first write and `ta_storage_shutdown()`
-   on exit.
+2. Submit completed app/session data through the shared `data_bridge.h` API.
 3. Split foreground sessions when either `app_id` or `window_title` changes.
 4. Honor an idle threshold (default 60 s). While idle, close the foreground
    session.
@@ -41,7 +40,8 @@ Every platform service must:
 - `platform/active_app_win.c`: `GetForegroundWindow` + `GetWindowText` + exe path.
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
 - `platform/idle_win.c`: `GetLastInputInfo`.
-- `storage/usage_storage.c`: SQLite history writes.
+- `tracker/*.c`: submits completed sessions through `data_bridge.h`; shared
+  `database_storage.*` owns SQLite history writes.
 - `service/win_service.c`: user-session autostart verbs
   (`--install`/`--uninstall`/`--start`/`--stop`/`--status`) via `schtasks`/Run-key.
   The tracker stays in the interactive user session. A true SCM Session-0

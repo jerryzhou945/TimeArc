@@ -83,7 +83,8 @@ G2/G3 打磨 ───────────(随手)
   （动词面 install/start/stop/uninstall/status 为稳定 CLI 契约）。
 - [x] **B2 `write_json_string` 加 UTF-8 校验** — 2026-06-13 已实装：JSON 字符串输出保留合法 UTF-8，非法字节写为 `\ufffd`，控制字符/引号/反斜杠继续按 JSON 规则转义；不改 SQLite 写入和磁盘契约。
   Track B · Windows/shared · 小 · commit `74cc033`。
-- [ ] **B3（可选低优）Windows `rename` 非原子覆盖**（`usage_storage.c` 现先 `remove`）——转 SQLite WAL 时再 revisit。
+- [x] **B3 Windows JSON 覆盖路径已退役**——自动使用历史已统一为 SQLite
+  WAL，旧 `usage_storage.c` 随 Windows 存储适配层一并删除。
 
 ### C. 跨平台服务（**非 Windows**）
 - [~] **C1 macOS tracker 主循环接线**

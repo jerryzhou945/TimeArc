@@ -14,13 +14,13 @@ message.
 │  Shared contract  (src/service/shared/)                       │
 │    ├─ data_bridge.h — C ABI for trackers                      │
 │    ├─ usage_record.h — normalized session contract            │
+│    ├─ database_storage.* — SQLite writer behind the bridge    │
 │    ├─ database_path.h/.c — service DB path resolver           │
 │    └─ app_info.h / app_env.h — sampling structs               │
 ├───────────────────────────────────────────────────────────────┤
 │  Service layer  (src/service/<platform>/)                     │
 │    ├─ tracker/ — foreground + audio sampling loops            │
 │    ├─ platform/ — OS-specific probes (active app, idle, audio)│
-│    ├─ storage/ — SQLite usage writer                          │
 │    └─ service/ — OS service registration (Windows: TODO)      │
 └───────────────────────────────────────────────────────────────┘
 ```

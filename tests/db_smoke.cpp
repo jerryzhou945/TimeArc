@@ -59,13 +59,8 @@ bool tableExists(const QSqlDatabase& db, const QString& tableName) {
   return query.next();
 }
 
-// A1 schema-parity guard. The canonical DDL for the shared usage tables is owned
-// by DatabaseManager (src/services/database_manager.cpp); the Windows service
-// inline DDL (src/service/windows/storage/usage_storage.c) MUST stay
-// column-compatible with it. This asserts the table actually created by
-// DatabaseManager matches the canonical column shape (name, declared type,
-// NOT NULL), so any drift in the UI DDL fails the build. Keep these lists and
-// the service DDL in lockstep when amending the schema.
+// Schema-parity guard. Service history DDL is owned by
+// src/service/shared/database_storage.c; this read-only UI fixture mirrors it.
 struct ExpectedColumn {
   const char* name;
   const char* type;  // declared type, upper-cased
@@ -77,8 +72,8 @@ bool columnsMatch(const QSqlDatabase& db, const QString& tableName,
                   QString* mismatch) {
   QSqlQuery query(db);
   if (!query.exec(
-          QStringLiteral("PRAGMA table_info(%1);").arg(tableName))) {
-    *mismatch = QStringLiteral("PRAGMA table_info(%1) failed: %2")
+          QStringLiteral("PRAGMA table_xinfo(%1);").arg(tableName))) {
+    *mismatch = QStringLiteral("PRAGMA table_xinfo(%1) failed: %2")
                     .arg(tableName, query.lastError().text());
     return false;
   }
@@ -153,13 +148,11 @@ bool createServiceHistoryDatabase(const QString& path, QString* error) {
       ok = execSql(db,
                    QStringLiteral(
                        "CREATE TABLE IF NOT EXISTS apps ("
-                       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                       "app_identifier TEXT NOT NULL UNIQUE,"
-                       "app_name TEXT NOT NULL,"
-                       "display_name TEXT,"
-                       "app_icon_path TEXT,"
-                       "executable_path TEXT,"
-                       "platform TEXT DEFAULT 'windows',"
+                       "app_id TEXT NOT NULL PRIMARY KEY,"
+                       "platform TEXT NOT NULL,"
+                       "display_name TEXT NOT NULL DEFAULT '',"
+                       "icon_path TEXT NOT NULL DEFAULT '',"
+                       "executable_path TEXT NOT NULL DEFAULT '',"
                        "created_at INTEGER NOT NULL,"
                        "updated_at INTEGER NOT NULL"
                        ");"),
@@ -168,29 +161,28 @@ bool createServiceHistoryDatabase(const QString& path, QString* error) {
       ok = execSql(db,
                    QStringLiteral(
                        "CREATE TABLE IF NOT EXISTS frontmost_sessions ("
-                       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                       "app_identifier TEXT NOT NULL,"
-                       "window_title TEXT,"
+                       "app_id TEXT NOT NULL,"
+                       "window_title TEXT NOT NULL DEFAULT '',"
                        "start_unix_sec INTEGER NOT NULL,"
                        "end_unix_sec INTEGER NOT NULL,"
-                       "duration_sec INTEGER NOT NULL,"
+                       "duration_sec INTEGER GENERATED ALWAYS AS "
+                       "(end_unix_sec - start_unix_sec) STORED,"
                        "active_sec INTEGER NOT NULL,"
-                       "idle_sec INTEGER DEFAULT 0,"
-                       "created_at INTEGER NOT NULL"
+                       "idle_sec INTEGER GENERATED ALWAYS AS "
+                       "((end_unix_sec - start_unix_sec) - active_sec) STORED"
                        ");"),
                    error);
     if (ok)
       ok = execSql(db,
                    QStringLiteral(
                        "CREATE TABLE IF NOT EXISTS media_sessions ("
-                       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                       "app_identifier TEXT NOT NULL,"
+                       "app_id TEXT NOT NULL,"
                        "media_type TEXT NOT NULL,"
-                       "media_title TEXT,"
+                       "media_title TEXT NOT NULL DEFAULT '',"
                        "start_unix_sec INTEGER NOT NULL,"
                        "end_unix_sec INTEGER NOT NULL,"
-                       "playback_sec INTEGER NOT NULL,"
-                       "created_at INTEGER NOT NULL"
+                       "duration_sec INTEGER GENERATED ALWAYS AS "
+                       "(end_unix_sec - start_unix_sec) STORED"
                        ");"),
                    error);
     db.close();
@@ -208,12 +200,12 @@ bool seedServiceApp(QSqlDatabase db,
                     QString* error) {
   QSqlQuery query(db);
   query.prepare(QStringLiteral(
-      "INSERT OR IGNORE INTO apps (app_identifier, app_name, display_name, "
-      "app_icon_path, executable_path, platform, created_at, updated_at) "
-      "VALUES (:id, :name, :display, '', :path, :platform, :now, :now);"));
+      "INSERT OR IGNORE INTO apps (app_id, platform, display_name, icon_path, "
+      "executable_path, created_at, updated_at) "
+      "VALUES (:id, :platform, :display, '', :path, :now, :now);"));
   query.bindValue(QStringLiteral(":id"), appIdentifier);
-  query.bindValue(QStringLiteral(":name"), appName);
-  query.bindValue(QStringLiteral(":display"), displayName);
+  query.bindValue(QStringLiteral(":display"),
+                  displayName.isEmpty() ? appName : displayName);
   query.bindValue(QStringLiteral(":path"), executablePath);
   query.bindValue(QStringLiteral(":platform"), platform);
   query.bindValue(QStringLiteral(":now"), QDateTime::currentSecsSinceEpoch());
@@ -232,16 +224,15 @@ bool seedServiceFrontmost(QSqlDatabase db,
                           QString* error) {
   QSqlQuery query(db);
   query.prepare(QStringLiteral(
-      "INSERT OR IGNORE INTO frontmost_sessions (app_identifier, window_title, "
-      "start_unix_sec, end_unix_sec, duration_sec, active_sec, idle_sec, "
-      "created_at) VALUES (:id, :title, :start, :end, :dur, :dur, 0, :now);"));
+      "INSERT OR IGNORE INTO frontmost_sessions (app_id, window_title, "
+      "start_unix_sec, end_unix_sec, active_sec) "
+      "VALUES (:id, :title, :start, :end, :dur);"));
   query.bindValue(QStringLiteral(":id"), appIdentifier);
   query.bindValue(QStringLiteral(":title"), windowTitle);
   query.bindValue(QStringLiteral(":start"), startUnixSec);
   query.bindValue(QStringLiteral(":end"), endUnixSec);
   query.bindValue(QStringLiteral(":dur"),
                   static_cast<int>(endUnixSec - startUnixSec));
-  query.bindValue(QStringLiteral(":now"), QDateTime::currentSecsSinceEpoch());
   if (!query.exec()) {
     *error = query.lastError().text();
     return false;
@@ -258,17 +249,14 @@ bool seedServiceMedia(QSqlDatabase db,
                       QString* error) {
   QSqlQuery query(db);
   query.prepare(QStringLiteral(
-      "INSERT OR IGNORE INTO media_sessions (app_identifier, media_type, "
-      "media_title, start_unix_sec, end_unix_sec, playback_sec, created_at) "
-      "VALUES (:id, :type, :title, :start, :end, :dur, :now);"));
+      "INSERT OR IGNORE INTO media_sessions (app_id, media_type, media_title, "
+      "start_unix_sec, end_unix_sec) "
+      "VALUES (:id, :type, :title, :start, :end);"));
   query.bindValue(QStringLiteral(":id"), appIdentifier);
   query.bindValue(QStringLiteral(":type"), mediaType);
   query.bindValue(QStringLiteral(":title"), mediaTitle);
   query.bindValue(QStringLiteral(":start"), startUnixSec);
   query.bindValue(QStringLiteral(":end"), endUnixSec);
-  query.bindValue(QStringLiteral(":dur"),
-                  static_cast<int>(endUnixSec - startUnixSec));
-  query.bindValue(QStringLiteral(":now"), QDateTime::currentSecsSinceEpoch());
   if (!query.exec()) {
     *error = query.lastError().text();
     return false;
@@ -807,7 +795,7 @@ int main(int argc, char* argv[]) {
 
   // Assert both DB contracts: service-owned history tables in the service DB,
   // GUI-owned app/mobile tables in the GUI DB.
-  const ExpectedColumn appsColumns[] = {
+  const ExpectedColumn guiAppsColumns[] = {
       {"id", "INTEGER", 0},          {"app_identifier", "TEXT", 1},
       {"app_name", "TEXT", 1},       {"display_name", "TEXT", 0},
       {"app_icon_path", "TEXT", 0},  {"executable_path", "TEXT", 0},
@@ -815,17 +803,22 @@ int main(int argc, char* argv[]) {
       {"updated_at", "INTEGER", 1},
   };
   const ExpectedColumn frontmostColumns[] = {
-      {"id", "INTEGER", 0},          {"app_identifier", "TEXT", 1},
-      {"window_title", "TEXT", 0},   {"start_unix_sec", "INTEGER", 1},
-      {"end_unix_sec", "INTEGER", 1}, {"duration_sec", "INTEGER", 1},
-      {"active_sec", "INTEGER", 1},  {"idle_sec", "INTEGER", 0},
-      {"created_at", "INTEGER", 1},
+      {"app_id", "TEXT", 1},         {"window_title", "TEXT", 1},
+      {"start_unix_sec", "INTEGER", 1}, {"end_unix_sec", "INTEGER", 1},
+      {"duration_sec", "INTEGER", 0}, {"active_sec", "INTEGER", 1},
+      {"idle_sec", "INTEGER", 0},
   };
   const ExpectedColumn mediaColumns[] = {
-      {"id", "INTEGER", 0},           {"app_identifier", "TEXT", 1},
-      {"media_type", "TEXT", 1},      {"media_title", "TEXT", 0},
+      {"app_id", "TEXT", 1},          {"media_type", "TEXT", 1},
+      {"media_title", "TEXT", 1},
       {"start_unix_sec", "INTEGER", 1}, {"end_unix_sec", "INTEGER", 1},
-      {"playback_sec", "INTEGER", 1}, {"created_at", "INTEGER", 1},
+      {"duration_sec", "INTEGER", 0},
+  };
+  const ExpectedColumn serviceAppsColumns[] = {
+      {"app_id", "TEXT", 1},          {"platform", "TEXT", 1},
+      {"display_name", "TEXT", 1},    {"icon_path", "TEXT", 1},
+      {"executable_path", "TEXT", 1}, {"created_at", "INTEGER", 1},
+      {"updated_at", "INTEGER", 1},
   };
   const ExpectedColumn deviceUsageColumns[] = {
       {"id", "INTEGER", 0},
@@ -862,8 +855,8 @@ int main(int argc, char* argv[]) {
     int count;
   };
   const TableSchema schemaParityTables[] = {
-      {QStringLiteral("apps"), appsColumns,
-       static_cast<int>(std::size(appsColumns))},
+      {QStringLiteral("apps"), guiAppsColumns,
+       static_cast<int>(std::size(guiAppsColumns))},
       {QStringLiteral("device_usage_summaries"), deviceUsageColumns,
        static_cast<int>(std::size(deviceUsageColumns))},
       {QStringLiteral("device_usage_sessions"), deviceUsageSessionColumns,
@@ -876,8 +869,8 @@ int main(int argc, char* argv[]) {
     }
   }
   const TableSchema serviceSchemaTables[] = {
-      {QStringLiteral("apps"), appsColumns,
-       static_cast<int>(std::size(appsColumns))},
+      {QStringLiteral("apps"), serviceAppsColumns,
+       static_cast<int>(std::size(serviceAppsColumns))},
       {QStringLiteral("frontmost_sessions"), frontmostColumns,
        static_cast<int>(std::size(frontmostColumns))},
       {QStringLiteral("media_sessions"), mediaColumns,

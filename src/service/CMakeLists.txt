@@ -53,13 +53,13 @@ if(APPLE)
 elseif(WIN32)
     set(TIME_ARC_SERVICE_PLATFORM_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/main.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/service_config.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/service_config.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker/usage_tracker.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker/audio_tracker.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/active_app_win.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/audio_win.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/idle_win.c
-        ${CMAKE_CURRENT_SOURCE_DIR}/windows/storage/storage_context.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/windows/storage/usage_storage.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/service/win_service.c
     )
 elseif(UNIX)
@@ -85,7 +85,6 @@ target_include_directories(time_arc_service PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/windows
     ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker
     ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform
-    ${CMAKE_CURRENT_SOURCE_DIR}/windows/storage
     ${CMAKE_CURRENT_SOURCE_DIR}/windows/service
 )
 

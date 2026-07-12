@@ -22,10 +22,14 @@ static void close_audio_session(TimeArcAudioSession* session,
     return;
   }
 
-  ta_write_usage_record_with_source(
-      "windows", "audio", session->app.exec_path, session->app.app_name,
-      session->app.window_title, session->app.exec_path, session->start_sec,
-      (uint64_t)(end_sec - session->start_sec));
+  if (update_apps(session->app.exec_path, "windows", session->app.app_name, "",
+                  session->app.exec_path, end_sec) == 0) {
+    const char* title = session->app.window_title[0] != '\0'
+                            ? session->app.window_title
+                            : "Audio playback";
+    update_media(session->app.exec_path, "audio", title, session->start_sec,
+                 end_sec);
+  }
 
   memset(session, 0, sizeof(*session));
 }

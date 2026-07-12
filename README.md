@@ -641,7 +641,6 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       服务数据库目录 pointer update and 还原默认位置 button.
 - [ ] Expand local memo management only as local/offline tooling; do not
       describe it as AI chat unless an actual AI feature is added later.
-- [ ] Add UTF-8 validation to `usage_storage.c::write_json_string`.
 - [ ] Finish the Settings page remainders: app-wide accent-color theming and
       full internationalization (zh / en / ja), plus service-honored idle-timeout
       and tracking-pause (a change proposal is filed). Detail + priorities in

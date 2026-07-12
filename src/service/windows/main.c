@@ -1,6 +1,5 @@
-#include "data_bridge.h"
+#include "service_config.h"
 #include "service/win_service.h"
-#include "storage/usage_storage.h"  // timearc_read_service_config (H5)
 #include "tracker/usage_tracker.h"
 
 #define WIN32_LEAN_AND_MEAN
@@ -65,13 +64,6 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // 先初始化存储，再启动轮询；这样 tracker 在焦点变化或空闲时可以立刻落盘。
-  if (ta_storage_init() != 0) {
-    fprintf(stderr, "failed to initialize TimeArc usage storage\n");
-    CloseHandle(instance_mutex);
-    return 1;
-  }
-
   // 轮询间隔、空闲阈值、采集开关集中放在配置里。先填编译期默认（＝今天行为），
   // 再让 H5 的 usage_config.json 覆盖 idle/track（缺/坏/键缺则保留默认，向后兼容）。
   // 用具名初始化器：track_enabled 必须显式给 1——任何遗漏会被零初始化成 0＝静默关
@@ -91,7 +83,6 @@ int main(int argc, char** argv) {
           (long long)config.idle_threshold_ms, config.track_enabled);
 
   int result = timearc_usage_tracker_run(&config);
-  ta_storage_shutdown();
   ReleaseMutex(instance_mutex);
   CloseHandle(instance_mutex);
   return result;
