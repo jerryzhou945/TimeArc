@@ -2,6 +2,9 @@
 
 #include <QDate>
 #include <QDebug>
+#include <QMap>
+#include <QSet>
+#include <QVector>
 
 #ifdef Q_OS_ANDROID
 #include <QGuiApplication>
@@ -51,16 +54,74 @@ QVariantMap MobileUsageService::getUsageDashboard(
       repository_->getUsageByDateRange(startDateLocal, endDateLocal,
                                        kAndroidPlatform);
   int totalSec = 0;
+  QSet<QString> activeDates;
+  QMap<QString, QVariantMap> appAggregates;
+
   for (const QVariant& item : rows) {
-    totalSec += item.toMap().value(QStringLiteral("foregroundSec")).toInt();
+    const QVariantMap row = item.toMap();
+    const int seconds = row.value(QStringLiteral("foregroundSec")).toInt();
+    if (seconds <= 0) continue;
+
+    totalSec += seconds;
+    const QString dateLocal = row.value(QStringLiteral("dateLocal")).toString();
+    if (!dateLocal.isEmpty()) activeDates.insert(dateLocal);
+
+    QString key = row.value(QStringLiteral("appIdentifier")).toString();
+    if (key.isEmpty()) key = row.value(QStringLiteral("packageName")).toString();
+    if (key.isEmpty()) continue;
+
+    QVariantMap aggregate = appAggregates.value(key);
+    if (aggregate.isEmpty()) {
+      aggregate = row;
+      aggregate.insert(QStringLiteral("foregroundSec"), 0);
+    }
+
+    aggregate.insert(
+        QStringLiteral("foregroundSec"),
+        aggregate.value(QStringLiteral("foregroundSec")).toInt() + seconds);
+
+    const QString iconPath = row.value(QStringLiteral("appIconPath")).toString();
+    if (!iconPath.isEmpty() &&
+        aggregate.value(QStringLiteral("appIconPath")).toString().isEmpty()) {
+      aggregate.insert(QStringLiteral("appIconPath"), iconPath);
+    }
+
+    const QString displayName = row.value(QStringLiteral("displayName")).toString();
+    if (!displayName.isEmpty() &&
+        aggregate.value(QStringLiteral("displayName")).toString().isEmpty()) {
+      aggregate.insert(QStringLiteral("displayName"), displayName);
+    }
+
+    appAggregates.insert(key, aggregate);
   }
 
+  QVector<QVariantMap> sortedApps;
+  sortedApps.reserve(appAggregates.size());
+  for (const QVariantMap& aggregate : appAggregates) {
+    sortedApps.append(aggregate);
+  }
+
+  std::sort(sortedApps.begin(), sortedApps.end(),
+            [](const QVariantMap& lhs, const QVariantMap& rhs) {
+              const int leftSeconds =
+                  lhs.value(QStringLiteral("foregroundSec")).toInt();
+              const int rightSeconds =
+                  rhs.value(QStringLiteral("foregroundSec")).toInt();
+              if (leftSeconds != rightSeconds) return leftSeconds > rightSeconds;
+              return lhs.value(QStringLiteral("displayName"))
+                         .toString()
+                         .localeAwareCompare(
+                             rhs.value(QStringLiteral("displayName")).toString()) <
+                     0;
+            });
+
   QVariantList topApps;
-  for (const QVariant& item : rows) {
-    QVariantMap row = item.toMap();
+  int rank = 1;
+  for (QVariantMap row : sortedApps) {
     const int seconds = row.value(QStringLiteral("foregroundSec")).toInt();
     const QString displayName =
         row.value(QStringLiteral("displayName")).toString();
+    row.insert(QStringLiteral("rank"), rank++);
     row.insert(QStringLiteral("durationText"), formatDuration(seconds));
     row.insert(QStringLiteral("initial"), initialForName(displayName));
     row.insert(QStringLiteral("sharePct"),
@@ -68,8 +129,16 @@ QVariantMap MobileUsageService::getUsageDashboard(
     topApps.append(row);
   }
 
+  const int activeDayCount = activeDates.size();
   dashboard.insert(QStringLiteral("totalSec"), totalSec);
   dashboard.insert(QStringLiteral("totalText"), formatDuration(totalSec));
+  dashboard.insert(QStringLiteral("activeDays"), activeDayCount);
+  dashboard.insert(QStringLiteral("appCount"), sortedApps.size());
+  dashboard.insert(QStringLiteral("averageDailySec"),
+                   activeDayCount > 0 ? totalSec / activeDayCount : 0);
+  dashboard.insert(QStringLiteral("averageDailyText"),
+                   formatDuration(activeDayCount > 0 ? totalSec / activeDayCount
+                                                     : 0));
   dashboard.insert(QStringLiteral("topApps"), topApps);
   dashboard.insert(QStringLiteral("empty"), topApps.isEmpty());
   dashboard.insert(QStringLiteral("usageAccessGranted"), usageAccessGranted_);
@@ -165,6 +234,13 @@ QString MobileUsageService::startDateForRange(const QString& range,
   if (normalized == QStringLiteral("30d") ||
       normalized == QStringLiteral("month")) {
     return today.addDays(-29).toString(Qt::ISODate);
+  }
+  if (normalized == QStringLiteral("year")) {
+    return QDate(today.year(), 1, 1).toString(Qt::ISODate);
+  }
+  if (normalized == QStringLiteral("all") ||
+      normalized == QStringLiteral("total")) {
+    return QStringLiteral("1970-01-01");
   }
   return today.toString(Qt::ISODate);
 }

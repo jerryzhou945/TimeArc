@@ -1,0 +1,5360 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F5F6F8">
+  <link rel="icon" href="../../resources/icons/app_icon.svg" type="image/svg+xml">
+  <title>TimeArc Mobile v3.2 - Wallpaper Time Album</title>
+  <style>
+    :root {
+      --canvas: #f5f6f8;
+      --surface: #ffffff;
+      --surface-raised: #eceff2;
+      --ink: #17191d;
+      --copy: #58606a;
+      --muted: #626b74;
+      --line: #dce1e6;
+      --accent: #2d7780;
+      --accent-strong: #286d74;
+      --accent-soft: #daeef0;
+      --accent-ink: #153e43;
+      --success: #34745d;
+      --warning: #8a5d23;
+      --danger: #a3484f;
+      --memory-brown: #2d2724;
+      --memory-brown-raised: #423a36;
+      --device-bg: #e8ebee;
+      --shadow-card: 0 2px 8px rgba(23, 25, 29, 0.08);
+      --shadow-modal: 0 16px 40px rgba(10, 16, 20, 0.22);
+      --ease-state: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-flip: cubic-bezier(0.22, 1, 0.36, 1);
+      --radius-control: 10px;
+      --radius-card: 16px;
+      --radius-poster: 18px;
+      --nav-height: 76px;
+      --safe-bottom: max(10px, env(safe-area-inset-bottom));
+      color-scheme: light;
+    }
+
+    html[data-theme="dark"] {
+      --canvas: #111317;
+      --surface: #1a1d22;
+      --surface-raised: #23272d;
+      --ink: #f2f4f6;
+      --copy: #b7bec7;
+      --muted: #939ba5;
+      --line: #30353b;
+      --accent: #8cd8e2;
+      --accent-strong: #a3e4eb;
+      --accent-soft: #223f44;
+      --accent-ink: #d9f7fa;
+      --success: #7ab69d;
+      --warning: #ddb06f;
+      --danger: #e3989e;
+      --device-bg: #0a0b0e;
+      --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.24);
+      --shadow-modal: 0 18px 44px rgba(0, 0, 0, 0.5);
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      min-height: 100dvh;
+      overflow: hidden;
+      background: #dfe4e8;
+      color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "PingFang SC",
+        "HarmonyOS Sans SC", "Microsoft YaHei UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      color: inherit;
+    }
+
+    button,
+    select,
+    input[type="checkbox"] {
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible,
+    summary:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 70%, white);
+      outline-offset: 2px;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .prototype-shell {
+      display: grid;
+      grid-template-columns: minmax(250px, 292px) 430px;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(32px, 6vw, 92px);
+      min-height: 100dvh;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 15% 18%, rgba(47, 127, 134, 0.16), transparent 28%),
+        #dfe4e8;
+    }
+
+    .review-panel {
+      align-self: center;
+      color: #17191d;
+      max-height: calc(100dvh - 48px);
+      overflow: auto;
+      scrollbar-width: thin;
+    }
+
+    .review-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #2f5960;
+    }
+
+    .review-brand img {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+    }
+
+    .review-panel h1 {
+      max-width: 10ch;
+      margin: 0;
+      font-size: clamp(36px, 4vw, 52px);
+      line-height: 1.04;
+      letter-spacing: -0.035em;
+      text-wrap: balance;
+    }
+
+    .review-panel > p {
+      max-width: 30ch;
+      margin: 18px 0 28px;
+      color: #4d5860;
+      font-size: 15px;
+      line-height: 1.75;
+      text-wrap: pretty;
+    }
+
+    .design-read {
+      padding: 14px 0;
+      border-top: 1px solid rgba(23, 25, 29, 0.14);
+      border-bottom: 1px solid rgba(23, 25, 29, 0.14);
+      color: #354149;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .design-read strong {
+      display: block;
+      margin-bottom: 5px;
+      color: #17191d;
+      font-size: 14px;
+    }
+
+    .review-controls {
+      display: grid;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .review-controls fieldset {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .review-controls legend,
+    .review-controls label {
+      margin-bottom: 7px;
+      color: #5b666d;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .page-jumps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .page-jumps button,
+    .board-theme-button {
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      color: #2f3940;
+      font-size: 12px;
+      font-weight: 650;
+      transition: background 180ms var(--ease-state), transform 180ms var(--ease-state);
+    }
+
+    .page-jumps button.is-active {
+      background: #17191d;
+      color: #ffffff;
+    }
+
+    .review-controls select {
+      width: 100%;
+      min-height: 44px;
+      padding: 9px 12px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: rgba(255, 255, 255, 0.74);
+      color: #17191d;
+    }
+
+    .board-theme-button {
+      justify-self: start;
+      padding-inline: 15px;
+      background: #2d7780;
+      color: #ffffff;
+    }
+
+    .review-notes {
+      display: grid;
+      gap: 8px;
+      margin: 26px 0 0;
+      padding: 0;
+      color: #5b666d;
+      font-size: 12px;
+      line-height: 1.55;
+      list-style: none;
+    }
+
+    .review-notes li::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: #2d7780;
+      vertical-align: 1px;
+    }
+
+    .device-frame {
+      position: relative;
+      width: 430px;
+      height: min(900px, calc(100dvh - 48px));
+      min-height: 700px;
+      overflow: hidden;
+      border-radius: 34px;
+      background: var(--device-bg);
+      box-shadow: 0 28px 76px rgba(22, 33, 41, 0.25);
+      isolation: isolate;
+    }
+
+    .device-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      border-radius: inherit;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
+      pointer-events: none;
+    }
+
+    html[data-theme="dark"] .device-frame::after {
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    .prototype-status {
+      position: absolute;
+      inset: 0 0 auto;
+      z-index: 11;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      height: 42px;
+      padding: 0 22px;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .prototype-status .sensor {
+      width: 92px;
+      height: 25px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--ink) 92%, transparent);
+    }
+
+    .prototype-status .status-end {
+      justify-self: end;
+      letter-spacing: 0.02em;
+    }
+
+    .app-shell {
+      position: relative;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      width: 100%;
+      height: 100%;
+      padding-top: 0;
+      background: var(--canvas);
+      transition: background 220ms var(--ease-state), color 220ms var(--ease-state);
+    }
+
+    .device-frame {
+      --app-wallpaper: none;
+      background: var(--canvas);
+    }
+
+    .device-frame.has-wallpaper {
+      background:
+        linear-gradient(180deg, rgba(8, 16, 15, 0.10), rgba(8, 16, 15, 0.24)),
+        var(--app-wallpaper) center center / cover no-repeat;
+    }
+
+    .device-frame.has-wallpaper .app-shell,
+    .device-frame.has-wallpaper .app-page {
+      background: transparent;
+    }
+
+    .device-frame.has-wallpaper:not(.home-active) .app-shell {
+      background: color-mix(in srgb, var(--canvas) 36%, transparent);
+    }
+
+    html:not([data-theme="dark"]) .device-frame.has-wallpaper:not(.home-active) .app-shell {
+      background: rgba(245, 246, 248, 0.12);
+    }
+
+    .device-frame.has-wallpaper .chart-block,
+    .device-frame.has-wallpaper .category-block,
+    .device-frame.has-wallpaper .ranking-block,
+    .device-frame.has-wallpaper .settings-list,
+    .device-frame.has-wallpaper .state-panel,
+    .device-frame.has-wallpaper .skeleton-panel {
+      border: 1px solid color-mix(in srgb, var(--line) 46%, transparent);
+      background: color-mix(in srgb, var(--surface) 60%, transparent);
+      box-shadow: 0 2px 8px rgba(23, 25, 29, 0.08);
+      backdrop-filter: blur(16px) saturate(112%);
+      -webkit-backdrop-filter: blur(16px) saturate(112%);
+    }
+
+    .device-frame.has-wallpaper .header-action,
+    .device-frame.has-wallpaper .range-chip {
+      background: color-mix(in srgb, var(--surface) 64%, transparent);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .device-frame.has-wallpaper .bottom-nav {
+      background: color-mix(in srgb, var(--surface) 72%, transparent);
+      backdrop-filter: blur(18px) saturate(112%);
+      -webkit-backdrop-filter: blur(18px) saturate(112%);
+    }
+
+    .page-stack {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .app-page {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 60px 18px 32px;
+      background: var(--canvas);
+      scrollbar-width: none;
+    }
+
+    .app-page::-webkit-scrollbar {
+      display: none;
+    }
+
+    .app-page.is-active {
+      display: block;
+    }
+
+    .device-frame.home-active .prototype-status {
+      color: #ffffff;
+      text-shadow: 0 1px 8px rgba(7, 10, 18, 0.55);
+    }
+
+    #page-home {
+      padding: 0 0 104px;
+      background: linear-gradient(180deg, rgba(12, 28, 25, 0.12), rgba(8, 18, 17, 0.52) 100%);
+    }
+
+    .home-cover {
+      position: relative;
+      min-height: 222px;
+      overflow: hidden;
+      padding: 54px 16px 14px;
+      background: transparent;
+      color: #ffffff;
+    }
+
+    .home-cover::after {
+      display: none;
+    }
+
+    .home-cover > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .home-cover-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 56px;
+      padding: 6px 7px 6px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      background: rgba(8, 19, 15, 0.36);
+      backdrop-filter: blur(18px) saturate(135%);
+      -webkit-backdrop-filter: blur(18px) saturate(135%);
+    }
+
+    .home-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: 0.02em;
+    }
+
+    .home-brand img {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      box-shadow: 0 6px 18px rgba(3, 7, 14, 0.22);
+    }
+
+    .home-brand-copy {
+      display: grid;
+      gap: 1px;
+      min-width: 0;
+    }
+
+    .home-brand-copy strong {
+      color: #ffffff;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .home-cover-date {
+      display: block;
+      color: rgba(255, 255, 255, 0.84);
+      font-size: 9px;
+      font-weight: 560;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .home-cover-action {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      flex: 0 0 auto;
+      padding: 0;
+      border: 0;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      backdrop-filter: blur(14px);
+    }
+
+    .home-cover-action img {
+      width: 20px;
+      height: 20px;
+    }
+
+    .home-cover-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 0 0 auto;
+    }
+
+    .wallpaper-action {
+      min-height: 44px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .wallpaper-reset {
+      min-width: 44px;
+      padding-inline: 9px;
+      color: rgba(255, 255, 255, 0.76);
+    }
+
+    .wallpaper-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    .home-identity {
+      display: grid;
+      justify-items: center;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .home-avatar {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      padding: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 34px rgba(4, 8, 16, 0.3);
+      backdrop-filter: blur(14px);
+    }
+
+    .home-avatar img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+    }
+
+    .home-identity .home-eyebrow {
+      margin: 12px 0 3px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .home-identity h2 {
+      margin: 0;
+      color: #ffffff;
+      font-size: 25px;
+      line-height: 1.2;
+      letter-spacing: -0.025em;
+    }
+
+    .home-identity .home-private-note {
+      margin: 6px 0 0;
+      color: rgba(255, 255, 255, 0.76);
+      font-size: 11px;
+    }
+
+    .home-profile-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      width: 100%;
+      max-width: none;
+      margin: 12px auto 0;
+      padding: 13px 4px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 16px;
+      background: rgba(8, 19, 15, 0.38);
+      backdrop-filter: blur(18px) saturate(130%);
+      -webkit-backdrop-filter: blur(18px) saturate(130%);
+    }
+
+    .home-profile-metrics div {
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .home-profile-metrics div + div {
+      border-left: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .home-profile-metrics dt,
+    .home-profile-metrics dd {
+      margin: 0;
+    }
+
+    .home-profile-metrics dd {
+      order: -1;
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, Roboto, sans-serif;
+      font-size: 16px;
+      font-weight: 760;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .home-profile-metrics dt {
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 10px;
+    }
+
+    .home-shortcuts {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      margin-top: 20px;
+      padding: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      background: rgba(20, 28, 36, 0.4);
+      box-shadow: 0 12px 30px rgba(2, 7, 12, 0.2);
+      backdrop-filter: blur(18px);
+    }
+
+    .home-shortcuts button {
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      min-width: 0;
+      min-height: 54px;
+      padding: 7px 2px;
+      border: 0;
+      border-radius: 11px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 10px;
+      font-weight: 650;
+    }
+
+    .home-shortcuts button:first-child {
+      background: rgba(255, 255, 255, 0.13);
+      color: #ffffff;
+    }
+
+    .home-shortcuts img {
+      width: 19px;
+      height: 19px;
+      opacity: 0.9;
+    }
+
+    .home-content {
+      position: relative;
+      z-index: 2;
+      margin-top: 0;
+      padding: 8px 18px 0;
+      border-radius: 0;
+      background: transparent;
+    }
+
+    #page-home .carousel {
+      padding-top: 0;
+    }
+
+    #page-home .round-control {
+      background: rgba(8, 19, 15, 0.64);
+      color: #ffffff;
+      box-shadow: none;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    #page-home .card-dot::after {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    #page-home .card-dot.is-active::after {
+      background: #ffffff;
+    }
+
+    html:not([data-theme="dark"]) .device-frame.home-active .prototype-status {
+      color: #17191d;
+      text-shadow: 0 1px 8px rgba(255, 255, 255, 0.86);
+    }
+
+    html:not([data-theme="dark"]) #page-home {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(245, 246, 248, 0.16));
+    }
+
+    html:not([data-theme="dark"]) .home-cover {
+      color: #17191d;
+    }
+
+    html:not([data-theme="dark"]) .home-cover-toolbar,
+    html:not([data-theme="dark"]) .home-profile-metrics {
+      border-color: rgba(255, 255, 255, 0.48);
+      background: rgba(255, 255, 255, 0.58);
+      color: #17191d;
+    }
+
+    html:not([data-theme="dark"]) .home-brand-copy strong,
+    html:not([data-theme="dark"]) .home-cover-date,
+    html:not([data-theme="dark"]) .home-profile-metrics dt {
+      color: rgba(23, 25, 29, 0.72);
+    }
+
+    html:not([data-theme="dark"]) .home-cover-action,
+    html:not([data-theme="dark"]) .wallpaper-action,
+    html:not([data-theme="dark"]) #page-home .round-control {
+      background: rgba(255, 255, 255, 0.58);
+      color: #17191d;
+    }
+
+    html:not([data-theme="dark"]) .wallpaper-reset {
+      color: rgba(23, 25, 29, 0.7);
+    }
+
+    html:not([data-theme="dark"]) .home-cover-action img {
+      filter: invert(1);
+    }
+
+    html:not([data-theme="dark"]) #page-home .card-dot::after {
+      background: rgba(23, 25, 29, 0.34);
+    }
+
+    html:not([data-theme="dark"]) #page-home .card-dot.is-active::after {
+      background: #17191d;
+    }
+
+    @media (prefers-reduced-transparency: reduce) {
+      .home-cover-toolbar,
+      .home-profile-metrics,
+      #page-home .round-control {
+        background: rgba(8, 19, 15, 0.92);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+    }
+
+    .home-content-kicker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin: 0 2px 16px;
+    }
+
+    .home-content-kicker strong {
+      color: var(--ink);
+      font-size: 17px;
+    }
+
+    .home-content-kicker span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .recent-segment-dock {
+      position: absolute;
+      right: 12px;
+      bottom: calc(var(--nav-height) + var(--safe-bottom) + 10px);
+      left: 12px;
+      z-index: 9;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 11px;
+      min-height: 64px;
+      padding: 9px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 18px;
+      background: color-mix(in srgb, #152028 88%, transparent);
+      color: #f7f9fa;
+      box-shadow: 0 16px 36px rgba(5, 10, 16, 0.3);
+      backdrop-filter: blur(22px);
+    }
+
+    .device-frame:not(.home-active) .recent-segment-dock {
+      display: none;
+    }
+
+    .recent-segment-dock .app-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+    }
+
+    .recent-segment-copy {
+      min-width: 0;
+    }
+
+    .recent-segment-copy span,
+    .recent-segment-copy strong {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .recent-segment-copy span {
+      color: #aeb9c2;
+      font-size: 10px;
+    }
+
+    .recent-segment-copy strong {
+      margin-top: 3px;
+      font-size: 13px;
+    }
+
+    .recent-segment-button {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    .recent-segment-button svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .page-header h2 {
+      margin: 2px 0 0;
+      color: var(--ink);
+      font-size: 25px;
+      line-height: 1.2;
+      letter-spacing: -0.022em;
+      text-wrap: balance;
+    }
+
+    .page-kicker {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .header-action {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: var(--surface-raised);
+      color: var(--copy);
+      font-size: 12px;
+      font-weight: 700;
+      transition: background 180ms var(--ease-state), transform 180ms var(--ease-state);
+    }
+
+    .today-brief {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: end;
+      margin: 8px 2px 20px;
+    }
+
+    .today-brief h3 {
+      max-width: 14ch;
+      margin: 0;
+      color: var(--ink);
+      font-size: 22px;
+      line-height: 1.32;
+      letter-spacing: -0.018em;
+      text-wrap: balance;
+    }
+
+    .today-total {
+      text-align: right;
+    }
+
+    .today-total strong {
+      display: block;
+      color: var(--ink);
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, Roboto, sans-serif;
+      font-size: 26px;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .today-total span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .home-state {
+      min-height: 520px;
+      margin: 18px;
+    }
+
+    .state-panel {
+      display: grid;
+      align-content: center;
+      justify-items: start;
+      min-height: 500px;
+      padding: 28px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: var(--shadow-card);
+    }
+
+    .state-mark {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      margin-bottom: 26px;
+      border-radius: 14px;
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .state-panel h3 {
+      max-width: 12ch;
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    .state-panel p {
+      max-width: 27ch;
+      margin: 14px 0 24px;
+      color: var(--copy);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .primary-button,
+    .secondary-button,
+    .text-button {
+      min-height: 44px;
+      padding: 11px 17px;
+      border: 0;
+      border-radius: var(--radius-control);
+      font-size: 13px;
+      font-weight: 700;
+      transition: transform 180ms var(--ease-state), background 180ms var(--ease-state);
+    }
+
+    .primary-button {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    html[data-theme="dark"] .primary-button {
+      color: #102125;
+    }
+
+    .primary-button:hover {
+      background: var(--accent-strong);
+    }
+
+    .secondary-button {
+      background: var(--surface-raised);
+      color: var(--ink);
+    }
+
+    .text-button {
+      padding-inline: 8px;
+      background: transparent;
+      color: var(--accent);
+    }
+
+    .skeleton-panel {
+      display: grid;
+      gap: 18px;
+      min-height: 500px;
+      padding: 24px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      box-shadow: var(--shadow-card);
+    }
+
+    .skeleton {
+      overflow: hidden;
+      border-radius: 8px;
+      background: var(--surface-raised);
+    }
+
+    .skeleton::after {
+      content: "";
+      display: block;
+      width: 45%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 72%, transparent), transparent);
+      animation: skeleton-slide 1.25s ease-in-out infinite;
+    }
+
+    .skeleton-title {
+      width: 68%;
+      height: 28px;
+    }
+
+    .skeleton-cover {
+      width: 100%;
+      height: 292px;
+      border-radius: 14px;
+    }
+
+    .skeleton-line {
+      width: 84%;
+      height: 14px;
+    }
+
+    .skeleton-line.short {
+      width: 50%;
+    }
+
+    @keyframes skeleton-slide {
+      from { transform: translateX(-120%); }
+      to { transform: translateX(260%); }
+    }
+
+    .carousel {
+      position: relative;
+    }
+
+    .card-viewport {
+      overflow: visible;
+      width: 100%;
+      min-height: 512px;
+      touch-action: pan-y;
+    }
+
+    .card-track {
+      position: relative;
+      width: 100%;
+      height: 500px;
+    }
+
+    .memory-card {
+      position: absolute;
+      inset: 0 auto auto 50%;
+      width: calc(100% - 18px);
+      min-width: 0;
+      height: 500px;
+      opacity: 0;
+      perspective: 1200px;
+      pointer-events: none;
+      transform: translateX(-50%) scale(0.82);
+      transform-origin: 50% 54%;
+      transition: transform 360ms var(--ease-flip), opacity 260ms var(--ease-state);
+      will-change: transform, opacity;
+    }
+
+    .memory-card.is-current {
+      z-index: 4;
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(-50%) scale(1);
+    }
+
+    .memory-card.is-prev {
+      z-index: 2;
+      opacity: 0.68;
+      transform: translateX(calc(-50% - 42px)) scale(0.91) rotate(-1.3deg);
+    }
+
+    .memory-card.is-next {
+      z-index: 2;
+      opacity: 0.68;
+      transform: translateX(calc(-50% + 42px)) scale(0.91) rotate(1.3deg);
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 440ms var(--ease-flip);
+    }
+
+    .memory-card.is-flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: var(--radius-card);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: color-mix(in srgb, var(--surface) 68%, transparent);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(24px) saturate(125%);
+      -webkit-backdrop-filter: blur(24px) saturate(125%);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+      background: color-mix(in srgb, var(--memory-brown) 96%, transparent);
+      color: #f7f2ee;
+    }
+
+    .card-back::before {
+      content: "";
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      top: -155px;
+      right: -105px;
+      border-radius: 50%;
+      background: var(--app);
+      filter: blur(10px);
+      opacity: 0.42;
+      pointer-events: none;
+    }
+
+    .card-art {
+      position: relative;
+      display: grid;
+      place-items: center;
+      height: 58%;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--app) 70%, transparent);
+    }
+
+    .card-art::before,
+    .card-art::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      pointer-events: none;
+    }
+
+    .card-art::before {
+      width: 240px;
+      height: 240px;
+      top: -118px;
+      right: -82px;
+    }
+
+    .card-art::after {
+      width: 150px;
+      height: 150px;
+      left: -54px;
+      bottom: -68px;
+      background: rgba(23, 25, 29, 0.12);
+    }
+
+    .card-sequence {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 2;
+      color: var(--app-ink);
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .app-icon {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 82px;
+      height: 82px;
+      overflow: hidden;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #17191d;
+      box-shadow: 0 6px 18px rgba(23, 25, 29, 0.14);
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, Roboto, sans-serif;
+      font-size: 27px;
+      font-weight: 800;
+    }
+
+    .app-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .app-icon.small {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      box-shadow: none;
+      font-size: 16px;
+    }
+
+    .app-icon.tiny {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      box-shadow: none;
+      font-size: 14px;
+    }
+
+    .card-front-copy {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 5px;
+      height: 42%;
+      padding: 18px;
+      background: color-mix(in srgb, var(--surface) 72%, transparent);
+    }
+
+    /* Reversible Memory Lake treatment: remove `memory-glass` from renderCards() to restore the prior card. */
+    .memory-card.memory-glass .card-face {
+      border-color: rgba(255, 255, 255, 0.14);
+      background: rgba(7, 17, 15, 0.42);
+      box-shadow: 0 2px 8px rgba(3, 11, 9, 0.24);
+      backdrop-filter: blur(8px) saturate(108%);
+      -webkit-backdrop-filter: blur(8px) saturate(108%);
+    }
+
+    .memory-card.memory-glass .card-art {
+      height: 56%;
+      background:
+        linear-gradient(180deg, rgba(4, 12, 10, 0.04), rgba(4, 12, 10, 0.22)),
+        radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--app) 42%, transparent) 0, transparent 37%);
+    }
+
+    .memory-card.memory-glass .card-art::before,
+    .memory-card.memory-glass .card-art::after {
+      opacity: 0.16;
+    }
+
+    .memory-card.memory-glass .card-art .app-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 17px;
+      box-shadow: 0 4px 12px rgba(3, 11, 9, 0.22);
+    }
+
+    .memory-card.memory-glass .card-sequence {
+      color: rgba(255, 255, 255, 0.72);
+      text-shadow: 0 1px 8px rgba(3, 10, 8, 0.3);
+    }
+
+    .memory-card.memory-glass .card-front-copy {
+      height: 44%;
+      border-top: 1px solid rgba(255, 255, 255, 0.13);
+      background: rgba(6, 16, 14, 0.38);
+    }
+
+    .memory-card.memory-glass .card-front-copy h3,
+    .memory-card.memory-glass .card-duration {
+      color: #ffffff;
+      text-shadow: 0 1px 10px rgba(3, 10, 8, 0.32);
+    }
+
+    .memory-card.memory-glass .card-front-copy > p,
+    .memory-card.memory-glass .card-context {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .memory-card.memory-glass .flip-action {
+      background: rgba(255, 255, 255, 0.14);
+      color: #ffffff;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .memory-card.memory-glass .card-art > *,
+    .memory-card.memory-glass .card-front-copy > * {
+      transition: opacity 180ms var(--ease-state);
+    }
+
+    .memory-card.memory-glass:not(.is-current) .card-art > *,
+    .memory-card.memory-glass:not(.is-current) .card-front-copy > * {
+      opacity: 0;
+    }
+
+    .device-frame.has-wallpaper .memory-card.memory-glass .card-face {
+      background: rgba(5, 14, 12, 0.08);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+
+    .device-frame.has-wallpaper .memory-card.memory-glass .card-art {
+      background:
+        linear-gradient(180deg, rgba(3, 10, 8, 0.02), rgba(3, 10, 8, 0.08)),
+        radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--app) 20%, transparent) 0, transparent 35%);
+    }
+
+    .device-frame.has-wallpaper .memory-card.memory-glass .card-front-copy {
+      background: linear-gradient(180deg, rgba(4, 12, 10, 0.12), rgba(4, 12, 10, 0.54));
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+    }
+
+    html:not([data-theme="dark"]) .device-frame.has-wallpaper .memory-card.memory-glass .card-face {
+      border-color: rgba(255, 255, 255, 0.44);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    html:not([data-theme="dark"]) .device-frame.has-wallpaper .memory-card.memory-glass .card-art {
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.08)),
+        radial-gradient(circle at 50% 52%, color-mix(in srgb, var(--app) 18%, transparent) 0, transparent 35%);
+    }
+
+    html:not([data-theme="dark"]) .device-frame.has-wallpaper .memory-card.memory-glass .card-front-copy {
+      border-top-color: rgba(255, 255, 255, 0.42);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.74));
+    }
+
+    html:not([data-theme="dark"]) .memory-card.memory-glass .card-sequence,
+    html:not([data-theme="dark"]) .memory-card.memory-glass .card-front-copy h3,
+    html:not([data-theme="dark"]) .memory-card.memory-glass .card-duration {
+      color: #17191d;
+      text-shadow: 0 1px 8px rgba(255, 255, 255, 0.74);
+    }
+
+    html:not([data-theme="dark"]) .memory-card.memory-glass .card-front-copy > p,
+    html:not([data-theme="dark"]) .memory-card.memory-glass .card-context {
+      color: rgba(23, 25, 29, 0.72);
+    }
+
+    html:not([data-theme="dark"]) .memory-card.memory-glass .flip-action {
+      background: rgba(255, 255, 255, 0.66);
+      color: #17191d;
+    }
+
+    .card-front-copy h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    .card-front-copy > p {
+      margin: 0;
+      color: var(--copy);
+      font-size: 13px;
+    }
+
+    .card-front-metric {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .card-duration {
+      color: var(--ink);
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, Roboto, sans-serif;
+      font-size: 26px;
+      font-weight: 760;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .card-context {
+      max-width: 15ch;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+      text-align: right;
+    }
+
+    .flip-action {
+      justify-self: start;
+      min-height: 44px;
+      padding: 7px 11px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: var(--surface-raised);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .card-back-content {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-rows: auto auto auto auto auto 1fr auto;
+      gap: 9px;
+      height: 100%;
+      padding: 16px;
+    }
+
+    .memory-encyclopedia-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .memory-encyclopedia-head strong {
+      overflow: hidden;
+      color: #f7f2ee;
+      font-size: 12px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .memory-encyclopedia-head span {
+      flex: 0 0 auto;
+      color: #afa49e;
+      font-size: 9.5px;
+    }
+
+    .memory-encyclopedia {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 122px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 17px;
+      background: color-mix(in srgb, var(--memory-brown-raised) 91%, var(--app));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    }
+
+    .memory-fact {
+      display: grid;
+      align-content: start;
+      min-width: 0;
+      padding: 14px;
+    }
+
+    .memory-fact + .memory-fact {
+      border-left: 1px solid rgba(255, 255, 255, 0.09);
+    }
+
+    .memory-label {
+      color: #bdb2ac;
+      font-size: 10px;
+      line-height: 1.35;
+    }
+
+    .memory-first-body {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .memory-first-body .app-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.92);
+      font-size: 13px;
+    }
+
+    .memory-first-copy {
+      min-width: 0;
+    }
+
+    .memory-first-copy strong,
+    .memory-first-copy time {
+      display: block;
+    }
+
+    .memory-first-copy strong {
+      overflow: hidden;
+      color: #f7f2ee;
+      font-size: 14px;
+      line-height: 1.3;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .memory-first-copy time {
+      margin-top: 4px;
+      color: #a99e98;
+      font-family: ui-rounded, "DIN Alternate", Bahnschrift, sans-serif;
+      font-size: 9px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .memory-encounter strong {
+      margin-top: 12px;
+      color: #f7f2ee;
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, sans-serif;
+      font-size: 23px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .memory-encounter p {
+      margin: 7px 0 0;
+      color: #bdb2ac;
+      font-size: 9.5px;
+      line-height: 1.45;
+      text-wrap: pretty;
+    }
+
+    .card-back-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-back-app {
+      min-width: 0;
+    }
+
+    .card-back-app strong,
+    .card-back-app span {
+      display: block;
+    }
+
+    .card-back-app strong {
+      overflow: hidden;
+      color: #f2f4f6;
+      font-size: 15px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-back-app span {
+      margin-top: 2px;
+      color: #9fa7b0;
+      font-size: 11px;
+    }
+
+    .relationship-line {
+      margin: 1px 0 0;
+      color: var(--app-soft);
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .card-back-content h3 {
+      max-width: 16ch;
+      margin: 0;
+      color: #f7f2ee;
+      font-size: 21px;
+      line-height: 1.24;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    .evidence-list-compact {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .evidence-list-compact .evidence-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 4px;
+      align-content: center;
+      min-width: 0;
+      min-height: 54px;
+      padding: 8px 10px;
+      border: 0;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .evidence-list-compact .evidence-row:first-child {
+      border-top: 0;
+    }
+
+    .evidence-list-compact .evidence-row dd {
+      overflow: hidden;
+      color: #f7f2ee;
+      font-size: 12px;
+      text-align: left;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .evidence-list {
+      display: grid;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+    }
+
+    .evidence-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: baseline;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(242, 244, 246, 0.12);
+    }
+
+    .evidence-row:first-child {
+      border-top: 1px solid rgba(242, 244, 246, 0.12);
+    }
+
+    .evidence-row dt {
+      color: #9fa7b0;
+      font-size: 11px;
+    }
+
+    .evidence-row dd {
+      margin: 0;
+      color: #f2f4f6;
+      font-size: 13px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .conversion-note {
+      align-self: end;
+      margin: 0;
+      padding: 9px 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #d9d0cb;
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+
+    .conversion-note small {
+      display: block;
+      margin-top: 3px;
+      color: #9f948e;
+      font-size: 8.5px;
+    }
+
+    .card-back-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 9px;
+    }
+
+    .share-card-button,
+    .back-to-front {
+      min-height: 44px;
+      border: 0;
+      border-radius: var(--radius-control);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .share-card-button {
+      background: var(--app-soft);
+      color: #17191d;
+    }
+
+    .back-to-front {
+      padding-inline: 13px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #f7f2ee;
+    }
+
+    .carousel-controls {
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      align-items: center;
+      gap: 12px;
+      margin-top: 13px;
+    }
+
+    .round-control {
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: var(--shadow-card);
+      font-size: 21px;
+      line-height: 1;
+    }
+
+    .card-dots {
+      display: flex;
+      justify-content: center;
+      gap: 1px;
+    }
+
+    .card-dot {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: transparent;
+    }
+
+    .card-dot::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--line);
+      transform: translate(-50%, -50%);
+      transition: width 180ms var(--ease-state), background 180ms var(--ease-state);
+    }
+
+    .card-dot.is-active::after {
+      width: 22px;
+      background: var(--accent);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 30px 2px 13px;
+    }
+
+    .section-heading h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1.3;
+    }
+
+    .section-heading span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .day-fragments {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .fragment-row {
+      display: grid;
+      grid-template-columns: 48px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 13px 2px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .fragment-row:last-child {
+      border-bottom: 0;
+    }
+
+    .fragment-time {
+      color: var(--muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .fragment-copy strong,
+    .fragment-copy span {
+      display: block;
+    }
+
+    .fragment-copy strong {
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .fragment-copy span {
+      margin-top: 3px;
+      color: var(--copy);
+      font-size: 11px;
+    }
+
+    .fragment-duration {
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .range-tabs {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      margin: 0 -18px 22px;
+      padding: 0 18px;
+      scrollbar-width: none;
+    }
+
+    .range-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .range-chip,
+    .poster-style-chip {
+      flex: 0 0 auto;
+      min-height: 44px;
+      padding: 8px 14px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--surface-raised);
+      color: var(--copy);
+      font-size: 13px;
+      font-weight: 700;
+      transition: background 180ms var(--ease-state), color 180ms var(--ease-state), transform 180ms var(--ease-state);
+    }
+
+    .range-chip.is-active,
+    .poster-style-chip.is-active {
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+
+    .stats-lead {
+      padding: 4px 2px 26px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stats-lead > p {
+      max-width: 24ch;
+      margin: 0 0 17px;
+      color: var(--copy);
+      font-size: 15px;
+      line-height: 1.65;
+      text-wrap: pretty;
+    }
+
+    .stats-total {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .stats-total strong {
+      color: var(--ink);
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, Roboto, sans-serif;
+      font-size: 42px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stats-change {
+      max-width: 16ch;
+      color: var(--success);
+      font-size: 12px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .chart-block,
+    .category-block,
+    .ranking-block {
+      margin-top: 24px;
+      padding: 20px;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      box-shadow: var(--shadow-card);
+    }
+
+    .block-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .block-head h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 17px;
+    }
+
+    .block-head span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .bar-chart {
+      display: grid;
+      grid-template-columns: repeat(var(--bar-count), minmax(20px, 1fr));
+      align-items: end;
+      gap: 8px;
+      height: 156px;
+    }
+
+    .bar-column {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 8px;
+      min-width: 0;
+      height: 100%;
+    }
+
+    .bar-space {
+      display: flex;
+      align-items: end;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    .bar-value {
+      width: min(24px, 78%);
+      min-height: 4px;
+      border-radius: 5px 5px 2px 2px;
+      background: var(--accent);
+      transform-origin: bottom;
+      animation: bar-rise 420ms var(--ease-state) both;
+    }
+
+    .bar-column.is-peak .bar-value {
+      background: var(--ink);
+    }
+
+    .bar-label {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 10px;
+      text-align: center;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    @keyframes bar-rise {
+      from { transform: scaleY(0.18); opacity: 0.5; }
+      to { transform: scaleY(1); opacity: 1; }
+    }
+
+    .category-layout {
+      display: grid;
+      grid-template-columns: 116px minmax(0, 1fr);
+      gap: 20px;
+      align-items: center;
+    }
+
+    .category-donut {
+      position: relative;
+      width: 116px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: conic-gradient(
+        var(--accent) 0 var(--p1),
+        var(--c2) var(--p1) var(--p2),
+        var(--c3) var(--p2) var(--p3),
+        var(--surface-raised) var(--p3) 100%
+      );
+    }
+
+    .category-donut::after {
+      content: "";
+      position: absolute;
+      inset: 25px;
+      border-radius: 50%;
+      background: var(--surface);
+    }
+
+    .category-donut strong {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      font-size: 18px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .category-list {
+      display: grid;
+      gap: 11px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .category-list li {
+      display: grid;
+      grid-template-columns: 8px 1fr auto;
+      gap: 9px;
+      align-items: center;
+      color: var(--copy);
+      font-size: 12px;
+    }
+
+    .category-list i {
+      width: 8px;
+      height: 8px;
+      border-radius: 3px;
+      background: var(--swatch);
+    }
+
+    .category-list strong {
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .app-ranking {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .ranking-row {
+      display: grid;
+      grid-template-columns: 22px 38px minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .ranking-row:last-child {
+      border-bottom: 0;
+    }
+
+    .rank-number {
+      color: var(--muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rank-copy {
+      min-width: 0;
+    }
+
+    .rank-copy strong,
+    .rank-copy span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank-copy strong {
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .rank-copy span {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .rank-duration {
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .insight-note {
+      margin: 22px 2px 0;
+      padding: 17px 0 2px;
+      border-top: 1px solid var(--line);
+    }
+
+    .insight-note strong {
+      display: block;
+      max-width: 18ch;
+      color: var(--ink);
+      font-size: 17px;
+      line-height: 1.45;
+      text-wrap: balance;
+    }
+
+    .insight-note span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .report-cover {
+      position: relative;
+      overflow: hidden;
+      min-height: 350px;
+      padding: 24px;
+      border-radius: var(--radius-card);
+      background: var(--report-theme);
+      color: #f3f7f7;
+      box-shadow: var(--shadow-card);
+    }
+
+    .report-cover::before {
+      content: "";
+      position: absolute;
+      inset: auto -12% -18% -12%;
+      height: 54%;
+      border-radius: 50% 50% 0 0;
+      background: var(--report-landscape);
+      opacity: 0.9;
+    }
+
+    .report-cover::after {
+      content: "";
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      top: 26px;
+      right: -42px;
+      border-radius: 50%;
+      background: var(--report-orb);
+      filter: blur(2px);
+      opacity: 0.72;
+    }
+
+    .report-theme-meadow {
+      --report-theme: radial-gradient(circle at 30% 18%, rgba(247, 239, 156, 0.74), transparent 22%), linear-gradient(155deg, #9bc87a 0%, #4e8c64 47%, #183e35 100%);
+      --report-landscape: radial-gradient(ellipse at 20% 100%, #8fb45d 0 42%, transparent 43%), radial-gradient(ellipse at 68% 100%, #4f8150 0 55%, transparent 56%), linear-gradient(180deg, transparent, #173b32);
+      --report-orb: rgba(241, 232, 153, 0.72);
+    }
+
+    .report-theme-canopy {
+      --report-theme: radial-gradient(circle at 76% 16%, rgba(255, 229, 146, 0.68), transparent 18%), linear-gradient(145deg, #749b59 0%, #335b46 50%, #172e2a 100%);
+      --report-landscape: radial-gradient(ellipse at 22% 100%, #6f9450 0 47%, transparent 48%), radial-gradient(ellipse at 78% 100%, #315942 0 57%, transparent 58%), linear-gradient(180deg, transparent, #142b26);
+      --report-orb: rgba(255, 221, 133, 0.66);
+    }
+
+    .report-theme-night {
+      --report-theme: radial-gradient(circle at 70% 20%, rgba(221, 216, 255, 0.56), transparent 16%), linear-gradient(160deg, #676b91 0%, #343a64 48%, #171d3b 100%);
+      --report-landscape: radial-gradient(ellipse at 30% 100%, #404568 0 48%, transparent 49%), radial-gradient(ellipse at 74% 100%, #242b50 0 58%, transparent 59%), linear-gradient(180deg, transparent, #141a35);
+      --report-orb: rgba(229, 224, 255, 0.58);
+    }
+
+    .report-theme-sunrise {
+      --report-theme: radial-gradient(circle at 28% 22%, rgba(255, 239, 187, 0.72), transparent 20%), linear-gradient(150deg, #d6a777 0%, #9c6d63 47%, #513f50 100%);
+      --report-landscape: radial-gradient(ellipse at 26% 100%, #af7e64 0 46%, transparent 47%), radial-gradient(ellipse at 75% 100%, #775263 0 58%, transparent 59%), linear-gradient(180deg, transparent, #443442);
+      --report-orb: rgba(255, 232, 173, 0.66);
+    }
+
+    .report-cover-content {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      align-content: space-between;
+      min-height: 302px;
+    }
+
+    .report-month {
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .report-cover h3 {
+      max-width: 9ch;
+      margin: 38px 0 14px;
+      color: #ffffff;
+      font-size: 32px;
+      line-height: 1.12;
+      letter-spacing: -0.025em;
+      text-wrap: balance;
+    }
+
+    .report-cover p {
+      max-width: 24ch;
+      margin: 0;
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .open-report-button {
+      justify-self: start;
+      align-self: end;
+      min-height: 44px;
+      margin-top: 26px;
+      padding: 11px 16px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: rgba(255, 255, 255, 0.9);
+      color: #173129;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .memory-stream {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .memory-entry {
+      display: grid;
+      grid-template-columns: 50px minmax(0, 1fr);
+      gap: 14px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .memory-entry:last-child {
+      border-bottom: 0;
+    }
+
+    .memory-date strong,
+    .memory-date span {
+      display: block;
+    }
+
+    .memory-date strong {
+      color: var(--ink);
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, Roboto, sans-serif;
+      font-size: 23px;
+      line-height: 1;
+    }
+
+    .memory-date span {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .memory-content {
+      min-width: 0;
+    }
+
+    .memory-content h4 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .memory-content p {
+      margin: 7px 0 12px;
+      color: var(--copy);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .memory-apps {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .memory-apps span {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .archive-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .archive-row {
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .archive-row:last-child {
+      border-bottom: 0;
+    }
+
+    .archive-cover {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 62px;
+      border-radius: 10px;
+      background: var(--report-theme);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .archive-copy strong,
+    .archive-copy span {
+      display: block;
+    }
+
+    .archive-copy strong {
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .archive-copy span {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .archive-open {
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: transparent;
+      color: var(--accent);
+      font-size: 19px;
+    }
+
+    .profile-block {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr);
+      gap: 15px;
+      align-items: center;
+      padding: 4px 2px 23px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .profile-avatar {
+      display: grid;
+      place-items: center;
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    html[data-theme="dark"] .profile-avatar {
+      color: #102125;
+    }
+
+    .profile-copy h3 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .profile-copy p {
+      margin: 5px 0 0;
+      color: var(--copy);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .profile-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 20px 0 28px;
+    }
+
+    .profile-metric {
+      padding: 2px;
+    }
+
+    .profile-metric strong,
+    .profile-metric span {
+      display: block;
+      text-align: center;
+    }
+
+    .profile-metric strong {
+      color: var(--ink);
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, Roboto, sans-serif;
+      font-size: 20px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .profile-metric span {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .settings-group {
+      margin-top: 24px;
+    }
+
+    .settings-group h3 {
+      margin: 0 2px 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .settings-list {
+      overflow: hidden;
+      border-radius: var(--radius-card);
+      background: var(--surface);
+      box-shadow: var(--shadow-card);
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      min-height: 62px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .setting-row:last-child {
+      border-bottom: 0;
+    }
+
+    .setting-copy strong,
+    .setting-copy span {
+      display: block;
+    }
+
+    .setting-copy strong {
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .setting-copy span {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .setting-value {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .switch {
+      position: relative;
+      width: 46px;
+      height: 28px;
+    }
+
+    .switch input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .switch-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      background: var(--surface-raised);
+      transition: background 180ms var(--ease-state);
+    }
+
+    .switch-track::after {
+      content: "";
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--surface);
+      box-shadow: 0 1px 4px rgba(23, 25, 29, 0.2);
+      transition: transform 180ms var(--ease-state);
+    }
+
+    .switch input:checked + .switch-track {
+      background: var(--accent);
+    }
+
+    .switch input:checked + .switch-track::after {
+      transform: translateX(18px);
+    }
+
+    .switch input:focus-visible + .switch-track {
+      outline: 3px solid color-mix(in srgb, var(--accent) 70%, white);
+      outline-offset: 2px;
+    }
+
+    .diagnostics {
+      margin-top: 24px;
+      color: var(--copy);
+      font-size: 12px;
+    }
+
+    .diagnostics summary {
+      min-height: 44px;
+      padding: 13px 2px;
+      color: var(--copy);
+      font-weight: 700;
+      list-style-position: inside;
+      cursor: pointer;
+    }
+
+    .diagnostics p {
+      margin: 0;
+      padding: 0 2px 12px;
+      line-height: 1.65;
+    }
+
+    .bottom-nav {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px;
+      min-height: calc(var(--nav-height) + var(--safe-bottom));
+      padding: 7px 10px var(--safe-bottom);
+      background: color-mix(in srgb, var(--surface) 96%, transparent);
+      box-shadow: 0 -2px 8px rgba(23, 25, 29, 0.06);
+    }
+
+    html[data-theme="dark"] .bottom-nav {
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.24);
+    }
+
+    .device-frame.home-active .bottom-nav {
+      background: color-mix(in srgb, #101a20 72%, transparent);
+      box-shadow: 0 -8px 28px rgba(5, 10, 15, 0.24);
+      backdrop-filter: blur(18px);
+    }
+
+    .device-frame.home-active .nav-button {
+      color: #96a3ac;
+    }
+
+    .device-frame.home-active .nav-button.is-active {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+    }
+
+    .device-frame.home-active .nav-icon {
+      filter: invert(1);
+    }
+
+    html:not([data-theme="dark"]) .device-frame.home-active .bottom-nav {
+      background: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 -2px 8px rgba(23, 25, 29, 0.08);
+    }
+
+    html:not([data-theme="dark"]) .device-frame.home-active .nav-button {
+      color: #626b74;
+    }
+
+    html:not([data-theme="dark"]) .device-frame.home-active .nav-button.is-active {
+      background: rgba(255, 255, 255, 0.58);
+      color: #17191d;
+    }
+
+    html:not([data-theme="dark"]) .device-frame.home-active .nav-icon {
+      filter: none;
+    }
+
+    .nav-button {
+      display: grid;
+      grid-template-rows: 32px auto;
+      place-items: center;
+      min-width: 0;
+      min-height: 54px;
+      padding: 4px 2px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: transparent;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      transition: color 180ms var(--ease-state), background 180ms var(--ease-state), transform 180ms var(--ease-state);
+    }
+
+    .nav-button.is-active {
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+
+    .nav-icon-wrap {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 30px;
+      border-radius: 999px;
+    }
+
+    .nav-icon {
+      width: 21px;
+      height: 21px;
+      opacity: 0.72;
+      filter: none;
+    }
+
+    .nav-button.is-active .nav-icon {
+      opacity: 1;
+    }
+
+    html[data-theme="dark"] .nav-icon {
+      filter: invert(1);
+    }
+
+    dialog {
+      max-width: none;
+      max-height: none;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    dialog::backdrop {
+      background: rgba(9, 12, 15, 0.66);
+      backdrop-filter: blur(8px);
+    }
+
+    .share-dialog {
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+    }
+
+    .share-sheet {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      width: min(100%, 430px);
+      height: min(100dvh, 900px);
+      margin: auto;
+      overflow: hidden;
+      background: var(--canvas);
+      box-shadow: var(--shadow-modal);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 64px;
+      padding: 11px 18px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .modal-close {
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: var(--surface-raised);
+      color: var(--ink);
+      font-size: 20px;
+    }
+
+    .share-content {
+      overflow: auto;
+      padding: 18px;
+      scrollbar-width: none;
+    }
+
+    .share-content::-webkit-scrollbar {
+      display: none;
+    }
+
+    .share-intro {
+      margin: 0 0 14px;
+      color: var(--copy);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .poster-style-row {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      margin-bottom: 14px;
+      scrollbar-width: none;
+    }
+
+    .share-format-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 44px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: var(--radius-control);
+      background: var(--surface-raised);
+      color: var(--copy);
+      font-size: 11px;
+    }
+
+    .share-format-note strong {
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .privacy-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 46px;
+      margin-bottom: 14px;
+      padding: 0 2px;
+      color: var(--copy);
+      font-size: 12px;
+    }
+
+    .share-poster-wrap {
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      border-radius: var(--radius-card);
+      background: var(--surface-raised);
+    }
+
+    .share-poster {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      width: min(100%, 318px);
+      aspect-ratio: 9 / 16;
+      overflow: hidden;
+      border-radius: var(--radius-poster);
+      background: #f7f8fa;
+      color: #17191d;
+      box-shadow: 0 10px 28px rgba(23, 25, 29, 0.18);
+    }
+
+    .poster-color-field {
+      position: absolute;
+      inset: 0 0 auto;
+      height: 39%;
+      background: var(--poster-app);
+    }
+
+    .poster-color-field::before {
+      content: "";
+      position: absolute;
+      width: 190px;
+      height: 190px;
+      top: -92px;
+      right: -62px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.24);
+    }
+
+    .poster-head,
+    .poster-statement,
+    .poster-facts,
+    .poster-foot {
+      position: relative;
+      z-index: 1;
+    }
+
+    .poster-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px;
+      color: var(--poster-ink);
+    }
+
+    .poster-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .poster-brand img {
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+    }
+
+    .poster-date {
+      font-size: 10px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .poster-statement {
+      align-self: end;
+      min-height: 188px;
+      padding: 34px 20px 20px;
+      color: var(--poster-ink);
+    }
+
+    .poster-statement .poster-app-name {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .poster-app-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      overflow: hidden;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      color: #17191d;
+      box-shadow: 0 2px 8px rgba(7, 18, 18, 0.14);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .poster-app-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .poster-statement h3 {
+      max-width: 10ch;
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.16;
+      letter-spacing: -0.025em;
+      text-wrap: balance;
+    }
+
+    .poster-milestone-label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 10px;
+      font-weight: 650;
+      opacity: 0.72;
+    }
+
+    .poster-milestone-number {
+      display: flex;
+      align-items: flex-end;
+      gap: 7px;
+      margin-bottom: 9px;
+    }
+
+    .poster-milestone-number strong {
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, sans-serif;
+      font-size: 68px;
+      font-weight: 780;
+      line-height: 0.84;
+      letter-spacing: -0.055em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .poster-milestone-number em {
+      padding-bottom: 4px;
+      font-size: 16px;
+      font-style: normal;
+      font-weight: 750;
+    }
+
+    .poster-range {
+      display: block;
+      margin-bottom: 18px;
+      font-family: ui-rounded, "DIN Alternate", Bahnschrift, sans-serif;
+      font-size: 9px;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.68;
+    }
+
+    .poster-facts {
+      display: grid;
+      align-content: start;
+      gap: 0;
+      padding: 21px 20px 10px;
+      background: #f7f8fa;
+    }
+
+    .poster-fact {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #dce1e6;
+      font-size: 11px;
+    }
+
+    .poster-fact span {
+      color: #58606a;
+    }
+
+    .poster-fact strong {
+      color: #17191d;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .poster-conversion {
+      margin: 12px 0 0;
+      color: #58606a;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .poster-foot {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px 20px;
+      background: #f7f8fa;
+    }
+
+    .poster-foot p {
+      max-width: 22ch;
+      margin: 0;
+      color: #58606a;
+      font-size: 10.5px;
+      line-height: 1.5;
+    }
+
+    .poster-seal {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #17191d;
+      color: #f7f8fa;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .share-poster.poster-clean .poster-color-field {
+      height: 26%;
+      background: #f7f8fa;
+      border-bottom: 12px solid var(--poster-app);
+    }
+
+    .share-poster.poster-clean .poster-head,
+    .share-poster.poster-clean .poster-statement {
+      color: #17191d;
+    }
+
+    .share-poster.poster-clean .poster-statement {
+      min-height: 248px;
+      padding-top: 68px;
+    }
+
+    .share-poster.poster-ticket {
+      background: #17191d;
+    }
+
+    .share-poster.poster-ticket .poster-color-field {
+      height: 100%;
+      background: #17191d;
+    }
+
+    .share-poster.poster-ticket .poster-color-field::before {
+      width: 220px;
+      height: 220px;
+      top: -104px;
+      right: -88px;
+      background: var(--poster-app);
+      opacity: 0.75;
+    }
+
+    .share-poster.poster-ticket .poster-head,
+    .share-poster.poster-ticket .poster-statement {
+      color: #f2f4f6;
+    }
+
+    .share-poster.poster-ticket .poster-facts,
+    .share-poster.poster-ticket .poster-foot {
+      background: #17191d;
+    }
+
+    .share-poster.poster-ticket .poster-fact {
+      border-color: rgba(242, 244, 246, 0.15);
+    }
+
+    .share-poster.poster-ticket .poster-fact span,
+    .share-poster.poster-ticket .poster-conversion,
+    .share-poster.poster-ticket .poster-foot p {
+      color: #aeb5bd;
+    }
+
+    .share-poster.poster-ticket .poster-fact strong {
+      color: #f2f4f6;
+    }
+
+    .share-poster.poster-ticket .poster-seal {
+      background: var(--poster-app);
+      color: var(--poster-ink);
+    }
+
+    .share-poster.poster-anniversary {
+      grid-template-rows: auto minmax(0, 1fr) auto auto;
+      background: #14262a;
+      color: #ffffff;
+    }
+
+    .share-poster.poster-anniversary .poster-color-field {
+      height: 100%;
+      background: var(--report-theme, linear-gradient(155deg, var(--poster-app), #14262a 72%));
+    }
+
+    .share-poster.poster-anniversary .poster-color-field::before {
+      inset: 0;
+      width: auto;
+      height: auto;
+      border-radius: 0;
+      background: linear-gradient(135deg, color-mix(in srgb, var(--poster-app) 24%, transparent), transparent 44%);
+    }
+
+    .share-poster.poster-anniversary .poster-head,
+    .share-poster.poster-anniversary .poster-statement {
+      color: #ffffff;
+    }
+
+    .share-poster.poster-anniversary .poster-statement {
+      align-self: stretch;
+      display: grid;
+      align-content: center;
+      min-height: 0;
+      padding: 12px 20px 16px;
+      text-shadow: 0 2px 12px rgba(2, 10, 9, 0.28);
+    }
+
+    .share-poster.poster-anniversary .poster-statement h3 {
+      max-width: 12ch;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .share-poster.poster-anniversary .poster-milestone-number strong {
+      font-size: 86px;
+    }
+
+    .share-poster.poster-anniversary .poster-facts {
+      gap: 7px;
+      margin: 0 14px 10px;
+      padding: 11px 13px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 14px;
+      background: rgba(15, 28, 28, 0.56);
+      backdrop-filter: blur(16px);
+    }
+
+    .share-poster.poster-anniversary .poster-fact {
+      padding: 4px 0;
+      border: 0;
+    }
+
+    .share-poster.poster-anniversary .poster-fact span,
+    .share-poster.poster-anniversary .poster-conversion,
+    .share-poster.poster-anniversary .poster-foot p {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .share-poster.poster-anniversary .poster-fact strong {
+      color: #ffffff;
+    }
+
+    .share-poster.poster-anniversary .poster-conversion {
+      margin-top: 6px;
+      font-size: 9.5px;
+    }
+
+    .share-poster.poster-anniversary .poster-foot {
+      padding: 4px 20px 18px;
+      background: transparent;
+    }
+
+    .share-poster.poster-anniversary .poster-seal {
+      background: rgba(255, 255, 255, 0.9);
+      color: #163136;
+    }
+
+    .modal-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--line);
+      background: var(--surface);
+    }
+
+    .report-dialog {
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      background: #111317;
+    }
+
+    .report-story {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      width: min(100%, 430px);
+      height: min(100dvh, 900px);
+      margin: auto;
+      overflow: hidden;
+      background: var(--report-theme, linear-gradient(155deg, #497564, #101a1a));
+      color: #f2f4f6;
+      box-shadow: var(--shadow-modal);
+    }
+
+    .report-story:focus {
+      outline: none;
+    }
+
+    .story-head {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px 8px;
+    }
+
+    .story-progress {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+    }
+
+    .story-progress button {
+      position: relative;
+      height: 44px;
+      padding: 0;
+      overflow: hidden;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+    }
+
+    .story-progress button::before {
+      content: "";
+      position: absolute;
+      top: 20px;
+      right: 0;
+      left: 0;
+      height: 3px;
+      border-radius: 999px;
+      background: rgba(242, 244, 246, 0.18);
+    }
+
+    .story-progress button::after {
+      content: "";
+      position: absolute;
+      top: 20px;
+      right: 0;
+      left: 0;
+      height: 3px;
+      background: #f2f4f6;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 220ms var(--ease-state);
+    }
+
+    .story-progress button.is-done::after,
+    .story-progress button.is-active::after {
+      transform: scaleX(1);
+    }
+
+    .story-close {
+      width: 44px;
+      height: 44px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: rgba(242, 244, 246, 0.1);
+      color: #f2f4f6;
+      font-size: 19px;
+    }
+
+    .story-slide {
+      position: relative;
+      display: grid;
+      align-content: center;
+      min-height: 0;
+      padding: 28px 28px 36px;
+      overflow: hidden;
+    }
+
+    .story-slide::before {
+      content: "";
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      top: -105px;
+      right: -95px;
+      border-radius: 50%;
+      background: var(--story-accent, #5f9da4);
+      opacity: 0.28;
+      filter: blur(12px);
+    }
+
+    .story-slide > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .story-label {
+      margin: 0 0 18px;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .story-slide h2 {
+      max-width: 11ch;
+      margin: 0;
+      color: #f2f4f6;
+      font-size: 36px;
+      line-height: 1.11;
+      letter-spacing: -0.03em;
+      text-wrap: balance;
+    }
+
+    .story-slide .story-body {
+      max-width: 26ch;
+      margin: 20px 0 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 14px;
+      line-height: 1.75;
+      text-wrap: pretty;
+    }
+
+    .story-number {
+      display: block;
+      margin: 28px 0 0;
+      color: #f2f4f6;
+      font-family: ui-rounded, "SF Pro Rounded", "DIN Alternate", Bahnschrift, Roboto, sans-serif;
+      font-size: 64px;
+      font-weight: 760;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .story-evidence {
+      display: grid;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    .story-evidence p {
+      margin: 0;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(242, 244, 246, 0.14);
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .story-actions {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 52px 1fr 52px;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, transparent, rgba(5, 11, 10, 0.34));
+    }
+
+    .story-prev,
+    .story-next {
+      width: 52px;
+      height: 48px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: rgba(242, 244, 246, 0.1);
+      color: #f2f4f6;
+      font-size: 22px;
+    }
+
+    .story-share {
+      min-height: 48px;
+      border: 0;
+      border-radius: var(--radius-control);
+      background: #f2f4f6;
+      color: #17191d;
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(22px + env(safe-area-inset-bottom));
+      z-index: 100;
+      max-width: calc(100vw - 32px);
+      padding: 11px 16px;
+      border-radius: 999px;
+      background: #17191d;
+      color: #f2f4f6;
+      box-shadow: var(--shadow-modal);
+      font-size: 12px;
+      transform: translate(-50%, 18px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms var(--ease-state), transform 180ms var(--ease-state);
+    }
+
+    .toast.is-visible {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        background: var(--canvas);
+      }
+
+      .prototype-shell {
+        display: block;
+        min-height: 100dvh;
+        padding: 0;
+        background: var(--canvas);
+      }
+
+      .review-panel {
+        display: none;
+      }
+
+      .device-frame {
+        width: 100%;
+        height: 100dvh;
+        min-height: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .device-frame::after {
+        display: none;
+      }
+
+      .prototype-status {
+        height: calc(32px + env(safe-area-inset-top));
+        padding-top: env(safe-area-inset-top);
+      }
+
+      .prototype-status .sensor {
+        display: none;
+      }
+
+      .app-shell {
+        padding-top: 0;
+      }
+
+      .app-page {
+        padding-top: calc(50px + env(safe-area-inset-top));
+      }
+
+      #page-home {
+        padding: 0 0 104px;
+      }
+
+      .home-cover {
+        padding-top: calc(46px + env(safe-area-inset-top));
+      }
+
+      .share-sheet,
+      .report-story {
+        width: 100%;
+        height: 100dvh;
+      }
+    }
+
+    @media (max-width: 370px) {
+      .app-page {
+        padding-inline: 14px;
+      }
+
+      #page-home {
+        padding-inline: 0;
+      }
+
+      .home-content {
+        padding-inline: 14px;
+      }
+
+      .card-viewport {
+        width: 100%;
+      }
+
+      .memory-card {
+        width: calc(100% - 12px);
+        height: 486px;
+      }
+
+      .card-track {
+        height: 486px;
+      }
+
+      .card-back-content {
+        padding: 14px;
+        gap: 7px;
+      }
+
+      .card-back-content h3 {
+        font-size: 19px;
+      }
+
+      .memory-encyclopedia {
+        min-height: 116px;
+      }
+
+      .memory-fact {
+        padding: 11px;
+      }
+
+      .category-layout {
+        grid-template-columns: 98px minmax(0, 1fr);
+        gap: 14px;
+      }
+
+      .category-donut {
+        width: 98px;
+      }
+
+      .category-donut::after {
+        inset: 22px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+
+      .card-inner {
+        transform: none !important;
+      }
+
+      .memory-card .card-front {
+        display: block;
+      }
+
+      .memory-card .card-back {
+        display: none;
+        transform: none;
+      }
+
+      .memory-card.is-flipped .card-front {
+        display: none;
+      }
+
+      .memory-card.is-flipped .card-back {
+        display: block;
+      }
+    }
+
+    @media (prefers-contrast: more) {
+      :root {
+        --copy: #343b42;
+        --muted: #525a62;
+        --line: #aab2ba;
+      }
+
+      html[data-theme="dark"] {
+        --copy: #d6dae0;
+        --muted: #bcc2ca;
+        --line: #59616a;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype-shell">
+    <aside class="review-panel" aria-label="原型控制面板">
+      <div class="review-brand">
+        <img src="../../resources/icons/app_icon.svg" alt="">
+        <span>TimeArc Mobile v3.2</span>
+      </div>
+      <h1>把时间做成一张愿意留下的卡</h1>
+      <p>
+        首页让用户壁纸成为时间卡的背景；统计解释节律，记忆湖保存不同月份的故事，
+        卡牌背面把真实证据整理成可分享的个人记忆。
+      </p>
+      <div class="design-read">
+        <strong>Design read</strong>
+        产品型移动界面，面向重视隐私和个人节律的用户。气质有温度、克制、可珍藏，
+        参考内容型产品的层级与分享感，但不复制任何品牌界面。
+      </div>
+      <div class="review-controls">
+        <fieldset>
+          <legend>快速查看页面</legend>
+          <div class="page-jumps" id="pageJumps">
+            <button type="button" class="is-active" data-go-page="home">首页</button>
+            <button type="button" data-go-page="stats">统计</button>
+            <button type="button" data-go-page="lake">记忆湖</button>
+            <button type="button" data-go-page="profile">我的</button>
+          </div>
+        </fieldset>
+        <label>
+          数据状态
+          <select id="scenarioSelect">
+            <option value="normal">正常数据</option>
+            <option value="permission">未授权</option>
+            <option value="syncing">同步中</option>
+            <option value="empty">没有记录</option>
+          </select>
+        </label>
+        <button class="board-theme-button" id="boardThemeButton" type="button">切换深色</button>
+      </div>
+      <ul class="review-notes">
+        <li>卡背只使用真实字段或明确标注的时间换算</li>
+        <li>分享前先看到匿名预览，可直接保存 PNG</li>
+        <li>页面、卡面、统计周期与滚动位置不会因切 Tab 丢失</li>
+      </ul>
+    </aside>
+
+    <section class="device-frame home-active" aria-label="TimeArc 手机端交互原型">
+      <div class="prototype-status" aria-hidden="true">
+        <span id="clockText">9:41</span>
+        <span class="sensor"></span>
+        <span class="status-end">5G&nbsp;&nbsp;92%</span>
+      </div>
+
+      <div class="app-shell">
+        <div class="page-stack">
+          <section class="app-page is-active" id="page-home" data-page="home" aria-labelledby="homeTitle">
+            <section class="home-cover" aria-label="私人时间封面">
+              <h2 class="sr-only" id="homeTitle">今天的时间卡</h2>
+              <header class="home-cover-toolbar">
+                <span class="home-brand">
+                  <img src="../../resources/icons/app_icon.svg" alt="">
+                  <span class="home-brand-copy"><strong>TimeArc</strong><span class="home-cover-date" id="todayDate">7月11日 星期六</span></span>
+                </span>
+                <div class="home-cover-actions">
+                  <input class="wallpaper-input" id="wallpaperInput" type="file" accept="image/*">
+                  <button class="wallpaper-action" id="wallpaperUploadButton" type="button">更换壁纸</button>
+                  <button class="wallpaper-action wallpaper-reset" id="wallpaperResetButton" type="button" hidden>恢复</button>
+                  <button class="home-cover-action" type="button" data-home-target="profile" aria-label="打开设置">
+                    <img src="../../resources/icons/settings_white.svg" alt="">
+                  </button>
+                </div>
+              </header>
+
+              <dl class="home-profile-metrics" aria-label="时间档案摘要">
+                <div><dt>记录起点</dt><dd>2025.03.13</dd></div>
+                <div><dt>累计记录</dt><dd>812h</dd></div>
+                <div><dt>记录天数</dt><dd>168天</dd></div>
+              </dl>
+            </section>
+
+            <div class="home-content" id="homeNormal">
+              <section class="carousel" id="todayCards" aria-label="今日应用时间卡">
+                <div class="card-viewport" id="cardViewport">
+                  <div class="card-track" id="cardTrack"></div>
+                </div>
+                <div class="carousel-controls">
+                  <button class="round-control" id="prevCard" type="button" aria-label="上一张卡">‹</button>
+                  <div class="card-dots" id="cardDots" aria-label="卡牌页码"></div>
+                  <button class="round-control" id="nextCard" type="button" aria-label="下一张卡">›</button>
+                </div>
+                <p class="sr-only" id="cardAnnouncer" aria-live="polite"></p>
+              </section>
+            </div>
+
+            <div class="home-state" id="homeState" hidden></div>
+          </section>
+
+          <section class="app-page" id="page-stats" data-page="stats" aria-labelledby="statsTitle">
+            <header class="page-header">
+              <div>
+                <p class="page-kicker">看见变化，不评价好坏</p>
+                <h2 id="statsTitle">统计</h2>
+              </div>
+              <button class="header-action" id="statsExportButton" type="button">导出</button>
+            </header>
+
+            <div class="range-tabs" id="statsRangeTabs" aria-label="统计周期"></div>
+
+            <section class="stats-lead" aria-live="polite">
+              <p id="statsSummary"></p>
+              <div class="stats-total">
+                <strong id="statsTotal"></strong>
+                <span class="stats-change" id="statsChange"></span>
+              </div>
+            </section>
+
+            <section class="chart-block">
+              <div class="block-head">
+                <h3 id="chartTitle">每天的已记录时间</h3>
+                <span id="chartHint">小时</span>
+              </div>
+              <div class="bar-chart" id="barChart" role="img" aria-label="时间趋势柱状图"></div>
+            </section>
+
+            <section class="category-block">
+              <div class="block-head">
+                <h3>时间去向</h3>
+                <span>按应用类别聚合</span>
+              </div>
+              <div class="category-layout">
+                <div class="category-donut" id="categoryDonut" role="img" aria-label="类别占比">
+                  <strong id="categoryTopPct">42%</strong>
+                </div>
+                <ul class="category-list" id="categoryList"></ul>
+              </div>
+            </section>
+
+            <section class="ranking-block">
+              <div class="block-head">
+                <h3>最常相遇的应用</h3>
+                <span id="rankingHint">本周</span>
+              </div>
+              <ol class="app-ranking" id="statsRanking"></ol>
+            </section>
+
+            <div class="insight-note">
+              <strong id="statsInsight">周三的连续创作片段比上周多了 1h 12m。</strong>
+              <span>来自本地会话聚合，不读取窗口正文</span>
+            </div>
+          </section>
+
+          <section class="app-page" id="page-lake" data-page="lake" aria-labelledby="lakeTitle">
+            <header class="page-header">
+              <div>
+                <p class="page-kicker">回看被时间留下的片段</p>
+                <h2 id="lakeTitle">记忆湖</h2>
+              </div>
+              <button class="header-action" id="lakeMonthButton" type="button">2026.06</button>
+            </header>
+
+            <article class="report-cover report-theme-meadow" id="featuredReportCover">
+              <div class="report-cover-content">
+                <div>
+                  <span class="report-month" id="featuredReportMonth">2026年6月时间报告</span>
+                  <h3 id="featuredReportTitle">六月，时间在 24 个日子里发芽</h3>
+                  <p id="featuredReportSummary">青草、雨后和深夜的声音，一起收进了这份 168 小时的月度故事。</p>
+                </div>
+                <button class="open-report-button" id="openReportButton" type="button" data-report-month="june">打开六月报告</button>
+              </div>
+            </article>
+
+            <div class="section-heading">
+              <h3>最近被记住</h3>
+              <span>像朋友圈一样按日期回看</span>
+            </div>
+            <ol class="memory-stream">
+              <li class="memory-entry">
+                <div class="memory-date"><strong>28</strong><span>六月</span></div>
+                <div class="memory-content">
+                  <h4>午后的四小时，像一条没有断开的线</h4>
+                  <p>VS Code 与浏览器连续出现 4h 36m。周五的创作从午后延伸到天色变暗，中间只有一次 7 分钟的离开。</p>
+                  <div class="memory-apps">
+                    <span class="app-icon tiny"><img src="assets/vscode-app-icon.png" alt=""></span>
+                    <span class="app-icon tiny">Ch</span>
+                    <span>2 个应用</span>
+                  </div>
+                </div>
+              </li>
+              <li class="memory-entry">
+                <div class="memory-date"><strong>22</strong><span>六月</span></div>
+                <div class="memory-content">
+                  <h4>夜深以后，声音替这一天留了一盏灯</h4>
+                  <p>音乐应用从 23:42 停留到次日，共 2h 18m。这是六月最长的一段深夜声音记录。</p>
+                  <div class="memory-apps">
+                    <span class="app-icon tiny"><img src="assets/netease-cloudmusic-icon.png" alt=""></span>
+                    <span>音乐</span>
+                  </div>
+                </div>
+              </li>
+              <li class="memory-entry">
+                <div class="memory-date"><strong>11</strong><span>六月</span></div>
+                <div class="memory-content">
+                  <h4>午后有 42 分钟，生活从三个窗口经过</h4>
+                  <p>三款内容应用短暂交替 9 次。这里只保存聚合后的时间，不保存你看见的具体内容。</p>
+                  <div class="memory-apps">
+                    <span class="app-icon tiny"><img src="../../resources/icons/sites/xiaohongshu.png" alt=""></span>
+                    <span class="app-icon tiny"><img src="../../resources/icons/sites/bilibili.png" alt=""></span>
+                    <span>还有 1 个应用</span>
+                  </div>
+                </div>
+              </li>
+            </ol>
+
+            <div class="section-heading">
+              <h3>月报归档</h3>
+              <span>本地保存</span>
+            </div>
+            <ul class="archive-list">
+              <li class="archive-row">
+                <span class="archive-cover report-theme-meadow">06</span>
+                <div class="archive-copy"><strong>六月时间报告</strong><span>168h 24m · 24 个记录日</span></div>
+                <button class="archive-open" type="button" data-report-month="june" aria-label="打开六月报告">›</button>
+              </li>
+              <li class="archive-row">
+                <span class="archive-cover report-theme-canopy">05</span>
+                <div class="archive-copy"><strong>五月时间报告</strong><span>152h 08m · 22 个记录日</span></div>
+                <button class="archive-open" type="button" data-report-month="may" aria-label="打开五月报告">›</button>
+              </li>
+              <li class="archive-row">
+                <span class="archive-cover report-theme-night">04</span>
+                <div class="archive-copy"><strong>四月时间报告</strong><span>141h 46m · 21 个记录日</span></div>
+                <button class="archive-open" type="button" data-report-month="april" aria-label="打开四月报告">›</button>
+              </li>
+              <li class="archive-row">
+                <span class="archive-cover report-theme-sunrise">03</span>
+                <div class="archive-copy"><strong>三月时间报告</strong><span>126h 20m · 19 个记录日</span></div>
+                <button class="archive-open" type="button" data-report-month="march" aria-label="打开三月报告">›</button>
+              </li>
+            </ul>
+          </section>
+
+          <section class="app-page" id="page-profile" data-page="profile" aria-labelledby="profileTitle">
+            <header class="page-header">
+              <div>
+                <p class="page-kicker">本地优先的个人时间档案</p>
+                <h2 id="profileTitle">我的</h2>
+              </div>
+              <button class="header-action" type="button">帮助</button>
+            </header>
+
+            <section class="profile-block">
+              <div class="profile-avatar">T</div>
+              <div class="profile-copy">
+                <h3>我的 TimeArc</h3>
+                <p>数据保存在这台设备上，分享前由你确认。</p>
+              </div>
+            </section>
+
+            <div class="profile-metrics">
+              <div class="profile-metric"><strong>486</strong><span>记录天数</span></div>
+              <div class="profile-metric"><strong>18</strong><span>月报</span></div>
+              <div class="profile-metric"><strong>72</strong><span>珍藏卡</span></div>
+            </div>
+
+            <section class="settings-group">
+              <h3>记录与隐私</h3>
+              <div class="settings-list">
+                <div class="setting-row">
+                  <div class="setting-copy"><strong>应用使用权限</strong><span>已授权，只读取系统聚合记录</span></div>
+                  <span class="setting-value">已开启</span>
+                </div>
+                <label class="setting-row">
+                  <span class="setting-copy"><strong>隐藏敏感上下文</strong><span>分享卡不显示标题、联系人与网址</span></span>
+                  <span class="switch">
+                    <input type="checkbox" data-setting="privacy" checked>
+                    <span class="switch-track"></span>
+                  </span>
+                </label>
+                <label class="setting-row">
+                  <span class="setting-copy"><strong>自动同步本机记录</strong><span>回到 TimeArc 时刷新本地数据</span></span>
+                  <span class="switch">
+                    <input type="checkbox" data-setting="sync" checked>
+                    <span class="switch-track"></span>
+                  </span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-group">
+              <h3>外观与分享</h3>
+              <div class="settings-list">
+                <label class="setting-row">
+                  <span class="setting-copy"><strong>深色模式</strong><span>整套界面同步切换，不单独反转页面</span></span>
+                  <span class="switch">
+                    <input type="checkbox" id="darkModeSetting" data-setting="dark">
+                    <span class="switch-track"></span>
+                  </span>
+                </label>
+                <label class="setting-row">
+                  <span class="setting-copy"><strong>分享时匿名化</strong><span>默认隐藏应用名与设备标识</span></span>
+                  <span class="switch">
+                    <input type="checkbox" data-setting="anonymous" checked>
+                    <span class="switch-track"></span>
+                  </span>
+                </label>
+                <div class="setting-row">
+                  <div class="setting-copy"><strong>卡牌样式</strong><span>分享时仍可临时切换</span></div>
+                  <span class="setting-value">纪念日</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-group">
+              <h3>数据</h3>
+              <div class="settings-list">
+                <div class="setting-row">
+                  <div class="setting-copy"><strong>本地数据库</strong><span>移动端记录，不上传云端</span></div>
+                  <span class="setting-value">126 MB</span>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-copy"><strong>备份与恢复</strong><span>在桌面端管理完整数据库</span></div>
+                  <span class="setting-value">桌面端</span>
+                </div>
+              </div>
+            </section>
+
+            <details class="diagnostics">
+              <summary>数据与诊断信息</summary>
+              <p>这里才显示 UsageStats、SQLite 路径、同步批次与包名等工程信息。它们不再占用首页卡牌背面。</p>
+            </details>
+          </section>
+        </div>
+
+        <nav class="bottom-nav" aria-label="主导航">
+          <button class="nav-button is-active" type="button" data-page-target="home" aria-current="page">
+            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/icons/home.svg" alt=""></span>
+            <span>首页</span>
+          </button>
+          <button class="nav-button" type="button" data-page-target="stats">
+            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/icons/stats.svg" alt=""></span>
+            <span>统计</span>
+          </button>
+          <button class="nav-button" type="button" data-page-target="lake">
+            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/icons/recap.svg" alt=""></span>
+            <span>记忆湖</span>
+          </button>
+          <button class="nav-button" type="button" data-page-target="profile">
+            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/icons/user.svg" alt=""></span>
+            <span>我的</span>
+          </button>
+        </nav>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="share-dialog" id="shareDialog" aria-labelledby="shareDialogTitle">
+    <section class="share-sheet">
+      <header class="modal-head">
+        <h2 id="shareDialogTitle">分享预览</h2>
+        <button class="modal-close" type="button" data-close-dialog="shareDialog" aria-label="关闭分享预览">×</button>
+      </header>
+      <div class="share-content">
+        <p class="share-intro">先确认再保存。原始窗口标题、联系人、网址和设备标识不会进入图片。</p>
+        <div class="share-format-note"><strong>时间纪念卡</strong><span>故事、日期与数据已合并展示</span></div>
+        <label class="privacy-toggle-row">
+          <span>隐藏应用名称与图标</span>
+          <span class="switch">
+            <input type="checkbox" id="shareAnonymous">
+            <span class="switch-track"></span>
+          </span>
+        </label>
+        <div class="share-poster-wrap">
+          <article class="share-poster poster-anniversary" id="sharePoster" aria-label="分享图片预览"></article>
+        </div>
+      </div>
+      <footer class="modal-actions">
+        <button class="secondary-button" type="button" id="copyShareText">复制文案</button>
+        <button class="primary-button" type="button" id="savePoster">保存图片</button>
+      </footer>
+    </section>
+  </dialog>
+
+  <dialog class="report-dialog" id="reportDialog" aria-labelledby="reportStoryTitle">
+    <section class="report-story" id="reportStory" tabindex="-1">
+      <header class="story-head">
+        <div class="story-progress" id="storyProgress" aria-label="月报页码"></div>
+        <button class="story-close" type="button" data-close-dialog="reportDialog" aria-label="关闭月报">×</button>
+      </header>
+      <article class="story-slide" id="storySlide" aria-live="polite"></article>
+      <footer class="story-actions">
+        <button class="story-prev" id="storyPrev" type="button" aria-label="上一页">‹</button>
+        <button class="story-share" id="storyShare" type="button">生成月报分享卡</button>
+        <button class="story-next" id="storyNext" type="button" aria-label="下一页">›</button>
+      </footer>
+    </section>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var state = {
+        page: "home",
+        cardIndex: 0,
+        flippedCards: {},
+        scenario: "normal",
+        statsRange: "week",
+        theme: "light",
+        posterStyle: "anniversary",
+        shareAnonymous: false,
+        shareContext: null,
+        reportMonth: "june",
+        storyIndex: 0,
+        toastTimer: null
+      };
+
+      var appCards = [
+        {
+          id: "music",
+          name: "网易云音乐",
+          anonymousName: "一款音乐应用",
+          category: "音乐",
+          initial: "音",
+          icon: "assets/netease-cloudmusic-icon.png",
+          appColor: "#BE6B77",
+          appInk: "#24171A",
+          appSoft: "#F0BAC2",
+          today: "2h 18m",
+          context: "比过去 7 天平均多 24m",
+          referenceDate: "2026.07.11",
+          firstMoment: "早春的深夜",
+          firstSeenAt: "2025.03.13 22:47",
+          encounterCount: "317 段",
+          encounterNote: "TimeArc 记录到的前台片段，像 317 次小小的重逢",
+          memoryNumber: "486",
+          memoryUnit: "天",
+          memoryRange: "2025.03.13 - 2026.07.11",
+          relationship: "从现有记录中的第一次算起，今天是你们时间故事的第 486 天",
+          title: "深夜里，声音陪你走了很久",
+          evidence: [
+            ["累计已记录", "96h 24m"],
+            ["有记录的日子", "205 天"],
+            ["前台记录片段", "317 段"],
+            ["最长单段记录", "2h 18m"],
+            ["最常出现", "22:40 - 00:20"]
+          ],
+          cardFacts: [["累计被记住", "96h 24m"], ["最常见面", "22:40 以后"]],
+          conversion: "若按 45 分钟一张专辑换算，这段时长约有 129 张专辑那么长。",
+          conversionBasis: "按 45 分钟/张估算，不代表实际播放。",
+          anonymousTitle: "深夜里，声音陪你走了很久"
+        },
+        {
+          id: "code",
+          name: "Visual Studio Code",
+          anonymousName: "一款创作工具",
+          category: "创作与开发",
+          initial: "VS",
+          icon: "assets/vscode-app-icon.png",
+          appColor: "#7EB6C9",
+          appInk: "#102027",
+          appSoft: "#C9E7F0",
+          today: "2h 46m",
+          context: "今天最长的连续片段",
+          referenceDate: "2026.07.11",
+          firstMoment: "初秋的上午",
+          firstSeenAt: "2025.09.03 09:18",
+          encounterCount: "621 段",
+          encounterNote: "TimeArc 记录到的前台片段，像把空白稿纸翻开 621 次",
+          memoryNumber: "312",
+          memoryUnit: "天",
+          memoryRange: "2025.09.03 - 2026.07.11",
+          relationship: "从现有记录中的第一次算起，今天是你们时间故事的第 312 天",
+          title: "168 小时，落在尚未完成的事物里",
+          evidence: [
+            ["累计已记录", "168h 12m"],
+            ["有记录的日子", "112 天"],
+            ["前台记录片段", "621 段"],
+            ["最长单段记录", "4h 36m"]
+          ],
+          cardFacts: [["累计被记住", "168h 12m"], ["有记录的日子", "112 天"]],
+          conversion: "若按每段 25 分钟换算，这些时间相当于约 403 个完整工作段。",
+          conversionBasis: "按 25 分钟/段估算，不代表实际完成量。",
+          anonymousTitle: "168 小时，落在尚未完成的事物里"
+        },
+        {
+          id: "xhs",
+          name: "小红书",
+          anonymousName: "一款生活内容应用",
+          category: "浏览与生活",
+          initial: "红",
+          icon: "../../resources/icons/sites/xiaohongshu.png",
+          appColor: "#D88B8F",
+          appInk: "#261719",
+          appSoft: "#F0C2C4",
+          today: "42m",
+          context: "共记录 19 个前台片段",
+          referenceDate: "2026.07.11",
+          firstMoment: "初冬的夜晚",
+          firstSeenAt: "2025.12.16 21:12",
+          encounterCount: "564 段",
+          encounterNote: "TimeArc 记录到的前台片段，像把生活手账翻过 564 次",
+          memoryNumber: "208",
+          memoryUnit: "天",
+          memoryRange: "2025.12.16 - 2026.07.11",
+          relationship: "从现有记录中的第一次算起，今天是你们时间故事的第 208 天",
+          title: "你在生活笔记里经过了 32 小时",
+          evidence: [
+            ["累计已记录", "32h 18m"],
+            ["有记录的日子", "98 天"],
+            ["前台记录片段", "564 段"],
+            ["最长单段记录", "48m"],
+            ["最常出现", "21:10 - 22:00"]
+          ],
+          cardFacts: [["累计被记住", "32h 18m"], ["最常见面", "21:10 以后"]],
+          conversion: "若每天留出 20 分钟，这段时长足够铺满约 97 个傍晚。",
+          conversionBasis: "按 20 分钟/天估算，不代表实际阅读量。",
+          anonymousTitle: "你在生活笔记里经过了 32 小时"
+        },
+        {
+          id: "video",
+          name: "哔哩哔哩",
+          anonymousName: "一款视频应用",
+          category: "视频与娱乐",
+          initial: "B",
+          icon: "../../resources/icons/sites/bilibili.png",
+          appColor: "#85C6D5",
+          appInk: "#102126",
+          appSoft: "#C7E8EF",
+          today: "31m",
+          context: "今天第 4 名",
+          referenceDate: "2026.07.11",
+          firstMoment: "暮春的周末",
+          firstSeenAt: "2025.04.27 20:08",
+          encounterCount: "214 段",
+          encounterNote: "TimeArc 记录到的前台片段，像按下 214 次故事的开场键",
+          memoryNumber: "441",
+          memoryUnit: "天",
+          memoryRange: "2025.04.27 - 2026.07.11",
+          relationship: "从现有记录中的第一次算起，今天是你们时间故事的第 441 天",
+          title: "有 71 小时的故事，在屏幕上发生",
+          evidence: [
+            ["累计已记录", "71h 30m"],
+            ["有记录的日子", "144 天"],
+            ["前台记录片段", "214 段"],
+            ["最长单段记录", "3h 12m"],
+            ["最常出现", "周末 20:00 后"]
+          ],
+          cardFacts: [["累计被记住", "71h 30m"], ["最常见面", "周末 20:00 后"]],
+          conversion: "若按每集 45 分钟换算，这段已记录时长相当于约 95 集内容。",
+          conversionBasis: "按 45 分钟/集估算，不代表实际观看集数。",
+          anonymousTitle: "有 71 小时的故事，在屏幕上发生"
+        }
+      ];
+
+      var statsRanges = {
+        day: {
+          label: "今天",
+          total: "6h 18m",
+          summary: "今天的记录主要集中在创作、音乐与短暂浏览。没有为这段时间打分。",
+          change: "比过去 7 天日均多 42m",
+          labels: ["06", "09", "12", "15", "18", "21", "24"],
+          values: [0.2, 1.4, 0.8, 1.7, 0.6, 1.1, 0.5],
+          hint: "按时段",
+          ranking: [0, 1, 2, 3],
+          rankingHint: "今天",
+          insight: "09:18 到 11:00 是今天最长的连续创作片段。"
+        },
+        week: {
+          label: "本周",
+          total: "38h 42m",
+          summary: "本周有 5 天出现了超过 90 分钟的连续创作片段，周三最集中。",
+          change: "比上周少 3h 12m",
+          labels: ["一", "二", "三", "四", "五", "六", "日"],
+          values: [4.2, 5.8, 7.4, 4.9, 6.6, 5.1, 4.8],
+          hint: "按天",
+          ranking: [1, 0, 2, 3],
+          rankingHint: "本周",
+          insight: "周三的连续创作片段比上周多了 1h 12m。"
+        },
+        month: {
+          label: "本月",
+          total: "168h 24m",
+          summary: "这个月共有 24 个记录日。创作占比最高，音乐更多出现在晚间。",
+          change: "比上月多 6h 16m",
+          labels: ["1周", "2周", "3周", "4周"],
+          values: [36.2, 41.8, 47.1, 43.3],
+          hint: "按周",
+          ranking: [1, 0, 3, 2],
+          rankingHint: "本月",
+          insight: "晚间音乐停留占音乐类时长的 43%，比上月高 8 个百分点。"
+        },
+        year: {
+          label: "今年",
+          total: "812h",
+          summary: "今年的记录跨过 168 天。创作和开发仍是最稳定出现的一类。",
+          change: "已记录 168 天",
+          labels: ["1", "2", "3", "4", "5", "6"],
+          values: [98, 112, 137, 142, 155, 168],
+          hint: "每月小时",
+          ranking: [1, 0, 3, 2],
+          rankingHint: "今年",
+          insight: "连续记录最长的一段是 21 天，从 5 月 18 日到 6 月 7 日。"
+        }
+      };
+
+      var categories = [
+        { label: "创作", value: 42, color: "#2D7780" },
+        { label: "音乐", value: 24, color: "#BE6B77" },
+        { label: "娱乐", value: 19, color: "#7183A8" },
+        { label: "其他", value: 15, color: "#C9CED4" }
+      ];
+
+      var monthlyReports = {
+        june: {
+          theme: "meadow",
+          data: {
+            id: "monthly-report-june",
+            type: "report",
+            name: "六月时间报告",
+            anonymousName: "六月时间报告",
+            appColor: "#6D9B58",
+            appInk: "#102218",
+            appSoft: "#D9E9C2",
+            referenceDate: "2026.07.11",
+            firstMoment: "六月的第一天",
+            firstSeenAt: "2026.06.01",
+            encounterCount: "24 天",
+            encounterNote: "六月共有 24 天留下了聚合后的前台记录",
+            memoryNumber: "24",
+            memoryUnit: "天",
+            memoryRange: "2026.06.01 - 2026.06.30",
+            title: "六月，时间在 24 个日子里发芽",
+            anonymousTitle: "六月，时间在 24 个日子里发芽",
+            relationship: "2026.06 时间报告",
+            evidence: [["已记录时间", "168h 24m"], ["记录天数", "24 天"], ["占比最高", "创作 42%"], ["最长单段", "4h 36m"]],
+            cardFacts: [["已记录时间", "168h 24m"], ["记录天数", "24 天"]],
+            conversion: "这个月没有被概括，它只是被重新看见。",
+            conversionBasis: "仅基于当前设备保留的聚合记录。"
+          },
+          slides: [
+            { label: "2026.06 时间报告", title: "六月，时间在 24 个日子里发芽", number: "168h", body: "TimeArc 在 24 天里留下了应用前台时间。它们散落在工作、声音和短暂休息之间。", accent: "#B7D36E", evidence: ["最长的一天是 9h 42m", "连续记录最长为 11 天"] },
+            { label: "这个月最长的一段", title: "最长的专注，发生在雨后的上午", number: "4h 36m", body: "VS Code 与浏览器构成了本月最长的连续创作片段，中间只有一次短暂离开。", accent: "#8FC7A0", evidence: ["发生在 6 月 28 日", "开始时间 09:18"] },
+            { label: "一天中的位置", title: "深夜的声音，替一天慢慢收尾", number: "43%", body: "音乐类已记录时长中，43% 出现在 22:00 之后。这里描述的是时间位置，不是播放内容。", accent: "#D6B67A", evidence: ["深夜前台记录 42 段", "最长单段 2h 18m"] },
+            { label: "这个月最常相遇", title: "有些反复，是事情正在成形", number: "621", body: "TimeArc 记录到 621 个创作工具前台片段。它们不代表完成量，只证明你一次次回到这里。", accent: "#8DB5C5", evidence: ["有记录的日子 112 天", "累计被记住 168h 12m"] },
+            { label: "月末留存", title: "你没有失去这个月，它被好好留住了", number: "", body: "把它保存成一张脱敏纪念卡，或者让青草、日期和这些时间只留在自己的记忆湖。", accent: "#C8D98E", evidence: ["原始窗口标题不会进入图片", "所有换算都会标明估算口径"] }
+          ]
+        },
+        may: {
+          theme: "canopy",
+          data: {
+            id: "monthly-report-may",
+            type: "report",
+            name: "五月时间报告",
+            anonymousName: "五月时间报告",
+            appColor: "#6A8C50",
+            appInk: "#142112",
+            appSoft: "#D8E5C5",
+            referenceDate: "2026.06.01",
+            firstMoment: "五月的第一天",
+            firstSeenAt: "2026.05.01",
+            encounterCount: "22 天",
+            encounterNote: "五月共有 22 天留下了聚合后的前台记录",
+            memoryNumber: "22",
+            memoryUnit: "天",
+            memoryRange: "2026.05.01 - 2026.05.31",
+            title: "五月，把节奏放回了白昼",
+            anonymousTitle: "五月，把节奏放回了白昼",
+            relationship: "2026.05 时间报告",
+            evidence: [["已记录时间", "152h 08m"], ["记录天数", "22 天"], ["上午占比", "36%"], ["最长单段", "3h 52m"]],
+            cardFacts: [["已记录时间", "152h 08m"], ["记录天数", "22 天"]],
+            conversion: "五月没有催你向前，只留下走过的路。",
+            conversionBasis: "仅基于当前设备保留的聚合记录。"
+          },
+          slides: [
+            { label: "2026.05 时间报告", title: "五月，把节奏放回了白昼", number: "152h", body: "这个月有 22 天留下记录。与四月相比，更多时间回到了上午和午后。", accent: "#A8C86F", evidence: ["总记录 152h 08m", "比四月多 10h 22m"] },
+            { label: "最常开始的时刻", title: "上午十点，是最常开始创作的时刻", number: "10:06", body: "创作片段最常在上午十点前后开始，形成了一个稳定但并不刻板的节律。", accent: "#D5BC78", evidence: ["上午创作占 36%", "最长单段 3h 52m"] },
+            { label: "周末的样子", title: "周末的屏幕，更像一扇打开的窗", number: "17h", body: "视频、生活内容和浏览器在周末出现得更多。这里没有好坏评价，只记录时间去向。", accent: "#87B8A1", evidence: ["周末娱乐类 17h 42m", "共留下 86 个前台片段"] },
+            { label: "声音出现的位置", title: "音乐在通勤和傍晚之间出现", number: "28%", body: "音乐类记录更多集中在 07:30 到 09:00，以及 18:00 之后。", accent: "#B89778", evidence: ["傍晚记录 31 段", "最长单段 1h 46m"] },
+            { label: "月末留存", title: "五月没有催你向前，只留下走过的路", number: "", body: "有些日子紧凑，有些日子松散。放在一起，它们才是这个月完整的形状。", accent: "#9FBD72", evidence: ["22 天留下记录", "可生成匿名纪念卡"] }
+          ]
+        },
+        april: {
+          theme: "night",
+          data: {
+            id: "monthly-report-april",
+            type: "report",
+            name: "四月时间报告",
+            anonymousName: "四月时间报告",
+            appColor: "#77739D",
+            appInk: "#171527",
+            appSoft: "#D8D4EE",
+            referenceDate: "2026.05.01",
+            firstMoment: "四月的第一天",
+            firstSeenAt: "2026.04.01",
+            encounterCount: "21 天",
+            encounterNote: "四月共有 21 天留下了聚合后的前台记录",
+            memoryNumber: "21",
+            memoryUnit: "天",
+            memoryRange: "2026.04.01 - 2026.04.30",
+            title: "四月的夜晚，比白天更有重量",
+            anonymousTitle: "四月的夜晚，比白天更有重量",
+            relationship: "2026.04 时间报告",
+            evidence: [["已记录时间", "141h 46m"], ["记录天数", "21 天"], ["夜间占比", "39%"], ["连续记录", "17 天"]],
+            cardFacts: [["已记录时间", "141h 46m"], ["记录天数", "21 天"]],
+            conversion: "四月被收进湖里，等你以后再看。",
+            conversionBasis: "仅基于当前设备保留的聚合记录。"
+          },
+          slides: [
+            { label: "2026.04 时间报告", title: "四月的夜晚，比白天更有重量", number: "141h", body: "这个月的前台记录更多集中在日落之后，安静下来的房间承接了最长的片段。", accent: "#8E88B8", evidence: ["夜间记录占 39%", "共记录 21 天"] },
+            { label: "安静下来的时刻", title: "创作集中在房间安静以后", number: "39%", body: "创作工具在 20:00 之后出现得更频繁，平均单段也比白天更长。", accent: "#707CA8", evidence: ["夜间创作 34h 12m", "平均单段 41m"] },
+            { label: "最常相遇", title: "最常相遇的不是应用，是一种习惯", number: "286", body: "同一组创作工具反复出现，形成了 286 个可辨认的前台片段。", accent: "#9B7F9E", evidence: ["最常开始于 21:14", "有记录的日子 17 天"] },
+            { label: "连续的日子", title: "有 17 天，时间没有断开", number: "17天", body: "从 4 月 6 日到 4 月 22 日，每一天都留下了至少一段前台记录。", accent: "#738A9C", evidence: ["连续记录 17 天", "期间累计 86h 03m"] },
+            { label: "月末留存", title: "四月被收进湖里，等你以后再看", number: "", body: "深夜、屏幕和那些尚未完成的事，现在都有了可以返回的位置。", accent: "#9188AA", evidence: ["记录只保存在本地", "分享前可隐藏应用名称"] }
+          ]
+        },
+        march: {
+          theme: "sunrise",
+          data: {
+            id: "monthly-report-march",
+            type: "report",
+            name: "三月时间报告",
+            anonymousName: "三月时间报告",
+            appColor: "#B88758",
+            appInk: "#261A10",
+            appSoft: "#F0D8BD",
+            referenceDate: "2026.04.01",
+            firstMoment: "早春的夜晚",
+            firstSeenAt: "2026.03.13",
+            encounterCount: "19 天",
+            encounterNote: "三月共有 19 天留下了聚合后的前台记录",
+            memoryNumber: "19",
+            memoryUnit: "天",
+            memoryRange: "2026.03.01 - 2026.03.31",
+            title: "三月，是这一段时间故事的开头",
+            anonymousTitle: "三月，是这一段时间故事的开头",
+            relationship: "2026.03 时间报告",
+            evidence: [["已记录时间", "126h 20m"], ["记录天数", "19 天"], ["白天占比", "57%"], ["首次长专注", "2h 46m"]],
+            cardFacts: [["已记录时间", "126h 20m"], ["记录天数", "19 天"]],
+            conversion: "从这里开始，日子有了可以回看的形状。",
+            conversionBasis: "仅基于当前设备保留的聚合记录。"
+          },
+          slides: [
+            { label: "2026.03 时间报告", title: "三月，是这一段时间故事的开头", number: "126h", body: "在 19 个留下记录的日子里，TimeArc 第一次把这些屏幕时间整理成月度故事。", accent: "#D2A368", evidence: ["总记录 126h 20m", "共有 19 个记录日"] },
+            { label: "第一次被记住", title: "第一次被记住的那天，是早春", number: "03.13", body: "3 月 13 日 22:47，TimeArc 留下了这段档案中最早的一条应用前台记录。", accent: "#C69262", evidence: ["最早保留记录 22:47", "当天共记录 3h 18m"] },
+            { label: "一天中的位置", title: "一半以上的记录，发生在白天", number: "57%", body: "三月的时间更多落在 08:00 到 18:00，夜间片段还没有形成固定节律。", accent: "#D3B17B", evidence: ["白天记录 72h 01m", "夜间记录 24h 36m"] },
+            { label: "第一次长专注", title: "第一次长专注，持续了 2 小时 46 分", number: "2h46m", body: "创作工具与浏览器连续出现，成为这份档案中第一段超过两小时的记录。", accent: "#B98265", evidence: ["发生在 3 月 18 日", "中间无超过 5 分钟离开"] },
+            { label: "月末留存", title: "从这里开始，日子有了可以回看的形状", number: "", body: "未来的每一份报告都会不同，但它们都从这十九个日子开始。", accent: "#C99968", evidence: ["最早保留记录来自 3 月", "所有月报可单独生成纪念卡"] }
+          ]
+        }
+      };
+
+      var reportData = monthlyReports.june.data;
+      reportData.reportTheme = monthlyReports.june.theme;
+      var storySlides = monthlyReports.june.slides;
+
+      var navButtons = Array.prototype.slice.call(document.querySelectorAll(".nav-button"));
+      var pages = Array.prototype.slice.call(document.querySelectorAll(".app-page"));
+      var pageJumpButtons = Array.prototype.slice.call(document.querySelectorAll("[data-go-page]"));
+      var cardTrack = document.getElementById("cardTrack");
+      var cardViewport = document.getElementById("cardViewport");
+      var cardDots = document.getElementById("cardDots");
+      var shareDialog = document.getElementById("shareDialog");
+      var reportDialog = document.getElementById("reportDialog");
+      var toast = document.getElementById("toast");
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function iconMarkup(app, sizeClass) {
+        var className = "app-icon" + (sizeClass ? " " + sizeClass : "");
+        if (app.icon) {
+          return '<span class="' + className + '"><img src="' + escapeHtml(app.icon) + '" alt=""></span>';
+        }
+        return '<span class="' + className + '">' + escapeHtml(app.initial) + "</span>";
+      }
+
+      function evidenceMarkup(evidence) {
+        return evidence.map(function (item) {
+          return '<div class="evidence-row"><dt>' + escapeHtml(item[0]) + '</dt><dd>' + escapeHtml(item[1]) + "</dd></div>";
+        }).join("");
+      }
+
+      function renderCards() {
+        cardTrack.innerHTML = appCards.map(function (app, index) {
+          var flipped = Boolean(state.flippedCards[app.id]);
+          return (
+            '<article class="memory-card memory-glass' + (flipped ? " is-flipped" : "") + '" data-card-index="' + index + '"' +
+            ' style="--app:' + app.appColor + ';--app-ink:' + app.appInk + ';--app-soft:' + app.appSoft + ';">' +
+              '<div class="card-inner">' +
+                '<section class="card-face card-front" aria-hidden="' + (flipped ? "true" : "false") + '"' + (flipped ? " inert" : "") + '>' +
+                  '<div class="card-art">' +
+                    '<span class="card-sequence">TIME CARD ' + String(index + 1).padStart(2, "0") + "</span>" +
+                    iconMarkup(app, "") +
+                  "</div>" +
+                  '<div class="card-front-copy">' +
+                    "<h3>" + escapeHtml(app.name) + "</h3>" +
+                    "<p>" + escapeHtml(app.category) + "</p>" +
+                    '<div class="card-front-metric">' +
+                      '<strong class="card-duration">' + escapeHtml(app.today) + "</strong>" +
+                      '<span class="card-context">' + escapeHtml(app.context) + "</span>" +
+                    "</div>" +
+                    '<button class="flip-action" type="button" data-flip-card="' + index + '">查看时间故事</button>' +
+                  "</div>" +
+                "</section>" +
+                '<section class="card-face card-back" aria-hidden="' + (flipped ? "false" : "true") + '"' + (!flipped ? " inert" : "") + '>' +
+                  '<div class="card-back-content">' +
+                    '<header class="memory-encyclopedia-head"><strong>时间百科 · ' + escapeHtml(app.name) + '</strong><span>现有记录 · 本地聚合</span></header>' +
+                    '<section class="memory-encyclopedia" aria-label="' + escapeHtml(app.name) + ' 时间百科">' +
+                      '<div class="memory-fact memory-first">' +
+                        '<span class="memory-label">第一次被 TimeArc 记住</span>' +
+                        '<div class="memory-first-body">' + iconMarkup(app, "memory") +
+                          '<div class="memory-first-copy"><strong>' + escapeHtml(app.firstMoment) + '</strong>' +
+                            '<time datetime="' + escapeHtml(app.firstSeenAt.slice(0, 10).replace(/\./g, "-")) + '">' + escapeHtml(app.firstSeenAt) + '</time></div>' +
+                        "</div>" +
+                      "</div>" +
+                      '<div class="memory-fact memory-encounter"><span class="memory-label">累计相遇</span>' +
+                        '<strong>' + escapeHtml(app.encounterCount) + '</strong><p>' + escapeHtml(app.encounterNote) + '</p></div>' +
+                    "</section>" +
+                    '<p class="relationship-line">' + escapeHtml(app.relationship) + "</p>" +
+                    "<h3>" + escapeHtml(app.title) + "</h3>" +
+                    '<dl class="evidence-list evidence-list-compact">' + evidenceMarkup(app.cardFacts) + "</dl>" +
+                    '<p class="conversion-note">' + escapeHtml(app.conversion) + '<small>' + escapeHtml(app.conversionBasis) + "</small></p>" +
+                    '<div class="card-back-actions">' +
+                      '<button class="share-card-button" type="button" data-share-card="' + index + '">一键分享这段时间故事</button>' +
+                      '<button class="back-to-front" type="button" data-flip-card="' + index + '">回到正面</button>' +
+                    "</div>" +
+                  "</div>" +
+                "</section>" +
+              "</div>" +
+            "</article>"
+          );
+        }).join("");
+
+        cardDots.innerHTML = appCards.map(function (app, index) {
+          return '<button class="card-dot' + (index === state.cardIndex ? " is-active" : "") + '" type="button" data-card-dot="' + index + '" aria-label="第 ' + (index + 1) + ' 张卡"></button>';
+        }).join("");
+
+        bindCardActions();
+        updateCarousel(false);
+      }
+
+      function bindCardActions() {
+        Array.prototype.forEach.call(document.querySelectorAll("[data-flip-card]"), function (button) {
+          button.addEventListener("click", function () {
+            toggleCard(Number(button.getAttribute("data-flip-card")));
+          });
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll("[data-share-card]"), function (button) {
+          button.addEventListener("click", function () {
+            openShare(appCards[Number(button.getAttribute("data-share-card"))]);
+          });
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll("[data-card-dot]"), function (button) {
+          button.addEventListener("click", function () {
+            setCardIndex(Number(button.getAttribute("data-card-dot")));
+          });
+        });
+      }
+
+      function toggleCard(index) {
+        if (index !== state.cardIndex) return;
+        var app = appCards[index];
+        state.flippedCards[app.id] = !state.flippedCards[app.id];
+        var card = document.querySelector('[data-card-index="' + index + '"]');
+        if (!card) return;
+        card.classList.toggle("is-flipped", state.flippedCards[app.id]);
+        var faces = card.querySelectorAll(".card-face");
+        if (faces.length === 2) {
+          faces[0].setAttribute("aria-hidden", state.flippedCards[app.id] ? "true" : "false");
+          faces[1].setAttribute("aria-hidden", state.flippedCards[app.id] ? "false" : "true");
+          faces[0].inert = Boolean(state.flippedCards[app.id]);
+          faces[1].inert = !state.flippedCards[app.id];
+          var visibleFace = state.flippedCards[app.id] ? faces[1] : faces[0];
+          window.setTimeout(function () {
+            var nextButton = visibleFace.querySelector("button");
+            if (nextButton) nextButton.focus({ preventScroll: true });
+          }, 0);
+        }
+        document.getElementById("cardAnnouncer").textContent = state.flippedCards[app.id]
+          ? "已显示" + app.name + "的时间百科"
+          : "已回到" + app.name + "时间卡正面";
+      }
+
+      function setCardIndex(index) {
+        var bounded = Math.max(0, Math.min(appCards.length - 1, index));
+        state.cardIndex = bounded;
+        updateCarousel(true);
+      }
+
+      function updateCarousel(announce) {
+        var cards = cardTrack.querySelectorAll(".memory-card");
+        if (!cards.length) return;
+        Array.prototype.forEach.call(cards, function (card, index) {
+          var clockwise = (index - state.cardIndex + cards.length) % cards.length;
+          var relation = clockwise === 0 ? 0 : (clockwise === 1 ? 1 : (clockwise === cards.length - 1 ? -1 : 2));
+          card.classList.toggle("is-current", relation === 0);
+          card.classList.toggle("is-prev", relation === -1);
+          card.classList.toggle("is-next", relation === 1);
+          card.inert = relation !== 0;
+          if (relation === 0) {
+            var faces = card.querySelectorAll(".card-face");
+            var flipped = card.classList.contains("is-flipped");
+            if (faces.length === 2) {
+              faces[0].inert = flipped;
+              faces[1].inert = !flipped;
+            }
+          }
+        });
+        Array.prototype.forEach.call(cardDots.querySelectorAll(".card-dot"), function (dot, index) {
+          dot.classList.toggle("is-active", index === state.cardIndex);
+        });
+        if (announce) {
+          document.getElementById("cardAnnouncer").textContent =
+            "已切换到第 " + (state.cardIndex + 1) + " 张，" + appCards[state.cardIndex].name;
+        }
+      }
+
+      function shiftCard(step) {
+        var next = (state.cardIndex + step + appCards.length) % appCards.length;
+        setCardIndex(next);
+      }
+
+      function bindSwipe() {
+        var pointerStart = null;
+        cardViewport.addEventListener("pointerdown", function (event) {
+          pointerStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
+        });
+        cardViewport.addEventListener("pointerup", function (event) {
+          if (!pointerStart || pointerStart.id !== event.pointerId) return;
+          var dx = event.clientX - pointerStart.x;
+          var dy = event.clientY - pointerStart.y;
+          pointerStart = null;
+          if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+            shiftCard(dx < 0 ? 1 : -1);
+          }
+        });
+        cardViewport.addEventListener("pointercancel", function () {
+          pointerStart = null;
+        });
+      }
+
+      function goToPage(pageName) {
+        if (!document.getElementById("page-" + pageName)) return;
+        state.page = pageName;
+        document.querySelector(".device-frame").classList.toggle("home-active", pageName === "home");
+        pages.forEach(function (page) {
+          page.classList.toggle("is-active", page.getAttribute("data-page") === pageName);
+        });
+        navButtons.forEach(function (button) {
+          var active = button.getAttribute("data-page-target") === pageName;
+          button.classList.toggle("is-active", active);
+          if (active) {
+            button.setAttribute("aria-current", "page");
+          } else {
+            button.removeAttribute("aria-current");
+          }
+        });
+        pageJumpButtons.forEach(function (button) {
+          button.classList.toggle("is-active", button.getAttribute("data-go-page") === pageName);
+        });
+        if (pageName === "home") {
+          requestAnimationFrame(function () { updateCarousel(false); });
+        }
+      }
+
+      function renderHomeState() {
+        var normal = document.getElementById("homeNormal");
+        var stateRoot = document.getElementById("homeState");
+        normal.hidden = state.scenario !== "normal";
+        stateRoot.hidden = state.scenario === "normal";
+        if (state.scenario === "normal") return;
+
+        if (state.scenario === "permission") {
+          stateRoot.innerHTML =
+            '<section class="state-panel">' +
+              '<span class="state-mark">T</span>' +
+              "<h3>先让时间被看见</h3>" +
+              "<p>TimeArc 只读取 Android 系统已经聚合的应用前台时长，不读取聊天正文、截图或输入内容。</p>" +
+              '<div class="button-row"><button class="primary-button" type="button" data-demo-authorize>去授权</button><button class="secondary-button" type="button" data-demo-later>稍后再说</button></div>' +
+            "</section>";
+        } else if (state.scenario === "syncing") {
+          stateRoot.innerHTML =
+            '<section class="skeleton-panel" aria-label="正在同步本地记录">' +
+              '<span class="skeleton skeleton-title"></span>' +
+              '<span class="skeleton skeleton-cover"></span>' +
+              '<span class="skeleton skeleton-line"></span>' +
+              '<span class="skeleton skeleton-line short"></span>' +
+              '<span class="sr-only">正在同步本地记录</span>' +
+            "</section>";
+        } else {
+          stateRoot.innerHTML =
+            '<section class="state-panel">' +
+              '<span class="state-mark">0</span>' +
+              "<h3>今天还没有新的记录</h3>" +
+              "<p>当系统产生应用使用记录后，卡牌会在这里出现。你也可以先回到记忆湖看看过去的月报。</p>" +
+              '<div class="button-row"><button class="primary-button" type="button" data-demo-sync>立即同步</button><button class="secondary-button" type="button" data-demo-lake>打开记忆湖</button></div>' +
+            "</section>";
+        }
+
+        var authorize = stateRoot.querySelector("[data-demo-authorize]");
+        var later = stateRoot.querySelector("[data-demo-later]");
+        var sync = stateRoot.querySelector("[data-demo-sync]");
+        var lake = stateRoot.querySelector("[data-demo-lake]");
+        if (authorize) authorize.addEventListener("click", function () { showToast("原型：这里会打开系统使用情况访问权限"); });
+        if (later) later.addEventListener("click", function () { setScenario("empty"); });
+        if (sync) sync.addEventListener("click", function () {
+          setScenario("syncing");
+          window.setTimeout(function () { setScenario("normal"); showToast("本地记录已同步"); }, 900);
+        });
+        if (lake) lake.addEventListener("click", function () { goToPage("lake"); });
+      }
+
+      function setScenario(value) {
+        state.scenario = value;
+        document.getElementById("scenarioSelect").value = value;
+        renderHomeState();
+      }
+
+      function renderStatsTabs() {
+        var tabs = document.getElementById("statsRangeTabs");
+        tabs.innerHTML = Object.keys(statsRanges).map(function (key) {
+          return '<button class="range-chip' + (key === state.statsRange ? " is-active" : "") + '" type="button" data-stats-range="' + key + '">' + statsRanges[key].label + "</button>";
+        }).join("");
+        Array.prototype.forEach.call(tabs.querySelectorAll("[data-stats-range]"), function (button) {
+          button.addEventListener("click", function () {
+            state.statsRange = button.getAttribute("data-stats-range");
+            renderStats();
+          });
+        });
+      }
+
+      function renderStats() {
+        var data = statsRanges[state.statsRange];
+        var chartTitles = {
+          day: "今天的时段分布",
+          week: "每天的已记录时间",
+          month: "每周的已记录时间",
+          year: "每月的已记录时间"
+        };
+        renderStatsTabs();
+        document.getElementById("statsSummary").textContent = data.summary;
+        document.getElementById("statsTotal").textContent = data.total;
+        document.getElementById("statsChange").textContent = data.change;
+        document.getElementById("chartHint").textContent = data.hint;
+        document.getElementById("chartTitle").textContent = chartTitles[state.statsRange];
+        document.getElementById("rankingHint").textContent = data.rankingHint;
+        document.getElementById("statsInsight").textContent = data.insight;
+
+        var max = Math.max.apply(Math, data.values);
+        var chart = document.getElementById("barChart");
+        chart.style.setProperty("--bar-count", data.values.length);
+        chart.setAttribute("aria-label", data.label + "时间趋势：" + data.labels.map(function (label, index) {
+          return label + " " + data.values[index] + "小时";
+        }).join("，"));
+        chart.innerHTML = data.values.map(function (value, index) {
+          var pct = Math.max(4, value / max * 100);
+          return (
+            '<div class="bar-column' + (value === max ? " is-peak" : "") + '">' +
+              '<div class="bar-space"><span class="bar-value" style="height:' + pct.toFixed(1) + '%" title="' + value + ' 小时"></span></div>' +
+              '<span class="bar-label">' + escapeHtml(data.labels[index]) + "</span>" +
+            "</div>"
+          );
+        }).join("");
+
+        var ranking = document.getElementById("statsRanking");
+        ranking.innerHTML = data.ranking.map(function (appIndex, rankIndex) {
+          var app = appCards[appIndex];
+          var value = state.statsRange === "day" ? app.today : app.evidence[0][1];
+          return (
+            '<li class="ranking-row">' +
+              '<span class="rank-number">' + String(rankIndex + 1).padStart(2, "0") + "</span>" +
+              iconMarkup(app, "tiny") +
+              '<div class="rank-copy"><strong>' + escapeHtml(app.name) + '</strong><span>' + escapeHtml(app.category) + "</span></div>" +
+              '<span class="rank-duration">' + escapeHtml(value) + "</span>" +
+            "</li>"
+          );
+        }).join("");
+      }
+
+      function renderCategories() {
+        var cumulative = 0;
+        var stops = categories.map(function (category) {
+          cumulative += category.value;
+          return cumulative;
+        });
+        var donut = document.getElementById("categoryDonut");
+        donut.style.setProperty("--p1", stops[0] + "%");
+        donut.style.setProperty("--p2", stops[1] + "%");
+        donut.style.setProperty("--p3", stops[2] + "%");
+        donut.style.setProperty("--c2", categories[1].color);
+        donut.style.setProperty("--c3", categories[2].color);
+        donut.setAttribute("aria-label", categories.map(function (item) {
+          return item.label + " " + item.value + "%";
+        }).join("，"));
+        document.getElementById("categoryTopPct").textContent = categories[0].value + "%";
+        document.getElementById("categoryList").innerHTML = categories.map(function (item) {
+          return '<li><i style="--swatch:' + item.color + '"></i><span>' + escapeHtml(item.label) + '</span><strong>' + item.value + "%</strong></li>";
+        }).join("");
+      }
+
+      function getStored(key, fallback) {
+        try {
+          var value = localStorage.getItem("timearc-prototype-" + key);
+          return value === null ? fallback : value;
+        } catch (error) {
+          return fallback;
+        }
+      }
+
+      function setStored(key, value) {
+        try {
+          localStorage.setItem("timearc-prototype-" + key, String(value));
+        } catch (error) {
+          return;
+        }
+      }
+
+      function setHomeWallpaper(dataUrl) {
+        var frame = document.querySelector(".device-frame");
+        var resetButton = document.getElementById("wallpaperResetButton");
+        if (dataUrl && /^data:image\//.test(dataUrl)) {
+          frame.style.setProperty("--app-wallpaper", 'url("' + dataUrl + '")');
+          frame.classList.add("has-wallpaper");
+          resetButton.hidden = false;
+        } else {
+          frame.style.removeProperty("--app-wallpaper");
+          frame.classList.remove("has-wallpaper");
+          resetButton.hidden = true;
+        }
+      }
+
+      function saveHomeWallpaper(dataUrl) {
+        var persisted = true;
+        try {
+          localStorage.setItem("timearc-prototype-home-wallpaper", dataUrl);
+        } catch (error) {
+          persisted = false;
+        }
+        setHomeWallpaper(dataUrl);
+        showToast(persisted ? "壁纸已应用到全部页面" : "壁纸已用于本次全局预览");
+      }
+
+      function importHomeWallpaper(file) {
+        if (!file || !/^image\//.test(file.type)) {
+          showToast("请选择一张图片");
+          return;
+        }
+        var reader = new FileReader();
+        reader.onerror = function () { showToast("壁纸读取失败"); };
+        reader.onload = function (event) {
+          var image = new Image();
+          image.onerror = function () { showToast("这张图片无法显示"); };
+          image.onload = function () {
+            if (Math.max(image.naturalWidth, image.naturalHeight) <= 3000 && file.size <= 2500000) {
+              saveHomeWallpaper(event.target.result);
+              return;
+            }
+            var maxSide = 2560;
+            var scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+            var canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+            canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+            var context = canvas.getContext("2d");
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = "high";
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+            saveHomeWallpaper(canvas.toDataURL("image/jpeg", 0.92));
+          };
+          image.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function initializeWallpaper() {
+        var saved = getStored("home-wallpaper", "");
+        if (saved && /^data:image\//.test(saved)) setHomeWallpaper(saved);
+      }
+
+      function setTheme(theme) {
+        state.theme = theme === "dark" ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", state.theme);
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", state.theme === "dark" ? "#111317" : "#F5F6F8");
+        document.getElementById("boardThemeButton").textContent = state.theme === "dark" ? "切换浅色" : "切换深色";
+        document.getElementById("darkModeSetting").checked = state.theme === "dark";
+        setStored("theme", state.theme);
+      }
+
+      function toggleTheme() {
+        setTheme(state.theme === "dark" ? "light" : "dark");
+      }
+
+      function bindSettings() {
+        Array.prototype.forEach.call(document.querySelectorAll("[data-setting]"), function (input) {
+          var key = input.getAttribute("data-setting");
+          if (key === "dark") return;
+          input.checked = getStored("setting-" + key, input.checked ? "1" : "0") === "1";
+          input.addEventListener("change", function () {
+            setStored("setting-" + key, input.checked ? "1" : "0");
+            showToast("设置已保存在本地原型");
+          });
+        });
+        document.getElementById("darkModeSetting").addEventListener("change", function (event) {
+          setTheme(event.target.checked ? "dark" : "light");
+        });
+      }
+
+      function openShare(context) {
+        state.shareContext = context;
+        state.posterStyle = "anniversary";
+        var anonymousDefault = getStored("setting-anonymous", "1") === "1";
+        state.shareAnonymous = anonymousDefault;
+        document.getElementById("shareAnonymous").checked = anonymousDefault;
+        renderSharePoster();
+        if (typeof shareDialog.showModal === "function") {
+          shareDialog.showModal();
+        } else {
+          shareDialog.setAttribute("open", "");
+        }
+      }
+
+      function buildShareModel(context) {
+        var anonymous = state.shareAnonymous;
+        var isReport = context.type === "report";
+        var firstDate = context.firstSeenAt ? context.firstSeenAt.split(" ")[0] : context.memoryRange;
+        var baseFacts = context.cardFacts || context.evidence.slice(0, 2);
+        return {
+          id: anonymous ? "private" : context.id,
+          name: anonymous ? context.anonymousName : context.name,
+          identityLabel: isReport
+            ? (anonymous ? context.anonymousName : context.name)
+            : "和" + (anonymous ? context.anonymousName : context.name),
+          title: anonymous ? (context.anonymousTitle || context.title) : context.title,
+          copyLead: isReport
+            ? (anonymous ? context.anonymousName : context.name) + "，有 " + (context.memoryNumber || "暂无") + (context.memoryUnit || "") + "留下了记录。"
+            : "和" + (anonymous ? context.anonymousName : context.name) + "的时间故事，来到第 " + (context.memoryNumber || "暂无") + (context.memoryUnit || "") + "。",
+          metricNumber: context.memoryNumber || "暂无",
+          metricUnit: context.memoryUnit || "",
+          metricLabel: isReport ? "这个月留下记录的日子" : "从现有记录中的第一次算起",
+          range: context.memoryRange || "",
+          referenceDate: context.referenceDate || "2026.07.11",
+          appColor: anonymous ? "#6C8588" : context.appColor,
+          appInk: anonymous ? "#112326" : context.appInk,
+          appSoft: anonymous ? "#C9DCDD" : context.appSoft,
+          icon: isReport ? "../../resources/icons/app_icon.svg" : (anonymous ? "" : (context.icon || "")),
+          iconFallback: isReport ? "TA" : (anonymous ? "" : (context.initial || "")),
+          reportTheme: context.reportTheme || "",
+          facts: [
+            [isReport ? "报告起点" : "第一次被记住", (context.firstMoment ? context.firstMoment + " · " : "") + firstDate],
+            baseFacts[0] || ["已记录", "暂无"]
+          ],
+          conversion: context.conversion,
+          conversionBasis: context.conversionBasis || "仅基于当前设备保留的聚合记录。",
+          scopeLine: "仅基于当前设备保留的前台记录，由 TimeArc 在本地生成。"
+        };
+      }
+
+      function renderSharePoster() {
+        var context = state.shareContext || appCards[state.cardIndex];
+        var model = buildShareModel(context);
+        var poster = document.getElementById("sharePoster");
+        poster.className = "share-poster poster-anniversary" + (model.reportTheme ? " report-theme-" + model.reportTheme : "");
+        poster.style.setProperty("--poster-app", model.appColor);
+        poster.style.setProperty("--poster-ink", model.appInk);
+        poster.innerHTML =
+          '<div class="poster-color-field"></div>' +
+          '<header class="poster-head">' +
+            '<span class="poster-brand"><img src="../../resources/icons/app_icon.svg" alt="">TimeArc</span>' +
+            '<span class="poster-date">' + escapeHtml(model.referenceDate) + "</span>" +
+          "</header>" +
+          '<section class="poster-statement">' +
+            '<span class="poster-app-name">' +
+              (model.icon ? '<span class="poster-app-icon"><img src="' + escapeHtml(model.icon) + '" alt=""></span>' : (model.iconFallback ? '<span class="poster-app-icon">' + escapeHtml(model.iconFallback) + '</span>' : '')) +
+              '<span>' + escapeHtml(model.identityLabel) + '</span>' +
+            "</span>" +
+            '<span class="poster-milestone-label">' + escapeHtml(model.metricLabel) + "</span>" +
+            '<span class="poster-milestone-number"><strong>' + escapeHtml(model.metricNumber) + '</strong><em>' + escapeHtml(model.metricUnit) + "</em></span>" +
+            '<span class="poster-range">' + escapeHtml(model.range) + "</span>" +
+            "<h3>" + escapeHtml(model.title) + "</h3>" +
+          "</section>" +
+          '<section class="poster-facts">' +
+            model.facts.map(function (item) {
+              return '<div class="poster-fact"><span>' + escapeHtml(item[0]) + '</span><strong>' + escapeHtml(item[1]) + "</strong></div>";
+            }).join("") +
+            '<p class="poster-conversion">' + escapeHtml(model.conversion) + "</p>" +
+          "</section>" +
+          '<footer class="poster-foot">' +
+            "<p>" + escapeHtml(model.scopeLine) + "</p>" +
+            '<span class="poster-seal">TA</span>' +
+          "</footer>";
+      }
+
+      function closeDialog(id) {
+        var dialog = document.getElementById(id);
+        if (dialog && typeof dialog.close === "function") dialog.close();
+      }
+
+      function copyShareText() {
+        var context = state.shareContext || appCards[state.cardIndex];
+        var model = buildShareModel(context);
+        var text = model.copyLead + "\n\n" +
+          model.title + "\n" + model.facts[0][0] + "：" + model.facts[0][1] + "\n" +
+          model.facts[1][0] + "：" + model.facts[1][1] + "\n\n" +
+          model.conversion + "\n" + model.conversionBasis + "\n\n" + model.scopeLine;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            showToast("分享文案已复制");
+          }).catch(function () {
+            fallbackCopy(text);
+          });
+        } else {
+          fallbackCopy(text);
+        }
+      }
+
+      function fallbackCopy(text) {
+        var area = document.createElement("textarea");
+        area.value = text;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+        showToast("分享文案已复制");
+      }
+
+      function roundedRectPath(ctx, x, y, width, height, radius) {
+        var r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + width, y, x + width, y + height, r);
+        ctx.arcTo(x + width, y + height, x, y + height, r);
+        ctx.arcTo(x, y + height, x, y, r);
+        ctx.arcTo(x, y, x + width, y, r);
+        ctx.closePath();
+      }
+
+      function wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+        var chars = Array.from(text);
+        var line = "";
+        var lines = [];
+        chars.forEach(function (char) {
+          var test = line + char;
+          if (ctx.measureText(test).width > maxWidth && line) {
+            lines.push(line);
+            line = char;
+          } else {
+            line = test;
+          }
+        });
+        if (line) lines.push(line);
+        lines = lines.slice(0, maxLines);
+        lines.forEach(function (value, index) {
+          ctx.fillText(value, x, y + index * lineHeight);
+        });
+        return y + lines.length * lineHeight;
+      }
+
+      function savePosterCanvas(canvas, model) {
+        canvas.toBlob(function (blob) {
+          if (!blob) {
+            showToast("图片生成失败");
+            return;
+          }
+          var url = URL.createObjectURL(blob);
+          var link = document.createElement("a");
+          link.href = url;
+          link.download = "timearc-" + model.id + "-" + model.referenceDate.replace(/\./g, "-") + ".png";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+          showToast("分享图片已生成");
+        }, "image/png");
+      }
+
+      function drawReportTheme(ctx, theme, width, height, appColor) {
+        var themes = {
+          meadow: ["#A9CE7E", "#4D8960", "#15372F", "#EDE59B"],
+          canopy: ["#829F61", "#365E48", "#172D29", "#F3D890"],
+          night: ["#74779C", "#38406B", "#171D3B", "#DDD8FF"],
+          sunrise: ["#D7A979", "#9C6C63", "#493A4B", "#FFE6AE"]
+        };
+        var colors = themes[theme] || [appColor, "#315D5B", "#14262A", "#D7EAE7"];
+        var sky = ctx.createLinearGradient(0, 0, width, height);
+        sky.addColorStop(0, colors[0]);
+        sky.addColorStop(0.52, colors[1]);
+        sky.addColorStop(1, colors[2]);
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, width, height);
+        ctx.globalAlpha = 0.52;
+        ctx.fillStyle = colors[3];
+        ctx.beginPath();
+        ctx.arc(width * 0.76, height * 0.15, width * 0.18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.36;
+        ctx.fillStyle = colors[1];
+        ctx.beginPath();
+        ctx.ellipse(width * 0.25, height * 0.92, width * 0.62, height * 0.24, -0.08, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.58;
+        ctx.fillStyle = colors[2];
+        ctx.beginPath();
+        ctx.ellipse(width * 0.78, height * 0.98, width * 0.72, height * 0.29, 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      function exportAnniversaryPoster(model) {
+        var canvas = document.createElement("canvas");
+        canvas.width = 1080;
+        canvas.height = 1920;
+        var ctx = canvas.getContext("2d");
+
+        function draw(appImage) {
+          drawReportTheme(ctx, model.reportTheme, canvas.width, canvas.height, model.appColor);
+
+          var overlay = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          overlay.addColorStop(0, "rgba(18,45,48,0.10)");
+          overlay.addColorStop(0.48, "rgba(10,29,30,0.48)");
+          overlay.addColorStop(1, "rgba(5,17,18,0.94)");
+          ctx.fillStyle = overlay;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.globalAlpha = 0.24;
+          ctx.fillStyle = model.appColor;
+          ctx.beginPath();
+          ctx.arc(930, 70, 380, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = '800 42px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          ctx.fillText("TimeArc", 82, 112);
+          ctx.textAlign = "right";
+          ctx.font = '700 30px "DIN Alternate","Bahnschrift",sans-serif';
+          ctx.fillText(model.referenceDate, 998, 112);
+          ctx.textAlign = "left";
+
+          ctx.fillStyle = "rgba(255,255,255,0.82)";
+          ctx.font = '700 34px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          var identityX = 82;
+          if (appImage) {
+            roundedRectPath(ctx, 82, 252, 82, 82, 18);
+            ctx.fillStyle = "rgba(255,255,255,0.92)";
+            ctx.fill();
+            ctx.drawImage(appImage, 88, 258, 70, 70);
+            identityX = 184;
+            ctx.fillStyle = "rgba(255,255,255,0.82)";
+          }
+          ctx.fillText(model.identityLabel, identityX, 309);
+          ctx.fillStyle = "rgba(255,255,255,0.66)";
+          ctx.font = '600 28px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          ctx.fillText(model.metricLabel, 82, 438);
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = '780 270px "DIN Alternate","Bahnschrift","PingFang SC",sans-serif';
+          ctx.fillText(model.metricNumber, 72, 720);
+          var numberWidth = ctx.measureText(model.metricNumber).width;
+          ctx.font = '750 62px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          ctx.fillText(model.metricUnit, Math.min(830, 82 + numberWidth + 28), 704);
+          ctx.fillStyle = "rgba(255,255,255,0.64)";
+          ctx.font = '650 28px "DIN Alternate","Bahnschrift",sans-serif';
+          ctx.fillText(model.range, 82, 790);
+
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = '700 76px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          wrapCanvasText(ctx, model.title, 82, 965, 850, 96, 3);
+
+          roundedRectPath(ctx, 62, 1260, 956, 250, 34);
+          ctx.fillStyle = "rgba(8,25,25,0.58)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(255,255,255,0.18)";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          model.facts.forEach(function (item, index) {
+            var y = 1345 + index * 92;
+            ctx.fillStyle = "rgba(255,255,255,0.64)";
+            ctx.font = '500 28px "PingFang SC","Microsoft YaHei UI",sans-serif';
+            ctx.fillText(item[0], 94, y);
+            ctx.textAlign = "right";
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = '700 31px "DIN Alternate","Bahnschrift","PingFang SC",sans-serif';
+            ctx.fillText(item[1], 986, y);
+            ctx.textAlign = "left";
+          });
+
+          ctx.fillStyle = "rgba(255,255,255,0.78)";
+          ctx.font = '500 29px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          var conversionBottom = wrapCanvasText(ctx, model.conversion, 82, 1595, 860, 43, 3);
+          ctx.fillStyle = "rgba(255,255,255,0.5)";
+          ctx.font = '500 22px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          wrapCanvasText(ctx, model.conversionBasis, 82, conversionBottom + 10, 820, 32, 2);
+
+          ctx.fillStyle = "rgba(255,255,255,0.58)";
+          ctx.font = '500 24px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          wrapCanvasText(ctx, model.scopeLine, 82, 1810, 650, 34, 2);
+          roundedRectPath(ctx, 860, 1740, 138, 138, 69);
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          ctx.fill();
+          ctx.fillStyle = "#17363A";
+          ctx.font = '800 34px "DIN Alternate","Bahnschrift",sans-serif';
+          ctx.textAlign = "center";
+          ctx.fillText("TA", 929, 1824);
+          ctx.textAlign = "left";
+
+          savePosterCanvas(canvas, model);
+        }
+
+        if (model.icon) {
+          var appImage = new Image();
+          appImage.onload = function () { draw(appImage); };
+          appImage.onerror = function () { draw(null); };
+          appImage.src = model.icon;
+        } else {
+          draw(null);
+        }
+      }
+
+      function exportPoster() {
+        var context = state.shareContext || appCards[state.cardIndex];
+        var model = buildShareModel(context);
+        exportAnniversaryPoster(model);
+        return;
+        var canvas = document.createElement("canvas");
+        canvas.width = 1080;
+        canvas.height = 1920;
+        var ctx = canvas.getContext("2d");
+        var dark = state.posterStyle === "ticket";
+        var clean = state.posterStyle === "clean";
+        var bg = dark ? "#17191D" : "#F7F8FA";
+        var ink = dark ? "#F2F4F6" : "#17191D";
+        var copy = dark ? "#B7BEC7" : "#58606A";
+        var line = dark ? "rgba(242,244,246,0.16)" : "#DCE1E6";
+        var fieldHeight = clean ? 390 : (dark ? 1920 : 760);
+
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (!dark || !clean) {
+          ctx.fillStyle = dark ? "#17191D" : model.appColor;
+          ctx.fillRect(0, 0, canvas.width, fieldHeight);
+        }
+        if (clean) {
+          ctx.fillStyle = model.appColor;
+          ctx.fillRect(0, 360, canvas.width, 30);
+        }
+        if (dark) {
+          ctx.globalAlpha = 0.72;
+          ctx.fillStyle = model.appColor;
+          ctx.beginPath();
+          ctx.arc(980, 10, 370, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        } else if (!clean) {
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = "#FFFFFF";
+          ctx.beginPath();
+          ctx.arc(930, 40, 300, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.fillStyle = clean ? "#17191D" : (dark ? "#F2F4F6" : model.appInk);
+        ctx.font = '800 42px "PingFang SC","Microsoft YaHei UI",sans-serif';
+        ctx.fillText("TimeArc", 82, 112);
+        ctx.textAlign = "right";
+        ctx.font = '700 30px "DIN Alternate","Bahnschrift",sans-serif';
+        ctx.fillText(model.referenceDate, 998, 112);
+        ctx.textAlign = "left";
+
+        var statementY = clean ? 520 : 290;
+        ctx.fillStyle = clean ? "#2D7780" : (dark ? model.appSoft : model.appInk);
+        ctx.font = '700 32px "PingFang SC","Microsoft YaHei UI",sans-serif';
+        ctx.fillText(model.identityLabel, 82, statementY);
+        ctx.fillStyle = clean ? "#58606A" : (dark ? "#AEB5BD" : model.appInk);
+        ctx.font = '600 27px "PingFang SC","Microsoft YaHei UI",sans-serif';
+        ctx.fillText(model.metricLabel, 82, statementY + 64);
+        ctx.fillStyle = clean ? "#17191D" : (dark ? "#F2F4F6" : model.appInk);
+        ctx.font = '780 170px "DIN Alternate","Bahnschrift","PingFang SC",sans-serif';
+        ctx.fillText(model.metricNumber, 76, statementY + 245);
+        var metricWidth = ctx.measureText(model.metricNumber).width;
+        ctx.font = '750 46px "PingFang SC","Microsoft YaHei UI",sans-serif';
+        ctx.fillText(model.metricUnit, Math.min(840, 82 + metricWidth + 22), statementY + 230);
+        ctx.fillStyle = clean ? "#58606A" : (dark ? "#AEB5BD" : model.appInk);
+        ctx.font = '600 25px "DIN Alternate","Bahnschrift",sans-serif';
+        ctx.fillText(model.range, 82, statementY + 300);
+        ctx.fillStyle = clean ? "#17191D" : (dark ? "#F2F4F6" : model.appInk);
+        ctx.font = '700 70px "PingFang SC","Microsoft YaHei UI",sans-serif';
+        var titleBottom = wrapCanvasText(ctx, model.title, 82, statementY + 405, 820, 88, 3);
+
+        var factsY = Math.max(dark ? 1050 : (clean ? 1190 : 990), titleBottom + 90);
+        ctx.fillStyle = bg;
+        if (!dark) ctx.fillRect(0, factsY - 90, 1080, 1920 - factsY + 90);
+
+        var visibleEvidence = model.facts;
+        visibleEvidence.forEach(function (item, index) {
+          var y = factsY + index * 150;
+          ctx.fillStyle = copy;
+          ctx.font = '500 31px "PingFang SC","Microsoft YaHei UI",sans-serif';
+          ctx.fillText(item[0], 82, y);
+          ctx.textAlign = "right";
+          ctx.fillStyle = ink;
+          ctx.font = '700 38px "DIN Alternate","Bahnschrift","PingFang SC",sans-serif';
+          ctx.fillText(item[1], 998, y);
+          ctx.textAlign = "left";
+          ctx.strokeStyle = line;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(82, y + 55);
+          ctx.lineTo(998, y + 55);
+          ctx.stroke();
+        });
+
+        ctx.fillStyle = copy;
+        ctx.font = '500 30px "PingFang SC","Microsoft YaHei UI",sans-serif';
+        var noteBottom = wrapCanvasText(ctx, model.conversion, 82, factsY + 330, 880, 46, 3);
+        ctx.fillStyle = copy;
+        ctx.font = '500 22px "PingFang SC","Microsoft YaHei UI",sans-serif';
+        wrapCanvasText(ctx, model.conversionBasis, 82, noteBottom + 10, 860, 32, 2);
+
+        ctx.fillStyle = copy;
+        ctx.font = '500 32px "PingFang SC","Microsoft YaHei UI",sans-serif';
+        wrapCanvasText(ctx, model.scopeLine, 82, 1770, 650, 40, 3);
+
+        ctx.fillStyle = dark ? model.appColor : "#17191D";
+        roundedRectPath(ctx, 860, 1700, 138, 138, 69);
+        ctx.fill();
+        ctx.fillStyle = dark ? model.appInk : "#F7F8FA";
+        ctx.font = '800 34px "DIN Alternate","Bahnschrift",sans-serif';
+        ctx.textAlign = "center";
+        ctx.fillText("TA", 929, 1784);
+        ctx.textAlign = "left";
+
+        savePosterCanvas(canvas, model);
+      }
+
+      function renderStory() {
+        var report = monthlyReports[state.reportMonth] || monthlyReports.june;
+        var slide = storySlides[state.storyIndex];
+        var root = document.getElementById("storySlide");
+        var story = document.getElementById("reportStory");
+        story.className = "report-story report-theme-" + report.theme;
+        root.style.setProperty("--story-accent", slide.accent);
+        root.innerHTML =
+          '<p class="story-label">' + escapeHtml(slide.label) + "</p>" +
+          '<h2 id="reportStoryTitle">' + escapeHtml(slide.title) + "</h2>" +
+          (slide.number ? '<strong class="story-number">' + escapeHtml(slide.number) + "</strong>" : "") +
+          '<p class="story-body">' + escapeHtml(slide.body) + "</p>" +
+          '<div class="story-evidence">' + slide.evidence.map(function (item) {
+            return "<p>" + escapeHtml(item) + "</p>";
+          }).join("") + "</div>";
+
+        document.getElementById("storyProgress").innerHTML = storySlides.map(function (_, index) {
+          var className = index < state.storyIndex ? " is-done" : (index === state.storyIndex ? " is-active" : "");
+          return '<button type="button" class="' + className + '" data-story-index="' + index + '" aria-label="第 ' + (index + 1) + ' 页"></button>';
+        }).join("");
+        Array.prototype.forEach.call(document.querySelectorAll("[data-story-index]"), function (button) {
+          button.addEventListener("click", function () {
+            state.storyIndex = Number(button.getAttribute("data-story-index"));
+            renderStory();
+          });
+        });
+        document.getElementById("storyPrev").disabled = state.storyIndex === 0;
+        document.getElementById("storyNext").disabled = state.storyIndex === storySlides.length - 1;
+        document.getElementById("storyShare").textContent = "生成" + reportData.name.slice(0, 2) + "分享卡";
+      }
+
+      function selectMonthlyReport(monthId) {
+        var selected = monthlyReports[monthId] || monthlyReports.june;
+        state.reportMonth = monthlyReports[monthId] ? monthId : "june";
+        reportData = selected.data;
+        reportData.reportTheme = selected.theme;
+        storySlides = selected.slides;
+        state.storyIndex = 0;
+        var monthCode = reportData.relationship.split(" ")[0];
+        var monthParts = monthCode.split(".");
+        var monthName = reportData.name.replace("时间报告", "");
+        var featuredCover = document.getElementById("featuredReportCover");
+        featuredCover.className = "report-cover report-theme-" + selected.theme;
+        document.getElementById("featuredReportMonth").textContent = monthParts[0] + "年" + Number(monthParts[1]) + "月时间报告";
+        document.getElementById("featuredReportTitle").textContent = reportData.title;
+        document.getElementById("featuredReportSummary").textContent = storySlides[0].body;
+        document.getElementById("lakeMonthButton").textContent = monthCode;
+        document.getElementById("openReportButton").setAttribute("data-report-month", state.reportMonth);
+        document.getElementById("openReportButton").textContent = "打开" + monthName + "报告";
+        renderStory();
+      }
+
+      function openReport(monthId) {
+        selectMonthlyReport(monthId || state.reportMonth);
+        if (typeof reportDialog.showModal === "function") {
+          reportDialog.showModal();
+        } else {
+          reportDialog.setAttribute("open", "");
+        }
+        window.setTimeout(function () {
+          document.getElementById("reportStory").focus({ preventScroll: true });
+        }, 0);
+      }
+
+      function shiftStory(step) {
+        state.storyIndex = Math.max(0, Math.min(storySlides.length - 1, state.storyIndex + step));
+        selectMonthlyReport("june");
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("is-visible");
+        if (state.toastTimer) window.clearTimeout(state.toastTimer);
+        state.toastTimer = window.setTimeout(function () {
+          toast.classList.remove("is-visible");
+        }, 2200);
+      }
+
+      function updateClock() {
+        var now = new Date();
+        document.getElementById("clockText").textContent =
+          String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+      }
+
+      function bindGlobalEvents() {
+        navButtons.forEach(function (button) {
+          button.addEventListener("click", function () {
+            goToPage(button.getAttribute("data-page-target"));
+          });
+        });
+        pageJumpButtons.forEach(function (button) {
+          button.addEventListener("click", function () {
+            goToPage(button.getAttribute("data-go-page"));
+          });
+        });
+        Array.prototype.forEach.call(document.querySelectorAll("[data-home-target]"), function (button) {
+          button.addEventListener("click", function () {
+            var target = button.getAttribute("data-home-target");
+            if (target === "cards") {
+              document.getElementById("todayCards").scrollIntoView({ behavior: "smooth", block: "start" });
+            } else {
+              goToPage(target);
+            }
+          });
+        });
+        document.getElementById("wallpaperUploadButton").addEventListener("click", function () {
+          document.getElementById("wallpaperInput").click();
+        });
+        document.getElementById("wallpaperInput").addEventListener("change", function (event) {
+          var file = event.target.files && event.target.files[0];
+          importHomeWallpaper(file);
+          event.target.value = "";
+        });
+        document.getElementById("wallpaperResetButton").addEventListener("click", function () {
+          try { localStorage.removeItem("timearc-prototype-home-wallpaper"); } catch (error) { /* session-only reset */ }
+          setHomeWallpaper("");
+          showToast("已恢复默认壁纸");
+        });
+        document.getElementById("prevCard").addEventListener("click", function () { shiftCard(-1); });
+        document.getElementById("nextCard").addEventListener("click", function () { shiftCard(1); });
+        document.getElementById("scenarioSelect").addEventListener("change", function (event) {
+          setScenario(event.target.value);
+          goToPage("home");
+        });
+        document.getElementById("boardThemeButton").addEventListener("click", toggleTheme);
+        Array.prototype.forEach.call(document.querySelectorAll(".theme-shortcut"), function (button) {
+          button.addEventListener("click", toggleTheme);
+        });
+        document.getElementById("statsExportButton").addEventListener("click", function () {
+          showToast("原型：统计报告将导出为脱敏 JSON");
+        });
+        Array.prototype.forEach.call(document.querySelectorAll("[data-report-month]"), function (button) {
+          button.addEventListener("click", function () {
+            openReport(button.getAttribute("data-report-month"));
+          });
+        });
+        document.getElementById("lakeMonthButton").addEventListener("click", function () {
+          document.querySelector(".archive-list").scrollIntoView({ behavior: "smooth", block: "center" });
+          showToast("从归档中选择月份");
+        });
+        Array.prototype.forEach.call(document.querySelectorAll("[data-close-dialog]"), function (button) {
+          button.addEventListener("click", function () {
+            closeDialog(button.getAttribute("data-close-dialog"));
+          });
+        });
+        document.getElementById("shareAnonymous").addEventListener("change", function (event) {
+          state.shareAnonymous = event.target.checked;
+          renderSharePoster();
+        });
+        document.getElementById("copyShareText").addEventListener("click", copyShareText);
+        document.getElementById("savePoster").addEventListener("click", exportPoster);
+        document.getElementById("storyPrev").addEventListener("click", function () { shiftStory(-1); });
+        document.getElementById("storyNext").addEventListener("click", function () { shiftStory(1); });
+        document.getElementById("storyShare").addEventListener("click", function () {
+          openShare(reportData);
+        });
+        document.addEventListener("keydown", function (event) {
+          if (!reportDialog.open) return;
+          if (event.key === "ArrowLeft") shiftStory(-1);
+          if (event.key === "ArrowRight") shiftStory(1);
+        });
+      }
+
+      function initialize() {
+        state.theme = getStored("theme", "light");
+        setTheme(state.theme);
+        initializeWallpaper();
+        renderCards();
+        renderCategories();
+        renderStats();
+        renderHomeState();
+        renderStory();
+        bindSwipe();
+        bindSettings();
+        bindGlobalEvents();
+        updateClock();
+        window.setInterval(updateClock, 30000);
+        if (typeof ResizeObserver !== "undefined") {
+          var observer = new ResizeObserver(function () { updateCarousel(false); });
+          observer.observe(cardViewport);
+        }
+      }
+
+      initialize();
+    }());
+  </script>
+</body>
+</html>

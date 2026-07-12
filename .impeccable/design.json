@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-11T08:25:00+08:00",
+  "title": "Design System: TimeArc Mobile",
+  "extensions": {
+    "colorMeta": {
+      "primary-lake": {
+        "role": "primary",
+        "displayName": "Lake Signal",
+        "canonical": "#2D7780",
+        "tonalRamp": ["#0D2629", "#173B3F", "#205157", "#296A71", "#3C8790", "#6AA8AE", "#A3CDD1", "#DAEEF0"]
+      },
+      "primary-lake-soft": {
+        "role": "primary-container",
+        "displayName": "Lake Wash",
+        "canonical": "#DAEEF0",
+        "tonalRamp": ["#10292C", "#1D4145", "#315D62", "#507A7F", "#78A0A4", "#A3C4C7", "#C5DFE1", "#EFF8F9"]
+      },
+      "neutral-canvas": {
+        "role": "neutral",
+        "displayName": "Cool Canvas",
+        "canonical": "#F5F6F8",
+        "tonalRamp": ["#202226", "#383B40", "#555960", "#747981", "#969CA5", "#BBC0C7", "#DDE0E4", "#F5F6F8"]
+      },
+      "neutral-surface": {
+        "role": "neutral",
+        "displayName": "Clean Sheet",
+        "canonical": "#FFFFFF",
+        "tonalRamp": ["#242424", "#3F3F3F", "#5D5D5D", "#7B7B7B", "#9D9D9D", "#C2C2C2", "#E4E4E4", "#FFFFFF"]
+      },
+      "neutral-surface-raised": {
+        "role": "neutral-variant",
+        "displayName": "Pressed Sheet",
+        "canonical": "#ECEFF2",
+        "tonalRamp": ["#202326", "#373B3F", "#52575C", "#6F757B", "#90979E", "#B4BBC1", "#D4D9DE", "#F4F6F8"]
+      },
+      "neutral-ink": {
+        "role": "on-surface",
+        "displayName": "Album Ink",
+        "canonical": "#17191D",
+        "tonalRamp": ["#17191D", "#30333A", "#4A4E57", "#676C76", "#888E98", "#ADB2BA", "#D3D6DA", "#F5F6F8"]
+      },
+      "neutral-copy": {
+        "role": "on-surface-variant",
+        "displayName": "Graphite Copy",
+        "canonical": "#58606A",
+        "tonalRamp": ["#171A1D", "#2B3035", "#41484F", "#58606A", "#78818B", "#9EA5AD", "#C7CBD0", "#EFF0F2"]
+      },
+      "neutral-muted": {
+        "role": "muted",
+        "displayName": "Archive Gray",
+        "canonical": "#626B74",
+        "tonalRamp": ["#171A1D", "#2C3034", "#42484E", "#535B63", "#626B74", "#8B939B", "#BEC3C8", "#F0F2F3"]
+      },
+      "neutral-line": {
+        "role": "outline",
+        "displayName": "Hairline",
+        "canonical": "#DCE1E6",
+        "tonalRamp": ["#24282C", "#3D4349", "#596169", "#778087", "#99A1A8", "#BBC1C7", "#DCE1E6", "#F5F7F9"]
+      },
+      "memory-brown": {
+        "role": "content-dark",
+        "displayName": "Memory Brown",
+        "canonical": "#2D2724",
+        "tonalRamp": ["#181412", "#2D2724", "#463C37", "#62534B", "#816D62", "#A58E82", "#CEB9AE", "#F5EBE5"]
+      },
+      "memory-brown-raised": {
+        "role": "content-dark-variant",
+        "displayName": "Raised Memory Brown",
+        "canonical": "#423A36",
+        "tonalRamp": ["#1E1917", "#342D29", "#4D433E", "#685A53", "#87746B", "#AA9287", "#D1BBB0", "#F7ECE7"]
+      },
+      "dark-canvas": {
+        "role": "neutral-dark",
+        "displayName": "Night Canvas",
+        "canonical": "#111317",
+        "tonalRamp": ["#111317", "#292C31", "#43474D", "#60656C", "#80868E", "#A6ABB1", "#CED1D5", "#F4F5F6"]
+      },
+      "dark-surface": {
+        "role": "neutral-dark",
+        "displayName": "Night Sheet",
+        "canonical": "#1A1D22",
+        "tonalRamp": ["#131519", "#2C3036", "#474B52", "#646970", "#858A92", "#A9AEB4", "#D0D3D7", "#F5F6F7"]
+      },
+      "dark-surface-raised": {
+        "role": "neutral-dark-variant",
+        "displayName": "Night Raised Sheet",
+        "canonical": "#23272D",
+        "tonalRamp": ["#17191D", "#30343A", "#4A4F56", "#686D74", "#898E96", "#ADB1B7", "#D2D4D8", "#F6F6F7"]
+      },
+      "dark-ink": {
+        "role": "on-dark",
+        "displayName": "Night Ink",
+        "canonical": "#F2F4F6",
+        "tonalRamp": ["#202225", "#393C40", "#55595E", "#74797F", "#969BA1", "#BBC0C5", "#DDE0E3", "#F7F8F9"]
+      },
+      "dark-copy": {
+        "role": "on-dark-variant",
+        "displayName": "Night Copy",
+        "canonical": "#B7BEC7",
+        "tonalRamp": ["#1D2023", "#34383D", "#4D5359", "#697178", "#889198", "#AAB2B9", "#D0D4D8", "#F4F5F6"]
+      },
+      "dark-line": {
+        "role": "outline-dark",
+        "displayName": "Night Hairline",
+        "canonical": "#30353B",
+        "tonalRamp": ["#17191C", "#30353B", "#4B5259", "#697178", "#899198", "#ADB3B9", "#D2D5D8", "#F5F6F7"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Memory Statement", "purpose": "Share-card statements and monthly recap titles only." },
+      "headline": { "displayName": "Screen Headline", "purpose": "Page titles and the dominant story on a screen." },
+      "title": { "displayName": "Content Title", "purpose": "App names, reports, and setting groups." },
+      "body": { "displayName": "Narrative Body", "purpose": "Readable personal storytelling and explanations." },
+      "label": { "displayName": "Control Label", "purpose": "Tabs, buttons, filters, and evidence labels." }
+    },
+    "shadows": [
+      { "name": "resting-lift", "value": "0 2px 8px rgba(23, 25, 29, 0.08)", "purpose": "An isolated memory card resting on the canvas." },
+      { "name": "modal-lift", "value": "0 16px 40px rgba(10, 16, 20, 0.22)", "purpose": "Share preview and monthly story overlay only." },
+      { "name": "dark-resting-lift", "value": "0 2px 8px rgba(0, 0, 0, 0.24)", "purpose": "Dark-mode equivalent of resting lift." }
+    ],
+    "motion": [
+      { "name": "state-fast", "value": "180ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Buttons, tabs, chips, and switches." },
+      { "name": "card-flip", "value": "440ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Communicates the front-to-story transition." },
+      { "name": "story-page", "value": "260ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Monthly story page changes and share preview." },
+      { "name": "reduced-motion", "value": "0ms linear", "purpose": "Instant state changes when reduced motion is requested." }
+    ],
+    "breakpoints": [
+      { "name": "phone-small", "value": "360px" },
+      { "name": "phone", "value": "430px" },
+      { "name": "tablet", "value": "768px" },
+      { "name": "prototype-board", "value": "1100px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one primary action in a mobile state.",
+      "html": "<button class=\"ds-btn-primary\">生成分享卡</button>",
+      "css": ".ds-btn-primary{min-height:44px;padding:12px 18px;border:0;border-radius:10px;background:#2D7780;color:#FFFFFF;font:600 13px/1.3 ui-sans-serif,-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;transition:transform 180ms cubic-bezier(.16,1,.3,1),background 180ms}.ds-btn-primary:hover{background:#286D74}.ds-btn-primary:focus-visible{outline:3px solid #A3CDD1;outline-offset:2px}.ds-btn-primary:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A neutral supporting action without an outline-card treatment.",
+      "html": "<button class=\"ds-btn-secondary\">查看证据</button>",
+      "css": ".ds-btn-secondary{min-height:44px;padding:12px 18px;border:0;border-radius:10px;background:#ECEFF2;color:#17191D;font:600 13px/1.3 ui-sans-serif,-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;transition:transform 180ms cubic-bezier(.16,1,.3,1),background 180ms}.ds-btn-secondary:hover{background:#DCE1E6}.ds-btn-secondary:focus-visible{outline:3px solid #A3CDD1;outline-offset:2px}.ds-btn-secondary:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Range Chip",
+      "kind": "chip",
+      "description": "A compact period selector with tonal selected state.",
+      "html": "<button class=\"ds-chip is-selected\" aria-pressed=\"true\">本月</button>",
+      "css": ".ds-chip{min-height:36px;padding:8px 14px;border:0;border-radius:999px;background:#ECEFF2;color:#58606A;font:600 13px/1.3 ui-sans-serif,-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif}.ds-chip.is-selected{background:#DAEEF0;color:#17191D}.ds-chip:focus-visible{outline:3px solid #A3CDD1;outline-offset:2px}.ds-chip:active{transform:scale(.98)}"
+    },
+    {
+      "name": "Narrative Field",
+      "kind": "input",
+      "description": "A persistent-label field for editable share copy.",
+      "html": "<label class=\"ds-field\"><span>分享标题</span><input value=\"深夜里，音乐陪我走了很久\"></label>",
+      "css": ".ds-field{display:grid;gap:6px;color:#58606A;font:600 13px/1.3 ui-sans-serif,-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif}.ds-field input{min-height:44px;padding:11px 12px;border:0;border-radius:10px;background:#ECEFF2;color:#17191D;font:400 15px/1.4 inherit}.ds-field input:focus{outline:2px solid #2D7780;outline-offset:1px}"
+    },
+    {
+      "name": "Memory Card",
+      "kind": "card",
+      "refersTo": "card-memory",
+      "description": "A Memory Lake card whose center becomes nearly clear over wallpaper, with one story protected by a lower readability gradient.",
+      "html": "<article class=\"ds-memory-card\"><p class=\"ds-memory-kicker\">今天被记住的时间</p><h3>深夜里，音乐陪你走了 2 小时 18 分</h3><p>最长的一次连续陪伴发生在 23:42。</p></article>",
+      "css": ".ds-memory-card{max-width:320px;padding:20px;border:1px solid rgba(255,255,255,.14);border-radius:16px;background:rgba(7,17,15,.42);color:#FFFFFF;box-shadow:0 2px 8px rgba(3,11,9,.24);backdrop-filter:blur(8px);font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif}.ds-memory-card h3{margin:8px 0 10px;font-size:24px;line-height:1.2;letter-spacing:-.018em}.ds-memory-card p{margin:0;color:rgba(255,255,255,.72);font-size:15px;line-height:1.6}.ds-memory-kicker{font-size:13px!important;font-weight:600;color:rgba(255,255,255,.72)!important}"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "nav-bottom",
+      "description": "Stable four-tab mobile navigation with safe-area room.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"主导航\"><button class=\"is-active\">首页</button><button>统计</button><button>记忆湖</button><button>我的</button></nav>",
+      "css": ".ds-nav{display:grid;grid-template-columns:repeat(4,1fr);min-height:72px;padding:8px 12px;background:#FFFFFF;box-shadow:0 -2px 8px rgba(23,25,29,.06)}.ds-nav button{min-height:48px;border:0;border-radius:10px;background:transparent;color:#58606A;font:600 12px/1.2 ui-sans-serif,-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif}.ds-nav button.is-active{background:#DAEEF0;color:#17191D}.ds-nav button:focus-visible{outline:3px solid #A3CDD1;outline-offset:1px}"
+    },
+    {
+      "name": "App Memory Back",
+      "kind": "custom",
+      "description": "A warm-brown two-column time encyclopedia that separates retained-record facts from qualified metaphor.",
+      "html": "<article class=\"ds-card-back\"><header>时间百科 · 网易云音乐</header><section class=\"ds-encyclopedia\"><div><span>现有记录中的第一次</span><strong>早春的深夜</strong><small>2025.03.13 22:47</small></div><div><span>累计相遇</span><strong>317 段</strong><small>前台记录片段</small></div></section><h3>深夜里，声音陪你走了很久</h3><p>若按 45 分钟一张专辑换算，这段时长约有 129 张专辑那么长。</p></article>",
+      "css": ".ds-card-back{max-width:320px;padding:16px;border-radius:16px;background:#2D2724;color:#F7F2EE;font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif}.ds-card-back header{font-size:12px;font-weight:700}.ds-encyclopedia{display:grid;grid-template-columns:1fr 1fr;margin:10px 0;padding:0;border:1px solid rgba(255,255,255,.07);border-radius:17px;background:#423A36;overflow:hidden}.ds-encyclopedia>div{display:grid;gap:7px;padding:14px}.ds-encyclopedia>div+div{border-left:1px solid rgba(255,255,255,.09)}.ds-encyclopedia span,.ds-encyclopedia small{color:#BDB2AC;font-size:10px}.ds-card-back h3{margin:14px 0 10px;font-size:21px;line-height:1.24}.ds-card-back p{margin:0;color:#D9D0CB;font-size:11px;line-height:1.5}"
+    },
+    {
+      "name": "Private Time Cover",
+      "kind": "custom",
+      "description": "An optional global user-wallpaper layer with readable frosted controls, a solid fallback, and exactly three factual archive metrics.",
+      "html": "<section class=\"ds-time-cover\"><header><strong>TimeArc</strong><button>更换壁纸</button></header><dl><div><dt>记录起点</dt><dd>2025.03.13</dd></div><div><dt>累计记录</dt><dd>812h</dd></div><div><dt>记录天数</dt><dd>168天</dd></div></dl></section>",
+      "css": ".ds-time-cover{min-height:222px;padding:54px 16px 14px;background:#24463f;color:#fff}.ds-time-cover header,.ds-time-cover dl{border:1px solid rgba(255,255,255,.16);border-radius:16px;background:rgba(8,19,15,.48);backdrop-filter:blur(18px)}.ds-time-cover header{display:flex;justify-content:space-between;padding:7px 10px}.ds-time-cover dl{display:grid;grid-template-columns:repeat(3,1fr);margin:12px 0 0;padding:13px 4px}.ds-time-cover dt{font-size:10px;opacity:.68}.ds-time-cover dd{order:-1;margin:0;font-size:16px;font-weight:760}"
+    },
+    {
+      "name": "Share Keepsake",
+      "kind": "custom",
+      "description": "The single 9:16 share format combines real app identity, relationship-day or record-day value, dates, evidence, and a qualified conversion.",
+      "html": "<article class=\"ds-keepsake\"><header>TimeArc · 2026.07.11</header><p><img alt=\"\"> 和网易云音乐</p><strong>486<em>天</em></strong><small>2025.03.13 - 2026.07.11</small><h3>深夜里，声音陪你走了很久</h3></article>",
+      "css": ".ds-keepsake{display:grid;align-content:start;width:318px;aspect-ratio:9/16;padding:20px;border-radius:18px;background:linear-gradient(155deg,#B06A76,#653E48 48%,#14262A);color:#fff}.ds-keepsake header{font-size:11px;font-weight:800}.ds-keepsake p{display:flex;align-items:center;gap:9px;margin:92px 0 8px;font-size:10px}.ds-keepsake p img{width:34px;height:34px;border-radius:10px;background:#fff}.ds-keepsake>strong{font:780 86px/.86 ui-rounded,sans-serif}.ds-keepsake em{font-size:16px;font-style:normal}.ds-keepsake small{opacity:.68}.ds-keepsake h3{max-width:12ch;margin-top:24px;font-size:24px;line-height:1.2}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Pocket Time Album",
+    "overview": "TimeArc Mobile feels like a compact album made from measured life. An optional user wallpaper extends through the whole app, while the solid-color default and readable frosted surfaces keep every tab calm. Home centers one translucent collectible card and tucks its neighbors underneath. The warm-brown card back reads like a time encyclopedia with one-tap sharing, while each monthly report uses an original code-drawn seasonal scene.",
+    "keyCharacteristics": [
+      "Cool neutral canvas with one restrained lake-teal control accent.",
+      "One optional privacy-safe user wallpaper supports every tab; the default stays solid and image-free.",
+      "App color appears as content inside a card, never as global navigation chrome.",
+      "Editorial hierarchy without display-font theatrics.",
+      "One primary story, a two-column time encyclopedia, and two evidence facts per memory card.",
+      "Motion explains flip, navigation, and share-preview state only."
+    ],
+    "rules": [
+      { "name": "The One Signal Rule", "body": "Lake teal is the only global accent. Per-app colors are content data and stay inside app artwork, charts, and app identity marks.", "section": "colors" },
+      { "name": "The Proof Contrast Rule", "body": "Body copy must meet WCAG AA. Muted text is never reduced below readable contrast to appear elegant.", "section": "colors" },
+      { "name": "The One Breath Rule", "body": "A narrative card leads with one sentence that can be read in a breath. Evidence follows; it never competes at the same typographic size.", "section": "typography" },
+      { "name": "The Honest Number Rule", "body": "Use tabular figures for measured values. Conversions always include words such as 相当于 or 若换算 and never masquerade as recorded behavior.", "section": "typography" },
+      { "name": "The Flat Until Needed Rule", "body": "Repeated list rows and statistics remain flat. If every block casts a shadow, the hierarchy has failed.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the four-tab information architecture and make each tab deliver distinct information.",
+      "Do keep the current card centered, tuck neighboring cards beneath it, and preserve readable scrims over a global wallpaper.",
+      "Do derive every personal sentence from real metrics or label it as a conversion.",
+      "Do show an anonymized preview before export or sharing.",
+      "Do support full light and dark themes, safe-area insets, large text, and reduced motion.",
+      "Do preserve app identity with runtime system icons, known repository assets, or a generic initial fallback."
+    ],
+    "donts": [
+      "Don't build generic analytics dashboards from repeated bordered statistic cards.",
+      "Don't use dark cyber-glass surfaces with low contrast, decorative neon, or effects that compete with content.",
+      "Don't place technical implementation copy, package names, database details, or platform APIs on primary product surfaces.",
+      "Don't use productivity scoring, moral judgments, or language that frames leisure and communication as failure.",
+      "Don't use vague personality labels, fabricated precision, or metaphors presented as measured facts.",
+      "Don't write first use, play count, or open count when retained data only proves foreground record segments.",
+      "Don't directly imitate reference products or another product's proprietary visual identity.",
+      "Don't combine a decorative border with a wide soft shadow, use card radii above 18px, or nest cards inside cards.",
+      "Don't expose raw window titles, contacts, URLs, or other sensitive context in a share image."
+    ]
+  }
+}

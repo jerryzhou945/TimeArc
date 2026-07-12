@@ -3,8 +3,6 @@ package com.timearc.mobile.usage;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.os.Build;
 
 import java.util.ArrayList;
@@ -42,7 +40,8 @@ public final class UsageEventsReader {
             return Collections.emptyList();
         }
 
-        PackageManager packageManager = context.getPackageManager();
+        Map<String, AndroidAppMetadataResolver.AppMetadata> metadataCache =
+                new HashMap<>();
         Map<String, Long> openSessions = new HashMap<>();
         ArrayList<UsageSessionDto> sessions = new ArrayList<>();
         UsageEvents.Event event = new UsageEvents.Event();
@@ -69,10 +68,13 @@ public final class UsageEventsReader {
                 continue;
             }
 
+            AndroidAppMetadataResolver.AppMetadata metadata =
+                    metadataFor(context, metadataCache, packageName);
             sessions.add(new UsageSessionDto(
                     packageName,
                     UsageStatsReader.toTimeArcAppIdentifier(packageName),
-                    resolveAppLabel(packageManager, packageName),
+                    metadata.label,
+                    metadata.iconPath,
                     startTimeMs,
                     eventTimeMs,
                     SOURCE_USAGE_EVENTS,
@@ -83,10 +85,13 @@ public final class UsageEventsReader {
             long startTimeMs = entry.getValue();
             if (endMs > startTimeMs) {
                 String packageName = entry.getKey();
+                AndroidAppMetadataResolver.AppMetadata metadata =
+                        metadataFor(context, metadataCache, packageName);
                 sessions.add(new UsageSessionDto(
                         packageName,
                         UsageStatsReader.toTimeArcAppIdentifier(packageName),
-                        resolveAppLabel(packageManager, packageName),
+                        metadata.label,
+                        metadata.iconPath,
                         startTimeMs,
                         endMs,
                         SOURCE_USAGE_EVENTS,
@@ -109,21 +114,15 @@ public final class UsageEventsReader {
                         eventType == UsageEvents.Event.ACTIVITY_PAUSED);
     }
 
-    private static String resolveAppLabel(
-            PackageManager packageManager,
+    private static AndroidAppMetadataResolver.AppMetadata metadataFor(
+            Context context,
+            Map<String, AndroidAppMetadataResolver.AppMetadata> cache,
             String packageName) {
-        if (packageManager == null || packageName == null || packageName.isEmpty()) {
-            return packageName == null ? "" : packageName;
+        AndroidAppMetadataResolver.AppMetadata metadata = cache.get(packageName);
+        if (metadata == null) {
+            metadata = AndroidAppMetadataResolver.resolve(context, packageName);
+            cache.put(packageName, metadata);
         }
-
-        try {
-            ApplicationInfo info = packageManager.getApplicationInfo(packageName, 0);
-            CharSequence label = packageManager.getApplicationLabel(info);
-            if (label != null && label.length() > 0) {
-                return label.toString();
-            }
-        } catch (PackageManager.NameNotFoundException ignored) {
-        }
-        return packageName;
+        return metadata;
     }
 }

@@ -3,8 +3,6 @@ package com.timearc.mobile.usage;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -60,7 +58,6 @@ public final class UsageStatsReader {
             return Collections.emptyList();
         }
 
-        PackageManager packageManager = context.getPackageManager();
         long syncedAtUnixSec = System.currentTimeMillis() / 1000L;
         ArrayList<UsageRecordDto> records = new ArrayList<>();
 
@@ -76,11 +73,13 @@ public final class UsageStatsReader {
             }
 
             String packageName = entry.getKey();
-            String label = resolveAppLabel(packageManager, packageName);
+            AndroidAppMetadataResolver.AppMetadata metadata =
+                    AndroidAppMetadataResolver.resolve(context, packageName);
             records.add(new UsageRecordDto(
                     packageName,
                     toTimeArcAppIdentifier(packageName),
-                    label,
+                    metadata.label,
+                    metadata.iconPath,
                     usageStats.getFirstTimeStamp(),
                     usageStats.getLastTimeStamp(),
                     foregroundMs,
@@ -97,23 +96,5 @@ public final class UsageStatsReader {
             }
         });
         return records;
-    }
-
-    private static String resolveAppLabel(
-            PackageManager packageManager,
-            String packageName) {
-        if (packageManager == null || packageName == null || packageName.isEmpty()) {
-            return packageName == null ? "" : packageName;
-        }
-
-        try {
-            ApplicationInfo info = packageManager.getApplicationInfo(packageName, 0);
-            CharSequence label = packageManager.getApplicationLabel(info);
-            if (label != null && label.length() > 0) {
-                return label.toString();
-            }
-        } catch (PackageManager.NameNotFoundException ignored) {
-        }
-        return packageName;
     }
 }
