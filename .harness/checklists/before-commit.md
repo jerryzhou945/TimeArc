@@ -31,11 +31,11 @@ in the commit message body.
 
 - [ ] Nothing written to disk violates
       [`../rules/03-data-contract.md`](../rules/03-data-contract.md).
-- [ ] If `usage_record.h`, `usage_record.schema.json`,
-      `data_bridge.h`, or `usage_paths.*` changed, there is a charter
+- [ ] If `data_bridge.h`, `database_storage.*`, or `database_path.*` changed,
+      there is a charter
       amendment and a data migration note.
-- [ ] If you added a new `source` value (beyond `foreground|audio`), it is in
-      the schema enum **and** handled by `UsageStatManager`.
+- [ ] If you added a new session kind, its bridge/schema mapping and
+      `UsageStatManager` handling land together.
 
 ## 4. Build
 
@@ -53,8 +53,8 @@ in the commit message body.
       sizes and have overlapped/overflowed at the extremes (see error report
       `20260606-162309-C-memorylake-responsive-minmax`). Capture both via the
       non-intrusive PrintWindow harness (own instance, by PID).
-- [ ] If you changed the service, it starts, writes at least one record to
-      `usage_records.jsonl`, and exits cleanly on Ctrl+C.
+- [ ] If you changed the service, it starts, writes at least one session to
+      `timearc_service.db`, and exits cleanly on Ctrl+C.
 - [ ] If runtime assertions or QML warnings fire, record them via
       `../tools/record_error.py --level L2`.
 

@@ -79,7 +79,7 @@ with day and night modes.
   **true track pause** now take real effect: they write `usage_config.json` and an
   "应用并重启采集" action restarts the service to apply them (H5). Items still without a
   backend (real history deletion, real-time backdrop blur, global accent color) stay
-  honest placeholders rather than faked; the page is read-only over the usage journal
+  honest placeholders rather than faked; the page is read-only over the service database
   and never bypasses the disk contract.
 - **Runtime languages** — the settings language switch now drives global UI copy
   at runtime. Chinese remains the source/fallback language, English is covered
@@ -187,10 +187,9 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 |   Qt 6 + QML         |          |  C (Win/Linux),       |
 |   C++17              |          |  Swift (macOS)        |
 |                      |          |                       |
-|   reads/writes       | <---->   |  writes               |
-|   usage_records.jsonl|          |  usage_records.jsonl  |
-|   usage_current.json |  <----   |  usage_current.json   |
-|   timearc.db         | <---->   |  timearc.db           |
+|   reads              | <----    |  writes               |
+|   timearc_service.db |  <----   |  timearc_service.db   |
+|   writes timearc.db  |          |                       |
 +----------------------+          +-----------------------+
          starts (Windows only, via QProcess)
          --------------------------------->
@@ -198,21 +197,18 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 
 - The UI launches and may spawn the service (see
   `src/main.cpp::startUsageService`) but does not link against its code.
-- Record schema is defined in
-  `src/service/shared/usage_record.schema.json`; fields include
-  `platform`, `source` (`foreground` | `audio`), `app_id`, `app_name`,
-  `window_title`, `path`, `start_unix_sec`, `duration_sec`.
+- Session fields and their SQLite mapping are documented in
+  `.harness/rules/03-data-contract.md`.
 - `data_bridge.h` is the cross-language C ABI used by Swift (macOS) and
   C (Windows/Linux) tracker code to submit sessions to the storage
   layer.
-- SQLite (`timearc.db`) is the UI's **primary** history source as of A1. The
-  service dual-writes both SQLite and JSONL; the UI reads usage history from
-  SQLite (falling back to JSONL when the DB is missing/empty), and the
-  enable-before JSONL tail has been backfilled once into SQLite. JSONL is kept
-  as an append-only fallback safety net (retirement is a future milestone), and
-  the live JSON snapshot stays in use (no SQLite equivalent).
+- SQLite history is split by ownership: `timearc_service.db` is written only by
+  the service and contains `apps`, `frontmost_sessions`, and `media_sessions`;
+  the UI opens it read-only as the sole automatic-usage history source. The GUI
+  writes its own `timearc.db` for settings,
+  tags, manual projects, mobile sync, and other UI state.
 - Current desktop data split: automatic foreground-app and media usage
-  still come from the real service capture path and journal/database session
+  still come from the real service capture path and database session
   readers; manual projects, timer sessions, calendar todos, night mode, and the
   memo blackboard doc are routed through SQLite-backed repositories/settings.
   Legacy QSettings data for those UI-owned items is migrated into SQLite on
@@ -252,8 +248,8 @@ state. The main data loop is now closed for the desktop surfaces below:
   lists, while historical sessions and stats remain queryable.
 - Calendar todos persist date, title, and completion state through SQLite
   settings.
-- The Settings page stores night mode in SQLite settings and shows the real
-  read-only SQLite database path from `databaseManager.getDatabasePath()`.
+- The Settings page stores night mode in GUI SQLite settings and shows the GUI
+  database size from `databaseManager.getDatabasePath()`.
 - The 备忘 entry opens a local blackboard memo overlay (freehand ink + notes,
   sticky/text objects, multi-page, select tool, pomodoro), not an AI chat or
   cloud service. Its content is user-authored UI-private state, persisted through
@@ -262,17 +258,15 @@ state. The main data loop is now closed for the desktop surfaces below:
 
 Important limits remain:
 
-- SQLite is now the UI's primary history source, but JSONL is not yet retired:
-  the service still dual-writes JSONL as a fallback and the UI falls back to it
-  when the DB is missing/empty (full JSONL retirement is a future milestone).
+- If `timearc_service.db` is missing, empty, or unreadable, automatic-usage
+  history is empty until the service database becomes available.
 - Legacy QSettings project/session/todo/memo/night-mode data is migrated
   idempotently into SQLite when possible, but the old QSettings data is kept
   for rollback rather than deleted.
 - Cross-day manual sessions are retained by overlapping range queries; they
   are not yet split or prorated per day.
-- Data export/backup, user-selectable database path migration, fuller
-  migration tooling, richer memo management, and production packaging remain
-  P2 work.
+- Fuller migration tooling, richer memo management, and production packaging
+  remain P2 work.
 
 ## Tech Stack
 
@@ -282,8 +276,7 @@ Important limits remain:
 | Service (Win)    | C11 (WinAPI, WASAPI `IAudioMeterInformation`, PSAPI, COM)       |
 | Service (macOS)  | Swift 5+ (`NSWorkspace`, Accessibility API, IOKit power mgmt)   |
 | Service (Linux)  | C11 — X11 + Wayland planned                                     |
-| Storage (today)  | SQLite `timearc.db` is the UI's primary history source (service dual-writes JSONL as fallback); atomic JSON live snapshot; SQLite repositories for app/session/project/settings data |
-| Storage (planned)| Retire JSONL after the SQLite-primary migration soaks (A1 S5)   |
+| Storage          | Service-owned SQLite `timearc_service.db` is the sole automatic-usage store; GUI-owned `timearc.db` stores settings/tags/manual/mobile/UI state |
 | Build            | CMake 3.16+, Qt's `qt_standard_project_setup(REQUIRES 6.8)`     |
 | Persistence (UI) | SQLite settings/repositories; legacy QSettings is migrated and retained for rollback |
 | Third-party      | SQLite (vendored, public domain), Parson (vendored, MIT)        |
@@ -398,44 +391,46 @@ calendar to-do starts timing. Memory Lake is the landing page.
 
 | Platform | Path                                                     |
 |----------|----------------------------------------------------------|
-| Windows  | `%LOCALAPPDATA%\TimeArc\usage\` (fallback `%APPDATA%`)    |
-| macOS    | `~/.timearc/usage/`                                       |
-| Linux    | `~/.timearc/usage/`                                       |
+| Windows  | `%LOCALAPPDATA%\TimeArc\usage\`                           |
+| macOS    | `~/Library/Application Support/TimeArc/usage/`            |
+| Linux    | `${XDG_CONFIG_HOME:-~/.config}/TimeArc/usage/`            |
 
 Files written in the usage directory:
 
-- `usage_records.jsonl` - append-only history, one JSON record per line.
-- `usage_current.json` - atomic overwrite, UI-polled live snapshot.
+- `usage_config.json` - UI-written service configuration and DB-directory pointer.
 
-The SQLite file is separate from the usage directory. It **defaults** to Qt's
-`QStandardPaths::AppDataLocation`; on Windows that is typically
-`%APPDATA%\TimeArc\TimeArc\timearc.db` (the service constructs the same path
-independently). It is the UI's primary history source (A1); JSONL is dual-written
-as a fallback and the enable-before tail was backfilled once into SQLite.
+The service SQLite file is separate from the usage directory. Its filename is
+locked to `timearc_service.db`, and it defaults to the platform service-data directory:
+`%APPDATA%\TimeArc\service\timearc_service.db` on Windows,
+`~/Library/Application Support/TimeArc/service/timearc_service.db` on macOS, and
+`${XDG_DATA_HOME:-~/.local/share}/TimeArc/service/timearc_service.db` on Linux.
+It is written only by the service and contains only `apps`,
+`frontmost_sessions`, and `media_sessions`. The UI opens it read-only as the
+sole automatic-usage history source.
 
-**Choosing a different location (D2).** The `timearc.db` path is
-**redirectable** to a user-chosen directory (a larger disk, an external/synced
-volume) via the `db_path` key in `usage_config.json` (in the fixed usage
-directory above). Both processes read the same pointer — the UI in
-`DatabaseManager::databasePath()` and the service in `make_db_path` — with
-identical validation, and **fail safe to the default** when the key is absent,
-unreadable, or its target directory is not writable (a vanished network/removable
-drive simply reverts to the default, with a warning, never an empty-DB illusion).
-Settings → 导入导出 → **数据库位置** drives a safe migration: it **automatically
-stops background collection first** (`time-arc-service --stop`, a graceful flush —
-so the old DB is unlocked), snapshots the DB (`VACUUM INTO`), validates the copy,
-atomically switches the pointer, and reopens — rolling back to the old location on
-any failure (and, if the collector somehow can't be stopped, failing safe rather
-than splitting the data). Restart the app afterward so collection resumes and the
-service re-reads the pointer. A **还原默认位置** button moves the DB back and clears
-the pointer.
+The GUI has its own SQLite file, `timearc.db`, in Qt's app-data location. It is
+written only by the GUI and stores settings, tags, manual projects/sessions,
+mobile sync tables, and UI-private state.
+
+**Choosing a different location (D2).** Only the database directory is
+redirectable (a larger disk, an external/synced volume) via the `db_dir` key in
+`usage_config.json` (in the fixed usage directory above). Both processes read
+the same directory pointer — the UI read-only service connection and the service
+in `get_database_path()` — and append `timearc_service.db`. Missing or
+malformed config falls back to the default; stale `db_path` keys are ignored and
+removed by the next database-location write.
+Settings → 导入导出 → **服务数据库目录** updates only this pointer. The GUI does
+not copy, vacuum, restore, or write `timearc_service.db`; the service creates and
+writes the file in the selected directory after restart. A **还原默认位置** button
+clears the pointer.
 
 Desktop manual projects, timer sessions, calendar to-dos, night mode, and the
-memo blackboard doc now read/write this SQLite database. Existing QSettings data
+memo blackboard doc now read/write `timearc.db`. Existing QSettings data
 for projects/sessions, calendar todos, and night mode is
 migrated once on startup when possible. The migration is idempotent and keeps
 the legacy QSettings data in place; it does not make SQLite the only source
-for automatic foreground/media usage yet.
+for automatic foreground/media usage; that history comes from service-owned
+`timearc_service.db`.
 
 A separate log produced by the Qt message handler (harness journal) is
 written to `<GenericDataLocation>/TimeArc/logs/harness-qt.log`.
@@ -456,7 +451,7 @@ current session.
 
 `usage_config.json` (in the fixed usage dir) is the one cross-process config
 file: the UI writes it and the service reads it via the bundled Parson parser.
-It carries the `db_path` redirect (D2) and the H5 `idle_threshold_ms` /
+It carries the `db_dir` redirect (D2) and the H5 `idle_threshold_ms` /
 `track_enabled` keys; both writers do an atomic read-modify-write that preserves
 the other's keys. Other UI preferences live in the SQLite settings table.
 
@@ -618,9 +613,9 @@ See `.harness/CHARTER.md` for invariants and frozen files;
 - [x] Windows background autostart (B1 Route A): per-user logon task /
       Run-key via `win_service.c` lifecycle verbs, with a Settings toggle.
       A true SCM Session-0 service (Route B) remains deferred.
-- [x] Make SQLite the primary on-disk history source with a one-shot JSONL
-      backfill/migrator (A1 S1–S4). Remaining: retire JSONL writing after a
-      soak period (A1 S5).
+- [x] Complete the SQLite history migration (A1 S1–S5): backfill legacy data,
+      make `timearc_service.db` the sole history store, and retire the legacy
+      history stream.
 - [x] Compile Qt as dynamically-linked libraries in release builds to satisfy the
       LGPL-3.0 combination posture (F1). Qt already links dynamically — verified by
       `tools/verify-linkage.ps1` (Qt6*.dll imports, no static Qt) — and
@@ -637,18 +632,15 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       filter for sensitive apps, user-editable categories, card persistence,
       and a confirmed-summary AI pass.
 - [x] Add export/backup and restore flows for SQLite-backed desktop data.
-      Shipped S1 (whole-DB backup via `VACUUM INTO`) + S2 (validated restore with
-      the service stopped) per `docs/d1-export-backup-restore-kickoff.md`; retention (S3) deferred.
-- [x] Add a safe database-path migration flow for user-selectable data
-      locations (D2). A cross-process `db_path` pointer in `usage_config.json`
-      (read identically by the UI `databasePath()` and the service `make_db_path`,
-      fail-safe to the default) + a Settings → 数据库位置 migration
-      (`VACUUM INTO` snapshot → validate → lock-check old DB → atomic repoint →
-      reopen, with rollback) and a 还原默认位置 button. CHARTER I2 → v0.3;
-      `docs/d2-database-path-migration-kickoff.md`.
+      Shipped GUI `timearc.db` backup via `VACUUM INTO` + validated restore;
+      retention (S3) deferred.
+- [x] Add a safe database-directory migration flow for user-selectable data
+      locations (D2). A cross-process `db_dir` pointer in `usage_config.json`
+      (read by the UI read-only service connection and the service
+      `get_database_path`, with `timearc_service.db` appended) + a Settings →
+      服务数据库目录 pointer update and 还原默认位置 button.
 - [ ] Expand local memo management only as local/offline tooling; do not
       describe it as AI chat unless an actual AI feature is added later.
-- [ ] Add UTF-8 validation to `usage_storage.c::write_json_string`.
 - [ ] Finish the Settings page remainders: app-wide accent-color theming and
       full internationalization (zh / en / ja), plus service-honored idle-timeout
       and tracking-pause (a change proposal is filed). Detail + priorities in

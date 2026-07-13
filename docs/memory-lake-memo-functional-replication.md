@@ -28,7 +28,7 @@
   + 大量运行光效动画，完成时全屏庆祝弹层。
 
 > **数据边界**：备忘内容是 **UI 本地状态**，v88 用 `localStorage`。它**不属于**
-> 服务-UI 磁盘契约（`usage_record`/`data_bridge` 等冻结契约），**不得**写进 JSONL/服务
+> 服务-UI 磁盘契约（`data_bridge`/SQLite 表等冻结契约），**不得**写进服务数据库或服务
 > 路径，也**不得**让服务读它。QML 端用 `Qt.labs.settings`/独立 JSON 文件/本地 SQLite
 > 之类的 **UI 私有持久化**即可（见 §3）。这条是硬边界。
 

@@ -256,7 +256,7 @@ Item {
     onAccentColorChanged: applyThemeToLoadedPage()
 
     // 启动时把设置页的读层过滤推入 usageStatManager（2A 游戏/分类/合并 · 2B 逐项显隐 ·
-    // 2C 标题脱敏 · 3A 软暂停），让首页/统计/记忆湖在用户打开设置页前就遵从已存偏好。
+    // 2C 标题脱敏），让首页/统计/记忆湖在用户打开设置页前就遵从已存偏好。
     // 只读层、UI 私有；不写/不删 usage（I1/I2）。
     function applyReadFiltersFromSettings() {
         if (!usageStatManager || !usageStatManager.setReadFilters || !settingsRepository)
@@ -271,7 +271,6 @@ Item {
             settingsRepository.getBool("game_mode", true),
             settingsRepository.getBool("merge_windows", true),
             settingsRepository.getBool("hide_titles", true),
-            settingsRepository.getBool("track_running", true),
             hidden);
     }
 

@@ -5,58 +5,78 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QHash>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
-#include <QJsonValue>
-#include <QList>
 #include <QSaveFile>
-#include <QSet>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QStandardPaths>
-#include <QStorageInfo>
 #include <QStringList>
 #include <QUrl>
 #include <QVariant>
-#include <QVector>
 
 namespace {
 
-const QString kConnectionName = QStringLiteral("timearc");
-const QString kDatabaseFileName = QStringLiteral("timearc.db");
+const QString kGuiConnectionName = QStringLiteral("timearc");
+const QString kServiceConnectionName = QStringLiteral("timearc_service");
+const QString kGuiDatabaseFileName = QStringLiteral("timearc.db");
+const QString kServiceDatabaseFileName = QStringLiteral("timearc_service.db");
 
-// D2 (CHARTER I2 v0.3): the cross-process db-path pointer lives in
-// usage_config.json in the FIXED usage dir (NOT inside the movable DB). The
-// service half (usage_storage.c make_db_path) and this UI half MUST resolve the
-// same file, so this mirrors the service's usage-dir construction (env-based,
-// %LOCALAPPDATA%\TimeArc\usage; same base as backfillJsonlPath), NOT
-// QStandardPaths. In test mode there is no service, so we keep the pointer under
-// the test-mode AppData to isolate db_smoke from the real user's usage dir.
+QString testAppDataLocation() {
+  if (!QStandardPaths::isTestModeEnabled()) return QString();
+  const QString override = qEnvironmentVariable("TIMEARC_TEST_APPDATA");
+  if (!override.trimmed().isEmpty()) return QDir::cleanPath(override);
+  return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+}
+
+// D2/H5: the cross-process pointer lives in usage_config.json in a fixed usage
+// dir, not beside a movable DB. In test mode there is no service, so the pointer
+// stays under the test AppData path to isolate db_smoke from the real user.
 QString usageConfigDir() {
   if (QStandardPaths::isTestModeEnabled()) {
-    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    return testAppDataLocation();
   }
+
+#if defined(Q_OS_WIN)
   QString base = qEnvironmentVariable("LOCALAPPDATA");
-  if (base.trimmed().isEmpty()) base = qEnvironmentVariable("APPDATA");
-  if (base.trimmed().isEmpty()) base = QDir::homePath();
+  if (base.trimmed().isEmpty()) return QString();
   return QDir(base).filePath(QStringLiteral("TimeArc/usage"));
+#elif defined(Q_OS_MACOS)
+  const QString home = QDir::homePath();
+  if (home.trimmed().isEmpty()) return QString();
+  return QDir(home).filePath(
+      QStringLiteral("Library/Application Support/TimeArc/usage"));
+#else
+  QString base = qEnvironmentVariable("XDG_CONFIG_HOME");
+  if (base.trimmed().isEmpty()) {
+    const QString home = QDir::homePath();
+    if (home.trimmed().isEmpty()) return QString();
+    base = QDir(home).filePath(QStringLiteral(".config"));
+  }
+  return QDir(base).filePath(QStringLiteral("TimeArc/usage"));
+#endif
 }
 
 QString usageConfigPath() {
-  return QDir(usageConfigDir()).filePath(QStringLiteral("usage_config.json"));
+  const QString dir = usageConfigDir();
+  if (dir.isEmpty()) return QString();
+  return QDir(dir).filePath(QStringLiteral("usage_config.json"));
 }
 
 // D2/H5: atomic read-modify-write of usage_config.json. Inserts/overwrites every
 // key in `updates`, removes every key in `removeKeys`, and PRESERVES all other
-// keys. Both the D2 db_path writer and the H5 idle/track writer funnel through
+// keys. Both the D2 db_dir writer and the H5 idle/track writer funnel through
 // this one helper, so neither can clobber the other's keys (the kickoff's #1
 // risk -- made structurally impossible rather than guarded by convention).
 // QSaveFile gives the atomic tmp-write + rename the disk contract requires.
 // Returns false on any failure (G6 honest -- caller must not assume success).
 bool mergeUsageConfig(const QJsonObject& updates, const QStringList& removeKeys) {
   const QString cfgPath = usageConfigPath();
+  if (cfgPath.isEmpty()) {
+    qWarning() << "mergeUsageConfig: cannot resolve usage_config.json path.";
+    return false;
+  }
   const QString cfgDir = QFileInfo(cfgPath).absolutePath();
   if (!QDir().mkpath(cfgDir)) {
     qWarning() << "mergeUsageConfig: cannot create usage dir:" << cfgDir;
@@ -66,7 +86,7 @@ bool mergeUsageConfig(const QJsonObject& updates, const QStringList& removeKeys)
   // Read-modify: preserve every existing key. A genuinely absent/empty file means
   // "start fresh"; a non-empty-but-UNPARSEABLE file must NOT be treated as empty,
   // or overwriting it would silently destroy the other writer's co-resident key
-  // (db_path vs idle/track -- the kickoff's #1 risk). Refuse honestly (G6) so the
+  // (db_dir vs idle/track -- the kickoff's #1 risk). Refuse honestly (G6) so the
   // corrupt file + its keys survive for recovery; the caller (e.g. relocate) sees
   // the failure and rolls back instead of split-braining.
   QJsonObject obj;
@@ -111,22 +131,23 @@ bool mergeUsageConfig(const QJsonObject& updates, const QStringList& removeKeys)
   return true;
 }
 
-// Raw db_path string from usage_config.json (empty when absent / unreadable /
+// Raw db_dir string from usage_config.json (empty when absent / unreadable /
 // malformed). No validation here -- callers decide what to do with it.
-QString readConfigDbPathRaw() {
-  QFile f(usageConfigPath());
+QString readConfigDbDirRaw() {
+  const QString cfgPath = usageConfigPath();
+  if (cfgPath.isEmpty()) return QString();
+  QFile f(cfgPath);
   if (!f.exists() || !f.open(QIODevice::ReadOnly)) return QString();
   const QByteArray bytes = f.readAll();
   f.close();
   QJsonParseError err;
   const QJsonDocument doc = QJsonDocument::fromJson(bytes, &err);
   if (err.error != QJsonParseError::NoError || !doc.isObject()) return QString();
-  return doc.object().value(QStringLiteral("db_path")).toString();
+  return doc.object().value(QStringLiteral("db_dir")).toString();
 }
 
 // A directory is usable when it exists (or can be created) and a probe write
-// succeeds. This is the UI mirror of the service's dir_is_writable: a vanished
-// network/removable drive fails the probe and we fall back to the default path.
+// succeeds. Relocation validates this before writing a new db_dir pointer.
 bool dirIsUsable(const QString& dir) {
   if (dir.trimmed().isEmpty()) return false;
   QDir d(dir);
@@ -139,45 +160,8 @@ bool dirIsUsable(const QString& dir) {
   return true;
 }
 
-// A1 risk guard: the Windows service builds its DB path from raw getenv(APPDATA)
-// (usage_storage.c make_db_path -> %APPDATA%\TimeArc\TimeArc\timearc.db) while
-// the UI uses QStandardPaths::AppDataLocation. They are two independent
-// constructions that only happen to agree by convention. If they ever diverge
-// (renamed org/app, redirected env) the UI would silently read a different DB
-// than the service writes. Warn once so the split-brain is visible rather than
-// a silent "no data" symptom. Test mode deliberately relocates AppData, so this
-// is expected to differ there and is skipped.
-void warnIfDbPathDivergesFromService(const QString& uiPath) {
-  static bool checked = false;
-  if (checked) return;
-  checked = true;
-  if (QStandardPaths::isTestModeEnabled()) return;
-
-  // D2: when a usable db_path redirect is configured, BOTH processes read it
-  // from the same usage_config.json, so the hardcoded-convention comparison no
-  // longer applies -- skip it to avoid a spurious divergence warning.
-  const QString raw = readConfigDbPathRaw();
-  if (!raw.isEmpty() && dirIsUsable(QFileInfo(raw).absolutePath())) return;
-
-  QString base = qEnvironmentVariable("APPDATA");
-  if (base.trimmed().isEmpty()) base = qEnvironmentVariable("LOCALAPPDATA");
-  if (base.trimmed().isEmpty()) return;
-
-  const QString servicePath = QDir::cleanPath(
-      QDir(base).filePath(QStringLiteral("TimeArc/TimeArc/timearc.db")));
-  const QString uiClean = QDir::cleanPath(uiPath);
-  if (uiClean.compare(servicePath, Qt::CaseInsensitive) != 0) {
-    qWarning().noquote()
-        << "DatabaseManager: UI DB path differs from the Windows service "
-           "convention. UI reads:"
-        << uiClean << "; service writes:" << servicePath
-        << "- SQLite history reads and service writes may target different "
-           "files (A1 path-identity risk).";
-  }
-}
-
 bool tableHasColumn(const QString& tableName, const QString& columnName) {
-  QSqlDatabase db = QSqlDatabase::database(kConnectionName);
+  QSqlDatabase db = QSqlDatabase::database(kGuiConnectionName);
   if (!db.isValid() || !db.isOpen()) return false;
 
   QSqlQuery query(db);
@@ -198,7 +182,7 @@ bool ensureDeviceUsageSessionConfidenceColumn() {
     return true;
   }
 
-  QSqlDatabase db = QSqlDatabase::database(kConnectionName);
+  QSqlDatabase db = QSqlDatabase::database(kGuiConnectionName);
   QSqlQuery query(db);
   if (!query.exec(QStringLiteral(
           "ALTER TABLE device_usage_sessions "
@@ -225,59 +209,92 @@ QString toLocalPath(const QString& pathOrUrl) {
 DatabaseManager::DatabaseManager(QObject* parent) : QObject(parent) {}
 
 bool DatabaseManager::initialize() {
-  if (!openDatabase()) return false;
-  if (!configureDatabase()) return false;
+  if (!openGuiDatabase()) return false;
+  if (!configureGuiDatabase()) return false;
   if (!createTables()) return false;
   if (!ensureDeviceUsageSessionConfidenceColumn()) return false;
   if (!insertDefaultTags()) return false;
   if (!insertDefaultSettings()) return false;
   if (!createIndexes()) return false;
+  if (!openServiceDatabaseReadOnly()) return false;
 
   return true;
 }
 
-bool DatabaseManager::configureDatabase() {
-  return executeQuery(QStringLiteral("PRAGMA foreign_keys = ON;")) &&
-         executeQuery(QStringLiteral("PRAGMA busy_timeout = 5000;")) &&
-         executeQuery(QStringLiteral("PRAGMA journal_mode = WAL;"));
+bool DatabaseManager::configureGuiDatabase() {
+  return executeQuery(QStringLiteral("PRAGMA foreign_keys = ON;"));
 }
 
 QSqlDatabase DatabaseManager::database() const {
-  return QSqlDatabase::database(kConnectionName);
+  return QSqlDatabase::database(kGuiConnectionName);
 }
 
-QString DatabaseManager::getDatabasePath() const { return databasePath(); }
+QSqlDatabase DatabaseManager::serviceDatabase() const {
+  if (!QSqlDatabase::contains(kServiceConnectionName)) return QSqlDatabase();
+  return QSqlDatabase::database(kServiceConnectionName, false);
+}
 
-QString DatabaseManager::defaultDatabasePath() const {
-  const QString appDataLocation =
-      QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+QString DatabaseManager::getDatabasePath() const { return guiDatabasePath(); }
+
+QString DatabaseManager::getServiceDatabasePath() const {
+  return serviceDatabasePath();
+}
+
+QString DatabaseManager::defaultGuiDatabasePath() const {
+  const QString appDataLocation = QStandardPaths::isTestModeEnabled()
+                                      ? testAppDataLocation()
+                                      : QStandardPaths::writableLocation(
+                                            QStandardPaths::AppDataLocation);
   if (appDataLocation.isEmpty()) return QString();
-
-  return QDir(appDataLocation).filePath(kDatabaseFileName);
+  return QDir(appDataLocation).filePath(kGuiDatabaseFileName);
 }
 
-QString DatabaseManager::databasePath() const {
-  // D2 (CHARTER I2 v0.3): a usable redirected path in usage_config.json wins;
-  // otherwise fall back to the default AppData location. The Windows service
-  // (usage_storage.c make_db_path) reads the SAME key with the SAME validation
-  // + SAME default fallback, so the two processes never target different DB
-  // files. A configured-but-unusable pointer fails safe to the default + warns.
-  const QString redirected = readConfigDbPathRaw();
-  if (!redirected.isEmpty()) {
-    if (dirIsUsable(QFileInfo(redirected).absolutePath()))
-      return QDir::cleanPath(redirected);
-    qWarning().noquote()
-        << "DatabaseManager: usage_config.json db_path is set but its parent is "
-           "not writable; falling back to the default location. db_path ="
-        << redirected;
+QString DatabaseManager::guiDatabasePath() const {
+  return defaultGuiDatabasePath();
+}
+
+QString DatabaseManager::defaultServiceDatabasePath() const {
+  QString dbDir;
+  if (QStandardPaths::isTestModeEnabled()) {
+    dbDir = testAppDataLocation();
+  } else {
+#if defined(Q_OS_WIN)
+    QString base = qEnvironmentVariable("APPDATA");
+    if (base.trimmed().isEmpty()) return QString();
+    dbDir = QDir(base).filePath(QStringLiteral("TimeArc/service"));
+#elif defined(Q_OS_MACOS)
+    const QString home = QDir::homePath();
+    if (home.trimmed().isEmpty()) return QString();
+    dbDir = QDir(home).filePath(
+        QStringLiteral("Library/Application Support/TimeArc/service"));
+#else
+    QString base = qEnvironmentVariable("XDG_DATA_HOME");
+    if (base.trimmed().isEmpty()) {
+      const QString home = QDir::homePath();
+      if (home.trimmed().isEmpty()) return QString();
+      base = QDir(home).filePath(QStringLiteral(".local/share"));
+    }
+    dbDir = QDir(base).filePath(QStringLiteral("TimeArc/service"));
+#endif
   }
-  return defaultDatabasePath();
+  if (dbDir.isEmpty()) return QString();
+
+  return QDir(dbDir).filePath(kServiceDatabaseFileName);
 }
 
-bool DatabaseManager::openDatabase() {
-  const QString path = databasePath();
+QString DatabaseManager::serviceDatabasePath() const {
+  // D2: a configured db_dir wins; the database filename itself is locked.
+  const QString redirectedDir = readConfigDbDirRaw();
+  if (!redirectedDir.isEmpty())
+    return QDir::cleanPath(
+        QDir(redirectedDir).filePath(kServiceDatabaseFileName));
+  return defaultServiceDatabasePath();
+}
+
+bool DatabaseManager::openGuiDatabase() {
+  const QString path = guiDatabasePath();
   if (path.isEmpty()) {
-    qWarning() << "Unable to resolve database path.";
+    qWarning() << "Unable to resolve GUI database path.";
     return false;
   }
 
@@ -290,21 +307,68 @@ bool DatabaseManager::openDatabase() {
   }
 
   QSqlDatabase db;
-  if (QSqlDatabase::contains(kConnectionName)) {
-    db = QSqlDatabase::database(kConnectionName);
+  if (QSqlDatabase::contains(kGuiConnectionName)) {
+    db = QSqlDatabase::database(kGuiConnectionName);
   } else {
-    db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), kConnectionName);
+    db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                   kGuiConnectionName);
   }
 
   db.setDatabaseName(path);
 
   if (!db.open()) {
-    qWarning() << "Unable to open SQLite database:" << path
+    qWarning() << "Unable to open GUI SQLite database:" << path
                << db.lastError().text();
     return false;
   }
 
-  warnIfDbPathDivergesFromService(path);
+  return true;
+}
+
+bool DatabaseManager::openServiceDatabaseReadOnly() {
+  const QString path = serviceDatabasePath();
+  if (path.isEmpty()) {
+    qWarning() << "Unable to resolve service database path.";
+    return true;
+  }
+
+  if (!QFileInfo::exists(path)) {
+    if (QSqlDatabase::contains(kServiceConnectionName)) {
+      QSqlDatabase db = QSqlDatabase::database(kServiceConnectionName, false);
+      db.close();
+      db.setDatabaseName(path);
+      db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+    } else {
+      QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                                  kServiceConnectionName);
+      db.setDatabaseName(path);
+      db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+    }
+    qInfo().noquote() << "Service SQLite database is not present yet:" << path;
+    return true;
+  }
+
+  QSqlDatabase db;
+  if (QSqlDatabase::contains(kServiceConnectionName)) {
+    db = QSqlDatabase::database(kServiceConnectionName, false);
+    if (db.databaseName() != path) {
+      db.close();
+      db.setDatabaseName(path);
+      db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+    }
+  } else {
+    db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"),
+                                   kServiceConnectionName);
+    db.setDatabaseName(path);
+    db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
+  }
+
+  if (!db.isOpen() && !db.open()) {
+    qWarning() << "Unable to open service SQLite database read-only:" << path
+               << db.lastError().text();
+    return true;
+  }
+
   return true;
 }
 
@@ -327,31 +391,6 @@ CREATE TABLE IF NOT EXISTS apps (
     platform TEXT DEFAULT 'windows',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
-);
-)SQL")) &&
-         executeQuery(QStringLiteral(R"SQL(
-CREATE TABLE IF NOT EXISTS frontmost_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    app_identifier TEXT NOT NULL,
-    window_title TEXT,
-    start_unix_sec INTEGER NOT NULL,
-    end_unix_sec INTEGER NOT NULL,
-    duration_sec INTEGER NOT NULL,
-    active_sec INTEGER NOT NULL,
-    idle_sec INTEGER DEFAULT 0,
-    created_at INTEGER NOT NULL
-);
-)SQL")) &&
-         executeQuery(QStringLiteral(R"SQL(
-CREATE TABLE IF NOT EXISTS media_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    app_identifier TEXT NOT NULL,
-    media_type TEXT NOT NULL,
-    media_title TEXT,
-    start_unix_sec INTEGER NOT NULL,
-    end_unix_sec INTEGER NOT NULL,
-    playback_sec INTEGER NOT NULL,
-    created_at INTEGER NOT NULL
 );
 )SQL")) &&
          executeQuery(QStringLiteral(R"SQL(
@@ -539,30 +578,6 @@ INSERT OR IGNORE INTO settings (
 
 bool DatabaseManager::createIndexes() {
   return executeQuery(QStringLiteral(R"SQL(
-CREATE INDEX IF NOT EXISTS idx_frontmost_time
-ON frontmost_sessions(start_unix_sec, end_unix_sec);
-)SQL")) &&
-         executeQuery(QStringLiteral(R"SQL(
-CREATE INDEX IF NOT EXISTS idx_frontmost_app
-ON frontmost_sessions(app_identifier);
-)SQL")) &&
-         executeQuery(QStringLiteral(R"SQL(
-CREATE UNIQUE INDEX IF NOT EXISTS idx_frontmost_unique_record
-ON frontmost_sessions(app_identifier, window_title, start_unix_sec, end_unix_sec);
-)SQL")) &&
-         executeQuery(QStringLiteral(R"SQL(
-CREATE INDEX IF NOT EXISTS idx_media_time
-ON media_sessions(start_unix_sec, end_unix_sec);
-)SQL")) &&
-         executeQuery(QStringLiteral(R"SQL(
-CREATE INDEX IF NOT EXISTS idx_media_app
-ON media_sessions(app_identifier);
-)SQL")) &&
-         executeQuery(QStringLiteral(R"SQL(
-CREATE UNIQUE INDEX IF NOT EXISTS idx_media_unique_record
-ON media_sessions(app_identifier, media_type, media_title, start_unix_sec, end_unix_sec);
-)SQL")) &&
-         executeQuery(QStringLiteral(R"SQL(
 CREATE INDEX IF NOT EXISTS idx_device_usage_date
 ON device_usage_summaries(platform, date_local);
 )SQL")) &&
@@ -613,354 +628,14 @@ bool DatabaseManager::executeQuery(const QString& sql) {
   return true;
 }
 
-namespace {
-
-// A1 S3 backfill helpers. Kept self-contained in the database layer
-// (TIME_ARC_DATABASE_SOURCES) with NO UsageStatManager symbols, so db_smoke
-// still links. Field mapping mirrors the service write path
-// (usage_storage.c timearc_storage_write_sqlite) so backfilled rows are
-// byte-identical to what the dual-write would have produced.
-
-const QString kBackfillFlagKey =
-    QStringLiteral("usage_jsonl_backfill_v1_done");
-
-QString backfillJsonlPath() {
-  // Must match the service + UsageStatManager usage dir (env-based, NOT
-  // QStandardPaths): %LOCALAPPDATA%\TimeArc\usage\usage_records.jsonl.
-  QString base = qEnvironmentVariable("LOCALAPPDATA");
-  if (base.trimmed().isEmpty()) base = qEnvironmentVariable("APPDATA");
-  if (base.trimmed().isEmpty()) base = QDir::homePath();
-  return QDir(base).filePath(
-      QStringLiteral("TimeArc/usage/usage_records.jsonl"));
-}
-
-QJsonObject parseJsonlLine(const QByteArray& line) {
-  QJsonParseError error;
-  QJsonDocument doc = QJsonDocument::fromJson(line, &error);
-  if (error.error != QJsonParseError::NoError) {
-    // Tolerate older local-code-page window titles, like UsageStatManager.
-    const QByteArray utf8 =
-        QString::fromLocal8Bit(line.constData(), line.size()).toUtf8();
-    doc = QJsonDocument::fromJson(utf8, &error);
-  }
-  return doc.isObject() ? doc.object() : QJsonObject();
-}
-
-QString nonEmptyOr(const QString& value, const QString& fallback) {
-  return value.isEmpty() ? fallback : value;
-}
-
-qint64 jsonInt(const QJsonObject& o, const QString& key) {
-  const QJsonValue v = o.value(key);
-  if (v.isDouble()) return static_cast<qint64>(v.toDouble());
-  if (v.isString()) return v.toString().toLongLong();
-  return 0;
-}
-
-// One tail row staged for import, with the unique-key fields used by both the
-// INSERT and the existence-based reconciliation.
-struct BackfillRow {
-  QString appIdentifier;
-  QString appName;
-  QString executablePath;
-  QString platform;
-  QString title;  // window_title (frontmost) or resolved media title (audio)
-  bool isAudio = false;
-  qint64 start = 0;
-  qint64 end = 0;
-  qint64 duration = 0;
-};
-
-QString uniqueKey(const BackfillRow& r) {
-  const QChar sep(QChar(0x1f));
-  return r.appIdentifier + sep + (r.isAudio ? QStringLiteral("audio") : QString()) +
-         sep + r.title + sep + QString::number(r.start) + sep +
-         QString::number(r.end);
-}
-
-}  // namespace
-
-bool DatabaseManager::backfillUsageFromJsonl() {
-  QSqlDatabase db = database();
-  if (!db.isValid() || !db.isOpen()) {
-    qWarning() << "Backfill skipped: database is not open.";
-    return false;
-  }
-
-  // 1. Idempotency: already migrated -> skip.
-  {
-    QSqlQuery q(db);
-    q.prepare(QStringLiteral(
-        "SELECT value FROM settings WHERE key = :key;"));
-    q.bindValue(QStringLiteral(":key"), kBackfillFlagKey);
-    if (q.exec() && q.next() &&
-        q.value(0).toString() == QStringLiteral("true")) {
-      return true;  // done in a previous launch
-    }
-  }
-
-  // 2. Resolve JSONL; nothing on disk -> nothing to backfill, mark done.
-  const QString jsonlPath = backfillJsonlPath();
-  if (!QFileInfo::exists(jsonlPath)) {
-    qInfo() << "Backfill: no JSONL at" << jsonlPath << "- nothing to import.";
-    return setBackfillDone();
-  }
-
-  // 3. Parse JSONL once, staging EVERY valid record (deduped by unique key) +
-  //    apps. We deliberately do NOT pre-filter on a MIN(start) watermark: audio
-  //    sessions can finalize out of start order (concurrent apps close at
-  //    different times), so a start-based threshold could silently skip a real
-  //    enable-before record that straddles the boundary. Instead we stage all,
-  //    let INSERT OR IGNORE absorb rows the service already wrote (the unique
-  //    indexes dedup them as no-ops), and let the existence-based reconcile in
-  //    step 6 be the authoritative "every JSONL record is in the DB" guard
-  //    (kickoff §6). Cost is one bounded full-JSONL pass on the single migration.
-  QHash<QString, BackfillRow> frontByKey;
-  QHash<QString, BackfillRow> mediaByKey;
-  struct AppRow {
-    QString appName;
-    QString executablePath;
-    QString platform;
-  };
-  QHash<QString, AppRow> appsByIdentifier;
-
-  QFile in(jsonlPath);
-  if (!in.open(QIODevice::ReadOnly)) {
-    qWarning() << "Backfill: cannot open JSONL:" << jsonlPath;
-    return false;
-  }
-  while (!in.atEnd()) {
-    const QByteArray raw = in.readLine();
-    if (!raw.endsWith('\n')) break;  // half-written tail line
-    const QByteArray line = raw.trimmed();
-    if (line.isEmpty()) continue;
-    const QJsonObject o = parseJsonlLine(line);
-    if (o.isEmpty()) continue;
-
-    // Mirror service write_sqlite skip rules exactly.
-    const QString source = o.value(QStringLiteral("source")).toString();
-    const bool isForeground =
-        source.isEmpty() || source == QStringLiteral("foreground");
-    const bool isAudio = source == QStringLiteral("audio");
-    if (!isForeground && !isAudio) continue;
-
-    const QString appId = o.value(QStringLiteral("app_id")).toString();
-    const QString path = o.value(QStringLiteral("path")).toString();
-    const QString appIdentifier = nonEmptyOr(appId, path);
-    if (appIdentifier.isEmpty()) continue;
-
-    const qint64 start = jsonInt(o, QStringLiteral("start_unix_sec"));
-    const qint64 duration = jsonInt(o, QStringLiteral("duration_sec"));
-    if (start <= 0 || duration <= 0) continue;
-    const qint64 end = start + duration;
-    if (end <= start) continue;
-
-    const QString executablePath = nonEmptyOr(path, appIdentifier);
-    QString appName = o.value(QStringLiteral("app_name")).toString();
-    if (appName.isEmpty()) appName = QFileInfo(executablePath).fileName();
-    if (appName.isEmpty()) appName = appIdentifier;
-    const QString platform =
-        nonEmptyOr(o.value(QStringLiteral("platform")).toString(),
-                   QStringLiteral("windows"));
-    const QString windowTitle = o.value(QStringLiteral("window_title")).toString();
-
-    BackfillRow row;
-    row.appIdentifier = appIdentifier;
-    row.appName = appName;
-    row.executablePath = executablePath;
-    row.platform = platform;
-    row.isAudio = isAudio;
-    row.start = start;
-    row.end = end;
-    row.duration = duration;
-    row.title = isAudio
-                    ? (windowTitle.isEmpty() ? QStringLiteral("Audio playback")
-                                             : windowTitle)
-                    : windowTitle;
-    (isAudio ? mediaByKey : frontByKey).insert(uniqueKey(row), row);
-
-    if (!appsByIdentifier.contains(appIdentifier)) {
-      appsByIdentifier.insert(appIdentifier,
-                              {appName, executablePath, platform});
-    }
-  }
-  in.close();
-
-  if (frontByKey.isEmpty() && mediaByKey.isEmpty()) {
-    qInfo() << "Backfill: no usage records to import (empty/absent JSONL).";
-    return setBackfillDone();
-  }
-
-  // 4. Backup JSONL before touching anything (rules/03 D1).
-  const QString bakPath = jsonlPath + QStringLiteral(".bak");
-  if (QFile::exists(bakPath)) QFile::remove(bakPath);
-  if (!QFile::copy(jsonlPath, bakPath)) {
-    qWarning() << "Backfill aborted: failed to write backup" << bakPath;
-    return false;
-  }
-
-  // 5. Import inside a transaction (BEGIN IMMEDIATE for WAL: take the write
-  //    lock up front, busy_timeout already configured). INSERT OR IGNORE makes
-  //    rows the service already wrote no-ops; the service may dual-write
-  //    concurrently (it only writes new sessions, which either dedup or are
-  //    fresh keys), and busy_timeout covers the one-time lock window.
-  if (!executeQuery(QStringLiteral("BEGIN IMMEDIATE;"))) {
-    qWarning() << "Backfill aborted: could not begin transaction.";
-    return false;
-  }
-
-  QSqlQuery appStmt(db);
-  appStmt.prepare(QStringLiteral(
-      "INSERT OR IGNORE INTO apps (app_identifier, app_name, display_name, "
-      "app_icon_path, executable_path, platform, created_at, updated_at) "
-      "VALUES (:id, :name, :name, '', :exe, :platform, :now, :now);"));
-  QSqlQuery frontStmt(db);
-  frontStmt.prepare(QStringLiteral(
-      "INSERT OR IGNORE INTO frontmost_sessions (app_identifier, window_title, "
-      "start_unix_sec, end_unix_sec, duration_sec, active_sec, idle_sec, "
-      "created_at) VALUES (:id, :title, :start, :end, :dur, :dur, 0, :now);"));
-  QSqlQuery mediaStmt(db);
-  mediaStmt.prepare(QStringLiteral(
-      "INSERT OR IGNORE INTO media_sessions (app_identifier, media_type, "
-      "media_title, start_unix_sec, end_unix_sec, playback_sec, created_at) "
-      "VALUES (:id, 'audio', :title, :start, :end, :dur, :now);"));
-
-  const qint64 now = QDateTime::currentSecsSinceEpoch();
-  bool ok = true;
-  int insertedFront = 0;
-  int insertedMedia = 0;
-
-  for (auto it = appsByIdentifier.constBegin();
-       ok && it != appsByIdentifier.constEnd(); ++it) {
-    appStmt.bindValue(QStringLiteral(":id"), it.key());
-    appStmt.bindValue(QStringLiteral(":name"), it.value().appName);
-    appStmt.bindValue(QStringLiteral(":exe"), it.value().executablePath);
-    appStmt.bindValue(QStringLiteral(":platform"), it.value().platform);
-    appStmt.bindValue(QStringLiteral(":now"), now);
-    if (!appStmt.exec()) {
-      qWarning() << "Backfill app upsert failed:" << appStmt.lastError().text();
-      ok = false;
-    }
-  }
-  for (auto it = frontByKey.constBegin();
-       ok && it != frontByKey.constEnd(); ++it) {
-    const BackfillRow& r = it.value();
-    frontStmt.bindValue(QStringLiteral(":id"), r.appIdentifier);
-    frontStmt.bindValue(QStringLiteral(":title"), r.title);
-    frontStmt.bindValue(QStringLiteral(":start"), r.start);
-    frontStmt.bindValue(QStringLiteral(":end"), r.end);
-    frontStmt.bindValue(QStringLiteral(":dur"), r.duration);
-    frontStmt.bindValue(QStringLiteral(":now"), now);
-    if (!frontStmt.exec()) {
-      qWarning() << "Backfill frontmost insert failed:"
-                 << frontStmt.lastError().text();
-      ok = false;
-    } else {
-      insertedFront += frontStmt.numRowsAffected() > 0 ? 1 : 0;
-    }
-  }
-  for (auto it = mediaByKey.constBegin();
-       ok && it != mediaByKey.constEnd(); ++it) {
-    const BackfillRow& r = it.value();
-    mediaStmt.bindValue(QStringLiteral(":id"), r.appIdentifier);
-    mediaStmt.bindValue(QStringLiteral(":title"), r.title);
-    mediaStmt.bindValue(QStringLiteral(":start"), r.start);
-    mediaStmt.bindValue(QStringLiteral(":end"), r.end);
-    mediaStmt.bindValue(QStringLiteral(":dur"), r.duration);
-    mediaStmt.bindValue(QStringLiteral(":now"), now);
-    if (!mediaStmt.exec()) {
-      qWarning() << "Backfill media insert failed:"
-                 << mediaStmt.lastError().text();
-      ok = false;
-    } else {
-      insertedMedia += mediaStmt.numRowsAffected() > 0 ? 1 : 0;
-    }
-  }
-
-  // 6. Reconcile by unique-key EXISTENCE (never row-count: INSERT OR IGNORE
-  //    dedup makes counts legitimately differ). Every staged JSONL record must
-  //    now resolve to a row; a single miss aborts the whole migration.
-  int missing = 0;
-  if (ok) {
-    QSqlQuery frontCheck(db);
-    frontCheck.prepare(QStringLiteral(
-        "SELECT 1 FROM frontmost_sessions WHERE app_identifier = :id AND "
-        "window_title = :title AND start_unix_sec = :start AND "
-        "end_unix_sec = :end LIMIT 1;"));
-    for (auto it = frontByKey.constBegin();
-         it != frontByKey.constEnd(); ++it) {
-      const BackfillRow& r = it.value();
-      frontCheck.bindValue(QStringLiteral(":id"), r.appIdentifier);
-      frontCheck.bindValue(QStringLiteral(":title"), r.title);
-      frontCheck.bindValue(QStringLiteral(":start"), r.start);
-      frontCheck.bindValue(QStringLiteral(":end"), r.end);
-      if (!frontCheck.exec() || !frontCheck.next()) ++missing;
-    }
-    QSqlQuery mediaCheck(db);
-    mediaCheck.prepare(QStringLiteral(
-        "SELECT 1 FROM media_sessions WHERE app_identifier = :id AND "
-        "media_type = 'audio' AND media_title = :title AND "
-        "start_unix_sec = :start AND end_unix_sec = :end LIMIT 1;"));
-    for (auto it = mediaByKey.constBegin();
-         it != mediaByKey.constEnd(); ++it) {
-      const BackfillRow& r = it.value();
-      mediaCheck.bindValue(QStringLiteral(":id"), r.appIdentifier);
-      mediaCheck.bindValue(QStringLiteral(":title"), r.title);
-      mediaCheck.bindValue(QStringLiteral(":start"), r.start);
-      mediaCheck.bindValue(QStringLiteral(":end"), r.end);
-      if (!mediaCheck.exec() || !mediaCheck.next()) ++missing;
-    }
-  }
-
-  if (!ok || missing > 0) {
-    executeQuery(QStringLiteral("ROLLBACK;"));
-    qWarning() << "Backfill rolled back: ok=" << ok << "missing=" << missing
-               << "- JSONL kept, flag unset, .bak retained at" << bakPath;
-    return false;
-  }
-
-  if (!executeQuery(QStringLiteral("COMMIT;"))) {
-    executeQuery(QStringLiteral("ROLLBACK;"));
-    qWarning() << "Backfill commit failed; rolled back.";
-    return false;
-  }
-
-  qInfo() << "Backfill complete: inserted" << insertedFront
-          << "new frontmost +" << insertedMedia << "new media rows ("
-          << frontByKey.size() << "/" << mediaByKey.size()
-          << "unique keys staged & reconciled). Backup at" << bakPath;
-  return setBackfillDone();
-}
-
-bool DatabaseManager::setBackfillDone() {
-  QSqlDatabase db = database();
-  if (!db.isValid() || !db.isOpen()) return false;
-  QSqlQuery q(db);
-  q.prepare(QStringLiteral(
-      "INSERT INTO settings (key, value, updated_at) "
-      "VALUES (:key, 'true', :now) "
-      "ON CONFLICT(key) DO UPDATE SET value = 'true', updated_at = :now;"));
-  q.bindValue(QStringLiteral(":key"), kBackfillFlagKey);
-  q.bindValue(QStringLiteral(":now"), QDateTime::currentSecsSinceEpoch());
-  if (!q.exec()) {
-    qWarning() << "Backfill: failed to set done flag:" << q.lastError().text();
-    return false;
-  }
-  return true;
-}
-
 // ---------------------------------------------------------------------------
-// D1: whole-DB backup / inspect / restore. All logic folded into this already
-// app-registered translation unit so no frozen CMake / no new .cpp (kickoff §3).
-// No UsageStatManager symbols are referenced (db_smoke links this file but not
-// USM). Honest failure throughout: empty string / false + qWarning, never a
-// faked success (G6).
+// GUI-owned database backup / inspect / restore.
 // ---------------------------------------------------------------------------
 
 QString DatabaseManager::backupDatabase(const QString& destPath) {
-  const QString src = databasePath();
+  const QString src = guiDatabasePath();
   if (src.isEmpty()) {
-    qWarning() << "backupDatabase: cannot resolve live database path.";
+    qWarning() << "backupDatabase: cannot resolve GUI database path.";
     return QString();
   }
 
@@ -1033,11 +708,10 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
   QVariantMap result;
   result[QStringLiteral("ok")] = false;
   result[QStringLiteral("integrity")] = QString();
-  result[QStringLiteral("frontmostRows")] = 0;
-  result[QStringLiteral("mediaRows")] = 0;
   result[QStringLiteral("appRows")] = 0;
-  result[QStringLiteral("minUnixSec")] = 0;
-  result[QStringLiteral("maxUnixSec")] = 0;
+  result[QStringLiteral("settingsRows")] = 0;
+  result[QStringLiteral("manualProjectRows")] = 0;
+  result[QStringLiteral("manualSessionRows")] = 0;
   result[QStringLiteral("sizeBytes")] = 0;
   result[QStringLiteral("error")] = QString();
 
@@ -1061,7 +735,8 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
   bool ok = false;
   QString errorText;
   QString integrity;
-  qlonglong frontRows = 0, mediaRows = 0, appRows = 0, minUnix = 0, maxUnix = 0;
+  qlonglong appRows = 0, settingsRows = 0, manualProjectRows = 0;
+  qlonglong manualSessionRows = 0;
 
   // Scope every QSqlDatabase / QSqlQuery local INSIDE this block so they are all
   // destroyed before removeDatabase(), else Qt warns "connection still in use".
@@ -1081,11 +756,13 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
         integrity = QStringLiteral("(检查失败)");
       }
 
-      // 2. assert the three contract tables exist (reject random / foreign .db).
+      // 2. Assert the GUI-owned tables exist (reject random / foreign .db).
       bool hasAll = true;
       const QStringList required = {QStringLiteral("apps"),
-                                    QStringLiteral("frontmost_sessions"),
-                                    QStringLiteral("media_sessions")};
+                                    QStringLiteral("settings"),
+                                    QStringLiteral("tags"),
+                                    QStringLiteral("manual_projects"),
+                                    QStringLiteral("manual_sessions")};
       for (const QString& t : required) {
         QSqlQuery tq(db);
         tq.prepare(QStringLiteral("SELECT 1 FROM sqlite_master WHERE "
@@ -1100,27 +777,21 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
       if (integrity != QStringLiteral("ok")) {
         errorText = QStringLiteral("完整性检查未通过：") + integrity;
       } else if (!hasAll) {
-        errorText = QStringLiteral("不是 TimeArc 数据库（缺少契约表）");
+        errorText = QStringLiteral("不是 TimeArc GUI 数据库（缺少契约表）");
       } else {
-        // 3. row counts + start_unix_sec range across both session tables.
+        // 3. Row counts for the GUI-owned tables.
         QSqlQuery cq(db);
-        if (cq.exec(QStringLiteral(
-                "SELECT COUNT(*) FROM frontmost_sessions;")) &&
-            cq.next())
-          frontRows = cq.value(0).toLongLong();
-        if (cq.exec(QStringLiteral("SELECT COUNT(*) FROM media_sessions;")) &&
-            cq.next())
-          mediaRows = cq.value(0).toLongLong();
         if (cq.exec(QStringLiteral("SELECT COUNT(*) FROM apps;")) && cq.next())
           appRows = cq.value(0).toLongLong();
-        if (cq.exec(QStringLiteral(
-                "SELECT MIN(start_unix_sec), MAX(start_unix_sec) FROM "
-                "(SELECT start_unix_sec FROM frontmost_sessions "
-                "UNION ALL SELECT start_unix_sec FROM media_sessions);")) &&
-            cq.next()) {
-          minUnix = cq.value(0).toLongLong();
-          maxUnix = cq.value(1).toLongLong();
-        }
+        if (cq.exec(QStringLiteral("SELECT COUNT(*) FROM settings;")) &&
+            cq.next())
+          settingsRows = cq.value(0).toLongLong();
+        if (cq.exec(QStringLiteral("SELECT COUNT(*) FROM manual_projects;")) &&
+            cq.next())
+          manualProjectRows = cq.value(0).toLongLong();
+        if (cq.exec(QStringLiteral("SELECT COUNT(*) FROM manual_sessions;")) &&
+            cq.next())
+          manualSessionRows = cq.value(0).toLongLong();
         ok = true;
       }
       db.close();
@@ -1130,11 +801,10 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
 
   result[QStringLiteral("ok")] = ok;
   result[QStringLiteral("integrity")] = integrity;
-  result[QStringLiteral("frontmostRows")] = frontRows;
-  result[QStringLiteral("mediaRows")] = mediaRows;
   result[QStringLiteral("appRows")] = appRows;
-  result[QStringLiteral("minUnixSec")] = minUnix;
-  result[QStringLiteral("maxUnixSec")] = maxUnix;
+  result[QStringLiteral("settingsRows")] = settingsRows;
+  result[QStringLiteral("manualProjectRows")] = manualProjectRows;
+  result[QStringLiteral("manualSessionRows")] = manualSessionRows;
   if (!ok && errorText.isEmpty()) errorText = QStringLiteral("未知错误");
   result[QStringLiteral("error")] = errorText;
   return result;
@@ -1155,9 +825,9 @@ bool DatabaseManager::restoreDatabase(const QString& sourcePath) {
     return false;
   }
 
-  const QString dbPath = databasePath();
+  const QString dbPath = guiDatabasePath();
   if (dbPath.isEmpty()) {
-    qWarning() << "restoreDatabase: cannot resolve live database path.";
+    qWarning() << "restoreDatabase: cannot resolve GUI database path.";
     return false;
   }
   // Restoring a file onto itself is a no-op error.
@@ -1181,21 +851,19 @@ bool DatabaseManager::restoreDatabase(const QString& sourcePath) {
 
   // Reopen + reconfigure the live connection in-process (best effort).
   auto reopen = [this]() {
-    if (openDatabase()) configureDatabase();
+    if (openGuiDatabase()) configureGuiDatabase();
   };
 
   // 3. Release the UI's handle so the file can be replaced.
   database().close();
-  QSqlDatabase::removeDatabase(kConnectionName);
+  QSqlDatabase::removeDatabase(kGuiConnectionName);
 
-  // 4. Remove the live DB + stale WAL side files. A remove failure means the
-  //    file is still locked (background collection running) -> reopen original,
-  //    keep the untouched pre-restore copy, and report honestly.
+  // 4. Remove the live GUI DB + stale side files.
   bool removed = true;
   if (QFile::exists(dbPath) && !QFile::remove(dbPath)) removed = false;
   if (!removed) {
-    qWarning() << "restoreDatabase: live DB is locked (background collection "
-                  "running?). Original kept; aborting restore.";
+    qWarning() << "restoreDatabase: live GUI DB is locked. Original kept; "
+                  "aborting restore.";
     reopen();
     return false;
   }
@@ -1214,11 +882,11 @@ bool DatabaseManager::restoreDatabase(const QString& sourcePath) {
 
   // 6. Reopen the freshly restored DB in-process; announce so the UI can prompt
   //    a restart. If reopen fails, roll back to the pre-restore copy.
-  if (!openDatabase() || !configureDatabase()) {
+  if (!openGuiDatabase() || !configureGuiDatabase()) {
     qWarning() << "restoreDatabase: copied backup but failed to reopen; rolling "
                   "back.";
     database().close();
-    QSqlDatabase::removeDatabase(kConnectionName);
+    QSqlDatabase::removeDatabase(kGuiConnectionName);
     QFile::remove(dbPath);
     if (QFile::exists(preBak)) QFile::copy(preBak, dbPath);
     reopen();
@@ -1230,30 +898,23 @@ bool DatabaseManager::restoreDatabase(const QString& sourcePath) {
   return true;
 }
 
-// ---------------------------------------------------------------------------
-// D2 S2: relocate the live DB to a user-chosen directory + flip the
-// cross-process db_path pointer. Reuses the D1 primitives above (VACUUM INTO,
-// inspectBackup) and the S1 pointer helpers. No UsageStatManager symbols (this
-// file is in the db_smoke link domain). Honest failure + atomic ordering: snap
-// + validate the NEW DB, confirm the OLD DB is unlocked, THEN switch the pointer
-// and reopen; any failure rolls back to the old pointer + old DB (never
-// split-brain, never a faked success -- G6).
-// ---------------------------------------------------------------------------
-
-bool DatabaseManager::writeDbPathPointer(const QString& dbPathOrEmpty) {
-  // Read-modify-write via the shared helper: an empty path clears the key,
+bool DatabaseManager::writeDbDirPointer(const QString& dbDirOrEmpty) {
+  // Read-modify-write via the shared helper: an empty dir clears the key,
   // otherwise sets it; the H5 idle/track keys in this same file are preserved.
-  if (dbPathOrEmpty.isEmpty())
-    return mergeUsageConfig(QJsonObject(), {QStringLiteral("db_path")});
+  if (dbDirOrEmpty.isEmpty()) {
+    return mergeUsageConfig(
+        QJsonObject(),
+        {QStringLiteral("db_dir"), QStringLiteral("db_path")});
+  }
   QJsonObject u;
-  u.insert(QStringLiteral("db_path"), QDir::cleanPath(dbPathOrEmpty));
-  return mergeUsageConfig(u, QStringList());
+  u.insert(QStringLiteral("db_dir"), QDir::cleanPath(dbDirOrEmpty));
+  return mergeUsageConfig(u, {QStringLiteral("db_path")});
 }
 
 bool DatabaseManager::writeServiceConfig(int idleMs, bool trackEnabled) {
   // H5 S2: write the background collector's idle-timeout (ms) + tracking on/off
-  // into usage_config.json. Shares mergeUsageConfig with the D2 db_path writer,
-  // so db_path is preserved untouched. idleMs <= 0 omits the key so the service
+  // into usage_config.json. Shares mergeUsageConfig with the D2 db_dir writer,
+  // so db_dir is preserved untouched. idleMs <= 0 omits the key so the service
   // keeps its compile-time default (fail-safe); track_enabled is always written
   // (the user's explicit choice). Takes effect on the next collector startup --
   // restart it via SettingsRepository for immediate effect. G6: false on failure.
@@ -1267,8 +928,7 @@ bool DatabaseManager::writeServiceConfig(int idleMs, bool trackEnabled) {
   return mergeUsageConfig(u, remove);
 }
 
-QVariantMap DatabaseManager::relocateDatabaseImpl(const QString& targetDirOrUrl,
-                                                  bool clearPointer) {
+QVariantMap DatabaseManager::relocateDatabaseTo(const QString& targetDirOrUrl) {
   QVariantMap r;
   r[QStringLiteral("ok")] = false;
   r[QStringLiteral("error")] = QString();
@@ -1291,149 +951,23 @@ QVariantMap DatabaseManager::relocateDatabaseImpl(const QString& targetDirOrUrl,
     return r;
   }
 
-  const QString oldDbPath = databasePath();
-  if (oldDbPath.isEmpty()) {
-    r[QStringLiteral("error")] = QStringLiteral("无法解析当前数据库路径");
+  if (!writeDbDirPointer(targetDir)) {
+    r[QStringLiteral("error")] = QStringLiteral("写入数据库位置指针失败");
     return r;
   }
 
-  const QString newDbPath = QDir::cleanPath(td.filePath(kDatabaseFileName));
-  if (QFileInfo(newDbPath).absoluteFilePath() ==
-      QFileInfo(oldDbPath).absoluteFilePath()) {
-    r[QStringLiteral("error")] = clearPointer
-                                     ? QStringLiteral("数据库已在默认位置")
-                                     : QStringLiteral("目标与当前位置相同");
-    return r;
-  }
-
-  // 2. Never clobber an existing db at the target.
-  if (QFile::exists(newDbPath)) {
-    r[QStringLiteral("error")] =
-        QStringLiteral("目标目录已存在 timearc.db，请换一个目录");
-    return r;
-  }
-
-  // 3. Free-space guard: need at least the current DB size + headroom.
-  const qint64 dbSize = QFileInfo(oldDbPath).size();
-  const QStorageInfo si(targetDir);
-  if (si.isValid() && si.bytesAvailable() >= 0 &&
-      si.bytesAvailable() < dbSize + 64LL * 1024 * 1024) {
-    r[QStringLiteral("error")] = QStringLiteral("目标磁盘剩余空间不足");
-    return r;
-  }
-
-  // 4. Snapshot the live DB to the new path (consistent: VACUUM INTO folds WAL).
-  {
-    QSqlDatabase db = database();
-    if (!db.isValid() || !db.isOpen()) {
-      r[QStringLiteral("error")] = QStringLiteral("当前数据库未打开");
-      return r;
-    }
-    QString literal = newDbPath;
-    literal.replace(QLatin1Char('\''), QStringLiteral("''"));
-    QSqlQuery q(db);
-    if (!q.exec(QStringLiteral("VACUUM INTO '") + literal +
-                QStringLiteral("';"))) {
-      r[QStringLiteral("error")] =
-          QStringLiteral("导出快照失败：") + q.lastError().text();
-      QFile::remove(newDbPath);
-      return r;
-    }
-  }
-
-  // 5. Validate the snapshot BEFORE switching anything (reuse D1 inspectBackup).
-  const QVariantMap insp = inspectBackup(newDbPath);
-  if (!insp.value(QStringLiteral("ok")).toBool()) {
-    r[QStringLiteral("error")] = QStringLiteral("新数据库校验未通过：") +
-                                 insp.value(QStringLiteral("error")).toString();
-    QFile::remove(newDbPath);
-    return r;
-  }
-
-  // 6. Capture the rollback pointer, then release the UI handle on the old DB.
-  const QString originalRaw = readConfigDbPathRaw();
-  database().close();
-  QSqlDatabase::removeDatabase(kConnectionName);
-
-  // 7. Lock-probe the OLD DB by parking it at a sidecar (mirrors D1 restore's
-  //    remove-as-lock-test). If this fails the background service still holds
-  //    it -> abort BEFORE touching the pointer, so we never split-brain. The
-  //    parked copy is also the rollback source.
-  const QString parkedOld = oldDbPath + QStringLiteral(".pre-migrate.bak");
-  bool parked = false;
-  if (QFile::exists(oldDbPath)) {
-    if (QFile::exists(parkedOld) && !QFile::remove(parkedOld)) {
-      r[QStringLiteral("error")] = QStringLiteral("无法清理旧的迁移备份");
-      QFile::remove(newDbPath);
-      openDatabase();
-      configureDatabase();
-      return r;
-    }
-    if (!QFile::rename(oldDbPath, parkedOld)) {
-      qWarning() << "relocate: old DB is locked (background collection "
-                    "running?). Aborting before switching the pointer.";
-      r[QStringLiteral("error")] =
-          QStringLiteral("迁移失败：数据库被后台采集占用，请先停止后台采集");
-      QFile::remove(newDbPath);
-      openDatabase();  // pointer unchanged -> reopens the old DB
-      configureDatabase();
-      return r;
-    }
-    parked = true;
-    QFile::remove(oldDbPath + QStringLiteral("-wal"));
-    QFile::remove(oldDbPath + QStringLiteral("-shm"));
-  }
-
-  // 8. Atomically switch the cross-process pointer.
-  const bool wrote =
-      clearPointer ? writeDbPathPointer(QString()) : writeDbPathPointer(newDbPath);
-  if (!wrote) {
-    r[QStringLiteral("error")] = QStringLiteral("写入数据库位置指针失败，已回滚");
-    if (parked) QFile::rename(parkedOld, oldDbPath);
-    QFile::remove(newDbPath);
-    openDatabase();
-    configureDatabase();
-    return r;
-  }
-
-  // 9. Reopen on the new DB (databasePath() now resolves to newDbPath).
-  if (!openDatabase() || !configureDatabase()) {
-    qWarning() << "relocate: pointer switched but new DB failed to open; "
-                  "rolling back.";
-    database().close();
-    QSqlDatabase::removeDatabase(kConnectionName);
-    writeDbPathPointer(originalRaw);  // restore exact prior pointer
-    QFile::remove(newDbPath);
-    if (parked) QFile::rename(parkedOld, oldDbPath);
-    openDatabase();
-    configureDatabase();
-    r[QStringLiteral("error")] = QStringLiteral("切换到新数据库失败，已回滚");
-    return r;
-  }
-
-  // 10. Success: drop the parked old DB (+ stale sidecars). The pointer now
-  //     points at the new DB; restart prompts let the service re-read it.
-  if (parked) {
-    QFile::remove(parkedOld);
-    QFile::remove(parkedOld + QStringLiteral("-wal"));
-    QFile::remove(parkedOld + QStringLiteral("-shm"));
-  }
-
-  qInfo().noquote() << "relocateDatabase: moved DB to" << newDbPath
-                    << (clearPointer ? "(pointer cleared -> default)"
-                                     : "(pointer set)");
+  openServiceDatabaseReadOnly();
+  const QString newDbPath =
+      QDir::cleanPath(td.filePath(kServiceDatabaseFileName));
+  qInfo().noquote() << "relocateDatabase: service db_dir set to" << targetDir;
   r[QStringLiteral("ok")] = true;
   r[QStringLiteral("newPath")] = newDbPath;
   r[QStringLiteral("error")] = QString();
   return r;
 }
 
-QVariantMap DatabaseManager::relocateDatabaseTo(const QString& targetDirOrUrl) {
-  return relocateDatabaseImpl(targetDirOrUrl, /*clearPointer=*/false);
-}
-
 QVariantMap DatabaseManager::restoreDefaultDatabaseLocation() {
-  const QString def = defaultDatabasePath();
+  const QString def = defaultServiceDatabasePath();
   if (def.isEmpty()) {
     QVariantMap r;
     r[QStringLiteral("ok")] = false;
@@ -1441,16 +975,26 @@ QVariantMap DatabaseManager::restoreDefaultDatabaseLocation() {
     r[QStringLiteral("newPath")] = QString();
     return r;
   }
-  return relocateDatabaseImpl(QFileInfo(def).absolutePath(),
-                              /*clearPointer=*/true);
+  QVariantMap r;
+  r[QStringLiteral("ok")] = false;
+  r[QStringLiteral("error")] = QString();
+  r[QStringLiteral("newPath")] = QString();
+  if (!writeDbDirPointer(QString())) {
+    r[QStringLiteral("error")] = QStringLiteral("清除数据库位置指针失败");
+    return r;
+  }
+  openServiceDatabaseReadOnly();
+  r[QStringLiteral("ok")] = true;
+  r[QStringLiteral("newPath")] = def;
+  return r;
 }
 
 QString DatabaseManager::currentDatabaseLocationDir() const {
-  const QString p = databasePath();
+  const QString p = serviceDatabasePath();
   return p.isEmpty() ? QString() : QFileInfo(p).absolutePath();
 }
 
 bool DatabaseManager::isUsingCustomDatabaseLocation() const {
-  return QDir::cleanPath(databasePath()) !=
-         QDir::cleanPath(defaultDatabasePath());
+  return QDir::cleanPath(serviceDatabasePath()) !=
+         QDir::cleanPath(defaultServiceDatabasePath());
 }

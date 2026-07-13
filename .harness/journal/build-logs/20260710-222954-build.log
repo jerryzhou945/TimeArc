@@ -1,0 +1,2 @@
+[1/2] Building C object src/service/CMakeFiles/time_arc_service.dir/shared/database_storage.c.o
+[2/2] Linking Swift executable src/service/time-arc-service

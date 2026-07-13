@@ -8,7 +8,7 @@ import "../components/I18n.js" as I18n
 // stats-render-pipeline-replication.md / stats-backend-data-gaps.md。
 // 背景三件套（蓝黑渐变 + 42px 方格 + 双角辉光）由 DesktopAppShell 的 fullBleed 层提供
 // （已把 "stats" 加入 fullBleedPage + 栅格 visible）；本页只放内容，暗底自然透出。
-// 数据全部来自只读后端（UsageStatManager 读 JSONL + DailyCardService 本地聚合，数据由
+// 数据全部来自只读后端（UsageStatManager 读 service DB + DailyCardService 本地聚合，数据由
 // 本页传入，维持 db_smoke 契约）；缺真实来源处走诚实占位（G5），零写入（C11）。
 Item {
     id: root

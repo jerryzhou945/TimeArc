@@ -8,7 +8,7 @@ has to provide.
 `src/service/CMakeLists.txt` selects exactly one platform source set:
 
 - `APPLE` -> `macos/*.swift`
-- `WIN32` -> `windows/{main.c, tracker/*.c, platform/*.c, storage/*.c, service/*.c}`
+- `WIN32` -> `windows/{main.c, service_config.c, tracker/*.c, platform/*.c, service/*.c}`
 - `UNIX` (non-APPLE) -> `linux/main.c`
 
 Headers in `src/service/shared/app_info.h` and `app_env.h` are included from
@@ -19,12 +19,11 @@ Win/Linux builds only. macOS Swift code uses the `data_bridge.h` C ABI via an
 
 Every platform service must:
 
-1. Produce records that validate against `usage_record.schema.json`.
-2. Call `ta_storage_init()` before the first write and `ta_storage_shutdown()`
-   on exit.
+1. Produce app and session fields matching `data_bridge.h` and the service tables.
+2. Submit completed app/session data through the shared `data_bridge.h` API.
 3. Split foreground sessions when either `app_id` or `window_title` changes.
 4. Honor an idle threshold (default 60 s). While idle, close the foreground
-   session and clear the live snapshot.
+   session.
 5. Guarantee single-instance by some OS-appropriate mechanism.
 6. Flush pending sessions on orderly shutdown.
 7. Keep storage access behind the shared bridge unless a signed change proposal
@@ -41,7 +40,8 @@ Every platform service must:
 - `platform/active_app_win.c`: `GetForegroundWindow` + `GetWindowText` + exe path.
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
 - `platform/idle_win.c`: `GetLastInputInfo`.
-- `storage/usage_storage.c`: JSONL append + atomic rename for live snapshot.
+- `tracker/*.c`: submits completed sessions through `data_bridge.h`; shared
+  `database_storage.*` owns SQLite history writes.
 - `service/win_service.c`: user-session autostart verbs
   (`--install`/`--uninstall`/`--start`/`--stop`/`--status`) via `schtasks`/Run-key.
   The tracker stays in the interactive user session. A true SCM Session-0
@@ -54,7 +54,7 @@ Every platform service must:
 - `WindowIdentifying.swift`: focused-window title via accessibility API.
 - `AppInfo.swift`, `BinaryFloatingPoint+ToUInt.swift`: helpers.
 - `TimeArcService.swift`: initializes shared storage, reads
-  `~/.timearc/usage/usage_config.json` for `idle_threshold_ms` and
+  `~/Library/Application Support/TimeArc/usage/usage_config.json` for `idle_threshold_ms` and
   `track_enabled`, takes a per-user file lock, writes foreground sessions,
   writes media assertions as `source=audio`, clears current state on idle/exit,
   flushes pending sessions on `SIGTERM`/`SIGINT`, and provides
@@ -78,8 +78,8 @@ Adding, say, FreeBSD or Android-host support:
    probes are needed.
 2. Extend `src/service/CMakeLists.txt` in the existing `if(APPLE)/elseif(WIN32)/
    elseif(UNIX)` chain.
-3. Add `<name>` to the enum in `usage_record.schema.json` (data-contract change
-   goes through rule 03).
+3. Document the platform identifier and SQLite mapping in
+   `rules/03-data-contract.md`.
 4. Document in the main `README.md` project structure section.
 
 ## 5. Platform-specific conventions

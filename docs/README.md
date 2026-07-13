@@ -12,7 +12,8 @@
 - [implementation-backlog.md](implementation-backlog.md) — 全局未完成项 backlog（被 `README` /
   `.harness/state/open-issues.md` 引用）。
 - [a1-sqlite-storage-migration-kickoff.md](a1-sqlite-storage-migration-kickoff.md) — A1（keystone）
-  SQLite 升主数据源 + JSONL 回填的多 session 实施计划（backlog §A1 的展开）。**✅ S1–S4 已实装合并（PR #38）；仅 S5 退役 JSONL 待。**
+  SQLite 历史迁移的多 session 实施计划（backlog §A1 的展开）。**✅ S1–S5 已完成；`timearc_service.db` 为唯一历史存储。**
+- [jsonl-history-retirement-report.md](jsonl-history-retirement-report.md) — 使用记录 JSON 文件退役报告：服务/UI/契约改动、验证、遗留文件策略与回滚说明。
 - [b1-windows-service-scm-kickoff.md](b1-windows-service-scm-kickoff.md) — B1 Windows 服务化（SCM / 登录自启）
   实施计划（backlog §B1 的展开）：Session 0 隔离陷阱 + 产品路线决策门（**已选并实装 Route A，PR #37**）+ S0/S1/S2 与 Route B 范围卡。
 - [agent-harness-vs-superpowers.md](agent-harness-vs-superpowers.md) — 本仓 `.harness` 与

@@ -37,8 +37,8 @@
   3. `scan_qt_log.py`（每次 Qt/QML 运行后）
   4. `record_error.py --level <L1|L2|L3>`（任何错误必入账本）
   5. `harness_check.py`（提交前；非零禁提交）
-- **冻结文件 + 变更提案**：`CHARTER.md §3` 列表（数据契约头、`usage_paths.*`、各 `CMakeLists.txt`、harness 自身入口…），hash 锁在 `state/frozen-files.json`。改前须先落 `journal/sessions/YYYYMMDD-HHMM-<track>-<slug>.md` 提案，`harness_check` pass 2 校验。
-- **磁盘契约不变量 I1–I6**：两进程只经磁盘通信（无 IPC/socket/shm）；schema 在 `usage_record.schema.json`；C ABI 桥 `data_bridge.h`；平台隔离 `src/service/{windows,macos,linux}`；存储全有或全无；GPL/LGPL 许可姿态。
+- **冻结文件 + 变更提案**：`CHARTER.md §3` 列表（数据契约头、`database_path.*`、各 `CMakeLists.txt`、harness 自身入口…），hash 锁在 `state/frozen-files.json`。改前须先落 `journal/sessions/YYYYMMDD-HHMM-<track>-<slug>.md` 提案，`harness_check` pass 2 校验。
+- **磁盘契约不变量 I1–I6**：两进程只经磁盘通信（无 IPC/socket/shm）；SQLite 表契约在 `rules/03-data-contract.md`；C ABI 桥 `data_bridge.h`；平台隔离 `src/service/{windows,macos,linux}`；存储全有或全无；GPL/LGPL 许可姿态。
 - **rules 01–07 按需读**：架构 / 平台边界 / 数据契约 / UI 约定 / 构建系统 / 许可 / 产品-AI 卡片。只读 diff 触及的那几条。
 - **错误账本**：L1 编译链接 / L2 运行时·QML·错误落盘数据 / L3 **agent 自身判断错**（最有长期价值）。"No error escapes the journal."
 - **预算哲学**（`OPTIMIZE.md`）：按需读、不整本读、解析工具 stderr 的 `DRIFT:` 行而非重读源码、按锚点引用 rule 而非粘贴。`.harness/` 内每个 `.md` 硬上限 **100 行**。

@@ -2,11 +2,14 @@
 
 日期：2026-06-19
 
+> 历史审计：其存储结论已被 2026-07-10 至 07-12 的共享数据库与
+> `data_bridge` 重构取代；保留以下内容用于说明当时发现的问题。
+
 ## 核心结论
 
-Windows 后端目前是 TimeArc 的完整参考实现：它能编译、能启动、能采集前台应用和音频、能写 SQLite + JSONL + current snapshot，并且有用户会话内的自启动、停止和状态查询。
+Windows 后端在审计时是 TimeArc 的完整参考实现：它能编译、能启动、能采集前台应用和音频、能写当时的 SQLite + JSONL + current snapshot，并且有用户会话内的自启动、停止和状态查询。
 
-macOS 后端已经写了大量 Swift 侧采集与生命周期代码：前台应用、窗口标题、idle、媒体 assertion、配置读取、单实例、LaunchAgent verbs、UI 自动启动路径都已经有代码。但它还不能算“后端功能完成”，因为当前 `APPLE` 构建目标没有把真正实现 `ta_storage_init` / `ta_write_usage_record*` 的 storage 源文件编进去。
+macOS 后端已经写了大量 Swift 侧采集与生命周期代码：前台应用、窗口标题、idle、媒体 assertion、配置读取、单实例、LaunchAgent verbs、UI 自动启动路径都已经有代码。但它还不能算“后端功能完成”，因为审计时的 `APPLE` 构建目标没有把旧聚合 storage API 的实现源文件编进去。
 
 最重要的判断是：
 
@@ -59,7 +62,7 @@ macOS 后端已经写了大量 Swift 侧采集与生命周期代码：前台应�
 ### 存储
 
 - `src/service/windows/storage/usage_storage.c`
-  - 实现 `data_bridge.h` 里的 `ta_storage_init`、`ta_write_usage_record`、`ta_write_usage_record_with_source`、`ta_write_current_usage`、`ta_clear_current_usage`。
+  - 实现当时 `data_bridge.h` 里的初始化、聚合 session 写入、live snapshot 写入和清理 API。
   - 同时写 JSONL 和 SQLite。
   - SQLite 写入 `apps`、`frontmost_sessions`、`media_sessions`。
   - 读取 `usage_config.json` 的 `db_path`，支持数据库迁移后的路径指针。
@@ -139,7 +142,7 @@ macOS 后端已经写了大量 Swift 侧采集与生命周期代码：前台应�
 - `APPLE` 不会编译这个文件。
 - `APPLE` 只编译 Swift 文件、`usage_paths.c` 和 shared headers。
 
-而 `ta_storage_init`、`ta_write_usage_record`、`ta_write_usage_record_with_source`、`ta_write_current_usage` 的实现目前只在 `usage_storage.c` 里。因此 macOS Swift 虽然调用了 bridge，但 APPLE target 目前大概率会在链接阶段暴露未定义符号。
+而这些旧聚合 bridge API 的实现当时只在 `usage_storage.c` 里。因此 macOS Swift 虽然调用了 bridge，但 APPLE target 在审计时大概率会在链接阶段暴露未定义符号。
 
 这就是“macOS 不能确认实际写 SQLite”的原因。
 

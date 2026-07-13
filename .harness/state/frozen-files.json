@@ -5,23 +5,15 @@
   "files": [
     {
       "path": "src/service/shared/data_bridge.h",
-      "sha256": "8ab8404ed033b8914891fc09480619b8c0b869e2619c27c59edb9f6a154e17bb"
+      "sha256": "55769dfa333fa1fd15b8bdc79e1f34b85eacf08eb501e3c1d16c999c0bb0e920"
     },
     {
-      "path": "src/service/shared/usage_record.h",
-      "sha256": "d53599fa1ad37071b9f5cb2bdbba34f918466ce95d69149cb0d15fcb3398838c"
+      "path": "src/service/shared/database_path.h",
+      "sha256": "e5f934f1784ec00bfe7ee1e02074fa79c9e5b98d58a3db7c9763e605902f4755"
     },
     {
-      "path": "src/service/shared/usage_record.schema.json",
-      "sha256": "8ac23e7d1774f9cf9a06ad87a60689a41053dbdd47a2631b4d7f9e26704e9eec"
-    },
-    {
-      "path": "src/service/shared/usage_paths.h",
-      "sha256": "e725ac6e88c91cc8995333a871672eaf2af9f5afb1f3c1729db7cbf1fdd4620d"
-    },
-    {
-      "path": "src/service/shared/usage_paths.c",
-      "sha256": "cef8c9d30f115d5aad9fc70f35571ec1946920ef085c79048b9a47251c27bca0"
+      "path": "src/service/shared/database_path.c",
+      "sha256": "f3bd903f2c5f709e396c0c241c438b3241d546f204eede9404fae0a5efaace64"
     },
     {
       "path": "src/service/shared/app_info.h",
@@ -45,15 +37,15 @@
     },
     {
       "path": "src/service/CMakeLists.txt",
-      "sha256": "b4a414ec0485542ed0ce17a476355cab59c3a5ee930cbbc5a4f4d95ab4b9fa73"
+      "sha256": "073168ac93183e56c370acb88d6757671233473ebd810a2192bf046a40ac94c5"
     },
     {
       "path": ".harness/CHARTER.md",
-      "sha256": "3bf50966c381b2e530eeaf662281cc7cf08e17060b778da112c6010e4ddd8ad4"
+      "sha256": "73ef37e0b383ecc7180bfd4d8ca5de88d5eb9299b50ebb440734c9f6c38c7971"
     },
     {
       "path": ".harness/AGENTS.md",
-      "sha256": "0e8231401d65dc63404732547bc02288b46aebc5a99ca4460716707fa2bad59f"
+      "sha256": "0be67747d5959a3f527d7a85abd663e9caed2332a80e2da997706376951a64b6"
     },
     {
       "path": "AGENTS.md",
