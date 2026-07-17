@@ -8,6 +8,8 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-14T15:17:15Z | L3 | missing-cli-des... | Assumed src/service/CLI.md from the earlier CLI design se... | [report](errors/20260714-151715-B-missing-cli-design-file.md) |
+| 2026-07-12T14:46:50Z | L1 | cli-doc-harness... | harness_check is blocked by pre-existing untracked macOS ... | [report](errors/20260712-144650-B-cli-doc-harness-drift.md) |
 | 2026-07-12T12:51:24Z | L2 | qt-warning-2cf2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Mem... | [report](errors/20260712-125124-C-qt-warning-2cf241971f.md) |
 | 2026-07-12T12:51:13Z | L3 | qt-log-rotate-s... | scan_qt_log.py could read the Qt log but sandbox permissi... | [report](errors/20260712-125113-B-qt-log-rotate-sandbox.md) |
 | 2026-07-12T12:51:02Z | L2 | qt-warning-2cf2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Mem... | [report](errors/20260712-125102-C-qt-warning-2cf241971f.md) |
