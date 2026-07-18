@@ -20,6 +20,18 @@ namespace {
 
 const QString kAndroidPlatform = QStringLiteral("android");
 
+QString rangeLabel(const QString& range) {
+  const QString key = range.trimmed().toLower();
+  if (key == QStringLiteral("week") || key == QStringLiteral("7d"))
+    return QStringLiteral("本周");
+  if (key == QStringLiteral("month") || key == QStringLiteral("30d"))
+    return QStringLiteral("本月");
+  if (key == QStringLiteral("year")) return QStringLiteral("今年");
+  if (key == QStringLiteral("all") || key == QStringLiteral("total"))
+    return QStringLiteral("总计");
+  return QStringLiteral("今天");
+}
+
 }  // namespace
 
 MobileUsageService::MobileUsageService(MobileUsageRepository* repository,
@@ -56,6 +68,9 @@ QVariantMap MobileUsageService::getUsageDashboard(
   int totalSec = 0;
   QSet<QString> activeDates;
   QMap<QString, QVariantMap> appAggregates;
+  QMap<QString, QSet<QString>> appDates;
+  QMap<QString, QString> appFirstDates;
+  QString firstDateLocal;
 
   for (const QVariant& item : rows) {
     const QVariantMap row = item.toMap();
@@ -64,7 +79,11 @@ QVariantMap MobileUsageService::getUsageDashboard(
 
     totalSec += seconds;
     const QString dateLocal = row.value(QStringLiteral("dateLocal")).toString();
-    if (!dateLocal.isEmpty()) activeDates.insert(dateLocal);
+    if (!dateLocal.isEmpty()) {
+      activeDates.insert(dateLocal);
+      if (firstDateLocal.isEmpty() || dateLocal < firstDateLocal)
+        firstDateLocal = dateLocal;
+    }
 
     QString key = row.value(QStringLiteral("appIdentifier")).toString();
     if (key.isEmpty()) key = row.value(QStringLiteral("packageName")).toString();
@@ -74,6 +93,12 @@ QVariantMap MobileUsageService::getUsageDashboard(
     if (aggregate.isEmpty()) {
       aggregate = row;
       aggregate.insert(QStringLiteral("foregroundSec"), 0);
+      const QString packageName =
+          row.value(QStringLiteral("packageName")).toString();
+      const QString displayName = friendlyDisplayName(
+          packageName, row.value(QStringLiteral("displayName")).toString());
+      aggregate.insert(QStringLiteral("displayName"), displayName);
+      aggregate.insert(QStringLiteral("initial"), initialForName(displayName));
     }
 
     aggregate.insert(
@@ -89,9 +114,19 @@ QVariantMap MobileUsageService::getUsageDashboard(
     const QString displayName = row.value(QStringLiteral("displayName")).toString();
     if (!displayName.isEmpty() &&
         aggregate.value(QStringLiteral("displayName")).toString().isEmpty()) {
-      aggregate.insert(QStringLiteral("displayName"), displayName);
+      const QString friendly = friendlyDisplayName(
+          row.value(QStringLiteral("packageName")).toString(), displayName);
+      aggregate.insert(QStringLiteral("displayName"), friendly);
+      aggregate.insert(QStringLiteral("initial"), initialForName(friendly));
     }
 
+    if (!dateLocal.isEmpty()) {
+      appDates[key].insert(dateLocal);
+      if (appFirstDates.value(key).isEmpty() ||
+          dateLocal < appFirstDates.value(key)) {
+        appFirstDates.insert(key, dateLocal);
+      }
+    }
     appAggregates.insert(key, aggregate);
   }
 
@@ -116,16 +151,49 @@ QVariantMap MobileUsageService::getUsageDashboard(
             });
 
   QVariantList topApps;
+  const int leaderSec =
+      sortedApps.isEmpty()
+          ? 0
+          : sortedApps.first().value(QStringLiteral("foregroundSec")).toInt();
+  const QDate rangeEnd =
+      QDate::fromString(endDateLocal, Qt::ISODate).isValid()
+          ? QDate::fromString(endDateLocal, Qt::ISODate)
+          : QDate::currentDate();
   int rank = 1;
   for (QVariantMap row : sortedApps) {
     const int seconds = row.value(QStringLiteral("foregroundSec")).toInt();
     const QString displayName =
         row.value(QStringLiteral("displayName")).toString();
+    QString key = row.value(QStringLiteral("appIdentifier")).toString();
+    if (key.isEmpty()) key = row.value(QStringLiteral("packageName")).toString();
+    const QString firstDate = appFirstDates.value(key);
+    const QDate firstDateValue = QDate::fromString(firstDate, Qt::ISODate);
+    const int recordedDays = appDates.value(key).size();
+    const int spanDays =
+        firstDateValue.isValid() ? firstDateValue.daysTo(rangeEnd) + 1 : 0;
     row.insert(QStringLiteral("rank"), rank++);
     row.insert(QStringLiteral("durationText"), formatDuration(seconds));
     row.insert(QStringLiteral("initial"), initialForName(displayName));
     row.insert(QStringLiteral("sharePct"),
                totalSec > 0 ? qRound(seconds * 100.0 / totalSec) : 0);
+    row.insert(QStringLiteral("relativePct"),
+               leaderSec > 0 ? qRound(seconds * 100.0 / leaderSec) : 0);
+    row.insert(QStringLiteral("firstDateLocal"), firstDate);
+    row.insert(QStringLiteral("recordedDays"), recordedDays);
+    row.insert(QStringLiteral("spanDays"), qMax(0, spanDays));
+    row.insert(
+        QStringLiteral("storyText"),
+        recordedDays > 1
+            ? QStringLiteral("%1 在 %2 个有记录的日子里，留下了 %3。")
+                  .arg(displayName)
+                  .arg(recordedDays)
+                  .arg(formatDuration(seconds))
+            : QStringLiteral("%1 在这段时间里留下了 %2。")
+                  .arg(displayName, formatDuration(seconds)));
+    row.insert(
+        QStringLiteral("conversionText"),
+        QStringLiteral("若换算为每首 4 分钟的歌曲，相当于约 %1 首的时长。")
+            .arg(qMax(1, qRound(seconds / 240.0))));
     topApps.append(row);
   }
 
@@ -140,6 +208,7 @@ QVariantMap MobileUsageService::getUsageDashboard(
                    formatDuration(activeDayCount > 0 ? totalSec / activeDayCount
                                                      : 0));
   dashboard.insert(QStringLiteral("topApps"), topApps);
+  dashboard.insert(QStringLiteral("firstDateLocal"), firstDateLocal);
   dashboard.insert(QStringLiteral("empty"), topApps.isEmpty());
   dashboard.insert(QStringLiteral("usageAccessGranted"), usageAccessGranted_);
   dashboard.insert(QStringLiteral("syncStatus"), syncStatus_);
@@ -149,8 +218,95 @@ QVariantMap MobileUsageService::getUsageDashboard(
 
 QVariantMap MobileUsageService::getDashboardForRange(const QString& range) {
   const QDate today = QDate::currentDate();
-  return getUsageDashboard(startDateForRange(range, today),
-                           today.toString(Qt::ISODate));
+  const QDate start = startDateForRange(range, today);
+  QVariantMap dashboard =
+      getUsageDashboard(start.toString(Qt::ISODate),
+                        today.toString(Qt::ISODate));
+  dashboard.insert(QStringLiteral("rangeKey"), range.trimmed().toLower());
+  dashboard.insert(QStringLiteral("rangeLabel"), rangeLabel(range));
+  dashboard.insert(
+      QStringLiteral("rangeText"),
+      QStringLiteral("%1 至 %2")
+          .arg(start.toString(QStringLiteral("M月d日")),
+               today.toString(QStringLiteral("M月d日"))));
+  return dashboard;
+}
+
+QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
+  const QVariantMap dashboard = getDashboardForRange(QStringLiteral("month"));
+  const QVariantList apps = dashboard.value(QStringLiteral("topApps")).toList();
+
+  QVariantMap report;
+  const QDate today = QDate::currentDate();
+  report.insert(QStringLiteral("monthLabel"),
+                today.toString(QStringLiteral("yyyy年M月")));
+  report.insert(QStringLiteral("rangeText"),
+                dashboard.value(QStringLiteral("rangeText")));
+  report.insert(QStringLiteral("totalSec"),
+                dashboard.value(QStringLiteral("totalSec")));
+  report.insert(QStringLiteral("totalText"),
+                dashboard.value(QStringLiteral("totalText")));
+  report.insert(QStringLiteral("activeDays"),
+                dashboard.value(QStringLiteral("activeDays")));
+  report.insert(QStringLiteral("appCount"),
+                dashboard.value(QStringLiteral("appCount")));
+  report.insert(QStringLiteral("topApps"), apps);
+
+  const int activeDays =
+      dashboard.value(QStringLiteral("activeDays")).toInt();
+  const QString totalText =
+      dashboard.value(QStringLiteral("totalText")).toString();
+  const QString leadName =
+      apps.isEmpty()
+          ? QStringLiteral("还没有应用")
+          : apps.first().toMap().value(QStringLiteral("displayName")).toString();
+  report.insert(
+      QStringLiteral("title"),
+      activeDays > 0
+          ? QStringLiteral("%1，时间在 %2 个日子里留下痕迹")
+                .arg(today.toString(QStringLiteral("M月")))
+                .arg(activeDays)
+          : QStringLiteral("%1，等待第一段时间被记住")
+                .arg(today.toString(QStringLiteral("M月"))));
+  report.insert(
+      QStringLiteral("summary"),
+      activeDays > 0
+          ? QStringLiteral("%1 的记录分布在 %2 个日子里，%3 最常出现在时间线上。")
+                .arg(totalText)
+                .arg(activeDays)
+                .arg(leadName)
+          : QStringLiteral("开启使用情况访问并同步后，本月故事会从真实记录中生成。"));
+
+  QVariantList moments;
+  const int momentCount = qMin(5, apps.size());
+  for (int index = 0; index < momentCount; ++index) {
+    const QVariantMap app = apps.at(index).toMap();
+    QVariantMap moment;
+    const QString name =
+        app.value(QStringLiteral("displayName")).toString();
+    const int days = app.value(QStringLiteral("recordedDays")).toInt();
+    moment.insert(QStringLiteral("dateLabel"),
+                  app.value(QStringLiteral("firstDateLocal")));
+    moment.insert(
+        QStringLiteral("title"),
+        days > 1
+            ? QStringLiteral("%1，在 %2 个日子里反复出现").arg(name).arg(days)
+            : QStringLiteral("%1，留下了本月的一段时间").arg(name));
+    moment.insert(QStringLiteral("body"),
+                  app.value(QStringLiteral("storyText")));
+    moment.insert(QStringLiteral("durationText"),
+                  app.value(QStringLiteral("durationText")));
+    moment.insert(QStringLiteral("recordedDays"), days);
+    moment.insert(QStringLiteral("apps"), QVariantList{app});
+    moments.append(moment);
+  }
+
+  QVariantMap model;
+  model.insert(QStringLiteral("report"), report);
+  model.insert(QStringLiteral("moments"), moments);
+  model.insert(QStringLiteral("topApps"), apps);
+  model.insert(QStringLiteral("empty"), apps.isEmpty());
+  return model;
 }
 
 bool MobileUsageService::refreshUsageAccessState() {
@@ -224,25 +380,61 @@ QString MobileUsageService::initialForName(const QString& displayName) {
   return trimmed.left(qMin<qsizetype>(2, trimmed.size())).toUpper();
 }
 
-QString MobileUsageService::startDateForRange(const QString& range,
-                                              const QDate& today) {
+QDate MobileUsageService::startDateForRange(const QString& range,
+                                            const QDate& today) {
   const QString normalized = range.trimmed().toLower();
   if (normalized == QStringLiteral("7d") ||
       normalized == QStringLiteral("week")) {
-    return today.addDays(-6).toString(Qt::ISODate);
+    return today.addDays(1 - today.dayOfWeek());
   }
   if (normalized == QStringLiteral("30d") ||
       normalized == QStringLiteral("month")) {
-    return today.addDays(-29).toString(Qt::ISODate);
+    return QDate(today.year(), today.month(), 1);
   }
   if (normalized == QStringLiteral("year")) {
-    return QDate(today.year(), 1, 1).toString(Qt::ISODate);
+    return QDate(today.year(), 1, 1);
   }
   if (normalized == QStringLiteral("all") ||
       normalized == QStringLiteral("total")) {
-    return QStringLiteral("1970-01-01");
+    return QDate(1970, 1, 1);
   }
-  return today.toString(Qt::ISODate);
+  return today;
+}
+
+QString MobileUsageService::friendlyDisplayName(
+    const QString& packageName,
+    const QString& currentLabel) {
+  const QString package = packageName.trimmed().toLower();
+  const QString label = currentLabel.trimmed();
+  const bool labelLooksLikePackage =
+      label.isEmpty() || label.compare(packageName, Qt::CaseInsensitive) == 0 ||
+      (label.contains(QLatin1Char('.')) && !label.contains(QLatin1Char(' ')));
+  if (!labelLooksLikePackage) return label;
+
+  static const QMap<QString, QString> names = {
+      {QStringLiteral("com.tencent.mm"), QStringLiteral("微信")},
+      {QStringLiteral("com.tencent.mobileqq"), QStringLiteral("QQ")},
+      {QStringLiteral("com.xingin.xhs"), QStringLiteral("小红书")},
+      {QStringLiteral("tv.danmaku.bili"), QStringLiteral("哔哩哔哩")},
+      {QStringLiteral("com.netease.cloudmusic"), QStringLiteral("网易云音乐")},
+      {QStringLiteral("com.ss.android.ugc.aweme"), QStringLiteral("抖音")},
+      {QStringLiteral("com.android.chrome"), QStringLiteral("Chrome")},
+      {QStringLiteral("com.microsoft.emmx"), QStringLiteral("Edge")},
+      {QStringLiteral("com.spotify.music"), QStringLiteral("Spotify")},
+      {QStringLiteral("com.google.android.youtube"), QStringLiteral("YouTube")},
+      {QStringLiteral("com.termux"), QStringLiteral("Termux")},
+  };
+  const auto it = names.constFind(package);
+  if (it != names.cend()) return it.value();
+
+  if (!label.isEmpty()) return label;
+  const QString tail = package.section(QLatin1Char('.'), -1);
+  if (tail.isEmpty()) return QStringLiteral("未知应用");
+  QString readable = tail;
+  readable.replace(QLatin1Char('_'), QLatin1Char(' '));
+  readable.replace(QLatin1Char('-'), QLatin1Char(' '));
+  if (!readable.isEmpty()) readable[0] = readable.at(0).toUpper();
+  return readable;
 }
 
 void MobileUsageService::setStatus(bool accessGranted,
