@@ -172,7 +172,7 @@ with day and night modes.
 | Platform | Status      | Notes                                                  |
 |----------|-------------|--------------------------------------------------------|
 | Windows  | functional  | Foreground + WASAPI audio + idle; the tracker runs in the user session, with an opt-in logon autostart (Settings → 追踪与应用; B1 Route A). A true SCM/Session-0 service (Route B) is deferred. |
-| Android  | backend scaffold | Usage Access bridge, UsageStats aggregate reader, UsageEvents recent-session reader, WorkManager scheduler, C++ SQLite repositories, and a QML-facing `MobileUsageService` dashboard adapter are in place. Android framework calls live under `android/`; shared storage/query code lives under `src/services/mobile/`. |
+| Android  | mobile UI in progress | Usage Access, UsageStats/UsageEvents sync, real app labels/icons, calendar-range dashboards, a four-tab QML viewer, app-private wallpaper import, and FileProvider image sharing are wired through the mobile services. |
 | macOS    | in progress | `NSWorkspace` + `CGEventSource` + `IOPMCopyAssertionsByProcess` primitives are in place; tracker main loop not yet wired. |
 | Linux    | not started | Target both X11 and Wayland; audio likely via PipeWire. |
 
@@ -220,6 +220,9 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   identity is normalized as `android:<package_name>` so desktop and mobile data
   can be merged by the presentation layer without losing platform/source
   precision.
+- Android UI-private wallpaper and share files are managed by
+  `MobileUiService` under the app data directory. They do not enter either
+  SQLite usage database or the service control-file contract.
 
 ## Adapter Support
 
