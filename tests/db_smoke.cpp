@@ -1062,6 +1062,29 @@ int main(int argc, char* argv[]) {
           QStringLiteral("3m")) {
     return fail(QStringLiteral("Mobile dashboard did not merge app rows."));
   }
+  if (MobileUsageService::startDateForRange(
+          QStringLiteral("week"), QDate(2026, 7, 19)) != QDate(2026, 7, 13) ||
+      MobileUsageService::startDateForRange(
+          QStringLiteral("month"), QDate(2026, 7, 19)) != QDate(2026, 7, 1) ||
+      MobileUsageService::startDateForRange(
+          QStringLiteral("year"), QDate(2026, 7, 19)) != QDate(2026, 1, 1)) {
+    return fail(QStringLiteral("Mobile calendar range semantics failed."));
+  }
+  if (MobileUsageService::friendlyDisplayName(
+          QStringLiteral("com.xingin.xhs"), QString()) !=
+          QStringLiteral("小红书") ||
+      MobileUsageService::friendlyDisplayName(
+          QStringLiteral("com.tencent.mm"), QStringLiteral("微信")) !=
+          QStringLiteral("微信")) {
+    return fail(QStringLiteral("Mobile friendly app naming failed."));
+  }
+  if (secondDashboardApp.value(QStringLiteral("firstDateLocal")).toString() !=
+          QStringLiteral("2026-06-29") ||
+      secondDashboardApp.value(QStringLiteral("recordedDays")).toInt() != 2 ||
+      secondDashboardApp.value(QStringLiteral("spanDays")).toInt() != 2 ||
+      secondDashboardApp.value(QStringLiteral("relativePct")).toInt() <= 0) {
+    return fail(QStringLiteral("Mobile app evidence aggregation failed."));
+  }
   const QVariantMap androidApp = appRepository.getAppByIdentifier(
       QStringLiteral("android:com.spotify.music"));
   if (androidApp.value(QStringLiteral("platform")).toString() !=
