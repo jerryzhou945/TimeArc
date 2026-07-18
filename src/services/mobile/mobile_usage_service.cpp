@@ -32,6 +32,35 @@ QString rangeLabel(const QString& range) {
   return QStringLiteral("今天");
 }
 
+QPair<QString, QString> personalizedConversion(int seconds, int variant) {
+  switch (variant % 4) {
+    case 0:
+      return {
+          QStringLiteral("songs"),
+          QStringLiteral("若每首歌四分钟，这段时间足够听完约 %1 首歌。")
+              .arg(qMax(1, qRound(seconds / 240.0)))};
+    case 1:
+      return {
+          QStringLiteral("poem"),
+          QStringLiteral("如同安静读过约 %1 字的诗，时间也有了自己的韵脚。")
+              .arg(qMax(800, qRound(seconds / 60.0 * 320.0)))};
+    case 2:
+      return {
+          QStringLiteral("tea"),
+          QStringLiteral("若用一盏茶的二十分钟慢下来，足够拥有约 %1 次短暂晴天。")
+              .arg(qMax(1, qRound(seconds / 1200.0)))};
+    default:
+      return {
+          QStringLiteral("film"),
+          QStringLiteral("像完整看过约 %1 部九十分钟的电影，片尾都有你的名字。")
+              .arg(qMax(1, qRound(seconds / 5400.0)))};
+  }
+}
+
+int stableConversionVariant(const QString& appKey) {
+  return static_cast<int>(qHash(appKey, 0u) % 4u);
+}
+
 }  // namespace
 
 MobileUsageService::MobileUsageService(MobileUsageRepository* repository,
@@ -171,7 +200,8 @@ QVariantMap MobileUsageService::getUsageDashboard(
     const int recordedDays = appDates.value(key).size();
     const int spanDays =
         firstDateValue.isValid() ? firstDateValue.daysTo(rangeEnd) + 1 : 0;
-    row.insert(QStringLiteral("rank"), rank++);
+    const int currentRank = rank++;
+    row.insert(QStringLiteral("rank"), currentRank);
     row.insert(QStringLiteral("durationText"), formatDuration(seconds));
     row.insert(QStringLiteral("initial"), initialForName(displayName));
     row.insert(QStringLiteral("sharePct"),
@@ -190,10 +220,10 @@ QVariantMap MobileUsageService::getUsageDashboard(
                   .arg(formatDuration(seconds))
             : QStringLiteral("%1 在这段时间里留下了 %2。")
                   .arg(displayName, formatDuration(seconds)));
-    row.insert(
-        QStringLiteral("conversionText"),
-        QStringLiteral("若换算为每首 4 分钟的歌曲，相当于约 %1 首的时长。")
-            .arg(qMax(1, qRound(seconds / 240.0))));
+    const QPair<QString, QString> conversion =
+        personalizedConversion(seconds, stableConversionVariant(key));
+    row.insert(QStringLiteral("conversionKind"), conversion.first);
+    row.insert(QStringLiteral("conversionText"), conversion.second);
     topApps.append(row);
   }
 

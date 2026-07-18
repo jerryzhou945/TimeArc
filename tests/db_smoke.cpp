@@ -1085,6 +1085,23 @@ int main(int argc, char* argv[]) {
       secondDashboardApp.value(QStringLiteral("relativePct")).toInt() <= 0) {
     return fail(QStringLiteral("Mobile app evidence aggregation failed."));
   }
+  const QVariantMap firstMultiDayApp = multiDayApps.at(0).toMap();
+  const QString firstConversion =
+      firstMultiDayApp.value(QStringLiteral("conversionText")).toString();
+  const QString secondConversion =
+      secondDashboardApp.value(QStringLiteral("conversionText")).toString();
+  const QString firstConversionKind =
+      firstMultiDayApp.value(QStringLiteral("conversionKind")).toString();
+  const QString secondConversionKind =
+      secondDashboardApp.value(QStringLiteral("conversionKind")).toString();
+  if (firstConversion.isEmpty() || secondConversion.isEmpty() ||
+      firstConversionKind.isEmpty() || secondConversionKind.isEmpty() ||
+      firstConversionKind == secondConversionKind ||
+      secondDashboardApp.value(QStringLiteral("storyText"))
+          .toString()
+          .isEmpty()) {
+    return fail(QStringLiteral("Mobile share copy variety failed."));
+  }
   const QVariantMap androidApp = appRepository.getAppByIdentifier(
       QStringLiteral("android:com.spotify.music"));
   if (androidApp.value(QStringLiteral("platform")).toString() !=

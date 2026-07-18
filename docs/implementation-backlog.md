@@ -160,8 +160,13 @@ G2/G3 打磨 ───────────(随手)
   近似（面板半透明）伤可读性 + 改每页玻璃令牌（面大）。结论：**保留为标注偏好**，除非接受半透明代价或换渲染路径。
   Track B · UI · 低/不做。
 
-### M. 移动端（**超本次范围 · 低优 · 独立 arc**）
-- [ ] **M1 Memory Lake / 统计 等页的移动端等价**（桌面 `DesktopStatsPage`/`DesktopMemoryLakePage` 已 done 且接只读真实后端；移动端 `qml/mobile/pages/` 仅 Home/Stats/History/Settings 四页、**全部字面 mock、零 backend manager**（`MobileAppShell` 仅注入 `mobileTheme`），且**无记忆湖移动页**——须从零新建）— Track B · 跨。
+### M. 移动端（独立 arc）
+- [x] **M1 Memory Lake / 统计 / 首页 / 设置的移动端等价** — 2026-07-19
+  已完成 QML 四页实装：真实 Android 使用聚合、单卡翻转、周/月/年/总统计详情、
+  真实应用图标、全局壁纸与玻璃层、记忆湖、原创 Canvas 月报、卡牌/月报分享和设置。
+  设计与验证见
+  [`mobile-qml-time-album-implementation-report.md`](mobile-qml-time-album-implementation-report.md)。
+  剩余仅为 Android 多 ROM 的相册 URI、FileProvider 分享和安全区设备验收。Track B · 跨。
 
 ---
 

@@ -36,11 +36,24 @@ def main():
     require(shell, "Image.PreserveAspectCrop",
             "single shell wallpaper crop")
     require(shell, "wallpaperActive", "global wallpaper state")
+    require(shell, "wallpaperUrl.toString().length > 0",
+            "QUrl-safe wallpaper state")
     require(stats, '["week", "month", "year", "all"]',
             "four statistics ranges")
     require(app_icon, "appIconPath", "real app icon")
     require(share, "grabToImage", "shared preview/export component")
     require(share, "anonymous", "anonymous share mode")
+    require(share, "function storyForShare()",
+            "anonymous-safe share story")
+    require(share, "text: root.storyForShare()",
+            "share poster uses privacy-filtered story")
+    story_block = share.split("function storyForShare()", 1)[1].split(
+        "function exportAndShare()", 1
+    )[0]
+    if "displayName" in story_block:
+        raise AssertionError(
+            "anonymous-safe share story must not read the application name"
+        )
 
     print("Mobile UI static checks passed")
 

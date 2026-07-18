@@ -4,249 +4,369 @@ Item {
     id: root
 
     required property var theme
-    required property var card
-
+    property var app: ({})
+    property bool wallpaperActive: false
+    property bool selected: true
     property bool flipped: false
-    property color accent: card ? theme.colorFor(card.accentKey) : theme.textMuted
     property real flipAngle: flipped ? 180 : 0
 
-    height: Math.max(140, frontContent.implicitHeight + 22,
-                     backContent.implicitHeight + 42)
+    signal shareRequested(var app)
+    signal permissionRequested()
 
-    function withAlpha(c, a) {
-        return Qt.rgba(c.r, c.g, c.b, a)
+    function value(key, fallbackValue) {
+        return root.app && root.app[key] !== undefined
+                ? root.app[key] : fallbackValue
     }
 
     Behavior on flipAngle {
         NumberAnimation {
-            duration: 560
-            easing.type: Easing.InOutCubic
+            duration: root.theme.normalDuration
+            easing.type: Easing.OutQuart
         }
     }
 
-    Rectangle {
+    Item {
         id: front
         anchors.fill: parent
-        radius: 16
-        color: root.theme.card
-        border.color: root.withAlpha(root.accent, 0.42)
-        border.width: 1
-        visible: root.flipAngle >= 90
-        opacity: visible ? 1 : 0
-
+        visible: root.flipAngle < 90
         transform: Rotation {
             origin.x: front.width / 2
             origin.y: front.height / 2
-            axis.x: 0
             axis.y: 1
-            axis.z: 0
+            angle: root.flipAngle
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: root.theme.cardRadius
+            color: root.wallpaperActive
+                   ? root.theme.withAlpha(root.theme.surface, 0.10)
+                   : root.theme.surface
+            border.width: root.wallpaperActive ? 1 : 0
+            border.color: root.theme.withAlpha(root.theme.textPrimary, 0.18)
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: parent.height * 0.67
+            radius: root.theme.cardRadius
+            gradient: Gradient {
+                GradientStop {
+                    position: 0
+                    color: "transparent"
+                }
+                GradientStop {
+                    position: 0.38
+                    color: root.theme.isDark ? "#35000000" : "#42FFFFFF"
+                }
+                GradientStop {
+                    position: 1
+                    color: root.theme.isDark ? "#9A101114" : "#A8FFFFFF"
+                }
+            }
+        }
+
+        Column {
+            anchors.fill: parent
+            anchors.margins: 22
+            spacing: 14
+
+            Row {
+                width: parent.width
+                height: 70
+                spacing: 14
+
+                MobileAppIcon {
+                    theme: root.theme
+                    app: root.app
+                    iconSize: 64
+                    cornerRadius: 15
+                }
+
+                Column {
+                    width: parent.width - 78
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 5
+
+                    Text {
+                        width: parent.width
+                        text: root.value("displayName", "等待记录")
+                        color: root.theme.textPrimary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 21
+                        font.weight: Font.Bold
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "累计时间卡 · "
+                              + root.value("sharePct", 0) + "%"
+                        color: root.theme.textSecondary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 12
+                    }
+                }
+            }
+
+            Item { width: 1; height: 26 }
+
+            Text {
+                width: parent.width
+                text: root.value("durationText", "0s")
+                color: root.theme.textPrimary
+                font.family: root.theme.numberFontFamily
+                font.pixelSize: 42
+                font.weight: Font.Bold
+            }
+
+            Text {
+                width: parent.width
+                text: root.value("storyText",
+                                 "授权并同步后，这里会出现真实使用记录。")
+                color: root.theme.textSecondary
+                font.family: root.theme.fontFamily
+                font.pixelSize: 14
+                lineHeight: 1.45
+                wrapMode: Text.WordWrap
+                maximumLineCount: 3
+                elide: Text.ElideRight
+            }
+
+            Item { width: 1; height: 4 }
+
+            Rectangle {
+                width: parent.width
+                height: 8
+                radius: 4
+                color: root.theme.withAlpha(root.theme.progressTrack, 0.76)
+
+                Rectangle {
+                    width: parent.width * Math.max(
+                               0.03,
+                               Math.min(1, root.value("relativePct", 0) / 100))
+                    height: parent.height
+                    radius: parent.radius
+                    color: root.theme.accent
+                }
+            }
+
+            Item { width: 1; height: 8 }
+
+            Row {
+                width: parent.width
+                height: 44
+
+                Text {
+                    width: parent.width - 48
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "轻点翻面，查看这段时间的百科"
+                    color: root.theme.textMuted
+                    font.family: root.theme.fontFamily
+                    font.pixelSize: 12
+                }
+
+                Rectangle {
+                    width: 44
+                    height: 44
+                    radius: 22
+                    color: root.theme.withAlpha(root.theme.surfaceRaised, 0.82)
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "↻"
+                        color: root.theme.textPrimary
+                        font.pixelSize: 20
+                    }
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.flipped = true
+        }
+    }
+
+    Item {
+        id: back
+        anchors.fill: parent
+        visible: root.flipAngle >= 90
+        transform: Rotation {
+            origin.x: back.width / 2
+            origin.y: back.height / 2
+            axis.y: 1
             angle: root.flipAngle - 180
         }
 
         Rectangle {
             anchors.fill: parent
-            anchors.margins: -3
-            radius: parent.radius + 3
-            color: "transparent"
-            border.color: root.withAlpha(root.accent, root.theme.isDark ? 0.24 : 0.18)
-            border.width: 2
-            opacity: 0.75
+            radius: root.theme.cardRadius
+            color: root.theme.withAlpha(root.theme.memoryBrown, 0.94)
         }
 
         Column {
-            id: frontContent
             anchors.fill: parent
-            anchors.margins: 14
-            anchors.topMargin: 10
-            spacing: 6
+            anchors.margins: 22
+            spacing: 16
 
             Row {
                 width: parent.width
-                spacing: 8
+                height: 52
+                spacing: 12
 
-                Text {
-                    text: root.card.index
-                    color: root.accent
-                    opacity: 0.75
-                    font.pixelSize: 10
-                    font.weight: Font.Bold
-                    font.letterSpacing: 1
+                MobileAppIcon {
+                    theme: root.theme
+                    app: root.app
+                    iconSize: 48
+                    cornerRadius: 12
                 }
 
-                Text {
-                    width: parent.width - durationText.width - 44
-                    text: root.card.title
-                    color: root.theme.textSecondary
-                    font.pixelSize: 12
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
-                }
+                Column {
+                    width: parent.width - 60
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 3
 
-                Text {
-                    id: durationText
-                    text: root.card.duration
-                    color: root.accent
-                    font.pixelSize: 20
-                    font.weight: Font.Bold
-                    font.letterSpacing: -0.4
+                    Text {
+                        width: parent.width
+                        text: "时间百科 · " + root.value("displayName", "应用")
+                        color: root.theme.memoryInk
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 17
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        width: parent.width
+                        text: "所有表达均来自本地记录"
+                        color: root.theme.memoryCopy
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 11
+                    }
                 }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: root.theme.withAlpha(root.theme.memoryInk, 0.16)
+            }
+
+            FactRow {
+                width: parent.width
+                label: "初次记录"
+                value: root.value("firstDateLocal", "等待同步")
+            }
+
+            FactRow {
+                width: parent.width
+                label: "累计记录"
+                value: root.value("durationText", "0s")
+            }
+
+            FactRow {
+                width: parent.width
+                label: "出现日数"
+                value: root.value("recordedDays", 0) + " 天"
+            }
+
+            FactRow {
+                width: parent.width
+                label: "日历跨度"
+                value: root.value("spanDays", 0) + " 天"
             }
 
             Text {
                 width: parent.width
-                text: root.card.body
-                color: root.theme.textSecondary
-                font.pixelSize: 12
-                lineHeight: 1.5
+                text: root.value("conversionText",
+                                 "同步后会生成一条明确标注的时长换算。")
+                color: root.theme.memoryCopy
+                font.family: root.theme.fontFamily
+                font.pixelSize: 13
+                lineHeight: 1.45
                 wrapMode: Text.WordWrap
-                maximumLineCount: 2
+                maximumLineCount: 3
                 elide: Text.ElideRight
             }
 
-            Text {
+            Item { width: 1; height: 4 }
+
+            Row {
                 width: parent.width
-                text: "— " + root.card.summary
-                color: root.theme.textPrimary
-                font.pixelSize: 11
-                font.italic: true
-                lineHeight: 1.4
-                wrapMode: Text.WordWrap
-                maximumLineCount: 2
-                elide: Text.ElideRight
-            }
+                height: root.theme.controlHeight
+                spacing: 10
 
-            Flow {
-                width: parent.width
-                spacing: 5
+                Rectangle {
+                    width: (parent.width - 10) * 0.38
+                    height: parent.height
+                    radius: root.theme.controlRadius
+                    color: root.theme.withAlpha(root.theme.memoryInk, 0.10)
 
-                Repeater {
-                    model: root.card ? root.card.tags : []
+                    Text {
+                        anchors.centerIn: parent
+                        text: "返回正面"
+                        color: root.theme.memoryInk
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                    }
 
-                    Rectangle {
-                        height: 20
-                        radius: 5
-                        color: root.theme.cardElevated
-                        border.color: root.withAlpha(root.accent, 0.38)
-                        border.width: 1
-                        width: tagText.implicitWidth + 14
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.flipped = false
+                    }
+                }
 
-                        Text {
-                            id: tagText
-                            anchors.centerIn: parent
-                            text: modelData
-                            color: root.accent
-                            font.pixelSize: 10
-                        }
+                Rectangle {
+                    width: (parent.width - 10) * 0.62
+                    height: parent.height
+                    radius: root.theme.controlRadius
+                    color: root.theme.accent
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "分享时间纪念卡"
+                        color: "white"
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 13
+                        font.weight: Font.DemiBold
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.shareRequested(root.app)
                     }
                 }
             }
         }
     }
 
-    Rectangle {
-        id: back
-        anchors.fill: parent
-        radius: 16
-        color: root.theme.card
-        border.color: root.theme.border
-        border.width: 1
-        visible: root.flipAngle < 90
-        opacity: visible ? 1 : 0
+    component FactRow: Row {
+        property string label: ""
+        property string value: ""
 
-        transform: Rotation {
-            origin.x: back.width / 2
-            origin.y: back.height / 2
-            axis.x: 0
-            axis.y: 1
-            axis.z: 0
-            angle: root.flipAngle
+        height: 28
+
+        Text {
+            width: parent.width * 0.38
+            text: label
+            color: root.theme.memoryCopy
+            font.family: root.theme.fontFamily
+            font.pixelSize: 12
         }
 
-        Rectangle {
-            anchors.fill: parent
-            anchors.margins: -3
-            radius: parent.radius + 3
-            color: "transparent"
-            border.color: root.withAlpha(root.accent, root.theme.isDark ? 0.20 : 0.14)
-            border.width: 2
-            opacity: 0.7
+        Text {
+            width: parent.width * 0.62
+            text: value
+            color: root.theme.memoryInk
+            font.family: root.theme.numberFontFamily
+            font.pixelSize: 14
+            font.weight: Font.DemiBold
+            horizontalAlignment: Text.AlignRight
+            elide: Text.ElideRight
         }
-
-        Canvas {
-            anchors.fill: parent
-            opacity: root.theme.isDark ? 0.16 : 0.12
-            property color strokeColor: root.accent
-
-            onStrokeColorChanged: requestPaint()
-            Component.onCompleted: requestPaint()
-
-            onPaint: {
-                var ctx = getContext("2d")
-                ctx.reset()
-                ctx.strokeStyle = strokeColor
-                ctx.lineWidth = 0.8
-                for (var x = -160; x < width + 160; x += 40) {
-                    ctx.beginPath()
-                    ctx.moveTo(x, 0)
-                    ctx.lineTo(x + 140, height)
-                    ctx.stroke()
-                    ctx.beginPath()
-                    ctx.moveTo(x, height)
-                    ctx.lineTo(x + 140, 0)
-                    ctx.stroke()
-                }
-            }
-        }
-
-        Rectangle {
-            anchors.centerIn: parent
-            width: 88
-            height: 88
-            rotation: 45
-            radius: 4
-            color: "transparent"
-            border.color: root.withAlpha(root.accent, 0.28)
-            border.width: 1
-        }
-
-        Column {
-            id: backContent
-            anchors.centerIn: parent
-            width: parent.width - 48
-            spacing: 8
-
-            Rectangle {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 26
-                height: 26
-                radius: 13
-                color: root.theme.isDark ? "#CC15171A" : "#CCFFFFFF"
-                border.color: root.withAlpha(root.accent, 0.35)
-                border.width: 1
-
-                Text {
-                    anchors.centerIn: parent
-                    text: root.card.index
-                    color: root.accent
-                    font.pixelSize: 10
-                    font.weight: Font.Bold
-                }
-            }
-
-            Text {
-                width: parent.width
-                text: root.card.backText
-                color: root.theme.textMuted
-                font.pixelSize: 12
-                lineHeight: 1.5
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-            }
-        }
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        onClicked: root.flipped = !root.flipped
     }
 }

@@ -9,37 +9,42 @@ Rectangle {
 
     property string currentTab: "home"
     property int topReserve: 0
+    readonly property bool wallpaperActive:
+        typeof mobileUiService !== "undefined"
+        && mobileUiService
+        && mobileUiService.wallpaperUrl.toString().length > 0
 
     function loadThemePreference() {
         if (typeof settingsRepository === "undefined" || !settingsRepository)
             return
         var mode = settingsRepository.getValue("mobile_theme_mode", "dark")
         mobileTheme.isDark = mode !== "light"
+        mobileTheme.reducedMotion =
+            settingsRepository.getBool("mobile_reduced_motion", false)
     }
 
     function setDarkMode(enabled) {
         mobileTheme.isDark = enabled
         if (typeof settingsRepository !== "undefined" && settingsRepository)
-            settingsRepository.setValue("mobile_theme_mode", enabled ? "dark" : "light")
+            settingsRepository.setValue("mobile_theme_mode",
+                                        enabled ? "dark" : "light")
     }
 
     function ensureUsageAccessOnboarding() {
         if (typeof mobileUsageService === "undefined" || !mobileUsageService)
             return
-
         var granted = mobileUsageService.refreshUsageAccessState()
         if (granted) {
             mobileUsageService.requestImmediateSync()
             return
         }
-
-        root.currentTab = "settings"
         if (typeof settingsRepository === "undefined" || !settingsRepository)
             return
-
-        var prompted = settingsRepository.getValue("android_usage_access_prompted", "")
+        var prompted = settingsRepository.getValue(
+                    "android_usage_access_prompted", "")
         if (prompted !== "1") {
             settingsRepository.setValue("android_usage_access_prompted", "1")
+            root.currentTab = "settings"
             mobileUsageService.openUsageAccessSettings()
         }
     }
@@ -48,27 +53,73 @@ Rectangle {
         id: mobileTheme
     }
 
-    Loader {
-        id: pageLoader
+    Image {
+        id: wallpaper
+        anchors.fill: parent
+        source: root.wallpaperActive ? mobileUiService.wallpaperUrl : ""
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        cache: false
+        visible: root.wallpaperActive && status !== Image.Error
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        color: root.wallpaperActive
+               ? (root.currentTab === "home"
+                  ? mobileTheme.wallpaperVeil
+                  : mobileTheme.wallpaperPageVeil)
+               : mobileTheme.bg
+
+        Behavior on color {
+            ColorAnimation { duration: mobileTheme.fastDuration }
+        }
+    }
+
+    Item {
+        id: pageHost
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.topMargin: root.topReserve
         anchors.bottom: tabBar.top
-        sourceComponent: {
-            if (root.currentTab === "stats")
-                return statsPage
-            if (root.currentTab === "history")
-                return historyPage
-            if (root.currentTab === "settings")
-                return settingsPage
-            return homePage
-        }
-    }
 
-    Component.onCompleted: {
-        root.loadThemePreference()
-        root.ensureUsageAccessOnboarding()
+        MobileHomePage {
+            anchors.fill: parent
+            visible: root.currentTab === "home"
+            enabled: visible
+            theme: mobileTheme
+            wallpaperActive: root.wallpaperActive
+            anonymousShare: settingsPage.anonymousShare
+        }
+
+        MobileStatsPage {
+            anchors.fill: parent
+            visible: root.currentTab === "stats"
+            enabled: visible
+            theme: mobileTheme
+            wallpaperActive: root.wallpaperActive
+        }
+
+        MobileHistoryPage {
+            anchors.fill: parent
+            visible: root.currentTab === "history"
+            enabled: visible
+            theme: mobileTheme
+            wallpaperActive: root.wallpaperActive
+        }
+
+        MobileSettingsPage {
+            id: settingsPage
+            anchors.fill: parent
+            visible: root.currentTab === "settings"
+            enabled: visible
+            theme: mobileTheme
+            wallpaperActive: root.wallpaperActive
+            onDarkModeChanged: function(enabled) {
+                root.setDarkMode(enabled)
+            }
+        }
     }
 
     Rectangle {
@@ -76,83 +127,40 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 73
-        color: mobileTheme.tabBarBg
-        border.color: mobileTheme.tabBarBorder
+        height: 74
+        color: root.wallpaperActive ? mobileTheme.tabBarBg : mobileTheme.surface
+        border.color: root.wallpaperActive
+                      ? mobileTheme.tabBarBorder : mobileTheme.line
         border.width: 1
 
         Row {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            height: 52
+            anchors.fill: parent
+            anchors.topMargin: 3
 
-            MobileTabButton {
-                width: parent.width / 4
-                theme: mobileTheme
-                label: "首页"
-                iconName: "home"
-                active: root.currentTab === "home"
-                onClicked: root.currentTab = "home"
-            }
+            Repeater {
+                model: [
+                    { "key": "home", "label": "首页", "icon": "home" },
+                    { "key": "stats", "label": "统计", "icon": "stats" },
+                    { "key": "history", "label": "记忆湖", "icon": "history" },
+                    { "key": "settings", "label": "我的", "icon": "settings" }
+                ]
 
-            MobileTabButton {
-                width: parent.width / 4
-                theme: mobileTheme
-                label: "统计"
-                iconName: "stats"
-                active: root.currentTab === "stats"
-                onClicked: root.currentTab = "stats"
-            }
-
-            MobileTabButton {
-                width: parent.width / 4
-                theme: mobileTheme
-                label: "记忆湖"
-                iconName: "history"
-                active: root.currentTab === "history"
-                onClicked: root.currentTab = "history"
-            }
-
-            MobileTabButton {
-                width: parent.width / 4
-                theme: mobileTheme
-                label: "我的"
-                iconName: "settings"
-                active: root.currentTab === "settings"
-                onClicked: root.currentTab = "settings"
+                MobileTabButton {
+                    required property var modelData
+                    width: tabBar.width / 4
+                    theme: mobileTheme
+                    label: modelData.label
+                    iconName: modelData.icon
+                    active: root.currentTab === modelData.key
+                    wallpaperActive: root.wallpaperActive
+                    onClicked: root.currentTab = modelData.key
+                }
             }
         }
     }
 
-    Component {
-        id: homePage
-        MobileHomePage {
-            theme: mobileTheme
-        }
-    }
-
-    Component {
-        id: statsPage
-        MobileStatsPage {
-            theme: mobileTheme
-        }
-    }
-
-    Component {
-        id: historyPage
-        MobileHistoryPage {
-            theme: mobileTheme
-        }
-    }
-
-    Component {
-        id: settingsPage
-        MobileSettingsPage {
-            theme: mobileTheme
-            onDarkModeChanged: function(enabled) {
-                root.setDarkMode(enabled)
-            }
-        }
+    Component.onCompleted: {
+        loadThemePreference()
+        ensureUsageAccessOnboarding()
     }
 }

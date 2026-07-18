@@ -172,7 +172,7 @@ with day and night modes.
 | Platform | Status      | Notes                                                  |
 |----------|-------------|--------------------------------------------------------|
 | Windows  | functional  | Foreground + WASAPI audio + idle; the tracker runs in the user session, with an opt-in logon autostart (Settings → 追踪与应用; B1 Route A). A true SCM/Session-0 service (Route B) is deferred. |
-| Android  | mobile UI in progress | Usage Access, UsageStats/UsageEvents sync, real app labels/icons, calendar-range dashboards, a four-tab QML viewer, app-private wallpaper import, and FileProvider image sharing are wired through the mobile services. |
+| Android  | functional preview complete | Usage Access, UsageStats/UsageEvents sync, real app labels/icons, week/month/year/all rankings, the four-tab transparent QML UI, global app-private wallpaper, Memory Lake/monthly report, and FileProvider image sharing are implemented. Multi-ROM device validation remains. |
 | macOS    | in progress | `NSWorkspace` + `CGEventSource` + `IOPMCopyAssertionsByProcess` primitives are in place; tracker main loop not yet wired. |
 | Linux    | not started | Target both X11 and Wayland; audio likely via PipeWire. |
 

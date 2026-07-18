@@ -7,109 +7,66 @@ Item {
     property string label: ""
     property string iconName: "home"
     property bool active: false
+    property bool wallpaperActive: false
 
     signal clicked()
 
-    width: 72
-    height: 52
+    width: 80
+    height: 58
+
+    function iconFile() {
+        if (iconName === "history")
+            return "recap"
+        return iconName
+    }
 
     Column {
+        anchors.centerIn: parent
         width: parent.width
-        height: 42
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: 6
         spacing: 3
 
         Item {
             width: parent.width
-            height: 24
+            height: 30
 
-            Canvas {
-                id: iconCanvas
+            Rectangle {
                 anchors.centerIn: parent
-                width: 22
-                height: 22
+                width: root.active ? 42 : 30
+                height: 28
+                radius: 14
+                color: root.active
+                       ? root.theme.withAlpha(root.theme.accentSoft,
+                                              root.wallpaperActive ? 0.84 : 1)
+                       : "transparent"
 
-                property color strokeColor: root.active ? root.theme.tabActive : root.theme.tabInactive
-
-                onStrokeColorChanged: requestPaint()
-                Component.onCompleted: requestPaint()
-
-                onPaint: {
-                    var ctx = getContext("2d")
-                    ctx.reset()
-                    ctx.strokeStyle = strokeColor
-                    ctx.lineWidth = 1.7
-                    ctx.lineCap = "round"
-                    ctx.lineJoin = "round"
-                    ctx.fillStyle = "transparent"
-
-                    if (root.iconName === "home") {
-                        ctx.beginPath()
-                        ctx.moveTo(4, 10)
-                        ctx.lineTo(11, 4)
-                        ctx.lineTo(18, 10)
-                        ctx.lineTo(18, 19)
-                        ctx.lineTo(14, 19)
-                        ctx.lineTo(14, 13)
-                        ctx.lineTo(8, 13)
-                        ctx.lineTo(8, 19)
-                        ctx.lineTo(4, 19)
-                        ctx.closePath()
-                        ctx.stroke()
-                    } else if (root.iconName === "stats") {
-                        drawRoundRect(ctx, 4, 13, 4, 7, 1)
-                        drawRoundRect(ctx, 9, 8, 4, 12, 1)
-                        drawRoundRect(ctx, 14, 4, 4, 16, 1)
-                    } else if (root.iconName === "history") {
-                        ctx.beginPath()
-                        ctx.arc(11, 11, 8, 0, Math.PI * 2)
-                        ctx.stroke()
-                        ctx.beginPath()
-                        ctx.moveTo(11, 7)
-                        ctx.lineTo(11, 11)
-                        ctx.lineTo(14, 14)
-                        ctx.stroke()
-                    } else {
-                        ctx.beginPath()
-                        ctx.arc(11, 11, 3, 0, Math.PI * 2)
-                        ctx.stroke()
-                        for (var i = 0; i < 8; ++i) {
-                            var a = i * Math.PI / 4
-                            ctx.beginPath()
-                            ctx.moveTo(11 + Math.cos(a) * 6, 11 + Math.sin(a) * 6)
-                            ctx.lineTo(11 + Math.cos(a) * 8, 11 + Math.sin(a) * 8)
-                            ctx.stroke()
-                        }
+                Behavior on width {
+                    NumberAnimation {
+                        duration: root.theme.fastDuration
+                        easing.type: Easing.OutQuart
                     }
                 }
+            }
 
-                function drawRoundRect(ctx, x, y, w, h, r) {
-                    ctx.beginPath()
-                    ctx.moveTo(x + r, y)
-                    ctx.lineTo(x + w - r, y)
-                    ctx.quadraticCurveTo(x + w, y, x + w, y + r)
-                    ctx.lineTo(x + w, y + h - r)
-                    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h)
-                    ctx.lineTo(x + r, y + h)
-                    ctx.quadraticCurveTo(x, y + h, x, y + h - r)
-                    ctx.lineTo(x, y + r)
-                    ctx.quadraticCurveTo(x, y, x + r, y)
-                    ctx.stroke()
-                }
+            Image {
+                anchors.centerIn: parent
+                width: 20
+                height: 20
+                source: Qt.resolvedUrl("../../../resources/icons/"
+                                       + root.iconFile()
+                                       + (root.theme.isDark ? "_white.svg" : ".svg"))
+                fillMode: Image.PreserveAspectFit
+                opacity: root.active ? 1 : 0.68
             }
         }
 
         Text {
             width: parent.width
-            height: 14
             text: root.label
-            horizontalAlignment: Text.AlignHCenter
             color: root.active ? root.theme.tabActive : root.theme.tabInactive
-            font.pixelSize: 10
-            font.weight: root.active ? Font.Medium : Font.Normal
-            elide: Text.ElideRight
+            font.family: root.theme.fontFamily
+            font.pixelSize: 11
+            font.weight: root.active ? Font.DemiBold : Font.Normal
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 
