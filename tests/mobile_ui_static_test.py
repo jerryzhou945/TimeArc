@@ -20,7 +20,13 @@ def main():
         "android/src/main/java/com/timearc/mobile/ui/MobileUiBridge.java"
     )
     shell = read("qml/mobile/MobileAppShell.qml")
+    theme = read("qml/mobile/MobileTheme.qml")
+    home = read("qml/mobile/pages/MobileHomePage.qml")
     stats = read("qml/mobile/pages/MobileStatsPage.qml")
+    history = read("qml/mobile/pages/MobileHistoryPage.qml")
+    settings = read("qml/mobile/pages/MobileSettingsPage.qml")
+    glass = read("qml/mobile/components/MobileGlassPanel.qml")
+    rank_row = read("qml/mobile/components/MobileUsageRankRow.qml")
     app_icon = read("qml/mobile/components/MobileAppIcon.qml")
     share = read("qml/mobile/components/MobileShareOverlay.qml")
 
@@ -38,8 +44,46 @@ def main():
     require(shell, "wallpaperActive", "global wallpaper state")
     require(shell, "wallpaperUrl.toString().length > 0",
             "QUrl-safe wallpaper state")
+    if shell.count("Image.PreserveAspectCrop") != 1:
+        raise AssertionError("mobile shell must own exactly one cropped wallpaper")
+    for page_name, page in (
+        ("Home", home),
+        ("Statistics", stats),
+        ("Memory Lake", history),
+        ("Settings", settings),
+    ):
+        require(page, "property bool wallpaperActive",
+                f"{page_name} global wallpaper participation")
+        if "wallpaperUrl" in page or "Image.PreserveAspectCrop" in page:
+            raise AssertionError(
+                f"{page_name} must not instantiate or load its own wallpaper"
+            )
+    require(theme, "readonly property color contentClear",
+            "near-clear wallpaper surface token")
+    require(theme, "readonly property color contentWash",
+            "light wallpaper wash token")
+    require(theme, "readonly property color contentStrong",
+            "strong readable wallpaper token")
+    require(theme, "readonly property color timelineLine",
+            "shared timeline separator token")
+    require(theme, "readonly property color wallpaperInk",
+            "wallpaper-adaptive primary ink")
+    require(theme, "readonly property color wallpaperMuted",
+            "wallpaper-adaptive secondary ink")
+    require(glass, "theme.contentClear",
+            "glass panels pass the wallpaper through")
+    require(home, "记录使用天数", "Home recorded-day semantic marker")
+    require(home, "ListView.SnapOneItem", "single centered Home card paging")
     require(stats, '["week", "month", "year", "all"]',
             "four statistics ranges")
+    require(stats, "previewDashboards", "desktop preview sample data")
+    require(stats, '"--mobile-preview"', "preview data command-line guard")
+    require(stats, "dateRailWidth", "Memory Lake-style Statistics date rail")
+    require(stats, "MobileAppIcon", "icon-led Statistics rows")
+    require(history, "dateRailWidth", "Memory Lake date rail")
+    require(history, "theme.timelineLine", "Memory Lake transparent separators")
+    require(rank_row, "theme.timelineLine",
+            "flat ranking progress and separator language")
     require(app_icon, "appIconPath", "real app icon")
     require(share, "grabToImage", "shared preview/export component")
     require(share, "anonymous", "anonymous share mode")

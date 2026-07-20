@@ -8,7 +8,9 @@ Rectangle {
     property bool strong: false
 
     radius: theme.cardRadius
-    color: theme.panelColor(wallpaperActive, strong)
+    color: wallpaperActive
+           ? (strong ? theme.contentStrong : theme.contentClear)
+           : theme.panelColor(false, strong)
     border.width: wallpaperActive ? 1 : 0
-    border.color: wallpaperActive ? theme.glassLine : "transparent"
+    border.color: wallpaperActive ? theme.timelineLine : "transparent"
 }

@@ -9,6 +9,12 @@ Item {
     property bool selected: true
     property bool flipped: false
     property real flipAngle: flipped ? 180 : 0
+    readonly property color frontInk: wallpaperActive
+                                               ? theme.wallpaperInk
+                                               : theme.textPrimary
+    readonly property color frontMuted: wallpaperActive
+                                                 ? theme.wallpaperMuted
+                                                 : theme.textSecondary
 
     signal shareRequested(var app)
     signal permissionRequested()
@@ -40,17 +46,18 @@ Item {
             anchors.fill: parent
             radius: root.theme.cardRadius
             color: root.wallpaperActive
-                   ? root.theme.withAlpha(root.theme.surface, 0.10)
-                   : root.theme.surface
+                   ? root.theme.contentClear
+                   : root.theme.withAlpha(root.theme.surface, 0.34)
             border.width: root.wallpaperActive ? 1 : 0
-            border.color: root.theme.withAlpha(root.theme.textPrimary, 0.18)
+            border.color: root.wallpaperActive
+                          ? root.theme.timelineLine : "transparent"
         }
 
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            height: parent.height * 0.67
+            height: parent.height * 0.58
             radius: root.theme.cardRadius
             gradient: Gradient {
                 GradientStop {
@@ -59,11 +66,11 @@ Item {
                 }
                 GradientStop {
                     position: 0.38
-                    color: root.theme.isDark ? "#35000000" : "#42FFFFFF"
+                    color: root.theme.isDark ? "#18000000" : "#18FFFFFF"
                 }
                 GradientStop {
                     position: 1
-                    color: root.theme.isDark ? "#9A101114" : "#A8FFFFFF"
+                    color: root.theme.isDark ? "#86101114" : "#8FFFFFFF"
                 }
             }
         }
@@ -93,7 +100,7 @@ Item {
                     Text {
                         width: parent.width
                         text: root.value("displayName", "等待记录")
-                        color: root.theme.textPrimary
+                        color: root.frontInk
                         font.family: root.theme.fontFamily
                         font.pixelSize: 21
                         font.weight: Font.Bold
@@ -104,7 +111,7 @@ Item {
                         width: parent.width
                         text: "累计时间卡 · "
                               + root.value("sharePct", 0) + "%"
-                        color: root.theme.textSecondary
+                        color: root.frontMuted
                         font.family: root.theme.fontFamily
                         font.pixelSize: 12
                     }
@@ -116,7 +123,7 @@ Item {
             Text {
                 width: parent.width
                 text: root.value("durationText", "0s")
-                color: root.theme.textPrimary
+                color: root.frontInk
                 font.family: root.theme.numberFontFamily
                 font.pixelSize: 42
                 font.weight: Font.Bold
@@ -126,7 +133,7 @@ Item {
                 width: parent.width
                 text: root.value("storyText",
                                  "授权并同步后，这里会出现真实使用记录。")
-                color: root.theme.textSecondary
+                color: root.frontMuted
                 font.family: root.theme.fontFamily
                 font.pixelSize: 14
                 lineHeight: 1.45
@@ -163,7 +170,7 @@ Item {
                     width: parent.width - 48
                     anchors.verticalCenter: parent.verticalCenter
                     text: "轻点翻面，查看这段时间的百科"
-                    color: root.theme.textMuted
+                    color: root.frontMuted
                     font.family: root.theme.fontFamily
                     font.pixelSize: 12
                 }
@@ -172,12 +179,14 @@ Item {
                     width: 44
                     height: 44
                     radius: 22
-                    color: root.theme.withAlpha(root.theme.surfaceRaised, 0.82)
+                    color: root.wallpaperActive
+                           ? root.theme.contentWash
+                           : root.theme.surfaceRaised
 
                     Text {
                         anchors.centerIn: parent
                         text: "↻"
-                        color: root.theme.textPrimary
+                        color: root.frontInk
                         font.pixelSize: 20
                     }
                 }

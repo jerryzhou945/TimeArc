@@ -9,7 +9,7 @@ Item {
     property bool showSharePct: true
     property bool wallpaperActive: false
 
-    height: 74
+    height: 86
 
     Row {
         anchors.fill: parent
@@ -36,7 +36,8 @@ Item {
                     width: parent.width - durationLabel.width - 12
                     text: (root.app && root.app.displayName)
                           ? root.app.displayName : "未知应用"
-                    color: root.theme.textPrimary
+                    color: root.wallpaperActive
+                           ? root.theme.wallpaperInk : root.theme.textPrimary
                     font.family: root.theme.fontFamily
                     font.pixelSize: 15
                     font.weight: Font.DemiBold
@@ -48,7 +49,8 @@ Item {
                     id: durationLabel
                     text: (root.app && root.app.durationText)
                           ? root.app.durationText : "0s"
-                    color: root.theme.textPrimary
+                    color: root.wallpaperActive
+                           ? root.theme.wallpaperInk : root.theme.textPrimary
                     font.family: root.theme.numberFontFamily
                     font.pixelSize: 14
                     font.weight: Font.DemiBold
@@ -60,8 +62,9 @@ Item {
                 width: parent.width
                 height: 7
                 radius: 4
-                color: root.theme.withAlpha(root.theme.progressTrack,
-                                            root.wallpaperActive ? 0.72 : 1)
+                color: root.wallpaperActive
+                       ? root.theme.withAlpha(root.theme.wallpaperMuted, 0.28)
+                       : root.theme.progressTrack
 
                 Rectangle {
                     width: parent.width * Math.max(
@@ -88,7 +91,8 @@ Item {
                 Text {
                     width: parent.width / 2
                     text: "第 " + root.rank + " 位"
-                    color: root.theme.textMuted
+                    color: root.wallpaperActive
+                           ? root.theme.wallpaperMuted : root.theme.textMuted
                     font.family: root.theme.fontFamily
                     font.pixelSize: 11
                 }
@@ -98,12 +102,23 @@ Item {
                     visible: root.showSharePct
                     text: ((root.app && root.app.sharePct)
                            ? root.app.sharePct : 0) + "%"
-                    color: root.theme.textMuted
+                    color: root.wallpaperActive
+                           ? root.theme.wallpaperMuted : root.theme.textMuted
                     font.family: root.theme.numberFontFamily
                     font.pixelSize: 11
                     horizontalAlignment: Text.AlignRight
                 }
             }
         }
+    }
+
+    Rectangle {
+        anchors.left: parent.left
+        anchors.leftMargin: 60
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 1
+        color: root.wallpaperActive
+               ? root.theme.timelineLine : root.theme.line
     }
 }

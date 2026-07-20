@@ -34,13 +34,26 @@ QtObject {
     readonly property color progressTrack: isDark ? "#394047" : "#D7DDE2"
     readonly property color tabActive: isDark ? "#FFFFFF" : "#17191D"
     readonly property color tabInactive: isDark ? "#A8B0B8" : "#66707A"
-    readonly property color tabBarBg: isDark ? "#D9181C21" : "#E8FFFFFF"
-    readonly property color tabBarBorder: isDark ? "#403B424A" : "#70FFFFFF"
-    readonly property color wallpaperVeil: isDark ? "#52080A0D" : "#26FFFFFF"
-    readonly property color wallpaperPageVeil: isDark ? "#72080A0D" : "#3DFFFFFF"
-    readonly property color glass: isDark ? "#66171B20" : "#66FFFFFF"
-    readonly property color glassStrong: isDark ? "#A61A1E24" : "#B8FFFFFF"
-    readonly property color glassLine: isDark ? "#45FFFFFF" : "#70FFFFFF"
+    readonly property color contentClear:
+        isDark ? "#12070B0D" : "#12FFFFFF"
+    readonly property color contentWash:
+        isDark ? "#2B070B0D" : "#28FFFFFF"
+    readonly property color contentStrong:
+        isDark ? "#52070B0D" : "#52FFFFFF"
+    readonly property color timelineLine:
+        isDark ? "#38FFFFFF" : "#4017191D"
+    readonly property color wallpaperInk:
+        isDark ? "#F7F8FA" : "#17191D"
+    readonly property color wallpaperMuted:
+        isDark ? "#C8D0D6" : "#4A535C"
+    readonly property color tabBarBg: contentStrong
+    readonly property color tabBarBorder: timelineLine
+    readonly property color wallpaperVeil: isDark ? "#22080A0D" : "#10FFFFFF"
+    readonly property color wallpaperPageVeil:
+        isDark ? "#30080A0D" : "#18FFFFFF"
+    readonly property color glass: contentClear
+    readonly property color glassStrong: contentStrong
+    readonly property color glassLine: timelineLine
     readonly property color scrim: "#A8000000"
     readonly property color error: isDark ? "#FFB4AB" : "#A63D42"
     readonly property color success: isDark ? "#9CD5B2" : "#276A4B"
@@ -74,7 +87,8 @@ QtObject {
 
     function panelColor(wallpaperActive, strong) {
         if (!wallpaperActive)
-            return strong ? surface : surface
-        return strong ? glassStrong : glass
+            return strong ? withAlpha(surface, 0.72)
+                          : withAlpha(surface, 0.42)
+        return strong ? contentStrong : contentClear
     }
 }

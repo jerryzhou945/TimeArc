@@ -10,18 +10,8 @@ Item {
     property bool autoSync: true
     property bool anonymousShare: false
     property bool reducedMotion: false
-    property var totalDashboard: emptyDashboard()
 
     signal darkModeChanged(bool enabled)
-
-    function emptyDashboard() {
-        return {
-            "totalText": "0 秒",
-            "activeDays": 0,
-            "appCount": 0,
-            "empty": true
-        }
-    }
 
     function hasUsageService() {
         return typeof mobileUsageService !== "undefined" && mobileUsageService
@@ -44,12 +34,6 @@ Item {
         reducedMotion = settingsRepository.getBool(
                     "mobile_reduced_motion", false)
         theme.reducedMotion = reducedMotion
-    }
-
-    function reloadDashboard() {
-        totalDashboard = hasUsageService()
-                ? mobileUsageService.getDashboardForRange("all")
-                : emptyDashboard()
     }
 
     function usageStatusText() {
@@ -121,22 +105,7 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        loadPreferences()
-        reloadDashboard()
-    }
-
-    Connections {
-        target: root.hasUsageService() ? mobileUsageService : null
-
-        function onDataChanged() {
-            root.reloadDashboard()
-        }
-
-        function onStatusChanged() {
-            root.reloadDashboard()
-        }
-    }
+    Component.onCompleted: loadPreferences()
 
     FileDialog {
         id: wallpaperDialog
@@ -193,76 +162,6 @@ Item {
                             color: root.theme.textSecondary
                             font.family: root.theme.fontFamily
                             font.pixelSize: 12
-                        }
-                    }
-                }
-
-                MobileGlassPanel {
-                    width: parent.width
-                    height: 132
-                    theme: root.theme
-                    wallpaperActive: root.wallpaperActive
-                    strong: true
-
-                    Row {
-                        anchors.fill: parent
-                        anchors.margins: 17
-                        spacing: 15
-
-                        Rectangle {
-                            width: 72
-                            height: 72
-                            radius: 24
-                            anchors.verticalCenter: parent.verticalCenter
-                            color: root.theme.withAlpha(
-                                       root.theme.accent, 0.86)
-                            border.width: 1
-                            border.color: root.theme.glassLine
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "T"
-                                color: "#FFFFFF"
-                                font.family: root.theme.numberFontFamily
-                                font.pixelSize: 33
-                                font.weight: Font.Bold
-                            }
-                        }
-
-                        Column {
-                            width: parent.width - 87
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 7
-
-                            Text {
-                                width: parent.width
-                                text: "我的时间弧"
-                                color: root.theme.textPrimary
-                                font.family: root.theme.fontFamily
-                                font.pixelSize: 21
-                                font.weight: Font.DemiBold
-                            }
-
-                            Text {
-                                width: parent.width
-                                text: "已经认真记录了 "
-                                      + (root.totalDashboard.activeDays || 0)
-                                      + " 天"
-                                color: root.theme.textSecondary
-                                font.family: root.theme.fontFamily
-                                font.pixelSize: 13
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
-                                width: parent.width
-                                text: "这些片刻合起来，是 "
-                                      + (root.totalDashboard.totalText || "0 秒")
-                                color: root.theme.accentBright
-                                font.family: root.theme.fontFamily
-                                font.pixelSize: 12
-                                elide: Text.ElideRight
-                            }
                         }
                     }
                 }

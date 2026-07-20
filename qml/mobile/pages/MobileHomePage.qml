@@ -43,14 +43,76 @@ Item {
         }
     }
 
+    function previewDashboard() {
+        return {
+            "totalSec": 2923200,
+            "totalText": "812h",
+            "activeDays": 168,
+            "appCount": 6,
+            "firstDateLocal": "2025.03.13",
+            "rangeText": "2025.03.13 至今",
+            "empty": false,
+            "topApps": [
+                {
+                    "appIdentifier": "preview:chrome",
+                    "displayName": "Google Chrome",
+                    "appIconPath": "image://appicon/C:/Program Files/Google/Chrome/Application/chrome.exe",
+                    "durationText": "71h 30m",
+                    "sharePct": 31,
+                    "relativePct": 100,
+                    "recordedDays": 44,
+                    "spanDays": 441,
+                    "firstDateLocal": "2025.04.27",
+                    "initial": "Ch",
+                    "storyText": "有 71 小时的浏览与寻找，在屏幕上安静发生。",
+                    "conversionText": "若换算成 25 分钟的阅读段，相当于约 172 段。"
+                },
+                {
+                    "appIdentifier": "preview:vscode",
+                    "displayName": "Visual Studio Code",
+                    "appIconPath": "image://appicon/C:/Users/Lenovo/AppData/Local/Programs/Microsoft VS Code/Code.exe",
+                    "durationText": "64h 36m",
+                    "sharePct": 28,
+                    "relativePct": 90,
+                    "recordedDays": 37,
+                    "spanDays": 386,
+                    "firstDateLocal": "2025.06.21",
+                    "initial": "VS",
+                    "storyText": "许多没有断开的线，在一次次专注里慢慢延伸。",
+                    "conversionText": "若换算成 25 分钟的专注段，相当于约 155 段。"
+                },
+                {
+                    "appIdentifier": "preview:netease",
+                    "displayName": "网易云音乐",
+                    "appIconPath": "image://appicon/C:/Program Files (x86)/NetEase/CloudMusic/cloudmusic.exe",
+                    "durationText": "42h 18m",
+                    "sharePct": 18,
+                    "relativePct": 59,
+                    "recordedDays": 29,
+                    "spanDays": 322,
+                    "firstDateLocal": "2025.08.24",
+                    "initial": "音",
+                    "storyText": "声音替这一段时间留住了灯光。",
+                    "conversionText": "若连续播放 4 分钟的歌曲，相当于约 634 首的时长。"
+                }
+            ]
+        }
+    }
+
     function hasService() {
         return typeof mobileUsageService !== "undefined" && mobileUsageService
     }
 
+    function isPreviewMode() {
+        return Qt.application.arguments.indexOf("--mobile-preview") >= 0
+    }
+
     function reload() {
-        totalDashboard = hasService()
+        var dashboard = hasService()
                 ? mobileUsageService.getDashboardForRange("all")
                 : emptyDashboard()
+        totalDashboard = isPreviewMode() && dashboard.empty
+                ? previewDashboard() : dashboard
         selectedCardIndex = Math.min(
                     selectedCardIndex,
                     Math.max(0, (totalDashboard.topApps || []).length - 1))
@@ -85,11 +147,16 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 20
                 anchors.verticalCenter: parent.verticalCenter
-                text: "TimeArc"
-                color: root.theme.textPrimary
+                width: 220
+                height: parent.height
+                z: 2
+                text: "TimeArc · 时间卡"
+                color: root.wallpaperActive
+                       ? root.theme.wallpaperInk : root.theme.textPrimary
                 font.family: root.theme.fontFamily
-                font.pixelSize: 19
+                font.pixelSize: 17
                 font.weight: Font.Bold
+                verticalAlignment: Text.AlignVCenter
             }
 
             Rectangle {
@@ -99,12 +166,15 @@ Item {
                 width: 44
                 height: 44
                 radius: 22
-                color: root.theme.panelColor(root.wallpaperActive, true)
+                color: root.wallpaperActive
+                       ? root.theme.contentWash
+                       : root.theme.surfaceRaised
 
                 Text {
                     anchors.centerIn: parent
                     text: "↻"
-                    color: root.theme.textPrimary
+                    color: root.wallpaperActive
+                           ? root.theme.wallpaperInk : root.theme.textPrimary
                     font.pixelSize: 20
                 }
 
@@ -122,28 +192,47 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             theme: root.theme
             wallpaperActive: root.wallpaperActive
-            strong: true
+            strong: false
 
             Row {
                 anchors.fill: parent
                 anchors.margins: 12
 
                 ArchiveFact {
-                    width: parent.width / 3
+                    width: (parent.width - 2) / 3
+                    height: parent.height
                     value: root.totalDashboard.firstDateLocal || "尚未开始"
                     label: "开始记录"
                 }
 
+                Rectangle {
+                    width: 1
+                    height: 34
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: root.wallpaperActive
+                           ? root.theme.timelineLine : root.theme.line
+                }
+
                 ArchiveFact {
-                    width: parent.width / 3
+                    width: (parent.width - 2) / 3
+                    height: parent.height
                     value: root.totalDashboard.totalText || "0s"
                     label: "累计时间"
                 }
 
+                Rectangle {
+                    width: 1
+                    height: 34
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: root.wallpaperActive
+                           ? root.theme.timelineLine : root.theme.line
+                }
+
                 ArchiveFact {
-                    width: parent.width / 3
+                    width: (parent.width - 2) / 3
+                    height: parent.height
                     value: (root.totalDashboard.activeDays || 0) + " 天"
-                    label: "记录日数"
+                    label: "记录使用天数"
                 }
             }
         }
@@ -249,7 +338,8 @@ Item {
             Text {
                 width: parent.width
                 text: value
-                color: root.theme.textPrimary
+                color: root.wallpaperActive
+                       ? root.theme.wallpaperInk : root.theme.textPrimary
                 font.family: root.theme.numberFontFamily
                 font.pixelSize: 14
                 font.weight: Font.DemiBold
@@ -260,7 +350,8 @@ Item {
             Text {
                 width: parent.width
                 text: label
-                color: root.theme.textMuted
+                color: root.wallpaperActive
+                       ? root.theme.wallpaperMuted : root.theme.textMuted
                 font.family: root.theme.fontFamily
                 font.pixelSize: 10
                 horizontalAlignment: Text.AlignHCenter

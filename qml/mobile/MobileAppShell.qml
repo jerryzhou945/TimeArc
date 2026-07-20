@@ -128,10 +128,19 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 74
-        color: root.wallpaperActive ? mobileTheme.tabBarBg : mobileTheme.surface
-        border.color: root.wallpaperActive
-                      ? mobileTheme.tabBarBorder : mobileTheme.line
-        border.width: 1
+        color: root.wallpaperActive
+               ? mobileTheme.tabBarBg
+               : mobileTheme.withAlpha(mobileTheme.surface, 0.78)
+        border.width: 0
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: 1
+            color: root.wallpaperActive
+                   ? mobileTheme.timelineLine : mobileTheme.line
+        }
 
         Row {
             anchors.fill: parent

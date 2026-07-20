@@ -6,12 +6,33 @@ Item {
 
     required property var theme
     property bool wallpaperActive: false
+    readonly property int dateRailWidth: 52
     property var rangeKeys: ["week", "month", "year", "all"]
     property var rangeMeta: ({
-        "week": { "label": "本周", "note": "从周一开始" },
-        "month": { "label": "本月", "note": "从本月一日开始" },
-        "year": { "label": "今年", "note": "从一月一日开始" },
-        "all": { "label": "总计", "note": "从第一条记录开始" }
+        "week": {
+            "label": "本周",
+            "marker": "周",
+            "date": "MON",
+            "note": "从周一到今天"
+        },
+        "month": {
+            "label": "本月",
+            "marker": "月",
+            "date": "01",
+            "note": "从本月一日开始"
+        },
+        "year": {
+            "label": "今年",
+            "marker": "年",
+            "date": "26",
+            "note": "从一月一日开始"
+        },
+        "all": {
+            "label": "总计",
+            "marker": "全",
+            "date": "∞",
+            "note": "从第一条记录开始"
+        }
     })
     property var dashboards: ({})
     property string selectedRange: "week"
@@ -29,17 +50,99 @@ Item {
         }
     }
 
+    function previewApp(name, initial, duration, share, relative, iconPath) {
+        return {
+            "displayName": name,
+            "initial": initial,
+            "durationText": duration,
+            "sharePct": share,
+            "relativePct": relative,
+            "appIconPath": iconPath
+        }
+    }
+
+    function previewDashboards() {
+        var edge = previewApp(
+                    "Microsoft Edge", "E", "8h 24m", 31, 100,
+                    "image://appicon/C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe")
+        var code = previewApp(
+                    "Visual Studio Code", "VS", "6h 48m", 25, 81,
+                    "image://appicon/C:/Users/Lenovo/AppData/Local/Programs/Microsoft VS Code/Code.exe")
+        var wechat = previewApp(
+                    "微信", "微", "4h 12m", 16, 50,
+                    "image://appicon/C:/Program Files/Tencent/WeChat/WeChat.exe")
+        var music = previewApp(
+                    "网易云音乐", "音", "3h 36m", 13, 43,
+                    "image://appicon/C:/Program Files (x86)/NetEase/CloudMusic/cloudmusic.exe")
+        var bilibili = previewApp(
+                    "哔哩哔哩", "哔", "2h 18m", 9, 27,
+                    "image://appicon/C:/Program Files/Google/Chrome/Application/chrome.exe")
+        return {
+            "week": {
+                "rangeKey": "week",
+                "rangeLabel": "本周",
+                "rangeText": "07.14 — 07.20",
+                "totalText": "27h 06m",
+                "activeDays": 7,
+                "topApps": [edge, code, wechat, music, bilibili],
+                "empty": false
+            },
+            "month": {
+                "rangeKey": "month",
+                "rangeLabel": "本月",
+                "rangeText": "07.01 — 07.20",
+                "totalText": "96h 42m",
+                "activeDays": 18,
+                "topApps": [
+                    previewApp("Visual Studio Code", "VS", "24h 42m", 26, 100,
+                               code.appIconPath),
+                    previewApp("Microsoft Edge", "E", "21h 18m", 22, 86,
+                               edge.appIconPath),
+                    previewApp("微信", "微", "14h 05m", 15, 57,
+                               wechat.appIconPath),
+                    previewApp("网易云音乐", "音", "9h 48m", 10, 40,
+                               music.appIconPath)
+                ],
+                "empty": false
+            },
+            "year": {
+                "rangeKey": "year",
+                "rangeLabel": "今年",
+                "rangeText": "2026.01.01 — 今天",
+                "totalText": "568h",
+                "activeDays": 142,
+                "topApps": [code, edge, wechat, music],
+                "empty": false
+            },
+            "all": {
+                "rangeKey": "all",
+                "rangeLabel": "总计",
+                "rangeText": "2025.03.13 — 今天",
+                "totalText": "812h",
+                "activeDays": 168,
+                "topApps": [code, edge, wechat, music, bilibili],
+                "empty": false
+            }
+        }
+    }
+
     function hasService() {
         return typeof mobileUsageService !== "undefined" && mobileUsageService
     }
 
+    function isPreviewMode() {
+        return Qt.application.arguments.indexOf("--mobile-preview") >= 0
+    }
+
     function loadOverview() {
+        if (root.isPreviewMode()) {
+            dashboards = previewDashboards()
+            return
+        }
         var next = {}
         for (var i = 0; i < rangeKeys.length; ++i) {
             var key = rangeKeys[i]
-            next[key] = hasService()
-                    ? mobileUsageService.getDashboardForRange(key)
-                    : emptyDashboard(key)
+            next[key] = mobileUsageService.getDashboardForRange(key)
         }
         dashboards = next
     }
@@ -87,24 +190,29 @@ Item {
                 id: content
                 width: flick.width - 32
                 x: 16
-                spacing: 16
+                spacing: 12
 
                 Row {
                     width: parent.width
-                    height: 50
+                    height: 58
+                    spacing: 8
 
                     Rectangle {
                         visible: root.detailOpen
                         width: 44
                         height: 44
+                        anchors.verticalCenter: parent.verticalCenter
                         radius: 22
-                        color: root.theme.panelColor(
-                                   root.wallpaperActive, true)
+                        color: root.wallpaperActive
+                               ? root.theme.contentWash
+                               : root.theme.surfaceRaised
 
                         Text {
                             anchors.centerIn: parent
                             text: "‹"
-                            color: root.theme.textPrimary
+                            color: root.wallpaperActive
+                                   ? root.theme.wallpaperInk
+                                   : root.theme.textPrimary
                             font.pixelSize: 30
                         }
 
@@ -115,7 +223,7 @@ Item {
                     }
 
                     Column {
-                        width: parent.width - (root.detailOpen ? 44 : 0)
+                        width: parent.width - (root.detailOpen ? 52 : 0)
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 2
 
@@ -123,10 +231,12 @@ Item {
                             width: parent.width
                             text: root.detailOpen
                                   ? root.rangeMeta[root.selectedRange].label
-                                  : "统计"
-                            color: root.theme.textPrimary
+                                  : "时间统计"
+                            color: root.wallpaperActive
+                                   ? root.theme.wallpaperInk
+                                   : root.theme.textPrimary
                             font.family: root.theme.fontFamily
-                            font.pixelSize: 27
+                            font.pixelSize: 24
                             font.weight: Font.Bold
                             horizontalAlignment: root.detailOpen
                                                  ? Text.AlignHCenter
@@ -138,8 +248,10 @@ Item {
                             text: root.detailOpen
                                   ? root.dashboardFor(
                                         root.selectedRange).rangeText
-                                  : "按时间范围回看，不评价时间的好坏"
-                            color: root.theme.textSecondary
+                                  : "每一段时长，都有来处"
+                            color: root.wallpaperActive
+                                   ? root.theme.wallpaperMuted
+                                   : root.theme.textSecondary
                             font.family: root.theme.fontFamily
                             font.pixelSize: 12
                             horizontalAlignment: root.detailOpen
@@ -152,20 +264,16 @@ Item {
                 Column {
                     visible: !root.detailOpen
                     width: parent.width
-                    spacing: 10
+                    spacing: 0
 
                     Repeater {
                         model: root.rangeKeys
 
-                        MobileGlassPanel {
+                        Item {
                             id: rangeBlock
                             required property string modelData
                             width: parent.width
-                            height: modelData === "all" ? 128 : 112
-                            theme: root.theme
-                            wallpaperActive: root.wallpaperActive
-                            strong: modelData === "week"
-
+                            height: 126
                             readonly property var dashboard:
                                 root.dashboardFor(modelData)
                             readonly property var leadApp:
@@ -174,41 +282,72 @@ Item {
 
                             Row {
                                 anchors.fill: parent
-                                anchors.margins: 15
-                                spacing: 13
+                                anchors.topMargin: 14
+                                anchors.bottomMargin: 14
+                                spacing: 14
 
-                                MobileAppIcon {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    theme: root.theme
-                                    app: rangeBlock.leadApp
-                                    iconSize: modelData === "week" ? 58 : 50
-                                    cornerRadius: 13
+                                Column {
+                                    width: root.dateRailWidth
+                                    spacing: 2
+
+                                    Text {
+                                        width: parent.width
+                                        text: root.rangeMeta[
+                                                  rangeBlock.modelData].marker
+                                        color: root.wallpaperActive
+                                               ? root.theme.wallpaperInk
+                                               : root.theme.textPrimary
+                                        font.family: root.theme.fontFamily
+                                        font.pixelSize: 22
+                                        font.weight: Font.Bold
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        text: root.rangeMeta[
+                                                  rangeBlock.modelData].date
+                                        color: root.wallpaperActive
+                                               ? root.theme.wallpaperMuted
+                                               : root.theme.textMuted
+                                        font.family: root.theme.numberFontFamily
+                                        font.pixelSize: 10
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
                                 }
 
                                 Column {
-                                    width: parent.width - 112
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    spacing: 5
+                                    width: parent.width - root.dateRailWidth - 14
+                                    spacing: 6
 
                                     Row {
                                         width: parent.width
-                                        height: 23
+                                        height: 24
 
                                         Text {
-                                            width: parent.width - totalLabel.width - 8
-                                            text: root.rangeMeta[modelData].label
-                                            color: root.theme.textPrimary
+                                            width: parent.width
+                                                   - rangeDuration.width - 10
+                                            text: root.rangeMeta[
+                                                      rangeBlock.modelData].label
+                                                  + "，时间停在这些应用里"
+                                            color: root.wallpaperActive
+                                                   ? root.theme.wallpaperInk
+                                                   : root.theme.textPrimary
                                             font.family: root.theme.fontFamily
-                                            font.pixelSize: 18
+                                            font.pixelSize: 16
                                             font.weight: Font.Bold
+                                            elide: Text.ElideRight
                                         }
 
                                         Text {
-                                            id: totalLabel
-                                            text: rangeBlock.dashboard.totalText || "0s"
-                                            color: root.theme.textPrimary
+                                            id: rangeDuration
+                                            text: rangeBlock.dashboard.totalText
+                                                  || "0s"
+                                            color: root.wallpaperActive
+                                                   ? root.theme.wallpaperInk
+                                                   : root.theme.textPrimary
                                             font.family: root.theme.numberFontFamily
-                                            font.pixelSize: 17
+                                            font.pixelSize: 14
                                             font.weight: Font.DemiBold
                                         }
                                     }
@@ -216,42 +355,80 @@ Item {
                                     Text {
                                         width: parent.width
                                         text: rangeBlock.dashboard.empty
-                                              ? "暂无记录"
-                                              : ((rangeBlock.leadApp.displayName
-                                                  || "未知应用")
-                                                 + " 使用最多")
-                                        color: root.theme.textSecondary
+                                              ? "还没有记录，完成同步后再回来看看。"
+                                              : (root.rangeMeta[
+                                                     rangeBlock.modelData].note
+                                                 + "，共记录 "
+                                                 + rangeBlock.dashboard.activeDays
+                                                 + " 天。")
+                                        color: root.wallpaperActive
+                                               ? root.theme.wallpaperMuted
+                                               : root.theme.textSecondary
                                         font.family: root.theme.fontFamily
-                                        font.pixelSize: 13
+                                        font.pixelSize: 12
                                         elide: Text.ElideRight
                                     }
 
-                                    Text {
+                                    Row {
                                         width: parent.width
-                                        text: root.rangeMeta[modelData].note
-                                              + " · 记录 "
-                                              + (rangeBlock.dashboard.activeDays || 0)
-                                              + " 天"
-                                        color: root.theme.textMuted
-                                        font.family: root.theme.fontFamily
-                                        font.pixelSize: 11
-                                        elide: Text.ElideRight
+                                        height: 40
+                                        spacing: 8
+
+                                        MobileAppIcon {
+                                            anchors.verticalCenter:
+                                                parent.verticalCenter
+                                            theme: root.theme
+                                            app: rangeBlock.leadApp
+                                            iconSize: 38
+                                            cornerRadius: 10
+                                        }
+
+                                        Text {
+                                            width: parent.width - 76
+                                            anchors.verticalCenter:
+                                                parent.verticalCenter
+                                            text: rangeBlock.dashboard.empty
+                                                  ? "暂无应用"
+                                                  : ((rangeBlock.leadApp.displayName
+                                                      || "未知应用")
+                                                     + " 留下的时间最多")
+                                            color: root.wallpaperActive
+                                                   ? root.theme.wallpaperMuted
+                                                   : root.theme.textMuted
+                                            font.family: root.theme.fontFamily
+                                            font.pixelSize: 11
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            width: 30
+                                            anchors.verticalCenter:
+                                                parent.verticalCenter
+                                            text: "›"
+                                            color: root.wallpaperActive
+                                                   ? root.theme.wallpaperInk
+                                                   : root.theme.textPrimary
+                                            font.pixelSize: 25
+                                            horizontalAlignment: Text.AlignRight
+                                        }
                                     }
                                 }
+                            }
 
-                                Text {
-                                    width: 36
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "›"
-                                    color: root.theme.textPrimary
-                                    font.pixelSize: 30
-                                    horizontalAlignment: Text.AlignRight
-                                }
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.leftMargin: root.dateRailWidth + 14
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: 1
+                                color: root.wallpaperActive
+                                       ? root.theme.timelineLine
+                                       : root.theme.line
                             }
 
                             MouseArea {
                                 anchors.fill: parent
-                                onClicked: root.openRange(modelData)
+                                onClicked: root.openRange(rangeBlock.modelData)
                             }
                         }
                     }
@@ -260,27 +437,27 @@ Item {
                 Column {
                     visible: root.detailOpen
                     width: parent.width
-                    spacing: 12
+                    spacing: 8
 
-                    MobileGlassPanel {
+                    Item {
                         width: parent.width
-                        height: 114
-                        theme: root.theme
-                        wallpaperActive: root.wallpaperActive
-                        strong: true
+                        height: 98
 
                         Column {
-                            anchors.fill: parent
-                            anchors.margins: 16
-                            spacing: 7
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 6
 
                             Text {
                                 width: parent.width
                                 text: root.dashboardFor(
                                           root.selectedRange).totalText || "0s"
-                                color: root.theme.textPrimary
+                                color: root.wallpaperActive
+                                       ? root.theme.wallpaperInk
+                                       : root.theme.textPrimary
                                 font.family: root.theme.numberFontFamily
-                                font.pixelSize: 35
+                                font.pixelSize: 34
                                 font.weight: Font.Bold
                             }
 
@@ -293,21 +470,34 @@ Item {
                                       + ((root.dashboardFor(
                                               root.selectedRange).topApps || []).length)
                                       + " 个应用"
-                                color: root.theme.textSecondary
+                                color: root.wallpaperActive
+                                       ? root.theme.wallpaperMuted
+                                       : root.theme.textSecondary
                                 font.family: root.theme.fontFamily
                                 font.pixelSize: 12
                             }
+                        }
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: 1
+                            color: root.wallpaperActive
+                                   ? root.theme.timelineLine : root.theme.line
                         }
                     }
 
                     Text {
                         width: parent.width
                         text: "应用使用排行"
-                        color: root.theme.textPrimary
+                        color: root.wallpaperActive
+                               ? root.theme.wallpaperInk
+                               : root.theme.textPrimary
                         font.family: root.theme.fontFamily
                         font.pixelSize: 18
                         font.weight: Font.Bold
-                        topPadding: 4
+                        topPadding: 6
                     }
 
                     Text {
@@ -315,7 +505,9 @@ Item {
                         visible: (root.dashboardFor(
                                       root.selectedRange).topApps || []).length === 0
                         text: "这个时间范围还没有记录。开启使用情况访问并同步后，再回来看看。"
-                        color: root.theme.textSecondary
+                        color: root.wallpaperActive
+                               ? root.theme.wallpaperMuted
+                               : root.theme.textSecondary
                         font.family: root.theme.fontFamily
                         font.pixelSize: 14
                         lineHeight: 1.45
@@ -326,22 +518,14 @@ Item {
                         model: root.dashboardFor(
                                    root.selectedRange).topApps || []
 
-                        MobileGlassPanel {
+                        MobileUsageRankRow {
                             required property var modelData
                             required property int index
                             width: parent.width
-                            height: 90
                             theme: root.theme
+                            app: modelData
+                            rank: index + 1
                             wallpaperActive: root.wallpaperActive
-
-                            MobileUsageRankRow {
-                                anchors.fill: parent
-                                anchors.margins: 10
-                                theme: root.theme
-                                app: modelData
-                                rank: index + 1
-                                wallpaperActive: root.wallpaperActive
-                            }
                         }
                     }
                 }
