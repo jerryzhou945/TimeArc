@@ -3,11 +3,14 @@
 #include "services/mobile/mobile_ui_service.h"
 
 #include <QDateTime>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QTimer>
+#include <QUuid>
 
 #ifdef Q_OS_ANDROID
 #include <QJniObject>
@@ -32,6 +35,32 @@ QString wallpaperDirectory() {
 
 QString shareDirectory() {
   return QDir(mobileDataDirectory()).filePath(QStringLiteral("share"));
+}
+
+void removeStaleWallpaperFiles(const QString& activePath) {
+  QDir directory(wallpaperDirectory());
+  if (!directory.exists()) return;
+  const QString active = activePath.isEmpty()
+                             ? QString()
+                             : QFileInfo(activePath).absoluteFilePath();
+  const QFileInfoList files = directory.entryInfoList(
+      {QStringLiteral("wallpaper-*")}, QDir::Files);
+  for (const QFileInfo& file : files) {
+    if (!active.isEmpty() && file.absoluteFilePath() == active) continue;
+    QFile::remove(file.absoluteFilePath());
+  }
+}
+
+void removeWallpaperFileLater(const QString& path) {
+  if (path.isEmpty()) return;
+  QTimer::singleShot(1500, [path]() {
+    if (!QFileInfo::exists(path) || QFile::remove(path)) return;
+    QTimer::singleShot(4000, [path]() {
+      if (QFileInfo::exists(path) && !QFile::remove(path)) {
+        qWarning() << "Wallpaper cleanup deferred until next launch:" << path;
+      }
+    });
+  });
 }
 
 #ifdef Q_OS_ANDROID
@@ -72,6 +101,7 @@ MobileUiService::MobileUiService(SettingsRepository* settingsRepository,
   const QString saved =
       settingsRepository_->getValue(kWallpaperSetting).trimmed();
   if (!saved.isEmpty() && QFileInfo::exists(saved)) wallpaperPath_ = saved;
+  removeStaleWallpaperFiles(wallpaperPath_);
 }
 
 QString MobileUiService::wallpaperUrl() const {
@@ -103,8 +133,12 @@ bool MobileUiService::importWallpaper(const QUrl& source) {
   if (!allowed.contains(suffix)) suffix = QStringLiteral("img");
   const QString temporary =
       QDir(wallpaperDirectory()).filePath(QStringLiteral("import.tmp"));
-  const QString finalPath = QDir(wallpaperDirectory())
-                                .filePath(QStringLiteral("wallpaper.") + suffix);
+  const QString wallpaperId =
+      QUuid::createUuid().toString(QUuid::WithoutBraces);
+  const QString finalPath =
+      QDir(wallpaperDirectory())
+          .filePath(QStringLiteral("wallpaper-%1.%2")
+                        .arg(wallpaperId, suffix));
   QFile::remove(temporary);
 
   if (!copySourceToFile(source, temporary) ||
@@ -114,7 +148,6 @@ bool MobileUiService::importWallpaper(const QUrl& source) {
     return false;
   }
 
-  QFile::remove(finalPath);
   if (!QFile::rename(temporary, finalPath)) {
     QFile::remove(temporary);
     setLastError(QStringLiteral("壁纸保存失败，请检查设备存储空间。"));
@@ -130,21 +163,22 @@ bool MobileUiService::importWallpaper(const QUrl& source) {
 
   const QString previous = wallpaperPath_;
   wallpaperPath_ = finalPath;
-  if (!previous.isEmpty() && previous != finalPath) QFile::remove(previous);
   emit wallpaperChanged();
+  if (previous != finalPath) removeWallpaperFileLater(previous);
   return true;
 }
 
 bool MobileUiService::clearWallpaper() {
   setLastError(QString());
   if (settingsRepository_ &&
-      !settingsRepository_->setValue(kWallpaperSetting, QString())) {
+      !settingsRepository_->setValue(kWallpaperSetting, QStringLiteral(""))) {
     setLastError(QStringLiteral("恢复默认背景失败，请稍后重试。"));
     return false;
   }
-  if (!wallpaperPath_.isEmpty()) QFile::remove(wallpaperPath_);
+  const QString previous = wallpaperPath_;
   wallpaperPath_.clear();
   emit wallpaperChanged();
+  removeWallpaperFileLater(previous);
   return true;
 }
 
@@ -179,7 +213,7 @@ bool MobileUiService::shareImage(const QUrl& source,
 
 QString MobileUiService::sanitizedStem(const QString& value) {
   QString result = value.trimmed();
-  result.replace(QRegularExpression(QStringLiteral(R"([^A-Za-z0-9\u4e00-\u9fff]+)")),
+  result.replace(QRegularExpression(QStringLiteral(R"([^\p{L}\p{N}]+)")),
                  QStringLiteral("-"));
   result = result.left(36);
   while (result.startsWith(QLatin1Char('-'))) result.remove(0, 1);

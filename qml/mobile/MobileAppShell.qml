@@ -9,10 +9,17 @@ Rectangle {
 
     property string currentTab: "home"
     property int topReserve: 0
+    property url wallpaperSource: ""
     readonly property bool wallpaperActive:
-        typeof mobileUiService !== "undefined"
-        && mobileUiService
-        && mobileUiService.wallpaperUrl.toString().length > 0
+        wallpaperSource.toString().length > 0
+
+    function refreshWallpaper() {
+        if (typeof mobileUiService === "undefined" || !mobileUiService) {
+            root.wallpaperSource = ""
+            return
+        }
+        root.wallpaperSource = mobileUiService.wallpaperUrl
+    }
 
     function loadThemePreference() {
         if (typeof settingsRepository === "undefined" || !settingsRepository)
@@ -53,10 +60,19 @@ Rectangle {
         id: mobileTheme
     }
 
+    Connections {
+        target: typeof mobileUiService !== "undefined"
+                ? mobileUiService : null
+
+        function onWallpaperChanged() {
+            root.refreshWallpaper()
+        }
+    }
+
     Image {
         id: wallpaper
         anchors.fill: parent
-        source: root.wallpaperActive ? mobileUiService.wallpaperUrl : ""
+        source: root.wallpaperSource
         fillMode: Image.PreserveAspectCrop
         asynchronous: true
         cache: false
@@ -169,6 +185,7 @@ Rectangle {
     }
 
     Component.onCompleted: {
+        refreshWallpaper()
         loadThemePreference()
         ensureUsageAccessOnboarding()
     }

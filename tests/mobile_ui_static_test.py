@@ -16,6 +16,7 @@ def require(text, needle, label):
 def main():
     main_cpp = read("src/main.cpp")
     ui_header = read("src/services/mobile/mobile_ui_service.h")
+    ui_service = read("src/services/mobile/mobile_ui_service.cpp")
     android_bridge = read(
         "android/src/main/java/com/timearc/mobile/ui/MobileUiBridge.java"
     )
@@ -28,6 +29,7 @@ def main():
     glass = read("qml/mobile/components/MobileGlassPanel.qml")
     rank_row = read("qml/mobile/components/MobileUsageRankRow.qml")
     app_icon = read("qml/mobile/components/MobileAppIcon.qml")
+    flip_card = read("qml/mobile/components/MobileFlipCard.qml")
     share = read("qml/mobile/components/MobileShareOverlay.qml")
 
     require(main_cpp, '"mobileUiService"', "QML mobile UI service")
@@ -42,8 +44,24 @@ def main():
     require(shell, "Image.PreserveAspectCrop",
             "single shell wallpaper crop")
     require(shell, "wallpaperActive", "global wallpaper state")
-    require(shell, "wallpaperUrl.toString().length > 0",
+    require(shell, "wallpaperSource.toString().length > 0",
             "QUrl-safe wallpaper state")
+    require(shell, "function refreshWallpaper()",
+            "explicit wallpaper refresh")
+    require(shell, "function onWallpaperChanged()",
+            "wallpaper change signal handling")
+    require(ui_service, "QUuid::createUuid",
+            "versioned wallpaper filename")
+    require(ui_service, "const QString previous = wallpaperPath_",
+            "previous wallpaper cleanup")
+    require(ui_service, "removeStaleWallpaperFiles",
+            "startup wallpaper orphan cleanup")
+    require(ui_service, "removeWallpaperFileLater",
+            "deferred wallpaper file cleanup")
+    require(ui_service, "QStringLiteral(\"\")",
+            "non-null empty wallpaper setting")
+    require(ui_service, r'R"([^\p{L}\p{N}]+)"',
+            "valid Unicode share filename sanitizer")
     if shell.count("Image.PreserveAspectCrop") != 1:
         raise AssertionError("mobile shell must own exactly one cropped wallpaper")
     for page_name, page in (
@@ -70,6 +88,10 @@ def main():
             "wallpaper-adaptive primary ink")
     require(theme, "readonly property color wallpaperMuted",
             "wallpaper-adaptive secondary ink")
+    require(theme, '"#78FFFFFF"',
+            "readable light wallpaper glass")
+    require(theme, '"#C8FFFFFF"',
+            "strong light wallpaper glass")
     require(glass, "theme.contentClear",
             "glass panels pass the wallpaper through")
     require(home, "记录使用天数", "Home recorded-day semantic marker")
@@ -85,6 +107,22 @@ def main():
     require(rank_row, "theme.timelineLine",
             "flat ranking progress and separator language")
     require(app_icon, "appIconPath", "real app icon")
+    require(app_icon, "visible: iconImage.status !== Image.Ready",
+            "icon fallback hidden behind real icon")
+    require(flip_card, "readonly property real flipDepth",
+            "3D card depth cue")
+    require(flip_card, "readonly property real frontFaceAngle",
+            "continuous front face transform")
+    require(flip_card, "readonly property real backFaceAngle",
+            "continuous back face transform")
+    require(flip_card, "transformOrigin: Item.Center",
+            "centered depth compression")
+    if flip_card.count("axis: Qt.vector3d(0, 1, 0)") != 2:
+        raise AssertionError("both card faces must rotate on a pure Y axis")
+    require(flip_card, "signal flippedRequested(bool flipped)",
+            "one-way 3D flip state request")
+    require(home, "onFlippedRequested: function(flipped)",
+            "Home-owned card flip state")
     require(share, "grabToImage", "shared preview/export component")
     require(share, "anonymous", "anonymous share mode")
     require(share, "function storyForShare()",

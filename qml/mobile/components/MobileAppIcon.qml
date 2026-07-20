@@ -35,6 +35,7 @@ Item {
         Text {
             anchors.centerIn: parent
             text: (root.app && root.app.initial) ? root.app.initial : "时"
+            visible: iconImage.status !== Image.Ready
             color: root.theme.accentBright
             font.family: root.theme.fontFamily
             font.pixelSize: Math.max(13, Math.round(root.iconSize * 0.34))

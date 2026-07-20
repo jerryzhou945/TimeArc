@@ -35,22 +35,22 @@ QtObject {
     readonly property color tabActive: isDark ? "#FFFFFF" : "#17191D"
     readonly property color tabInactive: isDark ? "#A8B0B8" : "#66707A"
     readonly property color contentClear:
-        isDark ? "#12070B0D" : "#12FFFFFF"
+        isDark ? "#24070B0D" : "#78FFFFFF"
     readonly property color contentWash:
-        isDark ? "#2B070B0D" : "#28FFFFFF"
+        isDark ? "#40070B0D" : "#98FFFFFF"
     readonly property color contentStrong:
-        isDark ? "#52070B0D" : "#52FFFFFF"
+        isDark ? "#70070B0D" : "#C8FFFFFF"
     readonly property color timelineLine:
-        isDark ? "#38FFFFFF" : "#4017191D"
+        isDark ? "#4DFFFFFF" : "#6617191D"
     readonly property color wallpaperInk:
         isDark ? "#F7F8FA" : "#17191D"
     readonly property color wallpaperMuted:
-        isDark ? "#C8D0D6" : "#4A535C"
+        isDark ? "#DCE2E7" : "#343B43"
     readonly property color tabBarBg: contentStrong
     readonly property color tabBarBorder: timelineLine
-    readonly property color wallpaperVeil: isDark ? "#22080A0D" : "#10FFFFFF"
+    readonly property color wallpaperVeil: isDark ? "#22080A0D" : "#70FFFFFF"
     readonly property color wallpaperPageVeil:
-        isDark ? "#30080A0D" : "#18FFFFFF"
+        isDark ? "#30080A0D" : "#80FFFFFF"
     readonly property color glass: contentClear
     readonly property color glassStrong: contentStrong
     readonly property color glassLine: timelineLine

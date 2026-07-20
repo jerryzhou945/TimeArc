@@ -280,7 +280,7 @@ Item {
                                  modelData.appIdentifier
                                  || modelData.packageName
                                  || modelData.displayName]
-                    onFlippedChanged: {
+                    onFlippedRequested: function(flipped) {
                         var next = Object.assign({}, root.flippedApps)
                         next[modelData.appIdentifier
                              || modelData.packageName

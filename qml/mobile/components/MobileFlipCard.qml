@@ -9,6 +9,14 @@ Item {
     property bool selected: true
     property bool flipped: false
     property real flipAngle: flipped ? 180 : 0
+    readonly property real flipDepth:
+        Math.sin(flipAngle * Math.PI / 180)
+    readonly property real frontFaceAngle: flipAngle
+    readonly property real backFaceAngle: flipAngle - 180
+    readonly property real frontFaceOpacity:
+        Math.max(0, Math.min(1, (100 - flipAngle) / 20))
+    readonly property real backFaceOpacity:
+        Math.max(0, Math.min(1, (flipAngle - 80) / 20))
     readonly property color frontInk: wallpaperActive
                                                ? theme.wallpaperInk
                                                : theme.textPrimary
@@ -18,6 +26,7 @@ Item {
 
     signal shareRequested(var app)
     signal permissionRequested()
+    signal flippedRequested(bool flipped)
 
     function value(key, fallbackValue) {
         return root.app && root.app[key] !== undefined
@@ -26,20 +35,36 @@ Item {
 
     Behavior on flipAngle {
         NumberAnimation {
-            duration: root.theme.normalDuration
-            easing.type: Easing.OutQuart
+            duration: root.theme.reducedMotion ? 0 : 520
+            easing.type: Easing.InOutCubic
         }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        anchors.margins: 8 - root.flipDepth * 3
+        radius: root.theme.cardRadius + 2
+        color: "transparent"
+        border.width: 10
+        border.color: root.theme.withAlpha(
+                          root.theme.shadowColor,
+                          0.10 + root.flipDepth * 0.22)
+        opacity: 0.78
+        scale: 1 - root.flipDepth * 0.025
     }
 
     Item {
         id: front
         anchors.fill: parent
-        visible: root.flipAngle < 90
+        visible: opacity > 0.01
+        opacity: root.frontFaceOpacity
+        scale: 1 - root.flipDepth * 0.035
+        transformOrigin: Item.Center
         transform: Rotation {
             origin.x: front.width / 2
             origin.y: front.height / 2
-            axis.y: 1
-            angle: root.flipAngle
+            axis: Qt.vector3d(0, 1, 0)
+            angle: root.frontFaceAngle
         }
 
         Rectangle {
@@ -195,19 +220,22 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: root.flipped = true
+            onClicked: root.flippedRequested(true)
         }
     }
 
     Item {
         id: back
         anchors.fill: parent
-        visible: root.flipAngle >= 90
+        visible: opacity > 0.01
+        opacity: root.backFaceOpacity
+        scale: 1 - root.flipDepth * 0.035
+        transformOrigin: Item.Center
         transform: Rotation {
             origin.x: back.width / 2
             origin.y: back.height / 2
-            axis.y: 1
-            angle: root.flipAngle - 180
+            axis: Qt.vector3d(0, 1, 0)
+            angle: root.backFaceAngle
         }
 
         Rectangle {
@@ -325,7 +353,7 @@ Item {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: root.flipped = false
+                        onClicked: root.flippedRequested(false)
                     }
                 }
 
