@@ -29,6 +29,8 @@ set(TIME_ARC_DATABASE_SOURCES
 set(TIME_ARC_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
     ${TIME_ARC_DATABASE_SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/mobile/mobile_ui_service.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/mobile/mobile_ui_service.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/tag_repository.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/tag_repository.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/timer_manager.cpp

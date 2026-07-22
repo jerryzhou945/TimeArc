@@ -25,6 +25,7 @@
 #include "services/media_session_repository.h"
 #include "services/mobile/mobile_usage_repository.h"
 #include "services/mobile/mobile_usage_service.h"
+#include "services/mobile/mobile_ui_service.h"
 #include "services/settings_repository.h"
 #include "services/stats_service.h"
 #include "services/tag_repository.h"
@@ -215,6 +216,7 @@ int main(int argc, char* argv[]) {
   StatsService statsService(&frontmostRepository, &mediaRepository,
                             &manualProjectRepository);
   MobileUsageService mobileUsageService(&mobileUsageRepository);
+  MobileUiService mobileUiService(&settingsRepository);
   DailyCardService dailyCardService(&statsService, &frontmostRepository);
   TagRepository tagRepository;
   TimerManager timerManager;
@@ -244,6 +246,8 @@ int main(int argc, char* argv[]) {
                                            &mediaRepository);
   engine.rootContext()->setContextProperty("mobileUsageService",
                                            &mobileUsageService);
+  engine.rootContext()->setContextProperty("mobileUiService",
+                                           &mobileUiService);
   engine.rootContext()->setContextProperty("settingsRepository",
                                            &settingsRepository);
   engine.rootContext()->setContextProperty("statsService", &statsService);

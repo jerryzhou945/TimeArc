@@ -67,6 +67,11 @@ set(TIME_ARC_QML_FILES
     qml/mobile/components/MobileSettingRow.qml
     qml/mobile/components/MobileFlipCard.qml
     qml/mobile/components/MobileTabButton.qml
+    qml/mobile/components/MobileGlassPanel.qml
+    qml/mobile/components/MobileAppIcon.qml
+    qml/mobile/components/MobileUsageRankRow.qml
+    qml/mobile/components/MobileShareOverlay.qml
+    qml/mobile/components/MobileMonthlyStory.qml
 )
 
 set(TIME_ARC_QML_FILES ${TIME_ARC_QML_FILES} PARENT_SCOPE)

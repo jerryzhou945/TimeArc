@@ -25,6 +25,7 @@ def main():
     app_repo_cpp = read("src/services/app_repository.cpp")
     mobile_shell = read("qml/mobile/MobileAppShell.qml")
     stats_page = read("qml/mobile/pages/MobileStatsPage.qml")
+    app_icon = read("qml/mobile/components/MobileAppIcon.qml")
 
     require(main_cpp, "#if defined(Q_OS_ANDROID)",
             "Android-gated lifecycle sync")
@@ -52,9 +53,11 @@ def main():
             "app icon path NULL preservation on updates")
     require(app_repo_cpp, "THEN apps.app_icon_path",
             "app icon path empty-string preservation on updates")
-    require(stats_page, "function iconSource",
-            "mobile stats icon source helper")
-    require(stats_page, "Image {", "mobile stats real app icon rendering")
+    require(stats_page, "MobileUsageRankRow",
+            "mobile stats shared usage ranking row")
+    require(app_icon, "appIconPath",
+            "mobile shared app icon source")
+    require(app_icon, "Image {", "mobile shared real app icon rendering")
     require(mobile_shell, "ensureUsageAccessOnboarding",
             "first-run Usage Access onboarding")
     require(mobile_shell, "android_usage_access_prompted",

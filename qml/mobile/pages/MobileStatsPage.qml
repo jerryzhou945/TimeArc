@@ -1,83 +1,173 @@
 import QtQuick
 import "../components"
 
-Rectangle {
+Item {
     id: root
 
     required property var theme
+    property bool wallpaperActive: false
+    readonly property int dateRailWidth: 52
+    property var rangeKeys: ["week", "month", "year", "all"]
+    property var rangeMeta: ({
+        "week": {
+            "label": "本周",
+            "marker": "周",
+            "date": "MON",
+            "note": "从周一到今天"
+        },
+        "month": {
+            "label": "本月",
+            "marker": "月",
+            "date": "01",
+            "note": "从本月一日开始"
+        },
+        "year": {
+            "label": "今年",
+            "marker": "年",
+            "date": "26",
+            "note": "从一月一日开始"
+        },
+        "all": {
+            "label": "总计",
+            "marker": "全",
+            "date": "∞",
+            "note": "从第一条记录开始"
+        }
+    })
+    property var dashboards: ({})
+    property string selectedRange: "week"
+    property bool detailOpen: false
 
-    color: theme.bg
-
-    property int selectedSegment: 1
-    property var periods: [
-        { "label": "今天", "range": "day" },
-        { "label": "7天", "range": "week" },
-        { "label": "30天", "range": "month" },
-        { "label": "今年", "range": "year" },
-        { "label": "总计", "range": "all" }
-    ]
-    property var dashboard: emptyDashboard()
-    readonly property var topApps: dashboard.topApps || []
-
-    function emptyDashboard() {
+    function emptyDashboard(key) {
         return {
-            "totalSec": 0,
+            "rangeKey": key,
+            "rangeLabel": rangeMeta[key].label,
+            "rangeText": "",
             "totalText": "0s",
-            "averageDailyText": "0s",
             "activeDays": 0,
-            "appCount": 0,
             "topApps": [],
-            "empty": true,
-            "syncStatusText": "等待 Android 使用数据同步"
+            "empty": true
         }
     }
 
-    function hasMobileUsageService() {
+    function previewApp(name, initial, duration, share, relative, iconPath) {
+        return {
+            "displayName": name,
+            "initial": initial,
+            "durationText": duration,
+            "sharePct": share,
+            "relativePct": relative,
+            "appIconPath": iconPath
+        }
+    }
+
+    function previewDashboards() {
+        var edge = previewApp(
+                    "Microsoft Edge", "E", "8h 24m", 31, 100,
+                    "image://appicon/C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe")
+        var code = previewApp(
+                    "Visual Studio Code", "VS", "6h 48m", 25, 81,
+                    "image://appicon/C:/Users/Lenovo/AppData/Local/Programs/Microsoft VS Code/Code.exe")
+        var wechat = previewApp(
+                    "微信", "微", "4h 12m", 16, 50,
+                    "image://appicon/C:/Program Files/Tencent/WeChat/WeChat.exe")
+        var music = previewApp(
+                    "网易云音乐", "音", "3h 36m", 13, 43,
+                    "image://appicon/C:/Program Files (x86)/NetEase/CloudMusic/cloudmusic.exe")
+        var bilibili = previewApp(
+                    "哔哩哔哩", "哔", "2h 18m", 9, 27,
+                    "image://appicon/C:/Program Files/Google/Chrome/Application/chrome.exe")
+        return {
+            "week": {
+                "rangeKey": "week",
+                "rangeLabel": "本周",
+                "rangeText": "07.14 — 07.20",
+                "totalText": "27h 06m",
+                "activeDays": 7,
+                "topApps": [edge, code, wechat, music, bilibili],
+                "empty": false
+            },
+            "month": {
+                "rangeKey": "month",
+                "rangeLabel": "本月",
+                "rangeText": "07.01 — 07.20",
+                "totalText": "96h 42m",
+                "activeDays": 18,
+                "topApps": [
+                    previewApp("Visual Studio Code", "VS", "24h 42m", 26, 100,
+                               code.appIconPath),
+                    previewApp("Microsoft Edge", "E", "21h 18m", 22, 86,
+                               edge.appIconPath),
+                    previewApp("微信", "微", "14h 05m", 15, 57,
+                               wechat.appIconPath),
+                    previewApp("网易云音乐", "音", "9h 48m", 10, 40,
+                               music.appIconPath)
+                ],
+                "empty": false
+            },
+            "year": {
+                "rangeKey": "year",
+                "rangeLabel": "今年",
+                "rangeText": "2026.01.01 — 今天",
+                "totalText": "568h",
+                "activeDays": 142,
+                "topApps": [code, edge, wechat, music],
+                "empty": false
+            },
+            "all": {
+                "rangeKey": "all",
+                "rangeLabel": "总计",
+                "rangeText": "2025.03.13 — 今天",
+                "totalText": "812h",
+                "activeDays": 168,
+                "topApps": [code, edge, wechat, music, bilibili],
+                "empty": false
+            }
+        }
+    }
+
+    function hasService() {
         return typeof mobileUsageService !== "undefined" && mobileUsageService
     }
 
-    function reloadDashboard() {
-        if (!hasMobileUsageService()) {
-            dashboard = emptyDashboard()
+    function isPreviewMode() {
+        return Qt.application.arguments.indexOf("--mobile-preview") >= 0
+    }
+
+    function loadOverview() {
+        if (root.isPreviewMode()) {
+            dashboards = previewDashboards()
             return
         }
-        dashboard = mobileUsageService.getDashboardForRange(periods[selectedSegment].range)
+        var next = {}
+        for (var i = 0; i < rangeKeys.length; ++i) {
+            var key = rangeKeys[i]
+            next[key] = mobileUsageService.getDashboardForRange(key)
+        }
+        dashboards = next
     }
 
-    function iconSource(path) {
-        var value = (path || "").toString().trim()
-        if (value.length === 0)
-            return ""
-        if (value.indexOf("file://") === 0 || value.indexOf("qrc:/") === 0 || value.indexOf("image://") === 0)
-            return value
-        value = value.replace(/\\/g, "/")
-        if (value.charAt(0) === "/")
-            return "file://" + value
-        return "file:///" + value
+    function dashboardFor(key) {
+        return dashboards[key] || emptyDashboard(key)
     }
 
-    function rankText(index) {
-        var n = index + 1
-        return n < 10 ? "0" + n : "" + n
+    function openRange(key) {
+        selectedRange = key
+        detailOpen = true
+        flick.contentY = 0
     }
 
-    Component.onCompleted: reloadDashboard()
+    function closeRange() {
+        detailOpen = false
+        flick.contentY = 0
+    }
+
+    Component.onCompleted: loadOverview()
 
     Connections {
-        target: root.hasMobileUsageService() ? mobileUsageService : null
-
-        function onDataChanged() {
-            root.reloadDashboard()
-        }
-
-        function onStatusChanged() {
-            root.reloadDashboard()
-        }
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        color: root.theme.bg
+        target: root.hasService() ? mobileUsageService : null
+        function onDataChanged() { root.loadOverview() }
+        function onStatusChanged() { root.loadOverview() }
     }
 
     Column {
@@ -94,361 +184,350 @@ Rectangle {
             height: parent.height - y
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            contentHeight: content.implicitHeight + 24
+            contentHeight: content.implicitHeight + 28
 
             Column {
                 id: content
-                width: flick.width - 40
-                x: 20
-                spacing: 14
-
-                Text {
-                    width: parent.width
-                    text: "统计"
-                    color: root.theme.textPrimary
-                    font.pixelSize: 29
-                    font.weight: Font.DemiBold
-                }
-
-                Text {
-                    width: parent.width
-                    text: "按系统 UsageStats 写入数据库后的聚合结果查看应用使用时间。"
-                    color: root.theme.textSecondary
-                    font.pixelSize: 13
-                    wrapMode: Text.WordWrap
-                }
-
-                Flickable {
-                    width: parent.width
-                    height: 42
-                    contentWidth: periodRow.implicitWidth
-                    interactive: contentWidth > width
-                    boundsBehavior: Flickable.StopAtBounds
-                    clip: true
-
-                    Row {
-                        id: periodRow
-                        height: parent.height
-                        spacing: 8
-
-                        Repeater {
-                            model: root.periods
-
-                            RangeTab {
-                                required property var modelData
-                                required property int index
-
-                                theme: root.theme
-                                label: modelData.label
-                                active: index === root.selectedSegment
-                                onClicked: {
-                                    root.selectedSegment = index
-                                    root.reloadDashboard()
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 176
-                    radius: 22
-                    color: root.theme.card
-                    border.color: root.theme.borderSoft
-                    border.width: 1
-
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        height: 74
-                        radius: parent.radius
-                        color: root.theme.accentSoft
-                        opacity: root.theme.isDark ? 0.18 : 0.82
-                    }
-
-                    Column {
-                        anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 10
-
-                        Text {
-                            width: parent.width
-                            text: root.periods[root.selectedSegment].label + "使用时间"
-                            color: root.theme.textSecondary
-                            font.pixelSize: 13
-                        }
-
-                        Text {
-                            width: parent.width
-                            text: root.dashboard.totalText || "0s"
-                            color: root.theme.textPrimary
-                            font.family: root.theme.numberFontFamily
-                            font.pixelSize: 42
-                            font.weight: Font.Bold
-                            elide: Text.ElideRight
-                        }
-
-                        Text {
-                            width: parent.width
-                            text: root.dashboard.empty ? (root.dashboard.syncStatusText || "等待数据同步") : "已按应用合并排行，避免跨天重复显示"
-                            color: root.dashboard.empty ? root.theme.textSecondary : root.theme.accentText
-                            font.pixelSize: 13
-                            wrapMode: Text.WordWrap
-                        }
-                    }
-                }
+                width: flick.width - 32
+                x: 16
+                spacing: 12
 
                 Row {
                     width: parent.width
-                    height: 92
-                    spacing: 10
+                    height: 58
+                    spacing: 8
 
-                    StatTile {
-                        width: (parent.width - 20) / 3
-                        theme: root.theme
-                        label: "记录天数"
-                        value: "" + (root.dashboard.activeDays || 0)
+                    Rectangle {
+                        visible: root.detailOpen
+                        width: 44
+                        height: 44
+                        anchors.verticalCenter: parent.verticalCenter
+                        radius: 22
+                        color: root.wallpaperActive
+                               ? root.theme.contentWash
+                               : root.theme.surfaceRaised
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "‹"
+                            color: root.wallpaperActive
+                                   ? root.theme.wallpaperInk
+                                   : root.theme.textPrimary
+                            font.pixelSize: 30
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: root.closeRange()
+                        }
                     }
-
-                    StatTile {
-                        width: (parent.width - 20) / 3
-                        theme: root.theme
-                        label: "应用数"
-                        value: "" + (root.dashboard.appCount || 0)
-                    }
-
-                    StatTile {
-                        width: (parent.width - 20) / 3
-                        theme: root.theme
-                        label: "日均"
-                        value: root.dashboard.averageDailyText || "0s"
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: appListColumn.implicitHeight + 28
-                    radius: 20
-                    color: root.theme.card
-                    border.color: root.theme.borderSoft
-                    border.width: 1
 
                     Column {
-                        id: appListColumn
-                        width: parent.width - 28
-                        x: 14
-                        y: 14
-                        spacing: 10
+                        width: parent.width - (root.detailOpen ? 52 : 0)
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
 
-                        Row {
+                        Text {
                             width: parent.width
-                            height: 24
-
-                            Text {
-                                width: parent.width - 90
-                                text: "应用排行"
-                                color: root.theme.textPrimary
-                                font.pixelSize: 18
-                                font.weight: Font.DemiBold
-                            }
-
-                            Text {
-                                width: 90
-                                text: root.periods[root.selectedSegment].label
-                                color: root.theme.textMuted
-                                font.pixelSize: 12
-                                horizontalAlignment: Text.AlignRight
-                            }
+                            text: root.detailOpen
+                                  ? root.rangeMeta[root.selectedRange].label
+                                  : "时间统计"
+                            color: root.wallpaperActive
+                                   ? root.theme.wallpaperInk
+                                   : root.theme.textPrimary
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 24
+                            font.weight: Font.Bold
+                            horizontalAlignment: root.detailOpen
+                                                 ? Text.AlignHCenter
+                                                 : Text.AlignLeft
                         }
 
                         Text {
                             width: parent.width
-                            visible: root.topApps.length === 0
-                            text: "暂无安卓使用时长。授权后回到 TimeArc，系统数据会同步到本地 SQLite。"
-                            color: root.theme.textSecondary
-                            font.pixelSize: 13
-                            wrapMode: Text.WordWrap
+                            text: root.detailOpen
+                                  ? root.dashboardFor(
+                                        root.selectedRange).rangeText
+                                  : "每一段时长，都有来处"
+                            color: root.wallpaperActive
+                                   ? root.theme.wallpaperMuted
+                                   : root.theme.textSecondary
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 12
+                            horizontalAlignment: root.detailOpen
+                                                 ? Text.AlignHCenter
+                                                 : Text.AlignLeft
                         }
+                    }
+                }
 
-                        Repeater {
-                            model: root.topApps
+                Column {
+                    visible: !root.detailOpen
+                    width: parent.width
+                    spacing: 0
 
-                            AppStatRow {
-                                required property var modelData
-                                required property int index
+                    Repeater {
+                        model: root.rangeKeys
 
-                                width: parent.width
-                                theme: root.theme
-                                app: modelData
-                                rank: root.rankText(index)
-                                iconUrl: root.iconSource(modelData.appIconPath)
+                        Item {
+                            id: rangeBlock
+                            required property string modelData
+                            width: parent.width
+                            height: 126
+                            readonly property var dashboard:
+                                root.dashboardFor(modelData)
+                            readonly property var leadApp:
+                                (dashboard.topApps || []).length > 0
+                                ? dashboard.topApps[0] : ({})
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.topMargin: 14
+                                anchors.bottomMargin: 14
+                                spacing: 14
+
+                                Column {
+                                    width: root.dateRailWidth
+                                    spacing: 2
+
+                                    Text {
+                                        width: parent.width
+                                        text: root.rangeMeta[
+                                                  rangeBlock.modelData].marker
+                                        color: root.wallpaperActive
+                                               ? root.theme.wallpaperInk
+                                               : root.theme.textPrimary
+                                        font.family: root.theme.fontFamily
+                                        font.pixelSize: 22
+                                        font.weight: Font.Bold
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        text: root.rangeMeta[
+                                                  rangeBlock.modelData].date
+                                        color: root.wallpaperActive
+                                               ? root.theme.wallpaperMuted
+                                               : root.theme.textMuted
+                                        font.family: root.theme.numberFontFamily
+                                        font.pixelSize: 10
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+
+                                Column {
+                                    width: parent.width - root.dateRailWidth - 14
+                                    spacing: 6
+
+                                    Row {
+                                        width: parent.width
+                                        height: 24
+
+                                        Text {
+                                            width: parent.width
+                                                   - rangeDuration.width - 10
+                                            text: root.rangeMeta[
+                                                      rangeBlock.modelData].label
+                                                  + "，时间停在这些应用里"
+                                            color: root.wallpaperActive
+                                                   ? root.theme.wallpaperInk
+                                                   : root.theme.textPrimary
+                                            font.family: root.theme.fontFamily
+                                            font.pixelSize: 16
+                                            font.weight: Font.Bold
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            id: rangeDuration
+                                            text: rangeBlock.dashboard.totalText
+                                                  || "0s"
+                                            color: root.wallpaperActive
+                                                   ? root.theme.wallpaperInk
+                                                   : root.theme.textPrimary
+                                            font.family: root.theme.numberFontFamily
+                                            font.pixelSize: 14
+                                            font.weight: Font.DemiBold
+                                        }
+                                    }
+
+                                    Text {
+                                        width: parent.width
+                                        text: rangeBlock.dashboard.empty
+                                              ? "还没有记录，完成同步后再回来看看。"
+                                              : (root.rangeMeta[
+                                                     rangeBlock.modelData].note
+                                                 + "，共记录 "
+                                                 + rangeBlock.dashboard.activeDays
+                                                 + " 天。")
+                                        color: root.wallpaperActive
+                                               ? root.theme.wallpaperMuted
+                                               : root.theme.textSecondary
+                                        font.family: root.theme.fontFamily
+                                        font.pixelSize: 12
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Row {
+                                        width: parent.width
+                                        height: 40
+                                        spacing: 8
+
+                                        MobileAppIcon {
+                                            anchors.verticalCenter:
+                                                parent.verticalCenter
+                                            theme: root.theme
+                                            app: rangeBlock.leadApp
+                                            iconSize: 38
+                                            cornerRadius: 10
+                                        }
+
+                                        Text {
+                                            width: parent.width - 76
+                                            anchors.verticalCenter:
+                                                parent.verticalCenter
+                                            text: rangeBlock.dashboard.empty
+                                                  ? "暂无应用"
+                                                  : ((rangeBlock.leadApp.displayName
+                                                      || "未知应用")
+                                                     + " 留下的时间最多")
+                                            color: root.wallpaperActive
+                                                   ? root.theme.wallpaperMuted
+                                                   : root.theme.textMuted
+                                            font.family: root.theme.fontFamily
+                                            font.pixelSize: 11
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            width: 30
+                                            anchors.verticalCenter:
+                                                parent.verticalCenter
+                                            text: "›"
+                                            color: root.wallpaperActive
+                                                   ? root.theme.wallpaperInk
+                                                   : root.theme.textPrimary
+                                            font.pixelSize: 25
+                                            horizontalAlignment: Text.AlignRight
+                                        }
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.leftMargin: root.dateRailWidth + 14
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: 1
+                                color: root.wallpaperActive
+                                       ? root.theme.timelineLine
+                                       : root.theme.line
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: root.openRange(rangeBlock.modelData)
                             }
                         }
                     }
                 }
-            }
-        }
-    }
 
-    component RangeTab: Rectangle {
-        id: tab
-
-        required property var theme
-        property string label: ""
-        property bool active: false
-        signal clicked()
-
-        width: Math.max(58, label.length * 20)
-        height: 34
-        radius: 17
-        color: active ? theme.accent : theme.card
-        border.color: active ? theme.accentBorder : theme.borderSoft
-        border.width: 1
-
-        Text {
-            anchors.centerIn: parent
-            text: tab.label
-            color: tab.active ? (theme.isDark ? "#06101A" : "#FFFFFF") : theme.textSecondary
-            font.pixelSize: 13
-            font.weight: tab.active ? Font.DemiBold : Font.Medium
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: tab.clicked()
-        }
-    }
-
-    component StatTile: Rectangle {
-        required property var theme
-        property string label: ""
-        property string value: ""
-
-        radius: 18
-        color: theme.card
-        border.color: theme.borderSoft
-        border.width: 1
-
-        Column {
-            anchors.fill: parent
-            anchors.margins: 12
-            spacing: 12
-
-            Text {
-                width: parent.width
-                text: label
-                color: theme.textMuted
-                font.pixelSize: 12
-                elide: Text.ElideRight
-            }
-
-            Text {
-                width: parent.width
-                text: value
-                color: theme.textPrimary
-                font.family: theme.numberFontFamily
-                font.pixelSize: 20
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
-            }
-        }
-    }
-
-    component AppStatRow: Item {
-        required property var theme
-        property var app: ({})
-        property string iconUrl: ""
-        property string rank: "01"
-
-        height: 58
-
-        Row {
-            anchors.fill: parent
-            spacing: 10
-
-            Rectangle {
-                width: 38
-                height: 38
-                radius: 10
-                color: theme.cardElevated
-                anchors.verticalCenter: parent.verticalCenter
-                clip: true
-
-                Image {
-                    id: appIcon
-                    anchors.fill: parent
-                    anchors.margins: 4
-                    source: iconUrl
-                    visible: iconUrl.length > 0 && status !== Image.Error
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
-                    asynchronous: true
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: !appIcon.visible
-                    text: app.initial || "?"
-                    color: theme.accentText
-                    font.pixelSize: 13
-                    font.weight: Font.DemiBold
-                }
-            }
-
-            Column {
-                width: parent.width - 126
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 6
-
-                Text {
+                Column {
+                    visible: root.detailOpen
                     width: parent.width
-                    text: app.displayName || app.packageName || "未知应用"
-                    color: theme.textPrimary
-                    font.pixelSize: 14
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
-                }
+                    spacing: 8
 
-                Rectangle {
-                    width: parent.width
-                    height: 5
-                    radius: 3
-                    color: theme.rankTrack
+                    Item {
+                        width: parent.width
+                        height: 98
 
-                    Rectangle {
-                        width: parent.width * Math.max(0.04, Math.min(1, (app.sharePct || 0) / 100))
-                        height: parent.height
-                        radius: parent.radius
-                        color: theme.accent
+                        Column {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 6
+
+                            Text {
+                                width: parent.width
+                                text: root.dashboardFor(
+                                          root.selectedRange).totalText || "0s"
+                                color: root.wallpaperActive
+                                       ? root.theme.wallpaperInk
+                                       : root.theme.textPrimary
+                                font.family: root.theme.numberFontFamily
+                                font.pixelSize: 34
+                                font.weight: Font.Bold
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: "记录 "
+                                      + (root.dashboardFor(
+                                             root.selectedRange).activeDays || 0)
+                                      + " 天 · "
+                                      + ((root.dashboardFor(
+                                              root.selectedRange).topApps || []).length)
+                                      + " 个应用"
+                                color: root.wallpaperActive
+                                       ? root.theme.wallpaperMuted
+                                       : root.theme.textSecondary
+                                font.family: root.theme.fontFamily
+                                font.pixelSize: 12
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            height: 1
+                            color: root.wallpaperActive
+                                   ? root.theme.timelineLine : root.theme.line
+                        }
                     }
-                }
-            }
 
-            Column {
-                width: 78
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 4
+                    Text {
+                        width: parent.width
+                        text: "应用使用排行"
+                        color: root.wallpaperActive
+                               ? root.theme.wallpaperInk
+                               : root.theme.textPrimary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 18
+                        font.weight: Font.Bold
+                        topPadding: 6
+                    }
 
-                Text {
-                    width: parent.width
-                    text: app.durationText || "0s"
-                    color: theme.textPrimary
-                    font.family: theme.numberFontFamily
-                    font.pixelSize: 13
-                    font.weight: Font.DemiBold
-                    horizontalAlignment: Text.AlignRight
-                    elide: Text.ElideRight
-                }
+                    Text {
+                        width: parent.width
+                        visible: (root.dashboardFor(
+                                      root.selectedRange).topApps || []).length === 0
+                        text: "这个时间范围还没有记录。开启使用情况访问并同步后，再回来看看。"
+                        color: root.wallpaperActive
+                               ? root.theme.wallpaperMuted
+                               : root.theme.textSecondary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 14
+                        lineHeight: 1.45
+                        wrapMode: Text.WordWrap
+                    }
 
-                Text {
-                    width: parent.width
-                    text: rank
-                    color: theme.textMuted
-                    font.family: theme.numberFontFamily
-                    font.pixelSize: 11
-                    horizontalAlignment: Text.AlignRight
+                    Repeater {
+                        model: root.dashboardFor(
+                                   root.selectedRange).topApps || []
+
+                        MobileUsageRankRow {
+                            required property var modelData
+                            required property int index
+                            width: parent.width
+                            theme: root.theme
+                            app: modelData
+                            rank: index + 1
+                            wallpaperActive: root.wallpaperActive
+                        }
+                    }
                 }
             }
         }
