@@ -54,8 +54,31 @@ reduced motion, export each share type, then scan the Qt/QML log.
 
 ## Result
 
-Pending implementation after written specification approval.
+Implemented directly in the primary workspace on
+`codex/mobile-seasonal-report-qml`.
+
+- Added deterministic monthly insight generation for active days, streaks,
+  longest sessions, late-night records, time segments, app combinations,
+  first appearances, and month-over-month changes.
+- Extended Android aggregate coverage through the previous month and recent
+  session evidence to 35 days.
+- Bundled twelve original portrait month scenes and season-specific QML
+  particles with reduced-motion behavior.
+- Replaced the old monthly view with six data-bound story pages.
+- Added app-card, period-ranking, and monthly-report portrait sharing with real
+  application icons and user-wallpaper support where appropriate.
 
 ## Verification
 
-Pending implementation.
+- `tests/mobile_ui_static_test.py`: passed.
+- `tests/android_usage_static_test.py`: passed.
+- Harness desktop build: passed, log
+  `build-logs/20260723-204844-build.log`.
+- `ctest --test-dir build --output-on-failure`: 1/1 passed.
+- Mobile preview launched after correcting resource paths and component theme
+  scope; final Qt log scan recorded 0 warnings.
+- Android arm64 configuration accepted the new QML/resources, but the full
+  all-target build remains blocked by the existing native service target being
+  linked for Android without `main` (`build-logs/20260723-204940-build.log`).
+  This is outside the mobile UI diff and does not affect the verified desktop
+  mobile preview or Android static collection checks.
