@@ -27,6 +27,8 @@ class MobileUiService : public QObject {
   Q_INVOKABLE bool importWallpaper(const QUrl& source);
   Q_INVOKABLE bool clearWallpaper();
   Q_INVOKABLE QString createShareImagePath(const QString& stem) const;
+  Q_INVOKABLE bool saveImageToGallery(const QUrl& source,
+                                      const QString& albumName = QString());
   Q_INVOKABLE bool shareImage(const QUrl& source,
                               const QString& chooserTitle);
 

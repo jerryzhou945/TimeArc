@@ -50,9 +50,21 @@ def main():
     require(ui_header, "Q_INVOKABLE bool importWallpaper",
             "wallpaper import")
     require(ui_header, "Q_INVOKABLE bool shareImage", "share handoff")
+    require(ui_header, "Q_INVOKABLE bool saveImageToGallery",
+            "gallery save API")
     require(android_bridge, "FileProvider.getUriForFile",
             "Android FileProvider share")
     require(android_bridge, "Intent.ACTION_SEND", "Android share intent")
+    require(android_bridge, "MediaStore.Images.Media.EXTERNAL_CONTENT_URI",
+            "Android MediaStore gallery collection")
+    require(android_bridge, "MediaStore.MediaColumns.RELATIVE_PATH",
+            "Android gallery relative path")
+    require(android_bridge, 'Environment.DIRECTORY_PICTURES + "/TimeArc"',
+            "TimeArc gallery album")
+    require(android_bridge, "MediaStore.MediaColumns.IS_PENDING",
+            "atomic Android gallery write")
+    require(android_bridge, "saveImageToGallery",
+            "Android gallery export")
     require(shell, "Image.PreserveAspectCrop",
             "single shell wallpaper crop")
     require(shell, "wallpaperActive", "global wallpaper state")

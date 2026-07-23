@@ -2,15 +2,22 @@
 
 package com.timearc.mobile.ui;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
 
 import androidx.core.content.FileProvider;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 public final class MobileUiBridge {
     private MobileUiBridge() {
@@ -60,5 +67,90 @@ public final class MobileUiBridge {
         } catch (Exception ignored) {
             return false;
         }
+    }
+
+    public static String saveImageToGallery(Context context, String pathValue,
+                                            String albumName) {
+        if (context == null || pathValue == null) {
+            return "";
+        }
+        File source = new File(pathValue);
+        if (!source.isFile() || source.length() <= 0) {
+            return "";
+        }
+        String safeAlbum = albumName == null || albumName.trim().isEmpty()
+                ? "TimeArc" : albumName.trim();
+        String displayName = source.getName().endsWith(".png")
+                ? source.getName()
+                : "timearc-" + System.currentTimeMillis() + ".png";
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, displayName);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "image/png");
+            values.put(
+                    MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_PICTURES + "/TimeArc");
+            values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+            Uri target = null;
+            try {
+                target = context.getContentResolver().insert(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                if (target == null) {
+                    return "";
+                }
+                try (InputStream input = new FileInputStream(source);
+                     OutputStream output = context.getContentResolver()
+                             .openOutputStream(target, "w")) {
+                    if (output == null) {
+                        context.getContentResolver().delete(target, null, null);
+                        return "";
+                    }
+                    copyStream(input, output);
+                }
+                ContentValues ready = new ContentValues();
+                ready.put(MediaStore.MediaColumns.IS_PENDING, 0);
+                context.getContentResolver().update(target, ready, null, null);
+                return target.toString();
+            } catch (Exception ignored) {
+                if (target != null) {
+                    context.getContentResolver().delete(target, null, null);
+                }
+                return "";
+            }
+        }
+
+        File pictures = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES);
+        File directory = new File(pictures, safeAlbum);
+        if (!directory.exists() && !directory.mkdirs()) {
+            return "";
+        }
+        File target = new File(directory, displayName);
+        try (InputStream input = new FileInputStream(source);
+             OutputStream output = new FileOutputStream(target)) {
+            copyStream(input, output);
+            MediaScannerConnection.scanFile(
+                    context,
+                    new String[]{target.getAbsolutePath()},
+                    new String[]{"image/png"},
+                    null);
+            return Uri.fromFile(target).toString();
+        } catch (Exception ignored) {
+            if (target.exists()) {
+                target.delete();
+            }
+            return "";
+        }
+    }
+
+    private static void copyStream(InputStream input, OutputStream output)
+            throws Exception {
+        byte[] buffer = new byte[64 * 1024];
+        int read;
+        while ((read = input.read(buffer)) >= 0) {
+            output.write(buffer, 0, read);
+        }
+        output.flush();
     }
 }

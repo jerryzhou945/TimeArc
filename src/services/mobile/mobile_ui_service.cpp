@@ -90,6 +90,23 @@ bool androidShareImage(const QString& pathValue,
       context.object<jobject>(), path.object<jstring>(),
       title.object<jstring>());
 }
+
+QString androidSaveImageToGallery(const QString& pathValue,
+                                  const QString& albumName) {
+  const QJniObject context =
+      QNativeInterface::QAndroidApplication::context();
+  if (!context.isValid()) return QString();
+  const QJniObject path = QJniObject::fromString(pathValue);
+  const QJniObject album = QJniObject::fromString(
+      albumName.trimmed().isEmpty() ? QStringLiteral("TimeArc") : albumName);
+  const QJniObject result = QJniObject::callStaticObjectMethod(
+      "com/timearc/mobile/ui/MobileUiBridge", "saveImageToGallery",
+      "(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)"
+      "Ljava/lang/String;",
+      context.object<jobject>(), path.object<jstring>(),
+      album.object<jstring>());
+  return result.isValid() ? result.toString() : QString();
+}
 #endif
 
 }  // namespace
@@ -189,6 +206,28 @@ QString MobileUiService::createShareImagePath(const QString& stem) const {
   return QDir(shareDirectory())
       .filePath(QStringLiteral("timearc-%1-%2.png")
                     .arg(sanitizedStem(stem), timestamp));
+}
+
+bool MobileUiService::saveImageToGallery(const QUrl& source,
+                                         const QString& albumName) {
+  setLastError(QString());
+  const QString path = localPathFor(source);
+  if (path.isEmpty() || !QFileInfo::exists(path)) {
+    setLastError(QStringLiteral("分享图片尚未生成，请重新保存。"));
+    return false;
+  }
+#ifdef Q_OS_ANDROID
+  const QString savedUri = androidSaveImageToGallery(path, albumName);
+  if (savedUri.isEmpty()) {
+    setLastError(QStringLiteral("无法保存到系统图库，请检查存储空间。"));
+    return false;
+  }
+  setLastSavedImagePath(savedUri);
+#else
+  Q_UNUSED(albumName);
+  setLastSavedImagePath(path);
+#endif
+  return true;
 }
 
 bool MobileUiService::shareImage(const QUrl& source,
