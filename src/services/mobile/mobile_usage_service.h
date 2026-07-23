@@ -26,6 +26,7 @@ class MobileUsageService : public QObject {
   Q_INVOKABLE QVariantMap getUsageDashboard(const QString& startDateLocal,
                                             const QString& endDateLocal);
   Q_INVOKABLE QVariantMap getDashboardForRange(const QString& range);
+  Q_INVOKABLE QVariantMap getMonthlyReport(const QString& monthKey);
   Q_INVOKABLE QVariantMap getMemoryLakeForCurrentMonth();
   Q_INVOKABLE bool refreshUsageAccessState();
   Q_INVOKABLE bool openUsageAccessSettings();

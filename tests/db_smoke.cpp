@@ -14,6 +14,7 @@
 #include <QStandardPaths>
 #include <QStringList>
 #include <QSettings>
+#include <QTimeZone>
 #include <QUrl>
 #include <QVariantList>
 #include <QVariantMap>
@@ -1198,7 +1199,7 @@ int main(int argc, char* argv[]) {
   }
 
   const QDateTime longestStart(QDate(2026, 3, 18), QTime(18, 42),
-                               Qt::LocalTime);
+                               QTimeZone::systemTimeZone());
   QVariantList insightSessions;
   QVariantMap observedSession;
   observedSession.insert(QStringLiteral("sessionStartUnixSec"),
@@ -1218,7 +1219,7 @@ int main(int argc, char* argv[]) {
 
   QVariantMap lateSession = observedSession;
   const QDateTime lateStart(QDate(2026, 3, 20), QTime(23, 42),
-                            Qt::LocalTime);
+                            QTimeZone::systemTimeZone());
   lateSession.insert(QStringLiteral("sessionStartUnixSec"),
                      lateStart.toSecsSinceEpoch());
   lateSession.insert(QStringLiteral("sessionEndUnixSec"),
@@ -1268,6 +1269,23 @@ int main(int argc, char* argv[]) {
       insightReport.value(QStringLiteral("companion")).toMap();
   if (companion.value(QStringLiteral("daysTogether")).toInt() != 6) {
     return fail(QStringLiteral("Monthly app companion detection failed."));
+  }
+
+  const QVariantMap serviceMonthlyReport =
+      mobileUsageService.getMonthlyReport(QStringLiteral("2026-06"));
+  if (serviceMonthlyReport.value(QStringLiteral("monthKey")).toString() !=
+          QStringLiteral("2026-06") ||
+      !serviceMonthlyReport.contains(QStringLiteral("profile")) ||
+      serviceMonthlyReport.value(QStringLiteral("pages")).toList().size() != 6) {
+    return fail(QStringLiteral("Monthly report service model failed."));
+  }
+  const QVariantMap memoryLake =
+      mobileUsageService.getMemoryLakeForCurrentMonth();
+  const QVariantMap memoryReport =
+      memoryLake.value(QStringLiteral("report")).toMap();
+  if (!memoryReport.contains(QStringLiteral("profile")) ||
+      memoryReport.value(QStringLiteral("pages")).toList().size() != 6) {
+    return fail(QStringLiteral("Memory Lake did not reuse monthly report."));
   }
 
   int projectChangedCount = 0;
