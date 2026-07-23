@@ -9,7 +9,7 @@ import androidx.work.WorkerParameters;
 import java.util.Calendar;
 
 public final class UsageSyncWorker extends Worker {
-    private static final int RECENT_SESSION_LOOKBACK_DAYS = 3;
+    private static final int RECENT_SESSION_LOOKBACK_DAYS = 35;
 
     public UsageSyncWorker(
             @NonNull Context context,
@@ -26,7 +26,7 @@ public final class UsageSyncWorker extends Worker {
         }
 
         long endMs = System.currentTimeMillis();
-        long aggregateBeginMs = startOfTodayMs();
+        long aggregateBeginMs = startOfPreviousMonthMs();
         boolean aggregateOk = AndroidUsageNativeBridge.syncAggregatedUsage(
                 context,
                 aggregateBeginMs,
@@ -42,8 +42,10 @@ public final class UsageSyncWorker extends Worker {
         return aggregateOk && sessionsOk ? Result.success() : Result.retry();
     }
 
-    private static long startOfTodayMs() {
+    private static long startOfPreviousMonthMs() {
         Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.DAY_OF_MONTH, 1);
+        calendar.add(Calendar.MONTH, -1);
         calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
