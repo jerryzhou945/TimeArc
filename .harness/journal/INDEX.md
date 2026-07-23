@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-23T19:41:56Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260723-194156-B-build-failure.md) |
+| 2026-07-23T19:40:20Z | L3 | journal-index-l... | The required macOS main error report pushed the rolling j... | [report](errors/20260723-194020-C-journal-index-line-budget-main.md) |
+| 2026-07-23T19:39:50Z | L1 | macos-main-miss... | macOS service type-check fails because TimeArcService ref... | [report](errors/20260723-193950-C-macos-main-missing-runner.md) |
 | 2026-07-23T09:00:51Z | L3 | tracking-semant... | Documentation amendment exceeded harness line limits and ... | [report](errors/20260723-090051-B-tracking-semantics-harness-drift.md) |
 | 2026-07-23T09:00:23Z | L3 | markdown-search... | A documentation grep used Markdown backticks inside a dou... | [report](errors/20260723-090023-B-markdown-search-quoting.md) |
 | 2026-07-23T08:06:00Z | L3 | title-probe-tra... | The traversal-limit edit was initially classified as Trac... | [report](errors/20260723-080600-A-title-probe-track-discipline.md) |
@@ -93,8 +96,5 @@ the harness line budget intact.
 | 2026-07-07T11:17:47Z | L3 | sqlite-schema-s... | Search included a nonexistent macOS backup directory whil... | [report](errors/20260707-111747-A-sqlite-schema-search-path.md) |
 | 2026-07-07T09:40:08Z | L3 | missing-optiona... | Checked optional macos.backup/cmake paths that do not exi... | [report](errors/20260707-094008-B-missing-optional-paths.md) |
 | 2026-07-06T10:26:59Z | L3 | qt-path-probe-c... | Temporary Qt path probe compile failed because the comman... | [report](errors/20260706-102659-A-qt-path-probe-cxx-standard.md) |
-| 2026-07-06T10:25:33Z | L3 | qt-python-bindi... | Optional PySide6/PyQt6 probe was unavailable while checki... | [report](errors/20260706-102533-A-qt-python-binding-probe.md) |
-| 2026-07-02T17:36:45Z | L3 | data-bridge-imp... | Looked for src/service/shared/data_bridge.c, but the data... | [report](errors/20260702-173645-A-data-bridge-implementation-path.md) |
-| 2026-06-19T07:57:02Z | L2 | recursive-selec... | A recursive Select-String audit tried to read directories... | [report](errors/20260619-075702-A-recursive-select-string-directories.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

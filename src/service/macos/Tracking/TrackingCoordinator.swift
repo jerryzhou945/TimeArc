@@ -58,35 +58,42 @@ final class TrackingCoordinator {
   }
 
   // Update the tracking state and write the records to the database.
-  func update(at time: Int64) {
-    let assertions = self.sleepAssertionProbe.getSleepAssertions()
+  func update(at time: Int64) throws(TrackingError) {
+    var assertions: [Int32: SleepAssertionType]?
+    if enableFrontmost || enableMedia {
+      assertions = try self.sleepAssertionProbe.getSleepAssertions()
+    }
     if enableFrontmost {
-      self.updateFrontmost(with: assertions, at: time)
+      try self.updateFrontmost(with: assertions, at: time)
     }
     if enableMedia {
-      self.updateMedia(with: assertions, at: time)
+      try self.updateMedia(with: assertions, at: time)
     }
   }
 
   // Shutdown the tracking coordinator and write any remaining records to the database.
-  func shutdown(at time: Int64) {
-    if enableFrontmost, let record = self.frontmost.shutdown(at: time) {
-      self.dataBridge.bridgeFrontmostRecord(record)
+  func shutdown(at time: Int64) throws(TrackingError) {
+    if enableFrontmost, let record = try self.frontmost.shutdown(at: time) {
+      try self.dataBridge.bridgeFrontmostRecord(record)
     }
-    if enableMedia, let records = self.media.shutdown(at: time) {
-      records.forEach { self.dataBridge.bridgeMediaRecord($0) }
+    if enableMedia, let records = try self.media.shutdown(at: time) {
+      for record in records {
+        try self.dataBridge.bridgeMediaRecord(record)
+      }
     }
   }
 
   // Update the frontmost state machine and write the frontmost record to the database.
-  private func updateFrontmost(with assertions: [Int32: SleepAssertionType]?, at time: Int64) {
+  private func updateFrontmost(with assertions: [Int32: SleepAssertionType]?, at time: Int64)
+    throws(TrackingError)
+  {
     // Get the frontmost session information from the probe.
-    guard let frontmostSession = self.getFrontmostSession() else {
+    guard let frontmostSession = try self.getFrontmostSession() else {
       // Shutdown the frontmost state machine if there is no frontmost session.
-      guard let record = self.frontmost.shutdown(at: time) else {
+      guard let record = try self.frontmost.shutdown(at: time) else {
         return
       }
-      self.dataBridge.bridgeFrontmostRecord(record)
+      try self.dataBridge.bridgeFrontmostRecord(record)
       return
     }
 
@@ -95,59 +102,65 @@ final class TrackingCoordinator {
     case .active(let data):
       // Check if the new frontmost app information matches the current record.
       if self.isSame(frontmostSession, data) {
-        if self.isIdle(self.getIdleTime(from: assertions, for: frontmostSession.app.pid)) {
-          self.frontmost.idle(at: time)
+        if self.isIdle(try self.getIdleTime(from: assertions, for: frontmostSession.app.pid)) {
+          try self.frontmost.idle(at: time)
         }
         return
       }
 
       // Refresh the frontmost state machine with the new session information.
-      guard let record = self.frontmost.refresh(with: frontmostSession, at: time) else {
+      guard let record = try self.frontmost.refresh(with: frontmostSession, at: time) else {
         return
       }
-      self.dataBridge.bridgeFrontmostRecord(record)
+      try self.dataBridge.bridgeFrontmostRecord(record)
     case .idle(let data):
       // Check if the new frontmost app information matches the current record.
       if self.isSame(frontmostSession, data) {
-        if !self.isIdle(self.getIdleTime(from: assertions, for: frontmostSession.app.pid)) {
-          self.frontmost.reactivate(at: time)
+        if !self.isIdle(try self.getIdleTime(from: assertions, for: frontmostSession.app.pid)) {
+          try self.frontmost.reactivate(at: time)
         }
         return
       }
 
       // Refresh the frontmost state machine with the new session information.
-      guard let record = self.frontmost.refresh(with: frontmostSession, at: time) else {
+      guard let record = try self.frontmost.refresh(with: frontmostSession, at: time) else {
         return
       }
-      self.dataBridge.bridgeFrontmostRecord(record)
+      try self.dataBridge.bridgeFrontmostRecord(record)
     default:
       // Activate the frontmost state machine with the new session information.
-      self.frontmost.activate(with: frontmostSession, at: time)
+      try self.frontmost.activate(with: frontmostSession, at: time)
     }
   }
 
   // Update the media state machine and write the media records to the database.
-  private func updateMedia(with assertions: [Int32: SleepAssertionType]?, at time: Int64) {
+  private func updateMedia(with assertions: [Int32: SleepAssertionType]?, at time: Int64)
+    throws(TrackingError)
+  {
     // Get the media session information from the probe.
-    guard let mediaSessions = self.getMediaSession(from: assertions) else {
+    guard let mediaSessions = try self.getMediaSession(from: assertions) else {
       // Shutdown the media state machine if there are no media sessions.
-      guard let records = self.media.shutdown(at: time) else {
+      guard let records = try self.media.shutdown(at: time) else {
         return
       }
-      records.forEach { self.dataBridge.bridgeMediaRecord($0) }
+      for record in records {
+        try self.dataBridge.bridgeMediaRecord(record)
+      }
       return
     }
 
     // Update the media state machine based on the current state and the new session information.
     if case .active(_) = self.media.state {
       // Refresh the media state machine with the new session information.
-      guard let records = self.media.refresh(with: mediaSessions, at: time) else {
+      guard let records = try self.media.refresh(with: mediaSessions, at: time) else {
         return
       }
-      records.forEach { self.dataBridge.bridgeMediaRecord($0) }
+      for record in records {
+        try self.dataBridge.bridgeMediaRecord(record)
+      }
     } else {
       // Activate the media state machine with the new session information.
-      self.media.activate(with: mediaSessions, at: time)
+      try self.media.activate(with: mediaSessions, at: time)
     }
   }
 
@@ -162,25 +175,26 @@ final class TrackingCoordinator {
   }
 
   // Get the frontmost session.
-  private func getFrontmostSession() -> FrontmostSession? {
+  private func getFrontmostSession() throws(TrackingError) -> FrontmostSession? {
     // Get the frontmost app information.
-    guard let app = self.frontmostAppProbe.getFrontmostApp() else {
+    guard let app = try self.frontmostAppProbe.getFrontmostApp() else {
       return nil
     }
 
     // Get the window title for the frontmost app.
-    let windowTitle = self.windowTitleProbe.getWindowTitle(for: app.pid)
+    let windowTitle = try self.windowTitleProbe.getWindowTitle(for: app.pid)
 
     // Return the frontmost session with the app information and window title.
     return FrontmostSession(app: app, windowTitle: windowTitle)
   }
 
   // Get the media sessions.
-  private func getMediaSession(from assertions: [Int32: SleepAssertionType]?) -> Set<MediaSession>?
+  private func getMediaSession(from assertions: [Int32: SleepAssertionType]?)
+    throws(TrackingError) -> Set<MediaSession>?
   {
     // Get the audio processes.
     guard let assertions,
-      let processes = self.audioProcessProbe.getAudioProcesses()
+      let processes = try self.audioProcessProbe.getAudioProcesses()
     else {
       return nil
     }
@@ -189,7 +203,6 @@ final class TrackingCoordinator {
     var mediaSessions: Set<MediaSession> = []
     var mediaType: MediaType
     var mediaTitle: String?
-    var app: AppInformation?
     for pid in processes {
       // Get the sleep assertion for the process.
       guard let assertion = assertions[pid] else {
@@ -200,16 +213,16 @@ final class TrackingCoordinator {
       switch assertion {
       case .background:
         mediaType = .audio
-        mediaTitle = self.audioTitleProbe.getAudioTitle(for: pid)
+        mediaTitle = try self.audioTitleProbe.getAudioTitle(for: pid)
       case .foreground:
         mediaType = .video
-        mediaTitle = self.windowTitleProbe.getWindowTitle(for: pid)
+        mediaTitle = try self.windowTitleProbe.getWindowTitle(for: pid)
       default:
         continue
       }
 
       // Get the app information for the process.
-      guard let app = self.appInformationProbe.getAppInformation(for: pid) else {
+      guard let app = try self.appInformationProbe.getAppInformation(for: pid) else {
         continue
       }
 
@@ -222,11 +235,13 @@ final class TrackingCoordinator {
   }
 
   // Get the idle time for the given PID.
-  private func getIdleTime(from assertions: [Int32: SleepAssertionType]?, for pid: Int32) -> Int64 {
+  private func getIdleTime(from assertions: [Int32: SleepAssertionType]?, for pid: Int32)
+    throws(TrackingError) -> Int64
+  {
     if let assertions, assertions[pid] == .foreground {
       return 0
     } else {
-      return self.inputActionProbe.getSecondsSinceLastInput()
+      return try self.inputActionProbe.getSecondsSinceLastInput()
     }
   }
 }

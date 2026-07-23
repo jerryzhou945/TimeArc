@@ -55,43 +55,54 @@ struct MediaRecord: Equatable, Sendable, Hashable {
   let lastUpdateUnixSec: Int64
 }
 
+// The error types for tracking.
+enum TrackingError: Error, Equatable, Sendable {
+  case appInformationUnavailable
+  case accessibilityTitleUnavailable
+  case eventInputUnavailable
+  case powerAssertionUnavailable
+  case audioProcessUnavailable
+  case databaseRecordFailed
+  case timeValidationFailed
+}
+
 // Probe the frontmost app information.
 protocol FrontmostAppProbing {
-  func getFrontmostApp() -> AppInformation?
+  func getFrontmostApp() throws(TrackingError) -> AppInformation?
 }
 
 // Probe the app information for a given PID.
 protocol AppInformationProbing {
-  func getAppInformation(for pid: Int32) -> AppInformation?
+  func getAppInformation(for pid: Int32) throws(TrackingError) -> AppInformation?
 }
 
 // Probe the window title for a given PID.
 protocol WindowTitleProbing {
-  func getWindowTitle(for pid: Int32) -> String?
+  func getWindowTitle(for pid: Int32) throws(TrackingError) -> String?
 }
 
 // Probe the audio title for a given PID.
 protocol AudioTitleProbing {
-  func getAudioTitle(for pid: Int32) -> String?
+  func getAudioTitle(for pid: Int32) throws(TrackingError) -> String?
 }
 
 // Probe the seconds since last input.
 protocol InputActionProbing {
-  func getSecondsSinceLastInput() -> Int64
+  func getSecondsSinceLastInput() throws(TrackingError) -> Int64
 }
 
 // Probe the sleep assertions for the system.
 protocol SleepAssertionProbing {
-  func getSleepAssertions() -> [Int32: SleepAssertionType]?
+  func getSleepAssertions() throws(TrackingError) -> [Int32: SleepAssertionType]?
 }
 
 // Probe the audio processes for the system.
 protocol AudioProcessProbing {
-  func getAudioProcesses() -> Set<Int32>?
+  func getAudioProcesses() throws(TrackingError) -> Set<Int32>?
 }
 
 // Bridge the records to SQLite database.
 protocol DataBridging {
-  func bridgeFrontmostRecord(_ record: FrontmostRecord)
-  func bridgeMediaRecord(_ record: MediaRecord)
+  func bridgeFrontmostRecord(_ record: FrontmostRecord) throws(TrackingError)
+  func bridgeMediaRecord(_ record: MediaRecord) throws(TrackingError)
 }

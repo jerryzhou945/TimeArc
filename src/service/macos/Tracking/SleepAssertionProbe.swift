@@ -6,15 +6,14 @@ import IOKit.pwr_mgt
 
 // Probe the sleep assertions for the system.
 struct SleepAssertionProbe: SleepAssertionProbing {
-  func getSleepAssertions() -> [Int32: SleepAssertionType]? {
+  func getSleepAssertions() throws(TrackingError) -> [Int32: SleepAssertionType]? {
     // Get the sleep assertions by process.
     var assertionsValue: Unmanaged<CFDictionary>?
     let status = IOPMCopyAssertionsByProcess(&assertionsValue)
     guard status == kIOReturnSuccess,
-      let assertions = assertionsValue?.takeRetainedValue()
-        as? [NSNumber: [[String: Any]]]
+      let assertions = assertionsValue?.takeRetainedValue() as? [NSNumber: [[String: Any]]]
     else {
-      return nil
+      throw TrackingError.powerAssertionUnavailable
     }
 
     // Map the assertions to a dictionary of pid and sleep assertion type.
@@ -48,8 +47,6 @@ struct SleepAssertionProbe: SleepAssertionProbing {
         }
       }
     }
-
-    // Return nil if there are no sleep assertions, otherwise return the dictionary.
     return sleepAssertions.isEmpty ? nil : sleepAssertions
   }
 }

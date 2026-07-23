@@ -41,13 +41,16 @@ endif()
 if(APPLE)
     set(TIME_ARC_SERVICE_PLATFORM_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/TimeArcService.swift
-        ${CMAKE_CURRENT_SOURCE_DIR}/macos/WindowIdentifying.swift
-        ${CMAKE_CURRENT_SOURCE_DIR}/macos/BinaryFloatingPoint+ToUInt.swift
-        ${CMAKE_CURRENT_SOURCE_DIR}/macos/AppEnv.swift
-        ${CMAKE_CURRENT_SOURCE_DIR}/macos/AppInfo.swift
-        ${CMAKE_CURRENT_SOURCE_DIR}/macos/MediaIdentifying.swift
-        ${CMAKE_CURRENT_SOURCE_DIR}/macos/AppMedia.swift
-        ${CMAKE_CURRENT_SOURCE_DIR}/macos/MediaManager.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/TrackingPorts.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/ApplicationProbe.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/AudioProcessProbe.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/InputActionProbe.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/SleepAssertionProbe.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/TitleProbe.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/FrontmostStateMachine.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/MediaStateMachine.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/DataBridge.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/TrackingCoordinator.swift
     )
 elseif(WIN32)
     set(TIME_ARC_SERVICE_PLATFORM_SOURCES
@@ -99,6 +102,25 @@ if(WIN32)
             psapi
             ole32
             uuid
+    )
+elseif(APPLE)
+    find_library(TIMEARC_APPKIT_FRAMEWORK AppKit REQUIRED)
+    find_library(TIMEARC_APPLICATIONSERVICES_FRAMEWORK ApplicationServices REQUIRED)
+    find_library(TIMEARC_COREAUDIO_FRAMEWORK CoreAudio REQUIRED)
+    find_library(TIMEARC_COREGRAPHICS_FRAMEWORK CoreGraphics REQUIRED)
+    find_library(TIMEARC_IOKIT_FRAMEWORK IOKit REQUIRED)
+
+    target_link_libraries(time_arc_service
+        PRIVATE
+            ${TIMEARC_APPKIT_FRAMEWORK}
+            ${TIMEARC_APPLICATIONSERVICES_FRAMEWORK}
+            ${TIMEARC_COREAUDIO_FRAMEWORK}
+            ${TIMEARC_COREGRAPHICS_FRAMEWORK}
+            ${TIMEARC_IOKIT_FRAMEWORK}
+    )
+else()
+    target_link_libraries(time_arc_service
+        PRIVATE
     )
 endif()
 

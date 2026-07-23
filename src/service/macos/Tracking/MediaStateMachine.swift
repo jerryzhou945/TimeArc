@@ -23,29 +23,36 @@ struct MediaStateMachine {
   }
 
   // Initialize the state machine with the given media sessions and time.
-  init(with sessions: Set<MediaSession>, at time: Int64) {
+  init(with sessions: Set<MediaSession>, at time: Int64) throws(TrackingError) {
+    guard time > 0 else {
+      throw TrackingError.timeValidationFailed
+    }
     let data = Dictionary(uniqueKeysWithValues: sessions.map { ($0, time) })
     self.state = .active(data)
   }
 
   // Activate the state machine when it is shutdown.
-  mutating func activate(with sessions: Set<MediaSession>, at time: Int64) {
-    _ = self.refresh(with: sessions, at: time)
+  mutating func activate(with sessions: Set<MediaSession>, at time: Int64) throws(TrackingError) {
+    _ = try self.refresh(with: sessions, at: time)
   }
 
   // Refresh the state machine when it is active.
-  mutating func refresh(with sessions: Set<MediaSession>, at time: Int64) -> [MediaRecord]? {
+  mutating func refresh(with sessions: Set<MediaSession>, at time: Int64)
+    throws(TrackingError) -> [MediaRecord]?
+  {
     if case .active(let data) = self.state {
+      try self.validateTime(from: data, at: time)
       let currentSessions = Set(data.keys)
       let retiredSessions = currentSessions.subtracting(sessions)
       let newSessions = sessions.subtracting(currentSessions)
       var currentData = data.filter { !retiredSessions.contains($0.key) }
       let retiredData = data.filter { retiredSessions.contains($0.key) }
       let newData = Dictionary(uniqueKeysWithValues: newSessions.map { ($0, time) })
-      currentData.merge(newData) { $0 }
+      currentData.merge(newData) { current, _ in current }
       self.state = .active(currentData)
       return self.mapRecords(from: retiredData, at: time)
     } else {
+      try self.validateTime(at: time)
       let data = Dictionary(uniqueKeysWithValues: sessions.map { ($0, time) })
       self.state = .active(data)
       return nil
@@ -53,20 +60,21 @@ struct MediaStateMachine {
   }
 
   // Shutdown the state machine when it is active.
-  mutating func shutdown(at time: Int64) -> [MediaRecord]? {
+  mutating func shutdown(at time: Int64) throws(TrackingError) -> [MediaRecord]? {
     if case .active(let data) = self.state {
+      try self.validateTime(from: data, at: time)
       let records = self.mapRecords(from: data, at: time)
       self.state = .shutdown
       return records
     } else {
+      try self.validateTime(at: time)
       return nil
     }
   }
 
   // Map the media sessions and their start times to media records with the given time.
   private func mapRecords(from data: [MediaSession: Int64], at time: Int64) -> [MediaRecord]? {
-    let mapData = data.filter { $0.value < time }
-    let records = mapData.map { (session, startTime) in
+    var records = data.map { (session, startTime) in
       MediaRecord(
         app: session.app,
         mediaType: session.mediaType,
@@ -75,7 +83,25 @@ struct MediaStateMachine {
         lastUpdateUnixSec: time
       )
     }
+    records.removeAll { $0.startUnixSec >= time }
     records.sort { $0.startUnixSec < $1.startUnixSec }
     return records.isEmpty ? nil : records
+  }
+
+  // Validate that the given time is greater than zero.
+  private func validateTime(at time: Int64) throws(TrackingError) {
+    guard time > 0 else {
+      throw TrackingError.timeValidationFailed
+    }
+  }
+
+  // Validate that the given time is greater than zero and all the start times in the data.
+  private func validateTime(from data: [MediaSession: Int64], at time: Int64) throws(TrackingError)
+  {
+    guard time > 0,
+      data.values.allSatisfy({ $0 <= time })
+    else {
+      throw TrackingError.timeValidationFailed
+    }
   }
 }

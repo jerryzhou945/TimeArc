@@ -26,7 +26,10 @@ struct FrontmostStateMachine {
   }
 
   // Initialize the state machine with the given frontmost session and time.
-  init(with session: FrontmostSession, at time: Int64) {
+  init(with session: FrontmostSession, at time: Int64) throws(TrackingError) {
+    guard time > 0 else {
+      throw TrackingError.timeValidationFailed
+    }
     let data = FrontmostRecord(
       app: session.app,
       windowTitle: session.windowTitle,
@@ -38,13 +41,13 @@ struct FrontmostStateMachine {
   }
 
   // Activate the state machine when it is shutdown.
-  mutating func activate(with session: FrontmostSession, at time: Int64) {
-    _ = self.refresh(with: session, at: time)
+  mutating func activate(with session: FrontmostSession, at time: Int64) throws(TrackingError) {
+    _ = try self.refresh(with: session, at: time)
   }
 
   // Reactivate the state machine when it is idle.
-  mutating func reactivate(at time: Int64) {
-    let updatedData = self.updatedRecord(at: time)
+  mutating func reactivate(at time: Int64) throws(TrackingError) {
+    let updatedData = try self.updatedRecord(at: time)
     guard let updatedData else {
       return
     }
@@ -52,8 +55,10 @@ struct FrontmostStateMachine {
   }
 
   // Refresh the state machine when it is active.
-  mutating func refresh(with session: FrontmostSession, at time: Int64) -> FrontmostRecord? {
-    let previousData = self.updatedRecord(at: time)
+  mutating func refresh(with session: FrontmostSession, at time: Int64)
+    throws(TrackingError) -> FrontmostRecord?
+  {
+    let previousData = try self.updatedRecord(at: time)
     let updatedData = FrontmostRecord(
       app: session.app,
       windowTitle: session.windowTitle,
@@ -62,12 +67,15 @@ struct FrontmostStateMachine {
       lastUpdateUnixSec: time
     )
     self.state = .active(updatedData)
-    return previousData
+    guard let previousData else {
+      return nil
+    }
+    return previousData.startUnixSec >= time ? nil : previousData
   }
 
   // Mark the state machine as idle when it is active.
-  mutating func idle(at time: Int64) {
-    let updatedData = self.updatedRecord(at: time)
+  mutating func idle(at time: Int64) throws(TrackingError) {
+    let updatedData = try self.updatedRecord(at: time)
     guard let updatedData else {
       return
     }
@@ -75,19 +83,20 @@ struct FrontmostStateMachine {
   }
 
   // Shutdown the state machine when it is active or idle.
-  mutating func shutdown(at time: Int64) -> FrontmostRecord? {
-    let previousData = self.updatedRecord(at: time)
+  mutating func shutdown(at time: Int64) throws(TrackingError) -> FrontmostRecord? {
+    let previousData = try self.updatedRecord(at: time)
     self.state = .shutdown
-    return previousData
+    guard let previousData else {
+      return nil
+    }
+    return previousData.startUnixSec >= time ? nil : previousData
   }
 
   // Get the updated frontmost record with the given time.
-  private func updatedRecord(at time: Int64) -> FrontmostRecord? {
+  private func updatedRecord(at time: Int64) throws(TrackingError) -> FrontmostRecord? {
     switch self.state {
     case .active(let data):
-      guard data.startUnixSec < time else {
-        return nil
-      }
+      try self.validateTime(from: data, at: time)
       return FrontmostRecord(
         app: data.app,
         windowTitle: data.windowTitle,
@@ -96,9 +105,7 @@ struct FrontmostStateMachine {
         lastUpdateUnixSec: time
       )
     case .idle(let data):
-      guard data.startUnixSec < time else {
-        return nil
-      }
+      try self.validateTime(from: data, at: time)
       return FrontmostRecord(
         app: data.app,
         windowTitle: data.windowTitle,
@@ -107,7 +114,25 @@ struct FrontmostStateMachine {
         lastUpdateUnixSec: time
       )
     default:
+      try self.validateTime(at: time)
       return nil
+    }
+  }
+
+  // Validate that the given time is greater than zero.
+  private func validateTime(at time: Int64) throws(TrackingError) {
+    guard time > 0 else {
+      throw TrackingError.timeValidationFailed
+    }
+  }
+
+  // Validate that the given time is greater than zero and the last update time of the frontmost record.
+  private func validateTime(from data: FrontmostRecord, at time: Int64) throws(TrackingError) {
+    guard time > 0,
+      data.startUnixSec <= time,
+      data.lastUpdateUnixSec <= time
+    else {
+      throw TrackingError.timeValidationFailed
     }
   }
 }

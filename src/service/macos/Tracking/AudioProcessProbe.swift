@@ -7,21 +7,18 @@ import Foundation
 // Probe the audio processes for the system.
 struct AudioProcessProbe: AudioProcessProbing {
   // Get the list of PIDs for processes that are currently producing audio output, including all system audio.
-  func getAudioProcesses() -> Set<Int32>? {
-    // Prefer Core Audio's typed Swift wrappers when they are available.
+  func getAudioProcesses() throws(TrackingError) -> Set<Int32>? {
     if #available(macOS 15.0, *) {
-      return getAudioProcessesUsingSwiftAPI()
+      return try getAudioProcessesUsingSwiftAPI()
     }
-
-    // Older systems expose the same information through HAL property calls.
-    return getAudioProcessesUsingLegacyAPI()
+    return try getAudioProcessesUsingLegacyAPI()
   }
 
   // Use the Swift API to get the list of audio processes.
   @available(macOS 15.0, *)
-  private func getAudioProcessesUsingSwiftAPI() -> Set<Int32>? {
+  private func getAudioProcessesUsingSwiftAPI() throws(TrackingError) -> Set<Int32>? {
     guard let processes = try? AudioHardwareSystem.shared.processes else {
-      return nil
+      throw TrackingError.audioProcessUnavailable
     }
 
     // A process can disappear between enumeration and property access, so skip failures.
@@ -30,14 +27,13 @@ struct AudioProcessProbe: AudioProcessProbing {
         guard (try? process.isRunningOutput) == true else {
           return nil
         }
-
         return try? process.pid
       })
     return pids.isEmpty ? nil : pids
   }
 
   // Use the legacy HAL API to get the list of audio processes.
-  private func getAudioProcessesUsingLegacyAPI() -> Set<Int32>? {
+  private func getAudioProcessesUsingLegacyAPI() throws(TrackingError) -> Set<Int32>? {
     // First query the byte count needed for the process AudioObjectID list.
     var address = AudioObjectPropertyAddress(
       mSelector: kAudioHardwarePropertyProcessObjectList,
@@ -55,7 +51,7 @@ struct AudioProcessProbe: AudioProcessProbing {
         &dataSize
       ) == noErr
     else {
-      return nil
+      throw TrackingError.audioProcessUnavailable
     }
 
     let objectSize = MemoryLayout<AudioObjectID>.stride
@@ -79,7 +75,7 @@ struct AudioProcessProbe: AudioProcessProbing {
       )
     }
     guard status == noErr else {
-      return nil
+      throw TrackingError.audioProcessUnavailable
     }
 
     // The returned size may shrink if a process exits while the list is being read.

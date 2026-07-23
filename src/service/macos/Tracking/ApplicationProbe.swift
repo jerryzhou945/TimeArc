@@ -7,15 +7,17 @@ import Foundation
 // Probe the information of an app.
 struct ApplicationProbe: FrontmostAppProbing, AppInformationProbing {
   // Probe the frontmost app information.
-  func getFrontmostApp() -> AppInformation? {
-    let app = NSWorkspace.shared.frontmostApplication
-    guard let app,
-      app.processIdentifier > 0,
+  func getFrontmostApp() throws(TrackingError) -> AppInformation? {
+    guard let app = NSWorkspace.shared.frontmostApplication else {
+      return nil
+    }
+
+    guard app.processIdentifier > 0,
       let bundleIdentifier = app.bundleIdentifier,
       let localizedName = app.localizedName,
       let bundleURL = app.bundleURL
     else {
-      return nil
+      throw TrackingError.appInformationUnavailable
     }
 
     return AppInformation(
@@ -27,18 +29,18 @@ struct ApplicationProbe: FrontmostAppProbing, AppInformationProbing {
   }
 
   // Probe the app information for a given PID.
-  func getAppInformation(for pid: Int32) -> AppInformation? {
-    guard pid > 0 else {
+  func getAppInformation(for pid: Int32) throws(TrackingError) -> AppInformation? {
+    guard pid > 0,
+      let app = NSRunningApplication(processIdentifier: pid)
+    else {
       return nil
     }
 
-    let app = NSRunningApplication(processIdentifier: pid)
-    guard let app,
-      let bundleIdentifier = app.bundleIdentifier,
+    guard let bundleIdentifier = app.bundleIdentifier,
       let localizedName = app.localizedName,
       let bundleURL = app.bundleURL
     else {
-      return nil
+      throw TrackingError.appInformationUnavailable
     }
 
     return AppInformation(

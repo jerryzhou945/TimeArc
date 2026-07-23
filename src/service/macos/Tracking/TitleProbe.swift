@@ -22,31 +22,30 @@ struct TitleProbe: WindowTitleProbing, AudioTitleProbing {
   }
 
   // Probe the window title for a given PID.
-  func getWindowTitle(for pid: Int32) -> String? {
+  func getWindowTitle(for pid: Int32) throws(TrackingError) -> String? {
     guard let applicationElement = applicationElement(for: pid),
-      let focusedWindow: AXUIElement = attribute(
+      let focusedWindow: AXUIElement = try attribute(
         of: applicationElement,
         named: kAXFocusedWindowAttribute as CFString
       ),
-      let title: String = attribute(
+      let title: String = try attribute(
         of: focusedWindow,
         named: kAXTitleAttribute as CFString
       )
     else {
       return nil
     }
-
     return meaningfulText(from: title)
   }
 
   // Probe the audio title for a given PID.
-  func getAudioTitle(for pid: Int32) -> String? {
+  func getAudioTitle(for pid: Int32) throws(TrackingError) -> String? {
     guard let applicationElement = applicationElement(for: pid),
-      let texts = searchForMediaTitle(in: applicationElement).resolvedTexts
+      let searchResult = try? searchForMediaTitle(in: applicationElement),
+      let texts = searchResult.resolvedTexts
     else {
       return nil
     }
-
     return texts.joined(separator: " - ")
   }
 
@@ -55,18 +54,29 @@ struct TitleProbe: WindowTitleProbing, AudioTitleProbing {
     guard pid > 0 else {
       return nil
     }
-
     return AXUIElementCreateApplication(pid)
   }
 
   // Read and cast an accessibility attribute from an element.
-  private func attribute<T>(of element: AXUIElement, named name: CFString) -> T? {
+  private func attribute<T>(of element: AXUIElement, named name: CFString)
+    throws(TrackingError) -> T?
+  {
     var value: CFTypeRef?
-    guard AXUIElementCopyAttributeValue(element, name, &value) == .success else {
+    let result = AXUIElementCopyAttributeValue(element, name, &value)
+    switch result {
+    case .noValue, .attributeUnsupported, .invalidUIElement:
       return nil
+    case .success:
+      guard let value else {
+        throw TrackingError.accessibilityTitleUnavailable
+      }
+      guard let typedValue = value as? T else {
+        throw TrackingError.accessibilityTitleUnavailable
+      }
+      return typedValue
+    default:
+      throw TrackingError.accessibilityTitleUnavailable
     }
-
-    return value as? T
   }
 
   // Trim a string and reject values containing only whitespace.
@@ -76,14 +86,15 @@ struct TitleProbe: WindowTitleProbing, AudioTitleProbing {
     else {
       return nil
     }
-
     return text
   }
 
   // Find the smallest subtree containing playback controls and meaningful static text.
-  private func searchForMediaTitle(in element: AXUIElement) -> MediaTitleSearchResult {
+  private func searchForMediaTitle(in element: AXUIElement)
+    throws(TrackingError) -> MediaTitleSearchResult
+  {
     var visitedElements = 0
-    return self.searchForMediaTitle(
+    return try self.searchForMediaTitle(
       in: element,
       depth: 0,
       visitedElements: &visitedElements
@@ -91,40 +102,31 @@ struct TitleProbe: WindowTitleProbing, AudioTitleProbing {
   }
 
   // Search an accessibility subtree while respecting deterministic traversal limits.
-  private func searchForMediaTitle(
-    in element: AXUIElement,
-    depth: Int,
-    visitedElements: inout Int
-  ) -> MediaTitleSearchResult {
+  private func searchForMediaTitle(in element: AXUIElement, depth: Int, visitedElements: inout Int)
+    throws(TrackingError) -> MediaTitleSearchResult
+  {
     guard depth < Self.maximumMediaTitleTraversalDepth,
       visitedElements < Self.maximumMediaTitleVisitedElements
     else {
-      return MediaTitleSearchResult(
-        hasPlaybackControl: false,
-        texts: [],
-        resolvedTexts: nil
-      )
+      throw TrackingError.accessibilityTitleUnavailable
     }
     visitedElements += 1
 
-    let role: String? = attribute(of: element, named: kAXRoleAttribute as CFString)
+    let role: String? = try attribute(of: element, named: kAXRoleAttribute as CFString)
     var texts: [String] = []
-
     if role == kAXStaticTextRole as String {
-      let value: String? = attribute(of: element, named: kAXValueAttribute as CFString)
-      let title: String? = attribute(of: element, named: kAXTitleAttribute as CFString)
-
-      if let text = meaningfulText(from: value ?? title) {
+      let value: String? = try attribute(of: element, named: kAXValueAttribute as CFString)
+      let title: String? = try attribute(of: element, named: kAXTitleAttribute as CFString)
+      if let text = meaningfulText(from: value) ?? meaningfulText(from: title) {
         texts.append(text)
       }
     }
 
     let controlStrings: [String] = [
-      attribute(of: element, named: kAXTitleAttribute as CFString) as String?,
-      attribute(of: element, named: kAXValueAttribute as CFString) as String?,
-      attribute(of: element, named: kAXDescriptionAttribute as CFString) as String?,
+      try attribute(of: element, named: kAXTitleAttribute as CFString) as String?,
+      try attribute(of: element, named: kAXValueAttribute as CFString) as String?,
+      try attribute(of: element, named: kAXDescriptionAttribute as CFString) as String?,
     ].compactMap { $0?.lowercased() }
-
     let playbackControls: Set<String> = [
       "play",
       "pause",
@@ -137,26 +139,19 @@ struct TitleProbe: WindowTitleProbing, AudioTitleProbing {
     var hasPlaybackControl = controlStrings.contains {
       playbackControls.contains($0)
     }
-
-    let canDescend =
-      depth + 1 < Self.maximumMediaTitleTraversalDepth
-      && visitedElements < Self.maximumMediaTitleVisitedElements
     let children: [AXUIElement] =
-      canDescend
-      ? attribute(of: element, named: kAXChildrenAttribute as CFString) ?? []
-      : []
-
+      try attribute(of: element, named: kAXChildrenAttribute as CFString) ?? []
     for child in children {
-      guard visitedElements < Self.maximumMediaTitleVisitedElements else {
-        break
+      guard depth + 1 < Self.maximumMediaTitleTraversalDepth,
+        visitedElements < Self.maximumMediaTitleVisitedElements
+      else {
+        throw TrackingError.accessibilityTitleUnavailable
       }
-
-      let result = searchForMediaTitle(
+      let result = try searchForMediaTitle(
         in: child,
         depth: depth + 1,
         visitedElements: &visitedElements
       )
-
       if let resolvedTexts = result.resolvedTexts {
         return MediaTitleSearchResult(
           hasPlaybackControl: false,
@@ -164,7 +159,6 @@ struct TitleProbe: WindowTitleProbing, AudioTitleProbing {
           resolvedTexts: resolvedTexts
         )
       }
-
       hasPlaybackControl = hasPlaybackControl || result.hasPlaybackControl
       texts.append(contentsOf: result.texts)
     }
