@@ -27,6 +27,7 @@
 #include "services/manual_project_repository.h"
 #include "services/media_session_repository.h"
 #include "services/mobile/mobile_usage_repository.h"
+#include "services/mobile/mobile_usage_insight_engine.h"
 #include "services/mobile/mobile_usage_service.h"
 #include "services/settings_repository.h"
 #include "services/stats_service.h"
@@ -1164,6 +1165,109 @@ int main(int argc, char* argv[]) {
       estimatedMobileSession.value(QStringLiteral("confidence")).toString() !=
           QStringLiteral("estimated")) {
     return fail(QStringLiteral("Estimated mobile usage session fields failed."));
+  }
+
+  QVariantList insightDailyRows;
+  for (int day = 11; day <= 17; ++day) {
+    QVariantMap row;
+    row.insert(QStringLiteral("dateLocal"),
+               QStringLiteral("2026-03-%1").arg(day, 2, 10, QLatin1Char('0')));
+    row.insert(QStringLiteral("foregroundSec"), 3600 + day * 10);
+    row.insert(QStringLiteral("appIdentifier"),
+               QStringLiteral("android:com.microsoft.vscode"));
+    row.insert(QStringLiteral("packageName"),
+               QStringLiteral("com.microsoft.vscode"));
+    row.insert(QStringLiteral("displayName"),
+               QStringLiteral("Visual Studio Code"));
+    insightDailyRows.append(row);
+
+    if (day >= 12) {
+      QVariantMap companionRow;
+      companionRow.insert(
+          QStringLiteral("dateLocal"),
+          QStringLiteral("2026-03-%1").arg(day, 2, 10, QLatin1Char('0')));
+      companionRow.insert(QStringLiteral("foregroundSec"), 1800);
+      companionRow.insert(QStringLiteral("appIdentifier"),
+                          QStringLiteral("android:com.netease.cloudmusic"));
+      companionRow.insert(QStringLiteral("packageName"),
+                          QStringLiteral("com.netease.cloudmusic"));
+      companionRow.insert(QStringLiteral("displayName"),
+                          QStringLiteral("网易云音乐"));
+      insightDailyRows.append(companionRow);
+    }
+  }
+
+  const QDateTime longestStart(QDate(2026, 3, 18), QTime(18, 42),
+                               Qt::LocalTime);
+  QVariantList insightSessions;
+  QVariantMap observedSession;
+  observedSession.insert(QStringLiteral("sessionStartUnixSec"),
+                         longestStart.toSecsSinceEpoch());
+  observedSession.insert(QStringLiteral("sessionEndUnixSec"),
+                         longestStart.addSecs(2 * 3600 + 14 * 60)
+                             .toSecsSinceEpoch());
+  observedSession.insert(QStringLiteral("durationSec"),
+                         2 * 3600 + 14 * 60);
+  observedSession.insert(QStringLiteral("confidence"),
+                         QStringLiteral("observed"));
+  observedSession.insert(QStringLiteral("displayName"),
+                         QStringLiteral("Visual Studio Code"));
+  observedSession.insert(QStringLiteral("appIdentifier"),
+                         QStringLiteral("android:com.microsoft.vscode"));
+  insightSessions.append(observedSession);
+
+  QVariantMap lateSession = observedSession;
+  const QDateTime lateStart(QDate(2026, 3, 20), QTime(23, 42),
+                            Qt::LocalTime);
+  lateSession.insert(QStringLiteral("sessionStartUnixSec"),
+                     lateStart.toSecsSinceEpoch());
+  lateSession.insert(QStringLiteral("sessionEndUnixSec"),
+                     lateStart.addSecs(38 * 60).toSecsSinceEpoch());
+  lateSession.insert(QStringLiteral("durationSec"), 38 * 60);
+  insightSessions.append(lateSession);
+
+  QVariantList previousRows;
+  QVariantMap previousRow;
+  previousRow.insert(QStringLiteral("dateLocal"),
+                     QStringLiteral("2026-02-16"));
+  previousRow.insert(QStringLiteral("foregroundSec"), 4 * 3600);
+  previousRow.insert(QStringLiteral("appIdentifier"),
+                     QStringLiteral("android:com.microsoft.vscode"));
+  previousRow.insert(QStringLiteral("displayName"),
+                     QStringLiteral("Visual Studio Code"));
+  previousRows.append(previousRow);
+
+  const QVariantMap insightReport =
+      MobileUsageInsightEngine::buildMonthlyReport(
+          QDate(2026, 3, 1), insightDailyRows, insightSessions, previousRows);
+  if (insightReport.value(QStringLiteral("monthKey")).toString() !=
+          QStringLiteral("2026-03") ||
+      insightReport.value(QStringLiteral("activeDays")).toInt() != 7 ||
+      insightReport.value(QStringLiteral("longestStreakDays")).toInt() != 7) {
+    return fail(QStringLiteral("Monthly insight calendar facts failed."));
+  }
+  const QVariantMap longestInsight =
+      insightReport.value(QStringLiteral("longestSession")).toMap();
+  if (longestInsight.value(QStringLiteral("durationSec")).toInt() !=
+          2 * 3600 + 14 * 60 ||
+      longestInsight.value(QStringLiteral("confidence")).toString() !=
+          QStringLiteral("observed")) {
+    return fail(QStringLiteral("Monthly observed longest session failed."));
+  }
+  const QVariantList selectedInsights =
+      insightReport.value(QStringLiteral("insights")).toList();
+  if (selectedInsights.size() < 2 ||
+      selectedInsights.first()
+          .toMap()
+          .value(QStringLiteral("kind"))
+          .toString()
+          .isEmpty()) {
+    return fail(QStringLiteral("Monthly insight candidates were not selected."));
+  }
+  const QVariantMap companion =
+      insightReport.value(QStringLiteral("companion")).toMap();
+  if (companion.value(QStringLiteral("daysTogether")).toInt() != 6) {
+    return fail(QStringLiteral("Monthly app companion detection failed."));
   }
 
   int projectChangedCount = 0;

@@ -220,6 +220,10 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   identity is normalized as `android:<package_name>` so desktop and mobile data
   can be merged by the presentation layer without losing platform/source
   precision.
+- Mobile monthly narratives are derived locally by the header-only
+  `MobileUsageInsightEngine`. It turns daily summaries and confidence-labelled
+  sessions into structured, deterministic facts; QML only chooses presentation
+  and never invents unsupported usage events.
 - Android UI-private wallpaper and share files are managed by
   `MobileUiService` under the app data directory. They do not enter either
   SQLite usage database or the service control-file contract.
