@@ -72,6 +72,8 @@ set(TIME_ARC_QML_FILES
     qml/mobile/components/MobileUsageRankRow.qml
     qml/mobile/components/MobileShareOverlay.qml
     qml/mobile/components/MobileMonthlyStory.qml
+    qml/mobile/components/MobileMonthProfiles.js
+    qml/mobile/components/MobileSeasonScene.qml
 )
 
 set(TIME_ARC_QML_FILES ${TIME_ARC_QML_FILES} PARENT_SCOPE)

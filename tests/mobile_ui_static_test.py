@@ -31,6 +31,18 @@ def main():
     app_icon = read("qml/mobile/components/MobileAppIcon.qml")
     flip_card = read("qml/mobile/components/MobileFlipCard.qml")
     share = read("qml/mobile/components/MobileShareOverlay.qml")
+    profiles_path = ROOT / "qml/mobile/components/MobileMonthProfiles.js"
+    season_scene_path = ROOT / "qml/mobile/components/MobileSeasonScene.qml"
+    if not profiles_path.exists() or not season_scene_path.exists():
+        raise AssertionError("missing monthly profile or seasonal scene component")
+    profiles = profiles_path.read_text(encoding="utf-8")
+    season_scene = season_scene_path.read_text(encoding="utf-8")
+    resources_cmake = read("resources/CMakeLists.txt")
+    for month in range(1, 13):
+        asset = f"resources/mobile/monthly/month-{month:02d}.jpg"
+        if not (ROOT / asset).exists():
+            raise AssertionError(f"missing monthly scene asset: {asset}")
+        require(resources_cmake, asset, f"month {month} resource registration")
 
     require(main_cpp, '"mobileUiService"', "QML mobile UI service")
     require(ui_header, "Q_PROPERTY(QString wallpaperUrl",
@@ -129,6 +141,14 @@ def main():
             "anonymous-safe share story")
     require(share, "text: root.storyForShare()",
             "share poster uses privacy-filtered story")
+    if profiles.count("sceneSource:") != 12:
+        raise AssertionError("month profiles must define twelve scene sources")
+    require(season_scene, "Image.PreserveAspectCrop",
+            "season scene preserves portrait crop")
+    require(season_scene, "reducedMotion",
+            "season scene reduced-motion mode")
+    require(season_scene, "rainDrop",
+            "independent seasonal rain particles")
     story_block = share.split("function storyForShare()", 1)[1].split(
         "function exportAndShare()", 1
     )[0]

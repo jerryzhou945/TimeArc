@@ -224,6 +224,9 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   `MobileUsageInsightEngine`. It turns daily summaries and confidence-labelled
   sessions into structured, deterministic facts; QML only chooses presentation
   and never invents unsupported usage events.
+- `MobileSeasonScene.qml` presents those facts over twelve bundled, original
+  month scenes with season-specific restrained motion; all report artwork is
+  local and available offline, with reduced-motion support.
 - Android UI-private wallpaper and share files are managed by
   `MobileUiService` under the app data directory. They do not enter either
   SQLite usage database or the service control-file contract.
