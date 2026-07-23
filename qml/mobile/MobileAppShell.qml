@@ -106,6 +106,7 @@ Rectangle {
             enabled: visible
             theme: mobileTheme
             wallpaperActive: root.wallpaperActive
+            wallpaperSource: root.wallpaperSource
             anonymousShare: settingsPage.anonymousShare
         }
 
@@ -115,6 +116,7 @@ Rectangle {
             enabled: visible
             theme: mobileTheme
             wallpaperActive: root.wallpaperActive
+            wallpaperSource: root.wallpaperSource
         }
 
         MobileHistoryPage {

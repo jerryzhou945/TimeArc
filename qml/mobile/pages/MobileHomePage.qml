@@ -6,6 +6,7 @@ Item {
 
     required property var theme
     property bool wallpaperActive: false
+    property url wallpaperSource: ""
     property bool anonymousShare: false
     property var totalDashboard: emptyDashboard()
     property int selectedCardIndex: 0
@@ -324,6 +325,7 @@ Item {
         id: shareOverlay
         theme: root.theme
         anonymous: root.anonymousShare
+        wallpaperSource: root.wallpaperSource
     }
 
     component ArchiveFact: Item {

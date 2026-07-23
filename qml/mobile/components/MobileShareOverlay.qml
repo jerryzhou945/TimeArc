@@ -7,6 +7,7 @@ Item {
     property var app: ({})
     property string dateRange: ""
     property bool anonymous: false
+    property url wallpaperSource: ""
     property bool opened: false
     property string errorText: ""
     property string feedbackText: ""
@@ -155,6 +156,19 @@ Item {
                     radius: 18
                     color: root.theme.memoryBrown
                     clip: true
+
+                    Image {
+                        anchors.fill: parent
+                        source: root.wallpaperSource
+                        fillMode: Image.PreserveAspectCrop
+                        visible: source.toString().length > 0
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: root.wallpaperSource.toString().length > 0
+                               ? "#8C15191D" : "#0015191D"
+                    }
 
                     Canvas {
                         anchors.fill: parent

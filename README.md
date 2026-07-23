@@ -227,6 +227,10 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 - `MobileSeasonScene.qml` presents those facts over twelve bundled, original
   month scenes with season-specific restrained motion; all report artwork is
   local and available offline, with reduced-motion support.
+- Mobile share surfaces export portrait app cards, range ranking posters, and
+  the six-page monthly story. App and ranking posters reuse the user's private
+  wallpaper when set, retain real application icons, and contain only
+  aggregated usage facts.
 - Android UI-private wallpaper and share files are managed by
   `MobileUiService` under the app data directory. They do not enter either
   SQLite usage database or the service control-file contract.

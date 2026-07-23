@@ -149,6 +149,41 @@ def main():
             "season scene reduced-motion mode")
     require(season_scene, "rainDrop",
             "independent seasonal rain particles")
+    monthly_pages = (
+        "MonthlyCoverPage.qml",
+        "MonthlyOverviewPage.qml",
+        "MonthlyHighlightPage.qml",
+        "MonthlyCompanionPage.qml",
+        "MonthlyRankingPage.qml",
+        "MonthlySharePage.qml",
+    )
+    for page_name in monthly_pages:
+        page_path = ROOT / "qml/mobile/components/monthly" / page_name
+        if not page_path.exists():
+            raise AssertionError(f"missing monthly story page: {page_name}")
+    monthly_story = read("qml/mobile/components/MobileMonthlyStory.qml")
+    require(monthly_story, "readonly property int pageCount: 6",
+            "six-page monthly story")
+    require(monthly_story, "MobileSeasonScene",
+            "monthly story seasonal scene")
+    require(monthly_story, "DragHandler",
+            "monthly story swipe gesture")
+    require(monthly_story, "Qt.size(1080, 1920)",
+            "portrait monthly share export")
+    ranking_share_path = (
+        ROOT / "qml/mobile/components/MobileRankingShareOverlay.qml"
+    )
+    if not ranking_share_path.exists():
+        raise AssertionError("missing ranking share overlay")
+    ranking_share = ranking_share_path.read_text(encoding="utf-8")
+    require(ranking_share, "function openForRanking",
+            "range ranking share entry point")
+    require(ranking_share, "MobileAppIcon",
+            "ranking share uses actual app icons")
+    require(ranking_share, "grabToImage",
+            "ranking share image export")
+    require(stats, "rankingShare.openForRanking",
+            "Statistics ranking share action")
     story_block = share.split("function storyForShare()", 1)[1].split(
         "function exportAndShare()", 1
     )[0]
