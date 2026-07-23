@@ -40,10 +40,14 @@ with day and night modes.
 ## Features
 
 - **Automatic foreground tracking** — per-session records of the active
-  window, segmented on app or window-title changes, idle-aware.
-- **Automatic audio tracking** — independently records whether any app
-  is producing audio, with silence grace and long-run segmentation;
-  captures "I left the computer but the video kept playing".
+  window. An unchanged complete observation remains one logical session;
+  changed captured information creates a boundary. Input idle pauses active
+  time unless video-like playback evidence says the foreground session is
+  still active.
+- **Automatic media tracking** — independently records observed playback.
+  An unchanged complete media observation remains one logical session, and
+  disappearance ends it without a silence grace period. Implementations may
+  optionally checkpoint long-running media without changing its identity.
 - **Manual project timers** — run timers against user-defined projects
   tagged across eight fixed categories (study, work, sport, leisure,
   reading, social, life, other). Manual projects and timer sessions are

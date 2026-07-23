@@ -3,7 +3,11 @@
 日期：2026-06-19
 
 > 历史审计：其存储结论已被 2026-07-10 至 07-12 的共享数据库与
-> `data_bridge` 重构取代；保留以下内容用于说明当时发现的问题。
+> `data_bridge` 重构取代；保留以下内容用于说明当时发现的问题。采集行为也以
+> `.harness/rules/03-data-contract.md` 的当前跨平台约定为准：foreground 和
+> media 都按完整规范化 observation 判断逻辑 session；前台 video-like 播放
+> 覆盖 input idle；media 缺失即结束、没有 silence grace；长媒体是否定期持久化
+> 均可，checkpoint 不改变逻辑 session identity。
 
 ## 核心结论
 
@@ -34,7 +38,7 @@ macOS 后端已经写了大量 Swift 侧采集与生命周期代码：前台应�
 | 前台应用采集 | `GetForegroundWindow` + exe path + window title | `NSWorkspace` + AX focused window title + bundle id | macOS 代码已实现 / 待权限验证 |
 | idle 检测 | `GetLastInputInfo` | `CGEventSource.secondsSinceLastEventType` | macOS 代码已实现 / 待实机验证 |
 | 音频/媒体 | WASAPI per-process audio sessions | IOPM assertion，主要针对 frontmost app pid | macOS 是 MVP，不等价于 Windows WASAPI 深度 |
-| session 切分 | foreground 按 app/title；audio 按静音和 15s flush | foreground/media 均有 Swift 切分逻辑 | macOS 代码已实现 / 待写库验证 |
+| session 切分 | 审计时按 app/title、静音和定期 flush | 审计时有独立 Swift 切分逻辑 | 均为历史实现事实，不定义当前跨平台约定 |
 | 配置读取 | 读 `idle_threshold_ms`、`track_enabled`、`db_path` | Swift 读 `idle_threshold_ms`、`track_enabled`；`db_path` 未完整验证 | macOS 配置部分完成 |
 | 单实例 | Windows named mutex | usage 目录 `time-arc-service.lock` + `flock` | macOS 代码已实现 / 待实机验证 |
 | 停止通道 | named event 请求 tracker flush 后退出 | LaunchAgent bootout + lock pid `SIGTERM` | macOS 代码已实现 / 待实机验证 |
@@ -56,8 +60,7 @@ macOS 后端已经写了大量 Swift 侧采集与生命周期代码：前台应�
 - `src/service/windows/tracker/audio_tracker.c`
   - WASAPI audio session 采样。
   - 同一 exe 去重。
-  - 静音 grace 后关闭 audio session。
-  - 15 秒长段定期 flush，避免长时间播放只在退出时落盘。
+  - 审计时包含静音延迟关闭和长段定期持久化；这些不是当前跨平台约定。
 
 ### 存储
 
@@ -107,7 +110,7 @@ macOS 后端已经写了大量 Swift 侧采集与生命周期代码：前台应�
 - Swift 侧已经有 `MediaSession`。
 - `AppEnv.getMediaType()` 返回 audio/video/null。
 - audio/video assertion 当前统一写 `source=audio`。
-- 逻辑上有 3 秒静音 grace 和 15 秒长段 flush。
+- 审计时的媒体结束与持久化时机只描述当时实现，不定义当前跨平台约定。
 
 ### 单实例
 

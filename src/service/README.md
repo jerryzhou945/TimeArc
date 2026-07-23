@@ -75,7 +75,7 @@ TimeArc Service 0.1.0 on macOS
 Tracking: running
 Frontmost apps: enabled (idle threshold 60s)
 Media sessions: enabled
-Autostart: enabled (launch agent)
+Autostart: enabled (bundled launch agent)
 ```
 
 JSON output example:
@@ -99,7 +99,7 @@ JSON output example:
   },
   "autostart": {
     "enabled": true,
-    "backend": "launch-agent"
+    "backend": "bundled-launch-agent"
   },
   // Verbose
   "database": {
@@ -274,7 +274,7 @@ JSON output example:
           // Verbose
           "details": {
             "enabled": true,
-            "backend": "launch-agent",
+            "backend": "bundled-launch-agent",
             "label": "com.timearc.service",
             "path": "/Applications/TimeArc.app/Contents/Library/LaunchAgents/com.timearc.service.plist",
             "command": [
@@ -393,7 +393,7 @@ Scheduled task with user logon trigger (`scheduled-task`). Falls back to HKCU (`
 
 #### macOS
 
-Bundled launch agent (`launch-agent`).
+Bundled launch agent (`bundled-launch-agent`). Falls back to per-user launch agent (`user-launch-agent`).
 
 #### Linux
 
