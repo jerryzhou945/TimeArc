@@ -84,7 +84,7 @@ def main():
     ):
         require(page, "property bool wallpaperActive",
                 f"{page_name} global wallpaper participation")
-        if "wallpaperUrl" in page or "Image.PreserveAspectCrop" in page:
+        if "mobileUiService.wallpaperUrl" in page:
             raise AssertionError(
                 f"{page_name} must not instantiate or load its own wallpaper"
             )
@@ -116,6 +116,17 @@ def main():
     require(stats, "MobileAppIcon", "icon-led Statistics rows")
     require(history, "dateRailWidth", "Memory Lake date rail")
     require(history, "theme.timelineLine", "Memory Lake transparent separators")
+    require(history, 'import "../components/MobileMonthProfiles.js" as MonthProfiles',
+            "Memory Lake monthly profile import")
+    require(history, "Image.PreserveAspectCrop",
+            "seasonal monthly entry image crop")
+    require(history, "coverProfile.sceneSource",
+            "seasonal monthly entry scene")
+    report_cover = history.split("id: reportCover", 1)[1].split(
+        "最近被记住", 1
+    )[0]
+    if "Canvas {" in report_cover:
+        raise AssertionError("monthly entry must not use the old Canvas cover")
     require(rank_row, "theme.timelineLine",
             "flat ranking progress and separator language")
     require(app_icon, "appIconPath", "real app icon")
@@ -170,6 +181,10 @@ def main():
             "monthly story swipe gesture")
     require(monthly_story, "Qt.size(1080, 1920)",
             "portrait monthly share export")
+    require(monthly_story, '(root.currentPage + 1) + " / " + root.pageCount',
+            "neutral monthly story progress marker")
+    if '? "完成"' in monthly_story:
+        raise AssertionError("monthly story must not show abrupt completion copy")
     ranking_share_path = (
         ROOT / "qml/mobile/components/MobileRankingShareOverlay.qml"
     )

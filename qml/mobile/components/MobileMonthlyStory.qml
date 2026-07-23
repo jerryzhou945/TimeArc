@@ -213,9 +213,10 @@ Item {
             anchors.bottom: parent.bottom
             anchors.rightMargin: 24
             anchors.bottomMargin: 23
-            text: root.currentPage === root.pageCount - 1 ? "完成" : "→"
-            color: "white"
-            font.pixelSize: 25
+            text: (root.currentPage + 1) + " / " + root.pageCount
+            color: "#AFFFFFFF"
+            font.family: root.theme.numberFontFamily
+            font.pixelSize: 11
         }
 
         Text {
