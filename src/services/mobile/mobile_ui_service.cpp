@@ -22,6 +22,9 @@
 namespace {
 
 const QString kWallpaperSetting = QStringLiteral("mobile_wallpaper_path");
+const QString kWechatAppIdSetting =
+    QStringLiteral("mobile_share_wechat_app_id");
+const QString kQqAppIdSetting = QStringLiteral("mobile_share_qq_app_id");
 
 QString mobileDataDirectory() {
   const QString root =
@@ -106,6 +109,45 @@ QString androidSaveImageToGallery(const QString& pathValue,
       context.object<jobject>(), path.object<jstring>(),
       album.object<jstring>());
   return result.isValid() ? result.toString() : QString();
+}
+
+QString androidSocialShareStatus(const QString& channel,
+                                 const QString& appId) {
+  const QJniObject context =
+      QNativeInterface::QAndroidApplication::context();
+  if (!context.isValid()) return QStringLiteral("launch_failed");
+  const QJniObject javaChannel = QJniObject::fromString(channel);
+  const QJniObject javaAppId = QJniObject::fromString(appId);
+  const QJniObject result = QJniObject::callStaticObjectMethod(
+      "com/timearc/mobile/ui/MobileUiBridge", "socialShareStatus",
+      "(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)"
+      "Ljava/lang/String;",
+      context.object<jobject>(), javaChannel.object<jstring>(),
+      javaAppId.object<jstring>());
+  return result.isValid() ? result.toString()
+                          : QStringLiteral("launch_failed");
+}
+
+QString androidShareImageToChannel(const QString& pathValue,
+                                   const QString& channel,
+                                   const QString& chooserTitle,
+                                   const QString& appId) {
+  const QJniObject context =
+      QNativeInterface::QAndroidApplication::context();
+  if (!context.isValid()) return QStringLiteral("launch_failed");
+  const QJniObject path = QJniObject::fromString(pathValue);
+  const QJniObject javaChannel = QJniObject::fromString(channel);
+  const QJniObject title = QJniObject::fromString(chooserTitle);
+  const QJniObject javaAppId = QJniObject::fromString(appId);
+  const QJniObject result = QJniObject::callStaticObjectMethod(
+      "com/timearc/mobile/ui/MobileUiBridge", "shareImageToChannel",
+      "(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;"
+      "Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+      context.object<jobject>(), path.object<jstring>(),
+      javaChannel.object<jstring>(), title.object<jstring>(),
+      javaAppId.object<jstring>());
+  return result.isValid() ? result.toString()
+                          : QStringLiteral("launch_failed");
 }
 #endif
 
@@ -248,6 +290,85 @@ bool MobileUiService::shareImage(const QUrl& source,
   Q_UNUSED(chooserTitle);
 #endif
   return true;
+}
+
+bool MobileUiService::shareImageToChannel(const QUrl& source,
+                                          const QString& channel,
+                                          const QString& chooserTitle) {
+  static const QStringList channels = {
+      QStringLiteral("gallery"), QStringLiteral("moments"),
+      QStringLiteral("qzone"), QStringLiteral("system")};
+  const QString key = channel.trimmed().toLower();
+  if (!channels.contains(key)) {
+    setLastError(QStringLiteral("不支持这个分享目标。"));
+    return false;
+  }
+  const QString path = localPathFor(source);
+  if (!saveImageToGallery(source, QStringLiteral("TimeArc"))) return false;
+  if (key == QStringLiteral("gallery")) return true;
+
+#ifdef Q_OS_ANDROID
+  const QString result = androidShareImageToChannel(
+      path, key, chooserTitle, socialAppId(key));
+  if (result == QStringLiteral("launched")) return true;
+  if (result == QStringLiteral("waiting_authorization")) {
+    setLastError(QStringLiteral("已保存到图库 · 等待平台授权"));
+  } else if (result == QStringLiteral("client_missing")) {
+    setLastError(QStringLiteral("已保存到图库 · 未安装目标应用"));
+  } else if (result == QStringLiteral("sdk_missing")) {
+    setLastError(QStringLiteral("已保存到图库 · 分享组件尚未启用"));
+  } else {
+    setLastError(QStringLiteral("已保存到图库 · 无法打开分享目标"));
+  }
+  return false;
+#else
+  Q_UNUSED(path);
+  Q_UNUSED(chooserTitle);
+  setLastError(QStringLiteral("已保存本地图片 · 当前平台不支持此分享目标"));
+  return false;
+#endif
+}
+
+QVariantMap MobileUiService::socialShareStatus(
+    const QString& channel) const {
+  const QString key = channel.trimmed().toLower();
+  QString code;
+  if (key == QStringLiteral("gallery") || key == QStringLiteral("system")) {
+    code = QStringLiteral("ready");
+  } else if (key == QStringLiteral("moments") ||
+             key == QStringLiteral("qzone")) {
+#ifdef Q_OS_ANDROID
+    code = androidSocialShareStatus(key, socialAppId(key));
+#else
+    code = socialAppId(key).isEmpty()
+               ? QStringLiteral("waiting_authorization")
+               : QStringLiteral("sdk_missing");
+#endif
+  } else {
+    code = QStringLiteral("launch_failed");
+  }
+  QString label = QStringLiteral("不可用");
+  if (code == QStringLiteral("ready")) label = QStringLiteral("已就绪");
+  if (code == QStringLiteral("waiting_authorization"))
+    label = QStringLiteral("等待平台授权");
+  if (code == QStringLiteral("client_missing"))
+    label = QStringLiteral("未安装客户端");
+  if (code == QStringLiteral("sdk_missing"))
+    label = QStringLiteral("分享组件未启用");
+  return QVariantMap{{QStringLiteral("channel"), key},
+                     {QStringLiteral("code"), code},
+                     {QStringLiteral("label"), label},
+                     {QStringLiteral("configured"),
+                      !socialAppId(key).isEmpty()}};
+}
+
+QString MobileUiService::socialAppId(const QString& channel) const {
+  if (!settingsRepository_) return QString();
+  if (channel == QStringLiteral("moments"))
+    return settingsRepository_->getValue(kWechatAppIdSetting).trimmed();
+  if (channel == QStringLiteral("qzone"))
+    return settingsRepository_->getValue(kQqAppIdSetting).trimmed();
+  return QString();
 }
 
 QString MobileUiService::sanitizedStem(const QString& value) {

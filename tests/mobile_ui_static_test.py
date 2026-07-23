@@ -20,6 +20,17 @@ def main():
     android_bridge = read(
         "android/src/main/java/com/timearc/mobile/ui/MobileUiBridge.java"
     )
+    wechat_adapter_path = ROOT / (
+        "android/src/main/java/com/timearc/mobile/ui/"
+        "WeChatMomentsAdapter.java"
+    )
+    qq_adapter_path = ROOT / (
+        "android/src/main/java/com/timearc/mobile/ui/QqZoneAdapter.java"
+    )
+    if not wechat_adapter_path.exists() or not qq_adapter_path.exists():
+        raise AssertionError("missing direct social share adapters")
+    wechat_adapter = wechat_adapter_path.read_text(encoding="utf-8")
+    qq_adapter = qq_adapter_path.read_text(encoding="utf-8")
     shell = read("qml/mobile/MobileAppShell.qml")
     theme = read("qml/mobile/MobileTheme.qml")
     home = read("qml/mobile/pages/MobileHomePage.qml")
@@ -52,6 +63,10 @@ def main():
     require(ui_header, "Q_INVOKABLE bool shareImage", "share handoff")
     require(ui_header, "Q_INVOKABLE bool saveImageToGallery",
             "gallery save API")
+    require(ui_header, "Q_INVOKABLE bool shareImageToChannel",
+            "social channel share API")
+    require(ui_header, "Q_INVOKABLE QVariantMap socialShareStatus",
+            "social authorization status API")
     require(android_bridge, "FileProvider.getUriForFile",
             "Android FileProvider share")
     require(android_bridge, "Intent.ACTION_SEND", "Android share intent")
@@ -65,6 +80,27 @@ def main():
             "atomic Android gallery write")
     require(android_bridge, "saveImageToGallery",
             "Android gallery export")
+    require(android_bridge, "shareImageToChannel",
+            "Android social channel routing")
+    for status_code in (
+        "ready",
+        "waiting_authorization",
+        "client_missing",
+        "sdk_missing",
+        "launch_failed",
+        "saved",
+    ):
+        combined_social = android_bridge + wechat_adapter + qq_adapter
+        require(combined_social, status_code,
+                f"social status code {status_code}")
+    require(wechat_adapter, "WXSceneTimeline",
+            "WeChat Moments timeline scene")
+    require(wechat_adapter, "com.tencent.mm.opensdk",
+            "WeChat OpenSDK boundary")
+    require(qq_adapter, "publishToQzone",
+            "QQ Zone publish boundary")
+    require(qq_adapter, "com.tencent.tauth",
+            "QQ Connect SDK boundary")
     require(shell, "Image.PreserveAspectCrop",
             "single shell wallpaper crop")
     require(shell, "wallpaperActive", "global wallpaper state")

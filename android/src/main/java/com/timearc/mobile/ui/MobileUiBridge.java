@@ -144,6 +144,41 @@ public final class MobileUiBridge {
         }
     }
 
+    public static String socialShareStatus(Context context, String channel,
+                                           String appId) {
+        if ("moments".equals(channel)) {
+            return WeChatMomentsAdapter.status(context, appId);
+        }
+        if ("qzone".equals(channel)) {
+            return QqZoneAdapter.status(context, appId);
+        }
+        if ("gallery".equals(channel) || "system".equals(channel)) {
+            return "ready";
+        }
+        return "launch_failed";
+    }
+
+    public static String shareImageToChannel(
+            Context context, String pathValue, String channel,
+            String title, String appId) {
+        if ("moments".equals(channel)) {
+            return WeChatMomentsAdapter.share(context, pathValue, appId);
+        }
+        if ("qzone".equals(channel)) {
+            return QqZoneAdapter.share(
+                    context, pathValue, appId,
+                    title == null ? "TimeArc 时间纪念卡" : title);
+        }
+        if ("system".equals(channel)) {
+            return shareImage(context, pathValue, title)
+                    ? "launched" : "launch_failed";
+        }
+        if ("gallery".equals(channel)) {
+            return "saved";
+        }
+        return "launch_failed";
+    }
+
     private static void copyStream(InputStream input, OutputStream output)
             throws Exception {
         byte[] buffer = new byte[64 * 1024];

@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QString>
 #include <QUrl>
+#include <QVariantMap>
 
 class SettingsRepository;
 
@@ -31,6 +32,10 @@ class MobileUiService : public QObject {
                                       const QString& albumName = QString());
   Q_INVOKABLE bool shareImage(const QUrl& source,
                               const QString& chooserTitle);
+  Q_INVOKABLE bool shareImageToChannel(const QUrl& source,
+                                       const QString& channel,
+                                       const QString& chooserTitle);
+  Q_INVOKABLE QVariantMap socialShareStatus(const QString& channel) const;
 
  signals:
   void wallpaperChanged();
@@ -41,6 +46,7 @@ class MobileUiService : public QObject {
   static QString sanitizedStem(const QString& value);
   static QString localPathFor(const QUrl& source);
   static bool copySourceToFile(const QUrl& source, const QString& targetPath);
+  QString socialAppId(const QString& channel) const;
   void setLastError(const QString& value);
   void setLastSavedImagePath(const QString& value);
 
