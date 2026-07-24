@@ -1,6 +1,13 @@
+import hashlib
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+AGENTS_PATH = ".harness/AGENTS.md"
+AGENTS_ROUTE = (
+    "   - branch / commit / PR / merge / cleanup -> "
+    "`rules/08-git-workflow.md`"
+)
 
 
 def read(rel):
@@ -16,6 +23,33 @@ def require_line_budget(rel):
     count = len(read(rel).splitlines())
     if count > 100:
         raise AssertionError(f"{rel} has {count} lines; limit is 100")
+
+
+def require_agents_route(agents):
+    heading = "## 3. Mandatory reading order"
+    next_heading = "## 4. Working loop"
+    if heading not in agents or next_heading not in agents:
+        raise AssertionError("missing mandatory reading router boundaries")
+    router = agents.split(heading, 1)[1].split(next_heading, 1)[0]
+    require(router, AGENTS_ROUTE, "exact mandatory workflow rule route")
+
+
+def require_agents_frozen_hash():
+    registry = json.loads(read(".harness/state/frozen-files.json"))
+    entries = [
+        entry for entry in registry["files"] if entry["path"] == AGENTS_PATH
+    ]
+    if len(entries) != 1:
+        raise AssertionError(
+            f"expected one {AGENTS_PATH} frozen entry; found {len(entries)}"
+        )
+    actual = hashlib.sha256((ROOT / AGENTS_PATH).read_bytes()).hexdigest()
+    expected = entries[0]["sha256"]
+    if actual != expected:
+        raise AssertionError(
+            f"{AGENTS_PATH} frozen hash mismatch: "
+            f"expected {expected}, got {actual}"
+        )
 
 
 def main():
@@ -44,11 +78,8 @@ def main():
         "confirming local `dev` contains the merge",
         "safe local branch cleanup",
     )
-    require(
-        agents,
-        "rules/08-git-workflow.md",
-        "mandatory workflow rule routing",
-    )
+    require_agents_route(agents)
+    require_agents_frozen_hash()
     require_line_budget(".harness/rules/08-git-workflow.md")
     require_line_budget(".harness/AGENTS.md")
 
