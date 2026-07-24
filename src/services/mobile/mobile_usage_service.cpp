@@ -1,9 +1,11 @@
 #include "services/mobile/mobile_usage_service.h"
 
 #include <QDate>
+#include <QDateTime>
 #include <QDebug>
 #include <QMap>
 #include <QSet>
+#include <QTimeZone>
 #include <QVector>
 
 #ifdef Q_OS_ANDROID
@@ -15,6 +17,7 @@
 #include <algorithm>
 
 #include "services/mobile/mobile_usage_repository.h"
+#include "services/mobile/mobile_usage_insight_engine.h"
 
 namespace {
 
@@ -262,14 +265,168 @@ QVariantMap MobileUsageService::getDashboardForRange(const QString& range) {
   return dashboard;
 }
 
-QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
-  const QVariantMap dashboard = getDashboardForRange(QStringLiteral("month"));
-  const QVariantList apps = dashboard.value(QStringLiteral("topApps")).toList();
+QVariantMap MobileUsageService::getMonthlyReport(const QString& monthKey) {
+  QDate month = QDate::fromString(monthKey.trimmed() + QStringLiteral("-01"),
+                                  Qt::ISODate);
+  if (!month.isValid()) {
+    const QDate today = QDate::currentDate();
+    month = QDate(today.year(), today.month(), 1);
+  }
 
-  QVariantMap report;
+  const QDate monthStart(month.year(), month.month(), 1);
+  const QDate naturalMonthEnd = monthStart.addMonths(1).addDays(-1);
   const QDate today = QDate::currentDate();
+  const QDate monthEnd =
+      monthStart.year() == today.year() && monthStart.month() == today.month()
+          ? today
+          : naturalMonthEnd;
+  const QDate previousStart = monthStart.addMonths(-1);
+  const QDate previousEnd = monthStart.addDays(-1);
+
+  QVariantList dailyRows;
+  QVariantList previousRows;
+  QVariantList sessions;
+  if (repository_ != nullptr) {
+    dailyRows = repository_->getUsageByDateRange(
+        monthStart.toString(Qt::ISODate), monthEnd.toString(Qt::ISODate),
+        kAndroidPlatform);
+    previousRows = repository_->getUsageByDateRange(
+        previousStart.toString(Qt::ISODate), previousEnd.toString(Qt::ISODate),
+        kAndroidPlatform);
+    const QTimeZone localZone = QTimeZone::systemTimeZone();
+    const qint64 startUnix =
+        QDateTime(monthStart, QTime(0, 0), localZone).toSecsSinceEpoch();
+    const qint64 endUnix =
+        QDateTime(monthEnd.addDays(1), QTime(0, 0), localZone).toSecsSinceEpoch();
+    sessions = repository_->getSessionsByRange(startUnix, endUnix,
+                                               kAndroidPlatform);
+  }
+
+  QVariantMap report = MobileUsageInsightEngine::buildMonthlyReport(
+      monthStart, dailyRows, sessions, previousRows);
+
+  static const QStringList seasons = {
+      QStringLiteral("winter"), QStringLiteral("spring"),
+      QStringLiteral("spring"), QStringLiteral("spring"),
+      QStringLiteral("summer"), QStringLiteral("summer"),
+      QStringLiteral("summer"), QStringLiteral("summer"),
+      QStringLiteral("autumn"), QStringLiteral("autumn"),
+      QStringLiteral("winter"), QStringLiteral("winter")};
+  static const QStringList particles = {
+      QStringLiteral("frost"),   QStringLiteral("melt"),
+      QStringLiteral("rain"),    QStringLiteral("petal"),
+      QStringLiteral("dust"),    QStringLiteral("storm"),
+      QStringLiteral("firefly"), QStringLiteral("lateRain"),
+      QStringLiteral("leaf"),    QStringLiteral("ginkgo"),
+      QStringLiteral("frost"),   QStringLiteral("snow")};
+  static const QStringList layouts = {
+      QStringLiteral("winter-opening"), QStringLiteral("spring-thaw"),
+      QStringLiteral("spring-rain"),    QStringLiteral("spring-flower"),
+      QStringLiteral("summer-day"),     QStringLiteral("summer-storm"),
+      QStringLiteral("summer-night"),   QStringLiteral("summer-rain"),
+      QStringLiteral("autumn-wind"),    QStringLiteral("autumn-corridor"),
+      QStringLiteral("winter-morning"), QStringLiteral("winter-archive")};
+  static const QStringList accents = {
+      QStringLiteral("#D9F0F4"), QStringLiteral("#FFD2A7"),
+      QStringLiteral("#CFE8B0"), QStringLiteral("#F2D9DF"),
+      QStringLiteral("#F5E69E"), QStringLiteral("#B9E5F4"),
+      QStringLiteral("#E5EF87"), QStringLiteral("#C9E4DE"),
+      QStringLiteral("#F0CE84"), QStringLiteral("#F2B47E"),
+      QStringLiteral("#DCE9EF"), QStringLiteral("#E8F1F5")};
+  static const QStringList accentInks = {
+      QStringLiteral("#20353D"), QStringLiteral("#4A2820"),
+      QStringLiteral("#233529"), QStringLiteral("#492F37"),
+      QStringLiteral("#473F1E"), QStringLiteral("#1F3D49"),
+      QStringLiteral("#303817"), QStringLiteral("#24413D"),
+      QStringLiteral("#493514"), QStringLiteral("#4A2618"),
+      QStringLiteral("#273943"), QStringLiteral("#253946")};
+
+  const int profileIndex = qBound(1, monthStart.month(), 12) - 1;
+  QVariantMap profile;
+  profile.insert(QStringLiteral("month"), monthStart.month());
+  profile.insert(QStringLiteral("season"), seasons.at(profileIndex));
+  profile.insert(
+      QStringLiteral("sceneSource"),
+      QStringLiteral("qrc:/qt/qml/time_arc/resources/mobile/monthly/month-%1.jpg")
+          .arg(monthStart.month(), 2, 10, QLatin1Char('0')));
+  profile.insert(QStringLiteral("accent"), accents.at(profileIndex));
+  profile.insert(QStringLiteral("accentInk"), accentInks.at(profileIndex));
+  profile.insert(QStringLiteral("particleKind"), particles.at(profileIndex));
+  profile.insert(QStringLiteral("layoutVariant"), layouts.at(profileIndex));
+  report.insert(QStringLiteral("profile"), profile);
+
+  QVariantList pages;
+  const QStringList pageKinds = {
+      QStringLiteral("cover"),     QStringLiteral("overview"),
+      QStringLiteral("highlight"), QStringLiteral("companion"),
+      QStringLiteral("ranking"),   QStringLiteral("share")};
+  for (const QString& pageKind : pageKinds) {
+    pages.append(QVariantMap{{QStringLiteral("kind"), pageKind}});
+  }
+  report.insert(QStringLiteral("pages"), pages);
+  report.insert(QStringLiteral("title"),
+                QStringLiteral("%1的时间天气")
+                    .arg(monthStart.toString(QStringLiteral("M月"))));
+  report.insert(QStringLiteral("rangeText"),
+                QStringLiteral("%1 至 %2")
+                    .arg(monthStart.toString(QStringLiteral("M月d日")),
+                         monthEnd.toString(QStringLiteral("M月d日"))));
+  report.insert(QStringLiteral("usageAccessGranted"), usageAccessGranted_);
+  report.insert(QStringLiteral("syncStatus"), syncStatus_);
+  report.insert(QStringLiteral("syncStatusText"), syncStatusText_);
+  return report;
+}
+
+QString MobileUsageService::latestReleasedMonthKey(
+    const QDateTime& localNow) {
+  const QDate currentMonth(localNow.date().year(),
+                           localNow.date().month(), 1);
+  QDateTime releaseTime = localNow;
+  releaseTime.setDate(currentMonth);
+  releaseTime.setTime(QTime(8, 0));
+  const QDate releasedMonth =
+      currentMonth.addMonths(localNow >= releaseTime ? -1 : -2);
+  return releasedMonth.toString(QStringLiteral("yyyy-MM"));
+}
+
+QString MobileUsageService::latestReleasedYearKey(
+    const QDateTime& localNow) {
+  const QDate currentYear(localNow.date().year(), 1, 1);
+  QDateTime releaseTime = localNow;
+  releaseTime.setDate(currentYear);
+  releaseTime.setTime(QTime(8, 0));
+  const int releasedYear =
+      localNow.date().year() - (localNow >= releaseTime ? 1 : 2);
+  return QString::number(releasedYear);
+}
+
+QVariantMap MobileUsageService::getReportReleaseStatus() {
+  const QDateTime localNow = QDateTime::currentDateTime();
+  const QString monthKey = latestReleasedMonthKey(localNow);
+  const QString yearKey = latestReleasedYearKey(localNow);
+  return QVariantMap{
+      {QStringLiteral("latestMonthlyKey"), monthKey},
+      {QStringLiteral("latestAnnualKey"), yearKey},
+      {QStringLiteral("releaseToken"),
+       QStringLiteral("month:%1|year:%2").arg(monthKey, yearKey)}};
+}
+
+QVariantMap MobileUsageService::getMemoryLakeForLatestReleasedMonth() {
+  const QString monthKey =
+      latestReleasedMonthKey(QDateTime::currentDateTime());
+  const QDate monthStart =
+      QDate::fromString(monthKey + QStringLiteral("-01"), Qt::ISODate);
+  const QDate monthEnd = monthStart.addMonths(1).addDays(-1);
+  QVariantMap report =
+      getMonthlyReport(monthKey);
+  const QVariantMap dashboard = getUsageDashboard(
+      monthStart.toString(Qt::ISODate), monthEnd.toString(Qt::ISODate));
+  const QVariantList apps = report.value(QStringLiteral("topApps")).toList();
+
   report.insert(QStringLiteral("monthLabel"),
-                today.toString(QStringLiteral("yyyy年M月")));
+                monthStart.toString(QStringLiteral("yyyy年M月")));
+  report.insert(QStringLiteral("releaseId"),
+                QStringLiteral("month:%1").arg(monthKey));
   report.insert(QStringLiteral("rangeText"),
                 dashboard.value(QStringLiteral("rangeText")));
   report.insert(QStringLiteral("totalSec"),
@@ -294,10 +451,10 @@ QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
       QStringLiteral("title"),
       activeDays > 0
           ? QStringLiteral("%1，时间在 %2 个日子里留下痕迹")
-                .arg(today.toString(QStringLiteral("M月")))
+                .arg(monthStart.toString(QStringLiteral("M月")))
                 .arg(activeDays)
           : QStringLiteral("%1，等待第一段时间被记住")
-                .arg(today.toString(QStringLiteral("M月"))));
+                .arg(monthStart.toString(QStringLiteral("M月"))));
   report.insert(
       QStringLiteral("summary"),
       activeDays > 0
@@ -335,8 +492,13 @@ QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
   model.insert(QStringLiteral("report"), report);
   model.insert(QStringLiteral("moments"), moments);
   model.insert(QStringLiteral("topApps"), apps);
+  model.insert(QStringLiteral("releaseStatus"), getReportReleaseStatus());
   model.insert(QStringLiteral("empty"), apps.isEmpty());
   return model;
+}
+
+QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
+  return getMemoryLakeForLatestReleasedMonth();
 }
 
 bool MobileUsageService::refreshUsageAccessState() {

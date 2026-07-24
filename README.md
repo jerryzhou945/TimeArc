@@ -220,9 +220,30 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
   identity is normalized as `android:<package_name>` so desktop and mobile data
   can be merged by the presentation layer without losing platform/source
   precision.
+- Mobile monthly narratives are derived locally by the header-only
+  `MobileUsageInsightEngine`. It turns daily summaries and confidence-labelled
+  sessions into structured, deterministic facts; QML only chooses presentation
+  and never invents unsupported usage events.
+- `MobileSeasonScene.qml` presents those facts over twelve bundled, original
+  month scenes with season-specific restrained motion; all report artwork is
+  local and available offline, with reduced-motion support.
+- Mobile monthly reports are published at **次月 1 日 08:00** in the device's
+  local time. Before that boundary Memory Lake continues to show the previous
+  released month; its tab displays a red dot when a new monthly or annual
+  release token has not yet been viewed.
+- Mobile share surfaces export portrait app cards, range ranking posters, and
+  the six-page monthly story. App and ranking posters reuse the user's private
+  wallpaper when set, retain real application icons, and contain only
+  aggregated usage facts. `MobileShareActionBar` gives every poster the same
+  gallery-first entry points for local save, WeChat Moments, QQ Zone, and the
+  Android Sharesheet, with honest authorization status.
 - Android UI-private wallpaper and share files are managed by
   `MobileUiService` under the app data directory. They do not enter either
   SQLite usage database or the service control-file contract.
+- The mobile Profile keeps an optional 本地头像 in the same UI-private area.
+  It is never uploaded or inserted into a share poster automatically; the
+  profile archive combines it only with the real first-record date, inclusive
+  companionship span, and active record-day count.
 
 ## Adapter Support
 

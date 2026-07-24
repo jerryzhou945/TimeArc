@@ -17,30 +17,126 @@ def main():
     main_cpp = read("src/main.cpp")
     ui_header = read("src/services/mobile/mobile_ui_service.h")
     ui_service = read("src/services/mobile/mobile_ui_service.cpp")
+    usage_header = read("src/services/mobile/mobile_usage_service.h")
+    usage_service = read("src/services/mobile/mobile_usage_service.cpp")
     android_bridge = read(
         "android/src/main/java/com/timearc/mobile/ui/MobileUiBridge.java"
     )
+    wechat_adapter_path = ROOT / (
+        "android/src/main/java/com/timearc/mobile/ui/"
+        "WeChatMomentsAdapter.java"
+    )
+    qq_adapter_path = ROOT / (
+        "android/src/main/java/com/timearc/mobile/ui/QqZoneAdapter.java"
+    )
+    if not wechat_adapter_path.exists() or not qq_adapter_path.exists():
+        raise AssertionError("missing direct social share adapters")
+    wechat_adapter = wechat_adapter_path.read_text(encoding="utf-8")
+    qq_adapter = qq_adapter_path.read_text(encoding="utf-8")
     shell = read("qml/mobile/MobileAppShell.qml")
     theme = read("qml/mobile/MobileTheme.qml")
     home = read("qml/mobile/pages/MobileHomePage.qml")
     stats = read("qml/mobile/pages/MobileStatsPage.qml")
     history = read("qml/mobile/pages/MobileHistoryPage.qml")
     settings = read("qml/mobile/pages/MobileSettingsPage.qml")
+    status_bar = read("qml/mobile/components/MobileStatusBar.qml")
+    tab_button = read("qml/mobile/components/MobileTabButton.qml")
     glass = read("qml/mobile/components/MobileGlassPanel.qml")
     rank_row = read("qml/mobile/components/MobileUsageRankRow.qml")
     app_icon = read("qml/mobile/components/MobileAppIcon.qml")
     flip_card = read("qml/mobile/components/MobileFlipCard.qml")
     share = read("qml/mobile/components/MobileShareOverlay.qml")
+    share_bar_path = ROOT / "qml/mobile/components/MobileShareActionBar.qml"
+    if not share_bar_path.exists():
+        raise AssertionError("missing unified mobile share action bar")
+    share_bar = share_bar_path.read_text(encoding="utf-8")
+    rounded_frame_path = (
+        ROOT / "qml/mobile/components/MobileRoundedFrame.qml"
+    )
+    if not rounded_frame_path.exists():
+        raise AssertionError("missing mobile true rounded frame")
+    rounded_frame = rounded_frame_path.read_text(encoding="utf-8")
+    profiles_path = ROOT / "qml/mobile/components/MobileMonthProfiles.js"
+    season_scene_path = ROOT / "qml/mobile/components/MobileSeasonScene.qml"
+    if not profiles_path.exists() or not season_scene_path.exists():
+        raise AssertionError("missing monthly profile or seasonal scene component")
+    profiles = profiles_path.read_text(encoding="utf-8")
+    season_scene = season_scene_path.read_text(encoding="utf-8")
+    resources_cmake = read("resources/CMakeLists.txt")
+    for month in range(1, 13):
+        asset = f"resources/mobile/monthly/month-{month:02d}.jpg"
+        if not (ROOT / asset).exists():
+            raise AssertionError(f"missing monthly scene asset: {asset}")
+        require(resources_cmake, asset, f"month {month} resource registration")
 
     require(main_cpp, '"mobileUiService"', "QML mobile UI service")
     require(ui_header, "Q_PROPERTY(QString wallpaperUrl",
             "wallpaper property")
+    require(ui_header, "Q_PROPERTY(QString avatarUrl",
+            "profile avatar property")
+    require(ui_header, "Q_INVOKABLE bool importAvatar",
+            "profile avatar import")
+    require(ui_header, "Q_INVOKABLE bool clearAvatar",
+            "profile avatar clear")
+    require(ui_header, "void avatarChanged();",
+            "profile avatar change signal")
     require(ui_header, "Q_INVOKABLE bool importWallpaper",
             "wallpaper import")
     require(ui_header, "Q_INVOKABLE bool shareImage", "share handoff")
+    require(ui_header, "Q_INVOKABLE bool saveImageToGallery",
+            "gallery save API")
+    require(ui_header, "Q_INVOKABLE bool shareImageToChannel",
+            "social channel share API")
+    require(ui_header, "Q_INVOKABLE QVariantMap socialShareStatus",
+            "social authorization status API")
+    require(ui_header, "Q_PROPERTY(QString wechatAppId",
+            "WeChat AppID property")
+    require(ui_header, "Q_PROPERTY(QString qqAppId",
+            "QQ AppID property")
+    require(ui_header, "Q_INVOKABLE bool setSocialAppId",
+            "social AppID persistence API")
+    require(ui_service, "mobile_share_wechat_app_id",
+            "WeChat AppID settings key")
+    require(ui_service, "mobile_share_qq_app_id",
+            "QQ AppID settings key")
+    require(ui_service, "mobile_profile_avatar_path",
+            "profile avatar settings key")
+    require(ui_service, 'QStringLiteral("avatar-%1.%2")',
+            "versioned private avatar filename")
     require(android_bridge, "FileProvider.getUriForFile",
             "Android FileProvider share")
     require(android_bridge, "Intent.ACTION_SEND", "Android share intent")
+    require(android_bridge, "MediaStore.Images.Media.EXTERNAL_CONTENT_URI",
+            "Android MediaStore gallery collection")
+    require(android_bridge, "MediaStore.MediaColumns.RELATIVE_PATH",
+            "Android gallery relative path")
+    require(android_bridge, 'Environment.DIRECTORY_PICTURES + "/TimeArc"',
+            "TimeArc gallery album")
+    require(android_bridge, "MediaStore.MediaColumns.IS_PENDING",
+            "atomic Android gallery write")
+    require(android_bridge, "saveImageToGallery",
+            "Android gallery export")
+    require(android_bridge, "shareImageToChannel",
+            "Android social channel routing")
+    for status_code in (
+        "ready",
+        "waiting_authorization",
+        "client_missing",
+        "sdk_missing",
+        "launch_failed",
+        "saved",
+    ):
+        combined_social = android_bridge + wechat_adapter + qq_adapter
+        require(combined_social, status_code,
+                f"social status code {status_code}")
+    require(wechat_adapter, "WXSceneTimeline",
+            "WeChat Moments timeline scene")
+    require(wechat_adapter, "com.tencent.mm.opensdk",
+            "WeChat OpenSDK boundary")
+    require(qq_adapter, "publishToQzone",
+            "QQ Zone publish boundary")
+    require(qq_adapter, "com.tencent.tauth",
+            "QQ Connect SDK boundary")
     require(shell, "Image.PreserveAspectCrop",
             "single shell wallpaper crop")
     require(shell, "wallpaperActive", "global wallpaper state")
@@ -72,10 +168,12 @@ def main():
     ):
         require(page, "property bool wallpaperActive",
                 f"{page_name} global wallpaper participation")
-        if "wallpaperUrl" in page or "Image.PreserveAspectCrop" in page:
+        if "mobileUiService.wallpaperUrl" in page:
             raise AssertionError(
                 f"{page_name} must not instantiate or load its own wallpaper"
             )
+    for label in ("社交平台授权", "微信 AppID", "QQ AppID", "等待平台授权"):
+        require(settings, label, f"social authorization UI: {label}")
     require(theme, "readonly property color contentClear",
             "near-clear wallpaper surface token")
     require(theme, "readonly property color contentWash",
@@ -88,6 +186,29 @@ def main():
             "wallpaper-adaptive primary ink")
     require(theme, "readonly property color wallpaperMuted",
             "wallpaper-adaptive secondary ink")
+    for token in (
+        "defaultCanvasTop",
+        "defaultCanvasMiddle",
+        "defaultCanvasBottom",
+    ):
+        require(theme, f"readonly property color {token}",
+                f"default atmospheric canvas token {token}")
+    require(shell, "id: defaultCanvas",
+            "shell-owned wallpaper-free atmospheric canvas")
+    require(shell, "mobileTheme.defaultCanvasTop",
+            "default canvas top color")
+    require(shell, "mobileTheme.defaultCanvasBottom",
+            "default canvas bottom color")
+    require(home, "signal wallpaperRequested()",
+            "Home wallpaper prompt signal")
+    require(home, "id: wallpaperPrompt",
+            "Home wallpaper prompt")
+    require(home, "visible: !root.wallpaperActive",
+            "wallpaper prompt visibility guard")
+    require(home, 'text: "添加自定义壁纸"',
+            "wallpaper prompt copy")
+    require(shell, "settingsPage.openWallpaperDialog()",
+            "Home prompt uses existing wallpaper picker")
     require(theme, '"#78FFFFFF"',
             "readable light wallpaper glass")
     require(theme, '"#C8FFFFFF"',
@@ -104,6 +225,23 @@ def main():
     require(stats, "MobileAppIcon", "icon-led Statistics rows")
     require(history, "dateRailWidth", "Memory Lake date rail")
     require(history, "theme.timelineLine", "Memory Lake transparent separators")
+    require(history, 'import "../components/MobileMonthProfiles.js" as MonthProfiles',
+            "Memory Lake monthly profile import")
+    require(history, "Image.PreserveAspectCrop",
+            "seasonal monthly entry image crop")
+    require(history, "coverProfile.sceneSource",
+            "seasonal monthly entry scene")
+    report_cover = history.split("id: reportCover", 1)[1].split(
+        "最近被记住", 1
+    )[0]
+    if "Canvas {" in report_cover:
+        raise AssertionError("monthly entry must not use the old Canvas cover")
+    require(report_cover, "id: reportFooter",
+            "balanced monthly entry footer")
+    require(report_cover, "anchors.bottom: parent.bottom",
+            "monthly entry footer bottom alignment")
+    require(report_cover, "height: root.theme.controlHeight",
+            "monthly entry 44px action")
     require(rank_row, "theme.timelineLine",
             "flat ranking progress and separator language")
     require(app_icon, "appIconPath", "real app icon")
@@ -129,8 +267,182 @@ def main():
             "anonymous-safe share story")
     require(share, "text: root.storyForShare()",
             "share poster uses privacy-filtered story")
+    for channel, label in (
+        ("gallery", "保存到图库"),
+        ("moments", "朋友圈"),
+        ("qzone", "QQ动态"),
+        ("system", "更多"),
+    ):
+        require(share_bar, f'channel: "{channel}"',
+                f"share action channel {channel}")
+        require(share_bar, label, f"share action label {label}")
+    require(share, "MobileShareActionBar",
+            "app share action bar")
+    require(share, "readonly property int posterRadius: 22",
+            "shared rounded app poster radius")
+    require(share, "radius: root.posterRadius",
+            "app preview uses poster radius")
+    require(share, "border.width: 1",
+            "visible app preview masked hairline")
+    require(rounded_frame, "import QtQuick.Effects",
+            "Qt Quick effects rounded mask")
+    require(rounded_frame, "default property alias content:",
+            "rounded frame content API")
+    require(rounded_frame, "MultiEffect",
+            "rounded frame compositor")
+    require(rounded_frame, "maskSource: mask",
+            "rounded frame mask source")
+    require(share, "MobileRoundedFrame",
+            "app preview true rounded mask")
+    qml_cmake = read("qml/CMakeLists.txt")
+    require(qml_cmake, "MobileShareActionBar.qml",
+            "share action bar QML registration")
+    require(qml_cmake, "MobileRoundedFrame.qml",
+            "rounded frame QML registration")
+    if profiles.count("sceneSource:") != 12:
+        raise AssertionError("month profiles must define twelve scene sources")
+    require(season_scene, "Image.PreserveAspectCrop",
+            "season scene preserves portrait crop")
+    require(season_scene, "reducedMotion",
+            "season scene reduced-motion mode")
+    require(season_scene, "rainDrop",
+            "independent seasonal rain particles")
+    monthly_pages = (
+        "MonthlyCoverPage.qml",
+        "MonthlyOverviewPage.qml",
+        "MonthlyHighlightPage.qml",
+        "MonthlyCompanionPage.qml",
+        "MonthlyRankingPage.qml",
+        "MonthlySharePage.qml",
+    )
+    for page_name in monthly_pages:
+        page_path = ROOT / "qml/mobile/components/monthly" / page_name
+        if not page_path.exists():
+            raise AssertionError(f"missing monthly story page: {page_name}")
+    monthly_story = read("qml/mobile/components/MobileMonthlyStory.qml")
+    require(monthly_story, "readonly property int pageCount: 6",
+            "six-page monthly story")
+    require(monthly_story, "MobileSeasonScene",
+            "monthly story seasonal scene")
+    require(monthly_story, "DragHandler",
+            "monthly story swipe gesture")
+    require(monthly_story, "Qt.size(1080, 1920)",
+            "portrait monthly share export")
+    monthly_share = read(
+        "qml/mobile/components/monthly/MonthlySharePage.qml"
+    )
+    require(monthly_share, "id: monthlyPoster",
+            "explicit monthly share preview")
+    require(monthly_share, "radius: 22",
+            "rounded monthly share preview")
+    require(monthly_share, "id: monthlyShareSheet",
+            "monthly neutral share sheet")
+    require(monthly_share, "color: root.theme.surface",
+            "monthly share sheet neutral surface")
+    require(monthly_share, "MobileRoundedFrame",
+            "monthly preview true rounded mask")
+    require(monthly_share,
+            "signal shareRequested(string channel, var previewItem)",
+            "monthly preview item share signal")
+    require(monthly_share,
+            "root.shareRequested(channel, monthlyPoster)",
+            "monthly preview capture handoff")
+    require(monthly_story,
+            "function exportReport(channel, previewItem)",
+            "monthly export accepts explicit preview")
+    require(monthly_story, "var captureItem = previewItem || reportSurface",
+            "monthly export capture source")
+    require(settings, "id: profileArchive",
+            "Profile personal time archive")
+    require(settings, "id: avatarDialog",
+            "Profile avatar picker")
+    require(settings, "mobileUiService.importAvatar(selectedFile)",
+            "Profile avatar import handoff")
+    require(settings, "property url avatarSource: \"\"",
+            "explicit Profile avatar source")
+    require(settings, "function refreshAvatarSource()",
+            "Profile avatar refresh function")
+    require(settings, "function onAvatarChanged()",
+            "Profile avatar change connection")
+    require(settings, "root.avatarSource = \"\"",
+            "Profile avatar cache reset")
+    require(settings, "Qt.callLater",
+            "deferred Profile avatar reassignment")
+    require(settings, "id: avatarFeedback",
+            "Profile avatar selection feedback")
+    require(settings, "MobileRoundedFrame",
+            "circular Profile avatar")
+    for label in ("开始记录", "已陪伴", "实际记录"):
+        require(settings, label, f"Profile archive fact {label}")
+    require(usage_header, "Q_INVOKABLE QVariantMap getReportReleaseStatus",
+            "report release status API")
+    require(usage_header,
+            "Q_INVOKABLE QVariantMap getMemoryLakeForLatestReleasedMonth",
+            "released-month Memory Lake API")
+    require(usage_header, "latestReleasedMonthKey",
+            "testable latest released month policy")
+    require(usage_header, "latestReleasedYearKey",
+            "testable latest released year policy")
+    require(usage_service, "QTime(8, 0)",
+            "08:00 report release boundary")
+    require(usage_service, "localNow >= releaseTime ? -1 : -2",
+            "08:00 month release offset selection")
+    require(usage_service, "monthStart.addMonths(1).addDays(-1)",
+            "exact released-month range")
+    require(history, "getMemoryLakeForLatestReleasedMonth",
+            "Memory Lake released-month consumption")
+    if "getMemoryLakeForCurrentMonth()" in history:
+        raise AssertionError("Memory Lake must not expose an in-progress month")
+    require(status_bar, "height: 0",
+            "zero-height platform status placeholder")
+    for fake_status in ("9:41", "battery"):
+        if fake_status in status_bar:
+            raise AssertionError(
+                f"mobile status bar still contains fake state: {fake_status}"
+            )
+    require(tab_button, "property bool badgeVisible",
+            "tab notification badge property")
+    require(tab_button, "id: notificationBadge",
+            "tab notification badge item")
+    require(theme, "readonly property color notificationRed",
+            "report notification color token")
+    require(shell, "property bool reportUnread",
+            "shell report unread state")
+    require(shell, "mobile_seen_report_release_token",
+            "persisted report seen token")
+    require(shell, "getReportReleaseStatus()",
+            "shell report release refresh")
+    require(shell, "badgeVisible:",
+            "History tab badge binding")
+    readme = read("README.md")
+    require(readme, "本地头像",
+            "README local avatar behavior")
+    require(readme, "次月 1 日 08:00",
+            "README monthly report release schedule")
+    require(monthly_story, '(root.currentPage + 1) + " / " + root.pageCount',
+            "neutral monthly story progress marker")
+    if '? "完成"' in monthly_story:
+        raise AssertionError("monthly story must not show abrupt completion copy")
+    ranking_share_path = (
+        ROOT / "qml/mobile/components/MobileRankingShareOverlay.qml"
+    )
+    if not ranking_share_path.exists():
+        raise AssertionError("missing ranking share overlay")
+    ranking_share = ranking_share_path.read_text(encoding="utf-8")
+    require(ranking_share, "MobileShareActionBar",
+            "ranking share action bar")
+    require(monthly_story, "shareImageToChannel",
+            "monthly channel share handoff")
+    require(ranking_share, "function openForRanking",
+            "range ranking share entry point")
+    require(ranking_share, "MobileAppIcon",
+            "ranking share uses actual app icons")
+    require(ranking_share, "grabToImage",
+            "ranking share image export")
+    require(stats, "rankingShare.openForRanking",
+            "Statistics ranking share action")
     story_block = share.split("function storyForShare()", 1)[1].split(
-        "function exportAndShare()", 1
+        "function exportAndShare(channel)", 1
     )[0]
     if "displayName" in story_block:
         raise AssertionError(

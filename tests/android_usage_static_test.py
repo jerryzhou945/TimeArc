@@ -19,6 +19,7 @@ def main():
     session_dto = read("android/src/main/java/com/timearc/mobile/usage/UsageSessionDto.java")
     stats_reader = read("android/src/main/java/com/timearc/mobile/usage/UsageStatsReader.java")
     events_reader = read("android/src/main/java/com/timearc/mobile/usage/UsageEventsReader.java")
+    sync_worker = read("android/src/main/java/com/timearc/mobile/usage/UsageSyncWorker.java")
     jni_bridge = read("src/services/mobile/android_usage_jni_bridge.cpp")
     mobile_repo_h = read("src/services/mobile/mobile_usage_repository.h")
     mobile_repo_cpp = read("src/services/mobile/mobile_usage_repository.cpp")
@@ -44,6 +45,10 @@ def main():
             "aggregated usage metadata resolver")
     require(events_reader, "AndroidAppMetadataResolver.resolve",
             "usage event metadata resolver")
+    require(sync_worker, "RECENT_SESSION_LOOKBACK_DAYS = 35",
+            "monthly session lookback")
+    require(sync_worker, "startOfPreviousMonthMs",
+            "current and previous month aggregate backfill")
     require(jni_bridge, "\"appIconPath\"", "JNI icon path field extraction")
     require(mobile_repo_h, "const QString& appIconPath",
             "mobile repository icon path parameter")

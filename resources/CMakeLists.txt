@@ -60,6 +60,18 @@ set(TIME_ARC_RESOURCE_FILES
     resources/memorylake/senren.png
     resources/memorylake/p3r.png
     resources/memorylake/elden.png
+    resources/mobile/monthly/month-01.jpg
+    resources/mobile/monthly/month-02.jpg
+    resources/mobile/monthly/month-03.jpg
+    resources/mobile/monthly/month-04.jpg
+    resources/mobile/monthly/month-05.jpg
+    resources/mobile/monthly/month-06.jpg
+    resources/mobile/monthly/month-07.jpg
+    resources/mobile/monthly/month-08.jpg
+    resources/mobile/monthly/month-09.jpg
+    resources/mobile/monthly/month-10.jpg
+    resources/mobile/monthly/month-11.jpg
+    resources/mobile/monthly/month-12.jpg
     # 第三方许可证全文（F1-S2 共享产物：随包分发 + F2 应用内渲染，单一真相源）。
     # qrc 内嵌 → 离线可达（rules/06 §4(2) / CHARTER I6）。新增 thirdparty 组件时
     # 须同步在此追加文本并补一行页面条目（rules/06 §4(3)）。

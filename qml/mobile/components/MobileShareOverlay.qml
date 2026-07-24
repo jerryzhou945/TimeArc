@@ -7,9 +7,11 @@ Item {
     property var app: ({})
     property string dateRange: ""
     property bool anonymous: false
+    property url wallpaperSource: ""
     property bool opened: false
     property string errorText: ""
     property string feedbackText: ""
+    readonly property int posterRadius: 22
 
     signal closed()
 
@@ -43,7 +45,7 @@ Item {
         return duration + " 被安静地收进了时间档案，没有留下身份线索。"
     }
 
-    function exportAndShare() {
+    function exportAndShare(channel) {
         errorText = ""
         feedbackText = "正在生成图片…"
         poster.grabToImage(function(result) {
@@ -59,7 +61,8 @@ Item {
                 feedbackText = ""
                 return
             }
-            if (!mobileUiService.shareImage(path, "分享时间纪念卡")) {
+            if (!mobileUiService.shareImageToChannel(
+                        path, channel || "system", "分享时间纪念卡")) {
                 errorText = mobileUiService.lastError
                 feedbackText = ""
                 return
@@ -147,14 +150,33 @@ Item {
                 width: parent.width
                 height: Math.min(510, sheet.height - 188)
 
-                Rectangle {
+                MobileRoundedFrame {
                     id: poster
                     anchors.centerIn: parent
                     width: Math.min(parent.width, parent.height * 0.5625)
                     height: width / 0.5625
-                    radius: 18
-                    color: root.theme.memoryBrown
-                    clip: true
+                    radius: root.posterRadius
+                    border.width: 1
+                    border.color: root.theme.withAlpha(
+                                      root.theme.memoryInk, 0.20)
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: root.theme.memoryBrown
+                    }
+
+                    Image {
+                        anchors.fill: parent
+                        source: root.wallpaperSource
+                        fillMode: Image.PreserveAspectCrop
+                        visible: source.toString().length > 0
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: root.wallpaperSource.toString().length > 0
+                               ? "#8C15191D" : "#0015191D"
+                    }
 
                     Canvas {
                         anchors.fill: parent
@@ -278,17 +300,18 @@ Item {
                             wrapMode: Text.WordWrap
                         }
                     }
+
                 }
             }
 
-            Row {
+            Column {
                 width: parent.width
-                height: 44
-                spacing: 10
+                height: 108
+                spacing: 4
 
                 Rectangle {
-                    width: 116
-                    height: parent.height
+                    width: parent.width
+                    height: 32
                     radius: root.theme.controlRadius
                     color: root.theme.surfaceRaised
 
@@ -307,24 +330,12 @@ Item {
                     }
                 }
 
-                Rectangle {
-                    width: parent.width - 126
-                    height: parent.height
-                    radius: root.theme.controlRadius
-                    color: root.theme.accent
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "保存并分享"
-                        color: "white"
-                        font.family: root.theme.fontFamily
-                        font.pixelSize: 13
-                        font.weight: Font.Bold
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.exportAndShare()
+                MobileShareActionBar {
+                    width: parent.width
+                    theme: root.theme
+                    compact: true
+                    onChannelRequested: function(channel) {
+                        root.exportAndShare(channel)
                     }
                 }
             }

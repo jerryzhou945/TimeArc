@@ -10,6 +10,8 @@ Rectangle {
     property string currentTab: "home"
     property int topReserve: 0
     property url wallpaperSource: ""
+    property bool reportUnread: false
+    property string currentReportReleaseToken: ""
     readonly property bool wallpaperActive:
         wallpaperSource.toString().length > 0
 
@@ -35,6 +37,32 @@ Rectangle {
         if (typeof settingsRepository !== "undefined" && settingsRepository)
             settingsRepository.setValue("mobile_theme_mode",
                                         enabled ? "dark" : "light")
+    }
+
+    function refreshReportNotification() {
+        if (typeof mobileUsageService === "undefined"
+                || !mobileUsageService
+                || typeof settingsRepository === "undefined"
+                || !settingsRepository) {
+            root.reportUnread = false
+            return
+        }
+        var status = mobileUsageService.getReportReleaseStatus()
+        root.currentReportReleaseToken = status.releaseToken || ""
+        var seen = settingsRepository.getValue(
+                    "mobile_seen_report_release_token", "")
+        root.reportUnread = root.currentReportReleaseToken.length > 0
+                && seen !== root.currentReportReleaseToken
+    }
+
+    function markReportsSeen() {
+        if (root.currentReportReleaseToken.length === 0
+                || typeof settingsRepository === "undefined"
+                || !settingsRepository)
+            return
+        settingsRepository.setValue("mobile_seen_report_release_token",
+                                    root.currentReportReleaseToken)
+        root.reportUnread = false
     }
 
     function ensureUsageAccessOnboarding() {
@@ -69,6 +97,64 @@ Rectangle {
         }
     }
 
+    Connections {
+        target: typeof mobileUsageService !== "undefined"
+                ? mobileUsageService : null
+
+        function onDataChanged() {
+            root.refreshReportNotification()
+        }
+        function onStatusChanged() {
+            root.refreshReportNotification()
+        }
+    }
+
+    Timer {
+        interval: 60000
+        running: true
+        repeat: true
+        onTriggered: root.refreshReportNotification()
+    }
+
+    Rectangle {
+        id: defaultCanvas
+        anchors.fill: parent
+        visible: !root.wallpaperActive
+        gradient: Gradient {
+            GradientStop {
+                position: 0.0
+                color: mobileTheme.defaultCanvasTop
+            }
+            GradientStop {
+                position: 0.46
+                color: mobileTheme.defaultCanvasMiddle
+            }
+            GradientStop {
+                position: 1.0
+                color: mobileTheme.defaultCanvasBottom
+            }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: parent.height * 0.42
+            opacity: mobileTheme.isDark ? 0.18 : 0.24
+            gradient: Gradient {
+                GradientStop {
+                    position: 0.0
+                    color: mobileTheme.withAlpha(
+                               mobileTheme.accentBright, 0.22)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: "transparent"
+                }
+            }
+        }
+    }
+
     Image {
         id: wallpaper
         anchors.fill: parent
@@ -85,7 +171,7 @@ Rectangle {
                ? (root.currentTab === "home"
                   ? mobileTheme.wallpaperVeil
                   : mobileTheme.wallpaperPageVeil)
-               : mobileTheme.bg
+               : "transparent"
 
         Behavior on color {
             ColorAnimation { duration: mobileTheme.fastDuration }
@@ -106,7 +192,9 @@ Rectangle {
             enabled: visible
             theme: mobileTheme
             wallpaperActive: root.wallpaperActive
+            wallpaperSource: root.wallpaperSource
             anonymousShare: settingsPage.anonymousShare
+            onWallpaperRequested: settingsPage.openWallpaperDialog()
         }
 
         MobileStatsPage {
@@ -115,6 +203,7 @@ Rectangle {
             enabled: visible
             theme: mobileTheme
             wallpaperActive: root.wallpaperActive
+            wallpaperSource: root.wallpaperSource
         }
 
         MobileHistoryPage {
@@ -178,7 +267,13 @@ Rectangle {
                     iconName: modelData.icon
                     active: root.currentTab === modelData.key
                     wallpaperActive: root.wallpaperActive
-                    onClicked: root.currentTab = modelData.key
+                    badgeVisible: modelData.key === "history"
+                                  && root.reportUnread
+                    onClicked: {
+                        root.currentTab = modelData.key
+                        if (modelData.key === "history")
+                            root.markReportsSeen()
+                    }
                 }
             }
         }
@@ -187,6 +282,7 @@ Rectangle {
     Component.onCompleted: {
         refreshWallpaper()
         loadThemePreference()
+        refreshReportNotification()
         ensureUsageAccessOnboarding()
     }
 }

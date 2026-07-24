@@ -72,6 +72,17 @@ set(TIME_ARC_QML_FILES
     qml/mobile/components/MobileUsageRankRow.qml
     qml/mobile/components/MobileShareOverlay.qml
     qml/mobile/components/MobileMonthlyStory.qml
+    qml/mobile/components/MobileMonthProfiles.js
+    qml/mobile/components/MobileSeasonScene.qml
+    qml/mobile/components/MobileRankingShareOverlay.qml
+    qml/mobile/components/MobileShareActionBar.qml
+    qml/mobile/components/MobileRoundedFrame.qml
+    qml/mobile/components/monthly/MonthlyCoverPage.qml
+    qml/mobile/components/monthly/MonthlyOverviewPage.qml
+    qml/mobile/components/monthly/MonthlyHighlightPage.qml
+    qml/mobile/components/monthly/MonthlyCompanionPage.qml
+    qml/mobile/components/monthly/MonthlyRankingPage.qml
+    qml/mobile/components/monthly/MonthlySharePage.qml
 )
 
 set(TIME_ARC_QML_FILES ${TIME_ARC_QML_FILES} PARENT_SCOPE)

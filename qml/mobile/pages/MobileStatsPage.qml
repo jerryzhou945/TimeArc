@@ -6,6 +6,7 @@ Item {
 
     required property var theme
     property bool wallpaperActive: false
+    property url wallpaperSource: ""
     readonly property int dateRailWidth: 52
     property var rangeKeys: ["week", "month", "year", "all"]
     property var rangeMeta: ({
@@ -500,6 +501,35 @@ Item {
                         topPadding: 6
                     }
 
+                    Rectangle {
+                        width: parent.width
+                        height: 44
+                        radius: 14
+                        color: root.wallpaperActive
+                               ? root.theme.contentWash : root.theme.accentSoft
+                        border.width: 1
+                        border.color: root.wallpaperActive
+                                      ? root.theme.timelineLine
+                                      : root.theme.accentBorder
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "分享这份排行"
+                            color: root.wallpaperActive
+                                   ? root.theme.wallpaperInk
+                                   : root.theme.accentBright
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 13
+                            font.weight: Font.Bold
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: rankingShare.openForRanking(
+                                           root.dashboardFor(root.selectedRange))
+                        }
+                    }
+
                     Text {
                         width: parent.width
                         visible: (root.dashboardFor(
@@ -531,5 +561,11 @@ Item {
                 }
             }
         }
+    }
+
+    MobileRankingShareOverlay {
+        id: rankingShare
+        theme: root.theme
+        wallpaperSource: root.wallpaperSource
     }
 }

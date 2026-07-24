@@ -1,5 +1,6 @@
 import QtQuick
 import "../components"
+import "../components/MobileMonthProfiles.js" as MonthProfiles
 
 Item {
     id: root
@@ -15,6 +16,15 @@ Item {
     })
     readonly property var report: lakeModel.report || ({})
     readonly property var moments: lakeModel.moments || []
+    readonly property int reportMonth: {
+        var key = (report.monthKey || "").toString()
+        return key.length >= 7
+                ? Math.max(1, Math.min(12, parseInt(key.slice(5, 7), 10)))
+                : new Date().getMonth() + 1
+    }
+    readonly property var coverProfile:
+        report.profile && report.profile.sceneSource
+        ? report.profile : MonthProfiles.forMonth(reportMonth)
 
     function previewApp(name, initial, iconPath) {
         return {
@@ -113,7 +123,7 @@ Item {
         lakeModel = isPreviewMode()
                 ? previewLake()
                 : (hasService()
-                   ? mobileUsageService.getMemoryLakeForCurrentMonth()
+                   ? mobileUsageService.getMemoryLakeForLatestReleasedMonth()
                    : ({ "report": {}, "moments": [],
                         "topApps": [], "empty": true }))
     }
@@ -198,51 +208,31 @@ Item {
                     height: 252
                     radius: 18
                     clip: true
-                    color: root.theme.isDark ? "#17332A" : "#BBD29C"
+                    color: root.theme.bg
 
-                    Canvas {
+                    Image {
                         anchors.fill: parent
-                        onPaint: {
-                            var ctx = getContext("2d")
-                            ctx.reset()
-                            var g = ctx.createLinearGradient(0, 0, width, height)
-                            g.addColorStop(0, "#17352C")
-                            g.addColorStop(0.58, "#567D4E")
-                            g.addColorStop(1, "#B7C991")
-                            ctx.fillStyle = g
-                            ctx.fillRect(0, 0, width, height)
-
-                            for (var i = 0; i < 44; ++i) {
-                                var x = (i * 79) % width
-                                var y = 40 + (i * 53) % (height - 20)
-                                var r = 6 + (i % 5) * 3
-                                ctx.fillStyle = i % 3 === 0
-                                        ? "rgba(218,228,146,.30)"
-                                        : "rgba(47,91,57,.42)"
-                                ctx.beginPath()
-                                ctx.ellipse(x, y, r * 0.55, r, i * 0.43,
-                                            0, Math.PI * 2)
-                                ctx.fill()
-                            }
-                            ctx.strokeStyle = "rgba(225,243,226,.28)"
-                            ctx.lineWidth = 1
-                            for (var rain = 20; rain < width + 100; rain += 34) {
-                                ctx.beginPath()
-                                ctx.moveTo(rain, 0)
-                                ctx.lineTo(rain - 72, height)
-                                ctx.stroke()
-                            }
-                        }
+                        source: root.coverProfile.sceneSource || ""
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
                     }
 
                     Rectangle {
                         anchors.fill: parent
-                        color: root.theme.isDark ? "#3D000000" : "#26000000"
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: "#2710181A" }
+                            GradientStop { position: 0.48; color: "#4710181A" }
+                            GradientStop { position: 1.0; color: "#A810181A" }
+                        }
                     }
 
                     Column {
-                        anchors.fill: parent
-                        anchors.margins: 20
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.leftMargin: 20
+                        anchors.rightMargin: 20
+                        anchors.topMargin: 20
                         spacing: 9
 
                         Text {
@@ -262,7 +252,7 @@ Item {
                             font.weight: Font.Bold
                             lineHeight: 1.18
                             wrapMode: Text.WordWrap
-                            maximumLineCount: 3
+                            maximumLineCount: 2
                             elide: Text.ElideRight
                         }
 
@@ -275,22 +265,44 @@ Item {
                             font.pixelSize: 13
                             lineHeight: 1.42
                             wrapMode: Text.WordWrap
-                            maximumLineCount: 3
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    Row {
+                        id: reportFooter
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.leftMargin: 20
+                        anchors.rightMargin: 20
+                        anchors.bottomMargin: 16
+                        height: root.theme.controlHeight
+                        spacing: 12
+
+                        Text {
+                            width: parent.width - 146
+                            height: parent.height
+                            text: root.coverProfile.eyebrow || "SEASONAL STORY"
+                            color: "#CFFFFFFF"
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
                         }
 
-                        Item { width: 1; height: 4 }
-
                         Rectangle {
                             width: 134
-                            height: 42
+                            height: root.theme.controlHeight
                             radius: root.theme.controlRadius
-                            color: "#EAF5E8"
+                            color: "#E8FFFFFF"
 
                             Text {
                                 anchors.centerIn: parent
                                 text: "打开完整月报"
-                                color: "#17352C"
+                                color: root.coverProfile.accentInk || "#17352C"
                                 font.family: root.theme.fontFamily
                                 font.pixelSize: 13
                                 font.weight: Font.Bold
