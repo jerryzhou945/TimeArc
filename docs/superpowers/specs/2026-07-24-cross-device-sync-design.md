@@ -1,6 +1,6 @@
 # TimeArc 中国大陆跨端同步设计
 
-**状态：** 待用户审阅
+**状态：** 已批准
 
 **日期：** 2026-07-24
 
@@ -602,8 +602,9 @@ Idle
 
 ## 13. Git 与交付规则设计
 
-实施前增加 `.harness/rules/07-delivery-workflow.md`，并按冻结文件流程更新
-`.harness/AGENTS.md` 的规则路由。先提交 change proposal，再改冻结文件。
+实施前补强现有 `.harness/rules/08-git-workflow.md`，并按冻结文件流程更新
+`.harness/AGENTS.md` 的规则路由。`07` 已由产品 AI 卡片规则占用，不新增重复
+规则。先提交 change proposal，再改冻结文件。
 
 ### 13.1 小功能提交
 

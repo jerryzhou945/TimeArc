@@ -1,6 +1,6 @@
 # TimeArc 跨端同步执行进度
 
-**状态：** 设计待审阅，尚未开始实现
+**状态：** 设计已批准，E0 实施计划待执行
 
 **目标分支：** `dev`
 
@@ -35,7 +35,7 @@
 ## E0 — Harness 交付规则
 
 - [ ] 创建 Feature Track change proposal。
-- [ ] 新增 `.harness/rules/07-delivery-workflow.md`。
+- [ ] 补强现有 `.harness/rules/08-git-workflow.md`。
 - [ ] 更新冻结的 `.harness/AGENTS.md` 规则路由。
 - [ ] 定义小功能 commit 和 Epic PR 的验收边界。
 - [ ] 要求 session log 写完成、未完成、验证、下一步和风险。
@@ -195,11 +195,10 @@
 - 确认首版应用类别。
 - 确认采用 TimeArc Sync API + CloudBase Auth + CloudBase MySQL。
 - 完成应用映射、数据库、同步协议和交付流程设计草案。
+- 完成 E0 交付规则的逐文件、逐测试实施计划。
 
 **未完成**
 
-- 用户尚未审阅并批准设计规格。
-- 尚未创建实施计划。
 - 尚未修改 harness 交付规则。
 - 尚未创建 CloudBase 环境或编写功能代码。
 
@@ -210,9 +209,8 @@
 
 **下一步**
 
-- 用户审阅设计文件。
-- 根据反馈修订。
-- 审批后生成逐文件、逐测试的实施计划。
+- 用户选择执行方式。
+- 按 E0 计划实施 Rule 08 补强。
 
 **风险**
 

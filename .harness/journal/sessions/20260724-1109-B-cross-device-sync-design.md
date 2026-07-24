@@ -24,7 +24,8 @@ code, database, frozen file, or external cloud resource was changed.
 
 ## Outcome
 
-Design is awaiting user review. Implementation remains incomplete; after
-approval, create one execution plan per Epic beginning with E0 delivery rules.
-Future implementation is expected to touch rules 01, 03, 04, and 06 only where
-the corresponding code or dependency changes require it.
+Design was approved. The E0 delivery-workflow plan is complete at
+`docs/superpowers/plans/2026-07-24-cross-device-sync-e0-delivery-workflow.md`.
+Implementation remains incomplete; Rule 08 has not yet been changed and E1-E9
+have not started. Next: choose an execution mode and implement E0. Risks:
+CloudBase production setup and app aliases still require external validation.
