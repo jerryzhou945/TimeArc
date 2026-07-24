@@ -2,10 +2,12 @@ import QtQuick
 import ".."
 
 Item {
+    id: root
+
     property var theme
     property var report: ({})
     property var profile: ({})
-    signal shareRequested()
+    signal shareRequested(string channel)
 
     Column {
         anchors.left: parent.left
@@ -16,9 +18,9 @@ Item {
         spacing: 18
 
         Text {
-            text: report.monthLabel || "本月时间报告"
-            color: profile.accent || "#FFFFFF"
-            font.family: theme.fontFamily
+            text: root.report.monthLabel || "本月时间报告"
+            color: root.profile.accent || "#FFFFFF"
+            font.family: root.theme.fontFamily
             font.pixelSize: 12
             font.letterSpacing: 1.2
             font.weight: Font.Bold
@@ -28,7 +30,7 @@ Item {
             width: parent.width
             text: "把这个月\n收进一张卡片"
             color: "white"
-            font.family: theme.fontFamily
+            font.family: root.theme.fontFamily
             font.pixelSize: 38
             font.weight: Font.Black
             lineHeight: 1.05
@@ -48,17 +50,17 @@ Item {
                 spacing: 9
 
                 Text {
-                    text: report.totalText || "0 分钟"
+                    text: root.report.totalText || "0 分钟"
                     color: "white"
-                    font.family: theme.numberFontFamily
+                    font.family: root.theme.numberFontFamily
                     font.pixelSize: 30
                     font.weight: Font.Black
                 }
                 Text {
                     width: parent.width
-                    text: report.summary || profile.opening
+                    text: root.report.summary || root.profile.opening
                     color: "#DEFFFFFF"
-                    font.family: theme.fontFamily
+                    font.family: root.theme.fontFamily
                     font.pixelSize: 13
                     lineHeight: 1.45
                     wrapMode: Text.WordWrap
@@ -68,30 +70,18 @@ Item {
                 Text {
                     text: "TimeArc · 只分享聚合后的时间"
                     color: "#AFFFFFFF"
-                    font.family: theme.fontFamily
+                    font.family: root.theme.fontFamily
                     font.pixelSize: 10
                 }
             }
         }
 
-        Rectangle {
+        MobileShareActionBar {
             width: parent.width
-            height: 50
-            radius: 16
-            color: profile.accent || "#FFFFFF"
-
-            Text {
-                anchors.centerIn: parent
-                text: "保存并分享"
-                color: profile.accentInk || "#172026"
-                font.family: theme.fontFamily
-                font.pixelSize: 14
-                font.weight: Font.Bold
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: parent.parent.parent.shareRequested()
+            theme: root.theme
+            compact: true
+            onChannelRequested: function(channel) {
+                root.shareRequested(channel)
             }
         }
     }

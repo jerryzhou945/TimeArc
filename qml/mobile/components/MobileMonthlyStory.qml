@@ -49,7 +49,7 @@ Item {
         currentPage = Math.max(0, currentPage - 1)
     }
 
-    function exportReport() {
+    function exportReport(channel) {
         errorText = ""
         feedbackText = "正在生成月报卡片…"
         reportSurface.grabToImage(function(result) {
@@ -65,7 +65,8 @@ Item {
                 feedbackText = ""
                 return
             }
-            if (!mobileUiService.shareImage(path, "分享月度时间报告")) {
+            if (!mobileUiService.shareImageToChannel(
+                        path, channel || "system", "分享月度时间报告")) {
                 errorText = mobileUiService.lastError
                 feedbackText = ""
                 return
@@ -141,7 +142,9 @@ Item {
                 report: root.report
                 profile: root.profile
                 visible: root.currentPage === 5
-                onShareRequested: root.exportReport()
+                onShareRequested: function(channel) {
+                    root.exportReport(channel)
+                }
             }
         }
 

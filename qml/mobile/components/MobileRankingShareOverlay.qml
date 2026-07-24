@@ -28,7 +28,7 @@ Item {
                 + " 留下了最多时间；其余片段，也共同组成了这段生活的去向。"
     }
 
-    function exportAndShare() {
+    function exportAndShare(channel) {
         message = "正在生成排行卡片…"
         poster.grabToImage(function(result) {
             if (typeof mobileUiService === "undefined" || !mobileUiService) {
@@ -41,7 +41,8 @@ Item {
                 message = "排行图片保存失败，请重试。"
                 return
             }
-            if (!mobileUiService.shareImage(path, "分享时间使用排行")) {
+            if (!mobileUiService.shareImageToChannel(
+                        path, channel || "system", "分享时间使用排行")) {
                 message = mobileUiService.lastError
                 return
             }
@@ -255,22 +256,12 @@ Item {
                 }
             }
 
-            Rectangle {
+            MobileShareActionBar {
                 width: parent.width
-                height: 46
-                radius: 14
-                color: root.theme.accent
-                Text {
-                    anchors.centerIn: parent
-                    text: "保存并分享排行"
-                    color: "white"
-                    font.family: root.theme.fontFamily
-                    font.pixelSize: 13
-                    font.weight: Font.Bold
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.exportAndShare()
+                theme: root.theme
+                compact: true
+                onChannelRequested: function(channel) {
+                    root.exportAndShare(channel)
                 }
             }
             Text {

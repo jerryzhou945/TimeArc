@@ -42,6 +42,10 @@ def main():
     app_icon = read("qml/mobile/components/MobileAppIcon.qml")
     flip_card = read("qml/mobile/components/MobileFlipCard.qml")
     share = read("qml/mobile/components/MobileShareOverlay.qml")
+    share_bar_path = ROOT / "qml/mobile/components/MobileShareActionBar.qml"
+    if not share_bar_path.exists():
+        raise AssertionError("missing unified mobile share action bar")
+    share_bar = share_bar_path.read_text(encoding="utf-8")
     profiles_path = ROOT / "qml/mobile/components/MobileMonthProfiles.js"
     season_scene_path = ROOT / "qml/mobile/components/MobileSeasonScene.qml"
     if not profiles_path.exists() or not season_scene_path.exists():
@@ -212,6 +216,20 @@ def main():
             "anonymous-safe share story")
     require(share, "text: root.storyForShare()",
             "share poster uses privacy-filtered story")
+    for channel, label in (
+        ("gallery", "保存到图库"),
+        ("moments", "朋友圈"),
+        ("qzone", "QQ动态"),
+        ("system", "更多"),
+    ):
+        require(share_bar, f'channel: "{channel}"',
+                f"share action channel {channel}")
+        require(share_bar, label, f"share action label {label}")
+    require(share, "MobileShareActionBar",
+            "app share action bar")
+    qml_cmake = read("qml/CMakeLists.txt")
+    require(qml_cmake, "MobileShareActionBar.qml",
+            "share action bar QML registration")
     if profiles.count("sceneSource:") != 12:
         raise AssertionError("month profiles must define twelve scene sources")
     require(season_scene, "Image.PreserveAspectCrop",
@@ -251,6 +269,10 @@ def main():
     if not ranking_share_path.exists():
         raise AssertionError("missing ranking share overlay")
     ranking_share = ranking_share_path.read_text(encoding="utf-8")
+    require(ranking_share, "MobileShareActionBar",
+            "ranking share action bar")
+    require(monthly_story, "shareImageToChannel",
+            "monthly channel share handoff")
     require(ranking_share, "function openForRanking",
             "range ranking share entry point")
     require(ranking_share, "MobileAppIcon",
@@ -260,7 +282,7 @@ def main():
     require(stats, "rankingShare.openForRanking",
             "Statistics ranking share action")
     story_block = share.split("function storyForShare()", 1)[1].split(
-        "function exportAndShare()", 1
+        "function exportAndShare(channel)", 1
     )[0]
     if "displayName" in story_block:
         raise AssertionError(

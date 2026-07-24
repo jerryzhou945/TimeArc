@@ -44,7 +44,7 @@ Item {
         return duration + " 被安静地收进了时间档案，没有留下身份线索。"
     }
 
-    function exportAndShare() {
+    function exportAndShare(channel) {
         errorText = ""
         feedbackText = "正在生成图片…"
         poster.grabToImage(function(result) {
@@ -60,7 +60,8 @@ Item {
                 feedbackText = ""
                 return
             }
-            if (!mobileUiService.shareImage(path, "分享时间纪念卡")) {
+            if (!mobileUiService.shareImageToChannel(
+                        path, channel || "system", "分享时间纪念卡")) {
                 errorText = mobileUiService.lastError
                 feedbackText = ""
                 return
@@ -295,14 +296,14 @@ Item {
                 }
             }
 
-            Row {
+            Column {
                 width: parent.width
-                height: 44
-                spacing: 10
+                height: 108
+                spacing: 4
 
                 Rectangle {
-                    width: 116
-                    height: parent.height
+                    width: parent.width
+                    height: 32
                     radius: root.theme.controlRadius
                     color: root.theme.surfaceRaised
 
@@ -321,24 +322,12 @@ Item {
                     }
                 }
 
-                Rectangle {
-                    width: parent.width - 126
-                    height: parent.height
-                    radius: root.theme.controlRadius
-                    color: root.theme.accent
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "保存并分享"
-                        color: "white"
-                        font.family: root.theme.fontFamily
-                        font.pixelSize: 13
-                        font.weight: Font.Bold
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.exportAndShare()
+                MobileShareActionBar {
+                    width: parent.width
+                    theme: root.theme
+                    compact: true
+                    onChannelRequested: function(channel) {
+                        root.exportAndShare(channel)
                     }
                 }
             }

@@ -230,7 +230,9 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 - Mobile share surfaces export portrait app cards, range ranking posters, and
   the six-page monthly story. App and ranking posters reuse the user's private
   wallpaper when set, retain real application icons, and contain only
-  aggregated usage facts.
+  aggregated usage facts. `MobileShareActionBar` gives every poster the same
+  gallery-first entry points for local save, WeChat Moments, QQ Zone, and the
+  Android Sharesheet, with honest authorization status.
 - Android UI-private wallpaper and share files are managed by
   `MobileUiService` under the app data directory. They do not enter either
   SQLite usage database or the service control-file contract.
