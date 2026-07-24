@@ -19,6 +19,41 @@ def require(text, needle, label):
         raise AssertionError(f"missing {label}: {needle}")
 
 
+def require_section(text, heading, next_heading, label):
+    if heading not in text or next_heading not in text:
+        raise AssertionError(f"missing {label} section boundaries")
+    return text.split(heading, 1)[1].split(next_heading, 1)[0]
+
+
+def checklist_items(section):
+    items = []
+    current = []
+    for line in section.splitlines():
+        if line.startswith("- [ ] "):
+            if current:
+                items.append(" ".join(" ".join(current).split()))
+            current = [line]
+        elif current and line.startswith("      "):
+            current.append(line.strip())
+        elif current:
+            items.append(" ".join(" ".join(current).split()))
+            current = []
+    if current:
+        items.append(" ".join(" ".join(current).split()))
+    return items
+
+
+def require_checklist_item(section, clauses, label):
+    if not any(
+        all(clause in item for clause in clauses)
+        for item in checklist_items(section)
+    ):
+        raise AssertionError(
+            f"missing {label}: expected one checklist item containing "
+            + " | ".join(clauses)
+        )
+
+
 def require_line_budget(rel):
     count = len(read(rel).splitlines())
     if count > 100:
@@ -62,6 +97,7 @@ def main():
     agents = read(".harness/AGENTS.md")
     before_coding = read(".harness/checklists/before-coding.md")
     before_commit = read(".harness/checklists/before-commit.md")
+    progress = read("docs/cross-device-sync-progress.md")
 
     require(
         rule,
@@ -87,15 +123,46 @@ def main():
     )
     require_agents_route(agents)
     require_agents_frozen_hash()
-    require(
+    coding_scope = require_section(
         before_coding,
-        "Name the active progress checklist",
+        "## Understand scope",
+        "## Check state",
+        "before-coding Understand scope",
+    )
+    require_checklist_item(
+        coding_scope,
+        (
+            "Name the active progress checklist",
+            "If none exists, create one before implementation",
+            "mark exactly one item `[-]` while working",
+        ),
         "before-coding progress tracker gate",
     )
-    require(
+    commit_hygiene = require_section(
         before_commit,
-        "Completed / Incomplete / Verification / Next / Risks",
+        "## 7. Harness hygiene",
+        "## 8. Commit message",
+        "before-commit Harness hygiene",
+    )
+    require_checklist_item(
+        commit_hygiene,
+        (
+            "The session log and active progress checklist contain",
+            "`Completed / Incomplete / Verification / Next / Risks`",
+            "empty sections explicitly say `None`",
+        ),
         "before-commit five-part status gate",
+    )
+    progress_rules = require_section(
+        progress,
+        "## 使用规则",
+        "## 总览",
+        "progress usage rules",
+    )
+    require(
+        progress_rules,
+        "每次更新必须填写完成、未完成、验证证据、下一步和风险。",
+        "progress five-part update rule",
     )
     require_line_budget(".harness/checklists/before-coding.md")
     require_line_budget(".harness/checklists/before-commit.md")
