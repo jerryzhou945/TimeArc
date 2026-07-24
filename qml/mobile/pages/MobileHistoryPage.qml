@@ -123,7 +123,7 @@ Item {
         lakeModel = isPreviewMode()
                 ? previewLake()
                 : (hasService()
-                   ? mobileUsageService.getMemoryLakeForCurrentMonth()
+                   ? mobileUsageService.getMemoryLakeForLatestReleasedMonth()
                    : ({ "report": {}, "moments": [],
                         "topApps": [], "empty": true }))
     }

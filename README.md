@@ -227,6 +227,10 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 - `MobileSeasonScene.qml` presents those facts over twelve bundled, original
   month scenes with season-specific restrained motion; all report artwork is
   local and available offline, with reduced-motion support.
+- Mobile monthly reports are published at **次月 1 日 08:00** in the device's
+  local time. Before that boundary Memory Lake continues to show the previous
+  released month; its tab displays a red dot when a new monthly or annual
+  release token has not yet been viewed.
 - Mobile share surfaces export portrait app cards, range ranking posters, and
   the six-page monthly story. App and ranking posters reuse the user's private
   wallpaper when set, retain real application icons, and contain only

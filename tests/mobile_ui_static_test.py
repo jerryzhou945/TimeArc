@@ -17,6 +17,8 @@ def main():
     main_cpp = read("src/main.cpp")
     ui_header = read("src/services/mobile/mobile_ui_service.h")
     ui_service = read("src/services/mobile/mobile_ui_service.cpp")
+    usage_header = read("src/services/mobile/mobile_usage_service.h")
+    usage_service = read("src/services/mobile/mobile_usage_service.cpp")
     android_bridge = read(
         "android/src/main/java/com/timearc/mobile/ui/MobileUiBridge.java"
     )
@@ -37,6 +39,8 @@ def main():
     stats = read("qml/mobile/pages/MobileStatsPage.qml")
     history = read("qml/mobile/pages/MobileHistoryPage.qml")
     settings = read("qml/mobile/pages/MobileSettingsPage.qml")
+    status_bar = read("qml/mobile/components/MobileStatusBar.qml")
+    tab_button = read("qml/mobile/components/MobileTabButton.qml")
     glass = read("qml/mobile/components/MobileGlassPanel.qml")
     rank_row = read("qml/mobile/components/MobileUsageRankRow.qml")
     app_icon = read("qml/mobile/components/MobileAppIcon.qml")
@@ -354,13 +358,67 @@ def main():
             "Profile avatar picker")
     require(settings, "mobileUiService.importAvatar(selectedFile)",
             "Profile avatar import handoff")
+    require(settings, "property url avatarSource: \"\"",
+            "explicit Profile avatar source")
+    require(settings, "function refreshAvatarSource()",
+            "Profile avatar refresh function")
+    require(settings, "function onAvatarChanged()",
+            "Profile avatar change connection")
+    require(settings, "root.avatarSource = \"\"",
+            "Profile avatar cache reset")
+    require(settings, "Qt.callLater",
+            "deferred Profile avatar reassignment")
+    require(settings, "id: avatarFeedback",
+            "Profile avatar selection feedback")
     require(settings, "MobileRoundedFrame",
             "circular Profile avatar")
     for label in ("开始记录", "已陪伴", "实际记录"):
         require(settings, label, f"Profile archive fact {label}")
+    require(usage_header, "Q_INVOKABLE QVariantMap getReportReleaseStatus",
+            "report release status API")
+    require(usage_header,
+            "Q_INVOKABLE QVariantMap getMemoryLakeForLatestReleasedMonth",
+            "released-month Memory Lake API")
+    require(usage_header, "latestReleasedMonthKey",
+            "testable latest released month policy")
+    require(usage_header, "latestReleasedYearKey",
+            "testable latest released year policy")
+    require(usage_service, "QTime(8, 0)",
+            "08:00 report release boundary")
+    require(usage_service, "localNow >= releaseTime ? -1 : -2",
+            "08:00 month release offset selection")
+    require(usage_service, "monthStart.addMonths(1).addDays(-1)",
+            "exact released-month range")
+    require(history, "getMemoryLakeForLatestReleasedMonth",
+            "Memory Lake released-month consumption")
+    if "getMemoryLakeForCurrentMonth()" in history:
+        raise AssertionError("Memory Lake must not expose an in-progress month")
+    require(status_bar, "height: 0",
+            "zero-height platform status placeholder")
+    for fake_status in ("9:41", "battery"):
+        if fake_status in status_bar:
+            raise AssertionError(
+                f"mobile status bar still contains fake state: {fake_status}"
+            )
+    require(tab_button, "property bool badgeVisible",
+            "tab notification badge property")
+    require(tab_button, "id: notificationBadge",
+            "tab notification badge item")
+    require(theme, "readonly property color notificationRed",
+            "report notification color token")
+    require(shell, "property bool reportUnread",
+            "shell report unread state")
+    require(shell, "mobile_seen_report_release_token",
+            "persisted report seen token")
+    require(shell, "getReportReleaseStatus()",
+            "shell report release refresh")
+    require(shell, "badgeVisible:",
+            "History tab badge binding")
     readme = read("README.md")
     require(readme, "本地头像",
             "README local avatar behavior")
+    require(readme, "次月 1 日 08:00",
+            "README monthly report release schedule")
     require(monthly_story, '(root.currentPage + 1) + " / " + root.pageCount',
             "neutral monthly story progress marker")
     if '? "完成"' in monthly_story:

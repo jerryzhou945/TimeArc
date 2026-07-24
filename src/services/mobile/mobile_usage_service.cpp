@@ -377,15 +377,56 @@ QVariantMap MobileUsageService::getMonthlyReport(const QString& monthKey) {
   return report;
 }
 
-QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
-  const QDate today = QDate::currentDate();
+QString MobileUsageService::latestReleasedMonthKey(
+    const QDateTime& localNow) {
+  const QDate currentMonth(localNow.date().year(),
+                           localNow.date().month(), 1);
+  QDateTime releaseTime = localNow;
+  releaseTime.setDate(currentMonth);
+  releaseTime.setTime(QTime(8, 0));
+  const QDate releasedMonth =
+      currentMonth.addMonths(localNow >= releaseTime ? -1 : -2);
+  return releasedMonth.toString(QStringLiteral("yyyy-MM"));
+}
+
+QString MobileUsageService::latestReleasedYearKey(
+    const QDateTime& localNow) {
+  const QDate currentYear(localNow.date().year(), 1, 1);
+  QDateTime releaseTime = localNow;
+  releaseTime.setDate(currentYear);
+  releaseTime.setTime(QTime(8, 0));
+  const int releasedYear =
+      localNow.date().year() - (localNow >= releaseTime ? 1 : 2);
+  return QString::number(releasedYear);
+}
+
+QVariantMap MobileUsageService::getReportReleaseStatus() {
+  const QDateTime localNow = QDateTime::currentDateTime();
+  const QString monthKey = latestReleasedMonthKey(localNow);
+  const QString yearKey = latestReleasedYearKey(localNow);
+  return QVariantMap{
+      {QStringLiteral("latestMonthlyKey"), monthKey},
+      {QStringLiteral("latestAnnualKey"), yearKey},
+      {QStringLiteral("releaseToken"),
+       QStringLiteral("month:%1|year:%2").arg(monthKey, yearKey)}};
+}
+
+QVariantMap MobileUsageService::getMemoryLakeForLatestReleasedMonth() {
+  const QString monthKey =
+      latestReleasedMonthKey(QDateTime::currentDateTime());
+  const QDate monthStart =
+      QDate::fromString(monthKey + QStringLiteral("-01"), Qt::ISODate);
+  const QDate monthEnd = monthStart.addMonths(1).addDays(-1);
   QVariantMap report =
-      getMonthlyReport(today.toString(QStringLiteral("yyyy-MM")));
-  const QVariantMap dashboard = getDashboardForRange(QStringLiteral("month"));
+      getMonthlyReport(monthKey);
+  const QVariantMap dashboard = getUsageDashboard(
+      monthStart.toString(Qt::ISODate), monthEnd.toString(Qt::ISODate));
   const QVariantList apps = report.value(QStringLiteral("topApps")).toList();
 
   report.insert(QStringLiteral("monthLabel"),
-                today.toString(QStringLiteral("yyyy年M月")));
+                monthStart.toString(QStringLiteral("yyyy年M月")));
+  report.insert(QStringLiteral("releaseId"),
+                QStringLiteral("month:%1").arg(monthKey));
   report.insert(QStringLiteral("rangeText"),
                 dashboard.value(QStringLiteral("rangeText")));
   report.insert(QStringLiteral("totalSec"),
@@ -410,10 +451,10 @@ QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
       QStringLiteral("title"),
       activeDays > 0
           ? QStringLiteral("%1，时间在 %2 个日子里留下痕迹")
-                .arg(today.toString(QStringLiteral("M月")))
+                .arg(monthStart.toString(QStringLiteral("M月")))
                 .arg(activeDays)
           : QStringLiteral("%1，等待第一段时间被记住")
-                .arg(today.toString(QStringLiteral("M月"))));
+                .arg(monthStart.toString(QStringLiteral("M月"))));
   report.insert(
       QStringLiteral("summary"),
       activeDays > 0
@@ -451,8 +492,13 @@ QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
   model.insert(QStringLiteral("report"), report);
   model.insert(QStringLiteral("moments"), moments);
   model.insert(QStringLiteral("topApps"), apps);
+  model.insert(QStringLiteral("releaseStatus"), getReportReleaseStatus());
   model.insert(QStringLiteral("empty"), apps.isEmpty());
   return model;
+}
+
+QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
+  return getMemoryLakeForLatestReleasedMonth();
 }
 
 bool MobileUsageService::refreshUsageAccessState() {

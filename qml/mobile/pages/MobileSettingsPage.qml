@@ -10,6 +10,8 @@ Item {
     property bool autoSync: true
     property bool anonymousShare: false
     property bool reducedMotion: false
+    property url avatarSource: ""
+    property string avatarMessage: ""
     property var profileDashboard: ({
         "firstDateLocal": "",
         "activeDays": 0,
@@ -72,6 +74,15 @@ Item {
         return Math.max(1, Math.floor(
                             (today.getTime() - first.getTime())
                             / 86400000) + 1)
+    }
+
+    function refreshAvatarSource() {
+        var nextSource = root.hasUiService()
+                ? mobileUiService.avatarUrl : ""
+        root.avatarSource = ""
+        Qt.callLater(function() {
+            root.avatarSource = nextSource
+        })
     }
 
     function usageStatusText() {
@@ -161,12 +172,20 @@ Item {
     Component.onCompleted: {
         loadPreferences()
         reloadProfileDashboard()
+        refreshAvatarSource()
     }
 
     Connections {
         target: root.hasUsageService() ? mobileUsageService : null
         function onDataChanged() { root.reloadProfileDashboard() }
         function onStatusChanged() { root.reloadProfileDashboard() }
+    }
+
+    Connections {
+        target: root.hasUiService() ? mobileUiService : null
+        function onAvatarChanged() {
+            root.refreshAvatarSource()
+        }
     }
 
     FileDialog {
@@ -186,8 +205,16 @@ Item {
         nameFilters: ["图片文件 (*.png *.jpg *.jpeg *.webp)"]
 
         onAccepted: {
-            if (root.hasUiService())
-                mobileUiService.importAvatar(selectedFile)
+            if (!root.hasUiService()) {
+                root.avatarMessage = "当前环境无法保存头像"
+                return
+            }
+            if (mobileUiService.importAvatar(selectedFile)) {
+                root.avatarMessage = "头像已更新"
+                root.refreshAvatarSource()
+            } else {
+                root.avatarMessage = mobileUiService.lastError
+            }
         }
     }
 
@@ -281,8 +308,7 @@ Item {
                                     Image {
                                         id: profileAvatar
                                         anchors.fill: parent
-                                        source: root.hasUiService()
-                                                ? mobileUiService.avatarUrl : ""
+                                        source: root.avatarSource
                                         fillMode: Image.PreserveAspectCrop
                                         asynchronous: true
                                         cache: false
@@ -361,6 +387,19 @@ Item {
                                     font.family: root.theme.fontFamily
                                     font.pixelSize: 10
                                     wrapMode: Text.WordWrap
+                                }
+
+                                Text {
+                                    id: avatarFeedback
+                                    width: parent.width
+                                    visible: root.avatarMessage.length > 0
+                                    text: root.avatarMessage
+                                    color: root.avatarMessage === "头像已更新"
+                                           ? root.theme.success
+                                           : root.theme.error
+                                    font.family: root.theme.fontFamily
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
                                 }
                             }
                         }

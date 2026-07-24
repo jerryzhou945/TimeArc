@@ -8,6 +8,7 @@ Item {
     property string iconName: "home"
     property bool active: false
     property bool wallpaperActive: false
+    property bool badgeVisible: false
 
     signal clicked()
 
@@ -56,6 +57,21 @@ Item {
                                        + (root.theme.isDark ? "_white.svg" : ".svg"))
                 fillMode: Image.PreserveAspectFit
                 opacity: root.active ? 1 : 0.68
+            }
+
+            Rectangle {
+                id: notificationBadge
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.horizontalCenterOffset: 12
+                anchors.top: parent.top
+                anchors.topMargin: 1
+                width: 9
+                height: 9
+                radius: 4.5
+                visible: root.badgeVisible
+                color: root.theme.notificationRed
+                border.width: 1
+                border.color: root.theme.isDark ? "#1A1D22" : "#FFFFFF"
             }
         }
 

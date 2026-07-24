@@ -10,6 +10,8 @@ Rectangle {
     property string currentTab: "home"
     property int topReserve: 0
     property url wallpaperSource: ""
+    property bool reportUnread: false
+    property string currentReportReleaseToken: ""
     readonly property bool wallpaperActive:
         wallpaperSource.toString().length > 0
 
@@ -35,6 +37,32 @@ Rectangle {
         if (typeof settingsRepository !== "undefined" && settingsRepository)
             settingsRepository.setValue("mobile_theme_mode",
                                         enabled ? "dark" : "light")
+    }
+
+    function refreshReportNotification() {
+        if (typeof mobileUsageService === "undefined"
+                || !mobileUsageService
+                || typeof settingsRepository === "undefined"
+                || !settingsRepository) {
+            root.reportUnread = false
+            return
+        }
+        var status = mobileUsageService.getReportReleaseStatus()
+        root.currentReportReleaseToken = status.releaseToken || ""
+        var seen = settingsRepository.getValue(
+                    "mobile_seen_report_release_token", "")
+        root.reportUnread = root.currentReportReleaseToken.length > 0
+                && seen !== root.currentReportReleaseToken
+    }
+
+    function markReportsSeen() {
+        if (root.currentReportReleaseToken.length === 0
+                || typeof settingsRepository === "undefined"
+                || !settingsRepository)
+            return
+        settingsRepository.setValue("mobile_seen_report_release_token",
+                                    root.currentReportReleaseToken)
+        root.reportUnread = false
     }
 
     function ensureUsageAccessOnboarding() {
@@ -67,6 +95,25 @@ Rectangle {
         function onWallpaperChanged() {
             root.refreshWallpaper()
         }
+    }
+
+    Connections {
+        target: typeof mobileUsageService !== "undefined"
+                ? mobileUsageService : null
+
+        function onDataChanged() {
+            root.refreshReportNotification()
+        }
+        function onStatusChanged() {
+            root.refreshReportNotification()
+        }
+    }
+
+    Timer {
+        interval: 60000
+        running: true
+        repeat: true
+        onTriggered: root.refreshReportNotification()
     }
 
     Rectangle {
@@ -220,7 +267,13 @@ Rectangle {
                     iconName: modelData.icon
                     active: root.currentTab === modelData.key
                     wallpaperActive: root.wallpaperActive
-                    onClicked: root.currentTab = modelData.key
+                    badgeVisible: modelData.key === "history"
+                                  && root.reportUnread
+                    onClicked: {
+                        root.currentTab = modelData.key
+                        if (modelData.key === "history")
+                            root.markReportsSeen()
+                    }
                 }
             }
         }
@@ -229,6 +282,7 @@ Rectangle {
     Component.onCompleted: {
         refreshWallpaper()
         loadThemePreference()
+        refreshReportNotification()
         ensureUsageAccessOnboarding()
     }
 }

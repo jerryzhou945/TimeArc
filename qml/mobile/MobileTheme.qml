@@ -63,6 +63,7 @@ QtObject {
     readonly property color scrim: "#A8000000"
     readonly property color error: isDark ? "#FFB4AB" : "#A63D42"
     readonly property color success: isDark ? "#9CD5B2" : "#276A4B"
+    readonly property color notificationRed: "#FF3B30"
     // 旧移动组件的兼容别名；页面迁移完成后仍保留为统一 token。
     readonly property color card: surface
     readonly property color cardElevated: surfaceRaised
