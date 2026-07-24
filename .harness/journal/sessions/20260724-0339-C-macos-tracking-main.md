@@ -51,6 +51,9 @@ Revert the CMake source-list integration and main runner; no data restoration is
 ## Outcome
 
 - Replaced the removed application layer with a direct `TrackingCoordinator` runner.
+- Added the dedicated Accessibility request helper to the target and call it at startup.
+- Added Debug-only service lifecycle and polling diagnostics via `TIMEARC_DEBUG`.
+- Added Debug-only Unix-time transition diagnostics to both Tracking state machines.
 - Polling uses absolute monotonic deadlines one second apart and skips missed slots.
 - `SIGINT` and `SIGTERM` interrupt the wait and flush pending sessions.
 - Scoped Swift type-check and the sanctioned full build passed.

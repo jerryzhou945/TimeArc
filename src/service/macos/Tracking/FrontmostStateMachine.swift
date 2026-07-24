@@ -51,7 +51,7 @@ struct FrontmostStateMachine {
     guard let updatedData else {
       return
     }
-    self.state = .active(updatedData)
+    self.transition(to: .active(updatedData), at: time)
   }
 
   // Refresh the state machine when it is active.
@@ -66,7 +66,7 @@ struct FrontmostStateMachine {
       activeSec: 0,
       lastUpdateUnixSec: time
     )
-    self.state = .active(updatedData)
+    self.transition(to: .active(updatedData), at: time)
     guard let previousData else {
       return nil
     }
@@ -79,18 +79,50 @@ struct FrontmostStateMachine {
     guard let updatedData else {
       return
     }
-    self.state = .idle(updatedData)
+    self.transition(to: .idle(updatedData), at: time)
   }
 
   // Shutdown the state machine when it is active or idle.
   mutating func shutdown(at time: Int64) throws(TrackingError) -> FrontmostRecord? {
     let previousData = try self.updatedRecord(at: time)
-    self.state = .shutdown
+    self.transition(to: .shutdown, at: time)
     guard let previousData else {
       return nil
     }
     return previousData.startUnixSec >= time ? nil : previousData
   }
+
+  // Change state and report the transition in Debug builds.
+  private mutating func transition(to newState: FrontmostState, at time: Int64) {
+    let previousState = self.state
+    self.state = newState
+    guard previousState != newState else {
+      return
+    }
+
+    #if TIMEARC_DEBUG
+      let message =
+        "[DEBUG] FrontmostStateMachine: unixSec=\(time), "
+        + "\(Self.describe(previousState)) -> \(Self.describe(newState))\n"
+      FileHandle.standardError.write(Data(message.utf8))
+    #endif
+  }
+
+  #if TIMEARC_DEBUG
+    // Describe the state without including duration bookkeeping details.
+    private static func describe(_ state: FrontmostState) -> String {
+      switch state {
+      case .active(let data):
+        return
+          "active(appId=\(data.app.id), windowTitle=\(data.windowTitle ?? "<nil>"))"
+      case .idle(let data):
+        return
+          "idle(appId=\(data.app.id), windowTitle=\(data.windowTitle ?? "<nil>"))"
+      case .shutdown:
+        return "shutdown"
+      }
+    }
+  #endif
 
   // Get the updated frontmost record with the given time.
   private func updatedRecord(at time: Int64) throws(TrackingError) -> FrontmostRecord? {

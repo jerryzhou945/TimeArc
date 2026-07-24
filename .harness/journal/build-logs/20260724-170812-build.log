@@ -1,0 +1,5 @@
+[1/148] Automatic MOC and UIC for target timearc_db_smoke
+[2/146] Automatic MOC and UIC for target time-arc
+[3/145] Running AUTOMOC file extraction for target time-arc
+[4/5] Building Swift Module 'time_arc_service' with 12 sources
+[5/5] Linking Swift executable src/service/time-arc-service

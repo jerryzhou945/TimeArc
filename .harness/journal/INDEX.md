@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-24T09:07:04Z | L3 | chained-read-co... | Combined git diff --check and a scoped git diff with a sh... | [report](errors/20260724-090704-C-chained-read-command.md) |
+| 2026-07-24T08:04:26Z | L1 | harness-index-l... | harness_check found .harness/journal/INDEX.md at 101 line... | [report](errors/20260724-080426-C-harness-index-line-budget.md) |
+| 2026-07-24T08:01:06Z | L1 | swift-module-cache | Swift type-check could not write the Clang module cache u... | [report](errors/20260724-080106-C-swift-module-cache.md) |
 | 2026-07-23T19:41:56Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260723-194156-B-build-failure.md) |
 | 2026-07-23T19:40:20Z | L3 | journal-index-l... | The required macOS main error report pushed the rolling j... | [report](errors/20260723-194020-C-journal-index-line-budget-main.md) |
 | 2026-07-23T19:39:50Z | L1 | macos-main-miss... | macOS service type-check fails because TimeArcService ref... | [report](errors/20260723-193950-C-macos-main-missing-runner.md) |
@@ -93,8 +96,5 @@ the harness line budget intact.
 | 2026-07-07T15:24:15Z | L3 | qtpaths-option-... | qtpaths6 option probes for overriding application name fa... | [report](errors/20260707-152415-A-qtpaths-option-probe.md) |
 | 2026-07-07T15:22:37Z | L3 | missing-macos-b... | Lookup included IDE tab path src/service/macos.backup, bu... | [report](errors/20260707-152237-A-missing-macos-backup-path.md) |
 | 2026-07-07T15:21:30Z | L2 | preflight-drift | Preflight failed before investigation: .harness/journal/I... | [report](errors/20260707-152130-A-preflight-drift.md) |
-| 2026-07-07T11:17:47Z | L3 | sqlite-schema-s... | Search included a nonexistent macOS backup directory whil... | [report](errors/20260707-111747-A-sqlite-schema-search-path.md) |
-| 2026-07-07T09:40:08Z | L3 | missing-optiona... | Checked optional macos.backup/cmake paths that do not exi... | [report](errors/20260707-094008-B-missing-optional-paths.md) |
-| 2026-07-06T10:26:59Z | L3 | qt-path-probe-c... | Temporary Qt path probe compile failed because the comman... | [report](errors/20260706-102659-A-qt-path-probe-cxx-standard.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

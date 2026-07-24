@@ -8,30 +8,37 @@ import Foundation
 @main
 struct TimeArcService {
   static func main() {
+    let accessibilityGranted = AccessibilityRequest.request()
+    debug(
+      "Starting service: pid=\(getpid()), "
+        + "accessibilityGranted=\(accessibilityGranted)"
+    )
+
     let coordinator = TrackingCoordinator(
       idleThreshold: 60,
       enableFrontmost: true,
       enableMedia: true
     )
-    let stopRequested = DispatchSemaphore(value: 0)
 
     Darwin.signal(SIGINT, SIG_IGN)
     Darwin.signal(SIGTERM, SIG_IGN)
 
     let interruptSource = DispatchSource.makeSignalSource(
       signal: SIGINT,
-      queue: .global()
+      queue: .main
     )
     let terminateSource = DispatchSource.makeSignalSource(
       signal: SIGTERM,
-      queue: .global()
+      queue: .main
     )
 
     interruptSource.setEventHandler {
-      stopRequested.signal()
+      debug("Received SIGINT.")
+      CFRunLoopStop(CFRunLoopGetMain())
     }
     terminateSource.setEventHandler {
-      stopRequested.signal()
+      debug("Received SIGTERM.")
+      CFRunLoopStop(CFRunLoopGetMain())
     }
 
     interruptSource.activate()
@@ -42,32 +49,25 @@ struct TimeArcService {
       terminateSource.cancel()
     }
 
-    let pollIntervalNanoseconds = UInt64(NSEC_PER_SEC)
-    var nextPollNanoseconds = DispatchTime.now().uptimeNanoseconds
-
-    while true {
-      let deadline = DispatchTime(uptimeNanoseconds: nextPollNanoseconds)
-      if stopRequested.wait(timeout: deadline) == .success {
-        break
-      }
-
+    let pollTimer = Timer(timeInterval: 1, repeats: true) { _ in
+      let pollUnixSec = Int64(Date().timeIntervalSince1970)
+      debug("Polling trackers: unixSec=\(pollUnixSec)")
       do {
-        try coordinator.update(at: Int64(Date().timeIntervalSince1970))
+        try coordinator.update(at: pollUnixSec)
       } catch {
         report("Tracking update failed: \(error)")
       }
-
-      nextPollNanoseconds += pollIntervalNanoseconds
-      let currentNanoseconds = DispatchTime.now().uptimeNanoseconds
-      if nextPollNanoseconds <= currentNanoseconds {
-        let missedIntervals =
-          (currentNanoseconds - nextPollNanoseconds) / pollIntervalNanoseconds + 1
-        nextPollNanoseconds += missedIntervals * pollIntervalNanoseconds
-      }
     }
+    pollTimer.tolerance = 0
+    RunLoop.main.add(pollTimer, forMode: .common)
+    pollTimer.fire()
+    CFRunLoopRun()
+    pollTimer.invalidate()
 
+    debug("Flushing trackers before shutdown.")
     do {
       try coordinator.shutdown(at: Int64(Date().timeIntervalSince1970))
+      debug("Shutdown complete.")
     } catch {
       report("Tracking shutdown failed: \(error)")
       exit(EXIT_FAILURE)
@@ -76,5 +76,11 @@ struct TimeArcService {
 
   private static func report(_ message: String) {
     FileHandle.standardError.write(Data((message + "\n").utf8))
+  }
+
+  private static func debug(_ message: @autoclosure () -> String) {
+    #if TIMEARC_DEBUG
+      report("[DEBUG] \(message())")
+    #endif
   }
 }
