@@ -68,6 +68,9 @@ in the commit message body.
 
 ## 7. Harness hygiene
 
+- [ ] The session log and active progress checklist contain
+      `Completed / Incomplete / Verification / Next / Risks`; empty sections
+      explicitly say `None`.
 - [ ] New errors this session are in `journal/errors/` and in
       `journal/errors.jsonl`.
 - [ ] Session log in `journal/sessions/` is updated with outcome (done /
