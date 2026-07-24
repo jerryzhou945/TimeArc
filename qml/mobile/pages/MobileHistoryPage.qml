@@ -226,18 +226,13 @@ Item {
                         }
                     }
 
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        radius: 14
-                        color: "#1810181A"
-                        border.width: 1
-                        border.color: "#36FFFFFF"
-                    }
-
                     Column {
-                        anchors.fill: parent
-                        anchors.margins: 20
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.leftMargin: 20
+                        anchors.rightMargin: 20
+                        anchors.topMargin: 20
                         spacing: 9
 
                         Text {
@@ -257,7 +252,7 @@ Item {
                             font.weight: Font.Bold
                             lineHeight: 1.18
                             wrapMode: Text.WordWrap
-                            maximumLineCount: 3
+                            maximumLineCount: 2
                             elide: Text.ElideRight
                         }
 
@@ -270,19 +265,39 @@ Item {
                             font.pixelSize: 13
                             lineHeight: 1.42
                             wrapMode: Text.WordWrap
-                            maximumLineCount: 3
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
+                    }
+
+                    Row {
+                        id: reportFooter
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.leftMargin: 20
+                        anchors.rightMargin: 20
+                        anchors.bottomMargin: 16
+                        height: root.theme.controlHeight
+                        spacing: 12
+
+                        Text {
+                            width: parent.width - 146
+                            height: parent.height
+                            text: root.coverProfile.eyebrow || "SEASONAL STORY"
+                            color: "#CFFFFFFF"
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            verticalAlignment: Text.AlignVCenter
                             elide: Text.ElideRight
                         }
 
-                        Item { width: 1; height: 4 }
-
                         Rectangle {
                             width: 134
-                            height: 42
+                            height: root.theme.controlHeight
                             radius: root.theme.controlRadius
-                            color: "#D9FFFFFF"
-                            border.width: 1
-                            border.color: "#52FFFFFF"
+                            color: "#E8FFFFFF"
 
                             Text {
                                 anchors.centerIn: parent

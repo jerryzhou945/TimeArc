@@ -164,6 +164,29 @@ def main():
             "wallpaper-adaptive primary ink")
     require(theme, "readonly property color wallpaperMuted",
             "wallpaper-adaptive secondary ink")
+    for token in (
+        "defaultCanvasTop",
+        "defaultCanvasMiddle",
+        "defaultCanvasBottom",
+    ):
+        require(theme, f"readonly property color {token}",
+                f"default atmospheric canvas token {token}")
+    require(shell, "id: defaultCanvas",
+            "shell-owned wallpaper-free atmospheric canvas")
+    require(shell, "mobileTheme.defaultCanvasTop",
+            "default canvas top color")
+    require(shell, "mobileTheme.defaultCanvasBottom",
+            "default canvas bottom color")
+    require(home, "signal wallpaperRequested()",
+            "Home wallpaper prompt signal")
+    require(home, "id: wallpaperPrompt",
+            "Home wallpaper prompt")
+    require(home, "visible: !root.wallpaperActive",
+            "wallpaper prompt visibility guard")
+    require(home, 'text: "添加自定义壁纸"',
+            "wallpaper prompt copy")
+    require(shell, "settingsPage.openWallpaperDialog()",
+            "Home prompt uses existing wallpaper picker")
     require(theme, '"#78FFFFFF"',
             "readable light wallpaper glass")
     require(theme, '"#C8FFFFFF"',
@@ -191,6 +214,12 @@ def main():
     )[0]
     if "Canvas {" in report_cover:
         raise AssertionError("monthly entry must not use the old Canvas cover")
+    require(report_cover, "id: reportFooter",
+            "balanced monthly entry footer")
+    require(report_cover, "anchors.bottom: parent.bottom",
+            "monthly entry footer bottom alignment")
+    require(report_cover, "height: root.theme.controlHeight",
+            "monthly entry 44px action")
     require(rank_row, "theme.timelineLine",
             "flat ranking progress and separator language")
     require(app_icon, "appIconPath", "real app icon")
@@ -227,6 +256,12 @@ def main():
         require(share_bar, label, f"share action label {label}")
     require(share, "MobileShareActionBar",
             "app share action bar")
+    require(share, "readonly property int posterRadius: 22",
+            "shared rounded app poster radius")
+    require(share, "radius: root.posterRadius",
+            "app preview uses poster radius")
+    require(share, "id: posterHairline",
+            "visible app preview inner hairline")
     qml_cmake = read("qml/CMakeLists.txt")
     require(qml_cmake, "MobileShareActionBar.qml",
             "share action bar QML registration")
@@ -259,6 +294,24 @@ def main():
             "monthly story swipe gesture")
     require(monthly_story, "Qt.size(1080, 1920)",
             "portrait monthly share export")
+    monthly_share = read(
+        "qml/mobile/components/monthly/MonthlySharePage.qml"
+    )
+    require(monthly_share, "id: monthlyPoster",
+            "explicit monthly share preview")
+    require(monthly_share, "radius: 22",
+            "rounded monthly share preview")
+    require(monthly_share,
+            "signal shareRequested(string channel, var previewItem)",
+            "monthly preview item share signal")
+    require(monthly_share,
+            "root.shareRequested(channel, monthlyPoster)",
+            "monthly preview capture handoff")
+    require(monthly_story,
+            "function exportReport(channel, previewItem)",
+            "monthly export accepts explicit preview")
+    require(monthly_story, "var captureItem = previewItem || reportSurface",
+            "monthly export capture source")
     require(monthly_story, '(root.currentPage + 1) + " / " + root.pageCount',
             "neutral monthly story progress marker")
     if '? "完成"' in monthly_story:

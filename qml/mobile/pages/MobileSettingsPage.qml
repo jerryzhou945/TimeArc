@@ -54,6 +54,10 @@ Item {
         return wallpaperActive ? "正在使用自定义壁纸" : "跟随纯色主题"
     }
 
+    function openWallpaperDialog() {
+        wallpaperDialog.open()
+    }
+
     function socialStatusText(channel) {
         if (!hasUiService())
             return "等待平台授权"

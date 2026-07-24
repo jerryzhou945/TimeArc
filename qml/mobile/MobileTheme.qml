@@ -18,6 +18,12 @@ QtObject {
                                                   : "DIN Alternate")
 
     readonly property color bg: isDark ? "#111317" : "#F5F6F8"
+    readonly property color defaultCanvasTop:
+        isDark ? "#182126" : "#F4F7F7"
+    readonly property color defaultCanvasMiddle:
+        isDark ? "#162326" : "#EAF1F1"
+    readonly property color defaultCanvasBottom:
+        isDark ? "#10171A" : "#E2EAEB"
     readonly property color surface: isDark ? "#1A1D22" : "#FFFFFF"
     readonly property color surfaceRaised: isDark ? "#23272D" : "#ECEFF2"
     readonly property color textPrimary: isDark ? "#F2F4F6" : "#17191D"

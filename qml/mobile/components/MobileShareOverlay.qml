@@ -11,6 +11,7 @@ Item {
     property bool opened: false
     property string errorText: ""
     property string feedbackText: ""
+    readonly property int posterRadius: 22
 
     signal closed()
 
@@ -154,7 +155,7 @@ Item {
                     anchors.centerIn: parent
                     width: Math.min(parent.width, parent.height * 0.5625)
                     height: width / 0.5625
-                    radius: 18
+                    radius: root.posterRadius
                     color: root.theme.memoryBrown
                     clip: true
 
@@ -292,6 +293,17 @@ Item {
                             lineHeight: 1.45
                             wrapMode: Text.WordWrap
                         }
+                    }
+
+                    Rectangle {
+                        id: posterHairline
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: root.posterRadius - 1
+                        color: "transparent"
+                        border.width: 1
+                        border.color: root.theme.withAlpha(
+                                          root.theme.memoryInk, 0.20)
                     }
                 }
             }

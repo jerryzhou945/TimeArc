@@ -49,10 +49,11 @@ Item {
         currentPage = Math.max(0, currentPage - 1)
     }
 
-    function exportReport(channel) {
+    function exportReport(channel, previewItem) {
         errorText = ""
         feedbackText = "正在生成月报卡片…"
-        reportSurface.grabToImage(function(result) {
+        var captureItem = previewItem || reportSurface
+        captureItem.grabToImage(function(result) {
             if (typeof mobileUiService === "undefined" || !mobileUiService) {
                 errorText = "当前环境无法保存图片。"
                 feedbackText = ""
@@ -142,8 +143,8 @@ Item {
                 report: root.report
                 profile: root.profile
                 visible: root.currentPage === 5
-                onShareRequested: function(channel) {
-                    root.exportReport(channel)
+                onShareRequested: function(channel, previewItem) {
+                    root.exportReport(channel, previewItem)
                 }
             }
         }

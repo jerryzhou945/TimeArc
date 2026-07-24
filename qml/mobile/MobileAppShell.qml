@@ -69,6 +69,45 @@ Rectangle {
         }
     }
 
+    Rectangle {
+        id: defaultCanvas
+        anchors.fill: parent
+        visible: !root.wallpaperActive
+        gradient: Gradient {
+            GradientStop {
+                position: 0.0
+                color: mobileTheme.defaultCanvasTop
+            }
+            GradientStop {
+                position: 0.46
+                color: mobileTheme.defaultCanvasMiddle
+            }
+            GradientStop {
+                position: 1.0
+                color: mobileTheme.defaultCanvasBottom
+            }
+        }
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: parent.height * 0.42
+            opacity: mobileTheme.isDark ? 0.18 : 0.24
+            gradient: Gradient {
+                GradientStop {
+                    position: 0.0
+                    color: mobileTheme.withAlpha(
+                               mobileTheme.accentBright, 0.22)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: "transparent"
+                }
+            }
+        }
+    }
+
     Image {
         id: wallpaper
         anchors.fill: parent
@@ -85,7 +124,7 @@ Rectangle {
                ? (root.currentTab === "home"
                   ? mobileTheme.wallpaperVeil
                   : mobileTheme.wallpaperPageVeil)
-               : mobileTheme.bg
+               : "transparent"
 
         Behavior on color {
             ColorAnimation { duration: mobileTheme.fastDuration }
@@ -108,6 +147,7 @@ Rectangle {
             wallpaperActive: root.wallpaperActive
             wallpaperSource: root.wallpaperSource
             anonymousShare: settingsPage.anonymousShare
+            onWallpaperRequested: settingsPage.openWallpaperDialog()
         }
 
         MobileStatsPage {

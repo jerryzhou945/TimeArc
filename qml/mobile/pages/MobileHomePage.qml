@@ -11,6 +11,7 @@ Item {
     property var totalDashboard: emptyDashboard()
     property int selectedCardIndex: 0
     property var flippedApps: ({})
+    signal wallpaperRequested()
     readonly property var apps: {
         var values = totalDashboard.topApps || []
         return values.length > 0 ? values : [placeholderApp()]
@@ -148,7 +149,7 @@ Item {
                 anchors.left: parent.left
                 anchors.leftMargin: 20
                 anchors.verticalCenter: parent.verticalCenter
-                width: 220
+                width: root.wallpaperActive ? 220 : 158
                 height: parent.height
                 z: 2
                 text: "TimeArc · 时间卡"
@@ -158,6 +159,35 @@ Item {
                 font.pixelSize: 17
                 font.weight: Font.Bold
                 verticalAlignment: Text.AlignVCenter
+            }
+
+            Rectangle {
+                id: wallpaperPrompt
+                anchors.right: parent.right
+                anchors.rightMargin: 66
+                anchors.verticalCenter: parent.verticalCenter
+                width: 132
+                height: 36
+                radius: root.theme.controlRadius
+                visible: !root.wallpaperActive
+                color: root.theme.withAlpha(root.theme.surface, 0.52)
+                border.width: 1
+                border.color: root.theme.withAlpha(root.theme.accentBright,
+                                                   0.28)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "添加自定义壁纸"
+                    color: root.theme.textSecondary
+                    font.family: root.theme.fontFamily
+                    font.pixelSize: 11
+                    font.weight: Font.DemiBold
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: root.wallpaperRequested()
+                }
             }
 
             Rectangle {
