@@ -94,3 +94,4 @@ CMakeLists.txt.user*
 # the tracked launch scripts. See the README "Quick run on Windows" section.
 /run.local.cmd
 /launch.local.cmd
+.worktrees/

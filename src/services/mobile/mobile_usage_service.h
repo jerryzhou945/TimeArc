@@ -1,6 +1,8 @@
 #ifndef MOBILEUSAGESERVICE_H
 #define MOBILEUSAGESERVICE_H
 
+#include <QDate>
+#include <QDateTime>
 #include <QObject>
 #include <QString>
 #include <QVariantList>
@@ -25,9 +27,19 @@ class MobileUsageService : public QObject {
   Q_INVOKABLE QVariantMap getUsageDashboard(const QString& startDateLocal,
                                             const QString& endDateLocal);
   Q_INVOKABLE QVariantMap getDashboardForRange(const QString& range);
+  Q_INVOKABLE QVariantMap getMonthlyReport(const QString& monthKey);
+  Q_INVOKABLE QVariantMap getMemoryLakeForCurrentMonth();
+  Q_INVOKABLE QVariantMap getMemoryLakeForLatestReleasedMonth();
+  Q_INVOKABLE QVariantMap getReportReleaseStatus();
   Q_INVOKABLE bool refreshUsageAccessState();
   Q_INVOKABLE bool openUsageAccessSettings();
   Q_INVOKABLE bool requestImmediateSync();
+
+  static QDate startDateForRange(const QString& range, const QDate& today);
+  static QString latestReleasedMonthKey(const QDateTime& localNow);
+  static QString latestReleasedYearKey(const QDateTime& localNow);
+  static QString friendlyDisplayName(const QString& packageName,
+                                     const QString& currentLabel);
 
  signals:
   void statusChanged();
@@ -36,8 +48,6 @@ class MobileUsageService : public QObject {
  private:
   static QString formatDuration(int seconds);
   static QString initialForName(const QString& displayName);
-  static QString startDateForRange(const QString& range,
-                                   const QDate& today);
   void setStatus(bool accessGranted,
                  const QString& status,
                  const QString& text);

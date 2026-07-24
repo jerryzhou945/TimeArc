@@ -1,83 +1,221 @@
 import QtQuick
+import QtQuick.Dialogs
 import "../components"
 
-Rectangle {
+Item {
     id: root
 
     required property var theme
+    property bool wallpaperActive: false
+    property bool autoSync: true
+    property bool anonymousShare: false
+    property bool reducedMotion: false
+    property url avatarSource: ""
+    property string avatarMessage: ""
+    property var profileDashboard: ({
+        "firstDateLocal": "",
+        "activeDays": 0,
+        "empty": true
+    })
 
     signal darkModeChanged(bool enabled)
 
-    color: theme.bg
-
-    property bool autoSync: true
-    property bool mergeDevices: true
-    property bool hideDesktopTitles: true
-    property var totalDashboard: emptyDashboard()
-
-    function emptyDashboard() {
-        return {
-            "totalSec": 0,
-            "totalText": "0s",
-            "activeDays": 0,
-            "appCount": 0,
-            "topApps": [],
-            "empty": true,
-            "syncStatusText": "等待 Android 使用数据同步"
-        }
-    }
-
-    function hasMobileUsageService() {
+    function hasUsageService() {
         return typeof mobileUsageService !== "undefined" && mobileUsageService
     }
 
-    function reloadDashboard() {
-        if (!hasMobileUsageService()) {
-            totalDashboard = emptyDashboard()
+    function hasUiService() {
+        return typeof mobileUiService !== "undefined" && mobileUiService
+    }
+
+    function hasSettings() {
+        return typeof settingsRepository !== "undefined" && settingsRepository
+    }
+
+    function loadPreferences() {
+        if (!hasSettings())
             return
-        }
-        totalDashboard = mobileUsageService.getDashboardForRange("all")
+        autoSync = settingsRepository.getBool("mobile_auto_sync", true)
+        anonymousShare = settingsRepository.getBool(
+                    "mobile_anonymous_share", false)
+        reducedMotion = settingsRepository.getBool(
+                    "mobile_reduced_motion", false)
+        theme.reducedMotion = reducedMotion
+    }
+
+    function isPreviewMode() {
+        return Qt.application.arguments.indexOf("--mobile-preview") >= 0
+    }
+
+    function reloadProfileDashboard() {
+        var dashboard = hasUsageService()
+                ? mobileUsageService.getDashboardForRange("all")
+                : ({ "firstDateLocal": "", "activeDays": 0, "empty": true })
+        profileDashboard = isPreviewMode() && dashboard.empty
+                ? ({
+                    "firstDateLocal": "2025.03.13",
+                    "activeDays": 168,
+                    "empty": false
+                }) : dashboard
+    }
+
+    function companionshipDays() {
+        var raw = (profileDashboard.firstDateLocal || "").toString()
+        var parts = raw.replace(/\./g, "-").split("-")
+        if (parts.length < 3)
+            return 0
+        var first = new Date(Number(parts[0]), Number(parts[1]) - 1,
+                             Number(parts[2]))
+        if (isNaN(first.getTime()))
+            return 0
+        var today = new Date()
+        first.setHours(0, 0, 0, 0)
+        today.setHours(0, 0, 0, 0)
+        return Math.max(1, Math.floor(
+                            (today.getTime() - first.getTime())
+                            / 86400000) + 1)
+    }
+
+    function refreshAvatarSource() {
+        var nextSource = root.hasUiService()
+                ? mobileUiService.avatarUrl : ""
+        root.avatarSource = ""
+        Qt.callLater(function() {
+            root.avatarSource = nextSource
+        })
     }
 
     function usageStatusText() {
-        if (!hasMobileUsageService())
-            return "预览模式"
+        if (!hasUsageService())
+            return "桌面预览模式"
         return mobileUsageService.syncStatusText
     }
 
     function usageAccessText() {
-        if (!hasMobileUsageService())
-            return "仅安卓设备可授权"
-        return mobileUsageService.usageAccessGranted ? "已开启" : "需要授权"
+        if (!hasUsageService())
+            return "仅 Android 可授权"
+        return mobileUsageService.usageAccessGranted ? "已开启" : "待开启"
     }
 
-    function openUsageAccess() {
-        if (hasMobileUsageService())
+    function wallpaperStateText() {
+        if (!hasUiService())
+            return "预览不可用"
+        return wallpaperActive ? "正在使用自定义壁纸" : "跟随纯色主题"
+    }
+
+    function openWallpaperDialog() {
+        wallpaperDialog.open()
+    }
+
+    function socialStatusText(channel) {
+        if (!hasUiService())
+            return "等待平台授权"
+        var configuredId = channel === "moments"
+                ? mobileUiService.wechatAppId : mobileUiService.qqAppId
+        if (configuredId.length === 0)
+            return "等待平台授权"
+        var status = mobileUiService.socialShareStatus(channel)
+        return status.label || "等待平台授权"
+    }
+
+    function checkedFor(key) {
+        if (key === "lightMode")
+            return !theme.isDark
+        if (key === "autoSync")
+            return autoSync
+        if (key === "anonymousShare")
+            return anonymousShare
+        if (key === "reducedMotion")
+            return reducedMotion
+        return false
+    }
+
+    function settingsKey(key) {
+        if (key === "autoSync")
+            return "mobile_auto_sync"
+        if (key === "anonymousShare")
+            return "mobile_anonymous_share"
+        if (key === "reducedMotion")
+            return "mobile_reduced_motion"
+        return "mobile_" + key
+    }
+
+    function setChecked(key, value) {
+        if (key === "lightMode") {
+            darkModeChanged(!value)
+            return
+        }
+        if (key === "autoSync")
+            autoSync = value
+        else if (key === "anonymousShare")
+            anonymousShare = value
+        else if (key === "reducedMotion") {
+            reducedMotion = value
+            theme.reducedMotion = value
+        }
+        if (hasSettings())
+            settingsRepository.setBool(settingsKey(key), value)
+    }
+
+    function runAction(action) {
+        if (action === "usageAccess" && hasUsageService()) {
             mobileUsageService.openUsageAccessSettings()
-    }
-
-    function syncNow() {
-        if (hasMobileUsageService())
+        } else if (action === "syncNow" && hasUsageService()) {
             mobileUsageService.requestImmediateSync()
+        } else if (action === "wallpaper") {
+            wallpaperDialog.open()
+        } else if (action === "clearWallpaper" && hasUiService()) {
+            mobileUiService.clearWallpaper()
+        }
     }
 
-    Component.onCompleted: reloadDashboard()
+    Component.onCompleted: {
+        loadPreferences()
+        reloadProfileDashboard()
+        refreshAvatarSource()
+    }
 
     Connections {
-        target: root.hasMobileUsageService() ? mobileUsageService : null
+        target: root.hasUsageService() ? mobileUsageService : null
+        function onDataChanged() { root.reloadProfileDashboard() }
+        function onStatusChanged() { root.reloadProfileDashboard() }
+    }
 
-        function onDataChanged() {
-            root.reloadDashboard()
-        }
-
-        function onStatusChanged() {
-            root.reloadDashboard()
+    Connections {
+        target: root.hasUiService() ? mobileUiService : null
+        function onAvatarChanged() {
+            root.refreshAvatarSource()
         }
     }
 
-    Rectangle {
-        anchors.fill: parent
-        color: root.theme.bg
+    FileDialog {
+        id: wallpaperDialog
+        title: "选择一张壁纸"
+        nameFilters: ["图片文件 (*.png *.jpg *.jpeg *.webp)"]
+
+        onAccepted: {
+            if (root.hasUiService())
+                mobileUiService.importWallpaper(selectedFile)
+        }
+    }
+
+    FileDialog {
+        id: avatarDialog
+        title: "选择本地头像"
+        nameFilters: ["图片文件 (*.png *.jpg *.jpeg *.webp)"]
+
+        onAccepted: {
+            if (!root.hasUiService()) {
+                root.avatarMessage = "当前环境无法保存头像"
+                return
+            }
+            if (mobileUiService.importAvatar(selectedFile)) {
+                root.avatarMessage = "头像已更新"
+                root.refreshAvatarSource()
+            } else {
+                root.avatarMessage = mobileUiService.lastError
+            }
+        }
     }
 
     Column {
@@ -94,220 +232,419 @@ Rectangle {
             height: parent.height - y
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            contentHeight: content.implicitHeight + 24
+            contentHeight: content.implicitHeight + 34
 
             Column {
                 id: content
-                width: flick.width - 40
-                x: 20
-                spacing: 14
+                width: flick.width - 32
+                x: 16
+                spacing: 18
 
-                Rectangle {
+                Item {
                     width: parent.width
-                    height: 156
-                    radius: 24
-                    color: root.theme.card
-                    border.color: root.theme.borderSoft
-                    border.width: 1
-                    clip: true
+                    height: 58
 
-                    Rectangle {
+                    Column {
                         anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        height: 78
-                        color: root.theme.accentSoft
-                        opacity: root.theme.isDark ? 0.22 : 0.82
-                    }
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 3
 
-                    Row {
+                        Text {
+                            text: "我的"
+                            color: root.theme.textPrimary
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 27
+                            font.weight: Font.Bold
+                        }
+
+                        Text {
+                            text: "让记录方式更像你自己"
+                            color: root.theme.textSecondary
+                            font.family: root.theme.fontFamily
+                            font.pixelSize: 12
+                        }
+                    }
+                }
+
+                MobileGlassPanel {
+                    id: profileArchive
+                    width: parent.width
+                    height: 214
+                    theme: root.theme
+                    wallpaperActive: root.wallpaperActive
+                    strong: false
+
+                    Column {
                         anchors.fill: parent
-                        anchors.margins: 18
-                        spacing: 14
+                        anchors.margins: 16
+                        spacing: 12
+
+                        Row {
+                            width: parent.width
+                            height: 92
+                            spacing: 14
+
+                            Item {
+                                width: 88
+                                height: 88
+
+                                MobileRoundedFrame {
+                                    id: avatarFrame
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    width: 80
+                                    height: 80
+                                    radius: 40
+                                    border.width: 1
+                                    border.color: root.theme.withAlpha(
+                                                      root.theme.textPrimary,
+                                                      0.18)
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: root.theme.accentSoft
+                                    }
+
+                                    Image {
+                                        id: profileAvatar
+                                        anchors.fill: parent
+                                        source: root.avatarSource
+                                        fillMode: Image.PreserveAspectCrop
+                                        asynchronous: true
+                                        cache: false
+                                        visible: source.toString().length > 0
+                                                 && status !== Image.Error
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: !profileAvatar.visible
+                                        text: "T"
+                                        color: root.theme.accentBright
+                                        font.family: root.theme.fontFamily
+                                        font.pixelSize: 30
+                                        font.weight: Font.Black
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: avatarDialog.open()
+                                    }
+                                }
+
+                                Rectangle {
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    width: 30
+                                    height: 30
+                                    radius: 15
+                                    color: root.theme.accent
+                                    border.width: 2
+                                    border.color: root.theme.surface
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "+"
+                                        color: "white"
+                                        font.pixelSize: 18
+                                        font.weight: Font.Bold
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: avatarDialog.open()
+                                    }
+                                }
+                            }
+
+                            Column {
+                                width: parent.width - 102
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 5
+
+                                Text {
+                                    width: parent.width
+                                    text: "我的时间档案"
+                                    color: root.theme.textPrimary
+                                    font.family: root.theme.fontFamily
+                                    font.pixelSize: 20
+                                    font.weight: Font.Bold
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: "点击头像选择照片"
+                                    color: root.theme.accentBright
+                                    font.family: root.theme.fontFamily
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: "头像与记录只保存在这台设备上"
+                                    color: root.theme.textMuted
+                                    font.family: root.theme.fontFamily
+                                    font.pixelSize: 10
+                                    wrapMode: Text.WordWrap
+                                }
+
+                                Text {
+                                    id: avatarFeedback
+                                    width: parent.width
+                                    visible: root.avatarMessage.length > 0
+                                    text: root.avatarMessage
+                                    color: root.avatarMessage === "头像已更新"
+                                           ? root.theme.success
+                                           : root.theme.error
+                                    font.family: root.theme.fontFamily
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
 
                         Rectangle {
-                            width: 68
-                            height: 68
-                            radius: 34
-                            color: root.theme.cardElevated
-                            border.color: root.theme.border
-                            border.width: 1
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "T"
-                                color: root.theme.accentText
-                                font.pixelSize: 33
-                                font.weight: Font.Bold
-                            }
+                            width: parent.width
+                            height: 1
+                            color: root.theme.withAlpha(root.theme.line, 0.72)
                         }
 
-                        Column {
-                            width: parent.width - 82
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 8
+                        Row {
+                            width: parent.width
+                            height: 64
 
-                            Text {
-                                width: parent.width
-                                text: "TimeArc Mobile"
-                                color: root.theme.textPrimary
-                                font.pixelSize: 23
-                                font.weight: Font.DemiBold
-                                elide: Text.ElideRight
-                            }
+                            Repeater {
+                                model: [
+                                    {
+                                        "label": "开始记录",
+                                        "value": root.profileDashboard.firstDateLocal
+                                                 || "尚未开始"
+                                    },
+                                    {
+                                        "label": "已陪伴",
+                                        "value": root.companionshipDays() + " 天"
+                                    },
+                                    {
+                                        "label": "实际记录",
+                                        "value": (root.profileDashboard.activeDays
+                                                  || 0) + " 天"
+                                    }
+                                ]
 
-                            Text {
-                                width: parent.width
-                                text: "记录 " + (root.totalDashboard.activeDays || 0) + " 天 · 累计 " + (root.totalDashboard.totalText || "0s")
-                                color: root.theme.textSecondary
-                                font.pixelSize: 13
-                                elide: Text.ElideRight
-                            }
+                                Item {
+                                    required property var modelData
+                                    required property int index
+                                    width: parent.width / 3
+                                    height: parent.height
 
-                            Text {
-                                width: parent.width
-                                text: root.usageStatusText()
-                                color: root.theme.accentText
-                                font.pixelSize: 12
-                                elide: Text.ElideRight
+                                    Rectangle {
+                                        visible: index > 0
+                                        anchors.left: parent.left
+                                        anchors.verticalCenter:
+                                            parent.verticalCenter
+                                        width: 1
+                                        height: 34
+                                        color: root.theme.withAlpha(
+                                                   root.theme.line, 0.72)
+                                    }
+
+                                    Column {
+                                        anchors.centerIn: parent
+                                        width: parent.width - 8
+                                        spacing: 4
+
+                                        Text {
+                                            width: parent.width
+                                            text: modelData.value
+                                            color: root.theme.textPrimary
+                                            font.family:
+                                                root.theme.numberFontFamily
+                                            font.pixelSize: 13
+                                            font.weight: Font.Bold
+                                            horizontalAlignment:
+                                                Text.AlignHCenter
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            width: parent.width
+                                            text: modelData.label
+                                            color: root.theme.textMuted
+                                            font.family: root.theme.fontFamily
+                                            font.pixelSize: 10
+                                            horizontalAlignment:
+                                                Text.AlignHCenter
+                                        }
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-
-                Row {
-                    width: parent.width
-                    height: 76
-                    spacing: 10
-
-                    StatusTile {
-                        width: (parent.width - 20) / 3
-                        theme: root.theme
-                        label: "权限"
-                        value: root.usageAccessText()
-                    }
-
-                    StatusTile {
-                        width: (parent.width - 20) / 3
-                        theme: root.theme
-                        label: "数据库"
-                        value: "SQLite"
-                    }
-
-                    StatusTile {
-                        width: (parent.width - 20) / 3
-                        theme: root.theme
-                        label: "应用"
-                        value: "" + (root.totalDashboard.appCount || 0)
                     }
                 }
 
                 SettingsGroup {
                     width: parent.width
-                    theme: root.theme
-                    title: "安卓使用数据"
+                    title: "记录与同步"
                     rows: [
-                        { "label": "使用情况访问权限", "desc": "打开系统 Usage Access 授权页", "value": root.usageAccessText(), "action": "usageAccess" },
-                        { "label": "立即同步", "desc": "读取系统记录并写入 TimeArc 数据库", "value": root.usageStatusText(), "action": "syncNow" },
-                        { "label": "前台打开自动同步", "desc": "进入 TimeArc 时补读最近使用情况", "switchKey": "autoSync" }
+                        {
+                            "icon": "shield",
+                            "label": "使用记录权限",
+                            "desc": "只读取应用级时长，不读取聊天与浏览内容",
+                            "value": root.usageAccessText(),
+                            "action": "usageAccess"
+                        },
+                        {
+                            "icon": "sync",
+                            "label": "立即同步",
+                            "desc": root.usageStatusText(),
+                            "value": "同步",
+                            "action": "syncNow"
+                        },
+                        {
+                            "icon": "clock",
+                            "label": "打开时自动同步",
+                            "desc": "每次回到 TimeArc 时补齐最近记录",
+                            "toggleKey": "autoSync"
+                        }
                     ]
                 }
 
                 SettingsGroup {
                     width: parent.width
-                    theme: root.theme
-                    title: "呈现与隐私"
-                    rows: [
-                        { "label": "跨设备合并", "desc": "后续与桌面端累计计算后统一展示", "switchKey": "mergeDevices" },
-                        { "label": "桌面标题脱敏", "desc": "安卓端为应用级，桌面端标题级可隐藏", "switchKey": "hideDesktopTitles" },
-                        { "label": "数据精度", "desc": "安卓 UsageStats 提供应用级时长", "value": "应用级" }
-                    ]
-                }
-
-                SettingsGroup {
-                    width: parent.width
-                    theme: root.theme
                     title: "外观"
                     rows: [
-                        { "label": "白色模式", "desc": "切换为冷白背景与深色文字", "switchKey": "lightMode" },
-                        { "label": "主页样式", "desc": "应用卡牌 + 下滑排行", "value": "卡牌" }
+                        {
+                            "icon": "image",
+                            "label": "自定义壁纸",
+                            "desc": root.wallpaperStateText(),
+                            "value": root.wallpaperActive ? "更换" : "选择",
+                            "action": "wallpaper"
+                        },
+                        {
+                            "icon": "clear",
+                            "label": "恢复纯色背景",
+                            "desc": "保留数据，只移除当前壁纸",
+                            "value": root.wallpaperActive ? "恢复" : "未使用",
+                            "action": root.wallpaperActive
+                                      ? "clearWallpaper" : ""
+                        },
+                        {
+                            "icon": "sun",
+                            "label": "浅色模式",
+                            "desc": "壁纸与透明模块会同步调整可读性",
+                            "toggleKey": "lightMode"
+                        },
+                        {
+                            "icon": "motion",
+                            "label": "减少动态效果",
+                            "desc": "关闭翻转和页面过渡动画",
+                            "toggleKey": "reducedMotion"
+                        }
                     ]
+                }
+
+                SettingsGroup {
+                    width: parent.width
+                    title: "分享与隐私"
+                    rows: [
+                        {
+                            "icon": "mask",
+                            "label": "默认匿名分享",
+                            "desc": "分享图不显示昵称，只保留应用与时间故事",
+                            "toggleKey": "anonymousShare"
+                        },
+                        {
+                            "icon": "lock",
+                            "label": "数据留在本机",
+                            "desc": "壁纸、时长与分享图默认保存在设备内",
+                            "value": "本地优先"
+                        }
+                    ]
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: 9
+
+                    Text {
+                        width: parent.width
+                        leftPadding: 2
+                        text: "社交平台授权"
+                        color: root.theme.textPrimary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 17
+                        font.weight: Font.DemiBold
+                    }
+
+                    MobileGlassPanel {
+                        width: parent.width
+                        height: socialFields.implicitHeight + 28
+                        theme: root.theme
+                        wallpaperActive: root.wallpaperActive
+                        strong: false
+
+                        Column {
+                            id: socialFields
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 14
+                            anchors.rightMargin: 14
+                            spacing: 14
+
+                            SocialAppIdField {
+                                width: parent.width
+                                label: "微信 AppID"
+                                channel: "moments"
+                                value: root.hasUiService()
+                                       ? mobileUiService.wechatAppId : ""
+                                status: root.socialStatusText("moments")
+                            }
+
+                            Rectangle {
+                                width: parent.width
+                                height: 1
+                                color: root.theme.withAlpha(
+                                           root.theme.line, 0.72)
+                            }
+
+                            SocialAppIdField {
+                                width: parent.width
+                                label: "QQ AppID"
+                                channel: "qzone"
+                                value: root.hasUiService()
+                                       ? mobileUiService.qqAppId : ""
+                                status: root.socialStatusText("qzone")
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: "还需在对应开放平台登记 com.timearc.app 与正式签名。未授权时，分享图片会先保存到图库。"
+                                color: root.theme.textMuted
+                                font.family: root.theme.fontFamily
+                                font.pixelSize: 10
+                                lineHeight: 1.45
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
                 }
 
                 Text {
                     width: parent.width
-                    text: "TimeArc · Android UsageStats · 本地优先"
-                    color: root.theme.textMuted
+                    topPadding: 2
+                    text: root.hasUiService() && mobileUiService.lastError.length > 0
+                          ? mobileUiService.lastError
+                          : "TimeArc · 认真保存每一段时间"
+                    color: root.hasUiService()
+                           && mobileUiService.lastError.length > 0
+                           ? root.theme.error : root.theme.textMuted
+                    font.family: root.theme.fontFamily
                     font.pixelSize: 11
                     horizontalAlignment: Text.AlignHCenter
-                    topPadding: 4
+                    wrapMode: Text.WordWrap
                 }
-            }
-        }
-    }
-
-    function checkedFor(key) {
-        if (key === "autoSync")
-            return autoSync
-        if (key === "mergeDevices")
-            return mergeDevices
-        if (key === "hideDesktopTitles")
-            return hideDesktopTitles
-        if (key === "lightMode")
-            return !theme.isDark
-        return false
-    }
-
-    function setChecked(key, value) {
-        if (key === "autoSync")
-            autoSync = value
-        else if (key === "mergeDevices")
-            mergeDevices = value
-        else if (key === "hideDesktopTitles")
-            hideDesktopTitles = value
-        else if (key === "lightMode")
-            darkModeChanged(!value)
-    }
-
-    function runAction(action) {
-        if (action === "usageAccess")
-            openUsageAccess()
-        else if (action === "syncNow")
-            syncNow()
-    }
-
-    component StatusTile: Rectangle {
-        required property var theme
-        property string label: ""
-        property string value: ""
-
-        radius: 18
-        color: theme.card
-        border.color: theme.borderSoft
-        border.width: 1
-
-        Column {
-            anchors.fill: parent
-            anchors.margins: 12
-            spacing: 8
-
-            Text {
-                width: parent.width
-                text: label
-                color: theme.textMuted
-                font.pixelSize: 11
-                elide: Text.ElideRight
-            }
-
-            Text {
-                width: parent.width
-                text: value
-                color: theme.textPrimary
-                font.family: theme.numberFontFamily
-                font.pixelSize: 14
-                font.weight: Font.DemiBold
-                elide: Text.ElideRight
             }
         }
     }
@@ -315,27 +652,27 @@ Rectangle {
     component SettingsGroup: Column {
         id: group
 
-        required property var theme
         property string title: ""
         property var rows: []
 
-        spacing: 8
+        spacing: 9
 
         Text {
             width: parent.width
+            leftPadding: 2
             text: group.title
-            color: group.theme.textPrimary
+            color: root.theme.textPrimary
+            font.family: root.theme.fontFamily
             font.pixelSize: 17
             font.weight: Font.DemiBold
         }
 
-        Rectangle {
+        MobileGlassPanel {
             width: parent.width
             height: rowsColumn.implicitHeight
-            radius: 20
-            color: group.theme.card
-            border.color: group.theme.borderSoft
-            border.width: 1
+            theme: root.theme
+            wallpaperActive: root.wallpaperActive
+            strong: false
 
             Column {
                 id: rowsColumn
@@ -346,94 +683,202 @@ Rectangle {
 
                     SettingRow {
                         required property var modelData
+                        required property int index
 
                         width: rowsColumn.width
-                        theme: group.theme
-                        label: modelData.label
-                        desc: modelData.desc
+                        iconName: modelData.icon || ""
+                        label: modelData.label || ""
+                        desc: modelData.desc || ""
                         value: modelData.value || ""
-                        switchKey: modelData.switchKey || ""
-                        checked: root.checkedFor(modelData.switchKey || "")
-                        hasArrow: !!modelData.action
-                        onClicked: root.runAction(modelData.action || "")
-                        onSwitchToggled: function(v) {
-                            root.setChecked(modelData.switchKey || "", v)
-                        }
+                        toggleKey: modelData.toggleKey || ""
+                        action: modelData.action || ""
+                        dividerVisible: index < group.rows.length - 1
                     }
                 }
             }
         }
     }
 
-    component SettingRow: Item {
-        required property var theme
+    component SocialAppIdField: Column {
+        id: socialField
+
         property string label: ""
-        property string desc: ""
+        property string channel: ""
         property string value: ""
-        property string switchKey: ""
-        property bool checked: false
-        property bool hasArrow: false
+        property string status: "等待平台授权"
 
-        signal clicked()
-        signal switchToggled(bool value)
-
-        height: 66
+        spacing: 7
 
         Row {
-            anchors.fill: parent
-            anchors.leftMargin: 14
-            anchors.rightMargin: 14
-            spacing: 12
+            width: parent.width
+            height: 20
 
-            Column {
-                width: parent.width - (switchKey.length > 0 ? 70 : 94)
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 5
-
-                Text {
-                    width: parent.width
-                    text: label
-                    color: theme.textPrimary
-                    font.pixelSize: 14
-                    font.weight: Font.Medium
-                    elide: Text.ElideRight
-                }
-
-                Text {
-                    width: parent.width
-                    text: desc
-                    color: theme.textMuted
-                    font.pixelSize: 12
-                    elide: Text.ElideRight
-                }
-            }
-
-            MobileSwitch {
-                visible: switchKey.length > 0
-                anchors.verticalCenter: parent.verticalCenter
-                theme: root.theme
-                checked: parent.parent.checked
-                onToggled: function(v) {
-                    parent.parent.switchToggled(v)
-                }
+            Text {
+                width: parent.width - 110
+                text: socialField.label
+                color: root.theme.textPrimary
+                font.family: root.theme.fontFamily
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
             }
 
             Text {
-                visible: switchKey.length === 0
-                width: 82
-                anchors.verticalCenter: parent.verticalCenter
-                text: hasArrow ? "›" : value
-                color: hasArrow ? theme.textMuted : theme.textSecondary
-                font.pixelSize: hasArrow ? 24 : 12
+                width: 110
+                text: socialField.status
+                color: socialField.status === "已就绪"
+                       ? root.theme.success : root.theme.textMuted
+                font.family: root.theme.fontFamily
+                font.pixelSize: 10
                 horizontalAlignment: Text.AlignRight
+            }
+        }
+
+        Rectangle {
+            width: parent.width
+            height: 40
+            radius: 11
+            color: root.theme.withAlpha(root.theme.surface, 0.28)
+            border.width: 1
+            border.color: root.theme.withAlpha(root.theme.line, 0.82)
+
+            TextInput {
+                anchors.fill: parent
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                verticalAlignment: TextInput.AlignVCenter
+                text: socialField.value
+                color: root.theme.textPrimary
+                selectionColor: root.theme.accent
+                selectedTextColor: "white"
+                font.family: root.theme.numberFontFamily
+                font.pixelSize: 12
+                clip: true
+                onEditingFinished: {
+                    if (root.hasUiService())
+                        mobileUiService.setSocialAppId(
+                                    socialField.channel, text)
+                }
+            }
+        }
+    }
+
+    component SettingRow: Item {
+        id: settingRow
+
+        property string iconName: ""
+        property string label: ""
+        property string desc: ""
+        property string value: ""
+        property string toggleKey: ""
+        property string action: ""
+        property bool dividerVisible: false
+
+        height: 74
+
+        Rectangle {
+            width: 36
+            height: 36
+            radius: 11
+            anchors.left: parent.left
+            anchors.leftMargin: 14
+            anchors.verticalCenter: parent.verticalCenter
+            color: root.theme.withAlpha(root.theme.accent, 0.18)
+
+            Text {
+                anchors.centerIn: parent
+                text: {
+                    if (settingRow.iconName === "shield") return "✓"
+                    if (settingRow.iconName === "sync") return "↻"
+                    if (settingRow.iconName === "clock") return "◷"
+                    if (settingRow.iconName === "image") return "▧"
+                    if (settingRow.iconName === "clear") return "−"
+                    if (settingRow.iconName === "sun") return "☼"
+                    if (settingRow.iconName === "motion") return "≋"
+                    if (settingRow.iconName === "mask") return "◉"
+                    return "⌂"
+                }
+                color: root.theme.accentBright
+                font.family: root.theme.numberFontFamily
+                font.pixelSize: 18
+                font.weight: Font.DemiBold
+            }
+        }
+
+        Column {
+            anchors.left: parent.left
+            anchors.leftMargin: 62
+            anchors.right: control.left
+            anchors.rightMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 4
+
+            Text {
+                width: parent.width
+                text: settingRow.label
+                color: root.theme.textPrimary
+                font.family: root.theme.fontFamily
+                font.pixelSize: 14
+                font.weight: Font.Medium
+                elide: Text.ElideRight
+            }
+
+            Text {
+                width: parent.width
+                text: settingRow.desc
+                color: root.theme.textMuted
+                font.family: root.theme.fontFamily
+                font.pixelSize: 11
                 elide: Text.ElideRight
             }
         }
 
+        Item {
+            id: control
+            width: settingRow.toggleKey.length > 0 ? 48 : 64
+            height: parent.height
+            anchors.right: parent.right
+            anchors.rightMargin: 12
+
+            MobileSwitch {
+                anchors.centerIn: parent
+                visible: settingRow.toggleKey.length > 0
+                theme: root.theme
+                checked: root.checkedFor(settingRow.toggleKey)
+                onToggled: function(value) {
+                    root.setChecked(settingRow.toggleKey, value)
+                }
+            }
+
+            Text {
+                anchors.fill: parent
+                visible: settingRow.toggleKey.length === 0
+                text: settingRow.value
+                color: settingRow.action.length > 0
+                       ? root.theme.accentBright : root.theme.textSecondary
+                font.family: root.theme.fontFamily
+                font.pixelSize: 12
+                font.weight: settingRow.action.length > 0
+                             ? Font.DemiBold : Font.Normal
+                horizontalAlignment: Text.AlignRight
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+        }
+
+        Rectangle {
+            visible: settingRow.dividerVisible
+            anchors.left: parent.left
+            anchors.leftMargin: 62
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 1
+            color: root.theme.withAlpha(root.theme.line, 0.72)
+        }
+
         MouseArea {
             anchors.fill: parent
-            enabled: switchKey.length === 0 || hasArrow
-            onClicked: parent.clicked()
+            enabled: settingRow.action.length > 0
+            onClicked: root.runAction(settingRow.action)
         }
     }
 }

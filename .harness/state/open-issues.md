@@ -1,11 +1,8 @@
 # Open Issues
 
-Known-broken or incomplete; move fixed items into a session log/error report.
+Known-broken or incomplete; keep entries short and move fixed items to a session log.
 
-Keep entries short: *what's wrong, where, and what's the minimum fix?*
-
-> Actionable, dependency-ordered backlog (track tags + change-proposal flags):
-> [`../../docs/implementation-backlog.md`](../../docs/implementation-backlog.md).
+> Actionable backlog: [`implementation-backlog.md`](../../docs/implementation-backlog.md).
 
 ## Platform
 
@@ -45,7 +42,9 @@ Keep entries short: *what's wrong, where, and what's the minimum fix?*
   alpha pass covered Apex Legends / NVIDIA Container / common Windows system process naming
   and grouping. 2026-06-14 C pass added WeChat/剪映专业版 naming, app icon
   fallback hardening, Memory Lake card-tip fadeout, day-mode sidebar icon selection,
-  and GitHub-style monthly stats heatmap/layout fixes. **Still open:** mobile equivalent; broader classifier long-tail keyword
+  and GitHub-style monthly stats heatmap/layout fixes. **Mobile equivalent is
+  implemented** with real usage, four ranges, Memory Lake, wallpaper and sharing;
+  device/ROM validation remains. **Still open:** broader classifier long-tail keyword
   coverage (`A4` — uncommon apps can still fall to 其他). Implementation issues + resolutions (A1–A7, B1–B11):
   `docs/memory-lake-integration-issues.md`; per-surface plan:
   `docs/memory-lake-backend-integration-plan.md` (also `…-implementation-plan.md` §4).
