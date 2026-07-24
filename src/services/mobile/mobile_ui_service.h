@@ -16,6 +16,9 @@ class MobileUiService : public QObject {
   Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
   Q_PROPERTY(QString lastSavedImagePath READ lastSavedImagePath
                  NOTIFY lastSavedImagePathChanged)
+  Q_PROPERTY(QString wechatAppId READ wechatAppId
+                 NOTIFY socialAppIdsChanged)
+  Q_PROPERTY(QString qqAppId READ qqAppId NOTIFY socialAppIdsChanged)
 
  public:
   explicit MobileUiService(SettingsRepository* settingsRepository,
@@ -24,6 +27,8 @@ class MobileUiService : public QObject {
   QString wallpaperUrl() const;
   QString lastError() const;
   QString lastSavedImagePath() const;
+  QString wechatAppId() const;
+  QString qqAppId() const;
 
   Q_INVOKABLE bool importWallpaper(const QUrl& source);
   Q_INVOKABLE bool clearWallpaper();
@@ -36,11 +41,14 @@ class MobileUiService : public QObject {
                                        const QString& channel,
                                        const QString& chooserTitle);
   Q_INVOKABLE QVariantMap socialShareStatus(const QString& channel) const;
+  Q_INVOKABLE bool setSocialAppId(const QString& channel,
+                                  const QString& value);
 
  signals:
   void wallpaperChanged();
   void lastErrorChanged();
   void lastSavedImagePathChanged();
+  void socialAppIdsChanged();
 
  private:
   static QString sanitizedStem(const QString& value);

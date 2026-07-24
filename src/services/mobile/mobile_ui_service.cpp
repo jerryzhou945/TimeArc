@@ -175,6 +175,18 @@ QString MobileUiService::lastSavedImagePath() const {
   return lastSavedImagePath_;
 }
 
+QString MobileUiService::wechatAppId() const {
+  return settingsRepository_
+             ? settingsRepository_->getValue(kWechatAppIdSetting).trimmed()
+             : QString();
+}
+
+QString MobileUiService::qqAppId() const {
+  return settingsRepository_
+             ? settingsRepository_->getValue(kQqAppIdSetting).trimmed()
+             : QString();
+}
+
 bool MobileUiService::importWallpaper(const QUrl& source) {
   setLastError(QString());
   if (!source.isValid() || source.isEmpty()) {
@@ -360,6 +372,33 @@ QVariantMap MobileUiService::socialShareStatus(
                      {QStringLiteral("label"), label},
                      {QStringLiteral("configured"),
                       !socialAppId(key).isEmpty()}};
+}
+
+bool MobileUiService::setSocialAppId(const QString& channel,
+                                     const QString& value) {
+  setLastError(QString());
+  if (!settingsRepository_) {
+    setLastError(QStringLiteral("当前环境无法保存平台授权信息。"));
+    return false;
+  }
+  const QString key = channel.trimmed().toLower();
+  const QString normalized = value.trimmed();
+  if ((key != QStringLiteral("moments") &&
+       key != QStringLiteral("qzone")) ||
+      normalized.size() > 128 ||
+      normalized.contains(QRegularExpression(QStringLiteral("\\s")))) {
+    setLastError(QStringLiteral("AppID 格式不正确，请检查后重试。"));
+    return false;
+  }
+  const QString settingKey =
+      key == QStringLiteral("moments") ? kWechatAppIdSetting
+                                       : kQqAppIdSetting;
+  if (!settingsRepository_->setValue(settingKey, normalized)) {
+    setLastError(QStringLiteral("AppID 未能保存到本机。"));
+    return false;
+  }
+  emit socialAppIdsChanged();
+  return true;
 }
 
 QString MobileUiService::socialAppId(const QString& channel) const {

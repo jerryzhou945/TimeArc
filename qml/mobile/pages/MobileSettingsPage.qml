@@ -54,6 +54,17 @@ Item {
         return wallpaperActive ? "正在使用自定义壁纸" : "跟随纯色主题"
     }
 
+    function socialStatusText(channel) {
+        if (!hasUiService())
+            return "等待平台授权"
+        var configuredId = channel === "moments"
+                ? mobileUiService.wechatAppId : mobileUiService.qqAppId
+        if (configuredId.length === 0)
+            return "等待平台授权"
+        var status = mobileUiService.socialShareStatus(channel)
+        return status.label || "等待平台授权"
+    }
+
     function checkedFor(key) {
         if (key === "lightMode")
             return !theme.isDark
@@ -246,6 +257,74 @@ Item {
                     ]
                 }
 
+                Column {
+                    width: parent.width
+                    spacing: 9
+
+                    Text {
+                        width: parent.width
+                        leftPadding: 2
+                        text: "社交平台授权"
+                        color: root.theme.textPrimary
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: 17
+                        font.weight: Font.DemiBold
+                    }
+
+                    MobileGlassPanel {
+                        width: parent.width
+                        height: socialFields.implicitHeight + 28
+                        theme: root.theme
+                        wallpaperActive: root.wallpaperActive
+                        strong: false
+
+                        Column {
+                            id: socialFields
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: 14
+                            anchors.rightMargin: 14
+                            spacing: 14
+
+                            SocialAppIdField {
+                                width: parent.width
+                                label: "微信 AppID"
+                                channel: "moments"
+                                value: root.hasUiService()
+                                       ? mobileUiService.wechatAppId : ""
+                                status: root.socialStatusText("moments")
+                            }
+
+                            Rectangle {
+                                width: parent.width
+                                height: 1
+                                color: root.theme.withAlpha(
+                                           root.theme.line, 0.72)
+                            }
+
+                            SocialAppIdField {
+                                width: parent.width
+                                label: "QQ AppID"
+                                channel: "qzone"
+                                value: root.hasUiService()
+                                       ? mobileUiService.qqAppId : ""
+                                status: root.socialStatusText("qzone")
+                            }
+
+                            Text {
+                                width: parent.width
+                                text: "还需在对应开放平台登记 com.timearc.app 与正式签名。未授权时，分享图片会先保存到图库。"
+                                color: root.theme.textMuted
+                                font.family: root.theme.fontFamily
+                                font.pixelSize: 10
+                                lineHeight: 1.45
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
+                }
+
                 Text {
                     width: parent.width
                     topPadding: 2
@@ -309,6 +388,69 @@ Item {
                         action: modelData.action || ""
                         dividerVisible: index < group.rows.length - 1
                     }
+                }
+            }
+        }
+    }
+
+    component SocialAppIdField: Column {
+        id: socialField
+
+        property string label: ""
+        property string channel: ""
+        property string value: ""
+        property string status: "等待平台授权"
+
+        spacing: 7
+
+        Row {
+            width: parent.width
+            height: 20
+
+            Text {
+                width: parent.width - 110
+                text: socialField.label
+                color: root.theme.textPrimary
+                font.family: root.theme.fontFamily
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
+            }
+
+            Text {
+                width: 110
+                text: socialField.status
+                color: socialField.status === "已就绪"
+                       ? root.theme.success : root.theme.textMuted
+                font.family: root.theme.fontFamily
+                font.pixelSize: 10
+                horizontalAlignment: Text.AlignRight
+            }
+        }
+
+        Rectangle {
+            width: parent.width
+            height: 40
+            radius: 11
+            color: root.theme.withAlpha(root.theme.surface, 0.28)
+            border.width: 1
+            border.color: root.theme.withAlpha(root.theme.line, 0.82)
+
+            TextInput {
+                anchors.fill: parent
+                anchors.leftMargin: 12
+                anchors.rightMargin: 12
+                verticalAlignment: TextInput.AlignVCenter
+                text: socialField.value
+                color: root.theme.textPrimary
+                selectionColor: root.theme.accent
+                selectedTextColor: "white"
+                font.family: root.theme.numberFontFamily
+                font.pixelSize: 12
+                clip: true
+                onEditingFinished: {
+                    if (root.hasUiService())
+                        mobileUiService.setSocialAppId(
+                                    socialField.channel, text)
                 }
             }
         }

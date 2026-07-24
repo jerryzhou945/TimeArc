@@ -67,6 +67,16 @@ def main():
             "social channel share API")
     require(ui_header, "Q_INVOKABLE QVariantMap socialShareStatus",
             "social authorization status API")
+    require(ui_header, "Q_PROPERTY(QString wechatAppId",
+            "WeChat AppID property")
+    require(ui_header, "Q_PROPERTY(QString qqAppId",
+            "QQ AppID property")
+    require(ui_header, "Q_INVOKABLE bool setSocialAppId",
+            "social AppID persistence API")
+    require(ui_service, "mobile_share_wechat_app_id",
+            "WeChat AppID settings key")
+    require(ui_service, "mobile_share_qq_app_id",
+            "QQ AppID settings key")
     require(android_bridge, "FileProvider.getUriForFile",
             "Android FileProvider share")
     require(android_bridge, "Intent.ACTION_SEND", "Android share intent")
@@ -136,6 +146,8 @@ def main():
             raise AssertionError(
                 f"{page_name} must not instantiate or load its own wallpaper"
             )
+    for label in ("社交平台授权", "微信 AppID", "QQ AppID", "等待平台授权"):
+        require(settings, label, f"social authorization UI: {label}")
     require(theme, "readonly property color contentClear",
             "near-clear wallpaper surface token")
     require(theme, "readonly property color contentWash",
