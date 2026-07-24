@@ -1,6 +1,6 @@
 # TimeArc 跨端同步执行进度
 
-**状态：** 设计已批准，E0 实施计划待执行
+**状态：** E0 交付规则实施中
 
 **目标分支：** `dev`
 
@@ -21,7 +21,7 @@
 
 | Epic | 内容 | 状态 | 分支 | PR | Merge |
 |---|---|---|---|---|---|
-| E0 | Harness 交付规则 | `[ ]` | `codex/cross-sync-e0-delivery-rules` | — | — |
+| E0 | Harness 交付规则 | `[-]` | `codex/cross-sync-e0-delivery-rules` | — | — |
 | E1 | 云端基础设施与 Auth | `[ ]` | `codex/cross-sync-e1-cloud-auth` | — | — |
 | E2 | 应用目录与统一映射 | `[ ]` | `codex/cross-sync-e2-app-catalog` | — | — |
 | E3 | 云端数据库与 Sync API | `[ ]` | `codex/cross-sync-e3-sync-api` | — | — |
@@ -34,13 +34,13 @@
 
 ## E0 — Harness 交付规则
 
-- [ ] 创建 Feature Track change proposal。
-- [ ] 补强现有 `.harness/rules/08-git-workflow.md`。
-- [ ] 更新冻结的 `.harness/AGENTS.md` 规则路由。
-- [ ] 定义小功能 commit 和 Epic PR 的验收边界。
-- [ ] 要求 session log 写完成、未完成、验证、下一步和风险。
-- [ ] 更新 frozen file hash。
-- [ ] `harness_check.py` 通过。
+- [x] 创建 Feature Track change proposal。
+- [x] 补强现有 `.harness/rules/08-git-workflow.md`。
+- [x] 更新冻结的 `.harness/AGENTS.md` 规则路由。
+- [x] 定义小功能 commit 和 Epic PR 的验收边界。
+- [x] 要求 session log 写完成、未完成、验证、下一步和风险。
+- [x] 更新 frozen file hash。
+- [x] `harness_check.py` 通过。
 - [ ] PR 合并到 `dev` 并清理分支。
 
 ## E1 — 云端基础设施与 Auth
@@ -217,3 +217,29 @@
 - 部分游戏和客户端 alias 必须在真实设备上验证。
 - Android 首版只能统一比较前台使用时长，不能准确覆盖后台听歌。
 - 生产自定义域名需要备案和国内 SMTP 配置。
+
+### 2026-07-24 — E0 Harness 交付规则
+
+**完成**
+
+- 已补强 Rule 08、AGENTS 规则路由、冻结哈希和静态验证。
+- 已在编码前清单加入活跃进度表门禁。
+- 已在提交前清单加入五段式状态记录门禁。
+
+**未完成**
+
+- PR、合并到 `dev` 和本地/远端分支清理仍未完成。
+
+**验证证据**
+
+- Task 1：`tests/harness_git_workflow_static_test.py` 通过。
+- Task 1：`.harness/tools/harness_check.py` 通过。
+- Task 2：清单门禁扩展后的 `tests/harness_git_workflow_static_test.py` 通过。
+
+**下一步**
+
+- 完成 E0 中文总结、backlog/open issues 更新并创建 PR。
+
+**风险**
+
+- PR 合并和分支清理依赖远端 GitHub 状态与权限。

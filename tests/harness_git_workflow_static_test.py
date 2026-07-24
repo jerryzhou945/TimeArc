@@ -60,6 +60,8 @@ def require_agents_frozen_hash():
 def main():
     rule = read(".harness/rules/08-git-workflow.md")
     agents = read(".harness/AGENTS.md")
+    before_coding = read(".harness/checklists/before-coding.md")
+    before_commit = read(".harness/checklists/before-commit.md")
 
     require(
         rule,
@@ -85,6 +87,18 @@ def main():
     )
     require_agents_route(agents)
     require_agents_frozen_hash()
+    require(
+        before_coding,
+        "Name the active progress checklist",
+        "before-coding progress tracker gate",
+    )
+    require(
+        before_commit,
+        "Completed / Incomplete / Verification / Next / Risks",
+        "before-commit five-part status gate",
+    )
+    require_line_budget(".harness/checklists/before-coding.md")
+    require_line_budget(".harness/checklists/before-commit.md")
     require_line_budget(".harness/rules/08-git-workflow.md")
     require_line_budget(".harness/AGENTS.md")
 
