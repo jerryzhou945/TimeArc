@@ -21,7 +21,7 @@
 
 | Epic | 内容 | 状态 | 分支 | PR | Merge |
 |---|---|---|---|---|---|
-| E0 | Harness 交付规则 | `[-]` | `codex/cross-sync-e0-delivery-rules` | — | — |
+| E0 | Harness 交付规则 | `[-]` | `codex/cross-sync-e0-delivery-rules` | [PR #68](https://github.com/jerryzhou945/TimeArc/pull/68) | — |
 | E1 | 云端基础设施与 Auth | `[ ]` | `codex/cross-sync-e1-cloud-auth` | — | — |
 | E2 | 应用目录与统一映射 | `[ ]` | `codex/cross-sync-e2-app-catalog` | — | — |
 | E3 | 云端数据库与 Sync API | `[ ]` | `codex/cross-sync-e3-sync-api` | — | — |
@@ -225,21 +225,23 @@
 - 已补强 Rule 08、AGENTS 规则路由、冻结哈希和静态验证。
 - 已在编码前清单加入活跃进度表门禁。
 - 已在提交前清单加入五段式状态记录门禁。
+- 已创建 E0 中文完成报告和 [draft PR #68](https://github.com/jerryzhou945/TimeArc/pull/68)。
 
 **未完成**
 
-- PR、合并到 `dev` 和本地/远端分支清理仍未完成。
+- PR 审查、合并到 `dev` 和本地/远端分支清理仍未完成。
 
 **验证证据**
 
 - Task 1：`tests/harness_git_workflow_static_test.py` 通过。
 - Task 1：`.harness/tools/harness_check.py` 通过。
 - Task 2：清单门禁扩展后的 `tests/harness_git_workflow_static_test.py` 通过。
+- Task 3：workflow 静态测试、完整 harness 审计和 `git diff --check` 通过。
 
 **下一步**
 
-- 完成 E0 中文总结、backlog/open issues 更新并创建 PR。
+- 审查并合并 PR #68，确认 `dev` 包含 merge 后清理本地/远端分支。
 
 **风险**
 
-- PR 合并和分支清理依赖远端 GitHub 状态与权限。
+- GitHub 分支保护仍是外部仓库设置；规则不能代替平台级强制检查。

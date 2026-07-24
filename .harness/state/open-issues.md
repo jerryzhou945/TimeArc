@@ -20,14 +20,13 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 
 ## Storage
 
-- **Windows platform storage adapter — DONE.** Windows foreground/audio
-  trackers now submit app and session rows through `shared/data_bridge.h`;
-  `src/service/windows/storage/` has been retired.
 - **SQLite usage migration (A1) — DONE** (`CHARTER` v0.9). `timearc_service.db`
   is the sole history store; UI is read-only. [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
-- **Shared usage contract cleanup — DONE** (`CHARTER` v0.10): bridge + three SQLite tables.
 - **Whole-DB backup/restore (D1) — DONE (S1+S2, PR #40).** `DatabaseManager`
   `backupDatabase`/`inspectBackup`/`restoreDatabase` + Settings UI; S3 retention deferred.
+- **Cross-device sync E1-E9 is not implemented.** Approved design and live
+  checklist: `docs/superpowers/specs/2026-07-24-cross-device-sync-design.md`
+  and `docs/cross-device-sync-progress.md`.
 
 ## UI
 

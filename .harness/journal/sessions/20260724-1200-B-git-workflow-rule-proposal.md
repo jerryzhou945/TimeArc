@@ -48,11 +48,14 @@ Revert the E0 PR; no data restoration is required.
 - [x] No CHARTER version bump is required.
 - [x] No user-visible README change is required.
 
-## 8. E0 execution record
+## 8. Outcome
 
-- Completed: Rule 08 contract, mandatory AGENTS route, frozen hash, and static test.
-- Incomplete: None.
-- Verification: RED failed on `missing small feature definition`; GREEN passed;
-  full `harness_check.py` passed.
-- Next: Enforce the contract in the before-coding and before-commit checklists.
-- Risks: None.
+Completed: Rule 08, AGENTS routing, checklist enforcement, static test, report.
+
+Incomplete: PR merge and branch cleanup.
+
+Verification: workflow static test and full harness pass.
+
+Next: merge the E0 PR, clean its branch, then write the E1 execution plan.
+
+Risks: GitHub branch protection remains an external repository setting.
