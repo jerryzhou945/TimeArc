@@ -13,6 +13,7 @@ class SettingsRepository;
 class MobileUiService : public QObject {
   Q_OBJECT
   Q_PROPERTY(QString wallpaperUrl READ wallpaperUrl NOTIFY wallpaperChanged)
+  Q_PROPERTY(QString avatarUrl READ avatarUrl NOTIFY avatarChanged)
   Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
   Q_PROPERTY(QString lastSavedImagePath READ lastSavedImagePath
                  NOTIFY lastSavedImagePathChanged)
@@ -25,6 +26,7 @@ class MobileUiService : public QObject {
                            QObject* parent = nullptr);
 
   QString wallpaperUrl() const;
+  QString avatarUrl() const;
   QString lastError() const;
   QString lastSavedImagePath() const;
   QString wechatAppId() const;
@@ -32,6 +34,8 @@ class MobileUiService : public QObject {
 
   Q_INVOKABLE bool importWallpaper(const QUrl& source);
   Q_INVOKABLE bool clearWallpaper();
+  Q_INVOKABLE bool importAvatar(const QUrl& source);
+  Q_INVOKABLE bool clearAvatar();
   Q_INVOKABLE QString createShareImagePath(const QString& stem) const;
   Q_INVOKABLE bool saveImageToGallery(const QUrl& source,
                                       const QString& albumName = QString());
@@ -46,6 +50,7 @@ class MobileUiService : public QObject {
 
  signals:
   void wallpaperChanged();
+  void avatarChanged();
   void lastErrorChanged();
   void lastSavedImagePathChanged();
   void socialAppIdsChanged();
@@ -60,6 +65,7 @@ class MobileUiService : public QObject {
 
   SettingsRepository* settingsRepository_ = nullptr;
   QString wallpaperPath_;
+  QString avatarPath_;
   QString lastError_;
   QString lastSavedImagePath_;
 };

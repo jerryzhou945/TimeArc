@@ -76,6 +76,7 @@ set(TIME_ARC_QML_FILES
     qml/mobile/components/MobileSeasonScene.qml
     qml/mobile/components/MobileRankingShareOverlay.qml
     qml/mobile/components/MobileShareActionBar.qml
+    qml/mobile/components/MobileRoundedFrame.qml
     qml/mobile/components/monthly/MonthlyCoverPage.qml
     qml/mobile/components/monthly/MonthlyOverviewPage.qml
     qml/mobile/components/monthly/MonthlyHighlightPage.qml

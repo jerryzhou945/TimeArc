@@ -10,6 +10,11 @@ Item {
     property bool autoSync: true
     property bool anonymousShare: false
     property bool reducedMotion: false
+    property var profileDashboard: ({
+        "firstDateLocal": "",
+        "activeDays": 0,
+        "empty": true
+    })
 
     signal darkModeChanged(bool enabled)
 
@@ -34,6 +39,39 @@ Item {
         reducedMotion = settingsRepository.getBool(
                     "mobile_reduced_motion", false)
         theme.reducedMotion = reducedMotion
+    }
+
+    function isPreviewMode() {
+        return Qt.application.arguments.indexOf("--mobile-preview") >= 0
+    }
+
+    function reloadProfileDashboard() {
+        var dashboard = hasUsageService()
+                ? mobileUsageService.getDashboardForRange("all")
+                : ({ "firstDateLocal": "", "activeDays": 0, "empty": true })
+        profileDashboard = isPreviewMode() && dashboard.empty
+                ? ({
+                    "firstDateLocal": "2025.03.13",
+                    "activeDays": 168,
+                    "empty": false
+                }) : dashboard
+    }
+
+    function companionshipDays() {
+        var raw = (profileDashboard.firstDateLocal || "").toString()
+        var parts = raw.replace(/\./g, "-").split("-")
+        if (parts.length < 3)
+            return 0
+        var first = new Date(Number(parts[0]), Number(parts[1]) - 1,
+                             Number(parts[2]))
+        if (isNaN(first.getTime()))
+            return 0
+        var today = new Date()
+        first.setHours(0, 0, 0, 0)
+        today.setHours(0, 0, 0, 0)
+        return Math.max(1, Math.floor(
+                            (today.getTime() - first.getTime())
+                            / 86400000) + 1)
     }
 
     function usageStatusText() {
@@ -120,7 +158,16 @@ Item {
         }
     }
 
-    Component.onCompleted: loadPreferences()
+    Component.onCompleted: {
+        loadPreferences()
+        reloadProfileDashboard()
+    }
+
+    Connections {
+        target: root.hasUsageService() ? mobileUsageService : null
+        function onDataChanged() { root.reloadProfileDashboard() }
+        function onStatusChanged() { root.reloadProfileDashboard() }
+    }
 
     FileDialog {
         id: wallpaperDialog
@@ -130,6 +177,17 @@ Item {
         onAccepted: {
             if (root.hasUiService())
                 mobileUiService.importWallpaper(selectedFile)
+        }
+    }
+
+    FileDialog {
+        id: avatarDialog
+        title: "选择本地头像"
+        nameFilters: ["图片文件 (*.png *.jpg *.jpeg *.webp)"]
+
+        onAccepted: {
+            if (root.hasUiService())
+                mobileUiService.importAvatar(selectedFile)
         }
     }
 
@@ -177,6 +235,211 @@ Item {
                             color: root.theme.textSecondary
                             font.family: root.theme.fontFamily
                             font.pixelSize: 12
+                        }
+                    }
+                }
+
+                MobileGlassPanel {
+                    id: profileArchive
+                    width: parent.width
+                    height: 214
+                    theme: root.theme
+                    wallpaperActive: root.wallpaperActive
+                    strong: false
+
+                    Column {
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        spacing: 12
+
+                        Row {
+                            width: parent.width
+                            height: 92
+                            spacing: 14
+
+                            Item {
+                                width: 88
+                                height: 88
+
+                                MobileRoundedFrame {
+                                    id: avatarFrame
+                                    anchors.left: parent.left
+                                    anchors.top: parent.top
+                                    width: 80
+                                    height: 80
+                                    radius: 40
+                                    border.width: 1
+                                    border.color: root.theme.withAlpha(
+                                                      root.theme.textPrimary,
+                                                      0.18)
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: root.theme.accentSoft
+                                    }
+
+                                    Image {
+                                        id: profileAvatar
+                                        anchors.fill: parent
+                                        source: root.hasUiService()
+                                                ? mobileUiService.avatarUrl : ""
+                                        fillMode: Image.PreserveAspectCrop
+                                        asynchronous: true
+                                        cache: false
+                                        visible: source.toString().length > 0
+                                                 && status !== Image.Error
+                                    }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: !profileAvatar.visible
+                                        text: "T"
+                                        color: root.theme.accentBright
+                                        font.family: root.theme.fontFamily
+                                        font.pixelSize: 30
+                                        font.weight: Font.Black
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: avatarDialog.open()
+                                    }
+                                }
+
+                                Rectangle {
+                                    anchors.right: parent.right
+                                    anchors.bottom: parent.bottom
+                                    width: 30
+                                    height: 30
+                                    radius: 15
+                                    color: root.theme.accent
+                                    border.width: 2
+                                    border.color: root.theme.surface
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "+"
+                                        color: "white"
+                                        font.pixelSize: 18
+                                        font.weight: Font.Bold
+                                    }
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        onClicked: avatarDialog.open()
+                                    }
+                                }
+                            }
+
+                            Column {
+                                width: parent.width - 102
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 5
+
+                                Text {
+                                    width: parent.width
+                                    text: "我的时间档案"
+                                    color: root.theme.textPrimary
+                                    font.family: root.theme.fontFamily
+                                    font.pixelSize: 20
+                                    font.weight: Font.Bold
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: "点击头像选择照片"
+                                    color: root.theme.accentBright
+                                    font.family: root.theme.fontFamily
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                }
+
+                                Text {
+                                    width: parent.width
+                                    text: "头像与记录只保存在这台设备上"
+                                    color: root.theme.textMuted
+                                    font.family: root.theme.fontFamily
+                                    font.pixelSize: 10
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: root.theme.withAlpha(root.theme.line, 0.72)
+                        }
+
+                        Row {
+                            width: parent.width
+                            height: 64
+
+                            Repeater {
+                                model: [
+                                    {
+                                        "label": "开始记录",
+                                        "value": root.profileDashboard.firstDateLocal
+                                                 || "尚未开始"
+                                    },
+                                    {
+                                        "label": "已陪伴",
+                                        "value": root.companionshipDays() + " 天"
+                                    },
+                                    {
+                                        "label": "实际记录",
+                                        "value": (root.profileDashboard.activeDays
+                                                  || 0) + " 天"
+                                    }
+                                ]
+
+                                Item {
+                                    required property var modelData
+                                    required property int index
+                                    width: parent.width / 3
+                                    height: parent.height
+
+                                    Rectangle {
+                                        visible: index > 0
+                                        anchors.left: parent.left
+                                        anchors.verticalCenter:
+                                            parent.verticalCenter
+                                        width: 1
+                                        height: 34
+                                        color: root.theme.withAlpha(
+                                                   root.theme.line, 0.72)
+                                    }
+
+                                    Column {
+                                        anchors.centerIn: parent
+                                        width: parent.width - 8
+                                        spacing: 4
+
+                                        Text {
+                                            width: parent.width
+                                            text: modelData.value
+                                            color: root.theme.textPrimary
+                                            font.family:
+                                                root.theme.numberFontFamily
+                                            font.pixelSize: 13
+                                            font.weight: Font.Bold
+                                            horizontalAlignment:
+                                                Text.AlignHCenter
+                                            elide: Text.ElideRight
+                                        }
+
+                                        Text {
+                                            width: parent.width
+                                            text: modelData.label
+                                            color: root.theme.textMuted
+                                            font.family: root.theme.fontFamily
+                                            font.pixelSize: 10
+                                            horizontalAlignment:
+                                                Text.AlignHCenter
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

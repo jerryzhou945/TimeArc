@@ -46,6 +46,12 @@ def main():
     if not share_bar_path.exists():
         raise AssertionError("missing unified mobile share action bar")
     share_bar = share_bar_path.read_text(encoding="utf-8")
+    rounded_frame_path = (
+        ROOT / "qml/mobile/components/MobileRoundedFrame.qml"
+    )
+    if not rounded_frame_path.exists():
+        raise AssertionError("missing mobile true rounded frame")
+    rounded_frame = rounded_frame_path.read_text(encoding="utf-8")
     profiles_path = ROOT / "qml/mobile/components/MobileMonthProfiles.js"
     season_scene_path = ROOT / "qml/mobile/components/MobileSeasonScene.qml"
     if not profiles_path.exists() or not season_scene_path.exists():
@@ -62,6 +68,14 @@ def main():
     require(main_cpp, '"mobileUiService"', "QML mobile UI service")
     require(ui_header, "Q_PROPERTY(QString wallpaperUrl",
             "wallpaper property")
+    require(ui_header, "Q_PROPERTY(QString avatarUrl",
+            "profile avatar property")
+    require(ui_header, "Q_INVOKABLE bool importAvatar",
+            "profile avatar import")
+    require(ui_header, "Q_INVOKABLE bool clearAvatar",
+            "profile avatar clear")
+    require(ui_header, "void avatarChanged();",
+            "profile avatar change signal")
     require(ui_header, "Q_INVOKABLE bool importWallpaper",
             "wallpaper import")
     require(ui_header, "Q_INVOKABLE bool shareImage", "share handoff")
@@ -81,6 +95,10 @@ def main():
             "WeChat AppID settings key")
     require(ui_service, "mobile_share_qq_app_id",
             "QQ AppID settings key")
+    require(ui_service, "mobile_profile_avatar_path",
+            "profile avatar settings key")
+    require(ui_service, 'QStringLiteral("avatar-%1.%2")',
+            "versioned private avatar filename")
     require(android_bridge, "FileProvider.getUriForFile",
             "Android FileProvider share")
     require(android_bridge, "Intent.ACTION_SEND", "Android share intent")
@@ -260,11 +278,23 @@ def main():
             "shared rounded app poster radius")
     require(share, "radius: root.posterRadius",
             "app preview uses poster radius")
-    require(share, "id: posterHairline",
-            "visible app preview inner hairline")
+    require(share, "border.width: 1",
+            "visible app preview masked hairline")
+    require(rounded_frame, "import QtQuick.Effects",
+            "Qt Quick effects rounded mask")
+    require(rounded_frame, "default property alias content:",
+            "rounded frame content API")
+    require(rounded_frame, "MultiEffect",
+            "rounded frame compositor")
+    require(rounded_frame, "maskSource: mask",
+            "rounded frame mask source")
+    require(share, "MobileRoundedFrame",
+            "app preview true rounded mask")
     qml_cmake = read("qml/CMakeLists.txt")
     require(qml_cmake, "MobileShareActionBar.qml",
             "share action bar QML registration")
+    require(qml_cmake, "MobileRoundedFrame.qml",
+            "rounded frame QML registration")
     if profiles.count("sceneSource:") != 12:
         raise AssertionError("month profiles must define twelve scene sources")
     require(season_scene, "Image.PreserveAspectCrop",
@@ -301,6 +331,12 @@ def main():
             "explicit monthly share preview")
     require(monthly_share, "radius: 22",
             "rounded monthly share preview")
+    require(monthly_share, "id: monthlyShareSheet",
+            "monthly neutral share sheet")
+    require(monthly_share, "color: root.theme.surface",
+            "monthly share sheet neutral surface")
+    require(monthly_share, "MobileRoundedFrame",
+            "monthly preview true rounded mask")
     require(monthly_share,
             "signal shareRequested(string channel, var previewItem)",
             "monthly preview item share signal")
@@ -312,6 +348,19 @@ def main():
             "monthly export accepts explicit preview")
     require(monthly_story, "var captureItem = previewItem || reportSurface",
             "monthly export capture source")
+    require(settings, "id: profileArchive",
+            "Profile personal time archive")
+    require(settings, "id: avatarDialog",
+            "Profile avatar picker")
+    require(settings, "mobileUiService.importAvatar(selectedFile)",
+            "Profile avatar import handoff")
+    require(settings, "MobileRoundedFrame",
+            "circular Profile avatar")
+    for label in ("开始记录", "已陪伴", "实际记录"):
+        require(settings, label, f"Profile archive fact {label}")
+    readme = read("README.md")
+    require(readme, "本地头像",
+            "README local avatar behavior")
     require(monthly_story, '(root.currentPage + 1) + " / " + root.pageCount',
             "neutral monthly story progress marker")
     if '? "完成"' in monthly_story:

@@ -150,14 +150,20 @@ Item {
                 width: parent.width
                 height: Math.min(510, sheet.height - 188)
 
-                Rectangle {
+                MobileRoundedFrame {
                     id: poster
                     anchors.centerIn: parent
                     width: Math.min(parent.width, parent.height * 0.5625)
                     height: width / 0.5625
                     radius: root.posterRadius
-                    color: root.theme.memoryBrown
-                    clip: true
+                    border.width: 1
+                    border.color: root.theme.withAlpha(
+                                      root.theme.memoryInk, 0.20)
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: root.theme.memoryBrown
+                    }
 
                     Image {
                         anchors.fill: parent
@@ -295,16 +301,6 @@ Item {
                         }
                     }
 
-                    Rectangle {
-                        id: posterHairline
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        radius: root.posterRadius - 1
-                        color: "transparent"
-                        border.width: 1
-                        border.color: root.theme.withAlpha(
-                                          root.theme.memoryInk, 0.20)
-                    }
                 }
             }
 

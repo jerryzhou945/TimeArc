@@ -236,6 +236,10 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 - Android UI-private wallpaper and share files are managed by
   `MobileUiService` under the app data directory. They do not enter either
   SQLite usage database or the service control-file contract.
+- The mobile Profile keeps an optional 本地头像 in the same UI-private area.
+  It is never uploaded or inserted into a share poster automatically; the
+  profile archive combines it only with the real first-record date, inclusive
+  companionship span, and active record-day count.
 
 ## Adapter Support
 
