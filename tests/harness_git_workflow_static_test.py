@@ -31,7 +31,12 @@ def require_agents_route(agents):
     if heading not in agents or next_heading not in agents:
         raise AssertionError("missing mandatory reading router boundaries")
     router = agents.split(heading, 1)[1].split(next_heading, 1)[0]
-    require(router, AGENTS_ROUTE, "exact mandatory workflow rule route")
+    route_count = router.splitlines().count(AGENTS_ROUTE)
+    if route_count != 1:
+        raise AssertionError(
+            "expected exactly one complete mandatory workflow rule route; "
+            f"found {route_count}"
+        )
 
 
 def require_agents_frozen_hash():
