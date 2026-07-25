@@ -1,0 +1,21 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Base background gradient mapped to the padded size -->
+    <linearGradient id="timeArcBrand" x1="6.25" y1="6.25" x2="57.75" y2="57.75" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9FE7EE"/>
+      <stop offset="1" stop-color="#9B8BFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base shape scaled to 51.5x51.5 for exact macOS padding -->
+  <rect x="6.25" y="6.25" width="51.5" height="51.5" rx="11.56" fill="url(#timeArcBrand)"/>
+
+  <!-- Inner rim -->
+  <rect x="7" y="7" width="50" height="50" rx="10.81" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="1.5"/>
+
+  <!-- Inner Glyph -->
+  <g fill="#0E1530">
+    <rect x="18.5" y="18.5" width="27" height="7" rx="2.2"/>
+    <rect x="28.5" y="18.5" width="7" height="27" rx="2.2"/>
+  </g>
+</svg>

@@ -29,7 +29,7 @@
     },
     {
       "path": "CMakeLists.txt",
-      "sha256": "1ec3346dc2cfa7cc3a6a30f3bc7db2af3eb98459aa5603a08961a88d68b8d708"
+      "sha256": "4b3bc9e995ab241606a83854e7043afe48c7f0d33f7b506d0b969bb231d8a9c0"
     },
     {
       "path": "src/CMakeLists.txt",

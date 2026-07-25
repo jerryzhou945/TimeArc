@@ -24,6 +24,16 @@ add_subdirectory(src)
 add_subdirectory(qml)
 add_subdirectory(resources)
 
+if(APPLE)
+    set(TIME_ARC_MACOS_BUNDLE_ICON
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/bundle/macos/TimeArc.icns")
+    set_source_files_properties(${TIME_ARC_MACOS_BUNDLE_ICON} PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources"
+    )
+    list(APPEND TIME_ARC_APP_SOURCES ${TIME_ARC_MACOS_BUNDLE_ICON})
+    set(MACOSX_BUNDLE_ICON_FILE "TimeArc.icns")
+endif()
+
 qt_add_executable(time-arc ${TIME_ARC_APP_SOURCES})
 
 target_include_directories(time-arc PRIVATE

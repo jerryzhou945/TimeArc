@@ -8,6 +8,13 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-25T13:07:13Z | L1 | macos-icon-froz... | Post-change harness audit found the approved CMakeLists.t... | [report](errors/20260725-130713-B-macos-icon-frozen-hash-drift.md) |
+| 2026-07-25T13:05:04Z | L3 | cmake-icon-prop... | Queried MACOSX_BUNDLE_ICON_FILE as a CMake property, but ... | [report](errors/20260725-130504-B-cmake-icon-property-probe.md) |
+| 2026-07-25T12:59:52Z | L1 | resource-follow... | Mandatory Track C error entry pushed the rolling journal ... | [report](errors/20260725-125952-C-resource-followup-index-line-budget.md) |
+| 2026-07-25T12:57:56Z | L2 | stale-resource-... | Runtime and documentation references still target removed... | [report](errors/20260725-125756-C-stale-resource-branding-license-paths.md) |
+| 2026-07-25T12:48:30Z | L3 | resource-reorg-... | Resource path rule expansion and mandatory error-index en... | [report](errors/20260725-124830-A-resource-reorg-harness-line-budget.md) |
+| 2026-07-25T12:45:45Z | L3 | build-poll-sess... | Polled the harness build through a yielded nested command... | [report](errors/20260725-124545-A-build-poll-session-handle.md) |
+| 2026-07-25T12:45:02Z | L1 | desktop-static-... | desktop_ux_static_test.py expects android/src/main/Androi... | [report](errors/20260725-124502-A-desktop-static-manifest-path.md) |
 | 2026-07-24T09:07:04Z | L3 | chained-read-co... | Combined git diff --check and a scoped git diff with a sh... | [report](errors/20260724-090704-C-chained-read-command.md) |
 | 2026-07-24T08:04:26Z | L1 | harness-index-l... | harness_check found .harness/journal/INDEX.md at 101 line... | [report](errors/20260724-080426-C-harness-index-line-budget.md) |
 | 2026-07-24T08:01:06Z | L1 | swift-module-cache | Swift type-check could not write the Clang module cache u... | [report](errors/20260724-080106-C-swift-module-cache.md) |
@@ -89,12 +96,5 @@ the harness line budget intact.
 | 2026-07-08T15:56:36Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260708-155636-B-build-failure.md) |
 | 2026-07-08T15:51:19Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260708-155119-B-build-failure.md) |
 | 2026-07-08T15:49:42Z | L3 | stale-text-rg-e... | A stale-text rg search used an invalid backslash escape w... | [report](errors/20260708-154942-B-stale-text-rg-escape.md) |
-| 2026-07-08T15:42:40Z | L3 | cmake-path-rg-miss | Exploratory rg included a non-existent cmake directory wh... | [report](errors/20260708-154240-B-cmake-path-rg-miss.md) |
-| 2026-07-08T15:38:58Z | L1 | preflight-drift | Preflight failed due to existing harness drift in .harnes... | [report](errors/20260708-153858-B-preflight-drift.md) |
-| 2026-07-08T15:31:16Z | L3 | preflight-drift | Preflight reported existing harness drift before a read-o... | [report](errors/20260708-153116-A-preflight-drift.md) |
-| 2026-07-08T15:26:44Z | L1 | preflight-drift | Preflight failed due to existing harness drift: journal i... | [report](errors/20260708-152644-A-preflight-drift.md) |
-| 2026-07-07T15:24:15Z | L3 | qtpaths-option-... | qtpaths6 option probes for overriding application name fa... | [report](errors/20260707-152415-A-qtpaths-option-probe.md) |
-| 2026-07-07T15:22:37Z | L3 | missing-macos-b... | Lookup included IDE tab path src/service/macos.backup, bu... | [report](errors/20260707-152237-A-missing-macos-backup-path.md) |
-| 2026-07-07T15:21:30Z | L2 | preflight-drift | Preflight failed before investigation: .harness/journal/I... | [report](errors/20260707-152130-A-preflight-drift.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

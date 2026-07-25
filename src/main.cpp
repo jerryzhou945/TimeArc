@@ -186,7 +186,7 @@ int main(int argc, char* argv[]) {
 
   // 无边框窗口的标题栏图标 + 任务栏图标共用同一品牌 SVG（资源随 QML 模块打包）。
   QGuiApplication::setWindowIcon(
-      QIcon(QStringLiteral(":/qt/qml/time_arc/resources/icons/app_icon.svg")));
+      QIcon(QStringLiteral(":/qt/qml/time_arc/resources/app/TimeArc.svg")));
 
   // Tee Qt Warning/Critical/Fatal into the harness log. See
   // .harness/tools/scan_qt_log.py for the consumer that converts log

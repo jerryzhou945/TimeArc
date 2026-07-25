@@ -64,9 +64,9 @@
 - Modify: `qml/desktop/memorylake/TimeRiver.qml`
 - Modify: `resources/CMakeLists.txt`
 - Delete: `resources/icons/bilibili.svg`
-- Add: `resources/icons/sites/bilibili.png`
+- Add: `resources/app/icons/sites/bilibili.png`
 
-- [x] Move Bilibili to the same `resources/icons/sites/` site-icon path as other video sites.
+- [x] Move Bilibili to the same `resources/app/icons/sites/` site-icon path as other video sites.
 - [x] Remove the old root `bilibili.svg` resource entry.
 - [x] Add TimeRiver label lane/skip logic so dense labels do not overlap.
 - [x] Build, run harness check, commit.

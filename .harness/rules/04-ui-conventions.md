@@ -57,13 +57,12 @@ Reject these in review:
 
 ## 5. Images and icons
 
-- Native app icons come from `AppIconImageProvider` via
-  `image://appicon/<exe path>`. Do not embed per-app icons in resources.
-- Static UI icons live in `resources/icons/`. SVG preferred.
-- Memory Lake artwork lives in `resources/memorylake/`.
-- Background images: `background.png`, `background_night.png`, and the
-  optional `background_japanese_style.png`. If you add a new one, add it to
-  `resources/CMakeLists.txt`.
+- Native app icons use `image://appicon/<exe path>`; do not embed per-app icons.
+- Shared branding, backgrounds, navigation icons, and site icons live under
+  `resources/app/`; SVG is preferred for UI icons.
+- Feature artwork lives under `resources/features/`.
+- Register runtime assets in `resources/CMakeLists.txt`.
+- Keep non-qrc native inputs under `resources/bundle/<platform>/`.
 
 ## 6. Cross-manager signals
 

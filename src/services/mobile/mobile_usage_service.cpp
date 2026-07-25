@@ -347,7 +347,7 @@ QVariantMap MobileUsageService::getMonthlyReport(const QString& monthKey) {
   profile.insert(QStringLiteral("season"), seasons.at(profileIndex));
   profile.insert(
       QStringLiteral("sceneSource"),
-      QStringLiteral("qrc:/qt/qml/time_arc/resources/mobile/monthly/month-%1.jpg")
+      QStringLiteral("qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-%1.jpg")
           .arg(monthStart.month(), 2, 10, QLatin1Char('0')));
   profile.insert(QStringLiteral("accent"), accents.at(profileIndex));
   profile.insert(QStringLiteral("accentInk"), accentInks.at(profileIndex));

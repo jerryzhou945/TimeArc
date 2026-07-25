@@ -52,7 +52,7 @@ Item {
                 anchors.centerIn: parent
                 width: 20
                 height: 20
-                source: Qt.resolvedUrl("../../../resources/icons/"
+                source: Qt.resolvedUrl("../../../resources/app/icons/navigation/"
                                        + root.iconFile()
                                        + (root.theme.isDark ? "_white.svg" : ".svg"))
                 fillMode: Image.PreserveAspectFit

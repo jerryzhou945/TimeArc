@@ -59,8 +59,8 @@ Item {
     // 背景图路径
     // 白天 / 夜晚分别一张图
     // =========================
-    property string dayBackgroundSource: Qt.resolvedUrl("../../resources/background.png")
-    property string nightBackgroundSource: Qt.resolvedUrl("../../resources/background_night.png")
+    property string dayBackgroundSource: Qt.resolvedUrl("../../resources/app/backgrounds/background.png")
+    property string nightBackgroundSource: Qt.resolvedUrl("../../resources/app/backgrounds/background_night.png")
 
     // 当前实际使用的背景图
     property string appBackgroundSource: nightMode ? nightBackgroundSource : dayBackgroundSource
@@ -137,25 +137,25 @@ Item {
     // onMemoryLake / 信号连接使用）；bottom = true 的项固定在菜单最底部（月度回顾）。
     property var navItems: [
         { title: "首页", subtitle: "Dashboard", page: "memorylake",
-          icon: Qt.resolvedUrl("../../resources/icons/home.svg"),
-          nightIcon: Qt.resolvedUrl("../../resources/icons/home_white.svg") },
+          icon: Qt.resolvedUrl("../../resources/app/icons/navigation/home.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/home_white.svg") },
         { title: "日历", subtitle: "Calendar", page: "calendar",
-          icon: Qt.resolvedUrl("../../resources/icons/calendar.svg"),
-          nightIcon: Qt.resolvedUrl("../../resources/icons/calendar_white.svg") },
+          icon: Qt.resolvedUrl("../../resources/app/icons/navigation/calendar.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/calendar_white.svg") },
         { title: "统计", subtitle: "Stats", page: "stats",
-          icon: Qt.resolvedUrl("../../resources/icons/stats.svg"),
-          nightIcon: Qt.resolvedUrl("../../resources/icons/stats_white.svg") },
+          icon: Qt.resolvedUrl("../../resources/app/icons/navigation/stats.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/stats_white.svg") },
         { title: "设置", subtitle: "Settings", page: "settings",
-          icon: Qt.resolvedUrl("../../resources/icons/settings.svg"),
-          nightIcon: Qt.resolvedUrl("../../resources/icons/settings_white.svg") },
+          icon: Qt.resolvedUrl("../../resources/app/icons/navigation/settings.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/settings_white.svg") },
         // 「备忘」= 动作（打开黑板模态覆盖层），不是页面路由：无 page 键，点击触发
         // memoOverlay.open，不切 selectedIndex（功能文 §2.1 / C0）。
         { title: "备忘", subtitle: "Notes", action: "memo",
-          icon: Qt.resolvedUrl("../../resources/icons/note.svg"),
-          nightIcon: Qt.resolvedUrl("../../resources/icons/note_white.svg") },
+          icon: Qt.resolvedUrl("../../resources/app/icons/navigation/note.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/note_white.svg") },
         { title: "记忆湖", subtitle: "Memory Recap", page: "recap", bottom: true,
-          icon: Qt.resolvedUrl("../../resources/icons/recap.svg"),
-          nightIcon: Qt.resolvedUrl("../../resources/icons/recap_white.svg") }
+          icon: Qt.resolvedUrl("../../resources/app/icons/navigation/recap.svg"),
+          nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/recap_white.svg") }
     ]
 
     readonly property var topNavItems: navItems.filter(function (it) { return !it.bottom })
@@ -1131,7 +1131,7 @@ Item {
         id: notifierLoader
         source: "memorylake/NotifierTray.qml"
         onLoaded: {
-            item.iconSource = Qt.resolvedUrl("../../resources/icons/app_icon.svg");
+            item.iconSource = Qt.resolvedUrl("../../resources/app/TimeArc.svg");
             item.notifyOn = Qt.binding(function () { return root.notifyEnabled; });
             item.stayResident = true;
             item.showRequested.connect(function () { root.trayShowRequested(); });

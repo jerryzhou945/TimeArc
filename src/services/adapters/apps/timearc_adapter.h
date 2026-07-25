@@ -14,7 +14,7 @@ inline AdapterDefinition timearcAppAdapter() {
   adapter.displayName = QStringLiteral("TimeArc");
   adapter.category = QStringLiteral("\u5E94\u7528");
   adapter.iconPath =
-      QStringLiteral("qrc:/qt/qml/time_arc/resources/icons/app_icon.svg");
+      QStringLiteral("qrc:/qt/qml/time_arc/resources/app/TimeArc.svg");
   adapter.iconLabel = QStringLiteral("T");
   adapter.brandColor = QStringLiteral("#C9DDF4");
   adapter.appIdentifiers = {QStringLiteral("app:timearc")};

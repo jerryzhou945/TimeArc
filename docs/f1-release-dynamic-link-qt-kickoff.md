@@ -148,7 +148,7 @@ S1 证明并钉死动态姿态 + 去过时文档（无冻结改动）
 - **windeployqt 过度打包**：当前 `dist/` 含 `Qt6Network.dll`、`Quick3D*`、全套 `QuickControls2*` 等未必用到的 DLL；过度分发增大体积、扩大需署名的 Qt 模块集。缓解：S3 可加 `--no-translations` / 按 `rules/06 §5` 实际模块裁剪（可选）。
 - **MinGW 运行库署名缺失**：`libgcc`/`libstdc++`/`libwinpthread`（GCC Runtime Library Exception）随包但今天无声明。缓解：S2 补 `mingw-runtime-exception.txt` + S3 NOTICE 收录。
 - **Qt 版本/edition 不明**：`dist/TimeArc-portable/README.txt` 写「Qt 6.11.1」，`dist/TimeArc-alpha-20260609/README.txt` **完全未注明** Qt 版本；二者均未注明 open-source(LGPL) vs commercial。缓解：S1 在文档钉死「以 open-source LGPL-3.0 构建」。
-- **品牌图标 / 游戏截图 IP（越界提醒）**：`resources/icons/sites/*.ico`（YouTube/Netflix/Bilibili…）、`resources/memorylake/*.png`（Elden/P3R/Exit8…）是**第三方商标 / 版权美术**，仓内无署名——这是**独立的 IP 议题，不属 F1/F2 代码许可范畴**。须维护者单独决策（署名 / 替换 / 移除），勿在 F1/F2 里悄悄混入。
+- **品牌图标 / 游戏截图 IP（越界提醒）**：`resources/app/icons/sites/*.ico`（YouTube/Netflix/Bilibili…）、`resources/features/memory-lake/*.png`（Elden/P3R/Exit8…）是**第三方商标 / 版权美术**，仓内无署名——这是**独立的 IP 议题，不属 F1/F2 代码许可范畴**。须维护者单独决策（署名 / 替换 / 移除），勿在 F1/F2 里悄悄混入。
 
 ---
 
