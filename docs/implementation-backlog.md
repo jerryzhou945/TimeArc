@@ -47,6 +47,10 @@ G2/G3 打磨 ───────────(随手)
 
 ## 2. 清单（按子系统）
 
+- [ ] **X1 跨端账号与选择性使用时长同步（E1-E9）** — 中国大陆首发，
+  设计与进度见 `cross-device-sync-progress.md`；下一项为 E1 CloudBase Auth
+  与基础设施。
+
 ### Alpha. 桌面 alpha 功能修复（非移动端 / 非 AI）
 - [x] **P0 首页右侧今日事项可勾选完成** — 2026-06-13 已实装：点击 checkbox 可切换 `done` 并写回 `CalendarManager.savedTodos`。commit `53acc61`。
 - [x] **P1 常见应用名称大众化** — 2026-06-13 已覆盖 Apex Legends、NVIDIA Container、Service Host / Windows system process 命名与 group key；2026-06-14 继续补齐 WeChat→微信、JianyingPro/CapCut→剪映专业版。commits `bddadd1`, `5c8e939`。

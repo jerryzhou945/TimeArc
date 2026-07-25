@@ -34,6 +34,7 @@ One session, one track. If you catch yourself doing two, split the session.
    - `qml/` → `rules/04-ui-conventions.md`
    - any `CMakeLists.txt` → `rules/05-build-system.md`
    - new dep or license-relevant → `rules/06-licensing.md`
+   - branch / commit / PR / merge / cleanup -> `rules/08-git-workflow.md`
 4. `checklists/before-coding.md` before writing code.
 
 Do not read every rule every time. Read only what your diff touches.

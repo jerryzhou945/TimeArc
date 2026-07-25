@@ -17,6 +17,8 @@ Total time: ~2 minutes once the project is familiar.
 
 ## Understand scope
 
+- [ ] Name the active progress checklist for this work. If none exists, create
+      one before implementation; mark exactly one item `[-]` while working.
 - [ ] Write one sentence stating the goal of this session. Put it at the top
       of a new `journal/sessions/YYYYMMDD-HHMM-<slug>.md`. If you cannot state
       it in one sentence, the task is not ready.
