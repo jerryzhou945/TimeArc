@@ -142,7 +142,7 @@ qml/desktop/
 
 ## 4. 数据契约与 mock → real 映射
 
-**阶段一**：`MemoryLakeMock.js` 原样照搬设计稿的 9 个 APP（名称/类别/时长/进度/心情/分析/`data-nodes` 时段）与 11 屏回顾文案、月历 7 柱、关键词、对比数字、票根。封面图用已就位的 `resources/memorylake/{exit8,senren,elden,p3r,desktop}.png`。
+**阶段一**：`MemoryLakeMock.js` 原样照搬设计稿的 9 个 APP（名称/类别/时长/进度/心情/分析/`data-nodes` 时段）与 11 屏回顾文案、月历 7 柱、关键词、对比数字、票根。封面图用已就位的 `resources/features/memory-lake/{exit8,senren,elden,p3r,desktop}.png`。
 
 **阶段二**：换成真实数据（**不改服务端磁盘契约**，只读现有只读接口）：
 
@@ -204,8 +204,8 @@ qml/desktop/
 ## 7. 资源与构建改动
 
 - `qml/CMakeLists.txt`：登记所有新增 `.qml`。
-- `resources/CMakeLists.txt`：确认 `resources/memorylake/*.png`（已就位）打进资源；如新增类别封面图在此追加（rule 04 §5）。
-- 趋势折线优先用 `Shape`（无新增依赖）；若用 SVG 文件则放 `resources/memorylake/` 并登记。
+- `resources/CMakeLists.txt`：确认 `resources/features/memory-lake/*.png`（已就位）打进资源；如新增类别封面图在此追加（rule 04 §5）。
+- 趋势折线优先用 `Shape`（无新增依赖）；若用 SVG 文件则放 `resources/features/memory-lake/` 并登记。
 - **不新增第三方依赖**（rule 07 §4）。**不碰 `src/service/` 磁盘契约**（CLAUDE.md）。
 
 ---

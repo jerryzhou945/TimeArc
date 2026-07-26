@@ -8,6 +8,44 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-26T06:12:31Z | L3 | macos-icon-cmak... | Initially assumed the top-level CMake icon wiring was mis... | [report](errors/20260726-061231-C-macos-icon-cmake-premise.md) |
+| 2026-07-26T06:12:31Z | L2 | macos-runtime-i... | QGuiApplication::setWindowIcon loads the qrc SVG on macOS... | [report](errors/20260726-061231-C-macos-runtime-icon-override.md) |
+| 2026-07-25T13:07:13Z | L1 | macos-icon-froz... | Post-change harness audit found the approved CMakeLists.t... | [report](errors/20260725-130713-B-macos-icon-frozen-hash-drift.md) |
+| 2026-07-25T13:05:04Z | L3 | cmake-icon-prop... | Queried MACOSX_BUNDLE_ICON_FILE as a CMake property, but ... | [report](errors/20260725-130504-B-cmake-icon-property-probe.md) |
+| 2026-07-25T12:59:52Z | L1 | resource-follow... | Mandatory Track C error entry pushed the rolling journal ... | [report](errors/20260725-125952-C-resource-followup-index-line-budget.md) |
+| 2026-07-25T12:57:56Z | L2 | stale-resource-... | Runtime and documentation references still target removed... | [report](errors/20260725-125756-C-stale-resource-branding-license-paths.md) |
+| 2026-07-25T12:48:30Z | L3 | resource-reorg-... | Resource path rule expansion and mandatory error-index en... | [report](errors/20260725-124830-A-resource-reorg-harness-line-budget.md) |
+| 2026-07-25T12:45:45Z | L3 | build-poll-sess... | Polled the harness build through a yielded nested command... | [report](errors/20260725-124545-A-build-poll-session-handle.md) |
+| 2026-07-25T12:45:02Z | L1 | desktop-static-... | desktop_ux_static_test.py expects android/src/main/Androi... | [report](errors/20260725-124502-A-desktop-static-manifest-path.md) |
+| 2026-07-24T09:07:04Z | L3 | chained-read-co... | Combined git diff --check and a scoped git diff with a sh... | [report](errors/20260724-090704-C-chained-read-command.md) |
+| 2026-07-24T08:04:26Z | L1 | harness-index-l... | harness_check found .harness/journal/INDEX.md at 101 line... | [report](errors/20260724-080426-C-harness-index-line-budget.md) |
+| 2026-07-24T08:01:06Z | L1 | swift-module-cache | Swift type-check could not write the Clang module cache u... | [report](errors/20260724-080106-C-swift-module-cache.md) |
+| 2026-07-23T19:41:56Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260723-194156-B-build-failure.md) |
+| 2026-07-23T19:40:20Z | L3 | journal-index-l... | The required macOS main error report pushed the rolling j... | [report](errors/20260723-194020-C-journal-index-line-budget-main.md) |
+| 2026-07-23T19:39:50Z | L1 | macos-main-miss... | macOS service type-check fails because TimeArcService ref... | [report](errors/20260723-193950-C-macos-main-missing-runner.md) |
+| 2026-07-23T09:00:51Z | L3 | tracking-semant... | Documentation amendment exceeded harness line limits and ... | [report](errors/20260723-090051-B-tracking-semantics-harness-drift.md) |
+| 2026-07-23T09:00:23Z | L3 | markdown-search... | A documentation grep used Markdown backticks inside a dou... | [report](errors/20260723-090023-B-markdown-search-quoting.md) |
+| 2026-07-23T08:06:00Z | L3 | title-probe-tra... | The traversal-limit edit was initially classified as Trac... | [report](errors/20260723-080600-A-title-probe-track-discipline.md) |
+| 2026-07-23T08:05:14Z | L1 | title-probe-typ... | Targeted Swift type-check could not start because the sel... | [report](errors/20260723-080514-A-title-probe-typecheck-toolchain.md) |
+| 2026-07-23T07:23:09Z | L3 | journal-index-l... | harness_check found journal/INDEX.md at 102 lines after t... | [report](errors/20260723-072309-A-journal-index-line-budget-after-reaudit.md) |
+| 2026-07-23T07:22:14Z | L3 | build-report-tr... | The sanctioned build correctly recorded its failure but l... | [report](errors/20260723-072214-A-build-report-track-from-index.md) |
+| 2026-07-23T07:21:54Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260723-072154-B-build-failure.md) |
+| 2026-07-19T13:03:40Z | L3 | harness-index-l... | harness_check failed because required session error entri... | [report](errors/20260719-130340-B-harness-index-line-budget.md) |
+| 2026-07-19T13:02:58Z | L1 | sleep-probe-typ... | Isolated Swift typecheck failed because the default compi... | [report](errors/20260719-130258-B-sleep-probe-typecheck.md) |
+| 2026-07-19T13:02:11Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260719-130211-B-build-failure.md) |
+| 2026-07-19T13:01:58Z | L3 | chained-read-co... | Combined several read-only inspection commands in one she... | [report](errors/20260719-130158-B-chained-read-command.md) |
+| 2026-07-18T12:13:31Z | L1 | harness-index-l... | Final harness check found journal/INDEX.md at 104 lines a... | [report](errors/20260718-121331-B-harness-index-line-budget.md) |
+| 2026-07-18T12:11:48Z | L1 | swift-probe-typ... | Focused Swift typecheck failed before source diagnostics ... | [report](errors/20260718-121148-B-swift-probe-typecheck.md) |
+| 2026-07-18T12:09:59Z | L1 | macos-tracking-... | cmake --build exited 1 | [report](errors/20260718-120959-B-macos-tracking-probes-baseline.md) |
+| 2026-07-18T12:09:21Z | L3 | concatenated-se... | Used one sed line range across multiple files, so the req... | [report](errors/20260718-120921-B-concatenated-sed-range.md) |
+| 2026-07-18T12:08:44Z | L3 | chained-read-co... | Combined read-only inspection commands with shell control... | [report](errors/20260718-120844-B-chained-read-command.md) |
+| 2026-07-18T08:22:25Z | L1 | harness-index-l... | harness_check found journal/INDEX.md at 101 lines after t... | [report](errors/20260718-082225-B-harness-index-line-budget.md) |
+| 2026-07-18T08:21:35Z | L1 | idle-continuity... | Patch context for the stale macOS idle sentence no longer... | [report](errors/20260718-082135-B-idle-continuity-patch-context.md) |
+| 2026-07-17T08:49:30Z | L2 | macos-media-ses... | MediaManager.updateTrackedSessions rebuilds background Ap... | [report](errors/20260717-084930-B-macos-media-session-start-reset.md) |
+| 2026-07-17T08:11:46Z | L3 | argument-parser... | Sandbox DNS blocked a read-only fetch of Swift Argument P... | [report](errors/20260717-081146-B-argument-parser-source-network.md) |
+| 2026-07-17T08:05:55Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260717-080555-B-build-failure.md) |
+| 2026-07-14T15:17:15Z | L3 | missing-cli-des... | Assumed src/service/CLI.md from the earlier CLI design se... | [report](errors/20260714-151715-B-missing-cli-design-file.md) |
+| 2026-07-12T14:46:50Z | L1 | cli-doc-harness... | harness_check is blocked by pre-existing untracked macOS ... | [report](errors/20260712-144650-B-cli-doc-harness-drift.md) |
 | 2026-07-12T12:51:24Z | L2 | qt-warning-2cf2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Mem... | [report](errors/20260712-125124-C-qt-warning-2cf241971f.md) |
 | 2026-07-12T12:51:13Z | L3 | qt-log-rotate-s... | scan_qt_log.py could read the Qt log but sandbox permissi... | [report](errors/20260712-125113-B-qt-log-rotate-sandbox.md) |
 | 2026-07-12T12:51:02Z | L2 | qt-warning-2cf2... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/memorylake/Mem... | [report](errors/20260712-125102-C-qt-warning-2cf241971f.md) |
@@ -58,38 +96,5 @@ the harness line budget intact.
 | 2026-07-08T16:05:30Z | L1 | preflight-drift | Preflight failed due to existing harness drift in journal... | [report](errors/20260708-160530-A-preflight-drift.md) |
 | 2026-07-08T15:58:33Z | L2 | ctest-qstandard... | ctest timearc_db_smoke failed in sandbox because Qt test ... | [report](errors/20260708-155833-B-ctest-qstandardpaths-sandbox.md) |
 | 2026-07-08T15:56:36Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260708-155636-B-build-failure.md) |
-| 2026-07-08T15:51:19Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260708-155119-B-build-failure.md) |
-| 2026-07-08T15:49:42Z | L3 | stale-text-rg-e... | A stale-text rg search used an invalid backslash escape w... | [report](errors/20260708-154942-B-stale-text-rg-escape.md) |
-| 2026-07-08T15:42:40Z | L3 | cmake-path-rg-miss | Exploratory rg included a non-existent cmake directory wh... | [report](errors/20260708-154240-B-cmake-path-rg-miss.md) |
-| 2026-07-08T15:38:58Z | L1 | preflight-drift | Preflight failed due to existing harness drift in .harnes... | [report](errors/20260708-153858-B-preflight-drift.md) |
-| 2026-07-08T15:31:16Z | L3 | preflight-drift | Preflight reported existing harness drift before a read-o... | [report](errors/20260708-153116-A-preflight-drift.md) |
-| 2026-07-08T15:26:44Z | L1 | preflight-drift | Preflight failed due to existing harness drift: journal i... | [report](errors/20260708-152644-A-preflight-drift.md) |
-| 2026-07-07T15:24:15Z | L3 | qtpaths-option-... | qtpaths6 option probes for overriding application name fa... | [report](errors/20260707-152415-A-qtpaths-option-probe.md) |
-| 2026-07-07T15:22:37Z | L3 | missing-macos-b... | Lookup included IDE tab path src/service/macos.backup, bu... | [report](errors/20260707-152237-A-missing-macos-backup-path.md) |
-| 2026-07-07T15:21:30Z | L2 | preflight-drift | Preflight failed before investigation: .harness/journal/I... | [report](errors/20260707-152130-A-preflight-drift.md) |
-| 2026-07-07T11:17:47Z | L3 | sqlite-schema-s... | Search included a nonexistent macOS backup directory whil... | [report](errors/20260707-111747-A-sqlite-schema-search-path.md) |
-| 2026-07-07T09:40:08Z | L3 | missing-optiona... | Checked optional macos.backup/cmake paths that do not exi... | [report](errors/20260707-094008-B-missing-optional-paths.md) |
-| 2026-07-06T10:26:59Z | L3 | qt-path-probe-c... | Temporary Qt path probe compile failed because the comman... | [report](errors/20260706-102659-A-qt-path-probe-cxx-standard.md) |
-| 2026-07-06T10:25:33Z | L3 | qt-python-bindi... | Optional PySide6/PyQt6 probe was unavailable while checki... | [report](errors/20260706-102533-A-qt-python-binding-probe.md) |
-| 2026-07-02T17:36:45Z | L3 | data-bridge-imp... | Looked for src/service/shared/data_bridge.c, but the data... | [report](errors/20260702-173645-A-data-bridge-implementation-path.md) |
-| 2026-07-02T16:46:53Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260702-164653-B-build-failure.md) |
-| 2026-07-02T16:38:16Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260702-163816-B-build-failure.md) |
-| 2026-06-19T07:57:02Z | L2 | recursive-selec... | A recursive Select-String audit tried to read directories... | [report](errors/20260619-075702-A-recursive-select-string-directories.md) |
-| 2026-06-18T21:27:51Z | L2 | staged-diff-tra... | git diff --cached --check found trailing whitespace in th... | [report](errors/20260618-212751-B-staged-diff-trailing-whitespace.md) |
-| 2026-06-18T21:25:26Z | L2 | open-issues-lin... | harness_check failed because .harness/state/open-issues.m... | [report](errors/20260618-212526-B-open-issues-line-budget.md) |
-| 2026-06-18T21:21:18Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260618-212118-B-build-failure.md) |
-| 2026-06-18T21:08:16Z | L2 | gh-cli-not-found | gh CLI is not available in this workspace; PR creation wi... | [report](errors/20260618-210816-B-gh-cli-not-found.md) |
-| 2026-06-18T21:03:47Z | L2 | open-issues-lin... | harness_check failed because .harness/state/open-issues.m... | [report](errors/20260618-210347-B-open-issues-line-budget.md) |
-| 2026-06-18T21:02:30Z | L2 | swiftc-not-avai... | Windows workspace has no swiftc, so macOS helper compile/... | [report](errors/20260618-210230-B-swiftc-not-available-on-windows.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| 2026-06-18T20:51:19Z | L3 | stale-superpowe... | Attempted to read Superpowers brainstorming/writing-plans... | [report](errors/20260618-205119-B-stale-superpowers-skill-cache-path.md) |
-| 2026-06-18T16:38:03Z | L3 | chrome-mcp-rele... | Chrome MCP failed to connect while attempting to open the... | [report](errors/20260618-163803-B-chrome-mcp-release-ui-unavailable.md) |
-| 2026-06-18T16:33:35Z | L3 | env-enumeration... | PowerShell Get-ChildItem Env: failed with duplicate key w... | [report](errors/20260618-163335-B-env-enumeration-duplicate-key.md) |
-| 2026-06-18T16:26:50Z | L3 | timearc-adapter... | Final structural check treated TimeArc display text as a ... | [report](errors/20260618-162650-B-timearc-adapter-check-overstrict.md) |
-| 2026-06-18T16:24:31Z | L1 | timearc-db-smok... | After clearing the Qt test data directory, timearc_db_smo... | [report](errors/20260618-162431-B-timearc-db-smoke-test-dir-create.md) |
-| 2026-06-18T16:23:39Z | L3 | get-process-no-... | Get-Process timearc_db_smoke returned non-zero while chec... | [report](errors/20260618-162339-B-get-process-no-db-smoke.md) |
-| 2026-06-18T16:23:20Z | L1 | timearc-db-smok... | After fixing TimeArc adapter matching, ctest still failed... | [report](errors/20260618-162320-B-timearc-db-smoke-test-data-dir.md) |
-| 2026-06-18T16:20:45Z | L1 | timearc-db-smok... | ctest --test-dir build --output-on-failure reported timea... | [report](errors/20260618-162045-B-timearc-db-smoke-ctest.md) |
-| 2026-06-18T16:17:38Z | L3 | get-process-no-... | Get-Process TimeArc returned non-zero while checking for ... | [report](errors/20260618-161738-B-get-process-no-timearc-before-build.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

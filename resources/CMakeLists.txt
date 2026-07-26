@@ -1,84 +1,83 @@
-set(TIME_ARC_RESOURCE_FILES
-    resources/background.png
-    resources/background_night.png
-    resources/icons/app_icon.svg
-    resources/icons/home.svg
-    resources/icons/home_white.svg
-    resources/icons/chat.svg
-    resources/icons/sites/bilibili.png
-    resources/icons/sites/acfun.png
-    resources/icons/sites/alipay.png
-    resources/icons/sites/baidu.png
-    resources/icons/sites/dianping.ico
-    resources/icons/sites/douban.ico
-    resources/icons/sites/douyin.ico
-    resources/icons/sites/douyu.ico
-    resources/icons/sites/huya.png
-    resources/icons/sites/iqiyi.png
-    resources/icons/sites/jd.ico
-    resources/icons/sites/kuaishou.ico
-    resources/icons/sites/mango-tv.png
-    resources/icons/sites/meituan.ico
-    resources/icons/sites/netflix.png
-    resources/icons/sites/pinduoduo.png
-    resources/icons/sites/taobao.png
-    resources/icons/sites/tencent-video.png
-    resources/icons/sites/tmall.png
-    resources/icons/sites/twitch.ico
-    resources/icons/sites/weibo.ico
-    resources/icons/sites/xiaohongshu.png
-    resources/icons/sites/xigua-video.ico
-    resources/icons/sites/youtube.png
-    resources/icons/sites/youku.png
-    resources/icons/sites/zhihu.png
-    resources/icons/calendar.svg
-    resources/icons/calendar_white.svg
-    resources/icons/stats.svg
-    resources/icons/stats_white.svg
-    resources/icons/user.svg
-    resources/icons/settings.svg
-    resources/icons/settings_white.svg
-    resources/icons/note.svg
-    resources/icons/note_white.svg
-    resources/icons/recap.svg
-    resources/icons/recap_white.svg
-    resources/memorylake/memory_bg.png
-    resources/memorylake/memory_cat_1.png
-    resources/memorylake/memory_cat_2.png
-    resources/memorylake/hotspring_01.png
-    resources/memorylake/hotspring_02.png
-    resources/memorylake/hotspring_03.png
-    resources/memorylake/hotspring_04.png
-    resources/memorylake/hotspring_05.png
-    resources/memorylake/hotspring_06.png
-    resources/memorylake/hotspring_07.png
-    resources/memorylake/hotspring_08.png
-    resources/memorylake/memory_pond_rocks.png
-    resources/memorylake/memory_tree.png
-    resources/memorylake/desktop.png
-    resources/memorylake/exit8.png
-    resources/memorylake/senren.png
-    resources/memorylake/p3r.png
-    resources/memorylake/elden.png
-    resources/mobile/monthly/month-01.jpg
-    resources/mobile/monthly/month-02.jpg
-    resources/mobile/monthly/month-03.jpg
-    resources/mobile/monthly/month-04.jpg
-    resources/mobile/monthly/month-05.jpg
-    resources/mobile/monthly/month-06.jpg
-    resources/mobile/monthly/month-07.jpg
-    resources/mobile/monthly/month-08.jpg
-    resources/mobile/monthly/month-09.jpg
-    resources/mobile/monthly/month-10.jpg
-    resources/mobile/monthly/month-11.jpg
-    resources/mobile/monthly/month-12.jpg
-    # 第三方许可证全文（F1-S2 共享产物：随包分发 + F2 应用内渲染，单一真相源）。
-    # qrc 内嵌 → 离线可达（rules/06 §4(2) / CHARTER I6）。新增 thirdparty 组件时
-    # 须同步在此追加文本并补一行页面条目（rules/06 §4(3)）。
-    # 只内嵌 F2 页面实际呈现的组件文本（Qt 两份 + SQLite + Parson + 本项目）。
-    # mingw-runtime-exception.txt（libgcc/libstdc++ 的 GCC 运行时例外）与 mingw-w64-winpthreads.txt
-    # （libwinpthread 的 MinGW-w64 MIT）留在磁盘作 F1 打包产物（由 F1-S3 随 NOTICE 分发），不入 qrc：
-    # 本页不单列 MinGW 运行库，避免内嵌一份无 UI 入口的悬空资源（CHARTER I6）。
+set(TIME_ARC_APP_RESOURCES
+    resources/app/TimeArc.svg
+    resources/app/backgrounds/background.png
+    resources/app/backgrounds/background_night.png
+    resources/app/icons/navigation/home.svg
+    resources/app/icons/navigation/home_white.svg
+    resources/app/icons/navigation/chat.svg
+    resources/app/icons/navigation/calendar.svg
+    resources/app/icons/navigation/calendar_white.svg
+    resources/app/icons/navigation/stats.svg
+    resources/app/icons/navigation/stats_white.svg
+    resources/app/icons/navigation/user.svg
+    resources/app/icons/navigation/settings.svg
+    resources/app/icons/navigation/settings_white.svg
+    resources/app/icons/navigation/note.svg
+    resources/app/icons/navigation/note_white.svg
+    resources/app/icons/navigation/recap.svg
+    resources/app/icons/navigation/recap_white.svg
+    resources/app/icons/sites/bilibili.png
+    resources/app/icons/sites/acfun.png
+    resources/app/icons/sites/alipay.png
+    resources/app/icons/sites/baidu.png
+    resources/app/icons/sites/dianping.ico
+    resources/app/icons/sites/douban.ico
+    resources/app/icons/sites/douyin.ico
+    resources/app/icons/sites/douyu.ico
+    resources/app/icons/sites/huya.png
+    resources/app/icons/sites/iqiyi.png
+    resources/app/icons/sites/jd.ico
+    resources/app/icons/sites/kuaishou.ico
+    resources/app/icons/sites/mango-tv.png
+    resources/app/icons/sites/meituan.ico
+    resources/app/icons/sites/netflix.png
+    resources/app/icons/sites/pinduoduo.png
+    resources/app/icons/sites/taobao.png
+    resources/app/icons/sites/tencent-video.png
+    resources/app/icons/sites/tmall.png
+    resources/app/icons/sites/twitch.ico
+    resources/app/icons/sites/weibo.ico
+    resources/app/icons/sites/xiaohongshu.png
+    resources/app/icons/sites/xigua-video.ico
+    resources/app/icons/sites/youtube.png
+    resources/app/icons/sites/youku.png
+    resources/app/icons/sites/zhihu.png
+)
+
+set(TIME_ARC_FEATURE_RESOURCES
+    resources/features/memory-lake/memory_bg.png
+    resources/features/memory-lake/memory_cat_1.png
+    resources/features/memory-lake/memory_cat_2.png
+    resources/features/memory-lake/hotspring_01.png
+    resources/features/memory-lake/hotspring_02.png
+    resources/features/memory-lake/hotspring_03.png
+    resources/features/memory-lake/hotspring_04.png
+    resources/features/memory-lake/hotspring_05.png
+    resources/features/memory-lake/hotspring_06.png
+    resources/features/memory-lake/hotspring_07.png
+    resources/features/memory-lake/hotspring_08.png
+    resources/features/memory-lake/memory_pond_rocks.png
+    resources/features/memory-lake/memory_tree.png
+    resources/features/memory-lake/desktop.png
+    resources/features/memory-lake/exit8.png
+    resources/features/memory-lake/senren.png
+    resources/features/memory-lake/p3r.png
+    resources/features/memory-lake/elden.png
+    resources/features/monthly-recap/month-01.jpg
+    resources/features/monthly-recap/month-02.jpg
+    resources/features/monthly-recap/month-03.jpg
+    resources/features/monthly-recap/month-04.jpg
+    resources/features/monthly-recap/month-05.jpg
+    resources/features/monthly-recap/month-06.jpg
+    resources/features/monthly-recap/month-07.jpg
+    resources/features/monthly-recap/month-08.jpg
+    resources/features/monthly-recap/month-09.jpg
+    resources/features/monthly-recap/month-10.jpg
+    resources/features/monthly-recap/month-11.jpg
+    resources/features/monthly-recap/month-12.jpg
+)
+
+set(TIME_ARC_LICENSES_RESOURCES
     resources/licenses/qt-lgpl-3.0.txt
     resources/licenses/qt-gpl-3.0.txt
     resources/licenses/sqlite-public-domain.txt
@@ -86,4 +85,11 @@ set(TIME_ARC_RESOURCE_FILES
     resources/licenses/timearc-gpl-3.0.txt
 )
 
-set(TIME_ARC_RESOURCE_FILES ${TIME_ARC_RESOURCE_FILES} PARENT_SCOPE)
+# Native bundle inputs under resources/bundle/ are consumed by platform
+# packaging and are intentionally not embedded in the Qt resource collection.
+set(TIME_ARC_RESOURCE_FILES
+    ${TIME_ARC_APP_RESOURCES}
+    ${TIME_ARC_FEATURE_RESOURCES}
+    ${TIME_ARC_LICENSES_RESOURCES}
+    PARENT_SCOPE
+)

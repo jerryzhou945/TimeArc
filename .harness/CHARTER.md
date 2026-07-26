@@ -35,7 +35,7 @@ defaults to the platform service-data dir (`%APPDATA%\TimeArc\service`,
 writes the pointer, never the DB). Other paths from `database_path.c`. A field
 rename/type change, a service-table DDL change, or a file move requires a charter
 amendment + migration plan.
-
+Foreground idle stays in the current segment without increasing `active_sec`, unless video-like foreground playback overrides input idle; generated `idle_sec` records the difference. On every platform, complete normalized foreground and media observations define logical identity: all fields equal continues the session, while any changed field creates a boundary. Missing media ends immediately without silence grace; periodic media persistence checkpoints are optional and do not change logical identity.
 **I3. C ABI as cross-language bridge.** `src/service/shared/data_bridge.h`
 is `extern "C"` and uses `swift_name`. Adding a function is allowed.
 Changing an existing signature requires a charter amendment.
@@ -95,3 +95,5 @@ Bump the version below.
 - **v0.8** — Retire JSONL usage history; `timearc_service.db` is the sole historical store and JSON remains live/config only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.
 - **v0.9** — Retire the JSON live snapshot and schema; automatic usage now crosses the process boundary through `timearc_service.db` only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.
 - **v0.10** — Retire the unused aggregate usage-record header; the table-specific `data_bridge.h` API and SQLite schema are the service contract. Proposal: `journal/sessions/20260712-2043-B-retire-usage-record-contract.md`.
+- **v0.11** — Keep foreground sessions open across idle intervals; paused active time is represented by generated `idle_sec`. Proposal: `journal/sessions/20260718-1619-B-idle-continuity-contract.md`.
+- **v0.12** — Define portable full-observation session identity, video-over-idle foreground behavior, immediate media absence, and optional media checkpointing. Proposal: `journal/sessions/20260723-1653-B-tracking-session-semantics.md`.

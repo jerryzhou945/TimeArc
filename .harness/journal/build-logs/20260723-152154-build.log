@@ -1,0 +1,1 @@
+ninja: error: '/Users/jz2025/Desktop/Development/TimeArc/src/service/macos/WindowIdentifying.swift', needed by 'src/service/CMakeFiles/time_arc_service.dir/macos/TimeArcService.swift.o', missing and no known rule to make it

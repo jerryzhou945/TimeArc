@@ -13,7 +13,7 @@
 ### Task 1: Acquire Mainstream Video Site Icons
 
 **Files:**
-- Create: `resources/icons/sites/*.svg`
+- Create: `resources/app/icons/sites/*.svg`
 - Create: `docs/site-icon-assets.md`
 - Modify: `resources/CMakeLists.txt`
 
@@ -31,7 +31,7 @@ Add `docs/site-icon-assets.md` with this exact table header and one row per icon
 
 - [x] **Step 2: Fetch or derive first-batch icons**
 
-Use official favicon/apple-touch-icon endpoints first. Save normalized square SVG or PNG assets under `resources/icons/sites/` using these filenames:
+Use official favicon/apple-touch-icon endpoints first. Save normalized square SVG or PNG assets under `resources/app/icons/sites/` using these filenames:
 
 ```text
 xiaohongshu.svg
@@ -54,7 +54,7 @@ Record each source URL in `docs/site-icon-assets.md`. If an endpoint returns ICO
 
 - [x] **Step 3: Add assets to Qt resources**
 
-Modify `resources/CMakeLists.txt` so every new `resources/icons/sites/<name>.<ext>` path appears in `TIME_ARC_RESOURCE_FILES`.
+Modify `resources/CMakeLists.txt` so every new `resources/app/icons/sites/<name>.<ext>` path appears in `TIME_ARC_RESOURCE_FILES`.
 
 - [ ] **Step 4: Verify resource paths**
 
@@ -108,7 +108,7 @@ Example shape:
 {QStringLiteral("site:youtube"), QStringLiteral("YouTube"),
  QStringLiteral("\u89C6\u9891"), QStringLiteral("youtube.com"),
  QStringLiteral("#FF0000"), QStringLiteral("Y"),
- QStringLiteral("qrc:/qt/qml/time_arc/resources/icons/sites/youtube.svg"),
+ QStringLiteral("qrc:/qt/qml/time_arc/resources/app/icons/sites/youtube.svg"),
  {QStringLiteral("youtube"), QStringLiteral("youtu.be"),
   QStringLiteral("youtube.com")}},
 ```

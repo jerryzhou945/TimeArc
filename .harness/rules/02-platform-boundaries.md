@@ -21,12 +21,20 @@ Every platform service must:
 
 1. Produce app and session fields matching `data_bridge.h` and the service tables.
 2. Submit completed app/session data through the shared `data_bridge.h` API.
-3. Split foreground sessions when either `app_id` or `window_title` changes.
-4. Honor an idle threshold (default 60 s). While idle, close the foreground
-   session.
-5. Guarantee single-instance by some OS-appropriate mechanism.
-6. Flush pending sessions on orderly shutdown.
-7. Keep storage access behind the shared bridge unless a signed change proposal
+3. Use complete normalized observations as logical session identity for both
+   foreground and media tracking. If every captured field is equal, continue
+   the same logical session; if any field differs, create a boundary.
+4. Honor an idle threshold (default 60 s). While input-idle, keep the
+   foreground session open but stop accumulating `active_sec`; resume on user
+   activity. If the foreground observation has video-like playback evidence,
+   treat it as active regardless of input-idle duration.
+5. End media as soon as it is absent from a sample; there is no silence grace.
+6. Periodic media persistence checkpoints are optional. Implementations may
+   write long-running media incrementally or only at a later boundary; a
+   checkpoint does not change the logical session identity.
+7. Guarantee single-instance by some OS-appropriate mechanism.
+8. Flush pending sessions on orderly shutdown.
+9. Keep storage access behind the shared bridge unless a signed change proposal
    extends the disk contract.
 
 ## 3. Current state per platform
@@ -35,8 +43,8 @@ Every platform service must:
 
 - `main.c`: console handler + named mutex + tracker loop.
 - `tracker/usage_tracker.c`: 1 s poll, idle check, same-app check, audio poll.
-- `tracker/audio_tracker.c`: per-process audio sessions, 3 s silence grace,
-  15 s long-run split.
+- `tracker/audio_tracker.c`: per-process audio sessions; its current timing
+  behavior is an implementation detail rather than the portable contract.
 - `platform/active_app_win.c`: `GetForegroundWindow` + `GetWindowText` + exe path.
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
 - `platform/idle_win.c`: `GetLastInputInfo`.
@@ -56,8 +64,8 @@ Every platform service must:
 - `TimeArcService.swift`: initializes shared storage, reads
   `~/Library/Application Support/TimeArc/usage/usage_config.json` for `idle_threshold_ms` and
   `track_enabled`, takes a per-user file lock, writes foreground sessions,
-  writes media assertions as `source=audio`, clears current state on idle/exit,
-  flushes pending sessions on `SIGTERM`/`SIGINT`, and provides
+  writes media assertions as `source=audio`, pauses foreground active-time
+  accumulation while idle, flushes pending sessions on `SIGTERM`/`SIGINT`, and provides
   `--install`/`--uninstall`/`--start`/`--stop`/`--status` verbs backed by a
   per-user LaunchAgent.
 - `src/main.cpp::startUsageService()`: starts the macOS helper when found in a

@@ -284,7 +284,7 @@ git commit -m "feat: backfill monthly Android usage evidence"
 ### Task 4: Twelve Local Month Scene Assets and Profiles
 
 **Files:**
-- Create: `resources/mobile/monthly/month-01.jpg` through `month-12.jpg`
+- Create: `resources/features/monthly-recap/month-01.jpg` through `month-12.jpg`
 - Create: `qml/mobile/components/MobileMonthProfiles.js`
 - Create: `qml/mobile/components/MobileSeasonScene.qml`
 - Modify: `resources/CMakeLists.txt`
@@ -326,7 +326,7 @@ contains text, UI, people, logos, borders, or contact-sheet elements.
 {
     month: 3,
     season: "spring",
-    sceneSource: "qrc:/time_arc/resources/mobile/monthly/month-03.jpg",
+    sceneSource: "qrc:/time_arc/resources/features/monthly-recap/month-03.jpg",
     accent: "#CFE8B0",
     accentInk: "#233529",
     particleKind: "rain",

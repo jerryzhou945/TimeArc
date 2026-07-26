@@ -101,9 +101,9 @@ bool hasStartInTrayArg(int argc, char* argv[]) {
 }
 
 #if defined(Q_OS_WIN)
-// 无边框窗口的圆角：用 Win11 DWM 原生圆角（DWMWA_WINDOW_CORNER_PREFERENCE），
-// 系统级平滑抗锯齿圆角并补回原生投影。运行时动态加载 dwmapi，避免改动冻结的 CMakeLists。
-// Win11 (build >= 22000) 才支持；旧系统调用无害失败，窗口仍为直角。
+// Use native Win11 DWM corners and shadows for the frameless window.
+// Load dwmapi at runtime to avoid changing the frozen CMakeLists.
+// The call safely fails on pre-Win11 systems, leaving square corners.
 void applyWin11RoundedCorners(QWindow* window) {
   if (!window) return;
   const HWND hwnd = reinterpret_cast<HWND>(window->winId());
@@ -115,7 +115,7 @@ void applyWin11RoundedCorners(QWindow* window) {
       reinterpret_cast<SetAttrFn>(GetProcAddress(dwm, "DwmSetWindowAttribute"));
   if (setAttr) {
     const DWORD DWMWA_WINDOW_CORNER_PREFERENCE = 33;
-    const DWORD DWMWCP_ROUND = 2;  // 标准圆角（最大化时系统自动取消）
+    const DWORD DWMWCP_ROUND = 2;  // Standard corners; Windows removes them when maximized.
     DWORD pref = DWMWCP_ROUND;
     setAttr(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, &pref, sizeof(pref));
   }
@@ -184,9 +184,12 @@ int main(int argc, char* argv[]) {
   QCoreApplication::setOrganizationName("TimeArc");
   QCoreApplication::setApplicationName("TimeArc");
 
-  // 无边框窗口的标题栏图标 + 任务栏图标共用同一品牌 SVG（资源随 QML 模块打包）。
+  // macOS gets its application and Dock icon from CFBundleIconFile. Setting
+  // the QRC SVG there would override the native multi-resolution .icns.
+#if !defined(Q_OS_MACOS)
   QGuiApplication::setWindowIcon(
-      QIcon(QStringLiteral(":/qt/qml/time_arc/resources/icons/app_icon.svg")));
+      QIcon(QStringLiteral(":/qt/qml/time_arc/resources/app/TimeArc.svg")));
+#endif
 
   // Tee Qt Warning/Critical/Fatal into the harness log. See
   // .harness/tools/scan_qt_log.py for the consumer that converts log

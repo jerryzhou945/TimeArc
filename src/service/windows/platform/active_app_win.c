@@ -8,8 +8,7 @@
 #include <string.h>
 #include <time.h>
 
-// 安全复制到 AppInfo 的固定长度字段。平台层统一截断长字符串，避免后续
-// tracker/storage 再处理 Windows API 返回值时越界。
+// Copy safely into fixed AppInfo fields, truncating long API results.
 static void copy_string(char* dst, size_t dst_size, const char* src) {
   if (dst == NULL || dst_size == 0) {
     return;
@@ -45,7 +44,7 @@ static const char* basename_from_path(const char* path) {
   return base;
 }
 
-// Windows 窗口标题和路径是 UTF-16；落盘协议统一使用 UTF-8 JSON。
+// Convert UTF-16 Windows titles and paths to the UTF-8 storage format.
 static int wide_to_utf8(const wchar_t* src, char* dst, size_t dst_size) {
   if (dst == NULL || dst_size == 0) {
     return -1;
@@ -73,7 +72,7 @@ static int query_process_path(DWORD pid, char* out_path, size_t out_path_size) {
   }
   out_path[0] = '\0';
 
-  // 优先使用 PSAPI。普通桌面程序通常允许 PROCESS_VM_READ，拿到的路径也完整。
+  // Prefer PSAPI for complete paths from ordinary desktop processes.
   HANDLE process =
       OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid);
   if (process != NULL) {
@@ -88,7 +87,7 @@ static int query_process_path(DWORD pid, char* out_path, size_t out_path_size) {
     out_path[0] = '\0';
   }
 
-  // 提权或受保护进程可能拒绝 VM_READ，再退到受限查询接口拿镜像路径。
+  // Fall back to limited image queries for elevated or protected processes.
   process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
   if (process != NULL) {
     wchar_t path_w[TA_MAX_PATH_BYTES];
@@ -127,8 +126,7 @@ int timearc_win_get_active_app(AppInfo* out_app) {
   out_app->timestamp = time(NULL);
   out_app->active_status = true;
 
-  // 标题为空是合法情况，例如某些系统窗口。即使没有标题，exe 路径仍然能作为
-  // 稳定身份参与分组和计时。
+  // Empty titles are valid; the executable path still provides stable identity.
   wchar_t title_w[TA_MAX_TITLE_BYTES];
   title_w[0] = L'\0';
   GetWindowTextW(hwnd, title_w, (int)(sizeof(title_w) / sizeof(title_w[0])));

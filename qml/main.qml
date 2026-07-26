@@ -116,7 +116,7 @@ ApplicationWindow {
         anchors.fill: parent
         window: appWindow
         barHeight: appWindow.chromeReserve
-        iconSource: Qt.resolvedUrl("../resources/icons/app_icon.svg")
+        iconSource: Qt.resolvedUrl("../resources/app/TimeArc.svg")
         dark: shellLoader.item && ("prefersLightChrome" in shellLoader.item)
               ? shellLoader.item.prefersLightChrome : false
         visible: appWindow.frameless

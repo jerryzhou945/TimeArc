@@ -62,7 +62,7 @@ TimeArc 会在 UI 聚合层把浏览器里的部分常用网站提升为独立�
 
 ## 图标资产规则
 
-- repo 内站点图标放在 `resources/icons/sites/`，并通过
+- repo 内站点图标放在 `resources/app/icons/sites/`，并通过
   `resources/CMakeLists.txt` 打进 Qt resources。
 - `docs/site-icon-assets.md` 记录每个图标的来源 URL、文件名和获取方式。
 - 本轮优先使用官方首页 metadata 里的 high-resolution `apple-touch-icon` 或等价

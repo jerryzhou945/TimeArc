@@ -64,7 +64,7 @@ def main():
     season_scene = season_scene_path.read_text(encoding="utf-8")
     resources_cmake = read("resources/CMakeLists.txt")
     for month in range(1, 13):
-        asset = f"resources/mobile/monthly/month-{month:02d}.jpg"
+        asset = f"resources/features/monthly-recap/month-{month:02d}.jpg"
         if not (ROOT / asset).exists():
             raise AssertionError(f"missing monthly scene asset: {asset}")
         require(resources_cmake, asset, f"month {month} resource registration")

@@ -215,7 +215,7 @@
 - **关键约束**：图标最大只有 **256px**，且本质是带留白的小图标。
   - 把它拉满 196–460px 的卡面 / 全窗大背景 → **必糊、必丑**。
   - 所以"图标进入预设图的位置"**不能等于"把图标拉大铺满"**，而要**按尺寸分级、用图标做主体或色源去合成一张耐看的图**。
-- **可用素材**：`resources/memorylake/` 已备主题艺术图 `hotspring_01..08 / memory_bg / memory_cat_1/2 /
+- **可用素材**：`resources/features/memory-lake/` 已备主题艺术图 `hotspring_01..08 / memory_bg / memory_cat_1/2 /
   memory_pond_rocks / memory_tree`，可作大尺寸场景的"画布/纹理"。
 
 ### 4.2 分级方案（图标尺寸越大、越要"合成"而非"拉伸"）
@@ -249,7 +249,7 @@
 
 ### 4.6 约束
 - **不新增第三方依赖**（rule 07 §4）；合成全用现有 `Image`/`Gradient`/`MultiEffect`/已备素材。
-- 如需补主题素材，放 `resources/memorylake/` 并登记 `resources/CMakeLists.txt`（非冻结，可改；rule 04 §5）。
+- 如需补主题素材，放 `resources/features/memory-lake/` 并登记 `resources/CMakeLists.txt`（非冻结，可改；rule 04 §5）。
 - 色表/取图/合成逻辑集中到 §2.2 的共享 helper，首页与记忆湖一致。
 
 **验收**：任意真实 APP（含纯工具类、无自带海报）在 排行/卡面/详情/回顾主角/大背景 都清晰美观、可辨识、
@@ -467,7 +467,7 @@
 - 共享 helper：新增 `qml/desktop/components/AppVisual.js`（图标/色，§2.2）。
 - **扩**现有 UI 服务：`src/services/usage_stat_manager.cpp/.h`、`src/services/daily_card_service.cpp/.h`（加只读聚合/文案方法，§2.3/§7）。
 - `src/main.cpp`（仅在需要时加上下文对象注册；**非冻结**）。
-- `qml/CMakeLists.txt`（登记新增 `.qml`）、`resources/CMakeLists.txt` + `resources/memorylake/`（补素材）——均**非冻结**。
+- `qml/CMakeLists.txt`（登记新增 `.qml`）、`resources/CMakeLists.txt` + `resources/features/memory-lake/`（补素材）——均**非冻结**。
 - 文档：本文件、`docs/memory-lake-implementation-plan.md`、`.harness/state/open-issues.md`、session log。
 
 ### 📋 预期不符必登记（数据安全法规 — 强制，本轮新增）

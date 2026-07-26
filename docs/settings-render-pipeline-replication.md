@@ -172,7 +172,7 @@ DesktopSettingsPage（Item，全幅；保留 nightMode 注入 + nightModeToggled
 - **三态（MUST）**：默认字 `rgba(235,245,255,.58)`；hover 底 `rgba(255,255,255,.055)` + 字提亮；
   **active** 底 `rgba(142,223,255,.12)`=`ml.accentSoft`、边 `rgba(142,223,255,.22)`=`ml.accentSoftBorder`、
   字 `.94`、顶沿内高光。复用日历视图 Tab 的三态配方（同 CSS 家族）。
-- 图标字形：v88 用 emoji/符号（✦ ◉ ◆ ◇ ⇅）。**MAY** 改用 `resources/icons/*.svg`
+- 图标字形：v88 用 emoji/符号（✦ ◉ ◆ ◇ ⇅）。**MAY** 改用 `resources/app/icons/navigation/*.svg`
   统一描线风（与侧栏导航一致）；若保符号则用 `Text` 居中。
 
 ### 4.4 页脚（settings-nav-footer 8343–8367 + workflow-map 11689–11716）

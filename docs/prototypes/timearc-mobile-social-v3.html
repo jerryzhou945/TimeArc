@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#F5F6F8">
-  <link rel="icon" href="../../resources/icons/app_icon.svg" type="image/svg+xml">
+  <link rel="icon" href="../../resources/app/TimeArc.svg" type="image/svg+xml">
   <title>TimeArc Mobile v3.2 - Wallpaper Time Album</title>
   <style>
     :root {
@@ -3528,7 +3528,7 @@
   <main class="prototype-shell">
     <aside class="review-panel" aria-label="原型控制面板">
       <div class="review-brand">
-        <img src="../../resources/icons/app_icon.svg" alt="">
+        <img src="../../resources/app/TimeArc.svg" alt="">
         <span>TimeArc Mobile v3.2</span>
       </div>
       <h1>把时间做成一张愿意留下的卡</h1>
@@ -3583,7 +3583,7 @@
               <h2 class="sr-only" id="homeTitle">今天的时间卡</h2>
               <header class="home-cover-toolbar">
                 <span class="home-brand">
-                  <img src="../../resources/icons/app_icon.svg" alt="">
+                  <img src="../../resources/app/TimeArc.svg" alt="">
                   <span class="home-brand-copy"><strong>TimeArc</strong><span class="home-cover-date" id="todayDate">7月11日 星期六</span></span>
                 </span>
                 <div class="home-cover-actions">
@@ -3591,7 +3591,7 @@
                   <button class="wallpaper-action" id="wallpaperUploadButton" type="button">更换壁纸</button>
                   <button class="wallpaper-action wallpaper-reset" id="wallpaperResetButton" type="button" hidden>恢复</button>
                   <button class="home-cover-action" type="button" data-home-target="profile" aria-label="打开设置">
-                    <img src="../../resources/icons/settings_white.svg" alt="">
+                    <img src="../../resources/app/icons/navigation/settings_white.svg" alt="">
                   </button>
                 </div>
               </header>
@@ -3728,8 +3728,8 @@
                   <h4>午后有 42 分钟，生活从三个窗口经过</h4>
                   <p>三款内容应用短暂交替 9 次。这里只保存聚合后的时间，不保存你看见的具体内容。</p>
                   <div class="memory-apps">
-                    <span class="app-icon tiny"><img src="../../resources/icons/sites/xiaohongshu.png" alt=""></span>
-                    <span class="app-icon tiny"><img src="../../resources/icons/sites/bilibili.png" alt=""></span>
+                    <span class="app-icon tiny"><img src="../../resources/app/icons/sites/xiaohongshu.png" alt=""></span>
+                    <span class="app-icon tiny"><img src="../../resources/app/icons/sites/bilibili.png" alt=""></span>
                     <span>还有 1 个应用</span>
                   </div>
                 </div>
@@ -3858,19 +3858,19 @@
 
         <nav class="bottom-nav" aria-label="主导航">
           <button class="nav-button is-active" type="button" data-page-target="home" aria-current="page">
-            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/icons/home.svg" alt=""></span>
+            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/app/icons/navigation/home.svg" alt=""></span>
             <span>首页</span>
           </button>
           <button class="nav-button" type="button" data-page-target="stats">
-            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/icons/stats.svg" alt=""></span>
+            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/app/icons/navigation/stats.svg" alt=""></span>
             <span>统计</span>
           </button>
           <button class="nav-button" type="button" data-page-target="lake">
-            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/icons/recap.svg" alt=""></span>
+            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/app/icons/navigation/recap.svg" alt=""></span>
             <span>记忆湖</span>
           </button>
           <button class="nav-button" type="button" data-page-target="profile">
-            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/icons/user.svg" alt=""></span>
+            <span class="nav-icon-wrap"><img class="nav-icon" src="../../resources/app/icons/navigation/user.svg" alt=""></span>
             <span>我的</span>
           </button>
         </nav>
@@ -4015,7 +4015,7 @@
           anonymousName: "一款生活内容应用",
           category: "浏览与生活",
           initial: "红",
-          icon: "../../resources/icons/sites/xiaohongshu.png",
+          icon: "../../resources/app/icons/sites/xiaohongshu.png",
           appColor: "#D88B8F",
           appInk: "#261719",
           appSoft: "#F0C2C4",
@@ -4049,7 +4049,7 @@
           anonymousName: "一款视频应用",
           category: "视频与娱乐",
           initial: "B",
-          icon: "../../resources/icons/sites/bilibili.png",
+          icon: "../../resources/app/icons/sites/bilibili.png",
           appColor: "#85C6D5",
           appInk: "#102126",
           appSoft: "#C7E8EF",
@@ -4776,7 +4776,7 @@
           appColor: anonymous ? "#6C8588" : context.appColor,
           appInk: anonymous ? "#112326" : context.appInk,
           appSoft: anonymous ? "#C9DCDD" : context.appSoft,
-          icon: isReport ? "../../resources/icons/app_icon.svg" : (anonymous ? "" : (context.icon || "")),
+          icon: isReport ? "../../resources/app/TimeArc.svg" : (anonymous ? "" : (context.icon || "")),
           iconFallback: isReport ? "TA" : (anonymous ? "" : (context.initial || "")),
           reportTheme: context.reportTheme || "",
           facts: [
@@ -4799,7 +4799,7 @@
         poster.innerHTML =
           '<div class="poster-color-field"></div>' +
           '<header class="poster-head">' +
-            '<span class="poster-brand"><img src="../../resources/icons/app_icon.svg" alt="">TimeArc</span>' +
+            '<span class="poster-brand"><img src="../../resources/app/TimeArc.svg" alt="">TimeArc</span>' +
             '<span class="poster-date">' + escapeHtml(model.referenceDate) + "</span>" +
           "</header>" +
           '<section class="poster-statement">' +

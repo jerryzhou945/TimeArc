@@ -34,7 +34,7 @@
 - Modify: `docs/site-icon-assets.md`
 - Modify: `docs/mainland-site-tracking.md`
 - Modify: `qml/desktop/components/AppVisual.js`
-- Add/replace: `resources/icons/sites/*`
+- Add/replace: `resources/app/icons/sites/*`
 
 - [ ] Add/extend smoke coverage for Chrome titles and audio media titles: `douyin.com/...`, `小红书 - ...`, and `...抖音 - 抖音` must resolve to `site:douyin` / `site:xiaohongshu`.
 - [ ] Run the smoke target or full harness build to verify the test fails before code/resource updates.
@@ -66,7 +66,7 @@
 ### Task 5: White Memory Lake Icon
 
 **Files:**
-- Add: `resources/icons/recap_white.svg`
+- Add: `resources/app/icons/navigation/recap_white.svg`
 - Modify: `resources/CMakeLists.txt`
 - Modify: `qml/desktop/DesktopAppShell.qml`
 - Modify: `docs/implementation-backlog.md`

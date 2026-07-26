@@ -53,11 +53,20 @@ atomic RMW that preserves the other's keys. Absent/invalid keys use compile-time
 service. The UI must open it read-only. Migrations are separate tools, run with
 the service stopped and a backup available.
 
-**D2. Session segmentation.** `foreground` segments on `app_id` or
-`window_title` change, on idle, on shutdown. `audio` segments on app change,
-on silence > `TIMEARC_AUDIO_SILENCE_GRACE_SEC` (3 s), and every
-`TIMEARC_AUDIO_FLUSH_INTERVAL_SEC` (15 s) for long runs. `duration_sec == 0`
-records are dropped at the service.
+**D2. Session segmentation.** Logical identity is the complete normalized
+observation, independent of platform. A `foreground` observation includes all
+captured app-information fields and the window title; a `media` observation
+includes all captured app-information fields, media type, and media title. If
+every field is equal, the logical session continues. If any field differs, or
+the service shuts down, the current logical session ends.
+
+Input idle keeps the foreground session open and normally pauses `active_sec`.
+If the foreground observation has video-like playback evidence, it remains
+active regardless of input-idle duration. A missing media observation ends at
+that sample; there is no silence grace period. Periodic persistence of
+long-running media is optional: implementations may checkpoint or defer the
+write, and checkpoint rows do not redefine logical identity. `duration_sec ==
+0` records are dropped at the service.
 
 **D4. UTF-8 everywhere.** Platform code must UTF-8-encode strings before
 calling the functions declared by `data_bridge.h`; SQLite receives those

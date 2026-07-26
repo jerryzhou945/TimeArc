@@ -397,7 +397,7 @@ Canvas {
 ### §4.6 像素番茄与运行光效（M5/M6）
 - **像素番茄**：把 v88 的 box-shadow 像素画**离线渲成 PNG sprite**（mini/大/弹层三尺寸，
   按 8px/10px 网格 1:1），QML 用 `Image { smooth: false }`（保持像素硬边）。或用
-  `Repeater` 按调色板偏移表摆 `Rectangle`（更可主题化但更重）。放 `resources/memorylake/`。
+  `Repeater` 按调色板偏移表摆 `Rectangle`（更可主题化但更重）。放 `resources/features/memory-lake/`。
 - **运行光效**：6 套 keyframes 映射为 `SequentialAnimation{loops:Infinite}` 控
   opacity/scale/`Text` 的 letterSpacing/glow 强度；时长照搬（2.8/1.8/1.05/1.6/1/1.3s）。
   开始迸发/完成双闪用 `SequentialAnimation` 一次性触发（参 cookbook §6.5 微交互）。
@@ -429,7 +429,7 @@ JSON（详见功能文 §3 数据模型）。
 
 ### §5.3 像素美术走资产管线，不走属性直译（对应 M5）
 像素番茄是本页唯一"CSS 做法在 QML 无等价"的点。**定为资产决策**：离线导出 PNG sprite
-进 `resources/memorylake/pomodoro/`（不冻结），而非试图用 QML 模拟 box-shadow 像素画。
+进 `resources/features/memory-lake/pomodoro/`（不冻结），而非试图用 QML 模拟 box-shadow 像素画。
 这把"像素保真"从渲染问题降为打包问题。
 
 ---
@@ -439,8 +439,8 @@ JSON（详见功能文 §3 数据模型）。
 可行性同首页（已核实）：顶层 `CMakeLists.txt` 冻结，但 `resources/CMakeLists.txt`
 **不冻结**（flat `TIME_ARC_RESOURCE_FILES` + `PARENT_SCOPE`）。**不走** `qt6_add_shaders`
 （会动冻结文件），改走预编译资源：写 `.frag` → 离线 `qsb` 编译 → 放
-`resources/memorylake/shaders/` 并加进 `TIME_ARC_RESOURCE_FILES` → `ShaderEffect {
-fragmentShader: "qrc:/qt/qml/time_arc/resources/memorylake/shaders/…qsb" }`。**零冻结
+`resources/features/memory-lake/shaders/` 并加进 `TIME_ARC_RESOURCE_FILES` → `ShaderEffect {
+fragmentShader: "qrc:/qt/qml/time_arc/resources/features/memory-lake/shaders/…qsb" }`。**零冻结
 改动、零 change-proposal。**
 
 **建议自写（按收益）：**
