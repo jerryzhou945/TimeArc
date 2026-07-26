@@ -8,6 +8,8 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-26T06:12:31Z | L3 | macos-icon-cmak... | Initially assumed the top-level CMake icon wiring was mis... | [report](errors/20260726-061231-C-macos-icon-cmake-premise.md) |
+| 2026-07-26T06:12:31Z | L2 | macos-runtime-i... | QGuiApplication::setWindowIcon loads the qrc SVG on macOS... | [report](errors/20260726-061231-C-macos-runtime-icon-override.md) |
 | 2026-07-25T13:07:13Z | L1 | macos-icon-froz... | Post-change harness audit found the approved CMakeLists.t... | [report](errors/20260725-130713-B-macos-icon-frozen-hash-drift.md) |
 | 2026-07-25T13:05:04Z | L3 | cmake-icon-prop... | Queried MACOSX_BUNDLE_ICON_FILE as a CMake property, but ... | [report](errors/20260725-130504-B-cmake-icon-property-probe.md) |
 | 2026-07-25T12:59:52Z | L1 | resource-follow... | Mandatory Track C error entry pushed the rolling journal ... | [report](errors/20260725-125952-C-resource-followup-index-line-budget.md) |
@@ -94,7 +96,5 @@ the harness line budget intact.
 | 2026-07-08T16:05:30Z | L1 | preflight-drift | Preflight failed due to existing harness drift in journal... | [report](errors/20260708-160530-A-preflight-drift.md) |
 | 2026-07-08T15:58:33Z | L2 | ctest-qstandard... | ctest timearc_db_smoke failed in sandbox because Qt test ... | [report](errors/20260708-155833-B-ctest-qstandardpaths-sandbox.md) |
 | 2026-07-08T15:56:36Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260708-155636-B-build-failure.md) |
-| 2026-07-08T15:51:19Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260708-155119-B-build-failure.md) |
-| 2026-07-08T15:49:42Z | L3 | stale-text-rg-e... | A stale-text rg search used an invalid backslash escape w... | [report](errors/20260708-154942-B-stale-text-rg-escape.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

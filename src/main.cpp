@@ -184,9 +184,12 @@ int main(int argc, char* argv[]) {
   QCoreApplication::setOrganizationName("TimeArc");
   QCoreApplication::setApplicationName("TimeArc");
 
-  // 无边框窗口的标题栏图标 + 任务栏图标共用同一品牌 SVG（资源随 QML 模块打包）。
+  // macOS gets its application and Dock icon from CFBundleIconFile. Setting
+  // the QRC SVG there would override the native multi-resolution .icns.
+#if !defined(Q_OS_MACOS)
   QGuiApplication::setWindowIcon(
       QIcon(QStringLiteral(":/qt/qml/time_arc/resources/app/TimeArc.svg")));
+#endif
 
   // Tee Qt Warning/Critical/Fatal into the harness log. See
   // .harness/tools/scan_qt_log.py for the consumer that converts log
