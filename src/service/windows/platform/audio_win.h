@@ -5,10 +5,9 @@
 
 #include "app_info.h"
 
-// Windows 音频会话采样接口。
+// Windows audio-session sampling.
 //
-// WASAPI 按“正在渲染音频的进程”暴露会话。这里会把可听见的会话转换成
-// AppInfo，供 audio_tracker 独立累计播放时长。
+// Convert audible WASAPI process sessions into AppInfo samples for the tracker.
 #define TIMEARC_AUDIO_MAX_APPS 64
 
 // Enumerates per-process render sessions that Windows currently reports as

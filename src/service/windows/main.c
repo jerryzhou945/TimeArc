@@ -8,11 +8,11 @@
 #include <stdio.h>
 #include <string.h>
 
-// Windows 采集进程入口。
+// Windows collector entry point.
 //
-// 当前实现还是前台控制台程序：启动后初始化存储、进入 tracker 轮询循环，
-// Ctrl+C/关闭控制台时请求 tracker 收尾。生命周期动词（--install 等）由
-// service/win_service.c 处理，让采集留在用户会话（B1 Route A）。
+// The console process initializes storage and runs the tracker loop.
+// Console shutdown requests a clean flush. win_service.c handles lifecycle
+// verbs while keeping collection in the interactive user session.
 static BOOL WINAPI console_handler(DWORD event_type) {
   switch (event_type) {
     case CTRL_C_EVENT:
@@ -27,8 +27,8 @@ static BOOL WINAPI console_handler(DWORD event_type) {
   }
 }
 
-// 生命周期动词分派（B1 Route A）。无参 = 今天的前台/会话内 tracker（向后兼容，
-// UI auto-spawn 仍可用）；动词经 win_service 注册/查询/启停用户会话登录自启项。
+// Dispatch lifecycle verbs. No arguments runs the tracker for compatibility;
+// verbs manage autostart and the tracker in the current user session.
 static int dispatch_verb(const char* verb) {
   if (strcmp(verb, "--install") == 0) return timearc_win_service_install();
   if (strcmp(verb, "--uninstall") == 0) return timearc_win_service_uninstall();
@@ -52,8 +52,7 @@ int main(int argc, char** argv) {
 
   SetConsoleCtrlHandler(console_handler, TRUE);
 
-  // 防止同时启动多个采集进程。否则多个进程会同时写 service DB，
-  // 历史记录会变得不可预测。
+  // Prevent concurrent collectors from writing unpredictable history.
   HANDLE instance_mutex = CreateMutexA(NULL, TRUE, TIMEARC_INSTANCE_MUTEX_NAME);
   if (instance_mutex == NULL) {
     fprintf(stderr, "failed to create TimeArc service mutex\n");
@@ -64,18 +63,15 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // 轮询间隔、空闲阈值、采集开关集中放在配置里。先填编译期默认（＝今天行为），
-  // 再让 H5 的 usage_config.json 覆盖 idle/track（缺/坏/键缺则保留默认，向后兼容）。
-  // 用具名初始化器：track_enabled 必须显式给 1——任何遗漏会被零初始化成 0＝静默关
-  // 采集，故宁可显式（见头文件红线）。
+  // Start with compatible defaults, then apply valid usage_config.json values.
+  // Explicitly initialize track_enabled because omitted fields become zero.
   TimeArcUsageTrackerConfig config = {
       .poll_interval_ms = TIMEARC_USAGE_POLL_INTERVAL_MS,
       .idle_threshold_ms = TIMEARC_USAGE_IDLE_THRESHOLD_MS,
       .track_enabled = 1,
   };
 
-  // 启动时读一次配置（startup-read）：UI 改了设置须经「应用并重启采集」重启本进程
-  // 才生效。timearc_read_service_config 只在键存在且合法时改出参，故默认值天然兜底。
+  // Read configuration once at startup; invalid or missing values keep defaults.
   timearc_read_service_config(&config.idle_threshold_ms, &config.track_enabled);
   fprintf(stderr,
           "TimeArc service: applied config idle_threshold_ms=%lld "

@@ -5,8 +5,7 @@
 
 #include <string.h>
 
-// 音频 session 按 exe 路径去重。WASAPI 可能为同一进程暴露多个会话，
-// TimeArc 当前只关心“这个应用正在出声”这一层。
+// Deduplicate WASAPI sessions by executable path.
 static int same_audio_app(const AppInfo* a, const AppInfo* b) {
   if (a == NULL || b == NULL) {
     return 0;
@@ -104,8 +103,7 @@ void timearc_audio_tracker_poll(TimeArcAudioTrackerState* state,
 
   AppInfo apps[TIMEARC_AUDIO_MAX_APPS];
   size_t app_count = 0;
-  // 平台层每轮返回“当前仍有可听声音”的应用；未返回的旧 session 会在下面
-  // 根据 last_seen_sec 和 grace period 关闭。
+  // Close sessions absent from the audible sample after the grace period.
   if (timearc_win_get_audio_apps(apps, TIMEARC_AUDIO_MAX_APPS, &app_count) ==
       0) {
     for (size_t i = 0; i < app_count; ++i) {
@@ -121,7 +119,7 @@ void timearc_audio_tracker_poll(TimeArcAudioTrackerState* state,
 
     if (session->seen_this_poll &&
         now_sec - session->start_sec >= TIMEARC_AUDIO_FLUSH_INTERVAL_SEC) {
-      // 长时间播放时定期写段，然后立即开启下一段，避免一整天播放只在退出时可见。
+      // Checkpoint long playback so it becomes visible before shutdown.
       AppInfo app = session->app;
       close_audio_session(session, now_sec);
       start_or_update_session(state, &app, now_sec);
@@ -130,7 +128,7 @@ void timearc_audio_tracker_poll(TimeArcAudioTrackerState* state,
 
     if (!session->seen_this_poll &&
         now_sec - session->last_seen_sec > TIMEARC_AUDIO_SILENCE_GRACE_SEC) {
-      // 没有连续出现在采样结果里，说明停止播放或静音；留一点宽限避免峰值抖动。
+      // Allow brief peak gaps before treating playback as stopped or muted.
       int64_t end_sec = session->last_seen_sec + 1;
       close_audio_session(session, end_sec);
     }
