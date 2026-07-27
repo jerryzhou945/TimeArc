@@ -18,7 +18,10 @@
 - Android 继续把同一 QRC 内容内嵌到应用包。
 - Windows 发布脚本把缺少 service 或 GUI RCC 视为致命错误。
 - macOS 构建后把 `TimeArc` 与 `time-arc-service` 同置于
-  `TimeArc.app/Contents/MacOS`，三个 RCC 放入 `Contents/Resources/assets`。
+  `Contents/MacOS`，LaunchAgent 放入 `Contents/Library/LaunchAgents`，
+  三个 RCC 放入 `Contents/Resources/assets`。
+- `tools/build-macos.sh` 负责 Release 构建、测试、`macdeployqt`、签名及 DMG，
+  打包时把三组 RCC 与许可文本保留在可替换的外置位置。
 
 ## 变更文件
 
@@ -38,9 +41,9 @@ README/规则/平台差异文档。
 
 ## 已知缺口
 
-Windows 实机打包尚未在本次 macOS 会话执行；macOS 仍需 `macdeployqt`、
-签名、公证、DMG 与 clean-machine QA。运行期采集与 Accessibility 权限
-不属于本次资源布局变更。
+Windows 实机打包尚未在本次 macOS 会话执行；macOS 自动包装链路已补，
+仍需 Developer ID/公证凭证实测及 clean-machine QA。运行期采集与
+Accessibility 权限不属于本次资源布局变更。
 
 ## 回滚
 

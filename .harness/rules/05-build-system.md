@@ -35,7 +35,7 @@ Swift interop to `data_bridge.h` requires careful CMake work and is fragile.
 | `time_arc_service`  | `time-arc-service`  | console exe | `src/service/CMakeLists.txt` |
 
 Both are installed by the root build. On macOS both executables live in
-`TimeArc.app/Contents/MacOS`; elsewhere they share the runtime `bin` directory.
+`Contents/MacOS`; elsewhere they share the runtime `bin` directory.
 
 ## 4. Adding a source file
 
@@ -77,6 +77,8 @@ Windows branch of `src/service/CMakeLists.txt`.
 - The `build/` directory is git-ignored. Nothing in it is source of truth.
 - Never commit `*.autogen.*`, `compile_commands.json`, `CMakeCache.txt`, etc.
 - Desktop packages require backgrounds/site-icons/monthly-recap RCCs; missing is fatal.
+- macOS uses Ninja/Xcode and embeds its plist under `Contents/Library/LaunchAgents`.
+- macOS Qt deployment retains native Controls plus Fusion and Basic fallbacks.
 
 ## 8. Hooking the harness into CMake
 
@@ -95,5 +97,4 @@ For **build-failure** capture, wrap the build itself:
 `build.py` runs `cmake --build`, tees the log, and auto-files L1 errors on
 non-zero exit. Prefer it over raw `cmake --build` in scripted use.
 
-These are optional opt-ins; the build must continue to succeed without the
-harness being installed. Do not make the harness a hard build dependency.
+These opt-ins must not make the harness a hard build dependency.

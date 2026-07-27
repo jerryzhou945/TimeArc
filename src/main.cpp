@@ -6,7 +6,6 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QIcon>
-#include <QProcess>
 #include <QResource>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -36,6 +35,10 @@
 #include "services/project_manager.h"
 #include "services/timer_manager.h"
 #include "services/usage_stat_manager.h"
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+#include "services/macos/macos_launch_agent.h"
+#endif
 
 namespace {
 
@@ -157,44 +160,6 @@ void applyWin11RoundedCorners(QWindow* window) {
 }
 #endif
 
-#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
-QString findMacUsageServicePath(const QString& appDir) {
-  const QString exe = QStringLiteral("time-arc-service");
-  const QStringList candidates = {
-      QDir(appDir).filePath(exe),
-      QDir(appDir).filePath(QStringLiteral("../../../bin/") + exe),
-      QDir(appDir).filePath(QStringLiteral("../../../") + exe),
-      QDir(appDir).filePath(QStringLiteral("src/service/") + exe),
-      QDir(appDir).filePath(QStringLiteral("../src/service/") + exe),
-  };
-
-  for (const QString& candidate : candidates) {
-    const QFileInfo info(candidate);
-    if (info.exists() && info.isFile() && info.isExecutable()) {
-      return info.absoluteFilePath();
-    }
-  }
-  return {};
-}
-#endif
-
-void startUsageService() {
-#if defined(Q_OS_WIN)
-  const QString appDir = QCoreApplication::applicationDirPath();
-  const QString servicePath = QDir(appDir).filePath("time-arc-service.exe");
-  if (!QFileInfo::exists(servicePath)) return;
-
-  QProcess::startDetached(servicePath, QStringList(), appDir);
-#elif defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
-  const QString appDir = QCoreApplication::applicationDirPath();
-  const QString servicePath = findMacUsageServicePath(appDir);
-  if (servicePath.isEmpty()) return;
-
-  QProcess::startDetached(servicePath, QStringList(),
-                          QFileInfo(servicePath).absolutePath());
-#endif
-}
-
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -233,7 +198,16 @@ int main(int argc, char* argv[]) {
   // lines into L2 error reports.
   installHarnessLogger();
 
-  startUsageService();
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  const MacLaunchAgentRegistration launchAgent =
+      registerMacLaunchAgent();
+  if (!launchAgent.registered) {
+    qWarning() << "Could not register the macOS LaunchAgent:"
+               << launchAgent.errorMessage;
+  } else if (launchAgent.requiresApproval) {
+    qWarning() << "The macOS LaunchAgent requires approval in System Settings.";
+  }
+#endif
 
   QQmlApplicationEngine engine;
 

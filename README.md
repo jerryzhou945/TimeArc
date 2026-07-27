@@ -195,12 +195,13 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 |   timearc_service.db |  <----   |  timearc_service.db   |
 |   writes timearc.db  |          |                       |
 +----------------------+          +-----------------------+
-         starts (Windows only, via QProcess)
-         --------------------------------->
+         registers LaunchAgent (macOS)
+         ----------------------------->
 ```
 
-- The UI launches and may spawn the service (see
-  `src/main.cpp::startUsageService`) but does not link against its code.
+- The UI never executes or links against service code. On macOS it registers
+  the embedded `com.timearc.service.plist` through `SMAppService`, which gives
+  launchd ownership of the helper lifecycle.
 - Session fields and their SQLite mapping are documented in
   `.harness/rules/03-data-contract.md`.
 - `data_bridge.h` is the cross-language C ABI used by Swift (macOS) and
@@ -361,24 +362,56 @@ artwork is not a release input.
 
 ### Packaging a release (Windows)
 
-`tools/package-release.ps1` produces a self-contained portable package. It runs
-`windeployqt` to bundle the Qt and MinGW runtime DLLs next to `TimeArc.exe` and the
-service, requires and copies the three functional GUI RCC packs, copies
-`LICENSE` and the whole `resources/licenses/` tree, and writes a
-`NOTICE.txt` (including the Qt LGPL relink statement). It first asserts — via
-`tools/verify-linkage.ps1` — that the shipped `TimeArc.exe` links Qt **dynamically**
-(LGPL posture: `objdump` must show `Qt6*.dll` imports and no static Qt), refusing to
-package otherwise.
+`tools/build-windows.ps1` is the Windows build and release entry point. With no
+option it runs the full `--release` pipeline: configure, harness-wrapped Release
+build, CTest, `windeployqt`, optional Authenticode signing, dynamic-linkage
+verification, and ZIP creation. The narrower modes match the macOS entry point:
+`--build`, `--test` (build + test), and `--package` (build + package, without
+tests).
 
 ```powershell
-python .harness/tools/build.py -- --config Release   # build Release first
-pwsh -File tools/package-release.ps1                  # -> dist/TimeArc-<ver>-win64/ + .zip
+pwsh -File tools/build-windows.ps1             # same as --release
+pwsh -File tools/build-windows.ps1 --build
+pwsh -File tools/build-windows.ps1 --test
+pwsh -File tools/build-windows.ps1 --package
 ```
 
-The `dist/` output is gitignored, and the result unzips and runs on a machine
-with no Qt installed. CMake now installs project-owned executables and GUI
-assets; final Qt runtime deployment remains the responsibility of
-`windeployqt` on Windows and the future `macdeployqt` release step on macOS.
+The result is `dist/TimeArc-<version>-win64/` plus a matching `.zip`. It contains
+both executables, the three functional RCC packs, replaceable Qt/compiler DLLs,
+plugins, QML modules, license texts, and `NOTICE.txt`; it runs without a
+machine-wide Qt installation. Packaging rejects a statically linked Qt build.
+Set `TIMEARC_SIGN_CERTIFICATE_SHA1` for Authenticode signing or
+`TIMEARC_REQUIRE_SIGNING=1` to reject unsigned output. Run
+`tools/build-windows.ps1 --help` for path/tool overrides. The older standalone
+`package-release.ps1` and `verify-linkage.ps1` utilities remain available but
+are not called by this entry point.
+
+### Building and packaging on macOS
+
+`tools/build-macos.sh` is the macOS build and release entry point. With no
+option it runs the full `--release` pipeline: configure, harness-wrapped
+Release build, CTest, `macdeployqt`, signing, portable-linkage checks, and DMG
+creation. The narrower modes are `--build`, `--test` (build + test), and
+`--package` (build + package, without tests).
+It prefers Ninja, falls back to Xcode, and resets only generated CMake state
+when a cached generator such as Unix Makefiles cannot compile Swift.
+
+```bash
+tools/build-macos.sh             # same as --release
+tools/build-macos.sh --build
+tools/build-macos.sh --test
+tools/build-macos.sh --package
+```
+
+The result is `dist/TimeArc-<version>-macos-<arch>/TimeArc.app` plus a matching
+`.dmg`. The app contains both executables in `Contents/MacOS`, the LaunchAgent
+in `Contents/Library/LaunchAgents`, the three RCC packs and license texts in
+`Contents/Resources`, and private dynamically linked Qt frameworks/plugins
+deployed by `macdeployqt`. The package retains the macOS Controls style and its
+required Fusion and Basic fallbacks. Local builds are ad-hoc signed.
+For a public release, set `TIMEARC_CODESIGN_IDENTITY` and
+`TIMEARC_NOTARY_PROFILE`; `TIMEARC_REQUIRE_SIGNING=1` prevents accidental
+ad-hoc packaging. Run `tools/build-macos.sh --help` for path/tool overrides.
 
 ### Quick run on Windows (`run.cmd` / `launch.cmd`)
 
@@ -413,13 +446,15 @@ that root. If your Qt lives elsewhere, set `run.local.cmd` or `TIMEARC_QT_ROOT` 
 
 ### Basic Usage
 
-Launch `TimeArc`. On Windows it will auto-spawn `time-arc-service` from
-the same directory (detached); Settings → 追踪与应用 also offers an opt-in
-"随系统登录自动启动后台采集" toggle that registers a per-user logon task so the
-tracker starts at login (B1 Route A — it always runs in the interactive user
-session, never Session 0, so capture stays correct). Closing the desktop window
-hides it to the system tray; use the tray menu to restore the window or explicitly
-quit the UI. On macOS the service is not yet started by the UI. The desktop nav is **首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
+Launch `TimeArc`. On macOS, the UI registers the plist embedded at
+`Contents/Library/LaunchAgents/com.timearc.service.plist` using
+`SMAppService`; its `BundleProgram` resolves
+`Contents/MacOS/time-arc-service` even if the app is relocated. On Windows,
+Settings → 追踪与应用 offers an opt-in
+"随系统登录自动启动后台采集" toggle that registers a per-user logon task (B1
+Route A). Closing the desktop window hides it to the system tray; use the tray
+menu to restore the window or explicitly quit the UI. The desktop nav is
+**首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
 with **记忆湖 / Monthly Recap** pinned at the bottom; the Timer page opens when a
 calendar to-do starts timing. Memory Lake is the landing page.
 
@@ -656,7 +691,8 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       LGPL-3.0 combination posture (F1). Qt already links dynamically — verified by
       `tools/verify-linkage.ps1` (Qt6*.dll imports, no static Qt) — and
       `tools/package-release.ps1` produces a portable package bundling the relink-able
-      Qt/MinGW DLLs + `LICENSE` + `licenses/` + `NOTICE.txt`.
+      Qt/MinGW DLLs + `LICENSE` + `licenses/` + `NOTICE.txt`; the macOS release
+      script similarly deploys private Qt frameworks and licenses into `TimeArc.app`.
 - [x] Add an in-app licenses page surfacing all third-party texts (F2). Shipped
       at Settings → 导入导出 → 「关于与开源许可」: per-component name, version, and
       full, offline-readable license text (`resources/licenses/`, qrc-embedded).
@@ -691,7 +727,7 @@ or later (GPL-3.0-or-later)**. See `LICENSE` for the full text.
 
 | Component | License                   | Linkage | Notes                                |
 |-----------|---------------------------|---------|--------------------------------------|
-| Qt 6      | LGPL-3.0 (with exceptions)| dynamic | Required for GUI + QML + Svg. Bundled by `tools/package-release.ps1` as relink-able DLLs (LGPL posture). |
+| Qt 6      | LGPL-3.0 (with exceptions)| dynamic | Required for GUI + QML + Svg. Platform release scripts bundle replaceable DLLs/frameworks (LGPL posture). |
 | SQLite    | Public domain             | static  | Vendored under `thirdparty/sqlite3/`; used by the database layer and service storage. |
 | Parson    | MIT                       | static  | Vendored under `thirdparty/parson/`. Will back user config. |
 

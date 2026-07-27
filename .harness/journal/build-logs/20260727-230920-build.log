@@ -1,0 +1,143 @@
+[0/1] Re-running CMake...
+CMake Warning at /opt/homebrew/share/cmake/Modules/Platform/Darwin-Initialize.cmake:251 (message):
+  Ignoring CMAKE_OSX_SYSROOT value:
+
+   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.sdk
+
+  because the directory does not exist.
+Call Stack (most recent call first):
+  /opt/homebrew/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake:35 (include)
+  CMakeLists.txt:3 (project)
+
+
+-- The OBJCXX compiler identification is AppleClang 17.0.0.17000604
+-- Detecting OBJCXX compiler ABI info
+-- Detecting OBJCXX compiler ABI info - done
+-- Check for working OBJCXX compiler: /usr/bin/clang++ - skipped
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Configuring done (2.3s)
+-- Generating done (0.2s)
+-- Build files have been written to: /Users/jz2025/Desktop/Development/TimeArc/build
+[1/209] Copying OS X Content TimeArc.app/Contents/Library/LaunchAgents/com.timearc.service.plist
+[2/209] Automatic MOC and UIC for target timearc_resource_bundle_smoke
+[3/207] Automatic MOC and UIC for target timearc_db_smoke
+[4/205] Automatic MOC and UIC for target time-arc
+[5/205] Running AUTOMOC file extraction for target time-arc
+[6/205] Running moc --collect-json for target time-arc
+[7/120] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/android_usage_jni_bridge.cpp.o
+[8/120] Building CXX object CMakeFiles/time-arc.dir/src/services/app_repository.cpp.o
+[9/120] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[10/120] Building CXX object CMakeFiles/time-arc.dir/src/services/frontmost_session_repository.cpp.o
+[11/120] Building CXX object CMakeFiles/time-arc.dir/src/services/media_session_repository.cpp.o
+[12/120] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_usage_repository.cpp.o
+[13/120] Building CXX object CMakeFiles/time-arc.dir/time-arc_autogen/mocs_compilation.cpp.o
+[14/120] Building CXX object CMakeFiles/time-arc.dir/src/services/manual_project_repository.cpp.o
+[15/120] Building CXX object CMakeFiles/time-arc.dir/src/services/database_manager.cpp.o
+[16/120] Building CXX object CMakeFiles/time-arc.dir/src/services/timer_manager.cpp.o
+[17/120] Building CXX object CMakeFiles/time-arc.dir/src/services/calendar_manager.cpp.o
+[18/120] Building CXX object CMakeFiles/time-arc.dir/src/services/stats_service.cpp.o
+[19/120] Building CXX object CMakeFiles/time-arc.dir/src/services/tag_repository.cpp.o
+[20/120] Building CXX object CMakeFiles/time-arc.dir/src/services/settings_repository.cpp.o
+[21/120] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_qmake_time_arc.cpp.o
+[22/120] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_ui_service.cpp.o
+[23/120] Building OBJCXX object CMakeFiles/time-arc.dir/src/services/macos/macos_launch_agent.mm.o
+[24/120] Building CXX object CMakeFiles/time-arc.dir/time-arc_qmltyperegistrations.cpp.o
+[25/120] Building CXX object CMakeFiles/time-arc.dir/src/services/harness_logger.cpp.o
+[26/120] Building CXX object CMakeFiles/time-arc.dir/src/services/project_manager.cpp.o
+[27/120] Building CXX object CMakeFiles/time-arc.dir/src/services/app_icon_image_provider.cpp.o
+[28/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qmlcache_loader.cpp.o
+[29/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/main_qml.cpp.o
+[30/120] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_usage_service.cpp.o
+[31/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopTimerPage_qml.cpp.o
+[32/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp.o
+[33/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMonthlyRecapPage_qml.cpp.o
+[34/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp.o
+[35/120] Building CXX object CMakeFiles/time-arc.dir/src/services/daily_card_service.cpp.o
+[36/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftCard_qml.cpp.o
+[37/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.o
+[38/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/WindowChrome_qml.cpp.o
+[39/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/DesktopDailyCardView_qml.cpp.o
+[40/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftButton_qml.cpp.o
+[41/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftPill_qml.cpp.o
+[42/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/AppVisual_js.cpp.o
+[43/120] Building CXX object CMakeFiles/time-arc.dir/src/services/usage_stat_manager.cpp.o
+[44/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.o
+[45/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/I18n_js.cpp.o
+[46/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/TagPalette_js.cpp.o
+[47/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDotTexture_qml.cpp.o
+[48/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GenerativeCover_qml.cpp.o
+[49/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoryLakeStyle_qml.cpp.o
+[50/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.o
+[51/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/AchievementToast_qml.cpp.o
+[52/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoInkCanvas_qml.cpp.o
+[53/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolGlyph_qml.cpp.o
+[54/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/PixelTomato_qml.cpp.o
+[55/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolbar_qml.cpp.o
+[56/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TextLayer_qml.cpp.o
+[57/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroCompleteOverlay_qml.cpp.o
+[58/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoPageFolder_qml.cpp.o
+[59/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoOverlay_qml.cpp.o
+[60/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/StickyNote_qml.cpp.o
+[61/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlowCircle_qml.cpp.o
+[62/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopCalenderPage_qml.cpp.o
+[63/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassPanel_qml.cpp.o
+[64/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDatePicker_qml.cpp.o
+[65/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GridTexture_qml.cpp.o
+[66/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroWidget_qml.cpp.o
+[67/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/AmbientBackground_qml.cpp.o
+[68/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/RoundedFrame_qml.cpp.o
+[69/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/UsageRankList_qml.cpp.o
+[70/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/FrostCard_qml.cpp.o
+[71/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/DetailPanel_qml.cpp.o
+[72/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TimeRiver_qml.cpp.o
+[73/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TagChip_qml.cpp.o
+[74/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/CardCarousel_qml.cpp.o
+[75/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TodayConclusionCard_qml.cpp.o
+[76/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoryCard_qml.cpp.o
+[77/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/CalendarSyncList_qml.cpp.o
+[78/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/SilkyFlickable_qml.cpp.o
+[79/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/DailyUsageShare_qml.cpp.o
+[80/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassSwitch_qml.cpp.o
+[81/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassSlider_qml.cpp.o
+[82/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/KbdChip_qml.cpp.o
+[83/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/NotifierTray_qml.cpp.o
+[84/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassTextField_qml.cpp.o
+[85/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassComboBox_qml.cpp.o
+[86/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapSlide_qml.cpp.o
+[87/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapOverlay_qml.cpp.o
+[88/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileStatusBar_qml.cpp.o
+[89/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSectionTitle_qml.cpp.o
+[90/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp.o
+[91/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSwitch_qml.cpp.o
+[92/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileHomePage_qml.cpp.o
+[93/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/MobileTheme_qml.cpp.o
+[94/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileStatsPage_qml.cpp.o
+[95/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileHistoryPage_qml.cpp.o
+[96/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileGlassPanel_qml.cpp.o
+[97/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileTabButton_qml.cpp.o
+[98/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSettingRow_qml.cpp.o
+[99/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp.o
+[100/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileUsageRankRow_qml.cpp.o
+[101/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp.o
+[102/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileFlipCard_qml.cpp.o
+[103/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthProfiles_js.cpp.o
+[104/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp.o
+[105/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp.o
+[106/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileRoundedFrame_qml.cpp.o
+[107/120] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[108/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCoverPage_qml.cpp.o
+[109/120] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0_extra_qmldirs.cpp.o
+[110/120] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_res_0.cpp.o
+[111/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyOverviewPage_qml.cpp.o
+[112/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSeasonScene_qml.cpp.o
+[113/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.o
+[114/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.o
+[115/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyHighlightPage_qml.cpp.o
+[116/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCompanionPage_qml.cpp.o
+[117/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyRankingPage_qml.cpp.o
+[118/120] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp.o
+[119/120] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtdeclarative/lib/QtQuick.framework/Versions/A/QtQuick' which was built for newer version 15.0
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtsvg/lib/QtSvg.framework/Versions/A/QtSvg' which was built for newer version 15.0
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtdeclarative/lib/QtQml.framework/Versions/A/QtQml' which was built for newer version 15.0

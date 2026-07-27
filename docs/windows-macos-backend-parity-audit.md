@@ -43,7 +43,7 @@ macOS 后端已经写了大量 Swift 侧采集与生命周期代码：前台应�
 | 单实例 | Windows named mutex | usage 目录 `time-arc-service.lock` + `flock` | macOS 代码已实现 / 待实机验证 |
 | 停止通道 | named event 请求 tracker flush 后退出 | LaunchAgent bootout + lock pid `SIGTERM` | macOS 代码已实现 / 待实机验证 |
 | 生命周期 verbs | `--install` / `--uninstall` / `--start` / `--stop` / `--status` | 同名 verbs，基于 LaunchAgent | macOS 代码已实现 / 待实机验证 |
-| UI 启动 helper | `src/main.cpp` 启动同目录 `time-arc-service.exe` | 发布包同置 `Contents/MacOS`，另保留 install bin/dev 探测 | macOS 代码已实现 / 已验证构建布局 |
+| UI 启动 helper | UI 不再直接启动 | `SMAppService` 注册内嵌 LaunchAgent，helper 位于 `Contents/MacOS` | macOS 代码已实现 / 待运行验证 |
 | 权限 UX | 基本不需要单独权限引导 | Accessibility 未授权会影响窗口标题 | macOS 未完成 |
 | 打包发布 | Windows 已接近可打包 | helper/RCC 已嵌入；Qt deploy、签名、公证、DMG 未完成 | macOS 部分完成 |
 

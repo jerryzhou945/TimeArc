@@ -17,9 +17,11 @@
   - `--status` 输出 `autostart=on/off` 与 `running=yes/no`。
 
 - `src/main.cpp`
-  - `startUsageService()` 增加 macOS 分支。
-  - 发布布局固定为与 UI 同目录的 `Contents/MacOS/time-arc-service`，并保留安装前缀与开发构建目录探测。
-  - 找到 helper 后用 `QProcess::startDetached` 启动，不改变 UI/服务的磁盘通信边界。
+  - 后续实现已替换原 `startUsageService()` 直接启动路径。
+  - 发布布局保持 `Contents/MacOS/time-arc-service`，LaunchAgent 内嵌于
+    `Contents/Library/LaunchAgents/com.timearc.service.plist`。
+  - UI 通过 `SMAppService` 注册，plist 使用 bundle-relative
+    `BundleProgram`，不再复制到用户目录或直接启动 helper。
 
 - 文档
   - `docs/platform-parity-packaging-gap.md` 已按顺序标记完成项和待验证项。

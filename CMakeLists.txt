@@ -13,6 +13,7 @@ if(APPLE)
         cmake_policy(SET CMP0157 NEW)
     endif()
     enable_language(Swift)
+    enable_language(OBJCXX)
 endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Quick Svg Sql Widgets)
@@ -27,10 +28,19 @@ add_subdirectory(resources)
 if(APPLE)
     set(TIME_ARC_MACOS_BUNDLE_ICON
         "${CMAKE_CURRENT_SOURCE_DIR}/resources/bundle/macos/TimeArc.icns")
+    set(TIME_ARC_MACOS_LAUNCH_AGENT
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/bundle/macos/com.timearc.service.plist")
     set_source_files_properties(${TIME_ARC_MACOS_BUNDLE_ICON} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources"
     )
-    list(APPEND TIME_ARC_APP_SOURCES ${TIME_ARC_MACOS_BUNDLE_ICON})
+    set_source_files_properties(${TIME_ARC_MACOS_LAUNCH_AGENT} PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Library/LaunchAgents"
+    )
+    list(APPEND TIME_ARC_APP_SOURCES
+        ${TIME_ARC_MACOS_BUNDLE_ICON}
+        ${TIME_ARC_MACOS_LAUNCH_AGENT}
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/services/macos/macos_launch_agent.mm"
+    )
     set(MACOSX_BUNDLE_ICON_FILE "TimeArc.icns")
 endif()
 
@@ -130,11 +140,19 @@ target_link_libraries(time-arc
 if(APPLE)
     add_dependencies(time-arc time_arc_service)
     add_custom_command(TARGET time-arc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E remove -f
+            "$<TARGET_BUNDLE_DIR:time-arc>/Contents/Resources/com.timearc.service.plist"
+        COMMAND ${CMAKE_COMMAND} -E remove -f
+            "$<TARGET_BUNDLE_DIR:time-arc>/Contents/Helpers/timearc-service"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "$<TARGET_FILE:time_arc_service>"
             "$<TARGET_BUNDLE_DIR:time-arc>/Contents/MacOS/time-arc-service"
         VERBATIM
     )
+    find_library(TIMEARC_SERVICE_MANAGEMENT_FRAMEWORK
+        ServiceManagement REQUIRED)
+    target_link_libraries(time-arc PRIVATE
+        ${TIMEARC_SERVICE_MANAGEMENT_FRAMEWORK})
 endif()
 
 enable_testing()

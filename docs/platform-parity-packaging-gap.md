@@ -32,7 +32,8 @@ macOS helper 目前已经推进到“配置读取 + 单实例 + foreground + med
 - [x] media session：使用 `AppEnv.getMediaType()` 写 `source=audio` session，包含 3 秒静音 grace 和 15 秒长段切分。
 - [x] graceful shutdown：收到 `SIGTERM` / `SIGINT` 时 flush foreground/media session。
 - [x] LaunchAgent lifecycle：支持 `--install`、`--uninstall`、`--start`、`--stop`、`--status`。
-- [x] UI auto-start：`src/main.cpp::startUsageService()` 已支持 macOS helper 路径探测和 detached 启动。
+- [x] UI auto-start：UI 通过 `SMAppService` 注册 app 内嵌 LaunchAgent，
+  不再探测路径或 detached 启动 helper。
 
 ## 仍需追平的 macOS 工作
 
@@ -50,7 +51,8 @@ macOS helper 目前已经推进到“配置读取 + 单实例 + foreground + med
    - `db_path` 迁移配置仍需在 Mac 上验证 helper 与 UI 是否读写同一位置。
 
 4. **包装发布链路**
-   - [x] UI/helper 同置 `Contents/MacOS`，背景/站点图标/月度回顾三个 RCC 置于 `Contents/Resources/assets`。
+   - [x] UI/helper 同置 `Contents/MacOS`，LaunchAgent 置于
+     `Contents/Library/LaunchAgents`，三个 RCC 置于 `Contents/Resources/assets`。
    - [ ] 完成 Qt deploy、codesign、notarization、DMG 和 clean-machine 回归。
 
 ## 追平时间估算

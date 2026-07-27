@@ -1,0 +1,27 @@
+[0/1] Re-running CMake...
+CMake Warning at /opt/homebrew/share/cmake/Modules/Platform/Darwin-Initialize.cmake:251 (message):
+  Ignoring CMAKE_OSX_SYSROOT value:
+
+   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.sdk
+
+  because the directory does not exist.
+Call Stack (most recent call first):
+  /opt/homebrew/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake:35 (include)
+  CMakeLists.txt:3 (project)
+
+
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Configuring done (1.7s)
+-- Generating done (0.2s)
+-- Build files have been written to: /Users/jz2025/Desktop/Development/TimeArc/build
+[1/184] Copying OS X Content TimeArc.app/Contents/Resources/com.timearc.service.plist
+[2/184] Automatic MOC and UIC for target timearc_resource_bundle_smoke
+[3/182] Automatic MOC and UIC for target timearc_db_smoke
+[4/180] Automatic MOC and UIC for target time-arc
+[5/179] Running AUTOMOC file extraction for target time-arc
+[6/8] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[7/8] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtdeclarative/lib/QtQuick.framework/Versions/A/QtQuick' which was built for newer version 15.0
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtsvg/lib/QtSvg.framework/Versions/A/QtSvg' which was built for newer version 15.0
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtdeclarative/lib/QtQml.framework/Versions/A/QtQml' which was built for newer version 15.0

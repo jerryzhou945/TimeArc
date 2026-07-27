@@ -96,10 +96,13 @@ G2/G3 打磨 ───────────(随手)
   2026-06-19 已补 Swift helper 的 foreground 写入、`usage_config.json`
   配置读取（`idle_threshold_ms` / `track_enabled`）、单实例文件锁、媒体
   assertion -> `source=audio` session 写入、SIGTERM/SIGINT flush；同日继续补
-  LaunchAgent verbs（install/uninstall/start/stop/status）和 UI macOS helper
-  auto-start 路径探测。剩余：Mac-host 编译与权限 smoke、db_path 实机确认、
-  Accessibility UX、Qt deploy、签名/公证/DMG 包装链路；helper 已固定随 UI
-  放入 `TimeArc.app/Contents/MacOS`。Track B · macOS · 大。
+  LaunchAgent verbs（install/uninstall/start/stop/status）。2026-07-27 UI 改为
+  通过 `SMAppService` 注册 app 内嵌的 `com.timearc.service.plist`，由 launchd
+  管理 `Contents/MacOS/time-arc-service`；
+  同日增加 `tools/build-macos.sh`，覆盖 Release
+  构建/测试、Qt deploy、签名/公证和 DMG。剩余：Mac-host 权限 smoke、
+  db_path 实机确认、Accessibility UX、凭证签名/公证与 clean-machine QA；
+  helper 已固定随 UI 放入 `TimeArc.app/Contents/MacOS`。Track B · macOS · 大。
 - [ ] **C2 Linux 服务从零实现**
   现状：`src/service/linux/main.c` 0 字节。需 X11 + Wayland 前台采样、idle 检测、PipeWire/PulseAudio
   音频、单实例守卫。Track B · Linux · 大。
@@ -123,7 +126,10 @@ G2/G3 打磨 ───────────(随手)
   （windeployqt + 随包 Qt/MinGW DLL + LICENSE + licenses/ + NOTICE.txt relink 声明 + 嵌 S1 断言 + zip；断面机
   剥离 PATH 解压即跑已验证）。2026-07-27 补项目自有资源的 in-tree 安装：
   桌面 GUI 大图按背景/站点图标/月度回顾拆为三个外置 RCC，Windows 包装强制携带；
-  macOS UI/helper 同置 `Contents/MacOS`。Qt runtime 部署仍由平台 deploy 工具完成。
+  macOS UI/helper 同置 `Contents/MacOS`，`build-macos.sh` 调用 `macdeployqt`
+  部署私有 Qt framework/plugin 并生成签名 DMG；Windows 的
+  `build-windows.ps1` 以相同四模式入口覆盖构建、测试、Qt 部署、可选签名与 ZIP，
+  保留原有两个 Windows 发布工具但不调用它们。
 - [x] **F2 in-app 第三方许可证页面**（surfacing 所有 third-party 文本，`rules/06` §4）— Track B。
   已实装（**PR #43**）：设置→导入导出→「关于与开源许可」卡（Qt/SQLite/Parson/TimeArc 名+版本+许可+链接方式），
   「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。

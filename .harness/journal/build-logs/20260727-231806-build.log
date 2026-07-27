@@ -1,0 +1,8 @@
+[1/177] Automatic MOC and UIC for target time-arc
+[2/176] Running AUTOMOC file extraction for target time-arc
+[3/5] Building OBJCXX object CMakeFiles/time-arc.dir/src/services/macos/macos_launch_agent.mm.o
+[4/5] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[5/5] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtdeclarative/lib/QtQuick.framework/Versions/A/QtQuick' which was built for newer version 15.0
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtsvg/lib/QtSvg.framework/Versions/A/QtSvg' which was built for newer version 15.0
+ld: warning: building for macOS-14.0, but linking with dylib '/opt/homebrew/opt/qtdeclarative/lib/QtQml.framework/Versions/A/QtQml' which was built for newer version 15.0

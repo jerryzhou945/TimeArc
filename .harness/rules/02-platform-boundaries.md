@@ -55,7 +55,7 @@ Every platform service must:
   The tracker stays in the interactive user session. A true SCM Session-0
   service is deferred.
 
-### macOS - foreground/config/media/lifecycle MVP, Mac smoke pending
+### macOS - foreground/config/media/lifecycle MVP, packaged smoke passing
 
 - `AppEnv.swift`: frontmost app via `NSWorkspace`, idle via `CGEventSource`,
   media playback via `IOPMCopyAssertionsByProcess`.
@@ -68,10 +68,11 @@ Every platform service must:
   accumulation while idle, flushes pending sessions on `SIGTERM`/`SIGINT`, and provides
   `--install`/`--uninstall`/`--start`/`--stop`/`--status` verbs backed by a
   per-user LaunchAgent.
-- `src/main.cpp::startUsageService()`: starts the macOS helper when found in a
-  bundle-adjacent, install-prefix, or development-build location.
-- The helper is bundled beside `TimeArc` in `.app/Contents/MacOS`.
-- Still pending: runtime smoke, Accessibility UX, Qt deploy, signing, and notarization.
+- On launch, the GUI registers embedded `com.timearc.service.plist` through
+  `SMAppService`; it never copies the plist or executes the helper directly.
+- The helper is bundled as `.app/Contents/MacOS/time-arc-service`.
+- The packaged app launch-smoke confirms launchd runs the deployed helper.
+- Still pending: Accessibility UX, Developer ID signing, and notarization.
 
 ### Linux - not started
 
@@ -94,7 +95,6 @@ Adding, say, FreeBSD or Android-host support:
 
 - Windows paths in records: full exe path (e.g., `C:\...\chrome.exe`).
 - macOS `app_id` in records: bundle id (e.g., `com.apple.Safari`).
-- macOS paths in records: bundle path when available; UI icon providers must
-  tolerate missing or permission-blocked bundle paths.
+- macOS paths: bundle path when available; icon providers tolerate missing paths.
 - Linux (when added): choose an identifier stable across launches, typically
   `.desktop` id or executable basename, and document it here.

@@ -8,7 +8,7 @@ message.
 ┌───────────────────────────────────────────────────────────────┐
 │  UI layer  (src/ + qml/)                                      │
 │    ├─ C++ QObject managers (services/*manager.*)              │
-│    ├─ main.cpp — starts the service, wires managers into QML  │
+│    ├─ main.cpp — wires QML; calls macOS SMAppService adapter  │
 │    └─ QML pages + components under qml/desktop | qml/mobile   │
 ├───────────────────────────────────────────────────────────────┤
 │  Shared contract  (src/service/shared/)                       │

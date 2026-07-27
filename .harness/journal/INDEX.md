@@ -8,6 +8,38 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-27T16:24:10Z | L1 | macos-rule-line... | Final harness audit found rules/02-platform-boundaries.md... | [report](errors/20260727-162410-B-macos-rule-line-budget.md) |
+| 2026-07-27T16:22:39Z | L3 | macos-btm-dump-... | sfltool dumpbtm produced no output for roughly 35 seconds... | [report](errors/20260727-162239-B-macos-btm-dump-hang.md) |
+| 2026-07-27T16:17:50Z | L2 | qt-warning-ce4a... | [WARNING] qrc:/qt/qml/time_arc/qml/main.qml:2 - qrc:/qt/q... | [report](errors/20260727-161750-C-qt-warning-ce4af83624.md) |
+| 2026-07-27T16:17:50Z | L2 | qt-warning-882f... | [WARNING] :0 - QQmlApplicationEngine failed to load compo... | [report](errors/20260727-161750-C-qt-warning-882fece6aa.md) |
+| 2026-07-27T16:17:50Z | L2 | qt-warning-5366... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260727-161750-C-qt-warning-536699d337.md) |
+| 2026-07-27T16:17:50Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260727-161750-C-qt-warning-ee1bf6d1ca.md) |
+| 2026-07-27T16:17:49Z | L2 | qt-warning-ce4a... | [WARNING] qrc:/qt/qml/time_arc/qml/main.qml:2 - qrc:/qt/q... | [report](errors/20260727-161749-C-qt-warning-ce4af83624.md) |
+| 2026-07-27T16:17:49Z | L2 | qt-warning-882f... | [WARNING] :0 - QQmlApplicationEngine failed to load compo... | [report](errors/20260727-161749-C-qt-warning-882fece6aa.md) |
+| 2026-07-27T16:17:49Z | L2 | qt-warning-5366... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260727-161749-C-qt-warning-536699d337.md) |
+| 2026-07-27T16:17:30Z | L3 | qt-log-rotation... | Required Qt log scan parsed historical warnings but could... | [report](errors/20260727-161730-B-qt-log-rotation-permission.md) |
+| 2026-07-27T16:17:26Z | L2 | qt-warning-5366... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260727-161726-C-qt-warning-536699d337.md) |
+| 2026-07-27T16:17:26Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260727-161726-C-qt-warning-ee1bf6d1ca.md) |
+| 2026-07-27T16:17:26Z | L2 | qt-warning-ce4a... | [WARNING] qrc:/qt/qml/time_arc/qml/main.qml:2 - qrc:/qt/q... | [report](errors/20260727-161726-C-qt-warning-ce4af83624.md) |
+| 2026-07-27T16:17:26Z | L2 | qt-warning-882f... | [WARNING] :0 - QQmlApplicationEngine failed to load compo... | [report](errors/20260727-161726-C-qt-warning-882fece6aa.md) |
+| 2026-07-27T16:17:25Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260727-161725-C-qt-warning-ee1bf6d1ca.md) |
+| 2026-07-27T16:17:25Z | L2 | qt-warning-ce4a... | [WARNING] qrc:/qt/qml/time_arc/qml/main.qml:2 - qrc:/qt/q... | [report](errors/20260727-161725-C-qt-warning-ce4af83624.md) |
+| 2026-07-27T16:17:25Z | L2 | qt-warning-882f... | [WARNING] :0 - QQmlApplicationEngine failed to load compo... | [report](errors/20260727-161725-C-qt-warning-882fece6aa.md) |
+| 2026-07-27T16:17:25Z | L2 | qt-warning-5366... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260727-161725-C-qt-warning-536699d337.md) |
+| 2026-07-27T16:02:16Z | L1 | macos-hdiutil-d... | Repeated packaging reaches the signed app but hdiutil cre... | [report](errors/20260727-160216-B-macos-hdiutil-device-not-configured.md) |
+| 2026-07-27T15:57:57Z | L3 | macos-package-i... | The interrupted packaging run reached hdiutil with an inv... | [report](errors/20260727-155757-B-macos-package-interrupted-dmg.md) |
+| 2026-07-27T15:50:56Z | L2 | macos-launchage... | SMAppService reported NotFound at UI startup, leaving com... | [report](errors/20260727-155056-B-macos-launchagent-not-registered.md) |
+| 2026-07-27T15:36:46Z | L3 | macos-generator... | The generator documentation patch used stale README line ... | [report](errors/20260727-153646-B-macos-generator-doc-context.md) |
+| 2026-07-27T15:31:36Z | L3 | macos-build-scr... | The first repaired build-macos.sh run configured Ninja su... | [report](errors/20260727-153136-B-macos-build-script-yield.md) |
+| 2026-07-27T15:30:03Z | L1 | macos-unsupport... | build-macos.sh defaulted to Unix Makefiles, which CMake c... | [report](errors/20260727-153003-B-macos-unsupported-cmake-generator.md) |
+| 2026-07-27T15:10:30Z | L2 | stale-launchage... | Incremental TimeArc.app retained the old Contents/Resourc... | [report](errors/20260727-151030-B-stale-launchagent-resource.md) |
+| 2026-07-27T15:10:08Z | L3 | macos-build-run... | The harness build stream ended at 99/120 without a succes... | [report](errors/20260727-151008-B-macos-build-runner-yield.md) |
+| 2026-07-27T15:03:13Z | L3 | launchagent-doc... | A multi-file documentation patch used stale context for g... | [report](errors/20260727-150313-B-launchagent-doc-context.md) |
+| 2026-07-27T15:01:21Z | L3 | launchagent-pro... | Applied a patch using context from the Windows session in... | [report](errors/20260727-150121-B-launchagent-proposal-edit.md) |
+| 2026-07-27T07:49:57Z | L1 | macos-package-s... | Filtered Qt deployment completed, but the explicit deep s... | [report](errors/20260727-074957-B-macos-package-signature.md) |
+| 2026-07-27T07:45:59Z | L3 | macos-qt-deploy... | The first generated Qt deployment attempt preserved two H... | [report](errors/20260727-074559-B-macos-qt-deploy-symlinks.md) |
+| 2026-07-27T07:41:50Z | L1 | macos-package-l... | macdeployqt copied over-broad Homebrew Qt/QML dependencie... | [report](errors/20260727-074150-B-macos-package-linkage.md) |
+| 2026-07-27T07:38:41Z | L1 | macos-release-b... | cmake --build exited 1 | [report](errors/20260727-073841-B-macos-release-build.md) |
 | 2026-07-27T06:53:49Z | L2 | stale-single-rc... | Incremental macOS bundle retained obsolete timearc-gui-as... | [report](errors/20260727-065349-B-stale-single-rcc-bundle-artifact.md) |
 | 2026-07-27T06:27:49Z | L3 | index-trim-patc... | Journal index trim patch used an inexact truncated summar... | [report](errors/20260727-062749-B-index-trim-patch-context.md) |
 | 2026-07-27T06:27:29Z | L1 | gui-resource-fi... | Final harness audit passed code/frozen checks but the req... | [report](errors/20260727-062729-B-gui-resource-final-index-line-budget.md) |
@@ -64,37 +96,5 @@ the harness line budget intact.
 | 2026-07-12T09:24:01Z | L3 | sqlite-cli-missing | Direct inspection of copied timearc_service.db could not ... | [report](errors/20260712-092401-C-sqlite-cli-missing.md) |
 | 2026-07-12T09:20:12Z | L3 | service-output-... | Assumed the service binary would be emitted under build/s... | [report](errors/20260712-092012-C-service-output-location-assumption.md) |
 | 2026-07-12T08:40:01Z | L3 | missing-cmake-p... | Diagnostic rg included nonexistent CMakePresets.json and ... | [report](errors/20260712-084001-C-missing-cmake-presets.md) |
-| 2026-07-12T08:38:56Z | L2 | windows-collect... | On Windows, the app builds and runs but service-collected... | [report](errors/20260712-083856-C-windows-collection-not-visible.md) |
-| 2026-07-12T08:38:48Z | L3 | preflight-drift | Preflight failed during Windows collection diagnosis: ope... | [report](errors/20260712-083848-C-preflight-drift.md) |
-| 2026-07-12T08:31:49Z | L3 | rg-option-pattern | Read-only inspection search failed because an rg pattern ... | [report](errors/20260712-083149-A-rg-option-pattern.md) |
-| 2026-07-12T08:30:45Z | L3 | preflight-drift | Preflight failed during read-only Windows service inspect... | [report](errors/20260712-083045-A-preflight-drift.md) |
-| 2026-07-12T07:58:45Z | L2 | preflight-drift | Preflight found open-issues.md over 100 lines and frozen ... | [report](errors/20260712-075845-A-preflight-drift.md) |
-| 2026-07-12T07:49:15Z | L1 | build-failure | cmake --build exited 2 | [report](errors/20260712-074915-B-build-failure.md) |
-| 2026-07-12T07:36:52Z | L3 | git-branch-perm... | Creating feat/shared-service-data-bridge failed because t... | [report](errors/20260712-073652-B-git-branch-permission.md) |
-| 2026-07-12T07:36:33Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260712-073633-B-build-failure.md) |
-| 2026-07-11T14:17:14Z | L1 | live-snapshot-r... | cmake --build exited 2 | [report](errors/20260711-141714-B-live-snapshot-retirement-ui-build.md) |
-| 2026-07-11T14:16:33Z | L1 | live-snapshot-r... | cmake --build exited 1 | [report](errors/20260711-141633-B-live-snapshot-retirement-ui-build.md) |
-| 2026-07-11T14:09:40Z | L3 | missing-bridge-... | Inspection assumed a macOS bridging-header filename that ... | [report](errors/20260711-140940-B-missing-bridge-header-path.md) |
-| 2026-07-11T13:54:48Z | L3 | unlisted-frozen... | Changed a stale comment in frozen database_path.c before ... | [report](errors/20260711-135448-B-unlisted-frozen-comment.md) |
-| 2026-07-11T13:54:30Z | L2 | db-smoke-idempo... | DB smoke test failed on the pre-existing legacy project m... | [report](errors/20260711-135430-B-db-smoke-idempotence.md) |
-| 2026-07-11T13:51:09Z | L3 | stale-patch-con... | A multi-file documentation patch failed because the Track... | [report](errors/20260711-135109-B-stale-patch-context.md) |
-| 2026-07-11T13:43:30Z | L1 | baseline-build | cmake --build exited 2 | [report](errors/20260711-134330-B-baseline-build.md) |
-| 2026-07-11T13:39:37Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260711-133937-B-build-failure.md) |
-| 2026-07-11T13:38:01Z | L3 | git-readonly-br... | Creating the required feature branch failed because the s... | [report](errors/20260711-133801-B-git-readonly-branch.md) |
-| 2026-07-11T13:37:36Z | L3 | missing-dev-branch | Git workflow check assumed a local dev branch, but this c... | [report](errors/20260711-133736-B-missing-dev-branch.md) |
-| 2026-07-10T13:58:47Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260710-135847-B-build-failure.md) |
-| 2026-07-09T10:11:45Z | L3 | shell-backtick-... | Ran rg with unescaped Markdown backticks in the shell pat... | [report](errors/20260709-101145-B-shell-backtick-pattern.md) |
-| 2026-07-09T10:01:09Z | L2 | preflight-froze... | Preflight failed because frozen files src/service/shared/... | [report](errors/20260709-100109-B-preflight-frozen-drift.md) |
-| 2026-07-09T10:00:39Z | L2 | preflight-drift | preflight failed because frozen-file hash drift exists in... | [report](errors/20260709-100039-B-preflight-drift.md) |
-| 2026-07-09T09:38:53Z | L2 | remaining-froze... | harness_check after database_path comments still fails on... | [report](errors/20260709-093853-B-remaining-frozen-drift.md) |
-| 2026-07-09T09:37:20Z | L2 | preflight-drift | Preflight before database_path comments is blocked by exi... | [report](errors/20260709-093720-B-preflight-drift.md) |
-| 2026-07-09T09:35:21Z | L2 | remaining-froze... | Final harness_check after database_path rename still fail... | [report](errors/20260709-093521-B-remaining-frozen-drift.md) |
-| 2026-07-09T09:34:43Z | L2 | frozen-hash-drift | harness_check failed after database_path rename because f... | [report](errors/20260709-093443-B-frozen-hash-drift.md) |
-| 2026-07-09T09:27:31Z | L2 | preflight-drift | Track B preflight reported existing harness drift before ... | [report](errors/20260709-092731-B-preflight-drift.md) |
-| 2026-07-09T09:27:20Z | L3 | wrong-track | Initial Track A classification was too narrow because req... | [report](errors/20260709-092720-A-wrong-track.md) |
-| 2026-07-09T09:26:50Z | L2 | preflight-drift | Preflight reported existing harness drift before coding, ... | [report](errors/20260709-092650-A-preflight-drift.md) |
-| 2026-07-08T16:51:32Z | L3 | ctest-home-over... | Setting HOME to /private/tmp did not move macOS QStandard... | [report](errors/20260708-165132-B-ctest-home-override-ineffective.md) |
-| 2026-07-08T16:51:13Z | L2 | ctest-qstandard... | ctest failed because QStandardPaths test mode tried to cl... | [report](errors/20260708-165113-B-ctest-qstandardpaths-sandbox.md) |
-| 2026-07-08T16:50:31Z | L3 | build-escalatio... | Escalated harness build request was rejected by approval ... | [report](errors/20260708-165031-B-build-escalation-rejected.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |
