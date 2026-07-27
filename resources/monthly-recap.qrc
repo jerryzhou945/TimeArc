@@ -1,0 +1,16 @@
+<RCC>
+  <qresource prefix="/qt/qml/time_arc/">
+    <file alias="resources/features/monthly-recap/month-01.jpg">features/monthly-recap/month-01.jpg</file>
+    <file alias="resources/features/monthly-recap/month-02.jpg">features/monthly-recap/month-02.jpg</file>
+    <file alias="resources/features/monthly-recap/month-03.jpg">features/monthly-recap/month-03.jpg</file>
+    <file alias="resources/features/monthly-recap/month-04.jpg">features/monthly-recap/month-04.jpg</file>
+    <file alias="resources/features/monthly-recap/month-05.jpg">features/monthly-recap/month-05.jpg</file>
+    <file alias="resources/features/monthly-recap/month-06.jpg">features/monthly-recap/month-06.jpg</file>
+    <file alias="resources/features/monthly-recap/month-07.jpg">features/monthly-recap/month-07.jpg</file>
+    <file alias="resources/features/monthly-recap/month-08.jpg">features/monthly-recap/month-08.jpg</file>
+    <file alias="resources/features/monthly-recap/month-09.jpg">features/monthly-recap/month-09.jpg</file>
+    <file alias="resources/features/monthly-recap/month-10.jpg">features/monthly-recap/month-10.jpg</file>
+    <file alias="resources/features/monthly-recap/month-11.jpg">features/monthly-recap/month-11.jpg</file>
+    <file alias="resources/features/monthly-recap/month-12.jpg">features/monthly-recap/month-12.jpg</file>
+  </qresource>
+</RCC>

@@ -10,7 +10,7 @@ CMakeLists.txt                   ← project() + target + install
 ├── src/CMakeLists.txt           ← main-app sources → TIME_ARC_APP_SOURCES, TIME_ARC_INCLUDE_DIRS
 │   └── service/CMakeLists.txt   ← standalone time_arc_service executable
 ├── qml/CMakeLists.txt           ← qml files → TIME_ARC_QML_FILES
-└── resources/CMakeLists.txt     ← resource files → TIME_ARC_RESOURCE_FILES
+└── resources/                  ← embedded list + functional desktop QRCs
 ```
 
 Variables propagate up with `set(VAR ${VAR} PARENT_SCOPE)`. Preserve this idiom.
@@ -27,15 +27,15 @@ Variables propagate up with `set(VAR ${VAR} PARENT_SCOPE)`. Preserve this idiom.
 Do not lower these. Do not raise them without a charter amendment — macOS
 Swift interop to `data_bridge.h` requires careful CMake work and is fragile.
 
-## 3. Two targets
+## 3. Two application targets
 
 | Target              | Output name         | Kind        | Where                  |
 |---------------------|---------------------|-------------|------------------------|
 | `time-arc`          | `TimeArc`           | GUI exe     | root `CMakeLists.txt`  |
 | `time_arc_service`  | `time-arc-service`  | console exe | `src/service/CMakeLists.txt` |
 
-Both are listed in the root `install(TARGETS ...)` commands. If you add a
-third target (e.g., a migrator CLI), install it the same way.
+Both are installed by the root build. On macOS both executables live in
+`TimeArc.app/Contents/MacOS`; elsewhere they share the runtime `bin` directory.
 
 ## 4. Adding a source file
 
@@ -50,7 +50,8 @@ third target (e.g., a migrator CLI), install it the same way.
   `..._WINLINUX_*` instead (see existing `app_info.h` / `app_env.h`).
 - New QML file → add to `qml/CMakeLists.txt` AND reference it from one of the
   existing shells.
-- New resource → add to `resources/CMakeLists.txt`.
+- Small shell/license resource → `resources/CMakeLists.txt`; large GUI content
+  → matching functional QRC (external desktop RCC, Android-embedded).
 
 ## 5. Qt LGPL requirement
 
@@ -75,6 +76,7 @@ Windows branch of `src/service/CMakeLists.txt`.
 - `CMAKE_EXPORT_COMPILE_COMMANDS ON` is set at the root; do not remove.
 - The `build/` directory is git-ignored. Nothing in it is source of truth.
 - Never commit `*.autogen.*`, `compile_commands.json`, `CMakeCache.txt`, etc.
+- Desktop packages require backgrounds/site-icons/monthly-recap RCCs; missing is fatal.
 
 ## 8. Hooking the harness into CMake
 

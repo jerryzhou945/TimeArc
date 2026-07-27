@@ -98,7 +98,8 @@ G2/G3 打磨 ───────────(随手)
   assertion -> `source=audio` session 写入、SIGTERM/SIGINT flush；同日继续补
   LaunchAgent verbs（install/uninstall/start/stop/status）和 UI macOS helper
   auto-start 路径探测。剩余：Mac-host 编译与权限 smoke、db_path 实机确认、
-  Accessibility UX、helper bundle 布局、签名/公证/DMG 包装链路。Track B · macOS · 大。
+  Accessibility UX、Qt deploy、签名/公证/DMG 包装链路；helper 已固定随 UI
+  放入 `TimeArc.app/Contents/MacOS`。Track B · macOS · 大。
 - [ ] **C2 Linux 服务从零实现**
   现状：`src/service/linux/main.c` 0 字节。需 X11 + Wayland 前台采样、idle 检测、PipeWire/PulseAudio
   音频、单实例守卫。Track B · Linux · 大。
@@ -120,7 +121,9 @@ G2/G3 打磨 ───────────(随手)
   已实装（**PR #43**）：S1 `tools/verify-linkage.ps1`（objdump 断言 Qt6*.dll 动态、无静态 Qt + shared-libs 部署）
   + 去过时文档（open-issues / rules/06 §1 / README）；S2 许可文本 `resources/licenses/`；S3 `tools/package-release.ps1`
   （windeployqt + 随包 Qt/MinGW DLL + LICENSE + licenses/ + NOTICE.txt relink 声明 + 嵌 S1 断言 + zip；断面机
-  剥离 PATH 解压即跑已验证）。S4 in-tree CMake 部署（改冻结顶层 CMake）仍门控暂缓（须提案）。
+  剥离 PATH 解压即跑已验证）。2026-07-27 补项目自有资源的 in-tree 安装：
+  桌面 GUI 大图按背景/站点图标/月度回顾拆为三个外置 RCC，Windows 包装强制携带；
+  macOS UI/helper 同置 `Contents/MacOS`。Qt runtime 部署仍由平台 deploy 工具完成。
 - [x] **F2 in-app 第三方许可证页面**（surfacing 所有 third-party 文本，`rules/06` §4）— Track B。
   已实装（**PR #43**）：设置→导入导出→「关于与开源许可」卡（Qt/SQLite/Parson/TimeArc 名+版本+许可+链接方式），
   「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。

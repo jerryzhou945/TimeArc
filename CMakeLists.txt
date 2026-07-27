@@ -51,6 +51,58 @@ qt_add_qml_module(time-arc
         ${TIME_ARC_RESOURCE_FILES}
 )
 
+if(ANDROID)
+    qt_add_resources(TIME_ARC_ANDROID_GUI_ASSETS
+        ${TIME_ARC_BUNDLED_RESOURCE_QRCS}
+    )
+    target_sources(time-arc PRIVATE ${TIME_ARC_ANDROID_GUI_ASSETS})
+else()
+    if(APPLE)
+        set(TIME_ARC_GUI_ASSET_OUTPUT_DIR
+            "$<TARGET_BUNDLE_DIR:time-arc>/Contents/Resources/assets")
+    else()
+        set(TIME_ARC_GUI_ASSET_OUTPUT_DIR
+            "$<TARGET_FILE_DIR:time-arc>/assets")
+    endif()
+
+    add_custom_command(TARGET time-arc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "${TIME_ARC_GUI_ASSET_OUTPUT_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E remove -f
+            "${TIME_ARC_GUI_ASSET_OUTPUT_DIR}/timearc-gui-assets.rcc"
+        VERBATIM
+    )
+
+    set(TIME_ARC_GUI_ASSET_RCCS)
+    set(TIME_ARC_GUI_ASSET_TARGETS)
+    foreach(TIME_ARC_GUI_ASSET_QRC IN LISTS TIME_ARC_BUNDLED_RESOURCE_QRCS)
+        get_filename_component(TIME_ARC_GUI_ASSET_NAME
+            "${TIME_ARC_GUI_ASSET_QRC}" NAME_WE)
+        string(REPLACE "-" "_" TIME_ARC_GUI_ASSET_TARGET_SUFFIX
+            "${TIME_ARC_GUI_ASSET_NAME}")
+        set(TIME_ARC_GUI_ASSET_TARGET
+            "time_arc_${TIME_ARC_GUI_ASSET_TARGET_SUFFIX}_assets")
+        set(TIME_ARC_GUI_ASSET_RCC
+            "${CMAKE_CURRENT_BINARY_DIR}/timearc-${TIME_ARC_GUI_ASSET_NAME}.rcc")
+
+        qt_add_binary_resources(${TIME_ARC_GUI_ASSET_TARGET}
+            "${TIME_ARC_GUI_ASSET_QRC}"
+            DESTINATION "${TIME_ARC_GUI_ASSET_RCC}"
+            OPTIONS --no-compress
+        )
+        add_dependencies(time-arc ${TIME_ARC_GUI_ASSET_TARGET})
+        list(APPEND TIME_ARC_GUI_ASSET_TARGETS ${TIME_ARC_GUI_ASSET_TARGET})
+        list(APPEND TIME_ARC_GUI_ASSET_RCCS "${TIME_ARC_GUI_ASSET_RCC}")
+
+        add_custom_command(TARGET time-arc POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${TIME_ARC_GUI_ASSET_RCC}"
+                "${TIME_ARC_GUI_ASSET_OUTPUT_DIR}/timearc-${TIME_ARC_GUI_ASSET_NAME}.rcc"
+            VERBATIM
+        )
+    endforeach()
+endif()
+
 set_target_properties(time-arc PROPERTIES
     OUTPUT_NAME "TimeArc"
     MACOSX_BUNDLE_BUNDLE_NAME "TimeArc"
@@ -75,7 +127,31 @@ target_link_libraries(time-arc
     ${TIME_ARC_THIRDPARTY_LIBS}
 )
 
+if(APPLE)
+    add_dependencies(time-arc time_arc_service)
+    add_custom_command(TARGET time-arc POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:time_arc_service>"
+            "$<TARGET_BUNDLE_DIR:time-arc>/Contents/MacOS/time-arc-service"
+        VERBATIM
+    )
+endif()
+
 enable_testing()
+
+if(NOT ANDROID)
+    add_executable(timearc_resource_bundle_smoke
+        tests/resource_bundle_smoke.cpp
+    )
+    target_link_libraries(timearc_resource_bundle_smoke PRIVATE Qt6::Core)
+    add_dependencies(timearc_resource_bundle_smoke
+        ${TIME_ARC_GUI_ASSET_TARGETS}
+    )
+    add_test(
+        NAME timearc_resource_bundle_smoke
+        COMMAND timearc_resource_bundle_smoke ${TIME_ARC_GUI_ASSET_RCCS}
+    )
+endif()
 
 add_executable(timearc_db_smoke
     tests/db_smoke.cpp
@@ -101,6 +177,13 @@ install(TARGETS time-arc
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-install(TARGETS time_arc_service
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+if(NOT APPLE)
+    install(TARGETS time_arc_service
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+    if(NOT ANDROID)
+        install(FILES ${TIME_ARC_GUI_ASSET_RCCS}
+            DESTINATION "${CMAKE_INSTALL_BINDIR}/assets"
+        )
+    endif()
+endif()

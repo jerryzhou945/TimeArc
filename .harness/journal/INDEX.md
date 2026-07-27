@@ -8,6 +8,12 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-27T06:53:49Z | L2 | stale-single-rc... | Incremental macOS bundle retained obsolete timearc-gui-as... | [report](errors/20260727-065349-B-stale-single-rcc-bundle-artifact.md) |
+| 2026-07-27T06:27:49Z | L3 | index-trim-patc... | Journal index trim patch used an inexact truncated summar... | [report](errors/20260727-062749-B-index-trim-patch-context.md) |
+| 2026-07-27T06:27:29Z | L1 | gui-resource-fi... | Final harness audit passed code/frozen checks but the req... | [report](errors/20260727-062729-B-gui-resource-final-index-line-budget.md) |
+| 2026-07-27T06:22:31Z | L1 | desktop-static-... | desktop_ux_static_test.py failed before feature assertion... | [report](errors/20260727-062231-B-desktop-static-manifest-path.md) |
+| 2026-07-27T06:22:26Z | L3 | binary-rcc-list... | Used rcc --list on an already-binary RCC; that option par... | [report](errors/20260727-062226-B-binary-rcc-list-probe.md) |
+| 2026-07-27T06:18:38Z | L3 | qt-rcc-path-ass... | Assumed Homebrew Qt exposed rcc at opt/qt/bin/rcc; the ex... | [report](errors/20260727-061838-B-qt-rcc-path-assumption.md) |
 | 2026-07-26T06:12:31Z | L3 | macos-icon-cmak... | Initially assumed the top-level CMake icon wiring was mis... | [report](errors/20260726-061231-C-macos-icon-cmake-premise.md) |
 | 2026-07-26T06:12:31Z | L2 | macos-runtime-i... | QGuiApplication::setWindowIcon loads the qrc SVG on macOS... | [report](errors/20260726-061231-C-macos-runtime-icon-override.md) |
 | 2026-07-25T13:07:13Z | L1 | macos-icon-froz... | Post-change harness audit found the approved CMakeLists.t... | [report](errors/20260725-130713-B-macos-icon-frozen-hash-drift.md) |
@@ -90,11 +96,5 @@ the harness line budget intact.
 | 2026-07-08T16:51:32Z | L3 | ctest-home-over... | Setting HOME to /private/tmp did not move macOS QStandard... | [report](errors/20260708-165132-B-ctest-home-override-ineffective.md) |
 | 2026-07-08T16:51:13Z | L2 | ctest-qstandard... | ctest failed because QStandardPaths test mode tried to cl... | [report](errors/20260708-165113-B-ctest-qstandardpaths-sandbox.md) |
 | 2026-07-08T16:50:31Z | L3 | build-escalatio... | Escalated harness build request was rejected by approval ... | [report](errors/20260708-165031-B-build-escalation-rejected.md) |
-| 2026-07-08T16:32:55Z | L2 | preflight-drift | Preflight blocked by existing harness/frozen-file drift b... | [report](errors/20260708-163255-B-preflight-drift.md) |
-| 2026-07-08T16:13:28Z | L1 | preflight-drift | Preflight failed due to existing harness drift before db_... | [report](errors/20260708-161328-B-preflight-drift.md) |
-| 2026-07-08T16:09:23Z | L3 | chained-read-co... | Used a chained read-only shell command while gathering fi... | [report](errors/20260708-160923-A-chained-read-command.md) |
-| 2026-07-08T16:05:30Z | L1 | preflight-drift | Preflight failed due to existing harness drift in journal... | [report](errors/20260708-160530-A-preflight-drift.md) |
-| 2026-07-08T15:58:33Z | L2 | ctest-qstandard... | ctest timearc_db_smoke failed in sandbox because Qt test ... | [report](errors/20260708-155833-B-ctest-qstandardpaths-sandbox.md) |
-| 2026-07-08T15:56:36Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260708-155636-B-build-failure.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

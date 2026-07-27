@@ -70,8 +70,8 @@ Every platform service must:
   per-user LaunchAgent.
 - `src/main.cpp::startUsageService()`: starts the macOS helper when found in a
   bundle-adjacent, install-prefix, or development-build location.
-- Still pending: Mac-host compile/runtime smoke, Accessibility permission UX,
-  final helper bundle layout, packaging, signing, and notarization.
+- The helper is bundled beside `TimeArc` in `.app/Contents/MacOS`.
+- Still pending: runtime smoke, Accessibility UX, Qt deploy, signing, and notarization.
 
 ### Linux - not started
 

@@ -62,12 +62,12 @@ def main():
         raise AssertionError("missing monthly profile or seasonal scene component")
     profiles = profiles_path.read_text(encoding="utf-8")
     season_scene = season_scene_path.read_text(encoding="utf-8")
-    resources_cmake = read("resources/CMakeLists.txt")
+    monthly_recap_qrc = read("resources/monthly-recap.qrc")
     for month in range(1, 13):
         asset = f"resources/features/monthly-recap/month-{month:02d}.jpg"
         if not (ROOT / asset).exists():
             raise AssertionError(f"missing monthly scene asset: {asset}")
-        require(resources_cmake, asset, f"month {month} resource registration")
+        require(monthly_recap_qrc, asset, f"month {month} resource registration")
 
     require(main_cpp, '"mobileUiService"', "QML mobile UI service")
     require(ui_header, "Q_PROPERTY(QString wallpaperUrl",

@@ -1,0 +1,21 @@
+[0/1] Re-running CMake...
+CMake Warning at /opt/homebrew/share/cmake/Modules/Platform/Darwin-Initialize.cmake:251 (message):
+  Ignoring CMAKE_OSX_SYSROOT value:
+
+   /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.sdk
+
+  because the directory does not exist.
+Call Stack (most recent call first):
+  /opt/homebrew/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake:35 (include)
+  CMakeLists.txt:3 (project)
+
+
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Configuring done (1.5s)
+-- Generating done (0.2s)
+-- Build files have been written to: /Users/jz2025/Desktop/Development/TimeArc/build
+[1/182] Automatic MOC and UIC for target timearc_resource_bundle_smoke
+[2/180] Automatic MOC and UIC for target timearc_db_smoke
+[3/178] Automatic MOC and UIC for target time-arc
+[4/177] Running AUTOMOC file extraction for target time-arc

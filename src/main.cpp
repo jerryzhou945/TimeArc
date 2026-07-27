@@ -7,6 +7,7 @@
 #include <QGuiApplication>
 #include <QIcon>
 #include <QProcess>
+#include <QResource>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QStringList>
@@ -100,6 +101,39 @@ bool hasStartInTrayArg(int argc, char* argv[]) {
   return false;
 }
 
+#if !defined(Q_OS_ANDROID)
+QString bundledGuiResourceDirectory() {
+  const QString appDir = QCoreApplication::applicationDirPath();
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  return QDir(appDir).filePath(QStringLiteral("../Resources/assets"));
+#else
+  return QDir(appDir).filePath(QStringLiteral("assets"));
+#endif
+}
+
+bool registerBundledGuiResources() {
+  const QDir resourceDirectory(bundledGuiResourceDirectory());
+  const QStringList resourceFiles = {
+      QStringLiteral("timearc-backgrounds.rcc"),
+      QStringLiteral("timearc-site-icons.rcc"),
+      QStringLiteral("timearc-monthly-recap.rcc"),
+  };
+  for (const QString& resourceFile : resourceFiles) {
+    const QString resourcePath =
+        QFileInfo(resourceDirectory.filePath(resourceFile)).absoluteFilePath();
+    if (!QFileInfo::exists(resourcePath)) {
+      qCritical() << "Required GUI resource pack is missing:" << resourcePath;
+      return false;
+    }
+    if (!QResource::registerResource(resourcePath)) {
+      qCritical() << "Failed to register GUI resource pack:" << resourcePath;
+      return false;
+    }
+  }
+  return true;
+}
+#endif
+
 #if defined(Q_OS_WIN)
 // Use native Win11 DWM corners and shadows for the frameless window.
 // Load dwmapi at runtime to avoid changing the frozen CMakeLists.
@@ -128,7 +162,6 @@ QString findMacUsageServicePath(const QString& appDir) {
   const QString exe = QStringLiteral("time-arc-service");
   const QStringList candidates = {
       QDir(appDir).filePath(exe),
-      QDir(appDir).filePath(QStringLiteral("../Helpers/") + exe),
       QDir(appDir).filePath(QStringLiteral("../../../bin/") + exe),
       QDir(appDir).filePath(QStringLiteral("../../../") + exe),
       QDir(appDir).filePath(QStringLiteral("src/service/") + exe),
@@ -183,6 +216,10 @@ int main(int argc, char* argv[]) {
   QGuiApplication app(argc, argv);
   QCoreApplication::setOrganizationName("TimeArc");
   QCoreApplication::setApplicationName("TimeArc");
+
+#if !defined(Q_OS_ANDROID)
+  if (!registerBundledGuiResources()) return 1;
+#endif
 
   // macOS gets its application and Dock icon from CFBundleIconFile. Setting
   // the QRC SVG there would override the native multi-resolution .icns.

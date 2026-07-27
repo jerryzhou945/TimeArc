@@ -21,7 +21,7 @@ macOS helper 目前已经推进到“配置读取 + 单实例 + foreground + med
 | 单实例 | Windows named mutex | 已加 usage 目录非阻塞文件锁 | 已完成代码，待 Mac 验证 |
 | 服务生命周期 | `--install/--uninstall/--start/--stop/--status` | 已补 LaunchAgent verbs | 已完成代码，待 Mac 验证 |
 | 权限 | 主要依赖用户会话 API | 需要 Accessibility；后续可能需要自动化/媒体相关提示 | 未完成 |
-| 打包 | 接近可打包，仍需 clean-machine QA | 需要 `.app` helper 嵌入、签名、公证、权限引导、DMG | 未完成 |
+| 打包 | 外置 GUI RCC 已接入，仍需 clean-machine QA | helper 已嵌入 `Contents/MacOS`；待 Qt deploy、签名、公证、权限引导、DMG | 部分完成 |
 
 ## 已同步到 macOS 的部分
 
@@ -50,8 +50,8 @@ macOS helper 目前已经推进到“配置读取 + 单实例 + foreground + med
    - `db_path` 迁移配置仍需在 Mac 上验证 helper 与 UI 是否读写同一位置。
 
 4. **包装发布链路**
-   - 决定 helper 最终放在 `.app/Contents/MacOS`、`.app/Contents/Helpers` 还是安装前缀 `bin`。
-   - 完成 `.app` 布局、Qt deploy、helper 嵌入、codesign、notarization、DMG 和 clean-machine 回归。
+   - [x] UI/helper 同置 `Contents/MacOS`，背景/站点图标/月度回顾三个 RCC 置于 `Contents/Resources/assets`。
+   - [ ] 完成 Qt deploy、codesign、notarization、DMG 和 clean-machine 回归。
 
 ## 追平时间估算
 

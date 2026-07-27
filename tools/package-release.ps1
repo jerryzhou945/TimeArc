@@ -4,7 +4,7 @@
 
   Replaces the hand-run windeployqt with a one-command, compliant portable package:
   windeployqt (bundle Qt DLLs + plugins) + MinGW runtime DLLs + the service exe +
-  LICENSE + the whole resources/licenses/ tree + a generated NOTICE.txt (project GPL-3.0,
+  the functional GUI RCC packs + LICENSE + the whole resources/licenses/ tree + a generated NOTICE.txt (project GPL-3.0,
   Qt LGPL-3.0 relink statement, SQLite public-domain, Parson MIT, MinGW runtime exception),
   with the F1-S1 linkage assertion embedded (refuses to package a statically-linked Qt),
   then zips it.
@@ -29,8 +29,20 @@ $tools = $PSScriptRoot
 
 $app = Join-Path $repo (Join-Path $BuildDir "TimeArc.exe")
 $svc = Join-Path $repo (Join-Path $BuildDir "time-arc-service.exe")
+$guiAssetNames = @(
+  "timearc-backgrounds.rcc",
+  "timearc-site-icons.rcc",
+  "timearc-monthly-recap.rcc"
+)
+$guiAssets = @($guiAssetNames | ForEach-Object {
+  Join-Path $repo (Join-Path $BuildDir "assets/$_")
+})
 $deploySupport = Join-Path $repo (Join-Path $BuildDir ".qt/QtDeploySupport.cmake")
 if (-not (Test-Path $app)) { Write-Error "missing $app -build Release first (.harness/tools/build.py)"; exit 1 }
+if (-not (Test-Path $svc)) { Write-Error "missing required service: $svc"; exit 1 }
+foreach ($guiAsset in $guiAssets) {
+  if (-not (Test-Path $guiAsset)) { Write-Error "missing required GUI resource pack: $guiAsset"; exit 1 }
+}
 
 # 1. Linkage assertion (S1) on the BUILT exe -fail fast before doing any work.
 & (Join-Path $tools "verify-linkage.ps1") -Exe $app -DeploySupport $deploySupport
@@ -42,7 +54,11 @@ $stage   = Join-Path $repo (Join-Path $OutRoot $pkgName)
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item $app $stage
-if (Test-Path $svc) { Copy-Item $svc $stage } else { Write-Warning "service exe absent: $svc (UI-only package)" }
+Copy-Item $svc $stage
+New-Item -ItemType Directory -Force -Path (Join-Path $stage "assets") | Out-Null
+foreach ($guiAsset in $guiAssets) {
+  Copy-Item $guiAsset (Join-Path $stage "assets")
+}
 
 # 3. windeployqt: bundle Qt DLLs + QML + plugins (release, no translations to trim size).
 #    --no-opengl-sw drops opengl32sw.dll (Mesa/llvmpipe, ~20 MB): Qt6 uses the Direct3D 11 RHI
@@ -119,7 +135,7 @@ Compress-Archive -Path $stage -DestinationPath $zip   # zip the folder so it unz
 
 $qtCount = (Get-ChildItem $stage -Filter "Qt6*.dll").Count
 Write-Output ""
-Write-Output ("package-release: OK: staged {0} Qt6 DLLs + LICENSE + licenses/ + NOTICE.txt" -f $qtCount)
+Write-Output ("package-release: OK: staged {0} Qt6 DLLs + service + GUI assets + compliance files" -f $qtCount)
 Write-Output ("package-release: dir  -> {0}" -f $stage)
 Write-Output ("package-release: zip  -> {0}" -f $zip)
 exit 0

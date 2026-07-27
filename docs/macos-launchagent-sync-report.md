@@ -18,7 +18,7 @@
 
 - `src/main.cpp`
   - `startUsageService()` 增加 macOS 分支。
-  - 探测同目录、`Contents/Helpers`、安装前缀 `bin` 和开发构建目录下的 `time-arc-service`。
+  - 发布布局固定为与 UI 同目录的 `Contents/MacOS/time-arc-service`，并保留安装前缀与开发构建目录探测。
   - 找到 helper 后用 `QProcess::startDetached` 启动，不改变 UI/服务的磁盘通信边界。
 
 - 文档

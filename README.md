@@ -349,14 +349,22 @@ $env:TIMEARC_PYTHON = "D:\path\to\python.exe"
 ```
 
 Two executables are produced: `TimeArc` (the UI) and `time-arc-service`
-(the background sampler). Both land under the install prefix's `bin/`
-(or `.app` bundle on macOS).
+(the background sampler). Windows installs both under `bin/`; macOS places
+both in `TimeArc.app/Contents/MacOS`.
+
+Desktop builds keep QML, license text, and small shell icons in the executable,
+while backgrounds, site icons, and monthly-recap artwork ship as separate
+`assets/timearc-{backgrounds,site-icons,monthly-recap}.rcc` functional packs.
+The UI registers all required packs before loading QML. Android embeds the same
+three QRC contents in its application package. Unreferenced legacy Memory Lake
+artwork is not a release input.
 
 ### Packaging a release (Windows)
 
 `tools/package-release.ps1` produces a self-contained portable package. It runs
 `windeployqt` to bundle the Qt and MinGW runtime DLLs next to `TimeArc.exe` and the
-service, copies `LICENSE` and the whole `resources/licenses/` tree, and writes a
+service, requires and copies the three functional GUI RCC packs, copies
+`LICENSE` and the whole `resources/licenses/` tree, and writes a
 `NOTICE.txt` (including the Qt LGPL relink statement). It first asserts — via
 `tools/verify-linkage.ps1` — that the shipped `TimeArc.exe` links Qt **dynamically**
 (LGPL posture: `objdump` must show `Qt6*.dll` imports and no static Qt), refusing to
@@ -367,10 +375,10 @@ python .harness/tools/build.py -- --config Release   # build Release first
 pwsh -File tools/package-release.ps1                  # -> dist/TimeArc-<ver>-win64/ + .zip
 ```
 
-The `dist/` output is gitignored, and the result unzips and runs on a machine with no Qt
-installed (the bundled DLLs are used). One-step in-tree CMake deploy automation
-(`cmake --install`) is deferred — it would edit the frozen top-level `CMakeLists.txt` and
-needs a change proposal first.
+The `dist/` output is gitignored, and the result unzips and runs on a machine
+with no Qt installed. CMake now installs project-owned executables and GUI
+assets; final Qt runtime deployment remains the responsibility of
+`windeployqt` on Windows and the future `macdeployqt` release step on macOS.
 
 ### Quick run on Windows (`run.cmd` / `launch.cmd`)
 
