@@ -108,8 +108,13 @@ ApplicationWindow {
         }
         if (hideToTrayOnClose && !forceQuit) {
             close.accepted = false
-            hide()
-            if (shellLoader.item && shellLoader.item.notifyClosedToTray)
+            if (macSidebarChrome && macTrafficLightsController)
+                macTrafficLightsController.hideToTray()
+            else
+                hide()
+            if (!macSidebarChrome
+                    && shellLoader.item
+                    && shellLoader.item.notifyClosedToTray)
                 shellLoader.item.notifyClosedToTray()
         }
     }

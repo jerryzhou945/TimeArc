@@ -8,6 +8,14 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-28T15:28:53Z | L3 | close-notificat... | Harness track-discipline check did not recognize the new ... | [report](errors/20260728-152853-C-close-notification-session-error-link.md) |
+| 2026-07-28T15:27:33Z | L2 | macos-close-tra... | Closing the TimeArc window on macOS emits an unwanted sys... | [report](errors/20260728-152733-C-macos-close-tray-notification.md) |
+| 2026-07-28T15:25:00Z | L3 | fullscreen-fix-... | Rolling-index trim patch used stale adjacent omission-row... | [report](errors/20260728-152500-C-fullscreen-fix-index-trim-context.md) |
+| 2026-07-28T15:23:59Z | L3 | fullscreen-fix-... | Runtime verification could not launch the rebuilt GUI bec... | [report](errors/20260728-152359-C-fullscreen-fix-gui-launch-not-authorized.md) |
+| 2026-07-28T15:21:10Z | L3 | fullscreen-fix-... | A source-discovery search included a nonexistent cmake di... | [report](errors/20260728-152110-C-fullscreen-fix-rg-missing-cmake-dir.md) |
+| 2026-07-28T15:07:29Z | L3 | fullscreen-diag... | Harness fast check found journal/INDEX.md at 102 lines af... | [report](errors/20260728-150729-C-fullscreen-diagnosis-index-line-budget.md) |
+| 2026-07-28T15:06:12Z | L3 | macos-status-ba... | Looked for macOS status-bar implementation under an incor... | [report](errors/20260728-150612-C-macos-status-bar-path-assumption.md) |
+| 2026-07-28T15:05:42Z | L2 | macos-fullscree... | Closing the GUI while in macOS full-screen leaves a black... | [report](errors/20260728-150542-C-macos-fullscreen-close-black-screen.md) |
 | 2026-07-28T14:29:36Z | L3 | qml-rule-path | Attempted to read a nonexistent rules/04-qml-runtime.md i... | [report](errors/20260728-142936-B-qml-rule-path.md) |
 | 2026-07-28T09:55:35Z | L1 | macos-logo-cont... | cmake --build exited 1 | [report](errors/20260728-095535-C-macos-logo-container-only-resize.md) |
 | 2026-07-28T09:54:52Z | L2 | macos-logo-cont... | The first sidebar fix enlarged the logo container only; t... | [report](errors/20260728-095452-C-macos-logo-container-only-resize.md) |
@@ -40,9 +48,9 @@ the harness line budget intact.
 | 2026-07-28T08:22:55Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082255-C-qt-warning-ee1bf6d1ca.md) |
 | 2026-07-28T08:09:33Z | L2 | macos-native-tr... | macOS frameless windows draw simulated traffic-light cont... | [report](errors/20260728-080933-C-macos-native-traffic-lights.md) |
 | 2026-07-28T07:59:03Z | L1 | hover-index-lin... | Final non-dimming hover audit found the rolling journal i... | [report](errors/20260728-075903-B-hover-index-line-budget.md) |
-| 2026-07-28T07:54:55Z | L2 | traffic-light-h... | AppKit traffic-light colors dimmed on hover because the h... | [report](errors/20260728-075455-B-traffic-light-hover-dimming.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:49:34Z | L1 | final-index-lin... | Final title-bar-free AppKit audit found the rolling journ... | [report](errors/20260728-074934-B-final-index-line-budget.md) |
-| 2026-07-28T07:45:47Z | L2 | qt-content-titl... | Manual expansion of NSWindow.contentView did not remove t... | [report](errors/20260728-074547-B-qt-content-titlebar-still-visible.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:25:27Z | L1 | appkit-harness-... | Final AppKit audit found journal/INDEX.md over its rollin... | [report](errors/20260728-072527-B-appkit-harness-drift.md) |
@@ -81,20 +89,12 @@ the harness line budget intact.
 | 2026-07-27T19:13:43Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260727-191343-B-build-failure.md) |
 | 2026-07-27T19:08:43Z | L3 | qt-log-scan-per... | Required post-run Qt log scan found warnings but could no... | [report](errors/20260727-190843-B-qt-log-scan-permission.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-27T19:08:37Z | L3 | macos-status-ba... | Desktop screenshot permission was declined, so runtime ic... | [report](errors/20260727-190837-B-macos-status-bar-screenshot-denied.md) |
 | 2026-07-27T19:07:00Z | L1 | desktop-static-... | desktop_ux_static_test.py could not start because android... | [report](errors/20260727-190700-B-desktop-static-missing-android-manifest.md) |
 | 2026-07-27T19:05:48Z | L3 | svg-search-no-m... | A combined read-only search exited 1 because the second q... | [report](errors/20260727-190548-B-svg-search-no-match.md) |
 | 2026-07-27T19:04:52Z | L3 | preflight-index... | Preflight blocked because .harness/journal/INDEX.md excee... | [report](errors/20260727-190452-B-preflight-index-drift.md) |
 | 2026-07-27T18:41:47Z | L3 | qt-log-scan-rot... | Required post-run scan_qt_log.py exited 2: duplicate time... | [report](errors/20260727-184147-A-qt-log-scan-rotation.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-27T18:40:30Z | L3 | macos-window-in... | Runtime window inspection could not locate a visible Time... | [report](errors/20260727-184030-A-macos-window-inspection.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-27T16:24:10Z | L1 | macos-rule-line... | Final harness audit found rules/02-platform-boundaries.md... | [report](errors/20260727-162410-B-macos-rule-line-budget.md) |
 | 2026-07-27T16:22:39Z | L3 | macos-btm-dump-... | sfltool dumpbtm produced no output for roughly 35 seconds... | [report](errors/20260727-162239-B-macos-btm-dump-hang.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

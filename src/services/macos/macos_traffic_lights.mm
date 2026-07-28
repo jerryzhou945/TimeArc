@@ -6,11 +6,71 @@
 
 #import <AppKit/AppKit.h>
 
+@interface TimeArcFullScreenExitObserver : NSObject {
+ @private
+  QPointer<QWindow> qtWindow_;
+  NSWindow* nativeWindow_;
+  BOOL observing_;
+}
+
+- (BOOL)isObserving;
+- (void)beginObservingWindow:(NSWindow*)nativeWindow
+                    qtWindow:(QWindow*)qtWindow;
+- (void)cancel;
+
+@end
+
+@implementation TimeArcFullScreenExitObserver
+
+- (BOOL)isObserving {
+  return observing_;
+}
+
+- (void)beginObservingWindow:(NSWindow*)nativeWindow
+                    qtWindow:(QWindow*)qtWindow {
+  [self cancel];
+  nativeWindow_ = nativeWindow;
+  qtWindow_ = qtWindow;
+  observing_ = YES;
+  [[NSNotificationCenter defaultCenter]
+      addObserver:self
+         selector:@selector(windowDidExitFullScreen:)
+             name:NSWindowDidExitFullScreenNotification
+           object:nativeWindow];
+}
+
+- (void)windowDidExitFullScreen:(NSNotification*)notification {
+  if (!observing_ || notification.object != nativeWindow_) return;
+  const QPointer<QWindow> qtWindow = qtWindow_;
+  [self cancel];
+  if (qtWindow) qtWindow->hide();
+}
+
+- (void)cancel {
+  if (observing_) {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+  }
+  observing_ = NO;
+  nativeWindow_ = nil;
+  qtWindow_.clear();
+}
+
+- (void)dealloc {
+  [self cancel];
+  [super dealloc];
+}
+
+@end
+
 MacTrafficLightsController::MacTrafficLightsController(QObject* parent)
-    : QObject(parent) {}
+    : QObject(parent) {
+  fullScreenExitObserver_ = [[TimeArcFullScreenExitObserver alloc] init];
+}
 
 MacTrafficLightsController::~MacTrafficLightsController() {
   destroyNativeViews();
+  [static_cast<TimeArcFullScreenExitObserver*>(fullScreenExitObserver_) release];
+  fullScreenExitObserver_ = nullptr;
 }
 
 void MacTrafficLightsController::attach(QWindow* window) {
@@ -26,6 +86,26 @@ void MacTrafficLightsController::attach(QWindow* window) {
 void MacTrafficLightsController::setVisible(bool visible) {
   visible_ = visible;
   updateWindowState();
+}
+
+void MacTrafficLightsController::hideToTray() {
+  if (!window_) return;
+
+  @autoreleasepool {
+    NSWindow* nativeWindow = static_cast<NSWindow*>(nativeWindow_);
+    if (!nativeWindow ||
+        !(nativeWindow.styleMask & NSWindowStyleMaskFullScreen)) {
+      window_->hide();
+      return;
+    }
+
+    auto* observer =
+        static_cast<TimeArcFullScreenExitObserver*>(fullScreenExitObserver_);
+    if ([observer isObserving]) return;
+
+    [observer beginObservingWindow:nativeWindow qtWindow:window_];
+    [nativeWindow toggleFullScreen:nil];
+  }
 }
 
 void MacTrafficLightsController::createNativeViews() {
@@ -75,6 +155,7 @@ void MacTrafficLightsController::updateWindowState() {
 }
 
 void MacTrafficLightsController::destroyNativeViews() {
+  [static_cast<TimeArcFullScreenExitObserver*>(fullScreenExitObserver_) cancel];
   nativeWindow_ = nullptr;
   closeButton_ = nullptr;
   minimizeButton_ = nullptr;
