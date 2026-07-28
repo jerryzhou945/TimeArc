@@ -16,7 +16,6 @@ class MacTrafficLightsController final : public QObject {
 
   void attach(QWindow* window);
   Q_INVOKABLE void setVisible(bool visible);
-  Q_INVOKABLE void hideToTray();
 
  private:
   void createNativeViews();
@@ -24,10 +23,10 @@ class MacTrafficLightsController final : public QObject {
   void updateWindowState();
 
   QPointer<QWindow> window_;
+  QMetaObject::Connection visibilityConnection_;
   void* nativeWindow_ = nullptr;
   void* closeButton_ = nullptr;
   void* minimizeButton_ = nullptr;
   void* zoomButton_ = nullptr;
-  void* fullScreenExitObserver_ = nullptr;
   bool visible_ = true;
 };

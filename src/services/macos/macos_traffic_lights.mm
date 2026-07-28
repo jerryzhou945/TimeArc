@@ -6,78 +6,33 @@
 
 #import <AppKit/AppKit.h>
 
-@interface TimeArcFullScreenExitObserver : NSObject {
- @private
-  QPointer<QWindow> qtWindow_;
-  NSWindow* nativeWindow_;
-  BOOL observing_;
-}
-
-- (BOOL)isObserving;
-- (void)beginObservingWindow:(NSWindow*)nativeWindow
-                    qtWindow:(QWindow*)qtWindow;
-- (void)cancel;
-
-@end
-
-@implementation TimeArcFullScreenExitObserver
-
-- (BOOL)isObserving {
-  return observing_;
-}
-
-- (void)beginObservingWindow:(NSWindow*)nativeWindow
-                    qtWindow:(QWindow*)qtWindow {
-  [self cancel];
-  nativeWindow_ = nativeWindow;
-  qtWindow_ = qtWindow;
-  observing_ = YES;
-  [[NSNotificationCenter defaultCenter]
-      addObserver:self
-         selector:@selector(windowDidExitFullScreen:)
-             name:NSWindowDidExitFullScreenNotification
-           object:nativeWindow];
-}
-
-- (void)windowDidExitFullScreen:(NSNotification*)notification {
-  if (!observing_ || notification.object != nativeWindow_) return;
-  const QPointer<QWindow> qtWindow = qtWindow_;
-  [self cancel];
-  if (qtWindow) qtWindow->hide();
-}
-
-- (void)cancel {
-  if (observing_) {
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-  }
-  observing_ = NO;
-  nativeWindow_ = nil;
-  qtWindow_.clear();
-}
-
-- (void)dealloc {
-  [self cancel];
-  [super dealloc];
-}
-
-@end
-
 MacTrafficLightsController::MacTrafficLightsController(QObject* parent)
-    : QObject(parent) {
-  fullScreenExitObserver_ = [[TimeArcFullScreenExitObserver alloc] init];
-}
+    : QObject(parent) {}
 
 MacTrafficLightsController::~MacTrafficLightsController() {
+  QObject::disconnect(visibilityConnection_);
   destroyNativeViews();
-  [static_cast<TimeArcFullScreenExitObserver*>(fullScreenExitObserver_) release];
-  fullScreenExitObserver_ = nullptr;
 }
 
 void MacTrafficLightsController::attach(QWindow* window) {
   if (window_ == window && nativeWindow_) return;
+
+  QObject::disconnect(visibilityConnection_);
   destroyNativeViews();
   window_ = window;
   if (!window_) return;
+
+  // On macOS the red button closes the window, so Qt destroys the platform
+  // window and builds a fresh NSWindow when the app is reopened from the Dock.
+  // The cached AppKit buttons must follow that lifetime or they dangle.
+  visibilityConnection_ = QObject::connect(
+      window_, &QWindow::visibleChanged, this, [this](bool visible) {
+        if (visible) {
+          createNativeViews();
+        } else {
+          destroyNativeViews();
+        }
+      });
 
   window_->winId();
   createNativeViews();
@@ -86,26 +41,6 @@ void MacTrafficLightsController::attach(QWindow* window) {
 void MacTrafficLightsController::setVisible(bool visible) {
   visible_ = visible;
   updateWindowState();
-}
-
-void MacTrafficLightsController::hideToTray() {
-  if (!window_) return;
-
-  @autoreleasepool {
-    NSWindow* nativeWindow = static_cast<NSWindow*>(nativeWindow_);
-    if (!nativeWindow ||
-        !(nativeWindow.styleMask & NSWindowStyleMaskFullScreen)) {
-      window_->hide();
-      return;
-    }
-
-    auto* observer =
-        static_cast<TimeArcFullScreenExitObserver*>(fullScreenExitObserver_);
-    if ([observer isObserving]) return;
-
-    [observer beginObservingWindow:nativeWindow qtWindow:window_];
-    [nativeWindow toggleFullScreen:nil];
-  }
 }
 
 void MacTrafficLightsController::createNativeViews() {
@@ -155,7 +90,6 @@ void MacTrafficLightsController::updateWindowState() {
 }
 
 void MacTrafficLightsController::destroyNativeViews() {
-  [static_cast<TimeArcFullScreenExitObserver*>(fullScreenExitObserver_) cancel];
   nativeWindow_ = nullptr;
   closeButton_ = nullptr;
   minimizeButton_ = nullptr;

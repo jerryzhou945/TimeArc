@@ -41,6 +41,8 @@ set(TIME_ARC_APP_SOURCES
 
 if(APPLE)
     list(APPEND TIME_ARC_APP_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_app_lifecycle.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_app_lifecycle.mm
         ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_status_bar_icon.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_status_bar_icon.h
         ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_traffic_lights.h

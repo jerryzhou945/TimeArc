@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-28T18:06:40Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-180640-C-qt-warning-19f33ebed5.md) |
+| 2026-07-28T18:06:39Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-180639-C-qt-warning-19f33ebed5.md) |
+| 2026-07-28T18:06:39Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-180639-C-qt-warning-c26efcf9e0.md) |
 | 2026-07-28T15:28:53Z | L3 | close-notificat... | Harness track-discipline check did not recognize the new ... | [report](errors/20260728-152853-C-close-notification-session-error-link.md) |
 | 2026-07-28T15:27:33Z | L2 | macos-close-tra... | Closing the TimeArc window on macOS emits an unwanted sys... | [report](errors/20260728-152733-C-macos-close-tray-notification.md) |
 | 2026-07-28T15:25:00Z | L3 | fullscreen-fix-... | Rolling-index trim patch used stale adjacent omission-row... | [report](errors/20260728-152500-C-fullscreen-fix-index-trim-context.md) |
@@ -44,9 +47,9 @@ the harness line budget intact.
 | 2026-07-28T08:22:56Z | L2 | qt-fatal-f42b35... | [FATAL] :0 - QWidget: Cannot create a QWidget without QAp... | [report](errors/20260728-082256-C-qt-fatal-f42b357aa6.md) |
 | 2026-07-28T08:22:56Z | L2 | qt-warning-2abb... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082256-C-qt-warning-2abb77c1a6.md) |
 | 2026-07-28T08:22:56Z | L2 | qt-warning-e1d2... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082256-C-qt-warning-e1d2ce4a0b.md) |
-| 2026-07-28T08:22:56Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-082256-C-qt-warning-19f33ebed5.md) |
-| 2026-07-28T08:22:55Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082255-C-qt-warning-ee1bf6d1ca.md) |
-| 2026-07-28T08:09:33Z | L2 | macos-native-tr... | macOS frameless windows draw simulated traffic-light cont... | [report](errors/20260728-080933-C-macos-native-traffic-lights.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:59:03Z | L1 | hover-index-lin... | Final non-dimming hover audit found the rolling journal i... | [report](errors/20260728-075903-B-hover-index-line-budget.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:49:34Z | L1 | final-index-lin... | Final title-bar-free AppKit audit found the rolling journ... | [report](errors/20260728-074934-B-final-index-line-budget.md) |
@@ -94,7 +97,4 @@ the harness line budget intact.
 | 2026-07-27T19:05:48Z | L3 | svg-search-no-m... | A combined read-only search exited 1 because the second q... | [report](errors/20260727-190548-B-svg-search-no-match.md) |
 | 2026-07-27T19:04:52Z | L3 | preflight-index... | Preflight blocked because .harness/journal/INDEX.md excee... | [report](errors/20260727-190452-B-preflight-index-drift.md) |
 | 2026-07-27T18:41:47Z | L3 | qt-log-scan-rot... | Required post-run scan_qt_log.py exited 2: duplicate time... | [report](errors/20260727-184147-A-qt-log-scan-rotation.md) |
-| 2026-07-27T18:40:30Z | L3 | macos-window-in... | Runtime window inspection could not locate a visible Time... | [report](errors/20260727-184030-A-macos-window-inspection.md) |
-| 2026-07-27T16:24:10Z | L1 | macos-rule-line... | Final harness audit found rules/02-platform-boundaries.md... | [report](errors/20260727-162410-B-macos-rule-line-budget.md) |
-| 2026-07-27T16:22:39Z | L3 | macos-btm-dump-... | sfltool dumpbtm produced no output for roughly 35 seconds... | [report](errors/20260727-162239-B-macos-btm-dump-hang.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

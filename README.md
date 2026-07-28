@@ -96,11 +96,15 @@ with day and night modes.
   Memory Lake is the home/landing page; the Timer page is reached when a
   calendar to-do starts timing. The desktop UI is single-instance on Windows:
   repeated `TimeArc.exe` launches focus the existing window instead of opening
-  another one. Closing the window hides it to the system tray; the tray menu is
-  the explicit app-exit path while the background collector can keep recording.
-  On macOS, the status item uses a monochrome template “T” that follows the
-  menu bar's light or dark appearance; the colorful brand icon remains in the
-  Dock and app window.
+  another one. On Windows and Linux, closing the window hides it to the system
+  tray; the tray menu is the explicit app-exit path while the background
+  collector can keep recording. macOS follows its own convention instead: the
+  red traffic light closes the window while the app stays in the Dock and menu
+  bar, clicking the Dock icon reopens the window, and ⌘Q — or 退出 TimeArc in
+  the status item — is the quit path. Closing from full screen exits full
+  screen first, then closes. On macOS, the status item uses a monochrome
+  template “T” that follows the menu bar's light or dark appearance; the
+  colorful brand icon remains in the Dock and app window.
 - **Desktop window chrome** — Windows uses an immersive custom chrome
   (QQ-Music style): a brand app icon top-left and minimize / maximize / close
   controls top-right, floating over a page background that bleeds to the top
@@ -460,8 +464,10 @@ Launch `TimeArc`. On macOS, the UI registers the plist embedded at
 `Contents/MacOS/time-arc-service` even if the app is relocated. On Windows,
 Settings → 追踪与应用 offers an opt-in
 "随系统登录自动启动后台采集" toggle that registers a per-user logon task (B1
-Route A). Closing the desktop window hides it to the system tray; use the tray
-menu to restore the window or explicitly quit the UI. The desktop nav is
+Route A). On Windows and Linux, closing the desktop window hides it to the
+system tray; use the tray menu to restore the window or explicitly quit the UI.
+On macOS the red button closes the window and the app keeps running — reopen it
+from the Dock or the status item, and quit with ⌘Q. The desktop nav is
 **首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
 with **记忆湖 / Monthly Recap** pinned at the bottom; the Timer page opens when a
 calendar to-do starts timing. Memory Lake is the landing page.

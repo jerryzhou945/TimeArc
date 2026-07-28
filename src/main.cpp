@@ -39,6 +39,7 @@
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
 #include <QApplication>
 
+#include "services/macos/macos_app_lifecycle.h"
 #include "services/macos/macos_launch_agent.h"
 #include "services/macos/macos_status_bar_icon.h"
 #include "services/macos/macos_traffic_lights.h"
@@ -186,6 +187,9 @@ int main(int argc, char* argv[]) {
   // The native status-item menu is QMenu-backed and therefore requires
   // QApplication. Other platforms retain the lighter QGuiApplication path.
   QApplication app(argc, argv);
+  // macOS convention: closing the window leaves the app running in the Dock
+  // and menu bar. Quitting is ⌘Q or the status-item menu, not the red button.
+  QGuiApplication::setQuitOnLastWindowClosed(false);
 #else
   QGuiApplication app(argc, argv);
 #endif
@@ -226,9 +230,12 @@ int main(int argc, char* argv[]) {
   QObject* macStatusBarControllerContext = macStatusBarIcon.qmlObject();
   MacTrafficLightsController macTrafficLightsController;
   QObject* macTrafficLightsControllerContext = &macTrafficLightsController;
+  MacAppLifecycle macAppLifecycle;
+  QObject* macAppLifecycleContext = &macAppLifecycle;
 #else
   QObject* macStatusBarControllerContext = nullptr;
   QObject* macTrafficLightsControllerContext = nullptr;
+  QObject* macAppLifecycleContext = nullptr;
 #endif
 
   DatabaseManager databaseManager;
@@ -298,6 +305,8 @@ int main(int argc, char* argv[]) {
                                            macStatusBarControllerContext);
   engine.rootContext()->setContextProperty("macTrafficLightsController",
                                            macTrafficLightsControllerContext);
+  engine.rootContext()->setContextProperty("macAppLifecycle",
+                                           macAppLifecycleContext);
 
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
@@ -308,8 +317,10 @@ int main(int argc, char* argv[]) {
   if (engine.rootObjects().isEmpty()) return -1;
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
-  macTrafficLightsController.attach(
-      qobject_cast<QWindow*>(engine.rootObjects().constFirst()));
+  QWindow* const macRootWindow =
+      qobject_cast<QWindow*>(engine.rootObjects().constFirst());
+  macTrafficLightsController.attach(macRootWindow);
+  macAppLifecycle.attach(macRootWindow);
   macStatusBarIcon.connectToRoot(engine.rootObjects().constFirst());
 #endif
 

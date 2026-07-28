@@ -9,7 +9,10 @@ ApplicationWindow {
     property bool runningOnAndroid: Qt.platform.os === "android"
     property bool useMobileShell: runningOnAndroid || mobilePreview || width <= 720
     property bool forceQuit: false
-    property bool hideToTrayOnClose: !(runningOnAndroid || mobilePreview)
+    // macOS 不参与「关闭即收进托盘」：红灯按平台惯例只关窗口，进程留在 Dock/菜单栏，
+    // ⌘Q 或状态栏菜单才退出。Windows/Linux 维持原托盘行为。
+    property bool hideToTrayOnClose: !(runningOnAndroid || mobilePreview
+                                       || macSidebarChrome)
     readonly property bool macSidebarChrome: Qt.platform.os === "osx"
                                               && !mobilePreview
     readonly property bool memoOpen: shellLoader.item
@@ -59,6 +62,11 @@ ApplicationWindow {
                  : (Qt.platform.os === "android" ? "HarmonyOS Sans SC" : "PingFang SC")
 
     function restoreFromTray() {
+        // macOS 上窗口可能已被真正关闭（平台窗口销毁），交给原生适配器重建再激活。
+        if (macSidebarChrome && macAppLifecycle) {
+            macAppLifecycle.restoreWindow()
+            return
+        }
         visible = true
         if (visibility === Window.Minimized)
             showNormal()
@@ -106,15 +114,16 @@ ApplicationWindow {
             settingsRepository.setValue("window_x", "" + Math.round(x));
             settingsRepository.setValue("window_y", "" + Math.round(y));
         }
+        // macOS：红灯关窗口而非退出。全屏态必须先退出全屏再关，否则留下黑屏 Space；
+        // beginWindowClose() 返回 false 表示本次关闭被推迟，动画结束后原生侧再关一次。
+        if (macSidebarChrome && macAppLifecycle && !forceQuit) {
+            close.accepted = macAppLifecycle.beginWindowClose()
+            return
+        }
         if (hideToTrayOnClose && !forceQuit) {
             close.accepted = false
-            if (macSidebarChrome && macTrafficLightsController)
-                macTrafficLightsController.hideToTray()
-            else
-                hide()
-            if (!macSidebarChrome
-                    && shellLoader.item
-                    && shellLoader.item.notifyClosedToTray)
+            hide()
+            if (shellLoader.item && shellLoader.item.notifyClosedToTray)
                 shellLoader.item.notifyClosedToTray()
         }
     }
