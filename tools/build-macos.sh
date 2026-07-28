@@ -19,12 +19,11 @@ Usage: tools/build-macos.sh [--release|--build|--test|--package]
   --package  Configure, build, deploy Qt, sign, and create a DMG.
 
 Environment:
-  TIMEARC_BUILD_DIR            Build directory (default: build-macos).
+  TIMEARC_BUILD_DIR            Build directory (default: build).
   TIMEARC_DIST_DIR             Release output directory (default: dist).
   TIMEARC_QT_PREFIX            Optional Qt installation prefix for CMake.
   TIMEARC_MACDEPLOYQT          Optional explicit macdeployqt executable.
   TIMEARC_CMAKE_GENERATOR      Swift-capable generator (default: Ninja, then Xcode).
-  TIMEARC_PYTHON               Python executable (default: python3).
   TIMEARC_CODESIGN_IDENTITY    Developer ID Application identity.
   TIMEARC_ENTITLEMENTS         Optional entitlements for TimeArc.app.
   TIMEARC_SERVICE_ENTITLEMENTS Optional entitlements for time-arc-service.
@@ -67,8 +66,7 @@ done
 
 [[ "$(uname -s)" == "Darwin" ]] || die "this script requires macOS"
 
-PYTHON="${TIMEARC_PYTHON:-python3}"
-BUILD_DIR="${TIMEARC_BUILD_DIR:-$REPO_ROOT/build-macos}"
+BUILD_DIR="${TIMEARC_BUILD_DIR:-$REPO_ROOT/build}"
 DIST_DIR="${TIMEARC_DIST_DIR:-$REPO_ROOT/dist}"
 BUILD_DIR="$(mkdir -p "$BUILD_DIR" && cd "$BUILD_DIR" && pwd -P)"
 DIST_DIR="$(mkdir -p "$DIST_DIR" && cd "$DIST_DIR" && pwd -P)"
@@ -154,13 +152,8 @@ configure() {
 }
 
 build_release() {
-  require_command "$PYTHON"
-  note "building through the project harness"
-  "$PYTHON" "$REPO_ROOT/.harness/tools/build.py" \
-    --build-dir "$BUILD_DIR" \
-    --track B \
-    --topic macos-release-build \
-    -- --config Release --parallel
+  note "building Release"
+  cmake --build "$BUILD_DIR" --config Release --parallel
 }
 
 run_tests() {

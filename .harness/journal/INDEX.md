@@ -8,6 +8,14 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-28T09:55:35Z | L1 | macos-logo-cont... | cmake --build exited 1 | [report](errors/20260728-095535-C-macos-logo-container-only-resize.md) |
+| 2026-07-28T09:54:52Z | L2 | macos-logo-cont... | The first sidebar fix enlarged the logo container only; t... | [report](errors/20260728-095452-C-macos-logo-container-only-resize.md) |
+| 2026-07-28T09:47:21Z | L3 | gui-launch-not-... | Visual verification could not launch the newly built app ... | [report](errors/20260728-094721-C-gui-launch-not-authorized.md) |
+| 2026-07-28T09:46:58Z | L3 | process-list-sa... | Visual-verification process-list check could not access m... | [report](errors/20260728-094658-C-process-list-sandbox.md) |
+| 2026-07-28T09:45:59Z | L3 | build-track-def... | Invoked build.py without --track C, so its missing-build-... | [report](errors/20260728-094559-C-build-track-default.md) |
+| 2026-07-28T09:41:07Z | L1 | swift-config-to... | Recreating the missing build directory failed because Swi... | [report](errors/20260728-094107-C-swift-config-toolchain-cache.md) |
+| 2026-07-28T09:40:24Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260728-094024-B-build-failure.md) |
+| 2026-07-28T09:39:36Z | L2 | macos-collapsed... | The macOS collapsed sidebar TimeArc logo is smaller and h... | [report](errors/20260728-093936-C-macos-collapsed-logo-alignment.md) |
 | 2026-07-28T09:12:41Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091241-C-qt-warning-c26efcf9e0.md) |
 | 2026-07-28T09:12:41Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-091241-C-qt-warning-19f33ebed5.md) |
 | 2026-07-28T09:12:40Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-c26efcf9e0.md) |
@@ -34,8 +42,8 @@ the harness line budget intact.
 | 2026-07-28T07:54:55Z | L2 | traffic-light-h... | AppKit traffic-light colors dimmed on hover because the h... | [report](errors/20260728-075455-B-traffic-light-hover-dimming.md) |
 | 2026-07-28T07:49:34Z | L1 | final-index-lin... | Final title-bar-free AppKit audit found the rolling journ... | [report](errors/20260728-074934-B-final-index-line-budget.md) |
 | 2026-07-28T07:45:47Z | L2 | qt-content-titl... | Manual expansion of NSWindow.contentView did not remove t... | [report](errors/20260728-074547-B-qt-content-titlebar-still-visible.md) |
-| 2026-07-28T07:44:00Z | L2 | native-title-re... | Switching to the NSWindow-owned standard buttons restored... | [report](errors/20260728-074400-B-native-title-region-visible.md) |
-| 2026-07-28T07:41:35Z | L2 | appkit-factory-... | Factory-created AppKit traffic-light buttons lacked stand... | [report](errors/20260728-074135-B-appkit-factory-button-behavior.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:25:27Z | L1 | appkit-harness-... | Final AppKit audit found journal/INDEX.md over its rollin... | [report](errors/20260728-072527-B-appkit-harness-drift.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:24:27Z | L3 | qt-log-scan-app... | The required escalated Qt log scan was not approved, so t... | [report](errors/20260728-072427-B-qt-log-scan-approval.md) |
@@ -86,13 +94,6 @@ the harness line budget intact.
 | 2026-07-27T16:24:10Z | L1 | macos-rule-line... | Final harness audit found rules/02-platform-boundaries.md... | [report](errors/20260727-162410-B-macos-rule-line-budget.md) |
 | 2026-07-27T16:22:39Z | L3 | macos-btm-dump-... | sfltool dumpbtm produced no output for roughly 35 seconds... | [report](errors/20260727-162239-B-macos-btm-dump-hang.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| 2026-07-27T16:17:30Z | L3 | qt-log-rotation... | Required Qt log scan parsed historical warnings but could... | [report](errors/20260727-161730-B-qt-log-rotation-permission.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |

@@ -18,14 +18,13 @@ Usage: pwsh -File tools/build-windows.ps1 [--release|--build|--test|--package]
   --package  Configure, build, deploy Qt, optionally sign, and create a ZIP.
 
 Environment:
-  TIMEARC_BUILD_DIR             Build directory (default: build-windows).
+  TIMEARC_BUILD_DIR             Build directory (default: build).
   TIMEARC_DIST_DIR              Release output directory (default: dist).
   TIMEARC_QT_PREFIX             Optional Qt installation prefix for CMake.
   TIMEARC_WINDEPLOYQT           Optional explicit windeployqt.exe path.
   TIMEARC_MINGW_BIN             Optional MinGW bin directory.
   TIMEARC_OBJDUMP               Optional explicit objdump.exe path.
   TIMEARC_CMAKE_GENERATOR       Optional CMake generator.
-  TIMEARC_PYTHON                Python executable (default: python).
   TIMEARC_SIGNTOOL              Optional explicit signtool.exe path.
   TIMEARC_SIGN_CERTIFICATE_SHA1 Authenticode certificate thumbprint.
   TIMEARC_TIMESTAMP_URL         RFC 3161 timestamp URL.
@@ -113,8 +112,7 @@ function Invoke-Native(
   }
 }
 
-$python = Get-EnvironmentValue "TIMEARC_PYTHON" "python"
-$buildDir = Resolve-RepoPath (Get-EnvironmentValue "TIMEARC_BUILD_DIR" "build-windows")
+$buildDir = Resolve-RepoPath (Get-EnvironmentValue "TIMEARC_BUILD_DIR" "build")
 $distDir = Resolve-RepoPath (Get-EnvironmentValue "TIMEARC_DIST_DIR" "dist")
 New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
@@ -160,14 +158,10 @@ function Configure-Release {
 }
 
 function Build-Release {
-  $pythonCommand = Require-Command $script:python
-  Note "building through the project harness"
-  Invoke-Native $pythonCommand @(
-    (Join-Path $script:RepoRoot ".harness/tools/build.py"),
-    "--build-dir", $script:buildDir,
-    "--track", "B",
-    "--topic", "windows-release-build",
-    "--",
+  $cmake = Require-Command "cmake"
+  Note "building Release"
+  Invoke-Native $cmake @(
+    "--build", $script:buildDir,
     "--config", "Release",
     "--parallel"
   )
