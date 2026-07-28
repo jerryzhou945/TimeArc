@@ -700,15 +700,32 @@ Item {
                         z: -1
                     }
 
-                    // macOS：空白侧栏与无交互品牌区使用系统原生挪窗；后声明的按钮/导航
-                    // MouseArea 位于其上方，继续优先接收点击，不会被拖动层截获。
-                    MouseArea {
+                    // macOS：空白侧栏与无交互品牌区支持原生挪窗及双击缩放；后声明的
+                    // 按钮/导航位于其上方，继续优先接收点击，不会被背景手势截获。
+                    Item {
                         anchors.fill: parent
                         enabled: root.macSidebarChrome
-                        acceptedButtons: Qt.LeftButton
-                        onPressed: {
-                            if (root.Window.window)
-                                root.Window.window.startSystemMove()
+
+                        DragHandler {
+                            target: null
+                            dragThreshold: 4
+                            onActiveChanged: {
+                                if (active && root.Window.window)
+                                    root.Window.window.startSystemMove()
+                            }
+                        }
+
+                        TapHandler {
+                            gesturePolicy: TapHandler.DragThreshold
+                            onDoubleTapped: {
+                                var window = root.Window.window
+                                if (!window || window.visibility === Window.FullScreen)
+                                    return
+                                if (window.visibility === Window.Maximized)
+                                    window.showNormal()
+                                else
+                                    window.showMaximized()
+                            }
                         }
                     }
 

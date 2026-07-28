@@ -108,8 +108,9 @@ with day and night modes.
   traffic-light buttons directly over the edge-to-edge left sidebar; the host
   supplies group-hover glyph state and disables minimize in fullscreen without
   creating a native title region. On macOS, drag the non-interactive sidebar
-  background or brand area to move the window; sidebar controls keep their
-  normal click behavior. On Windows, drag the top bar to move,
+  background or brand area to move the window, or double-click there to
+  maximize/restore it; sidebar controls keep their normal click behavior.
+  On Windows, drag the top bar to move,
   double-click to maximize/restore, and drag any edge to resize. The chrome
   steps aside while the memo blackboard is open. On Windows 11 the window gets
   **native rounded corners and drop shadow** via DWM
