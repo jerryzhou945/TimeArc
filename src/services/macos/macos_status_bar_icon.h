@@ -7,7 +7,6 @@
 
 class QObject;
 class SettingsRepository;
-class TimerManager;
 
 class MacStatusBarIcon final {
  public:
@@ -19,9 +18,9 @@ class MacStatusBarIcon final {
 
   QObject* qmlObject() const;
 
-  // Wires the timer rows and the language lookup. Both may be null; the menu
-  // then keeps its rows but leaves the timer actions disabled.
-  void attach(TimerManager* timerManager, SettingsRepository* settings);
+  // Supplies the language lookup for the menu rows. May be null; the menu
+  // then stays on its Chinese default.
+  void attach(SettingsRepository* settings);
 
   void connectToRoot(QObject* rootObject);
 

@@ -26,20 +26,21 @@ def main():
         ROOT / "qml/desktop/components/I18n.js"
     ).read_text(encoding="utf-8")
 
-    # The four menu blocks: open, timers, autostart placeholder, quit.
-    require(icon_h, "void attach(TimerManager* timerManager,",
-            "timer/settings wiring entry point")
-    require(main_cpp, "macStatusBarIcon.attach(&timerManager, &settingsRepository)",
-            "status item attached to the UI services")
+    # Three menu rows: open, autostart placeholder, quit.
+    require(icon_h, "void attach(SettingsRepository* settings)",
+            "language wiring entry point")
+    require(main_cpp, "macStatusBarIcon.attach(&settingsRepository)",
+            "status item attached to the settings repository")
+    require(icon_cpp, "invokeRoot(\"restoreFromTray\")", "open row")
     require(icon_cpp, "autostartAction->setEnabled(false)",
             "autostart row stays a placeholder")
     require(icon_cpp, "invokeRoot(\"quitFromTray\")", "quit row")
 
-    # Timer rows drive TimerManager directly, not through QML.
-    for call in ("pauseTimer()", "resumeTimer()", "stopAndCommit()"):
-        require(icon_cpp, f"impl->timerManager->{call}", f"timer row calls {call}")
-    require(icon_cpp, "bool hasTimerSession() const",
-            "stop/resume gated on an existing manual timer")
+    # No timer control from the status item — the window owns the timer.
+    for banned in ("TimerManager", "pauseTimer", "resumeTimer",
+                   "stopAndCommit", "startProject"):
+        forbid(icon_cpp, banned, "timer control in the status menu")
+        forbid(icon_h, banned, "timer control in the status menu")
 
     # Every row is localized in all three UI languages, relabelled on open.
     require(icon_cpp, "&QMenu::aboutToShow",

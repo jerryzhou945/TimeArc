@@ -104,11 +104,10 @@ with day and night modes.
   the status item — is the quit path. Closing from full screen exits full
   screen first, then closes. On macOS, the status item uses a monochrome
   template “T” that follows the menu bar's light or dark appearance; the
-  colorful brand icon remains in the Dock and app window. Its menu carries four
-  blocks — open the window, manual-timer controls (start / pause / resume and
-  结束并记录, following `TimerManager` state), a disabled 开机自启 placeholder,
-  and quit — relabelled in 简体中文 / English / 日本語 from the same
-  `language_mode` setting the UI uses, applied the next time the menu opens.
+  colorful brand icon remains in the Dock and app window. Its menu carries three
+  rows — open the window, a disabled 开机自启 placeholder, and quit — relabelled
+  in 简体中文 / English / 日本語 from the same `language_mode` setting the UI
+  uses, applied the next time the menu opens. Timer control stays in the window.
 - **Desktop window chrome** — Windows uses an immersive custom chrome
   (QQ-Music style): a brand app icon top-left and minimize / maximize / close
   controls top-right, floating over a page background that bleeds to the top
