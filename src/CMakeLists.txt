@@ -39,6 +39,13 @@ set(TIME_ARC_APP_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/services/harness_logger.cpp
 )
 
+if(APPLE)
+    list(APPEND TIME_ARC_APP_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_status_bar_icon.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_status_bar_icon.h
+    )
+endif()
+
 set(TIME_ARC_INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/services

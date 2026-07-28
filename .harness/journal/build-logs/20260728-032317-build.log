@@ -1,0 +1,13 @@
+[1/187] Copying time-arc qml sources into build dir
+[2/187] Automatic MOC and UIC for target timearc_resource_bundle_smoke
+[3/185] Automatic MOC and UIC for target timearc_db_smoke
+[4/183] Running qmlimportscanner for time-arc
+[5/183] Automatic MOC and UIC for target time-arc
+[6/182] Running AUTOMOC file extraction for target time-arc
+[7/13] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/NotifierTray_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/NotifierTray_qml.cpp.aotstats
+[8/13] Running rcc for resource time-arc_raw_qml_0
+[9/13] Building CXX object CMakeFiles/time-arc.dir/build-macos/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[10/13] Building CXX object CMakeFiles/time-arc.dir/src/services/macos/macos_status_bar_icon.cpp.o
+[11/13] Building CXX object CMakeFiles/time-arc.dir/build-macos/.rcc/qmlcache/time-arc_qml/desktop/memorylake/NotifierTray_qml.cpp.o
+[12/13] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[13/13] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

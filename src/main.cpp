@@ -37,7 +37,10 @@
 #include "services/usage_stat_manager.h"
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+#include <QApplication>
+
 #include "services/macos/macos_launch_agent.h"
+#include "services/macos/macos_status_bar_icon.h"
 #endif
 
 namespace {
@@ -178,7 +181,13 @@ int main(int argc, char* argv[]) {
       qEnvironmentVariableIsSet("TIMEARC_MOBILE_PREVIEW");
   const bool startInTray = hasStartInTrayArg(argc, argv) && !mobilePreview;
 
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  // The native status-item menu is QMenu-backed and therefore requires
+  // QApplication. Other platforms retain the lighter QGuiApplication path.
+  QApplication app(argc, argv);
+#else
   QGuiApplication app(argc, argv);
+#endif
   QCoreApplication::setOrganizationName("TimeArc");
   QCoreApplication::setApplicationName("TimeArc");
 
@@ -210,6 +219,13 @@ int main(int argc, char* argv[]) {
 #endif
 
   QQmlApplicationEngine engine;
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  MacStatusBarIcon macStatusBarIcon;
+  QObject* macStatusBarControllerContext = macStatusBarIcon.qmlObject();
+#else
+  QObject* macStatusBarControllerContext = nullptr;
+#endif
 
   DatabaseManager databaseManager;
   if (!databaseManager.initialize()) {
@@ -274,6 +290,8 @@ int main(int argc, char* argv[]) {
                                            &usageStatManager);
   engine.rootContext()->setContextProperty("mobilePreview", mobilePreview);
   engine.rootContext()->setContextProperty("startInTray", startInTray);
+  engine.rootContext()->setContextProperty("macStatusBarController",
+                                           macStatusBarControllerContext);
 
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
@@ -282,6 +300,10 @@ int main(int argc, char* argv[]) {
   engine.load(QUrl(QStringLiteral("qrc:/qt/qml/time_arc/qml/main.qml")));
 
   if (engine.rootObjects().isEmpty()) return -1;
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  macStatusBarIcon.connectToRoot(engine.rootObjects().constFirst());
+#endif
 
 #if defined(Q_OS_WIN)
   applyWin11RoundedCorners(

@@ -98,6 +98,9 @@ with day and night modes.
   repeated `TimeArc.exe` launches focus the existing window instead of opening
   another one. Closing the window hides it to the system tray; the tray menu is
   the explicit app-exit path while the background collector can keep recording.
+  On macOS, the status item uses a monochrome template “T” that follows the
+  menu bar's light or dark appearance; the colorful brand icon remains in the
+  Dock and app window.
 - **Frameless window chrome** — the desktop window drops the native OS title
   bar for an immersive custom chrome (QQ-Music style): a brand app icon
   top-left and minimize / maximize / close controls top-right, floating over a
