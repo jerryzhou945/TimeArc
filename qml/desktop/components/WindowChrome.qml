@@ -18,6 +18,9 @@ Item {
     property bool dark: false
     // 左上品牌图标（与任务栏共用同一 SVG）。
     property url iconSource: ""
+    // macOS 的交通灯属于侧栏；这里只保留拖动与缩放命中区。
+    property bool showWindowControls: true
+    property int captionLeftInset: 0
 
     // 无边框窗口最大化在部分路径下 visibility 报 FullScreen(5) 而非 Maximized(4)（实测：
     // 外部/Aero 贴边最大化 → 5；showMaximized 可能为 4）。两者都按「已最大化」处理，否则
@@ -40,6 +43,7 @@ Item {
     Item {
         id: caption
         anchors.left: parent.left
+        anchors.leftMargin: chrome.captionLeftInset
         anchors.right: parent.right
         anchors.top: parent.top
         height: chrome.barHeight
@@ -75,6 +79,7 @@ Item {
         // 右上控制键
         Row {
             id: controls
+            visible: chrome.showWindowControls
             anchors.right: parent.right
             anchors.rightMargin: 10
             anchors.verticalCenter: parent.verticalCenter

@@ -15,6 +15,8 @@ Item {
     // 无边框窗口：顶部为自绘标题栏（main.qml 的 WindowChrome）预留的高度。背景层仍铺满全窗
     // （沉浸式：暗色水面/渐变铺到窗口顶边），只把交互内容 RowLayout 下移这一段，避免被标题栏遮挡。
     property int topReserve: 0
+    // macOS 原生交通灯占用侧栏顶端；Windows/移动端保持原布局。
+    property bool macSidebarChrome: false
     // 暴露给 WindowChrome：备忘黑板开启时让位隐藏；深底页（记忆湖/夜晚）时标题栏改用浅色线条。
     readonly property bool memoOpen: memoOverlay.open
     readonly property bool prefersLightChrome: nightMode
@@ -535,22 +537,40 @@ Item {
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 20
-            // 顶部为无边框标题栏让出空间（背景由 desktopStage 继续铺满至窗口顶边）。
-            anchors.topMargin: 20 + root.topReserve
+            // macOS 使用边到边内容：无单独标题栏，侧栏直接贴合窗口左、上、下边缘。
+            // Windows/其他平台继续保留原有 20px 浮动卡片边距。
+            anchors.leftMargin: root.macSidebarChrome ? 0 : 20
+            anchors.rightMargin: 20
+            anchors.topMargin: root.macSidebarChrome ? 0 : 20 + root.topReserve
+            anchors.bottomMargin: root.macSidebarChrome ? 0 : 20
             spacing: 20
 
             // =========================
             // 左侧侧边栏
             // =========================
-            Rectangle {
-            id: sidebar
+            Item {
+            id: sidebarSlot
             width: sidebarCollapsed ? 88 : 232
             Layout.preferredWidth: width
             Layout.fillHeight: true
-            radius: 28
+
+            Behavior on width {
+                NumberAnimation {
+                    duration: 220
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            Rectangle {
+            id: sidebar
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.top: parent.top
+            // macOS 侧栏从窗口左上角贯穿到底部且没有卡片边界；原生交通灯直接覆盖在其中。
+            radius: root.macSidebarChrome ? 0 : 28
             color: "transparent"
-            border.width: 1
+            border.width: root.macSidebarChrome ? 0 : 1
             border.color: appSidebarBorder
 
             // 记忆湖/月度回顾（设计稿）侧栏无生硬下沉阴影：fullBleed 时关掉这道偏移色块。
@@ -561,21 +581,15 @@ Item {
                 height: parent.height
                 radius: parent.radius
                 color: appShadowColor
-                opacity: fullBleedPage ? 0 : (nightMode ? 0.24 : 0.09)
+                opacity: root.macSidebarChrome || fullBleedPage
+                         ? 0 : (nightMode ? 0.24 : 0.09)
                 z: -2
-            }
-
-            Behavior on width {
-                NumberAnimation {
-                    duration: 220
-                    easing.type: Easing.OutCubic
-                }
             }
 
             Rectangle {
                 anchors.fill: parent
-                anchors.margins: 1
-                radius: 27
+                anchors.margins: root.macSidebarChrome ? 0 : 1
+                radius: root.macSidebarChrome ? 0 : 27
                 color: appSidebarGlass
                 opacity: nightMode ? 0.88 : 0.92
                 z: -1
@@ -696,6 +710,8 @@ Item {
             Column {
                 anchors.fill: parent
                 anchors.margins: 18
+                // 原生交通灯约占窗口顶部 28px；Logo 从其下方开始。
+                anchors.topMargin: root.macSidebarChrome ? 48 : 18
                 spacing: 16
 
                 // 顶部 Logo
@@ -878,6 +894,8 @@ Item {
                     }
                 }
             }
+
+        }
         }
 
         // =========================

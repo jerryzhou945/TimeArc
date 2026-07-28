@@ -41,6 +41,7 @@
 
 #include "services/macos/macos_launch_agent.h"
 #include "services/macos/macos_status_bar_icon.h"
+#include "services/macos/macos_traffic_lights.h"
 #endif
 
 namespace {
@@ -223,8 +224,11 @@ int main(int argc, char* argv[]) {
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
   MacStatusBarIcon macStatusBarIcon;
   QObject* macStatusBarControllerContext = macStatusBarIcon.qmlObject();
+  MacTrafficLightsController macTrafficLightsController;
+  QObject* macTrafficLightsControllerContext = &macTrafficLightsController;
 #else
   QObject* macStatusBarControllerContext = nullptr;
+  QObject* macTrafficLightsControllerContext = nullptr;
 #endif
 
   DatabaseManager databaseManager;
@@ -292,6 +296,8 @@ int main(int argc, char* argv[]) {
   engine.rootContext()->setContextProperty("startInTray", startInTray);
   engine.rootContext()->setContextProperty("macStatusBarController",
                                            macStatusBarControllerContext);
+  engine.rootContext()->setContextProperty("macTrafficLightsController",
+                                           macTrafficLightsControllerContext);
 
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
@@ -302,6 +308,8 @@ int main(int argc, char* argv[]) {
   if (engine.rootObjects().isEmpty()) return -1;
 
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  macTrafficLightsController.attach(
+      qobject_cast<QWindow*>(engine.rootObjects().constFirst()));
   macStatusBarIcon.connectToRoot(engine.rootObjects().constFirst());
 #endif
 

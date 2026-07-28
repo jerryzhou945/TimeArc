@@ -101,15 +101,18 @@ with day and night modes.
   On macOS, the status item uses a monochrome template “T” that follows the
   menu bar's light or dark appearance; the colorful brand icon remains in the
   Dock and app window.
-- **Frameless window chrome** — the desktop window drops the native OS title
-  bar for an immersive custom chrome (QQ-Music style): a brand app icon
-  top-left and minimize / maximize / close controls top-right, floating over a
-  page background that bleeds to the top edge. Drag the top bar to move (native
-  edge-snap preserved), double-click to maximize/restore, drag any edge to
-  resize. Glyph color adapts to the surface (light on the dark Memory Lake /
-  night pages) and the chrome steps aside while the memo blackboard is open.
-  On Windows 11 the window gets **native rounded corners and drop shadow** via
-  DWM (`DWMWA_WINDOW_CORNER_PREFERENCE`). Mobile preview keeps the native frame.
+- **Desktop window chrome** — Windows uses an immersive custom chrome
+  (QQ-Music style): a brand app icon top-left and minimize / maximize / close
+  controls top-right, floating over a page background that bleeds to the top
+  edge. macOS is completely borderless and title-bar-free. AppKit draws standard
+  traffic-light buttons directly over the edge-to-edge left sidebar; the host
+  supplies group-hover glyph state and disables minimize in fullscreen without
+  creating a native title region.
+  Drag the top bar to move,
+  double-click to maximize/restore, and drag any edge to resize. The chrome
+  steps aside while the memo blackboard is open. On Windows 11 the window gets
+  **native rounded corners and drop shadow** via DWM
+  (`DWMWA_WINDOW_CORNER_PREFERENCE`). Mobile preview keeps the native frame.
   *(A fuller native custom-frame pass — Win11 snap-layouts fly-out — is still
   planned.)*
 - **Memory Lake memo blackboard (备忘)** — the 「备忘」 nav opens a modal blackboard

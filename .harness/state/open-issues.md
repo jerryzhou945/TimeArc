@@ -54,7 +54,8 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   qrc-embedded); see [`../rules/06-licensing.md`](../rules/06-licensing.md) §4.
 - **Frameless window — native snap-layouts fly-out deferred (Step 2).** PR #18
   shipped pure-QML frameless chrome (`qml/desktop/components/WindowChrome.qml`)
-  + Win11 DWM rounded corners/shadow (`main.cpp::applyWin11RoundedCorners`). The
+  + Win11 DWM rounded corners/shadow (`main.cpp::applyWin11RoundedCorners`);
+  macOS now uses a borderless full-height sidebar with embedded traffic lights. The
   Win11 hover-maximize **snap-layouts fly-out** and maximize-over-taskbar
   precision need a native `WM_NCCALCSIZE`/`WM_NCHITTEST` pass in `main.cpp`; not
   done. See agent memory `timearc-frameless-window`.
@@ -96,5 +97,4 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   tees Qt Warning/Critical/Fatal to `<DataLocation>/TimeArc/logs/
   harness-qt.log`; `tools/scan_qt_log.py` drains it into L2 reports.
   Still needs a Qt build to smoke-test.
-- ~~No track enforcement in slugs.~~ **Done.** Pass 6 in
-  `harness_check.py` enforces `YYYYMMDD-HHMM(SS)-[ABC]-kebab.md`.
+- ~~No track enforcement in slugs.~~ **Done.** Pass 6 enforces `YYYYMMDD-HHMM(SS)-[ABC]-kebab.md`.

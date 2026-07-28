@@ -10,15 +10,39 @@ ApplicationWindow {
     property bool useMobileShell: runningOnAndroid || mobilePreview || width <= 720
     property bool forceQuit: false
     property bool hideToTrayOnClose: !(runningOnAndroid || mobilePreview)
+    readonly property bool macSidebarChrome: Qt.platform.os === "osx"
+                                              && !mobilePreview
+    readonly property bool memoOpen: shellLoader.item
+                                     && ("memoOpen" in shellLoader.item)
+                                     && shellLoader.item.memoOpen
 
-    // 无边框化（去掉 Win11 原生白色标题栏，改用自绘沉浸式 chrome）。
-    // 仅真桌面无边框；移动预览（开发工具）保留原生边框，方便挪窗/关闭。
+    // Qt 6.9+ automatically pads ApplicationWindow.contentItem by the native
+    // safe-area margins. On macOS our sidebar intentionally occupies that area
+    // behind the window-owned traffic lights, so do not reserve the title inset.
+    topPadding: macSidebarChrome ? 0 : SafeArea.margins.top
+
+    // Windows/其他桌面使用无边框自绘 chrome；macOS 保留有标题能力的原生窗口，
+    // 再由 AppKit 把内容延伸到透明标题区。这样侧栏仍铺到顶边，但交通灯由系统窗口自己管理。
+    // 移动预览（开发工具）保留原生边框，方便挪窗/关闭。
     // MinMaxButtonsHint：即便无边框，Windows 仍启用最小化动画 + Win+方向键贴靠。
-    readonly property bool frameless: !(runningOnAndroid || mobilePreview)
-    flags: frameless ? (Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinMaxButtonsHint)
-                     : Qt.Window
+    readonly property bool desktopChrome: !(runningOnAndroid || mobilePreview)
+    readonly property bool frameless: desktopChrome && !macSidebarChrome
+    readonly property int macWindowFlags:
+        Qt.Window
+        | Qt.WindowTitleHint
+        | Qt.WindowSystemMenuHint
+        | Qt.WindowMinMaxButtonsHint
+        | Qt.WindowCloseButtonHint
+        | Qt.WindowFullscreenButtonHint
+        | Qt.ExpandedClientAreaHint
+        | Qt.NoTitleBarBackgroundHint
+    flags: macSidebarChrome
+           ? macWindowFlags
+           : (frameless
+              ? (Qt.Window | Qt.FramelessWindowHint | Qt.WindowMinMaxButtonsHint)
+              : Qt.Window)
     // 自绘标题栏高度 = 各 shell 顶部为交互内容预留的高度（背景仍铺到顶边，保沉浸）。
-    readonly property int chromeReserve: frameless ? 40 : 0
+    readonly property int chromeReserve: desktopChrome ? 40 : 0
 
     // 桌面默认 16:9（1440x810），可自由缩放、全屏铺满（不再锁 16:10——那会让 16:9 屏右侧露桌面）。
     // 最小取 1280x720（标准 16:9 下限）：记忆湖三栏需 ~1240px 宽中间卡牌才不会被左右栏遮住；
@@ -51,6 +75,8 @@ ApplicationWindow {
     // FullScreen，跳过以免存成全屏尺寸），启动时按「启动时恢复上次位置」恢复。只写 UI 私有
     // 设置 KV，不动 usage/磁盘契约。移动预览不参与。
     Component.onCompleted: {
+        if (macSidebarChrome && macTrafficLightsController)
+            macTrafficLightsController.setVisible(!memoOpen)
         if (mobilePreview || !settingsRepository) return;
         if (!settingsRepository.getBool("restore_window", true)) return;
         var w = parseInt(settingsRepository.getValue("window_width", ""));
@@ -68,6 +94,10 @@ ApplicationWindow {
                 x = px; y = py;
             }
         }
+    }
+    onMemoOpenChanged: {
+        if (macSidebarChrome && macTrafficLightsController)
+            macTrafficLightsController.setVisible(!memoOpen)
     }
     onClosing: function (close) {
         if (!mobilePreview && settingsRepository && visibility === Window.Windowed) {
@@ -96,6 +126,7 @@ ApplicationWindow {
         DesktopAppShell {
             anchors.fill: parent
             topReserve: appWindow.chromeReserve
+            macSidebarChrome: appWindow.macSidebarChrome
             onTrayShowRequested: appWindow.restoreFromTray()
             onTrayQuitRequested: appWindow.quitFromTray()
         }
@@ -116,11 +147,13 @@ ApplicationWindow {
         anchors.fill: parent
         window: appWindow
         barHeight: appWindow.chromeReserve
-        iconSource: Qt.resolvedUrl("../resources/app/TimeArc.svg")
+        iconSource: appWindow.macSidebarChrome
+                    ? "" : Qt.resolvedUrl("../resources/app/TimeArc.svg")
         dark: shellLoader.item && ("prefersLightChrome" in shellLoader.item)
               ? shellLoader.item.prefersLightChrome : false
+        showWindowControls: !appWindow.macSidebarChrome
+        captionLeftInset: appWindow.macSidebarChrome ? 88 : 0
         visible: appWindow.frameless
-                 && !(shellLoader.item && ("memoOpen" in shellLoader.item)
-                      && shellLoader.item.memoOpen)
+                 && !appWindow.memoOpen
     }
 }

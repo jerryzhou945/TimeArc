@@ -43,6 +43,8 @@ if(APPLE)
     list(APPEND TIME_ARC_APP_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_status_bar_icon.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_status_bar_icon.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_traffic_lights.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/services/macos/macos_traffic_lights.mm
     )
 endif()
 
