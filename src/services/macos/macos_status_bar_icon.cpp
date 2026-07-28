@@ -9,10 +9,14 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QPointer>
+#include <QString>
 #include <QSvgRenderer>
 #include <QSystemTrayIcon>
 #include <array>
 #include <utility>
+
+#include "services/settings_repository.h"
+#include "services/timer_manager.h"
 
 namespace {
 
@@ -75,26 +79,105 @@ QIcon makeInputSourceTIcon() {
   return icon;
 }
 
+// The status menu cannot call qml/desktop/components/I18n.js — that is a QML
+// JS library, not something C++ can reach — so the handful of rows carry their
+// own table. Columns follow I18n.js langKey(): zh, en, ja.
+struct MenuStrings {
+  const char* open;
+  const char* startTimer;
+  const char* pauseTimer;
+  const char* resumeTimer;
+  const char* stopTimer;
+  const char* autostart;
+  const char* quit;
+};
+
+constexpr MenuStrings kZh{"打开 TimeArc", "开始计时…",  "暂停计时",
+                          "继续计时",     "结束并记录", "开机自启",
+                          "退出 TimeArc"};
+constexpr MenuStrings kEn{"Open TimeArc", "Start Timer…",  "Pause Timer",
+                          "Resume Timer", "Stop and Save", "Launch at Login",
+                          "Quit TimeArc"};
+constexpr MenuStrings kJa{"TimeArc を開く", "計測を開始…",  "計測を一時停止",
+                          "計測を再開",     "終了して記録", "ログイン時に起動",
+                          "TimeArc を終了"};
+
+// Mirrors I18n.js langKey(): anything unrecognized falls back to Chinese.
+const MenuStrings& stringsForMode(const QString& mode) {
+  if (mode == QLatin1String("en")) return kEn;
+  if (mode == QLatin1String("ja")) return kJa;
+  return kZh;
+}
+
 }  // namespace
 
 class MacStatusBarIcon::Impl {
  public:
   Impl() : icon(makeInputSourceTIcon()) {
-    showAction = menu.addAction(QStringLiteral("打开 TimeArc"));
-    QAction* collectorAction =
-        menu.addAction(QStringLiteral("后台采集继续运行"));
-    collectorAction->setEnabled(false);
+    showAction = menu.addAction(QString());
     menu.addSeparator();
-    quitAction = menu.addAction(QStringLiteral("退出 TimeArc"));
+    timerAction = menu.addAction(QString());
+    stopTimerAction = menu.addAction(QString());
+    menu.addSeparator();
+    autostartAction = menu.addAction(QString());
+    // Placeholder: SettingsRepository::autostartSupported() is Windows-only and
+    // registerMacLaunchAgent() has no query/unregister path yet.
+    autostartAction->setEnabled(false);
+    menu.addSeparator();
+    quitAction = menu.addAction(QString());
+
+    // Rows are relabelled on every open instead of following a language-change
+    // signal: the menu is invisible until the moment it opens, so a pull here
+    // is both cheaper than a subscription and immune to missing one.
+    QObject::connect(&menu, &QMenu::aboutToShow, &icon, [this]() { sync(); });
+    sync();
 
     icon.setToolTip(QStringLiteral("TimeArc"));
     icon.setContextMenu(&menu);
   }
 
+  // True when a manual timer exists — running or paused mid-session.
+  bool hasTimerSession() const {
+    return timerManager && !timerManager->currentProject().isEmpty();
+  }
+
+  void sync() {
+    const QString mode =
+        settings ? settings->getValue(QStringLiteral("language_mode"),
+                                      QStringLiteral("zh"))
+                 : QStringLiteral("zh");
+    const MenuStrings& s = stringsForMode(mode);
+
+    showAction->setText(QString::fromUtf8(s.open));
+    autostartAction->setText(QString::fromUtf8(s.autostart));
+    quitAction->setText(QString::fromUtf8(s.quit));
+
+    // One row with three faces, so the menu never offers a no-op: without a
+    // project startProject() has no name to use, and the window has to come
+    // back for the user to pick one.
+    const bool running = timerManager && timerManager->running();
+    if (running) {
+      timerAction->setText(QString::fromUtf8(s.pauseTimer));
+    } else if (hasTimerSession()) {
+      timerAction->setText(QString::fromUtf8(s.resumeTimer));
+    } else {
+      timerAction->setText(QString::fromUtf8(s.startTimer));
+    }
+    timerAction->setEnabled(timerManager != nullptr);
+
+    stopTimerAction->setText(QString::fromUtf8(s.stopTimer));
+    stopTimerAction->setEnabled(hasTimerSession());
+  }
+
   QMenu menu;
   QSystemTrayIcon icon;
   QAction* showAction = nullptr;
+  QAction* timerAction = nullptr;
+  QAction* stopTimerAction = nullptr;
+  QAction* autostartAction = nullptr;
   QAction* quitAction = nullptr;
+  TimerManager* timerManager = nullptr;
+  SettingsRepository* settings = nullptr;
 };
 
 MacStatusBarIcon::MacStatusBarIcon() : impl_(std::make_unique<Impl>()) {}
@@ -102,6 +185,13 @@ MacStatusBarIcon::MacStatusBarIcon() : impl_(std::make_unique<Impl>()) {}
 MacStatusBarIcon::~MacStatusBarIcon() = default;
 
 QObject* MacStatusBarIcon::qmlObject() const { return &impl_->icon; }
+
+void MacStatusBarIcon::attach(TimerManager* timerManager,
+                              SettingsRepository* settings) {
+  impl_->timerManager = timerManager;
+  impl_->settings = settings;
+  impl_->sync();
+}
 
 void MacStatusBarIcon::connectToRoot(QObject* rootObject) {
   const QPointer<QObject> root(rootObject);
@@ -115,11 +205,32 @@ void MacStatusBarIcon::connectToRoot(QObject* rootObject) {
                    [invokeRoot]() { invokeRoot("restoreFromTray"); });
   QObject::connect(impl_->quitAction, &QAction::triggered, &impl_->icon,
                    [invokeRoot]() { invokeRoot("quitFromTray"); });
-  QObject::connect(&impl_->icon, &QSystemTrayIcon::activated, &impl_->icon,
-                   [invokeRoot](QSystemTrayIcon::ActivationReason reason) {
-                     if (reason == QSystemTrayIcon::Trigger ||
-                         reason == QSystemTrayIcon::DoubleClick) {
+
+  Impl* const impl = impl_.get();
+  QObject::connect(impl_->timerAction, &QAction::triggered, &impl_->icon,
+                   [impl, invokeRoot]() {
+                     if (!impl->timerManager) return;
+                     if (impl->timerManager->running()) {
+                       impl->timerManager->pauseTimer();
+                     } else if (impl->hasTimerSession()) {
+                       impl->timerManager->resumeTimer();
+                     } else {
+                       // No project to resume — the window owns project choice.
                        invokeRoot("restoreFromTray");
                      }
                    });
+  QObject::connect(impl_->stopTimerAction, &QAction::triggered, &impl_->icon,
+                   [impl]() {
+                     // DesktopAppShell's onTimerStopped writes the elapsed time
+                     // into project history; that Connections object outlives a
+                     // macOS window close, which destroys the platform window
+                     // but not the QML tree.
+                     if (!impl->hasTimerSession()) return;
+                     impl->timerManager->stopAndCommit();
+                   });
+
+  // Deliberately no QSystemTrayIcon::activated handler. macOS status items
+  // open their menu on click; restoring the window is 打开 TimeArc in that
+  // menu, not a side effect of the click itself. The Qt.labs tray used on
+  // Windows/Linux keeps its click-to-restore behavior.
 }

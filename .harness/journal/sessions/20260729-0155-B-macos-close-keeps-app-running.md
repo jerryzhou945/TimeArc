@@ -6,16 +6,15 @@
 - Track: **B (Feature)** — new macOS-only app-lifecycle capability.
 - Date: 2026-07-29 01:55 (local)
 - Session goal: make the macOS red traffic light close the window while the
-  app stays running in the Dock, per platform convention.
+  app keeps running in the Dock, per platform convention.
 - Branch: `development/macos-support`
 - Related error reports:
   `errors/20260728-150542-C-macos-fullscreen-close-black-screen.md`
 
 ## 1. Frozen files touched
 
-- `src/CMakeLists.txt` — append two new macOS-only sources
-  (`services/macos/macos_app_lifecycle.h` / `.mm`) to the existing `if(APPLE)`
-  block. No target, flag, or include-dir change.
+- `src/CMakeLists.txt` — append `services/macos/macos_app_lifecycle.{h,mm}` to
+  the existing `if(APPLE)` block. No target, flag, or include-dir change.
 
 ## 2. Motivation
 
@@ -44,23 +43,20 @@ source list; no data is written or reinterpreted.
 
 - Pre-change reproduction: launch on macOS, click the red button — the window
   disappears; clicking the Dock icon does nothing.
-- Post-change verification:
-  1. Click red → window closes, Dock icon stays, menu bar stays.
-  2. Click the Dock icon → window returns, traffic lights still work.
-  3. Enter full screen, click red → exits full screen, then closes; no black
-     screen and no orphaned Space.
-  4. Status item → 打开 TimeArc restores the same way.
-  5. ⌘Q / status item → 退出 TimeArc still quits.
-  6. Windows/Linux unchanged: close still hides to tray with its notification.
+- Post-change verification: click red → window closes, Dock and menu bar stay;
+  click the Dock icon → window returns with working traffic lights; from full
+  screen, red exits full screen then closes (no black screen, no orphaned
+  Space); status-item click → menu only, 打开 TimeArc restores, 退出 TimeArc
+  and ⌘Q quit; Windows/Linux unchanged (close hides to tray with its
+  notification, tray click restores).
 - New test artifacts: `tests/macos_fullscreen_close_static_test.py` rewritten
   against the new symbols.
 
 ## 7. Design — two sides
 
-**Service side.** Unchanged. This session adds no sampling, no schema field,
-no control file. `time-arc-service` keeps writing `timearc_service.db` whether
-the UI window is open or closed, which is exactly why closing the window
-without quitting is safe.
+**Service side.** Unchanged — no sampling, schema field, or control file.
+`time-arc-service` keeps writing `timearc_service.db` whether the UI window is
+open or closed, which is why closing the window without quitting is safe.
 
 **UI side.** A new Objective-C++ adapter `MacAppLifecycle`
 (`src/services/macos/macos_app_lifecycle.{h,mm}`) owns two AppKit concerns:
@@ -91,9 +87,14 @@ branch is gated on `macSidebarChrome`, and no non-Apple source changed.
 connection, because a real close destroys the platform window and its AppKit
 buttons; the cached pointers now follow that lifetime instead of dangling.
 
-Harness build succeeded with no new warnings; the required Qt log scan drained
-three stale L2 reports, all the known unsigned-build LaunchAgent codesigning
-warning (`open-issues.md` → macOS packaging), none from this change. Trimmed
-three rows from `journal/INDEX.md` to stay in the line budget. Manual smoke
-path confirmed functional by the user: launch app, click red → window closes
-and the app stays running, click Dock icon → window returns.
+Follow-up in the same session: `MacStatusBarIcon` dropped its
+`QSystemTrayIcon::activated` handler, so clicking the macOS status item opens
+its menu instead of restoring the window — 打开 TimeArc is the explicit
+restore. `NotifierTray.qml` (Windows/Linux) keeps click-to-restore.
+
+Both harness builds succeeded with no new warnings; the required Qt log scan
+drained three stale L2 reports, all the known unsigned-build LaunchAgent
+codesigning warning (`open-issues.md` → macOS packaging), none from this
+change. Trimmed three rows from `journal/INDEX.md` for the line budget. User
+confirmed the smoke path functional: click red → window closes, app keeps
+running; click Dock icon → window returns.

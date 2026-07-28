@@ -6,6 +6,8 @@
 #include <memory>
 
 class QObject;
+class SettingsRepository;
+class TimerManager;
 
 class MacStatusBarIcon final {
  public:
@@ -16,6 +18,11 @@ class MacStatusBarIcon final {
   MacStatusBarIcon& operator=(const MacStatusBarIcon&) = delete;
 
   QObject* qmlObject() const;
+
+  // Wires the timer rows and the language lookup. Both may be null; the menu
+  // then keeps its rows but leaves the timer actions disabled.
+  void attach(TimerManager* timerManager, SettingsRepository* settings);
+
   void connectToRoot(QObject* rootObject);
 
  private:

@@ -71,6 +71,21 @@ def main():
     require(cmake, "services/macos/macos_app_lifecycle.mm",
             "lifecycle adapter compiled on APPLE")
 
+    # Clicking the macOS status item opens its menu; it does not restore the
+    # window. Windows/Linux keep click-to-restore in NotifierTray.qml.
+    status_bar = (
+        ROOT / "src/services/macos/macos_status_bar_icon.cpp"
+    ).read_text(encoding="utf-8")
+    forbid(status_bar, "&QSystemTrayIcon::activated",
+           "click-to-restore handler on the macOS status item")
+    require(status_bar, "invokeRoot(\"restoreFromTray\")",
+            "menu item restores the window")
+    notifier_qml = (
+        ROOT / "qml/desktop/memorylake/NotifierTray.qml"
+    ).read_text(encoding="utf-8")
+    require(notifier_qml, "Platform.SystemTrayIcon.Trigger",
+            "non-macOS tray keeps click-to-restore")
+
 
 if __name__ == "__main__":
     main()
