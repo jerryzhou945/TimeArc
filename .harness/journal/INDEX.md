@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-28T14:29:36Z | L3 | qml-rule-path | Attempted to read a nonexistent rules/04-qml-runtime.md i... | [report](errors/20260728-142936-B-qml-rule-path.md) |
 | 2026-07-28T09:55:35Z | L1 | macos-logo-cont... | cmake --build exited 1 | [report](errors/20260728-095535-C-macos-logo-container-only-resize.md) |
 | 2026-07-28T09:54:52Z | L2 | macos-logo-cont... | The first sidebar fix enlarged the logo container only; t... | [report](errors/20260728-095452-C-macos-logo-container-only-resize.md) |
 | 2026-07-28T09:47:21Z | L3 | gui-launch-not-... | Visual verification could not launch the newly built app ... | [report](errors/20260728-094721-C-gui-launch-not-authorized.md) |
@@ -93,7 +94,6 @@ the harness line budget intact.
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-27T16:24:10Z | L1 | macos-rule-line... | Final harness audit found rules/02-platform-boundaries.md... | [report](errors/20260727-162410-B-macos-rule-line-budget.md) |
 | 2026-07-27T16:22:39Z | L3 | macos-btm-dump-... | sfltool dumpbtm produced no output for roughly 35 seconds... | [report](errors/20260727-162239-B-macos-btm-dump-hang.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |

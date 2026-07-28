@@ -700,6 +700,18 @@ Item {
                         z: -1
                     }
 
+                    // macOS：空白侧栏与无交互品牌区使用系统原生挪窗；后声明的按钮/导航
+                    // MouseArea 位于其上方，继续优先接收点击，不会被拖动层截获。
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: root.macSidebarChrome
+                        acceptedButtons: Qt.LeftButton
+                        onPressed: {
+                            if (root.Window.window)
+                                root.Window.window.startSystemMove()
+                        }
+                    }
+
                     // 导航项委托：顶部主菜单与底部「记忆湖」入口共用（index 由 page 反查，与下标解耦）。
                     Component {
                         id: navItemDelegate
