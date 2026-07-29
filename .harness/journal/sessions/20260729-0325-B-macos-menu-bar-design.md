@@ -41,7 +41,7 @@ No on-disk impact; rollback is a revert of the QML diff plus deleting the file.
 `QT_LOGGING_RULES="qt.qpa.menus.debug=true"` plus QML probes, not from looking —
 Accessibility is unauthorized here, so no menu can be driven or screenshotted:
 five menus insert into one `QCocoaMenuBar`, every command reaches AppKit with
-its key equivalent (⌘, ⌘Q ⇧⌘E ⌘W ⌘Z ⇧⌘Z ⌘X ⌘C ⌘V ⌘A ⌘1–⌘4 ⇧⌘N ⇧⌘P ⌥⌘D ⌘M),
+its key equivalent (⌘, ⌘Q ⇧⌘E ⌘W ⌘Z ⇧⌘Z ⌘X ⌘C ⌘V ⌘A ⌘1–⌘4 ⇧⌘N ⇧⌘P ⇧⌘D ⌘M),
 设置…/退出 merge into the app menu, and with the window open the gates and three
 sampled `MenuItem.enabled` values read true (the check missing below).
 All three languages ran from the real `language_mode` setting, restored after

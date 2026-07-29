@@ -16,6 +16,7 @@ class MacTrafficLightsController final : public QObject {
 
   void attach(QWindow* window);
   Q_INVOKABLE void setVisible(bool visible);
+  Q_INVOKABLE void performTitlebarDoubleClickAction();
 
  private:
   void createNativeViews();

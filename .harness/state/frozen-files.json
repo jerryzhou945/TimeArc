@@ -29,11 +29,11 @@
     },
     {
       "path": "CMakeLists.txt",
-      "sha256": "0f681971ee1582534788e095e9808495d2f70a7c3250c935960d0c51d6776a16"
+      "sha256": "0e2d9647501580df160fd10d8b52ca79eb267f852d6b319cf07b1ec3d4eef0bf"
     },
     {
       "path": "src/CMakeLists.txt",
-      "sha256": "188279326a35b1ba4524dfe07f6efceceee4bfaad03f3e54d0e6b3f701a419dd"
+      "sha256": "cc471b309719f1362b105d41df611a1491c8131b396f05a2eb030a898d5837e2"
     },
     {
       "path": "src/service/CMakeLists.txt",

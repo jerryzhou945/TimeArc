@@ -45,6 +45,14 @@ Platform.MenuBar {
         return I18n.menu(lang, source);
     }
 
+    function syncNativeLanguage() {
+        if (macMenuLocalizer)
+            macMenuLocalizer.setLanguage(lang);
+    }
+
+    Component.onCompleted: syncNativeLanguage()
+    onLangChanged: syncNativeLanguage()
+
     function pageIs(key) {
         return hasShell && hostShell.selectedPage === key && !hostShell.showingTimerPage;
     }
@@ -97,9 +105,9 @@ Platform.MenuBar {
         // 留在「文件」里显示。声明自己的退出项是为了走 quitFromTray()——默认的退出项
         // 绕过 forceQuit，会撞上 main.qml 里「关窗口不退进程」的 onClosing 拦截。
         //
-        // 注意：合并后这两行的**文案由系统接管**（Qt 的 mergeText() 换成 macOS 自己的
-        // 本地化字符串，跟随系统语言而非 language_mode）——这是应用菜单的平台惯例。
-        // 下面的 text 因此只是回退值，真正生效的是 shortcut 与 onTriggered。
+        // 注意：合并后这两行的文案由 Qt Cocoa 接管。mergeText() 从 Qt Base 的
+        // MAC_APPLICATION_MENU 目录取词；MacMenuLocalizer 把该目录同步到 language_mode。
+        // 下面的 text 仍是角色合并前的回退值，shortcut 与 onTriggered 始终由这里提供。
         Platform.MenuItem {
             role: Platform.MenuItem.PreferencesRole
             text: bar.tr("设置…")
@@ -270,7 +278,7 @@ Platform.MenuBar {
             id: nightModeItem
             role: Platform.MenuItem.NoRole
             text: bar.tr("夜间模式")
-            shortcut: "Ctrl+Alt+D"
+            shortcut: "Ctrl+Shift+D"
             checkable: true
             enabled: bar.hasWindow && bar.hasShell
             onTriggered: bar.hostShell.menuToggleNightMode()

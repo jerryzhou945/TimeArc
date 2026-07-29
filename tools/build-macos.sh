@@ -360,9 +360,19 @@ foreach(required_qml_plugin IN ITEMS
   endif()
 endforeach()
 
+# The Cocoa platform plugin owns standard application-menu strings after role
+# merging. Deploy only the Qt Base catalogs matching TimeArc's in-app languages.
+set(QT_DEPLOY_TRANSLATIONS_DIR
+  "TimeArc.app/Contents/Resources/translations")
+qt6_deploy_translations(
+  CATALOGS qtbase
+  LOCALES zh_CN ja
+)
+
 qt6_deploy_runtime_dependencies(
   EXECUTABLE "TimeArc.app"
   ADDITIONAL_MODULES ${plugins_found}
+  # Targeted catalogs were deployed above; suppress the broad automatic pass.
   NO_TRANSLATIONS
   DEPLOY_TOOL_OPTIONS "${TIMEARC_DEPLOY_SIGN_OPTION}" "-verbose=1"
 )

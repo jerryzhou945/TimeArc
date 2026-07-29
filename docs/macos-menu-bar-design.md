@@ -91,7 +91,7 @@ and the settings search field.
 | 月度记忆湖 | ⌘4 | `indexOfPage("recap")` |
 | 备忘黑板 (checkable) | ⇧⌘N | `memoOverlay.open = !memoOverlay.open` (`DesktopAppShell.qml:341`) |
 | 番茄钟 | ⇧⌘P | `memoOverlay.togglePomodoro()` (`:350`) |
-| 夜间模式 (checkable) | ⌥⌘D | `nightMode = !nightMode` — Shell persists `night_mode` |
+| 夜间模式 (checkable) | ⇧⌘D | `nightMode = !nightMode` — Shell persists `night_mode` |
 | 界面语言 ▸ 中文 / English / 日本語 | — | radio group writing `language_mode` (`DesktopProfilePage.qml:1029` does the same) |
 | 进入全屏 | ⌃⌘F | System-provided; **do not declare** — Qt injects it because the window carries `Qt.WindowFullscreenButtonHint` |
 
@@ -157,14 +157,52 @@ the main `en` / `ja` tables on purpose: words like 复制 and 番茄钟 already 
 there, and filling their gaps would have changed how Windows and Linux render
 those strings in Japanese. A macOS-only change stays macOS-only.
 
-System-provided rows (Services, Hide, Enter Full Screen, Help search) are
-localized by macOS to the *system* language, which may differ from
-`language_mode`. **The two merged app-menu rows behave the same way**: Qt's
-`mergeText()` replaces the text of a `PreferencesRole` / `QuitRole` item with
-macOS's own standard string, so 设置… and 退出 TimeArc follow the system
-language, not `language_mode` — their declared text is only a fallback, while
-the shortcut and the action are ours. That mismatch is accepted, not worked
-around; every macOS app with an in-app language switch has it.
+Qt's Cocoa platform plugin owns the standard application-menu rows (About,
+Preferences, Services, Hide, Show All, Quit). Its `mergeText()` replaces the
+declared text of `PreferencesRole` / `QuitRole` items with strings from Qt
+Base's `MAC_APPLICATION_MENU` catalog. `MacMenuLocalizer` installs that catalog
+for TimeArc's current `language_mode`, so both Qt-generated rows and the custom
+QML menus switch together. The macOS package deploys only `zh_CN` and `ja`;
+English is Qt's source-language fallback.
+
+### 4.1 The rows AppKit contributes itself
+
+macOS adds rows to menus it recognizes: 自动填充 / 开始听写… / 表情与符号 to the
+Edit menu, 进入全屏幕 to View, and the search field to Help. It finds those
+menus **by comparing their titles against its own localization**, at the moment
+the menu is first opened. A Chinese UI on an English system therefore gets
+nothing: AppKit looks for `Edit` / `View` / `Help` and sees 编辑 / 显示 / 帮助.
+
+This produced a confusing bug report — commands "lost" in Chinese, appearing
+after a switch to English, then *staying* after switching back, but gone again
+after a relaunch. All three halves follow from the above: the match succeeds
+only while the titles are English, AppKit never retracts what it has added, and
+a relaunch rebuilds the menus in Chinese.
+
+`MacMenuLocalizer` therefore pins `AppleLanguages` in TimeArc's own preference
+domain to the current `language_mode` — the same mechanism as System Settings ›
+General › Language & Region › Applications. AppKit then runs in the UI language,
+recognizes the titles we actually draw, and contributes its rows in that
+language. Consequences worth knowing:
+
+- **Bound at process start.** A language change takes effect on the next launch;
+  rows already contributed persist for the rest of the session, so nothing
+  disappears mid-run.
+- **Process-wide.** `QLocale::system()` and native panels (`NSOpenPanel`
+  buttons, etc.) follow the same override — consistent with the UI language,
+  but wider than the menu bar.
+- **It overwrites** any per-app language the user set in System Settings. The
+  in-app 界面语言 is the single source of truth.
+
+Rejected alternatives: renaming titles to English around each open (AppKit
+re-adds its rows on every open **without deduplicating** — measured 7 copies of
+`Start Dictation…` and 13 of `Emoji & Symbols` after a handful of cycles), and
+declaring our own equivalents (they are the OS's rows, not ours to imitate).
+
+`NSApp.setHelpMenu:` / `setWindowsMenu:` do work regardless of title and were
+measured to, but are unnecessary once the override is in place — and
+`setWindowsMenu:` would duplicate the 窗口 › TimeArc row that exists precisely
+to reopen a *closed* window, which AppKit's window list cannot do.
 
 ## 5. Implementation approach
 

@@ -29,6 +29,13 @@ Item {
     readonly property string docKey: "memoryLakeMemoDoc"
     property bool _loaded: false
 
+    function shortcutDisplayText(source) {
+        var translated = I18n.t(languageMode, source);
+        return Qt.platform.os === "osx"
+                ? translated.split("Ctrl+").join("⌘")
+                : translated;
+    }
+
     // 番茄钟完成 → 通知 Shell（系统通知；不受结束庆祝开关影响）。
     signal pomodoroFinished(string title)
 
@@ -1126,7 +1133,7 @@ Item {
                 }
                 Text {
                     width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
-                    text: I18n.t(memo.languageMode, "仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。")
+                    text: memo.shortcutDisplayText("仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。")
                     color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12
                 }
                 Row {
@@ -1191,7 +1198,7 @@ Item {
         Text {
             id: hintText
             anchors.centerIn: parent
-            text: I18n.t(memo.languageMode, memo.toolHints[toolbar.currentTool] || "")
+            text: memo.shortcutDisplayText(memo.toolHints[toolbar.currentTool] || "")
             color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
             font.pixelSize: 13
         }

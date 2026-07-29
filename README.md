@@ -114,7 +114,7 @@ with day and night modes.
   backs up the database, and closes the window ⌘W; 编辑 forwards
   undo/redo/cut/copy/paste/select-all to the focused text field; 显示 switches
   pages ⌘1–⌘4, toggles the memo blackboard ⇧⌘N, the pomodoro ⇧⌘P and night mode
-  ⌥⌘D, and picks the interface language; 窗口 minimizes ⌘M, zooms, and brings a
+  ⇧⌘D, and picks the interface language; 窗口 minimizes ⌘M, zooms, and brings a
   closed window back; 帮助 reveals the data folder in Finder. All rows are
   localized in 简体中文 / English / 日本語 (the merged app-menu rows follow macOS's
   own localization, per platform convention). The menu bar outlives the window —
@@ -130,8 +130,9 @@ with day and night modes.
   traffic-light buttons directly over the edge-to-edge left sidebar; the host
   supplies group-hover glyph state and disables minimize in fullscreen without
   creating a native title region. On macOS, drag the non-interactive sidebar
-  background or brand area to move the window, or double-click there to
-  maximize/restore it; sidebar controls keep their normal click behavior.
+  background or brand area to move the window. Double-click there follows the
+  system's Desktop & Dock preference (Minimize, Zoom, Fill, or Do Nothing);
+  sidebar controls keep their normal click behavior.
   On Windows, drag the top bar to move,
   double-click to maximize/restore, and drag any edge to resize. The chrome
   steps aside while the memo blackboard is open. On Windows 11 the window gets

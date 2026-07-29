@@ -41,6 +41,7 @@
 
 #include "services/macos/macos_app_lifecycle.h"
 #include "services/macos/macos_launch_agent.h"
+#include "services/macos/macos_menu_localizer.h"
 #include "services/macos/macos_status_bar_icon.h"
 #include "services/macos/macos_traffic_lights.h"
 #endif
@@ -228,6 +229,7 @@ int main(int argc, char* argv[]) {
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
   MacStatusBarIcon macStatusBarIcon;
   QObject* macStatusBarControllerContext = macStatusBarIcon.qmlObject();
+  MacMenuLocalizer macMenuLocalizer;
   MacTrafficLightsController macTrafficLightsController;
   QObject* macTrafficLightsControllerContext = &macTrafficLightsController;
   MacAppLifecycle macAppLifecycle;
@@ -251,6 +253,10 @@ int main(int argc, char* argv[]) {
   if (!settingsRepository.migrateLegacyQSettings(&manualProjectRepository)) {
     qWarning() << "Legacy QSettings migration did not complete.";
   }
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  macMenuLocalizer.setLanguage(settingsRepository.getValue(
+      QStringLiteral("language_mode"), QStringLiteral("zh")));
+#endif
 
   CalendarManager calendarManager(&settingsRepository);
   MediaSessionRepository mediaRepository;
@@ -303,6 +309,10 @@ int main(int argc, char* argv[]) {
   engine.rootContext()->setContextProperty("startInTray", startInTray);
   engine.rootContext()->setContextProperty("macStatusBarController",
                                            macStatusBarControllerContext);
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  engine.rootContext()->setContextProperty("macMenuLocalizer",
+                                           &macMenuLocalizer);
+#endif
   engine.rootContext()->setContextProperty("macTrafficLightsController",
                                            macTrafficLightsControllerContext);
   engine.rootContext()->setContextProperty("macAppLifecycle",

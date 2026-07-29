@@ -26,6 +26,12 @@ def main():
     i18n_js = (
         ROOT / "qml/desktop/components/I18n.js"
     ).read_text(encoding="utf-8")
+    main_cpp = (ROOT / "src/main.cpp").read_text(encoding="utf-8")
+    localizer = (
+        ROOT / "src/services/macos/macos_menu_localizer.cpp"
+    ).read_text(encoding="utf-8")
+    src_cmake = (ROOT / "src/CMakeLists.txt").read_text(encoding="utf-8")
+    build_script = (ROOT / "tools/build-macos.sh").read_text(encoding="utf-8")
     qml_cmake = (ROOT / "qml/CMakeLists.txt").read_text(encoding="utf-8")
 
     require(qml_cmake, "qml/desktop/MacMenuBar.qml", "menu bar in the QML module")
@@ -78,7 +84,7 @@ def main():
         'shortcut: "Ctrl+4"',            # monthly recap
         'shortcut: "Ctrl+Shift+N"',      # memo board
         'shortcut: "Ctrl+Shift+P"',      # pomodoro
-        'shortcut: "Ctrl+Alt+D"',        # night mode
+        'shortcut: "Ctrl+Shift+D"',      # night mode
         'shortcut: "Ctrl+M"',            # minimize
     ):
         require(bar, command, "menu command")
@@ -135,6 +141,40 @@ def main():
     # Language names stay in their own language, macOS-style — never translated.
     for literal in ('text: "中文"', 'text: "English"', 'text: "日本語"'):
         require(bar, literal, "language row")
+
+    # Merged Preferences/Quit rows are relabelled by QCocoa from Qt's
+    # MAC_APPLICATION_MENU catalog, not from their QML text. The translator
+    # therefore follows the same languageMode that drives the custom menus.
+    require(bar, "onLangChanged: syncNativeLanguage()",
+            "native menu refreshed with the in-app language")
+    require(bar, "macMenuLocalizer.setLanguage(lang)",
+            "language forwarded to the native translator")
+    require(main_cpp, "MacMenuLocalizer macMenuLocalizer;",
+            "macOS-owned translator lifetime")
+    require(main_cpp, 'setContextProperty("macMenuLocalizer"',
+            "translator exposed to the macOS menu")
+    require(localizer, "QCoreApplication::installTranslator",
+            "Qt translator installation")
+    require(localizer, 'QStringLiteral("../Resources/translations")',
+            "packaged translation lookup")
+    require(src_cmake, "services/macos/macos_menu_localizer.cpp",
+            "localizer compiled only in the APPLE source branch")
+    require(build_script, '"TimeArc.app/Contents/Resources/translations"',
+            "native menu catalogs deployed inside the app bundle")
+    require(build_script, "qt6_deploy_translations(",
+            "targeted Qt translation deployment")
+
+    # AppKit contributes its own rows (自动填充 / 开始听写 / 表情与符号 to 编辑,
+    # 进入全屏幕 to 显示, the search field to 帮助) only to menus whose titles
+    # match ITS OWN localization. Pinning AppleLanguages to the UI language is
+    # what makes it recognise 编辑/显示/帮助 on a system running another
+    # language; without it those rows silently never appear.
+    require(localizer, "AppleLanguages", "AppKit localization pinned to the UI language")
+    require(localizer, "rememberAppKitLanguage(normalized)",
+            "override re-asserted on every language change")
+    require(build_script, "CATALOGS qtbase", "Qt Base catalog deployment")
+    require(build_script, "LOCALES zh_CN ja",
+            "the two translated in-app languages")
 
     # No service control from the menu bar: pausing the sampler means the UI
     # signalling the service, and CHARTER §2 forbids IPC. Same rule the status

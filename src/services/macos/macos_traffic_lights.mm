@@ -43,6 +43,43 @@ void MacTrafficLightsController::setVisible(bool visible) {
   updateWindowState();
 }
 
+void MacTrafficLightsController::performTitlebarDoubleClickAction() {
+  @autoreleasepool {
+    NSWindow* nativeWindow = static_cast<NSWindow*>(nativeWindow_);
+    if (!nativeWindow ||
+        (nativeWindow.styleMask & NSWindowStyleMaskFullScreen) != 0) {
+      return;
+    }
+
+    NSString* action = [[NSUserDefaults standardUserDefaults]
+        stringForKey:@"AppleActionOnDoubleClick"];
+    if (!action) {
+      action = @"Maximize";
+    }
+
+    if ([action caseInsensitiveCompare:@"Minimize"] == NSOrderedSame) {
+      if (nativeWindow.miniaturizable) {
+        [nativeWindow performMiniaturize:nil];
+      }
+      return;
+    }
+
+    if ([action caseInsensitiveCompare:@"Fill"] == NSOrderedSame) {
+      if (window_) {
+        window_->showMaximized();
+      }
+      return;
+    }
+
+    if ([action caseInsensitiveCompare:@"Maximize"] == NSOrderedSame ||
+        [action caseInsensitiveCompare:@"Zoom"] == NSOrderedSame) {
+      if (nativeWindow.zoomable) {
+        [nativeWindow performZoom:nil];
+      }
+    }
+  }
+}
+
 void MacTrafficLightsController::createNativeViews() {
   if (!window_) return;
 

@@ -767,13 +767,8 @@ Item {
                         TapHandler {
                             gesturePolicy: TapHandler.DragThreshold
                             onDoubleTapped: {
-                                var window = root.Window.window
-                                if (!window || window.visibility === Window.FullScreen)
-                                    return
-                                if (window.visibility === Window.Maximized)
-                                    window.showNormal()
-                                else
-                                    window.showMaximized()
+                                if (macTrafficLightsController)
+                                    macTrafficLightsController.performTitlebarDoubleClickAction()
                             }
                         }
                     }

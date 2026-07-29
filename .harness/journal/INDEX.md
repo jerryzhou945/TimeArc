@@ -8,6 +8,18 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-29T10:33:38Z | L1 | journal-index-l... | Harness audit found journal/INDEX.md at 102 lines after r... | [report](errors/20260729-103338-C-journal-index-line-budget.md) |
+| 2026-07-29T10:32:55Z | L1 | desktop-ux-miss... | Desktop UX static test cannot start because android/src/m... | [report](errors/20260729-103255-C-desktop-ux-missing-android.md) |
+| 2026-07-29T10:32:11Z | L2 | macos-memo-shor... | Memo Board help text displays Ctrl for shortcuts that use... | [report](errors/20260729-103211-C-macos-memo-shortcut-label.md) |
+| 2026-07-29T10:19:30Z | L3 | journal-index-l... | Mandatory error reports pushed the rolling journal index ... | [report](errors/20260729-101930-C-journal-index-line-budget.md) |
+| 2026-07-29T10:17:32Z | L3 | frozen-manifest... | After correcting the files list assumption, iterated the ... | [report](errors/20260729-101732-C-frozen-manifest-nesting.md) |
+| 2026-07-29T10:17:27Z | L3 | frozen-manifest... | Assumed frozen-files.json stored a keyed object, but it s... | [report](errors/20260729-101727-C-frozen-manifest-shape.md) |
+| 2026-07-29T10:04:44Z | L3 | clang-format-un... | clang-format is not installed in the macOS workspace, so ... | [report](errors/20260729-100444-C-clang-format-unavailable.md) |
+| 2026-07-29T10:04:35Z | L1 | macos-build-scr... | The existing macos_build_script_static_test still expects... | [report](errors/20260729-100435-C-macos-build-script-static-baseline.md) |
+| 2026-07-29T10:01:27Z | L2 | macos-app-menu-... | The native macOS TimeArc application menu stays English b... | [report](errors/20260729-100127-C-macos-app-menu-localization.md) |
+| 2026-07-29T08:56:05Z | L2 | macos-double-cl... | The preference-aware sidebar double-click handler omitted... | [report](errors/20260729-085605-B-macos-double-click-fill.md) |
+| 2026-07-29T08:43:17Z | L3 | unrelated-froze... | Final harness check found an unrelated concurrent CMakeLi... | [report](errors/20260729-084317-B-unrelated-frozen-cmake-drift.md) |
+| 2026-07-29T08:38:01Z | L2 | macos-double-cl... | Sidebar double-click always maximized/restored instead of... | [report](errors/20260729-083801-B-macos-double-click-preference.md) |
 | 2026-07-29T07:23:53Z | L2 | open-folder-uni... | _folderUrlOf prefixed file:/// unconditionally, which is ... | [report](errors/20260729-072353-C-open-folder-unix-file-url.md) |
 | 2026-07-29T07:06:03Z | L2 | i18n-confirm-di... | Settings confirm card rendered titleText/msgText without ... | [report](errors/20260729-070603-C-i18n-confirm-dialog.md) |
 | 2026-07-29T07:03:03Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260729-070303-C-qt-warning-19f33ebed5.md) |
@@ -42,11 +54,11 @@ the harness line budget intact.
 | 2026-07-28T09:12:40Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-ee1bf6d1ca.md) |
 | 2026-07-28T09:04:41Z | L2 | appkit-content-... | macOS rejected setAutorecalculatesContentBorderThickness ... | [report](errors/20260728-090441-C-appkit-content-border-exception.md) |
 | 2026-07-28T08:35:57Z | L2 | qt-expanded-are... | Qt 6.11 ExpandedClientAreaHint and NoTitleBarBackgroundHi... | [report](errors/20260728-083557-C-qt-expanded-area-titlebar.md) |
-| 2026-07-28T08:30:37Z | L2 | macos-titlebar-... | Runtime visual verification shows a visible macOS title-b... | [report](errors/20260728-083037-C-macos-titlebar-still-visible.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T08:24:16Z | L1 | desktop-static-... | desktop_ux_static_test.py could not run because android/s... | [report](errors/20260728-082416-C-desktop-static-missing-manifest.md) |
 | 2026-07-28T08:23:14Z | L3 | qt-log-rotation... | Required post-run Qt log scan parsed the log but could no... | [report](errors/20260728-082314-C-qt-log-rotation-permission.md) |
-| 2026-07-28T08:22:56Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082256-C-qt-warning-c26efcf9e0.md) |
-| 2026-07-28T08:22:56Z | L2 | qt-warning-2766... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082256-C-qt-warning-2766f01f44.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
@@ -82,19 +94,4 @@ the harness line budget intact.
 | 2026-07-28T06:56:36Z | L3 | macos-sidebar-t... | First implementation retained a native title-bar region a... | [report](errors/20260728-065636-B-macos-sidebar-titlebar-misread.md) |
 | 2026-07-28T06:40:04Z | L3 | feature-branch-... | Could not create codex/macos-sidebar-window-controls beca... | [report](errors/20260728-064004-B-feature-branch-git-readonly.md) |
 | 2026-07-27T19:29:41Z | L3 | qt-log-scan-rot... | Post-smoke Qt log scan recorded the launch output but aga... | [report](errors/20260727-192941-B-qt-log-scan-rotation-repeat.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| 2026-07-27T19:14:12Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260727-191412-B-build-failure.md) |
-| 2026-07-27T19:13:53Z | L3 | macos-status-co... | The first native status-item controller build linked with... | [report](errors/20260727-191353-B-macos-status-controller-moc.md) |
-| 2026-07-27T19:13:43Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260727-191343-B-build-failure.md) |
-| 2026-07-27T19:08:43Z | L3 | qt-log-scan-per... | Required post-run Qt log scan found warnings but could no... | [report](errors/20260727-190843-B-qt-log-scan-permission.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| 2026-07-27T19:08:37Z | L3 | macos-status-ba... | Desktop screenshot permission was declined, so runtime ic... | [report](errors/20260727-190837-B-macos-status-bar-screenshot-denied.md) |
-| 2026-07-27T19:07:00Z | L1 | desktop-static-... | desktop_ux_static_test.py could not start because android... | [report](errors/20260727-190700-B-desktop-static-missing-android-manifest.md) |
-| 2026-07-27T19:05:48Z | L3 | svg-search-no-m... | A combined read-only search exited 1 because the second q... | [report](errors/20260727-190548-B-svg-search-no-match.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |
