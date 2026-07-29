@@ -970,18 +970,20 @@ var menuJa = {
     "在 Finder 中显示数据文件夹": "データフォルダを Finder で表示"
 }
 
+// 认不出的语言退回英文（与 menu() 一致）：中文当兜底时会变成吸引子——任何空值/
+// 脏值都把界面拉回中文，en/ja 的会话反而莫名其妙冒出中文。显式的 zh/ja 不受影响。
 function langKey(lang) {
-    return lang === "en" || lang === "ja" ? lang : "zh"
+    return lang === "zh" || lang === "ja" ? lang : "en"
 }
 
-// 菜单栏取词。与 t() 同样的回退链：ja 缺词回 en，最后回中文原文。
+// 菜单栏取词。只有明确的 zh/ja 走各自的表，其余一律英文——包括意外值：
+// 认不出的语言退回英文可以接受，退回中文会让 en/ja 的菜单突然冒出中文。
 function menu(lang, source) {
-    var l = langKey(lang)
-    if (l === "en")
-        return menuEn[source] || source
-    if (l === "ja")
+    if (lang === "zh")
+        return source
+    if (lang === "ja")
         return menuJa[source] || menuEn[source] || source
-    return source
+    return menuEn[source] || source
 }
 
 function t(lang, source) {

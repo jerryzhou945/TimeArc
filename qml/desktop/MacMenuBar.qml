@@ -39,19 +39,35 @@ Platform.MenuBar {
     // 统计导出导的是「当前视图的期次」，页面不在眼前就没有意义，故只在统计页可用。
     readonly property bool onStatsPage: pageIs("stats")
 
-    readonly property string lang: hasShell ? hostShell.languageMode : "zh"
+    // The menu bar is built before shellLoader has an item, so the fallback has
+    // to read the stored language itself. A hardcoded "zh" here titled every
+    // menu in Chinese for the first moments of an English/Japanese session —
+    // long enough for AppKit to adopt the briefly-Chinese 编辑 menu, fill it
+    // with Chinese rows and keep that title, while 显示/帮助 (matched later,
+    // once the titles were right) got nothing.
+    readonly property string lang: hasShell
+                                   ? hostShell.languageMode
+                                   : (settingsRepository
+                                      ? settingsRepository.languageMode()
+                                      : "en")
 
     function tr(source) {
         return I18n.menu(lang, source);
     }
 
-    function syncNativeLanguage() {
-        if (macMenuLocalizer)
-            macMenuLocalizer.setLanguage(lang);
+    // Pinning AppKit's language has exactly one input: the shell's persisted
+    // languageMode. `lang` above must never reach the native side — it carries
+    // a pre-shell fallback, and a display fallback driving process-wide state
+    // is what let a transient value get pinned. Startup is pinned once by
+    // main.cpp from the same setting; this handles later changes only.
+    Connections {
+        target: bar.hostShell
+        ignoreUnknownSignals: true
+        function onLanguageModeChanged() {
+            if (macMenuLocalizer)
+                macMenuLocalizer.setLanguage(bar.hostShell.languageMode);
+        }
     }
-
-    Component.onCompleted: syncNativeLanguage()
-    onLangChanged: syncNativeLanguage()
 
     function pageIs(key) {
         return hasShell && hostShell.selectedPage === key && !hostShell.showingTimerPage;

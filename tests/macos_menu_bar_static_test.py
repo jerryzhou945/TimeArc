@@ -33,6 +33,9 @@ def main():
     src_cmake = (ROOT / "src/CMakeLists.txt").read_text(encoding="utf-8")
     build_script = (ROOT / "tools/build-macos.sh").read_text(encoding="utf-8")
     qml_cmake = (ROOT / "qml/CMakeLists.txt").read_text(encoding="utf-8")
+    settings_repo = (
+        ROOT / "src/services/settings_repository.cpp"
+    ).read_text(encoding="utf-8")
 
     require(qml_cmake, "qml/desktop/MacMenuBar.qml", "menu bar in the QML module")
 
@@ -145,9 +148,7 @@ def main():
     # Merged Preferences/Quit rows are relabelled by QCocoa from Qt's
     # MAC_APPLICATION_MENU catalog, not from their QML text. The translator
     # therefore follows the same languageMode that drives the custom menus.
-    require(bar, "onLangChanged: syncNativeLanguage()",
-            "native menu refreshed with the in-app language")
-    require(bar, "macMenuLocalizer.setLanguage(lang)",
+    require(bar, "macMenuLocalizer.setLanguage(bar.hostShell.languageMode)",
             "language forwarded to the native translator")
     require(main_cpp, "MacMenuLocalizer macMenuLocalizer;",
             "macOS-owned translator lifetime")
@@ -172,6 +173,71 @@ def main():
     require(localizer, "AppleLanguages", "AppKit localization pinned to the UI language")
     require(localizer, "rememberAppKitLanguage(normalized)",
             "override re-asserted on every language change")
+
+    # One writer. The native pin is driven only by the shell's persisted
+    # languageMode — never by a view binding, which is how a transient value
+    # got pinned and then outlived the session that produced it.
+    require(bar, "function onLanguageModeChanged()", "single native-language funnel")
+    forbid(bar, "syncNativeLanguage", "view binding driving process-wide state")
+    forbid(bar, "macMenuLocalizer.setLanguage(lang)",
+           "display fallback reaching the native side")
+
+    # English is the fallback for anything unrecognized, on both sides. A
+    # Chinese fallback made Chinese an attractor: any stray value re-pinned it,
+    # so en/ja sessions decayed into a Chinese AppKit while zh never did.
+    require(localizer,
+            'if (mode == QLatin1String("zh") || mode == QLatin1String("ja")) return mode;',
+            "English fallback in the native normalizer")
+    forbid(localizer, 'return QStringLiteral("zh");', "Chinese fallback")
+    require(i18n_js, 'if (lang === "zh")', "explicit Chinese branch in menu lookup")
+    require(i18n_js, "return menuEn[source] || source\n}",
+            "English fallback for unrecognized menu languages")
+    # Same rule for the window UI: explicit zh/ja are untouched, anything
+    # unrecognized resolves to English rather than resurrecting Chinese.
+    require(i18n_js, 'return lang === "zh" || lang === "ja" ? lang : "en"',
+            "English fallback in langKey")
+
+    # The UI language has one resolver. Readers call it instead of carrying a
+    # literal default, so a fresh install adopts the system language and every
+    # surface — shells, settings page, menu bar, status item — agrees.
+    require(settings_repo, "QString SettingsRepository::languageMode()",
+            "single language resolver")
+    require(settings_repo, '".GlobalPreferences"',
+            "system language read from the GLOBAL domain, not our own pin")
+    require(settings_repo, 'QLatin1String("hant")',
+            "Traditional Chinese is not treated as a match")
+    require(settings_repo, 'return QStringLiteral("en");',
+            "English is the fallback when nothing matches")
+    require(main_cpp, "macMenuLocalizer.setLanguage(settingsRepository.languageMode())",
+            "startup pin uses the resolver")
+    require(bar, "settingsRepository.languageMode()", "menu bar uses the resolver")
+    require(shell, "settingsRepository.languageMode()", "shell uses the resolver")
+    for stale in ('getValue("language_mode", "zh")',
+                  'getValue(QStringLiteral("language_mode")'):
+        forbid(shell, stale, "literal language default in the shell")
+        forbid(bar, stale, "literal language default in the menu bar")
+        forbid(main_cpp, stale, "literal language default in main")
+
+    # Nothing arriving during teardown is a user choice. On quit the QML engine
+    # outlives SettingsRepository, so bindings re-evaluate to their fallbacks
+    # and fire change signals; pinning one of those poisoned the NEXT launch.
+    require(localizer, "aboutToQuit", "shutdown latch connected")
+    require(localizer, "if (shuttingDown_) return true;",
+            "language changes ignored once the app is quitting")
+
+    # Written only when it differs, and read back — the pin is the whole
+    # mechanism, so a silent failure to store it must not be silent.
+    require(localizer, "if (pinned == wanted) return;", "write only on change")
+    require(localizer, "did not stick", "read-back verification")
+    require(localizer, "until TimeArc is relaunched",
+            "divergence reported when AppKit runs another language")
+
+    # The bar is built before shellLoader has an item, so its fallback goes
+    # through the resolver too (asserted above). A literal there titled the
+    # menus in the wrong language for that window — long enough for AppKit to
+    # adopt a mislabelled Edit menu and fill it in the wrong language.
+    forbid(bar, 'hasShell ? hostShell.languageMode : "zh"',
+           "hardcoded startup language fallback")
     require(build_script, "CATALOGS qtbase", "Qt Base catalog deployment")
     require(build_script, "LOCALES zh_CN ja",
             "the two translated in-app languages")

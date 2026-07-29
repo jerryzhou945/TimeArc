@@ -1,0 +1,7 @@
+[1/7] Copying time-arc qml sources into build dir
+[2/7] Running qmlimportscanner for time-arc
+[3/7] Generating .rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp.aotstats
+[4/7] Running rcc for resource time-arc_raw_qml_0
+[5/7] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[6/7] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp.o
+[7/7] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

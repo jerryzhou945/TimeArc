@@ -254,8 +254,7 @@ int main(int argc, char* argv[]) {
     qWarning() << "Legacy QSettings migration did not complete.";
   }
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
-  macMenuLocalizer.setLanguage(settingsRepository.getValue(
-      QStringLiteral("language_mode"), QStringLiteral("zh")));
+  macMenuLocalizer.setLanguage(settingsRepository.languageMode());
 #endif
 
   CalendarManager calendarManager(&settingsRepository);

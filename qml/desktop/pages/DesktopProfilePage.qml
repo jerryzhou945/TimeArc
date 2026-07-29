@@ -218,7 +218,7 @@ Item {
         restoreWindow    = _getBool("restore_window", true)
         landingPage      = _getStr("landing_page", "memorylake")
         showWelcome      = _getBool("show_welcome", true)
-        languageMode     = _getStr("language_mode", "zh")
+        languageMode     = settingsRepository ? settingsRepository.languageMode() : "en"
         timeFormat       = _getStr("time_format", "24")
         trackRunning     = _getBool("track_running", true)
         gameMode         = _getBool("game_mode", true)

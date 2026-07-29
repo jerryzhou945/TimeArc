@@ -22,6 +22,9 @@ class MacMenuLocalizer final : public QObject {
   QTranslator translator_;
   QString activeMode_;
   bool installed_ = false;
+  // Shutdown re-evaluates QML bindings whose C++ context objects are already
+  // gone, which resurfaces their fallbacks as if the user had chosen them.
+  bool shuttingDown_ = false;
 };
 
 #endif  // TIMEARC_SERVICES_MACOS_MACOS_MENU_LOCALIZER_H_

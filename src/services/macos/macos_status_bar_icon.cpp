@@ -92,11 +92,11 @@ constexpr MenuStrings kEn{"Open TimeArc", "Launch at Login", "Quit TimeArc"};
 constexpr MenuStrings kJa{"TimeArc を開く", "ログイン時に起動",
                           "TimeArc を終了"};
 
-// Mirrors I18n.js langKey(): anything unrecognized falls back to Chinese.
+// Mirrors I18n.js langKey(): anything unrecognized falls back to English.
 const MenuStrings& stringsForMode(const QString& mode) {
-  if (mode == QLatin1String("en")) return kEn;
+  if (mode == QLatin1String("zh")) return kZh;
   if (mode == QLatin1String("ja")) return kJa;
-  return kZh;
+  return kEn;
 }
 
 }  // namespace
@@ -125,9 +125,7 @@ class MacStatusBarIcon::Impl {
 
   void sync() {
     const QString mode =
-        settings ? settings->getValue(QStringLiteral("language_mode"),
-                                      QStringLiteral("zh"))
-                 : QStringLiteral("zh");
+        settings ? settings->languageMode() : QStringLiteral("en");
     const MenuStrings& s = stringsForMode(mode);
 
     showAction->setText(QString::fromUtf8(s.open));

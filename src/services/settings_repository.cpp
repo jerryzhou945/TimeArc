@@ -18,6 +18,7 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QFileInfo>
+#include <QLocale>
 #include <QProcess>
 #include <QThread>
 
@@ -109,6 +110,63 @@ bool truthySetting(const QVariant& value) {
   const QString text = value.toString().trimmed().toLower();
   return text == QStringLiteral("true") || text == QStringLiteral("1") ||
          text == QStringLiteral("yes") || text == QStringLiteral("on");
+}
+
+}  // namespace
+
+namespace {
+
+constexpr char kLanguageModeKey[] = "language_mode";
+
+// TimeArc ships these three. Anything else — including Traditional Chinese,
+// which has no Simplified-independent catalog here — is not a match.
+QString supportedLanguageFor(const QString& tag) {
+  const QString lower = QString(tag).replace(QLatin1Char('_'), QLatin1Char('-')).toLower();
+  if (lower.startsWith(QLatin1String("en"))) return QStringLiteral("en");
+  if (lower.startsWith(QLatin1String("ja"))) return QStringLiteral("ja");
+  if (lower.startsWith(QLatin1String("zh"))) {
+    const bool traditional = lower.contains(QLatin1String("hant")) ||
+                             lower.startsWith(QLatin1String("zh-tw")) ||
+                             lower.startsWith(QLatin1String("zh-hk")) ||
+                             lower.startsWith(QLatin1String("zh-mo"));
+    if (!traditional) return QStringLiteral("zh");
+  }
+  return {};
+}
+
+// The user's ordered language list. On macOS this must come from the GLOBAL
+// domain: TimeArc pins AppleLanguages in its OWN domain so AppKit will speak
+// the UI language (see macos_menu_localizer.cpp), and the app domain sits
+// above the global one in the defaults chain — asking QLocale::system() here
+// would read our own pin back and make the default self-referential.
+//
+// QSettings maps an organization name containing a dot straight to a
+// preferences domain, so ".GlobalPreferences" is the system list System
+// Settings writes. Going through QSettings rather than CoreFoundation keeps
+// this file linkable in every target that compiles it, including the
+// framework-less db smoke test.
+QStringList systemLanguageTags() {
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  QSettings globals(QSettings::NativeFormat, QSettings::UserScope,
+                    QStringLiteral(".GlobalPreferences"));
+  const QStringList tags =
+      globals.value(QStringLiteral("AppleLanguages")).toStringList();
+  if (!tags.isEmpty()) return tags;
+#endif
+  // Windows/Linux have nothing pinned, so the Qt view is the system's own.
+  return QLocale::system().uiLanguages();
+}
+
+// First entry that names a language we ship wins, so a system list of
+// (zh-Hant-TW, ja-JP) still lands on Japanese rather than skipping to the
+// fallback. English is the fallback when nothing matches.
+QString systemLanguageMode() {
+  const QStringList tags = systemLanguageTags();
+  for (const QString& tag : tags) {
+    const QString match = supportedLanguageFor(tag);
+    if (!match.isEmpty()) return match;
+  }
+  return QStringLiteral("en");
 }
 
 }  // namespace
@@ -509,4 +567,20 @@ bool SettingsRepository::startBackgroundCollection() {
 #else
   return false;  // no background collector to start on non-Windows yet
 #endif
+}
+
+QString SettingsRepository::languageMode() {
+  const QString stored = getValue(QString::fromLatin1(kLanguageModeKey));
+  if (stored == QLatin1String("en") || stored == QLatin1String("zh") ||
+      stored == QLatin1String("ja")) {
+    return stored;
+  }
+
+  // Absent (first run) or unrecognized (hand-edited, or written by an older
+  // build): adopt the system language and write it down, so every later reader
+  // — QML shells, the settings page, the macOS menu bar and status item — sees
+  // one agreed value instead of each applying its own default.
+  const QString resolved = systemLanguageMode();
+  setValue(QString::fromLatin1(kLanguageModeKey), resolved);
+  return resolved;
 }

@@ -45,18 +45,18 @@ def main():
     # Every row is localized in all three UI languages, relabelled on open.
     require(icon_cpp, "&QMenu::aboutToShow",
             "rows relabelled when the menu opens")
-    require(icon_cpp, 'settings->getValue(QStringLiteral("language_mode")',
-            "language read from the UI setting")
+    require(icon_cpp, "settings->languageMode()",
+            "language read through the one resolver, not a literal default")
     for table in ("kZh{", "kEn{", "kJa{"):
         require(icon_cpp, table, f"string table {table}")
     # langFromMode must mirror I18n.js langKey(): zh | en | ja, else zh.
-    require(i18n_js, 'lang === "en" || lang === "ja" ? lang : "zh"',
+    require(i18n_js, 'lang === "zh" || lang === "ja" ? lang : "en"',
             "I18n.js language fallback this table mirrors")
-    require(icon_cpp, 'if (mode == QLatin1String("en")) return kEn;',
-            "English branch")
+    require(icon_cpp, 'if (mode == QLatin1String("zh")) return kZh;',
+            "Chinese branch")
     require(icon_cpp, 'if (mode == QLatin1String("ja")) return kJa;',
             "Japanese branch")
-    require(icon_cpp, "return kZh;", "Chinese fallback")
+    require(icon_cpp, "return kEn;", "English fallback")
     forbid(icon_cpp, 'menu.addAction(QStringLiteral("',
            "hardcoded single-language menu label")
 

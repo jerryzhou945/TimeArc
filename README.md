@@ -108,6 +108,14 @@ with day and night modes.
   rows — open the window, a disabled 开机自启 placeholder, and quit — relabelled
   in 简体中文 / English / 日本語 from the same `language_mode` setting the UI
   uses, applied the next time the menu opens. Timer control stays in the window.
+- **Interface language** — 简体中文 / English / 日本語, chosen in 设置 › 界面语言
+  and stored in `language_mode`. On first run TimeArc adopts the **system**
+  language (Simplified Chinese, Japanese, or English; Traditional Chinese and
+  anything else fall back to English) and writes that choice down, so every
+  surface agrees from then on. On macOS the system list is read from the global
+  preferences domain, never from the app's own — TimeArc pins `AppleLanguages`
+  in its own domain so the native menu bar speaks the UI language, and reading
+  that back would be self-referential.
 - **macOS menu bar** — macOS builds add a real application menu bar
   (文件 / 编辑 / 显示 / 窗口 / 帮助, plus 设置… ⌘, and 退出 TimeArc ⌘Q merged into
   the app menu). 文件 exports the stats report ⇧⌘E, imports/exports settings,

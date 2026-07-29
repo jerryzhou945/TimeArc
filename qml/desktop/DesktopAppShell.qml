@@ -51,7 +51,7 @@ Item {
     // true  = 夜晚
     // =========================
     property bool nightMode: settingsRepository ? settingsRepository.getBool("night_mode", false) : false
-    property string languageMode: settingsRepository ? settingsRepository.getValue("language_mode", "zh") : "zh"
+    property string languageMode: settingsRepository ? settingsRepository.languageMode() : "en"
     property string accentColor: settingsRepository ? settingsRepository.getValue("accent_color", "#9FE7EE") : "#9FE7EE"
 
     function tr(source) {

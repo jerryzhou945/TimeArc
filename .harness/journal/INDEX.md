@@ -8,6 +8,11 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-29T16:54:54Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-165454-B-build-failure.md) |
+| 2026-07-29T16:53:50Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-165350-B-build-failure.md) |
+| 2026-07-29T16:02:06Z | L2 | macos-menu-lang... | On graceful quit the QML engine outlives SettingsReposito... | [report](errors/20260729-160206-B-macos-menu-language-pinned-at-teardown.md) |
+| 2026-07-29T14:28:09Z | L2 | macos-menu-bar-... | MacMenuBar's lang fallback hardcoded zh, so every launch ... | [report](errors/20260729-142809-B-macos-menu-bar-startup-language-fallback.md) |
+| 2026-07-29T14:23:25Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-142325-B-build-failure.md) |
 | 2026-07-29T10:33:38Z | L1 | journal-index-l... | Harness audit found journal/INDEX.md at 102 lines after r... | [report](errors/20260729-103338-C-journal-index-line-budget.md) |
 | 2026-07-29T10:32:55Z | L1 | desktop-ux-miss... | Desktop UX static test cannot start because android/src/m... | [report](errors/20260729-103255-C-desktop-ux-missing-android.md) |
 | 2026-07-29T10:32:11Z | L2 | macos-memo-shor... | Memo Board help text displays Ctrl for shortcuts that use... | [report](errors/20260729-103211-C-macos-memo-shortcut-label.md) |
@@ -52,8 +57,8 @@ the harness line budget intact.
 | 2026-07-28T09:12:40Z | L2 | qt-warning-e1d2... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-e1d2ce4a0b.md) |
 | 2026-07-28T09:12:40Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-091240-C-qt-warning-19f33ebed5.md) |
 | 2026-07-28T09:12:40Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-ee1bf6d1ca.md) |
-| 2026-07-28T09:04:41Z | L2 | appkit-content-... | macOS rejected setAutorecalculatesContentBorderThickness ... | [report](errors/20260728-090441-C-appkit-content-border-exception.md) |
-| 2026-07-28T08:35:57Z | L2 | qt-expanded-are... | Qt 6.11 ExpandedClientAreaHint and NoTitleBarBackgroundHi... | [report](errors/20260728-083557-C-qt-expanded-area-titlebar.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T08:24:16Z | L1 | desktop-static-... | desktop_ux_static_test.py could not run because android/s... | [report](errors/20260728-082416-C-desktop-static-missing-manifest.md) |
 | 2026-07-28T08:23:14Z | L3 | qt-log-rotation... | Required post-run Qt log scan parsed the log but could no... | [report](errors/20260728-082314-C-qt-log-rotation-permission.md) |
@@ -92,6 +97,4 @@ the harness line budget intact.
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:00:06Z | L3 | macos-sidebar-e... | Second visual pass still exposed a title-bar-like top ban... | [report](errors/20260728-070006-B-macos-sidebar-edge-to-edge.md) |
 | 2026-07-28T06:56:36Z | L3 | macos-sidebar-t... | First implementation retained a native title-bar region a... | [report](errors/20260728-065636-B-macos-sidebar-titlebar-misread.md) |
-| 2026-07-28T06:40:04Z | L3 | feature-branch-... | Could not create codex/macos-sidebar-window-controls beca... | [report](errors/20260728-064004-B-feature-branch-git-readonly.md) |
-| 2026-07-27T19:29:41Z | L3 | qt-log-scan-rot... | Post-smoke Qt log scan recorded the launch output but aga... | [report](errors/20260727-192941-B-qt-log-scan-rotation-repeat.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

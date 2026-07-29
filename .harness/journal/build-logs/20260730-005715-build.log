@@ -1,0 +1,15 @@
+[1/183] Copying time-arc qml sources into build dir
+[2/183] Running qmlimportscanner for time-arc
+[3/183] Automatic MOC and UIC for target time-arc
+[4/182] Running AUTOMOC file extraction for target time-arc
+[5/15] Generating .rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp.aotstats
+[6/15] Generating .rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.aotstats
+[7/15] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.aotstats
+[8/15] Running rcc for resource time-arc_raw_qml_0
+[9/15] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[10/15] Building CXX object CMakeFiles/time-arc.dir/src/services/macos/macos_status_bar_icon.cpp.o
+[11/15] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[12/15] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp.o
+[13/15] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.o
+[14/15] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.o
+[15/15] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

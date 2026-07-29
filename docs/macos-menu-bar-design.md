@@ -169,9 +169,20 @@ English is Qt's source-language fallback.
 
 macOS adds rows to menus it recognizes: 自动填充 / 开始听写… / 表情与符号 to the
 Edit menu, 进入全屏幕 to View, and the search field to Help. It finds those
-menus **by comparing their titles against its own localization**, at the moment
-the menu is first opened. A Chinese UI on an English system therefore gets
-nothing: AppKit looks for `Edit` / `View` / `Help` and sees 编辑 / 显示 / 帮助.
+menus **by their titles**, and the two kinds of menu behave differently —
+measured by dumping the live `NSMenu` tree under each combination:
+
+| AppKit language | Our title | Edit | View / Help |
+|---|---|---|---|
+| en | 编辑 / 显示 / 帮助 | nothing | nothing |
+| zh | 编辑 / 显示 / 帮助 | Chinese rows | Chinese rows |
+| zh | Edit / View / Help | **adopted, renamed to 编辑**, Chinese rows | nothing |
+| en | Edit / View / Help | English rows | English rows |
+
+So View and Help match only AppKit's *own* localized name, while Edit also
+answers to the canonical English one — and once adopted, AppKit **rewrites the
+menu's title** into its language. A Chinese UI on an English system therefore
+gets nothing anywhere: AppKit looks for `Edit` / `View` / `Help`.
 
 This produced a confusing bug report — commands "lost" in Chinese, appearing
 after a switch to English, then *staying* after switching back, but gone again
@@ -187,7 +198,51 @@ language. Consequences worth knowing:
 
 - **Bound at process start.** A language change takes effect on the next launch;
   rows already contributed persist for the rest of the session, so nothing
-  disappears mid-run.
+  disappears mid-run. While the two disagree — one launch, and only if the
+  stored language changed without this code running — the Edit menu is the
+  visible symptom: AppKit adopts it anyway and renames it, so a single 编辑
+  appears among File / View / Window / Help.
+- **The startup title must already be right.** `MacMenuBar` is constructed
+  before `shellLoader` has an item, so its `lang` fallback reads
+  `language_mode` from `settingsRepository` rather than assuming a language.
+  A literal `"zh"` there titled every menu in Chinese for the first fraction of
+  a second of an English session, which was long enough for AppKit to adopt the
+  mislabelled Edit menu and fill it in Chinese
+  (`errors/20260729-142809-B-macos-menu-bar-startup-language-fallback.md`).
+- **One writer, and English is the fallback.** The pin is driven only by the
+  shell's persisted `languageMode` (startup from `main.cpp`, later changes via
+  a `Connections` handler); the view's display fallback never reaches the
+  native side. `normalizedMode()` returns **`en`** for anything unrecognized.
+  Both rules exist for the same reason: while Chinese was the fallback it was
+  an attractor — any stray or transient value re-pinned `zh`, so English and
+  Japanese sessions decayed into a Chinese AppKit across relaunches while
+  Chinese never did. Degrading to English is tolerable; degrading to a language
+  the user did not choose is not.
+- **Written only when it differs, then read back**, with one `qWarning` when
+  AppKit's running language and the UI language disagree — that state is
+  exactly when the OS rows cannot appear, and it is otherwise invisible.
+- **Nothing is pinned during teardown.** `MacMenuLocalizer` latches
+  `QCoreApplication::aboutToQuit` and ignores later calls. On quit the QML
+  engine outlives `SettingsRepository`, so `DesktopAppShell.languageMode` — a
+  *binding* on that context property — re-evaluates to its `"zh"` fallback and
+  emits a change signal. Pinning that value wrote Chinese on the way out and
+  poisoned the **next** launch, which is why every second start after choosing
+  English or Japanese came up with AppKit in Chinese
+  (`errors/20260729-160206-B-macos-menu-language-pinned-at-teardown.md`).
+  Verification that ends the app with a signal cannot see this: only the real
+  ⌘Q path runs the teardown.
+
+Measured after the cleanup, two consecutive launches each:
+
+| UI | AppKit | Menu bar | Rows AppKit added to Edit |
+|---|---|---|---|
+| en | `en` | File / Edit / View / Window / Help | AutoFill · Start Dictation… · Emoji & Symbols |
+| zh | `zh_CN` | 文件 / 编辑 / 显示 / 窗口 / 帮助 | 自动填充 · 开始听写… · 表情与符号 |
+| ja | `ja` | ファイル / 編集 / 表示 / ウインドウ / ヘルプ | 自動入力 · 音声入力を開始… · 絵文字と記号 |
+
+AppKit contributes its rows once per menu-bar install, so the array holds
+repeats; it hides all but one (`isHidden` is set on the duplicates), which is
+why only one of each is ever drawn.
 - **Process-wide.** `QLocale::system()` and native panels (`NSOpenPanel`
   buttons, etc.) follow the same override — consistent with the UI language,
   but wider than the menu bar.
@@ -203,6 +258,37 @@ declaring our own equivalents (they are the OS's rows, not ours to imitate).
 measured to, but are unnecessary once the override is in place — and
 `setWindowsMenu:` would duplicate the 窗口 › TimeArc row that exists precisely
 to reopen a *closed* window, which AppKit's window list cannot do.
+
+### 4.2 Where the UI language comes from
+
+`SettingsRepository::languageMode()` is the only resolver, and every surface
+calls it — both QML shells, the settings page, the macOS menu bar and the
+status item. No caller carries a literal default any more.
+
+- A stored `language_mode` naming a language TimeArc ships (`en` / `zh` / `ja`)
+  wins.
+- Otherwise — first run, or a value written by hand or by an older build — the
+  system language decides, and the result is **persisted immediately**, so
+  every later reader sees one agreed value.
+- Matching walks the user's ordered language list and takes the first entry
+  TimeArc ships: `en…` → `en`, `ja…` → `ja`, Simplified `zh…` → `zh`.
+  Traditional Chinese (`zh-Hant`, `zh-TW`, `zh-HK`, `zh-MO`) is **not** a match
+  — there is no Traditional catalog here — and neither is anything else, so a
+  list of (`zh-Hant-TW`, `ja-JP`) still lands on Japanese. English is the
+  fallback when nothing matches.
+
+**On macOS the list must come from the global domain**
+(`.GlobalPreferences`, read through `QSettings` because an organization name
+containing a dot maps straight to a preferences domain). TimeArc pins
+`AppleLanguages` in its *own* domain (§4.1), and the app domain sits above the
+global one in the defaults chain — so `QLocale::system()` here would read our
+own pin back and make the default self-referential. Measured: with the pin set
+to `zh-Hans` and no stored language, the resolver still reads
+`("en-CN", "zh-Hans-CN")` and answers `en`.
+
+`QSettings` rather than CoreFoundation for one practical reason: this file is
+compiled into targets that do not link the Cocoa frameworks (`timearc_db_smoke`),
+and `src/CMakeLists.txt` is frozen.
 
 ## 5. Implementation approach
 
