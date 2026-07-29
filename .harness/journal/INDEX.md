@@ -8,8 +8,11 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
-| 2026-07-28T18:06:40Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-180640-C-qt-warning-19f33ebed5.md) |
-| 2026-07-28T18:06:39Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-180639-C-qt-warning-19f33ebed5.md) |
+| 2026-07-29T07:23:53Z | L2 | open-folder-uni... | _folderUrlOf prefixed file:/// unconditionally, which is ... | [report](errors/20260729-072353-C-open-folder-unix-file-url.md) |
+| 2026-07-29T07:06:03Z | L2 | i18n-confirm-di... | Settings confirm card rendered titleText/msgText without ... | [report](errors/20260729-070603-C-i18n-confirm-dialog.md) |
+| 2026-07-29T07:03:03Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260729-070303-C-qt-warning-19f33ebed5.md) |
+| 2026-07-28T20:15:46Z | L3 | macos-menu-bar-... | MacMenuBar was given 'appWindow: appWindow'; the RHS reso... | [report](errors/20260728-201546-B-macos-menu-bar-self-bound-window.md) |
+| 2026-07-28T19:53:05Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-195305-B-qt-warning-19f33ebed5.md) |
 | 2026-07-28T18:06:39Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-180639-C-qt-warning-c26efcf9e0.md) |
 | 2026-07-28T15:28:53Z | L3 | close-notificat... | Harness track-discipline check did not recognize the new ... | [report](errors/20260728-152853-C-close-notification-session-error-link.md) |
 | 2026-07-28T15:27:33Z | L2 | macos-close-tra... | Closing the TimeArc window on macOS emits an unwanted sys... | [report](errors/20260728-152733-C-macos-close-tray-notification.md) |
@@ -44,9 +47,8 @@ the harness line budget intact.
 | 2026-07-28T08:23:14Z | L3 | qt-log-rotation... | Required post-run Qt log scan parsed the log but could no... | [report](errors/20260728-082314-C-qt-log-rotation-permission.md) |
 | 2026-07-28T08:22:56Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082256-C-qt-warning-c26efcf9e0.md) |
 | 2026-07-28T08:22:56Z | L2 | qt-warning-2766... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082256-C-qt-warning-2766f01f44.md) |
-| 2026-07-28T08:22:56Z | L2 | qt-fatal-f42b35... | [FATAL] :0 - QWidget: Cannot create a QWidget without QAp... | [report](errors/20260728-082256-C-qt-fatal-f42b357aa6.md) |
-| 2026-07-28T08:22:56Z | L2 | qt-warning-2abb... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082256-C-qt-warning-2abb77c1a6.md) |
-| 2026-07-28T08:22:56Z | L2 | qt-warning-e1d2... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-082256-C-qt-warning-e1d2ce4a0b.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
@@ -95,6 +97,4 @@ the harness line budget intact.
 | 2026-07-27T19:08:37Z | L3 | macos-status-ba... | Desktop screenshot permission was declined, so runtime ic... | [report](errors/20260727-190837-B-macos-status-bar-screenshot-denied.md) |
 | 2026-07-27T19:07:00Z | L1 | desktop-static-... | desktop_ux_static_test.py could not start because android... | [report](errors/20260727-190700-B-desktop-static-missing-android-manifest.md) |
 | 2026-07-27T19:05:48Z | L3 | svg-search-no-m... | A combined read-only search exited 1 because the second q... | [report](errors/20260727-190548-B-svg-search-no-match.md) |
-| 2026-07-27T19:04:52Z | L3 | preflight-index... | Preflight blocked because .harness/journal/INDEX.md excee... | [report](errors/20260727-190452-B-preflight-index-drift.md) |
-| 2026-07-27T18:41:47Z | L3 | qt-log-scan-rot... | Required post-run scan_qt_log.py exited 2: duplicate time... | [report](errors/20260727-184147-A-qt-log-scan-rotation.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

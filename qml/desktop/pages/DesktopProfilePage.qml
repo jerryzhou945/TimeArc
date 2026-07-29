@@ -499,15 +499,25 @@ Item {
 
     // 成功保存反馈：在持久确认卡里显示完整路径（toast 单行 + 1.5s 装不下长路径，用户找不到文件），
     // 并给「打开文件夹」按钮用资源管理器定位（Qt.openUrlExternally 打开所在目录）。
+    // 斜杠数按平台分：Windows 盘符路径（C:/...）没有前导斜杠，要补满三道；
+    // Unix（macOS/Linux）绝对路径自带前导斜杠，只补两道，否则拼出 file:////Users/...，
+    // Qt 会解析成「空 authority + //Users/... 」的非本地路径，openUrlExternally 返回 false
+    // 且不报错——「打开文件夹」按钮就这样静默失效。encodeURI 处理空格与非 ASCII
+    // （默认服务目录 .../Library/Application Support/... 本身就带空格）。
     function _folderUrlOf(p) {
         var s = ("" + p).replace(/\\/g, "/")
         var i = s.lastIndexOf("/")
-        var dir = (i > 0) ? s.substring(0, i) : s
-        return "file:///" + dir
+        // i === 0 是根目录下的文件（/foo.db），目录该是 "/" 而不是文件自身。
+        var dir = (i > 0) ? s.substring(0, i) : (i === 0 ? "/" : s)
+        return (dir.charAt(0) === "/" ? "file://" : "file:///") + encodeURI(dir)
     }
     function showSavedAt(title, p) {
-        root.askConfirm(title, "已保存到：\n" + p, "打开文件夹", false,
-            function () { Qt.openUrlExternally(root._folderUrlOf(p)) })
+        root.askConfirm(title, root.sentence("savedToPath", { path: p }, "已保存到：\n" + p), "打开文件夹", false,
+            function () {
+                // 返回值必须看：失败时桌面环境不会有任何反馈，正是本次静默失效的原因。
+                if (!Qt.openUrlExternally(root._folderUrlOf(p)))
+                    root.showToast("无法打开文件夹")
+            })
     }
     // GUI 数据库备份：C++ backupDatabase 用 VACUUM INTO 备份 timearc.db。
     function doBackupDatabase() {
@@ -525,10 +535,14 @@ Item {
             showToast(info && info.error ? ("无效备份：" + info.error) : "无效的备份文件")
             return
         }
-        var msg = "完整性 " + info.integrity
+        var msg = root.sentence("backupPreview", {
+                    integrity: info.integrity, settings: info.settingsRows,
+                    projects: info.manualProjectRows, sessions: info.manualSessionRows, apps: info.appRows
+                },
+                "完整性 " + info.integrity
                 + "\n设置 " + info.settingsRows + " 条 · 项目 " + info.manualProjectRows
                 + " 个 · 手动记录 " + info.manualSessionRows + " 条 · 应用 " + info.appRows + " 个"
-                + "\n\n将用所选备份覆盖当前 GUI 数据库（timearc.db）。"
+                + "\n\n将用所选备份覆盖当前 GUI 数据库（timearc.db）。")
         root.askConfirm("恢复数据库", msg, "恢复", true, function () { root.doRestoreConfirmed("" + fileUrl) })
     }
     function doRestoreConfirmed(fileUrl) {
@@ -554,9 +568,11 @@ Item {
     }
     function onDbFolderChosen(folderUrl) {
         if (!databaseManager || !databaseManager.relocateDatabaseTo) { showToast("迁移暂不可用"); return }
+        // 按钮文案用「设置此目录」而不是「设置」：词表以中文原文为键，"设置" 已被
+        // 导航项占用（→ Settings），复用会把确认按钮翻成 "Settings"。
         root.askConfirm("设置服务数据库目录",
             "将把后台服务数据库目录切换到所选位置。GUI 不移动现有数据库文件；后台服务会在重启后写入该目录。",
-            "设置", true, function () { root._stopThenMigrate(function () { return databaseManager.relocateDatabaseTo("" + folderUrl) }) })
+            "设置此目录", true, function () { root._stopThenMigrate(function () { return databaseManager.relocateDatabaseTo("" + folderUrl) }) })
     }
     function doRestoreDefaultLocation() {
         if (!databaseManager || !databaseManager.restoreDefaultDatabaseLocation) { showToast("迁移暂不可用"); return }
@@ -567,25 +583,32 @@ Item {
     function _afterRelocate(res) {
         if (res && res.ok) {
             root.askConfirm("迁移成功",
-                "服务数据库位置已设置为：\n" + res.newPath
-                    + "\n\n需要重启应用（并重启后台采集）以让两进程加载新位置，是否立即退出？",
+                root.sentence("relocateSuccess", { path: res.newPath },
+                    "服务数据库位置已设置为：\n" + res.newPath
+                        + "\n\n需要重启应用（并重启后台采集）以让两进程加载新位置，是否立即退出？"),
                 "立即退出", false, function () { Qt.quit() })
         } else {
             showToast(res && res.error ? ("迁移失败：" + res.error) : "迁移失败")
         }
     }
 
+    // macOS 菜单栏「文件 › 导入设置…」的入口：对话框 id 出不了本文件，
+    // Shell 的 menuRunSettingsAction 只能按函数名调用（其余两项本就是函数）。
+    function openImportDialog() {
+        importDialog.open()
+    }
+
     FileDialog {
         id: importDialog
         title: root.tr("导入设置 JSON")
-        nameFilters: ["JSON 文件 (*.json)", "所有文件 (*)"]
+        nameFilters: [root.tr("JSON 文件 (*.json)"), root.tr("所有文件 (*)")]
         onAccepted: root.doImport(selectedFile)
     }
 
     FileDialog {
         id: restoreDialog
         title: root.tr("选择数据库备份")
-        nameFilters: ["数据库备份 (*.db)", "所有文件 (*)"]
+        nameFilters: [root.tr("数据库备份 (*.db)"), root.tr("所有文件 (*)")]
         onAccepted: root.onRestoreFileChosen(selectedFile)
     }
 
@@ -1773,13 +1796,17 @@ Item {
                 id: confirmCol
                 anchors { left: parent.left; right: parent.right; top: parent.top; margins: 18 }
                 spacing: 12
+                // 标题/正文都要过 tr()：按钮走 GhostBtn 内的 tr()，这两行此前直接渲染
+                // 中文原文，于是英/日模式下出现「Cancel + 中文标题正文」混排。
+                // 正文里的动态串（路径、条数）已在调用点用 sentence() 组好，
+                // 再过一次 tr() 只是查不到的空转，不会二次翻译。
                 Text {
-                    text: confirmCard.titleText; color: ml.textPrimary
+                    text: root.tr(confirmCard.titleText); color: ml.textPrimary
                     font.pixelSize: 17; font.weight: Font.DemiBold
                     Layout.fillWidth: true; wrapMode: Text.WordWrap
                 }
                 Text {
-                    text: confirmCard.msgText; color: ml.textSecondary
+                    text: root.tr(confirmCard.msgText); color: ml.textSecondary
                     font.pixelSize: 12; Layout.fillWidth: true; wrapMode: Text.Wrap; lineHeight: 1.35
                 }
                 RowLayout {

@@ -315,6 +315,55 @@ Item {
         notifyEnabled = settingsRepository.getBool("notify_enabled", true);
     }
 
+    // =========================
+    // macOS 菜单栏命令入口（qml/desktop/MacMenuBar.qml）
+    // 菜单栏只在 macOS 实例化，这些函数在 Windows/Linux 上没有调用方。备忘/番茄沿用
+    // memoLocked 守卫（与字母键一致）；memo_hotkey_n 是「字母键要不要生效」的偏好，
+    // 与菜单命令无关——关掉字母键不该顺带让菜单里的备忘黑板消失。
+    // =========================
+    function menuNavigateTo(pageKey) {
+        var idx = indexOfPage(pageKey);
+        if (idx < 0)
+            return;
+        showingTimerPage = false;
+        selectedIndex = idx;
+    }
+    function menuToggleMemo() {
+        if (memoLocked)
+            return;
+        memoOverlay.open = !memoOverlay.open;
+    }
+    function menuTogglePomodoro() {
+        if (memoLocked)
+            return;
+        if (memoOverlay.togglePomodoro)
+            memoOverlay.togglePomodoro();
+    }
+    function menuToggleNightMode() {
+        nightMode = !nightMode;   // onNightModeChanged 负责写 KV 并下发给当前页
+    }
+    function menuSetLanguage(mode) {
+        if (settingsRepository)
+            settingsRepository.setValue("language_mode", mode);
+        languageMode = mode;      // onLanguageModeChanged 下发给当前页（含设置页的语言卡）
+    }
+    // 「文件」里的设置类动作：先切到设置页，页面就位后再调它自己的函数——用户随后看到的
+    // 是自己刚改动的那一页，也复用页面内既有的保存反馈卡（showSavedAt/toast）。
+    function menuRunSettingsAction(fn) {
+        menuNavigateTo("settings");
+        Qt.callLater(function () {
+            var it = pageLoader.item;
+            if (it && typeof it[fn] === "function")
+                it[fn]();
+        });
+    }
+    // 统计导出导的是当前视图的期次，菜单项只在统计页可点，故直接调当前页。
+    function menuExportStatsReport() {
+        var it = pageLoader.item;
+        if (it && typeof it.doExport === "function")
+            it.doExport();
+    }
+
     Component.onCompleted: {
         applyReadFiltersFromSettings();
         applyHotkeysFromSettings();

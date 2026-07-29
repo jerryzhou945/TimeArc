@@ -108,6 +108,21 @@ with day and night modes.
   rows — open the window, a disabled 开机自启 placeholder, and quit — relabelled
   in 简体中文 / English / 日本語 from the same `language_mode` setting the UI
   uses, applied the next time the menu opens. Timer control stays in the window.
+- **macOS menu bar** — macOS builds add a real application menu bar
+  (文件 / 编辑 / 显示 / 窗口 / 帮助, plus 设置… ⌘, and 退出 TimeArc ⌘Q merged into
+  the app menu). 文件 exports the stats report ⇧⌘E, imports/exports settings,
+  backs up the database, and closes the window ⌘W; 编辑 forwards
+  undo/redo/cut/copy/paste/select-all to the focused text field; 显示 switches
+  pages ⌘1–⌘4, toggles the memo blackboard ⇧⌘N, the pomodoro ⇧⌘P and night mode
+  ⌥⌘D, and picks the interface language; 窗口 minimizes ⌘M, zooms, and brings a
+  closed window back; 帮助 reveals the data folder in Finder. All rows are
+  localized in 简体中文 / English / 日本語 (the merged app-menu rows follow macOS's
+  own localization, per platform convention). The menu bar outlives the window —
+  after the red button closes it, commands needing a window grey out and the
+  窗口 › TimeArc row is the way back. The N / P letter hotkeys are unchanged;
+  the menu adds ⇧⌘N / ⇧⌘P as extra equivalents. Windows and Linux are
+  unaffected — no menu bar is created there. Design:
+  `docs/macos-menu-bar-design.md`.
 - **Desktop window chrome** — Windows uses an immersive custom chrome
   (QQ-Music style): a brand app icon top-left and minimize / maximize / close
   controls top-right, floating over a page background that bleeds to the top

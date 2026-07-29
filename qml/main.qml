@@ -134,6 +134,19 @@ ApplicationWindow {
         sourceComponent: useMobileShell ? mobileShell : desktopShell
     }
 
+    // macOS 应用菜单栏（屏幕顶端）。仅 macOS 激活：其他平台不创建任何
+    // Qt.labs.platform.MenuBar，自绘 chrome 与托盘行为原样不变。
+    Loader {
+        id: macMenuBarLoader
+        active: appWindow.macSidebarChrome
+        sourceComponent: Component {
+            MacMenuBar {
+                hostWindow: appWindow
+                hostShell: shellLoader.item
+            }
+        }
+    }
+
     Component {
         id: desktopShell
 

@@ -583,7 +583,36 @@ var en = {
     "手动计时": "Manual Timer",
     "结束后会自动回到首页，并把本次时长累计到项目中。": "After finishing, TimeArc returns home and adds this duration to the project.",
     "结束": "Finish",
-    "还没有最近项目": "No recent projects yet"
+    "还没有最近项目": "No recent projects yet",
+
+    // 设置页「导入导出」分区 + 二次确认卡（confirmCard）。确认卡的标题/正文此前
+    // 直接渲染中文原文，按钮走 tr() 但缺词条，于是出现「Cancel + 打开文件夹」混排。
+    "服务数据库目录": "Service Database Folder",
+    "选择后台服务写入 timearc_service.db 的目录；GUI 只更新位置指针，不移动数据库文件。完成后请重启采集。": "Choose the folder where the background service writes timearc_service.db. TimeArc only updates the location pointer and never moves the database file. Restart collection when you are done.",
+    "设置目录…": "Set Folder…",
+    "数据库已备份": "Database Backed Up",
+    "设置 JSON 已导出": "Settings JSON Exported",
+    "设置服务数据库目录": "Set Service Database Folder",
+    "还原默认数据库位置": "Restore Default Database Location",
+    "迁移成功": "Location Updated",
+    "恢复成功": "Restore Complete",
+    "删除使用历史": "Delete Usage History",
+    "打开文件夹": "Open Folder",
+    "无法打开文件夹": "Could not open the folder",
+    "恢复": "Restore",
+    "设置此目录": "Set This Folder",
+    "还原": "Restore Default",
+    "立即退出": "Quit Now",
+    "清理": "Clear",
+    "知道了": "Got It",
+    "将把后台服务数据库目录切换到所选位置。GUI 不移动现有数据库文件；后台服务会在重启后写入该目录。": "The background service database folder will be switched to the selected location. TimeArc does not move the existing database file; the background service writes to that folder after it restarts.",
+    "将清除服务数据库目录指针，后台服务下次启动会回到默认位置。": "The service database folder pointer will be cleared. The background service returns to its default location the next time it starts.",
+    "数据库已恢复。需要重启应用以加载新数据，是否立即退出？": "The database has been restored. TimeArc must restart to load the new data. Quit now?",
+    "将清除 UI 私有的派生缓存（窗口位置等）。不影响使用历史、设置偏好与备忘内容。": "Clears the UI's own derived cache (window position and similar). Usage history, preferences, and memo content are not affected.",
+    "使用历史为追加-only（磁盘契约 D1），应用内不提供删除；如需清空请停止后台服务后用迁移工具处理。": "Usage history is append-only (disk contract D1), so TimeArc does not delete it in-app. To clear it, stop the background service and use the migration tool.",
+    "JSON 文件 (*.json)": "JSON files (*.json)",
+    "数据库备份 (*.db)": "Database backups (*.db)",
+    "所有文件 (*)": "All files (*)"
 }
 
 var ja = {
@@ -721,7 +750,61 @@ var ja = {
     "番茄钟完成": "ポモドーロ完了",
     "这一程结束了": "このセッションは終了しました",
     "功能已开启": "有効",
-    "功能已关闭": "無効"
+    "功能已关闭": "無効",
+
+    // 设置页「导入导出」分区 + 二次确认卡。此前 ja 表在这一片完全没有词条，
+    // 全靠 ja → en → zh 回退链落到英文；这里补齐整片，回退链只兜底新增遗漏。
+    "设置迁移": "設定の移行",
+    "从设置文件恢复偏好，或复制一份便于排查的配置摘要。": "設定ファイルから設定を復元、またはトラブルシューティング用の設定概要をコピーします。",
+    "导入设置": "設定をインポート",
+    "复制配置摘要": "設定概要をコピー",
+    "数据库备份与恢复": "データベースのバックアップと復元",
+    "把整个使用数据库导出为单文件备份，或从备份恢复（恢复前请先停止后台采集）。": "使用データベース全体を単一ファイルにバックアップ、またはバックアップから復元します（復元前にバックグラウンド収集を停止してください）。",
+    "备份数据库": "データベースをバックアップ",
+    "恢复数据库": "データベースを復元",
+    "服务数据库目录": "サービスデータベースのフォルダ",
+    "选择后台服务写入 timearc_service.db 的目录；GUI 只更新位置指针，不移动数据库文件。完成后请重启采集。": "バックグラウンドサービスが timearc_service.db を書き込むフォルダを選びます。GUI は位置ポインタを更新するだけで、データベースファイルは移動しません。完了後は収集を再起動してください。",
+    "当前位置": "現在の場所",
+    "设置目录…": "フォルダを設定…",
+    "还原默认位置": "既定の場所に戻す",
+    "当前数据概览": "現在のデータ概要",
+    "今天的使用情况和本地记录规模。": "今日の使用状況とローカル記録のサイズ。",
+    "今日使用": "今日の使用",
+    "切换次数": "切替回数",
+    "备忘页数": "メモのページ数",
+    "番茄钟": "ポモドーロ",
+    "恢复与重置": "復元とリセット",
+    "用于快速恢复视觉默认状态。": "外観を素早く既定に戻します。",
+    "恢复视觉默认": "外観を既定に戻す",
+    "清空本地缓存": "ローカルキャッシュを消去",
+    "清理缓存": "キャッシュを消去",
+    "数据库已备份": "データベースをバックアップしました",
+    "设置 JSON 已导出": "設定 JSON をエクスポートしました",
+    "设置服务数据库目录": "サービスデータベースのフォルダを設定",
+    "还原默认数据库位置": "既定のデータベース位置に戻す",
+    "迁移成功": "場所を更新しました",
+    "恢复成功": "復元が完了しました",
+    "删除使用历史": "使用履歴の削除",
+    "打开文件夹": "フォルダを開く",
+    "无法打开文件夹": "フォルダを開けませんでした",
+    "恢复": "復元",
+    "设置此目录": "このフォルダに設定",
+    "还原": "既定に戻す",
+    "立即退出": "今すぐ終了",
+    "清理": "消去",
+    "清空": "消去",
+    "知道了": "了解",
+    "将把后台服务数据库目录切换到所选位置。GUI 不移动现有数据库文件；后台服务会在重启后写入该目录。": "バックグラウンドサービスのデータベースフォルダを選択した場所に切り替えます。GUI は既存のデータベースファイルを移動しません。バックグラウンドサービスは再起動後にそのフォルダへ書き込みます。",
+    "将清除服务数据库目录指针，后台服务下次启动会回到默认位置。": "サービスデータベースのフォルダポインタを消去します。バックグラウンドサービスは次回起動時に既定の場所へ戻ります。",
+    "数据库已恢复。需要重启应用以加载新数据，是否立即退出？": "データベースを復元しました。新しいデータを読み込むにはアプリの再起動が必要です。今すぐ終了しますか？",
+    "将清除 UI 私有的派生缓存（窗口位置等）。不影响使用历史、设置偏好与备忘内容。": "UI 固有の派生キャッシュ（ウィンドウ位置など）を消去します。使用履歴・設定・メモの内容には影響しません。",
+    "使用历史为追加-only（磁盘契约 D1），应用内不提供删除；如需清空请停止后台服务后用迁移工具处理。": "使用履歴は追記専用（ディスク契約 D1）のため、アプリ内では削除できません。消去するにはバックグラウンドサービスを停止し、移行ツールを使用してください。",
+    "导入设置 JSON": "設定 JSON をインポート",
+    "选择数据库备份": "データベースのバックアップを選択",
+    "选择数据库存放目录": "データベースの保存先フォルダを選択",
+    "JSON 文件 (*.json)": "JSON ファイル (*.json)",
+    "数据库备份 (*.db)": "データベースのバックアップ (*.db)",
+    "所有文件 (*)": "すべてのファイル (*)"
 }
 
 var sentencesEn = {
@@ -773,7 +856,10 @@ var sentencesEn = {
     "todayAppAnalysis": "{app} was used about {time} today, mostly during {period}. Longest continuous session: {longest}.",
     "todayAppAnalysisWithLaunches": "{app} was used {time} today, mostly around {period}. Longest session: {longest}. Opened {launches} times.",
     "monthlyAppAnalysisWithLaunches": "{app} was used {time} this month, mostly around {period}. Longest session: {longest}. Opened {launches} times.",
-    "continuousSessions": "Today had {count} continuous sessions. Longest {longest}, mainly in {category}."
+    "continuousSessions": "Today had {count} continuous sessions. Longest {longest}, mainly in {category}.",
+    "savedToPath": "Saved to:\n{path}",
+    "backupPreview": "Integrity {integrity}\n{settings} settings · {projects} projects · {sessions} manual records · {apps} apps\n\nThe selected backup will overwrite the current GUI database (timearc.db).",
+    "relocateSuccess": "Service database location set to:\n{path}\n\nTimeArc must restart (together with background collection) so both processes load the new location. Quit now?"
 }
 
 var sentencesJa = {
@@ -809,11 +895,93 @@ var sentencesJa = {
     "entertainmentRatioAdvice": "娯楽は約 {percent}% です。1日の上限を検討できます。",
     "exportedPath": "エクスポートしました: {path}",
     "itemCount": "{count} 件",
-    "topThemeInsight": "今日の主なテーマ: {name} ({percent}%)"
+    "topThemeInsight": "今日の主なテーマ: {name} ({percent}%)",
+    "savedToPath": "保存先:\n{path}",
+    "backupPreview": "整合性 {integrity}\n設定 {settings} 件 · プロジェクト {projects} 件 · 手動記録 {sessions} 件 · アプリ {apps} 件\n\n選択したバックアップで現在の GUI データベース（timearc.db）を上書きします。",
+    "relocateSuccess": "サービスデータベースの場所を次に設定しました:\n{path}\n\n両方のプロセスが新しい場所を読み込むには、アプリ（およびバックグラウンド収集）の再起動が必要です。今すぐ終了しますか？"
+}
+
+// macOS 应用菜单栏（qml/desktop/MacMenuBar.qml）专用文案，单列一张表而不是并进
+// 上面的 en/ja：菜单里的「复制」「番茄钟」等词与页面内同名条目写法一致，若补进主表
+// 会顺带改动 Windows/Linux 上已有界面的译法。这张表只有 macOS 的菜单栏读。
+var menuEn = {
+    "文件": "File",
+    "编辑": "Edit",
+    "显示": "View",
+    "窗口": "Window",
+    "帮助": "Help",
+    "设置…": "Settings…",
+    "退出 TimeArc": "Quit TimeArc",
+    "导出统计报告…": "Export Stats Report…",
+    "导入设置…": "Import Settings…",
+    "导出设置…": "Export Settings…",
+    "备份数据库…": "Back Up Database…",
+    "关闭窗口": "Close Window",
+    "撤销": "Undo",
+    "重做": "Redo",
+    "剪切": "Cut",
+    "复制": "Copy",
+    "粘贴": "Paste",
+    "全选": "Select All",
+    "记忆湖": "Memory Lake",
+    "日历": "Calendar",
+    "统计": "Stats",
+    "月度记忆湖": "Monthly Recap",
+    "备忘黑板": "Memo Board",
+    "番茄钟": "Pomodoro",
+    "夜间模式": "Night Mode",
+    "界面语言": "Interface Language",
+    "最小化": "Minimize",
+    "缩放": "Zoom",
+    "在 Finder 中显示数据文件夹": "Show Data Folder in Finder"
+}
+
+// 系统菜单条目沿用 Apple 日本語版的既有译法（しまう / 拡大縮小 / カット…），
+// 免得同一条菜单里一半是系统词一半是自造词。
+var menuJa = {
+    "文件": "ファイル",
+    "编辑": "編集",
+    "显示": "表示",
+    "窗口": "ウインドウ",
+    "帮助": "ヘルプ",
+    "设置…": "設定…",
+    "退出 TimeArc": "TimeArc を終了",
+    "导出统计报告…": "統計レポートを書き出す…",
+    "导入设置…": "設定を読み込む…",
+    "导出设置…": "設定を書き出す…",
+    "备份数据库…": "データベースをバックアップ…",
+    "关闭窗口": "ウインドウを閉じる",
+    "撤销": "取り消す",
+    "重做": "やり直す",
+    "剪切": "カット",
+    "复制": "コピー",
+    "粘贴": "ペースト",
+    "全选": "すべてを選択",
+    "记忆湖": "記憶の湖",
+    "日历": "カレンダー",
+    "统计": "統計",
+    "月度记忆湖": "月間の記憶",
+    "备忘黑板": "メモボード",
+    "番茄钟": "ポモドーロ",
+    "夜间模式": "ナイトモード",
+    "界面语言": "表示言語",
+    "最小化": "しまう",
+    "缩放": "拡大縮小",
+    "在 Finder 中显示数据文件夹": "データフォルダを Finder で表示"
 }
 
 function langKey(lang) {
     return lang === "en" || lang === "ja" ? lang : "zh"
+}
+
+// 菜单栏取词。与 t() 同样的回退链：ja 缺词回 en，最后回中文原文。
+function menu(lang, source) {
+    var l = langKey(lang)
+    if (l === "en")
+        return menuEn[source] || source
+    if (l === "ja")
+        return menuJa[source] || menuEn[source] || source
+    return source
 }
 
 function t(lang, source) {
