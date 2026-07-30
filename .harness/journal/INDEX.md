@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-30T15:57:25Z | L3 | about-card-patc... | Initial About card restructuring patch did not apply beca... | [report](errors/20260730-155725-B-about-card-patch-context.md) |
+| 2026-07-30T15:46:55Z | L3 | mac-menu-static... | macos_menu_bar_static_test.py expects a 月度记忆湖 translation... | [report](errors/20260730-154655-B-mac-menu-static-stale-monthly-label.md) |
+| 2026-07-30T15:46:39Z | L3 | desktop-ux-test... | desktop_ux_static_test.py aborts before UI assertions bec... | [report](errors/20260730-154639-B-desktop-ux-test-missing-android-manifest.md) |
 | 2026-07-30T12:43:36Z | L2 | qt-warning-1e90... | [WARNING] :0 - macOS menu bar: AppKit is running ""en"" w... | [report](errors/20260730-124336-C-qt-warning-1e90e04428.md) |
 | 2026-07-30T12:43:36Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-124336-C-qt-warning-19f33ebed5.md) |
 | 2026-07-30T06:49:43Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-064943-C-qt-warning-19f33ebed5.md) |

@@ -10,6 +10,10 @@
 > **配套权威**：`.harness/rules/06-licensing.md` **§4**（应用内页面三条硬要求）、`.harness/CHARTER.md` **I6**
 > （文本须可从 UI 抵达）、`.harness/state/frozen-files.json`。
 >
+> **现行落点（2026-07-30）**：最初按 Route A 落在「导入导出」卡片；随后按
+> Route B 提升为设置内独立的「关于与开源许可」分区。下文 Route A 内容保留为
+> 初始实施记录，不再描述当前导航结构。
+>
 > **维护**：完成 → 勾掉下表 + 移进 session log，并**同时**更新 `.harness/rules/06-licensing.md §4` 与
 > `README.md`（line 585 Roadmap + line 616-622 Third-Party 表）——`rules/06:64` 明文要求「Update this rule and
 > the main README together when this lands」。（注：`harness_check` pass 7 仅在**新增独立源文件**[Route C] 时才强制连带触 rules/README；默认 Route A/B 改单文件不触发 pass 7——同步义务源自 `rules/06:64`，仍须做。）

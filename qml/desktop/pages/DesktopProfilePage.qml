@@ -145,23 +145,23 @@ Item {
     // 随包分发 + 本页渲染，单一真相源；新增 thirdparty 组件须同步加文本 + 本数组一行，rules/06 §4(3)）。
     // 版本真相源：Qt 6.11.1（C:/Qt/6.11.1）/ SQLite 3.51.3（sqlite3.h:149）/ Parson 1.5.3（parson.h:37-39）。
     readonly property var licenseComponents: [
-        { name: "Qt 6", version: "6.11.1",
+        { name: "TimeArc", badge: "©", version: root.appVersion,
+          license: "GPL-3.0-or-later（本项目自身，= 仓库根 LICENSE）",
+          linkage: "—",
+          texts: [ { btn: "查看许可全文", file: "timearc-gpl-3.0.txt" } ] },
+        { name: "Qt 6", badge: "Q", version: "6.11.1",
           license: "GNU LGPL-3.0（含例外条款）；部分工具与附加模块为 GPL-3.0",
           linkage: "动态 / dynamic",
           texts: [ { btn: "LGPL-3.0 全文", file: "qt-lgpl-3.0.txt" },
                    { btn: "GPL-3.0 全文", file: "qt-gpl-3.0.txt" } ] },
-        { name: "SQLite", version: "3.51.3",
+        { name: "SQLite", badge: "S", version: "3.51.3",
           license: "Public domain（公有领域，无许可正文）",
           linkage: "静态 / static",
           texts: [ { btn: "查看声明", file: "sqlite-public-domain.txt" } ] },
-        { name: "Parson", version: "1.5.3",
+        { name: "Parson", badge: "P", version: "1.5.3",
           license: "MIT",
           linkage: "静态 / static",
-          texts: [ { btn: "查看许可全文", file: "parson-mit.txt" } ] },
-        { name: "TimeArc", version: root.appVersion,
-          license: "GPL-3.0-or-later（本项目自身，= 仓库根 LICENSE）",
-          linkage: "—",
-          texts: [ { btn: "查看许可全文", file: "timearc-gpl-3.0.txt" } ] }
+          texts: [ { btn: "查看许可全文", file: "parson-mit.txt" } ] }
     ]
 
     // 许可全文的 Qt 资源路径。坑链（实测）：
@@ -515,7 +515,8 @@ Item {
         "tracking": { t: "追踪与应用", d: "管理使用时间记录、应用分类和显示范围。" },
         "privacy":  { t: "隐私与数据", d: "控制本地保存、敏感信息隐藏和缓存清理。" },
         "memo":     { t: "备忘与番茄钟", d: "调整备忘录、便签、页面和番茄钟的默认行为。" },
-        "export":   { t: "导入导出",   d: "备份设置、复制配置或恢复默认状态。" }
+        "export":   { t: "导入导出",   d: "备份设置、复制配置或恢复默认状态。" },
+        "about":    { t: "关于与开源许可", d: "TimeArc 及其依赖的第三方组件版本与许可证。全文随包内嵌，离线可读。" }
     })
 
     // 标签模型
@@ -524,7 +525,8 @@ Item {
         { key: "tracking", glyph: "◉", label: "追踪与应用" },
         { key: "privacy",  glyph: "◆", label: "隐私与数据" },
         { key: "memo",     glyph: "◇", label: "备忘与番茄钟" },
-        { key: "export",   glyph: "⇅", label: "导入导出" }
+        { key: "export",   glyph: "⇅", label: "导入导出" },
+        { key: "about",    glyph: "©", label: "关于与开源许可" }
     ]
 
     // 强调色 4 色（picker 数据；设计稿 §7.5 渐变对）
@@ -1028,7 +1030,7 @@ Item {
                     width: scroll.width
                     height: sectionStack.implicitHeight + 8   // 真实高度驱动 SilkyFlickable contentHeight
 
-                    // 5 个分区（互斥 visible + 入场动画）
+                    // 6 个分区（互斥 visible + 入场动画）
                     Item {
                         id: sectionStack
                         width: parent.width
@@ -1040,6 +1042,7 @@ Item {
                             case "privacy":  return privacySec.implicitHeight
                             case "memo":     return memoSec.implicitHeight
                             case "export":   return exportSec.implicitHeight
+                            case "about":    return aboutSec.implicitHeight
                             }
                             return 0
                         }
@@ -1785,94 +1788,55 @@ Item {
                                 }
                             }
 
-                            // ===== F2：关于与开源许可（应用内第三方许可证页面，Route A）=====
+                        }
+
+                        // ===== about 关于与开源许可 =====
+                        SectionGrid {
+                            id: aboutSec
+                            tabKey: "about"
+
+                            // F2：应用内第三方许可证页面（独立设置分区）。
                             // 满足 rules/06 §4(1) 名称+版本+全文、§4(2) 离线可达、CHARTER I6「reachable from the UI」。
-                            SettingsCard {
-                                badge: "©"; wide: true
-                                cardTitle: "关于与开源许可"
-                                cardDesc: "TimeArc 及其依赖的第三方组件版本与许可证。全文随包内嵌，离线可读。"
-                                keywords: "关于 about 许可 license 开源 第三方 版权 copyright qt sqlite parson lgpl gpl mit 公有领域"
+                            // 每个组件都是一个设置卡；TimeArc 的版本与自身许可合并在首卡。
+                            Repeater {
+                                model: root.licenseComponents
+                                delegate: SettingsCard {
+                                    id: licenseCard
+                                    required property var modelData
+                                    readonly property var comp: licenseCard.modelData
 
-                                // 应用自身一行：名称 + 版本（MVP 常量）。
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: aboutCol.implicitHeight + 24
-                                    radius: 14
-                                    color: ml.calSunkBg
-                                    border.width: 1; border.color: ml.cellHair
-                                    Column {
-                                        id: aboutCol
-                                        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
-                                        spacing: 3
-                                        Text { text: root.tr("应用"); color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
-                                        Text {
-                                            text: root.sentence("localVersion", {version: root.appVersion}, "TimeArc · 本地版本 " + root.appVersion)
-                                            color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
-                                            width: parent.width; wrapMode: Text.WordWrap
-                                        }
-                                        Text {
-                                            text: root.tr("本项目以 GPL-3.0-or-later 授权；Qt 以 LGPL-3.0 动态链接。")
-                                            color: ml.textTertiary; font.pixelSize: 11
-                                            width: parent.width; wrapMode: Text.WordWrap
-                                        }
-                                    }
-                                }
+                                    badge: comp.badge
+                                    wide: true
+                                    cardTitle: comp.name
+                                    cardDesc: comp.name === "TimeArc"
+                                              ? root.sentence("localVersion", {version: root.appVersion},
+                                                              "TimeArc · 本地版本 " + root.appVersion)
+                                              : "v" + comp.version + " · " + root.tr(comp.linkage)
+                                    keywords: "关于 about 许可 license 开源 第三方 版权 copyright "
+                                              + comp.name + " " + comp.license
 
-                                // 第三方组件清单：每行一块 sunken Rectangle，名称+版本+许可+链接方式 + 查看全文按钮。
-                                Repeater {
-                                    model: root.licenseComponents
-                                    delegate: Rectangle {
-                                        id: compRow
-                                        required property var modelData
-                                        readonly property var comp: compRow.modelData
+                                    Text {
                                         Layout.fillWidth: true
-                                        Layout.preferredHeight: compCol.implicitHeight + 24
-                                        radius: 14
-                                        color: ml.calSunkBg
-                                        border.width: 1; border.color: ml.cellHair
-                                        ColumnLayout {
-                                            id: compCol
-                                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
-                                            spacing: 6
-                                            RowLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-                                                Text { text: compRow.comp.name; color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
-                                                Text {
-                                                    visible: compRow.comp.version !== ""
-                                                    text: "v" + compRow.comp.version
-                                                    color: ml.textTertiary; font.pixelSize: 11
-                                                }
-                                                Item { Layout.fillWidth: true }
-                                                Text {
-                                                    text: root.tr(compRow.comp.linkage)
-                                                    color: ml.textTertiary; font.pixelSize: 10
-                                                    font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3
-                                                }
-                                            }
-                                            Text {
-                                                Layout.fillWidth: true
-                                                text: root.tr(compRow.comp.license)
-                                                color: ml.textSecondary; font.pixelSize: 11; wrapMode: Text.WordWrap
-                                            }
-                                            Flow {
-                                                Layout.fillWidth: true
-                                                spacing: 8
-                                                Repeater {
-                                                    model: compRow.comp.texts
-                                                    delegate: GhostBtn {
-                                                        required property var modelData
-                                                        label: root.tr(modelData.btn)
-                                                        onTapped: root.showLicenseText(modelData.file, compRow.comp.name, root.tr(compRow.comp.license))
-                                                    }
-                                                }
+                                        text: root.tr(licenseCard.comp.license)
+                                        color: ml.textSecondary
+                                        font.pixelSize: 11
+                                        wrapMode: Text.WordWrap
+                                    }
+
+                                    Flow {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        Repeater {
+                                            model: licenseCard.comp.texts
+                                            delegate: GhostBtn {
+                                                required property var modelData
+                                                label: root.tr(modelData.btn)
+                                                onTapped: root.showLicenseText(
+                                                    modelData.file, licenseCard.comp.name,
+                                                    root.tr(licenseCard.comp.license))
                                             }
                                         }
                                     }
-                                }
-
-                                PlaceholderNote {
-                                    text: root.tr("全文文件位于 resources/licenses/，已内嵌 qrc 随包分发；无网络也可阅读。新增第三方依赖时须同步补充对应文本与本卡条目（rules/06 §4(3)）。")
                                 }
                             }
                         }

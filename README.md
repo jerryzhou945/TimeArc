@@ -120,7 +120,7 @@ with day and night modes.
   in its own domain so the native menu bar speaks the UI language, and reading
   that back would be self-referential.
 - **macOS menu bar** — macOS builds add a real application menu bar
-  (文件 / 编辑 / 显示 / 窗口 / 帮助, plus 设置… ⌘, and 退出 TimeArc ⌘Q merged into
+  (文件 / 编辑 / 显示 / 窗口 / 帮助, plus 关于 TimeArc, 设置… ⌘, and 退出 TimeArc ⌘Q merged into
   the app menu). 文件 exports the stats report ⇧⌘E, imports/exports settings,
   backs up the database, and closes the window ⌘W; 编辑 forwards
   undo/redo/cut/copy/paste/select-all to the focused text field; 显示 switches
@@ -755,7 +755,7 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       Qt/MinGW DLLs + `LICENSE` + `licenses/` + `NOTICE.txt`; the macOS release
       script similarly deploys private Qt frameworks and licenses into `TimeArc.app`.
 - [x] Add an in-app licenses page surfacing all third-party texts (F2). Shipped
-      at Settings → 导入导出 → 「关于与开源许可」: per-component name, version, and
+      as the dedicated Settings → 「关于与开源许可」 page: per-component name, version, and
       full, offline-readable license text (`resources/licenses/`, qrc-embedded).
 - [ ] Wire Parson in as the JSON parser for user preferences /
       configuration.
@@ -794,7 +794,7 @@ or later (GPL-3.0-or-later)**. See `LICENSE` for the full text.
 
 Full license texts for every component above ship in `resources/licenses/*.txt`
 (embedded in the qrc, so they are readable offline) and are viewable in-app at
-Settings → 导入导出 → 「关于与开源许可」, which also shows each component's version
+Settings → 「关于与开源许可」, which also shows each component's version
 (Qt 6.11.1, SQLite 3.51.3, Parson 1.5.3). SQLite is public domain and carries no
 license text, so its entry ships the author's blessing plus an explicit
 "public domain — no license text" note. When a new third-party component is added

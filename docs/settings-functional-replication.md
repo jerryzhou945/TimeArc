@@ -248,7 +248,7 @@ DesktopProfilePage.qml（Item，就地重皮为全幅暗玻璃；保留 nightMod
   清空→「本地缓存已清空」。
 - **步骤**：① 三按钮（导出/导入/复制）接 getAllSettings/exportReport/FileDialog/clipboard；
   ② 概览 metric 绑真实 manager（番茄占位）；③ 恢复/清空按钮 + 二次确认 + toast。
-- **附加（F2 · 超出 v88 原型 · 已实装 PR #43）**：export tab 末尾增「关于与开源许可」卡——第三方组件
+- **附加（F2 · 超出 v88 原型 · 已实装 PR #43，后续提升为独立设置分区）**：「关于与开源许可」tab——第三方组件
   名+版本+许可+链接方式（Qt 6.11.1 / SQLite 3.51.3 / Parson 1.5.3 / TimeArc 0.1）+「查看全文」玻璃弹层
   （`SilkyFlickable`）读 `resources/licenses/` qrc 内嵌文本、离线可达。**坑**：QML `XMLHttpRequest` 读 `qrc:`
   默认禁；改 `qrc:/`→`:/` 走 `readTextFile()`。规则/同步见 `.harness/rules/06-licensing.md §4`；启动文档

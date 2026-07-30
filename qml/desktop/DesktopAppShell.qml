@@ -341,6 +341,14 @@ Item {
         showingTimerPage = false;
         selectedIndex = idx;
     }
+    function menuOpenAbout() {
+        menuNavigateTo("settings");
+        Qt.callLater(function () {
+            var it = pageLoader.item;
+            if (it && typeof it.selectTab === "function")
+                it.selectTab("about");
+        });
+    }
     function menuToggleMemo() {
         if (memoLocked)
             return;

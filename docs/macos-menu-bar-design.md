@@ -26,9 +26,9 @@ and 帮助 built from defaults). Three concrete consequences:
    process running. With no window, the menu bar is the *only* on-screen
    surface the app owns besides the status item — and today it is empty.
 
-Every command below binds to behavior that already exists in the codebase. No
-command in this design requires new product capability, with the two explicit
-exceptions marked **NEW** (About panel, Help target).
+Every shipped command below binds to behavior that already exists in the
+codebase. The Help target remains unshipped because no help content or URL has
+been selected.
 
 ## 2. Command inventory
 
@@ -38,7 +38,7 @@ Legend: **Binding** names the existing call site. Enablement rules are in §3.
 
 | Command | Key | Binding |
 |---|---|---|
-| ~~关于 TimeArc~~ | — | **Not shipped.** Would need a new about panel; skipped as new product surface, so macOS shows no About row |
+| 关于 TimeArc | — | `AboutRole` → restore the window if needed → Settings → 关于与开源许可 |
 | 设置… | ⌘, | `selectedIndex = indexOfPage("settings")`. `PreferencesRole` |
 | 服务 / 隐藏 TimeArc ⌘H / 隐藏其他 ⌥⌘H / 全部显示 | — | System-provided, do not declare |
 | 退出 TimeArc | ⌘Q | `appWindow.quitFromTray()` (`main.qml:77`). `QuitRole` |
@@ -159,7 +159,7 @@ The menu bar is alive in states the window is not. Three rules cover it:
 
 | State | Rule |
 |---|---|
-| **No window** (red-button close; process alive) | 设置…, ⌘1–⌘4, 备忘黑板, 番茄钟, 夜间模式, 语言, 最小化, 缩放, 关闭窗口, all 文件 rows → **disabled**. Alive: 关于, 退出, ✓ TimeArc, 帮助. Alternative considered and rejected: auto-restoring the window on any command — it turns a mis-click into an unexpected window on the user's current Space. |
+| **No window** (red-button close; process alive) | 设置…, ⌘1–⌘4, 备忘黑板, 番茄钟, 夜间模式, 语言, 最小化, 缩放, 关闭窗口, all 文件 rows → **disabled**. Alive: 关于, 退出, ✓ TimeArc, 帮助. 关于 is the deliberate exception: because its target is the in-window Settings page, it restores the window and opens 关于与开源许可. Other commands never auto-restore. |
 | **备忘黑板 open** (`memoOpen`) | It is a full-screen modal that hides the traffic lights (`main.qml:106`). Navigation rows (⌘1–⌘4) and 关闭窗口 → **disabled**; 备忘黑板 stays enabled (it is the way out); 番茄钟 stays enabled. Mirrors the existing `memoLocked` gate on the letter hotkeys. |
 | **Page-scoped** | 导出统计报告 enabled only while `selectedPage === "stats" && !showingTimerPage`. |
 

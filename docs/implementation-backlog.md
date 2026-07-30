@@ -131,7 +131,7 @@ G2/G3 打磨 ───────────(随手)
   `build-windows.ps1` 以相同四模式入口覆盖构建、测试、Qt 部署、可选签名与 ZIP，
   保留原有两个 Windows 发布工具但不调用它们。
 - [x] **F2 in-app 第三方许可证页面**（surfacing 所有 third-party 文本，`rules/06` §4）— Track B。
-  已实装（**PR #43**）：设置→导入导出→「关于与开源许可」卡（Qt/SQLite/Parson/TimeArc 名+版本+许可+链接方式），
+  已实装（**PR #43**，后续提升为独立设置分区）：设置→「关于与开源许可」（Qt/SQLite/Parson/TimeArc 名+版本+许可+链接方式），
   「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。
 
 ### G. 配置 / 打磨 / 杂项

@@ -62,11 +62,18 @@ def main():
     for title in ("文件", "编辑", "显示", "窗口", "帮助"):
         require(bar, f'title: bar.tr("{title}")', f"{title} menu")
 
-    # Settings and Quit carry roles so macOS merges them into the app menu.
+    # About, Settings and Quit carry roles so macOS merges them into the app menu.
     # Quit must route through quitFromTray(): the default quit item bypasses
     # forceQuit and hits main.qml's "close keeps the app running" onClosing.
+    require(bar, "role: Platform.MenuItem.AboutRole", "about role")
     require(bar, "role: Platform.MenuItem.PreferencesRole", "settings role")
     require(bar, "role: Platform.MenuItem.QuitRole", "quit role")
+    require(bar, "enabled: bar.hasShell && !bar.memoOpen && !bar.capturing",
+            "About remains available without a visible window")
+    require(bar, "if (!bar.hasWindow && bar.hostWindow)",
+            "About detects a closed window")
+    require(bar, "bar.hostShell.menuOpenAbout()", "about routed to the shell")
+    require(bar, "bar.hostWindow.restoreFromTray()", "about restores a closed window")
     require(bar, "bar.hostWindow.quitFromTray()", "quit routed through the window")
 
     # Commands, each bound to behavior that already exists.
@@ -123,7 +130,8 @@ def main():
     forbid(bar, "checked: bar.", "bound check state that activation would break")
 
     # Command targets exist on the objects the menu calls into.
-    for fn in ("function menuNavigateTo(", "function menuToggleMemo(",
+    for fn in ("function menuNavigateTo(", "function menuOpenAbout(",
+               "function menuToggleMemo(",
                "function menuTogglePomodoro(", "function menuToggleNightMode(",
                "function menuSetLanguage(", "function menuRunSettingsAction(",
                "function menuExportStatsReport("):
@@ -131,6 +139,8 @@ def main():
     require(profile, "function openImportDialog()", "settings import entry point")
     require(profile, "function doExport()", "settings export entry point")
     require(profile, "function doBackupDatabase()", "database backup entry point")
+    require(shell, 'it.selectTab("about")', "About menu selects the About settings tab")
+    require(profile, 'tabKey: "about"', "dedicated About settings tab")
 
     # All three UI languages, from the same file the window UI uses.
     require(bar, 'import "components/I18n.js" as I18n', "shared i18n source")
@@ -138,8 +148,8 @@ def main():
     require(i18n_js, "var menuEn = {", "English menu table")
     require(i18n_js, "var menuJa = {", "Japanese menu table")
     require(i18n_js, "function menu(lang, source)", "menu lookup")
-    for label in ("文件", "编辑", "显示", "窗口", "帮助", "备忘黑板",
-                  "月度记忆湖", "夜间模式", "在 Finder 中显示数据文件夹"):
+    for label in ("文件", "编辑", "显示", "窗口", "帮助", "关于 TimeArc",
+                  "备忘黑板", "记忆湖", "夜间模式", "在 Finder 中显示数据文件夹"):
         require(i18n_js, f'"{label}": "', f"{label} translated")
     # Language names stay in their own language, macOS-style — never translated.
     for literal in ('text: "中文"', 'text: "English"', 'text: "日本語"'):

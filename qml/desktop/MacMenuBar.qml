@@ -127,14 +127,24 @@ Platform.MenuBar {
     Platform.Menu {
         title: bar.tr("文件")
 
-        // 这两行带 role：macOS 会把它们合并进左上角的 TimeArc 应用菜单（Qt 的
-        // QCocoaMenuItem 接管应用菜单里现成的「设置…」「退出」两项），因此它们不会
+        // 这三行带 role：macOS 会把它们合并进左上角的 TimeArc 应用菜单（Qt 的
+        // QCocoaMenuItem 接管应用菜单里现成的「关于」「设置…」「退出」三项），因此它们不会
         // 留在「文件」里显示。声明自己的退出项是为了走 quitFromTray()——默认的退出项
         // 绕过 forceQuit，会撞上 main.qml 里「关窗口不退进程」的 onClosing 拦截。
         //
-        // 注意：合并后这两行的文案由 Qt Cocoa 接管。mergeText() 从 Qt Base 的
+        // 注意：合并后这三行的文案由 Qt Cocoa 接管。mergeText() 从 Qt Base 的
         // MAC_APPLICATION_MENU 目录取词；MacMenuLocalizer 把该目录同步到 language_mode。
         // 下面的 text 仍是角色合并前的回退值，shortcut 与 onTriggered 始终由这里提供。
+        Platform.MenuItem {
+            role: Platform.MenuItem.AboutRole
+            text: bar.tr("关于 TimeArc")
+            enabled: bar.hasShell && !bar.memoOpen && !bar.capturing
+            onTriggered: {
+                if (!bar.hasWindow && bar.hostWindow)
+                    bar.hostWindow.restoreFromTray();
+                bar.hostShell.menuOpenAbout();
+            }
+        }
         Platform.MenuItem {
             role: Platform.MenuItem.PreferencesRole
             text: bar.tr("设置…")
