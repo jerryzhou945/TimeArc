@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../components/TagPalette.js" as TagPalette
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 便签（v88 .sticky-note）。扁平暖黄纸 #FFE6A3 + 接触软阴影；隐藏拖拽 header（hover/选中升起）；
 // 标题 + 正文可编辑；4 把手缩放（左/右/下/右下角，**无上把手**，高度只向下长、顶边钉死）；
@@ -95,7 +96,7 @@ Item {
                     id: headerMouse
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: Qt.SizeAllCursor
+                    cursorShape: Cursor.grab()
                     drag.target: note
                     drag.axis: Drag.XAndYAxis
                     drag.minimumX: 8
@@ -190,7 +191,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: -4
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: note.cycleTag()
                     }
                 }
@@ -233,7 +234,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: -4
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: {
                             note.isTodo = !note.isTodo;
                             note.selectRequested(true);
@@ -314,7 +315,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: -3
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: { note.selectRequested(true); note.dueEditRequested(); }
                     }
                 }
@@ -340,7 +341,7 @@ Item {
             MouseArea {
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+                cursorShape: Cursor.button()
                 onClicked: { note.done = !note.done; note.selectRequested(true); note.doneToggled(); }
             }
         }
@@ -357,7 +358,7 @@ Item {
                 id: delMouse
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+                cursorShape: Cursor.button()
                 onClicked: note.deleteRequested()
             }
         }

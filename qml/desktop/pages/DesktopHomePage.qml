@@ -5,6 +5,7 @@ import "../components"
 import "../components/AppVisual.js" as AppVisual
 import "../components/TagPalette.js" as TagPalette
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 Item {
     id: root
@@ -856,7 +857,7 @@ Item {
 
                                             MouseArea {
                                                 anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
+                                                cursorShape: Cursor.button()
                                                 onClicked: selectedTag = modelData.tag
                                             }
                                         }
@@ -1400,7 +1401,7 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             onClicked: addMenu.popup(addButton.x, addButton.y - addMenu.height)
         }
     }

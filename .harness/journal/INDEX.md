@@ -8,6 +8,15 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-30T19:53:23Z | L2 | macos-cursor-co... | macOS 桌面 UI 使用 Windows 指针惯例：90 处光标（指针手/禁止/SizeAll/DragCop... | [report](errors/20260730-195323-C-macos-cursor-conventions.md) |
+| 2026-07-30T19:52:20Z | L2 | qt-warning-637d... | [WARNING] :0 - The macOS LaunchAgent requires approval in... | [report](errors/20260730-195220-C-qt-warning-637dce87d8.md) |
+| 2026-07-30T19:52:20Z | L2 | qt-warning-5d34... | [WARNING] :0 - macOS menu bar: AppKit is running ""ja"" w... | [report](errors/20260730-195220-C-qt-warning-5d343805b9.md) |
+| 2026-07-30T19:52:20Z | L2 | qt-warning-3c34... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-195220-C-qt-warning-3c34c057fd.md) |
+| 2026-07-30T19:52:20Z | L2 | qt-warning-4fb9... | [WARNING] :0 - macOS menu bar: AppKit is running ""zh-Han... | [report](errors/20260730-195220-C-qt-warning-4fb98ac61f.md) |
+| 2026-07-30T19:52:20Z | L2 | qt-warning-b406... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-195220-C-qt-warning-b4068cf85f.md) |
+| 2026-07-30T19:52:20Z | L2 | qt-warning-1e90... | [WARNING] :0 - macOS menu bar: AppKit is running ""en"" w... | [report](errors/20260730-195220-C-qt-warning-1e90e04428.md) |
+| 2026-07-30T19:52:20Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-195220-C-qt-warning-19f33ebed5.md) |
+| 2026-07-30T19:52:19Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-195219-C-qt-warning-19f33ebed5.md) |
 | 2026-07-30T18:03:18Z | L3 | frozen-hash-drift | Preflight found hash mismatches in CMakeLists.txt and src... | [report](errors/20260730-180318-C-frozen-hash-drift.md) |
 | 2026-07-30T15:57:25Z | L3 | about-card-patc... | Initial About card restructuring patch did not apply beca... | [report](errors/20260730-155725-B-about-card-patch-context.md) |
 | 2026-07-30T15:46:55Z | L3 | mac-menu-static... | macos_menu_bar_static_test.py expects a 月度记忆湖 translation... | [report](errors/20260730-154655-B-mac-menu-static-stale-monthly-label.md) |
@@ -39,29 +48,29 @@ the harness line budget intact.
 | 2026-07-29T08:43:17Z | L3 | unrelated-froze... | Final harness check found an unrelated concurrent CMakeLi... | [report](errors/20260729-084317-B-unrelated-frozen-cmake-drift.md) |
 | 2026-07-29T08:38:01Z | L2 | macos-double-cl... | Sidebar double-click always maximized/restored instead of... | [report](errors/20260729-083801-B-macos-double-click-preference.md) |
 | 2026-07-29T07:23:53Z | L2 | open-folder-uni... | _folderUrlOf prefixed file:/// unconditionally, which is ... | [report](errors/20260729-072353-C-open-folder-unix-file-url.md) |
-| 2026-07-29T07:06:03Z | L2 | i18n-confirm-di... | Settings confirm card rendered titleText/msgText without ... | [report](errors/20260729-070603-C-i18n-confirm-dialog.md) |
-| 2026-07-29T07:03:03Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260729-070303-C-qt-warning-19f33ebed5.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T20:15:46Z | L3 | macos-menu-bar-... | MacMenuBar was given 'appWindow: appWindow'; the RHS reso... | [report](errors/20260728-201546-B-macos-menu-bar-self-bound-window.md) |
-| 2026-07-28T19:53:05Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-195305-B-qt-warning-19f33ebed5.md) |
-| 2026-07-28T18:06:39Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-180639-C-qt-warning-c26efcf9e0.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T15:28:53Z | L3 | close-notificat... | Harness track-discipline check did not recognize the new ... | [report](errors/20260728-152853-C-close-notification-session-error-link.md) |
-| 2026-07-28T15:27:33Z | L2 | macos-close-tra... | Closing the TimeArc window on macOS emits an unwanted sys... | [report](errors/20260728-152733-C-macos-close-tray-notification.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T15:25:00Z | L3 | fullscreen-fix-... | Rolling-index trim patch used stale adjacent omission-row... | [report](errors/20260728-152500-C-fullscreen-fix-index-trim-context.md) |
 | 2026-07-28T15:23:59Z | L3 | fullscreen-fix-... | Runtime verification could not launch the rebuilt GUI bec... | [report](errors/20260728-152359-C-fullscreen-fix-gui-launch-not-authorized.md) |
 | 2026-07-28T15:21:10Z | L3 | fullscreen-fix-... | A source-discovery search included a nonexistent cmake di... | [report](errors/20260728-152110-C-fullscreen-fix-rg-missing-cmake-dir.md) |
 | 2026-07-28T15:07:29Z | L3 | fullscreen-diag... | Harness fast check found journal/INDEX.md at 102 lines af... | [report](errors/20260728-150729-C-fullscreen-diagnosis-index-line-budget.md) |
 | 2026-07-28T15:06:12Z | L3 | macos-status-ba... | Looked for macOS status-bar implementation under an incor... | [report](errors/20260728-150612-C-macos-status-bar-path-assumption.md) |
-| 2026-07-28T15:05:42Z | L2 | macos-fullscree... | Closing the GUI while in macOS full-screen leaves a black... | [report](errors/20260728-150542-C-macos-fullscreen-close-black-screen.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T14:29:36Z | L3 | qml-rule-path | Attempted to read a nonexistent rules/04-qml-runtime.md i... | [report](errors/20260728-142936-B-qml-rule-path.md) |
 | 2026-07-28T09:55:35Z | L1 | macos-logo-cont... | cmake --build exited 1 | [report](errors/20260728-095535-C-macos-logo-container-only-resize.md) |
-| 2026-07-28T09:54:52Z | L2 | macos-logo-cont... | The first sidebar fix enlarged the logo container only; t... | [report](errors/20260728-095452-C-macos-logo-container-only-resize.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T09:47:21Z | L3 | gui-launch-not-... | Visual verification could not launch the newly built app ... | [report](errors/20260728-094721-C-gui-launch-not-authorized.md) |
 | 2026-07-28T09:46:58Z | L3 | process-list-sa... | Visual-verification process-list check could not access m... | [report](errors/20260728-094658-C-process-list-sandbox.md) |
 | 2026-07-28T09:45:59Z | L3 | build-track-def... | Invoked build.py without --track C, so its missing-build-... | [report](errors/20260728-094559-C-build-track-default.md) |
 | 2026-07-28T09:41:07Z | L1 | swift-config-to... | Recreating the missing build directory failed because Swi... | [report](errors/20260728-094107-C-swift-config-toolchain-cache.md) |
 | 2026-07-28T09:40:24Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260728-094024-B-build-failure.md) |
-| 2026-07-28T09:39:36Z | L2 | macos-collapsed... | The macOS collapsed sidebar TimeArc logo is smaller and h... | [report](errors/20260728-093936-C-macos-collapsed-logo-alignment.md) |
-| 2026-07-28T09:12:41Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091241-C-qt-warning-c26efcf9e0.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
@@ -88,5 +97,4 @@ the harness line budget intact.
 | 2026-07-28T07:03:27Z | L3 | harness-topic-l... | The first harness line-budget error report used a topic l... | [report](errors/20260728-070327-B-harness-topic-length.md) |
 | 2026-07-28T07:02:22Z | L3 | qt-log-scan-san... | Post-run scan re-read stale prior macOS launch warnings a... | [report](errors/20260728-070222-B-qt-log-scan-sandbox-repeat.md) |
 | 2026-07-28T07:00:06Z | L3 | macos-sidebar-e... | Second visual pass still exposed a title-bar-like top ban... | [report](errors/20260728-070006-B-macos-sidebar-edge-to-edge.md) |
-| 2026-07-28T06:56:36Z | L3 | macos-sidebar-t... | First implementation retained a native title-bar region a... | [report](errors/20260728-065636-B-macos-sidebar-titlebar-misread.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

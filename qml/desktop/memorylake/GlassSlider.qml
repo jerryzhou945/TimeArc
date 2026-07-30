@@ -1,4 +1,5 @@
 import QtQuick
+import "../components/PlatformCursor.js" as Cursor
 
 // 暗玻璃磨砂滑块（v88 range-control §7.4）。轨 trackBg + 填充 aqua→violet + aqua 圆把手。
 // 受控：value 由父绑定；拖动/点击发 moved(newValue)，由父持久化 + 弹 toast。色取 MemoryLakeStyle（G1）。
@@ -76,7 +77,7 @@ Item {
     MouseArea {
         anchors.fill: parent
         preventStealing: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.button()
         onPressed: function (m) { sld._setFromX(m.x) }
         onPositionChanged: function (m) { if (pressed) sld._setFromX(m.x) }
     }

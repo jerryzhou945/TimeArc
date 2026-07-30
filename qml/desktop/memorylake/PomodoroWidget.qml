@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 番茄钟浮窗（v88 .pomodoro-widget）。**纯视图**：状态机、持久化、完成判定都在 C++ 的
 // PomodoroManager 里，这里只显示与手势——收缩成像素番茄、拖动、发光。
@@ -91,7 +92,7 @@ Item {
                 Text { anchors.centerIn: parent; text: "+"
                        color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.85); font.pixelSize: 13 }
                 MouseArea { id: upMa; anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor; onClicked: nf._commit(nf.value + 1) }
+                            cursorShape: Cursor.button(); onClicked: nf._commit(nf.value + 1) }
             }
             Rectangle {
                 width: 20; height: (parent.height - 2) / 2; radius: 6
@@ -101,7 +102,7 @@ Item {
                 Text { anchors.centerIn: parent; text: "−"
                        color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.85); font.pixelSize: 13 }
                 MouseArea { id: dnMa; anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor; onClicked: nf._commit(nf.value - 1) }
+                            cursorShape: Cursor.button(); onClicked: nf._commit(nf.value - 1) }
             }
         }
     }
@@ -190,7 +191,7 @@ Item {
             anchors.fill: parent
             visible: pomo.compact
             enabled: pomo.compact
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             onClicked: { pomo.pauseTimer(); pomo.compact = false; }
         }
 
@@ -286,7 +287,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         enabled: parent.canStart
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: pomo.running ? pomo.pauseTimer() : pomo.startTimer()
                     }
                 }
@@ -297,7 +298,7 @@ Item {
                     Text { anchors.centerIn: parent; text: I18n.t(pomo.languageMode, "重置")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
                     MouseArea { id: resetH; anchors.fill: parent; hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor; onClicked: pomo.resetTimer() }
+                        cursorShape: Cursor.button(); onClicked: pomo.resetTimer() }
                 }
             }
         }

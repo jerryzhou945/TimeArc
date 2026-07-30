@@ -46,14 +46,14 @@ desktop theme plumbing into mobile pages.
 
 Reject these in review:
 
-- **`localStorage` / `sessionStorage` / `fetch`**: QML does not have these.
-  Route all persistence through a manager.
-- **Hard-coded colors for new UI elements** that should adapt to night mode.
-  Add them to the theme plumbing instead.
+- **`localStorage` / `sessionStorage` / `fetch`**: QML has none of these; route
+  all persistence through a manager.
+- **Hard-coded colors for new UI** that must adapt to night mode; use the theme.
 - **New QML context properties** injected from C++ without being a `QObject`
   with `Q_PROPERTY`. The existing four managers are the template.
-- **Blocking file I/O in QML**. If you need to read a file, add a method on a
-  manager.
+- **Blocking file I/O in QML**. Add a method on a manager instead.
+- **Raw `Qt.*Cursor` in `qml/desktop/`** for click / disabled / grab / place —
+  macOS reverses all four; go through `components/PlatformCursor.js`.
 
 ## 5. Images and icons
 

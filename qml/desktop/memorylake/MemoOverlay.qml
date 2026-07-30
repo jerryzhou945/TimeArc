@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 备忘黑板·模态覆盖层（v88 #memoOverlay）。
 // **入口是动作不是路由**：盖在首页之上、底层页面原样保留，关闭后退回原处，全程不换页
@@ -647,7 +648,7 @@ Item {
         cursorShape: {
             switch (toolbar.currentTool) {
             case "text": return Qt.IBeamCursor;
-            case "note": return Qt.DragCopyCursor;
+            case "note": return Cursor.place();
             case "select": return Qt.ArrowCursor;
             case "none": return Qt.ArrowCursor;
             default: return Qt.CrossCursor;
@@ -959,7 +960,7 @@ Item {
                 id: moveMa
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
-                cursorShape: Qt.SizeAllCursor
+                cursorShape: Cursor.grab()
                 property real gx0: 0
                 property real gy0: 0
                 onPressed: function (m) {
@@ -1005,7 +1006,7 @@ Item {
                     Text { id: copyT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "复制")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.92); font.pixelSize: 13 }
                     MouseArea { id: copyMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: memo._copySelection() }
+                                cursorShape: Cursor.button(); onClicked: memo._copySelection() }
                 }
                 Rectangle {
                     width: delT.implicitWidth + 22; height: 30; radius: 8
@@ -1015,7 +1016,7 @@ Item {
                     Text { id: delT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "删除")
                            color: Qt.rgba(255 / 255, 235 / 255, 235 / 255, 0.95); font.pixelSize: 13 }
                     MouseArea { id: delMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: memo._deleteSelection() }
+                                cursorShape: Cursor.button(); onClicked: memo._deleteSelection() }
                 }
             }
         }
@@ -1132,14 +1133,14 @@ Item {
                         color: cancelH.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                         border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
                         Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "取消"); color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
-                        MouseArea { id: cancelH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        MouseArea { id: cancelH; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button()
                             onClicked: clearConfirm.open = false }
                     }
                     Rectangle {
                         width: 96; height: 34; radius: 10
                         color: clearGoH.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.85) : Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.55)
                         Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "清空"); color: "#FFFFFF"; font.pixelSize: 14; font.weight: Font.DemiBold }
-                        MouseArea { id: clearGoH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        MouseArea { id: clearGoH; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button()
                             onClicked: { memo.clearCurrentCanvas(); clearConfirm.open = false } }
                     }
                 }

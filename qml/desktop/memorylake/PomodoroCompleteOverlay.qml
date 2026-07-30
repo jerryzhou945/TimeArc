@@ -1,5 +1,6 @@
 import QtQuick
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 番茄完成全屏庆祝弹层（v88 .pomodoro-complete-overlay）。盖在一切之上：随机文案变体、
 // 旋转 conic 光环（分段 Canvas 环近似，避免外部 GraphicalEffects 模块）、大像素番茄弹跳、
@@ -123,7 +124,7 @@ Item {
                    color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.9); font.pixelSize: 14 }
             MouseArea {
                 id: closeH; anchors.fill: parent; hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor; onClicked: comp.closed()
+                cursorShape: Cursor.button(); onClicked: comp.closed()
             }
         }
     }

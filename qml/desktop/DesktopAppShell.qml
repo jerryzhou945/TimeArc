@@ -8,6 +8,7 @@ import "memorylake"
 import "components/AppVisual.js" as AppVisual
 import "components/Hotkeys.js" as Hotkeys
 import "components/I18n.js" as I18n
+import "components/PlatformCursor.js" as Cursor
 
 Item {
     id: root
@@ -903,7 +904,7 @@ Item {
                                 id: navMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                cursorShape: memoDisabled ? Qt.ForbiddenCursor : Qt.PointingHandCursor
+                                cursorShape: memoDisabled ? Cursor.disabled() : Cursor.button()
                                 onClicked: {
                                     // 动作项：打开黑板模态覆盖层（不切页、不动 selectedIndex）。
                                     if (isMemoAction) {
@@ -1018,7 +1019,7 @@ Item {
 
                             MouseArea {
                                 anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
+                                cursorShape: Cursor.button()
                                 onClicked: sidebarCollapsed = !sidebarCollapsed
                             }
                         }
@@ -1377,7 +1378,7 @@ Item {
         }
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             onClicked: welcomeOverlay.dismiss()
         }
         function dismiss() {

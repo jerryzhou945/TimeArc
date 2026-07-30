@@ -5,6 +5,7 @@ import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
 import "../components/Hotkeys.js" as Hotkeys
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // v88「设置」页（暗玻璃全幅复刻 / 原地重皮 A-NAME）。规范：
 //   docs/settings-functional-replication.md / settings-render-pipeline-replication.md /
@@ -886,7 +887,7 @@ Item {
                                 id: tabMa
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                                cursorShape: Cursor.button()
                                 onClicked: root.selectTab(modelData.key)
                             }
                         }
@@ -998,7 +999,7 @@ Item {
                                 }
                                 MouseArea {
                                     anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
+                                    cursorShape: Cursor.button()
                                     onClicked: root.selectTab(modelData.key)
                                 }
                             }
@@ -1083,7 +1084,7 @@ Item {
                                                 }
                                                 MouseArea {
                                                     anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
+                                                    cursorShape: Cursor.button()
                                                     onClicked: {
                                                         root.accentColor = modelData.value
                                                         root._setStr("accent_color", modelData.value)
@@ -2190,7 +2191,7 @@ Item {
             id: gbtnMa
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             preventStealing: true
             onClicked: gbtn.tapped()
         }
@@ -2222,7 +2223,7 @@ Item {
         }
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             onClicked: { kc.capturing = true; kc.forceActiveFocus() }
         }
         Keys.onShortcutOverride: function (e) { if (kc.capturing) e.accepted = true }
@@ -2270,7 +2271,7 @@ Item {
         }
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             preventStealing: true
             onClicked: {
                 // Shell 同步把 nightModeToggled→nightMode 回写本页，故 toast 必须读「目标值」而非回写后的 root.nightMode。

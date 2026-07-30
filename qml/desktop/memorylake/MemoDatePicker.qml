@@ -1,5 +1,6 @@
 import QtQuick
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 便签截止日期/时间选择器（点开的小日历 + 24h 时:分）。自绘月历网格，不依赖 labs 日历模块，
 // 主题与备忘暗色 chrome 一致。打开时定位到 initialMs（0=当前）。选定→dueSelected(ms)；清除→dueCleared()。
@@ -93,7 +94,7 @@ Item {
                       : upMa.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.12) : Qt.rgba(1, 1, 1, 0.06)
                 Text { anchors.centerIn: parent; text: "+"; color: dp._ink; font.pixelSize: 11 }
                 MouseArea { id: upMa; anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor; onClicked: tb._commitVal(tb.value + 1) }
+                            cursorShape: Cursor.button(); onClicked: tb._commitVal(tb.value + 1) }
             }
             Rectangle {
                 width: 16; height: (parent.height - 2) / 2; radius: 5
@@ -101,7 +102,7 @@ Item {
                       : dnMa.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.12) : Qt.rgba(1, 1, 1, 0.06)
                 Text { anchors.centerIn: parent; text: "−"; color: dp._ink; font.pixelSize: 11 }
                 MouseArea { id: dnMa; anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor; onClicked: tb._commitVal(tb.value - 1) }
+                            cursorShape: Cursor.button(); onClicked: tb._commitVal(tb.value - 1) }
             }
         }
     }
@@ -139,7 +140,7 @@ Item {
                     color: prevMa.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                     Text { anchors.centerIn: parent; text: "‹"; color: dp._ink; font.pixelSize: 18 }
                     MouseArea { id: prevMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: dp._prevMonth() }
+                                cursorShape: Cursor.button(); onClicked: dp._prevMonth() }
                 }
                 Text {
                     anchors.centerIn: parent
@@ -151,7 +152,7 @@ Item {
                     color: nextMa.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                     Text { anchors.centerIn: parent; text: "›"; color: dp._ink; font.pixelSize: 18 }
                     MouseArea { id: nextMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: dp._nextMonth() }
+                                cursorShape: Cursor.button(); onClicked: dp._nextMonth() }
                 }
             }
 
@@ -194,7 +195,7 @@ Item {
                             }
                             MouseArea {
                                 id: dayMa; anchors.fill: parent; enabled: cell.valid
-                                hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                hoverEnabled: true; cursorShape: Cursor.button()
                                 onClicked: dp._d = cell.dayNum
                             }
                         }
@@ -221,7 +222,7 @@ Item {
                     border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
                     Text { anchors.centerIn: parent; text: I18n.t(dp.languageMode, "清除"); color: dp._ink; font.pixelSize: 14 }
                     MouseArea { id: clearMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: dp.dueCleared() }
+                                cursorShape: Cursor.button(); onClicked: dp.dueCleared() }
                 }
                 Rectangle {
                     width: 96; height: 34; radius: 10; anchors.right: parent.right
@@ -231,7 +232,7 @@ Item {
                     }
                     Text { anchors.centerIn: parent; text: I18n.t(dp.languageMode, "确定")
                            color: Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.94); font.pixelSize: 14; font.weight: Font.DemiBold }
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: dp._commit() }
+                    MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: dp._commit() }
                 }
             }
         }
