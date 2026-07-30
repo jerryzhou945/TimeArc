@@ -11,6 +11,9 @@ Keep the native macOS traffic lights visible and usable above the memo board
 - [x] Clear the button band inside the overlay (save-status pill inset).
 - [x] Reconcile the ⌘W gate that assumed the red button was unreachable.
 - [x] Flush the memo document before the window closes.
+- [x] Stop the sidebar's window-drag / double-tap gestures from firing through
+      the board (reported live: dragging the old sidebar area moved the window
+      instead of drawing).
 - [x] Static regression test, build, docs, comment corrections.
 
 ## Design
@@ -50,7 +53,14 @@ title-bar reveal) and at the 1280×720 minimum.
 Completed: traffic lights stay visible over the memo overlay; the save-status
 pill takes an 88 px macOS inset; ⌘W matches the now-clickable red button;
 `MemoOverlay.flushPendingSave()` runs from `ApplicationWindow.onClosing` so a
-window close cannot drop the 600 ms autosave debounce.
+window close cannot drop the 600 ms autosave debounce. The sidebar's
+`DragHandler`/`TapHandler` surface is now gated on `!root.memoOpen`: pointer
+handlers are offered the event in a handlers-only pass over every item under the
+hit point, ahead of the item pass, so the overlay's own `MouseArea` never
+shielded them and the `DragHandler` could steal the exclusive grab past its 4 px
+threshold — dragging the old sidebar strip moved the window instead of drawing,
+and a double-click zoomed it. Plain `MouseArea` nav never leaked, which is why
+only the gestures misbehaved.
 
 Incomplete: no drag/double-click affordance was added to the overlay's top
 band — the canvas keeps priority there (see Risks).

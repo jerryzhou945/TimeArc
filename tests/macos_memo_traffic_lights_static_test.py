@@ -61,6 +61,21 @@ def main():
         "shell passes macOS chrome flag into the overlay",
     )
 
+    # Pointer handlers are offered the event ahead of the item pass, so the
+    # overlay's MouseArea cannot shield the sidebar's window-drag / double-tap
+    # gestures; they have to be disabled outright while the board is open or a
+    # drag over the old sidebar area moves the window instead of drawing ink.
+    require(
+        shell_qml,
+        "enabled: root.macSidebarChrome && !root.memoOpen",
+        "sidebar window gestures disabled over the memo board",
+    )
+    forbid(
+        shell_qml,
+        "enabled: root.macSidebarChrome\n",
+        "ungated sidebar window gesture surface",
+    )
+
     # A reachable red button must not drop the 600ms autosave debounce.
     require(
         memo_qml,

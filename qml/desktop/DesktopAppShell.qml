@@ -756,9 +756,13 @@ Item {
 
                     // macOS：空白侧栏与无交互品牌区支持原生挪窗及双击缩放；后声明的
                     // 按钮/导航位于其上方，继续优先接收点击，不会被背景手势截获。
+                    // 备忘黑板打开时必须整组停手：DragHandler/TapHandler 是指针处理器，事件分发
+                    // 会先给命中点下**所有** item 的 handler 一次机会，覆盖层自己的 MouseArea 挡不住
+                    // （过阈值后 DragHandler 还能把独占抓取抢走）。不禁用的话在黑板左侧横拖会变成
+                    // 挪窗口、双击会变成缩放，而不是画笔/框选。同理，普通 MouseArea 型导航不会漏。
                     Item {
                         anchors.fill: parent
-                        enabled: root.macSidebarChrome
+                        enabled: root.macSidebarChrome && !root.memoOpen
 
                         DragHandler {
                             target: null
