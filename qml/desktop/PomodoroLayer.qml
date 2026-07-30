@@ -30,6 +30,11 @@ Item {
     function show() { pomodoro.shown = true; }
     function hide() { pomodoro.shown = false; }
 
+    function _pickVariant() {
+        var v = ["FOCUS COMPLETE", "GOOD SESSION", "MEMORY SAVED", "WELL DONE"];
+        return v[Math.floor(Math.random() * v.length)];
+    }
+
     // Esc 收起：先庆祝弹层，再浮窗。**不停表**——收起只是收起视图，那一程还在跑，
     // 再按快捷键就能把它调回来。Esc 是个太容易误按的键，不该用来销毁一程专注。
     function dismiss() {
@@ -56,14 +61,18 @@ Item {
         id: pomodoro
         style: layer.style
         languageMode: layer.languageMode
-        store: layer.store
         shown: false
-        onCompleted: function (v) {
+    }
+
+    // 完成由引擎判定（单一探测器，功能文 G7/C13）；庆祝文案是展示用词，留在 QML。
+    Connections {
+        target: pomodoroManager
+        function onFinished() {
             layer.finished(pomodoro.title);          // #3 系统通知（不受结束庆祝开关影响）
             // #2 结束庆祝可在设置页关闭（pomodoro_celebrate）；关则静默完成，不弹全屏庆祝。
             if (layer.store && layer.store.getBool && !layer.store.getBool("pomodoro_celebrate", true))
                 return;
-            pomodoroComplete.variant = v;
+            pomodoroComplete.variant = layer._pickVariant();
             pomodoroComplete.shown = true;
         }
     }

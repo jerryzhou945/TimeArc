@@ -189,6 +189,26 @@ target_link_libraries(timearc_db_smoke
 
 add_test(NAME timearc_db_smoke COMMAND timearc_db_smoke)
 
+# 计时引擎的状态机 + 墙钟行为（两个管理器都留了可注入的 currentMs()）。
+add_executable(timearc_pomodoro_test
+    tests/pomodoro_manager_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/services/pomodoro_manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/services/timer_manager.cpp
+    ${TIME_ARC_DATABASE_SOURCES}
+)
+
+target_include_directories(timearc_pomodoro_test PRIVATE
+    ${TIME_ARC_INCLUDE_DIRS}
+)
+
+target_link_libraries(timearc_pomodoro_test
+    PRIVATE
+        Qt6::Core
+        Qt6::Sql
+)
+
+add_test(NAME timearc_pomodoro_test COMMAND timearc_pomodoro_test)
+
 include(GNUInstallDirs)
 install(TARGETS time-arc
     BUNDLE DESTINATION .

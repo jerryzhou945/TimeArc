@@ -32,6 +32,7 @@
 #include "services/app_icon_image_provider.h"
 #include "services/calendar_manager.h"
 #include "services/harness_logger.h"
+#include "services/pomodoro_manager.h"
 #include "services/project_manager.h"
 #include "services/timer_manager.h"
 #include "services/usage_stat_manager.h"
@@ -266,6 +267,8 @@ int main(int argc, char* argv[]) {
   DailyCardService dailyCardService(&statsService, &frontmostRepository);
   TagRepository tagRepository;
   TimerManager timerManager;
+  // 番茄钟引擎：只读写 SettingsRepository 的 KV，不碰服务磁盘契约。
+  PomodoroManager pomodoroManager(&settingsRepository);
   ProjectManager projectManager(&manualProjectRepository);
   UsageStatManager usageStatManager;
 
@@ -301,6 +304,7 @@ int main(int argc, char* argv[]) {
                                            &dailyCardService);
   engine.rootContext()->setContextProperty("tagRepository", &tagRepository);
   engine.rootContext()->setContextProperty("timerManager", &timerManager);
+  engine.rootContext()->setContextProperty("pomodoroManager", &pomodoroManager);
   engine.rootContext()->setContextProperty("projectManager", &projectManager);
   engine.rootContext()->setContextProperty("usageStatManager",
                                            &usageStatManager);

@@ -97,6 +97,62 @@ def main():
     require(memo, "if (memo.selActive) memo._clearSelection();",
             "memo overlay keeps its own escape ladder")
 
+    # The timing engine lives in C++. The QML widget is a view: it may read
+    # state and forward gestures, but must not keep its own copy — two clocks
+    # that can disagree is exactly what the port removed.
+    widget = (
+        ROOT / "qml/desktop/memorylake/PomodoroWidget.qml"
+    ).read_text(encoding="utf-8")
+    require(widget, "readonly property var engine: pomodoroManager",
+            "widget reads the C++ engine")
+    # `readonly property int total: engine.total` is a mirror of the engine and
+    # is fine; a writable one would be a second source of truth.
+    for decl in ("property int total", "property int remain",
+                 "property bool running", "property string title"):
+        for line in widget.splitlines():
+            stripped = line.strip()
+            if stripped.startswith(decl):
+                raise AssertionError(
+                    f"writable timing state left in the QML view: {stripped}")
+    for banned in ("JSON.parse", "JSON.stringify", "_save", "_load",
+                   "_recordCompletion", "memoryLakeMemoPomodoro"):
+        forbid(widget, banned, "timing state left in the QML view")
+    # Only the collapse animation timer survives; the 1 Hz counting timer is gone.
+    if widget.count("Timer {") != 1:
+        raise AssertionError(
+            "PomodoroWidget should keep exactly one Timer (the 180ms collapse)")
+
+    manager_h = (
+        ROOT / "src/services/pomodoro_manager.h"
+    ).read_text(encoding="utf-8")
+    manager_cpp = (
+        ROOT / "src/services/pomodoro_manager.cpp"
+    ).read_text(encoding="utf-8")
+    timer_cpp = (ROOT / "src/services/timer_manager.cpp").read_text(encoding="utf-8")
+
+    # Both clocks measure elapsed wall time instead of counting ticks. A tick
+    # that never arrives (blocked event loop, coalesced timer, machine asleep)
+    # must not become a lost second — and the loss only ever runs one way.
+    for name, text in (("pomodoro", manager_cpp), ("manual timer", timer_cpp)):
+        require(text, "currentMs()", f"{name} reads a clock")
+        require(text, "refreshFromClock", f"{name} recomputes from the anchor")
+        forbid(text, "++m_elapsedSeconds", f"{name} still counts ticks")
+        forbid(text, "--m_remain", f"{name} still counts ticks")
+    require(manager_cpp, "QDateTime::currentMSecsSinceEpoch",
+            "wall clock, not a monotonic clock that stops during sleep")
+    require(timer_cpp, "QDateTime::currentMSecsSinceEpoch",
+            "wall clock, not a monotonic clock that stops during sleep")
+    require(manager_cpp, "now < m_anchorMs", "backward clock jump handled")
+    require(timer_cpp, "now < m_anchorMs", "backward clock jump handled")
+    require(manager_h, "virtual qint64 currentMs()", "clock is injectable for tests")
+
+    # Storage key and field names are unchanged, or upgrading discards whatever
+    # session the user had in flight.
+    require(manager_cpp, 'kStoreKey[] = "memoryLakeMemoPomodoro"',
+            "storage key kept for upgrade compatibility")
+    for field in ('"total"', '"remain"', '"title"'):
+        require(manager_cpp, f"QStringLiteral({field})", f"archive field {field}")
+
     # New QML file is in the module, and the celebration's close button no
     # longer promises a trip back to the blackboard.
     require(qml_cmake, "qml/desktop/PomodoroLayer.qml", "layer in the qml module")

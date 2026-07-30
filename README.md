@@ -183,7 +183,20 @@ with day and night modes.
   the next ⇧⌘P. State survives restart as a **paused** session —
   there is no cross-restart wall-clock anchor, so it never silently keeps running.
   Independent of the manual project timer (`TimerManager`), which counts up against a
-  calendar todo (`qml/desktop/PomodoroLayer.qml`).
+  calendar todo. The timing engine is C++ (`PomodoroManager`); the QML
+  (`qml/desktop/PomodoroLayer.qml`) is view only.
+- **Timing accuracy** — both clocks (the pomodoro and the manual project timer) measure
+  **elapsed wall-clock time from a start anchor** rather than counting timer callbacks.
+  A callback that never arrives — a blocked event loop, a coalesced `Qt::CoarseTimer`, or
+  a sleeping machine — therefore costs no time: the next refresh recomputes against the
+  real clock, and a session spanning a closed lid comes back with those minutes intact.
+  A pomodoro that ran out during sleep is finished the moment you wake the machine. This
+  matters most for the manual timer, whose seconds are written into project history and
+  the stats page, where an undercount would be indistinguishable from truth. Wall clock
+  rather than a monotonic one is deliberate: `QElapsedTimer` is backed by clocks that stop
+  during suspend on both macOS and Linux, which is precisely the case worth catching;
+  backward jumps (NTP, manual clock changes) re-anchor in place instead of running
+  backwards. Covered by `tests/pomodoro_manager_test.cpp` via an injectable clock.
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
   three-panel "记忆湖": a left panel with the app usage ranking, a **center column**
   that stacks the **Today Conclusion** briefing (今日结论: kicker/title/score box +

@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-30T18:03:18Z | L3 | frozen-hash-drift | Preflight found hash mismatches in CMakeLists.txt and src... | [report](errors/20260730-180318-C-frozen-hash-drift.md) |
 | 2026-07-30T15:57:25Z | L3 | about-card-patc... | Initial About card restructuring patch did not apply beca... | [report](errors/20260730-155725-B-about-card-patch-context.md) |
 | 2026-07-30T15:46:55Z | L3 | mac-menu-static... | macos_menu_bar_static_test.py expects a 月度记忆湖 translation... | [report](errors/20260730-154655-B-mac-menu-static-stale-monthly-label.md) |
 | 2026-07-30T15:46:39Z | L3 | desktop-ux-test... | desktop_ux_static_test.py aborts before UI assertions bec... | [report](errors/20260730-154639-B-desktop-ux-test-missing-android-manifest.md) |
