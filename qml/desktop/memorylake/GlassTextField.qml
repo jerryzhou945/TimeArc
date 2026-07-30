@@ -1,4 +1,5 @@
 import QtQuick
+import "../components/PlatformCursor.js" as Cursor
 
 // 暗玻璃文本输入（v88 input §7.3 / 搜索框同族）。下沉底 calSunkBg + aqua 描边 calInputBorder，
 // 关原生 frame（用 TextInput 而非 Controls.TextField，杜绝原生浅皮 G9）。search:true → 放大镜 + 清除。
@@ -74,7 +75,7 @@ Rectangle {
         MouseArea {
             anchors.fill: parent
             anchors.margins: -6
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             onClicked: { input.text = ""; field.textEdited("") }
         }
     }

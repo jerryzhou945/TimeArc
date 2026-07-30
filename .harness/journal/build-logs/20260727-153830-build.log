@@ -1,0 +1,25 @@
+[1/230] Automatic MOC and UIC for target timearc_resource_bundle_smoke
+[2/230] Building CXX object CMakeFiles/timearc_resource_bundle_smoke.dir/timearc_resource_bundle_smoke_autogen/mocs_compilation.cpp.o
+[3/230] Building C object src/service/CMakeFiles/time_arc_service.dir/shared/data_bridge.c.o
+[4/230] Building C object src/service/CMakeFiles/time_arc_service.dir/shared/database_path.c.o
+[5/230] Building C object src/service/CMakeFiles/time_arc_service.dir/shared/database_storage.c.o
+[6/230] Building Swift Module 'time_arc_service' with 12 sources
+FAILED: [code=1] src/service/CMakeFiles/time_arc_service.dir/macos/TimeArcService.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/TrackingPorts.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/AccessibilityRequest.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/ApplicationProbe.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/AudioProcessProbe.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/InputActionProbe.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/SleepAssertionProbe.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/TitleProbe.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/FrontmostStateMachine.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/MediaStateMachine.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/DataBridge.swift.o src/service/CMakeFiles/time_arc_service.dir/macos/Tracking/TrackingCoordinator.swift.o 
+/usr/bin/swiftc -j 8 -num-threads 8 -c  -module-name time_arc_service -O -incremental -import-objc-header /Users/jz2025/Desktop/Development/TimeArc/src/service/shared/data_bridge.h -Xcc -I/Users/jz2025/Desktop/Development/TimeArc/src/include -I/Users/jz2025/Desktop/Development/TimeArc/src/service/shared -output-file-map src/service/CMakeFiles/time_arc_service.dir/Release/output-file-map.json -I /Users/jz2025/Desktop/Development/TimeArc/src/include -I /Users/jz2025/Desktop/Development/TimeArc/src/service -I /Users/jz2025/Desktop/Development/TimeArc/src/service/shared -I /Users/jz2025/Desktop/Development/TimeArc/src/service/windows -I /Users/jz2025/Desktop/Development/TimeArc/src/service/windows/tracker -I /Users/jz2025/Desktop/Development/TimeArc/src/service/windows/platform -I /Users/jz2025/Desktop/Development/TimeArc/src/service/windows/service -I /Users/jz2025/Desktop/Development/TimeArc/thirdparty/sqlite3 -I /Users/jz2025/Desktop/Development/TimeArc/thirdparty/parson -F /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/TimeArcService.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/TrackingPorts.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/AccessibilityRequest.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/ApplicationProbe.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/AudioProcessProbe.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/InputActionProbe.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/SleepAssertionProbe.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/TitleProbe.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/FrontmostStateMachine.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/MediaStateMachine.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/DataBridge.swift /Users/jz2025/Desktop/Development/TimeArc/src/service/macos/Tracking/TrackingCoordinator.swift
+error: generate-pch command failed with exit code 1 (use -v to see invocation)
+<unknown>:0: error: unable to open output file '/Users/jz2025/.cache/clang/ModuleCache/2GK2F9002Z838/_Builtin_stdint-3PGQF5YETHUX5.pcm': 'Operation not permitted'
+2 errors generated.
+/Users/jz2025/Desktop/Development/TimeArc/src/service/shared/data_bridge.h:9:10: error: could not build module '_Builtin_stdint'
+ 7 | #define TIMEARC_SRC_SERVICE_SHARED_DATA_BRIDGE_H
+ 8 | 
+ 9 | #include <stdint.h>
+   |          `- error: could not build module '_Builtin_stdint'
+10 | 
+11 | #if defined(__has_attribute)
+
+<unknown>:0: error: failed to emit precompiled header '/var/folders/bc/y36__t0958xchcbdwgskg38h0000gn/T/TemporaryDirectory.UlGUf3/data_bridge.pch' for bridging header '/Users/jz2025/Desktop/Development/TimeArc/src/service/shared/data_bridge.h'
+[7/230] Building C object thirdparty/parson/CMakeFiles/time-arc-parson.dir/parson.c.o
+[8/230] Automatic MOC and UIC for target timearc_db_smoke
+[9/230] Building CXX object CMakeFiles/timearc_resource_bundle_smoke.dir/tests/resource_bundle_smoke.cpp.o
+[10/230] Building C object thirdparty/sqlite3/CMakeFiles/time-arc-sqlite3.dir/sqlite3.c.o
+ninja: build stopped: subcommand failed.

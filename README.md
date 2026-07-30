@@ -75,7 +75,10 @@ with day and night modes.
   (incl. a search variant), and `KbdChip` — all styled from `MemoryLakeStyle` tokens.
   The app-management tab lists real captured apps for per-app hide; the pomodoro card
   drives the memo blackboard's real countdown (default duration/title/celebration);
-  memo & pomodoro hotkeys are user-customizable; a one-shot welcome animation is gated
+  memo & pomodoro hotkeys are user-customizable (click a key cap, then press any
+  letter with optional Ctrl/Shift/Alt/Meta; built-in keys are refused by name, and
+  Delete turns a hotkey off — on macOS it restores the default instead, since the
+  menu bar owns that key equivalent regardless); a one-shot welcome animation is gated
   by `show_welcome`; and **system notifications** plus the resident tray menu use
   `qml/desktop/memorylake/NotifierTray.qml` (a `Qt.labs.platform` tray, loaded
   defensively so a missing plugin can't break the app). The tray can restore the
@@ -96,17 +99,66 @@ with day and night modes.
   Memory Lake is the home/landing page; the Timer page is reached when a
   calendar to-do starts timing. The desktop UI is single-instance on Windows:
   repeated `TimeArc.exe` launches focus the existing window instead of opening
-  another one. Closing the window hides it to the system tray; the tray menu is
-  the explicit app-exit path while the background collector can keep recording.
-- **Frameless window chrome** — the desktop window drops the native OS title
-  bar for an immersive custom chrome (QQ-Music style): a brand app icon
-  top-left and minimize / maximize / close controls top-right, floating over a
-  page background that bleeds to the top edge. Drag the top bar to move (native
-  edge-snap preserved), double-click to maximize/restore, drag any edge to
-  resize. Glyph color adapts to the surface (light on the dark Memory Lake /
-  night pages) and the chrome steps aside while the memo blackboard is open.
-  On Windows 11 the window gets **native rounded corners and drop shadow** via
-  DWM (`DWMWA_WINDOW_CORNER_PREFERENCE`). Mobile preview keeps the native frame.
+  another one. On Windows and Linux, closing the window hides it to the system
+  tray; the tray menu is the explicit app-exit path while the background
+  collector can keep recording. macOS follows its own convention instead: the
+  red traffic light closes the window while the app stays in the Dock and menu
+  bar, clicking the Dock icon reopens the window, and ⌘Q — or 退出 TimeArc in
+  the status item — is the quit path. Closing from full screen exits full
+  screen first, then closes. On macOS, the status item uses a monochrome
+  template “T” that follows the menu bar's light or dark appearance; the
+  colorful brand icon remains in the Dock and app window. Its menu carries open
+  the window, a **pomodoro trio**, a disabled 开机自启 placeholder, and quit —
+  all relabelled in 简体中文 / English / 日本語 from the same `language_mode`
+  setting the UI uses, applied the next time the menu opens. The pomodoro rows
+  are a readout (`番茄钟 12:34`, click to bring the window back with the widget
+  open), one command that reads 开始 / 继续 / 暂停计时 by state, and 重置计时.
+  The readout is a snapshot taken as the menu opens, not a ticking display —
+  macOS dismisses the menu on click, and the wall-clock engine makes that single
+  reading correct even straight out of sleep. Manual project timing stays in the
+  window, where a project can be chosen.
+- **Interface language** — 简体中文 / English / 日本語, chosen in 设置 › 界面语言
+  and stored in `language_mode`. On first run TimeArc adopts the **system**
+  language (Simplified Chinese, Japanese, or English; Traditional Chinese and
+  anything else fall back to English) and writes that choice down, so every
+  surface agrees from then on. On macOS the system list is read from the global
+  preferences domain, never from the app's own — TimeArc pins `AppleLanguages`
+  in its own domain so the native menu bar speaks the UI language, and reading
+  that back would be self-referential.
+- **macOS menu bar** — macOS builds add a real application menu bar
+  (文件 / 编辑 / 显示 / 窗口 / 帮助, plus 关于 TimeArc, 设置… ⌘, and 退出 TimeArc ⌘Q merged into
+  the app menu). 文件 exports the stats report ⇧⌘E, imports/exports settings,
+  backs up the database, and closes the window ⌘W; 编辑 forwards
+  undo/redo/cut/copy/paste/select-all to the focused text field; 显示 switches
+  pages ⌘1–⌘4, toggles the memo blackboard ⇧⌘N, the pomodoro ⇧⌘P and night mode
+  ⇧⌘D, and picks the interface language; 窗口 minimizes ⌘M, zooms, and brings a
+  closed window back; 帮助 reveals the data folder in Finder. All rows are
+  localized in 简体中文 / English / 日本語 (the merged app-menu rows follow macOS's
+  own localization, per platform convention). The menu bar outlives the window —
+  after the red button closes it, commands needing a window grey out and the
+  窗口 › TimeArc row is the way back. The customizable memo / pomodoro hotkeys
+  default to ⇧⌘N / ⇧⌘P here — the same sequences these menu rows carry, so both
+  paths hit the same toggle; Windows and Linux keep the bare N / P letters
+  (`qml/desktop/components/Hotkeys.js`). ⌃⌘F toggles full screen — an
+  extra key next to the 进入全屏幕 row macOS contributes itself (that row and its
+  own system key are untouched, and no second row is drawn). Windows and Linux
+  are unaffected — no menu bar is created there. Design:
+  `docs/macos-menu-bar-design.md`.
+- **Desktop window chrome** — Windows uses an immersive custom chrome
+  (QQ-Music style): a brand app icon top-left and minimize / maximize / close
+  controls top-right, floating over a page background that bleeds to the top
+  edge. macOS is completely borderless and title-bar-free. AppKit draws standard
+  traffic-light buttons directly over the edge-to-edge left sidebar; the host
+  supplies group-hover glyph state and disables minimize in fullscreen without
+  creating a native title region. On macOS, drag the non-interactive sidebar
+  background or brand area to move the window. Double-click there follows the
+  system's Desktop & Dock preference (Minimize, Zoom, Fill, or Do Nothing);
+  sidebar controls keep their normal click behavior.
+  On Windows, drag the top bar to move,
+  double-click to maximize/restore, and drag any edge to resize. The chrome
+  steps aside while the memo blackboard is open. On Windows 11 the window gets
+  **native rounded corners and drop shadow** via DWM
+  (`DWMWA_WINDOW_CORNER_PREFERENCE`). Mobile preview keeps the native frame.
   *(A fuller native custom-frame pass — Win11 snap-layouts fly-out — is still
   planned.)*
 - **Memory Lake memo blackboard (备忘)** — the 「备忘」 nav opens a modal blackboard
@@ -120,11 +172,37 @@ with day and night modes.
   max 10, each page owns its own ink + objects and shows a **row thumbnail**), a marquee
   **select tool** (copy / delete / move / scale across ink *and* objects, with a clipboard —
   **Ctrl+C / Ctrl+V** across pages — and visible toolbar **undo / redo** controls
-  backed by **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y**), and a **persisted pomodoro widget**
-  (editable title, collapses to a pixel tomato while running, full-screen completion celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
+  backed by **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y**). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
   1920×1080 logical canvas uniformly scaled to fit the window (16:9). Everything
   **auto-persists** to a UI-private store (`SettingsRepository`), kept **off the service↔UI
   disk contract**. *(Replaces the former local Chat page.)*
+- **Pomodoro** — a **persisted, draggable focus widget** (editable title, minutes/seconds
+  entry, collapses to a pixel tomato while running, full-screen completion celebration that
+  the settings page can switch off). It is a **window-level layer, available from anywhere
+  in the app** — ⇧⌘P (bare **P** on Windows/Linux, both customizable) and the macOS
+  显示 › 番茄钟 row open it over whichever page you are on, without pulling up the memo
+  blackboard; the blackboard's toolbar tomato is a third entry point, and the widget stays
+  visible above the board when it is open. **Esc dismisses it on every platform** — the
+  celebration first, then the widget, and only then does Esc reach the blackboard
+  underneath, so with both up the first press exits the pomodoro and the second closes the
+  board. Dismissing only hides it: a running session keeps counting and comes back with
+  the next ⇧⌘P. State survives restart as a **paused** session —
+  there is no cross-restart wall-clock anchor, so it never silently keeps running.
+  Independent of the manual project timer (`TimerManager`), which counts up against a
+  calendar todo. The timing engine is C++ (`PomodoroManager`); the QML
+  (`qml/desktop/PomodoroLayer.qml`) is view only.
+- **Timing accuracy** — both clocks (the pomodoro and the manual project timer) measure
+  **elapsed wall-clock time from a start anchor** rather than counting timer callbacks.
+  A callback that never arrives — a blocked event loop, a coalesced `Qt::CoarseTimer`, or
+  a sleeping machine — therefore costs no time: the next refresh recomputes against the
+  real clock, and a session spanning a closed lid comes back with those minutes intact.
+  A pomodoro that ran out during sleep is finished the moment you wake the machine. This
+  matters most for the manual timer, whose seconds are written into project history and
+  the stats page, where an undercount would be indistinguishable from truth. Wall clock
+  rather than a monotonic one is deliberate: `QElapsedTimer` is backed by clocks that stop
+  during suspend on both macOS and Linux, which is precisely the case worth catching;
+  backward jumps (NTP, manual clock changes) re-anchor in place instead of running
+  backwards. Covered by `tests/pomodoro_manager_test.cpp` via an injectable clock.
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
   three-panel "记忆湖": a left panel with the app usage ranking, a **center column**
   that stacks the **Today Conclusion** briefing (今日结论: kicker/title/score box +
@@ -195,12 +273,13 @@ exclusively through files on disk — no IPC, sockets, or shared memory.
 |   timearc_service.db |  <----   |  timearc_service.db   |
 |   writes timearc.db  |          |                       |
 +----------------------+          +-----------------------+
-         starts (Windows only, via QProcess)
-         --------------------------------->
+         registers LaunchAgent (macOS)
+         ----------------------------->
 ```
 
-- The UI launches and may spawn the service (see
-  `src/main.cpp::startUsageService`) but does not link against its code.
+- The UI never executes or links against service code. On macOS it registers
+  the embedded `com.timearc.service.plist` through `SMAppService`, which gives
+  launchd ownership of the helper lifecycle.
 - Session fields and their SQLite mapping are documented in
   `.harness/rules/03-data-contract.md`.
 - `data_bridge.h` is the cross-language C ABI used by Swift (macOS) and
@@ -349,28 +428,68 @@ $env:TIMEARC_PYTHON = "D:\path\to\python.exe"
 ```
 
 Two executables are produced: `TimeArc` (the UI) and `time-arc-service`
-(the background sampler). Both land under the install prefix's `bin/`
-(or `.app` bundle on macOS).
+(the background sampler). Windows installs both under `bin/`; macOS places
+both in `TimeArc.app/Contents/MacOS`.
+
+Desktop builds keep QML, license text, and small shell icons in the executable,
+while backgrounds, site icons, and monthly-recap artwork ship as separate
+`assets/timearc-{backgrounds,site-icons,monthly-recap}.rcc` functional packs.
+The UI registers all required packs before loading QML. Android embeds the same
+three QRC contents in its application package. Unreferenced legacy Memory Lake
+artwork is not a release input.
 
 ### Packaging a release (Windows)
 
-`tools/package-release.ps1` produces a self-contained portable package. It runs
-`windeployqt` to bundle the Qt and MinGW runtime DLLs next to `TimeArc.exe` and the
-service, copies `LICENSE` and the whole `resources/licenses/` tree, and writes a
-`NOTICE.txt` (including the Qt LGPL relink statement). It first asserts — via
-`tools/verify-linkage.ps1` — that the shipped `TimeArc.exe` links Qt **dynamically**
-(LGPL posture: `objdump` must show `Qt6*.dll` imports and no static Qt), refusing to
-package otherwise.
+`tools/build-windows.ps1` is the Windows build and release entry point. With no
+option it runs the full `--release` pipeline: configure, harness-wrapped Release
+build, CTest, `windeployqt`, optional Authenticode signing, dynamic-linkage
+verification, and ZIP creation. The narrower modes match the macOS entry point:
+`--build`, `--test` (build + test), and `--package` (build + package, without
+tests).
 
 ```powershell
-python .harness/tools/build.py -- --config Release   # build Release first
-pwsh -File tools/package-release.ps1                  # -> dist/TimeArc-<ver>-win64/ + .zip
+pwsh -File tools/build-windows.ps1             # same as --release
+pwsh -File tools/build-windows.ps1 --build
+pwsh -File tools/build-windows.ps1 --test
+pwsh -File tools/build-windows.ps1 --package
 ```
 
-The `dist/` output is gitignored, and the result unzips and runs on a machine with no Qt
-installed (the bundled DLLs are used). One-step in-tree CMake deploy automation
-(`cmake --install`) is deferred — it would edit the frozen top-level `CMakeLists.txt` and
-needs a change proposal first.
+The result is `dist/TimeArc-<version>-win64/` plus a matching `.zip`. It contains
+both executables, the three functional RCC packs, replaceable Qt/compiler DLLs,
+plugins, QML modules, license texts, and `NOTICE.txt`; it runs without a
+machine-wide Qt installation. Packaging rejects a statically linked Qt build.
+Set `TIMEARC_SIGN_CERTIFICATE_SHA1` for Authenticode signing or
+`TIMEARC_REQUIRE_SIGNING=1` to reject unsigned output. Run
+`tools/build-windows.ps1 --help` for path/tool overrides. The older standalone
+`package-release.ps1` and `verify-linkage.ps1` utilities remain available but
+are not called by this entry point.
+
+### Building and packaging on macOS
+
+`tools/build-macos.sh` is the macOS build and release entry point. With no
+option it runs the full `--release` pipeline: configure, harness-wrapped
+Release build, CTest, `macdeployqt`, signing, portable-linkage checks, and DMG
+creation. The narrower modes are `--build`, `--test` (build + test), and
+`--package` (build + package, without tests).
+It prefers Ninja, falls back to Xcode, and resets only generated CMake state
+when a cached generator such as Unix Makefiles cannot compile Swift.
+
+```bash
+tools/build-macos.sh             # same as --release
+tools/build-macos.sh --build
+tools/build-macos.sh --test
+tools/build-macos.sh --package
+```
+
+The result is `dist/TimeArc-<version>-macos-<arch>/TimeArc.app` plus a matching
+`.dmg`. The app contains both executables in `Contents/MacOS`, the LaunchAgent
+in `Contents/Library/LaunchAgents`, the three RCC packs and license texts in
+`Contents/Resources`, and private dynamically linked Qt frameworks/plugins
+deployed by `macdeployqt`. The package retains the macOS Controls style and its
+required Fusion and Basic fallbacks. Local builds are ad-hoc signed.
+For a public release, set `TIMEARC_CODESIGN_IDENTITY` and
+`TIMEARC_NOTARY_PROFILE`; `TIMEARC_REQUIRE_SIGNING=1` prevents accidental
+ad-hoc packaging. Run `tools/build-macos.sh --help` for path/tool overrides.
 
 ### Quick run on Windows (`run.cmd` / `launch.cmd`)
 
@@ -405,13 +524,17 @@ that root. If your Qt lives elsewhere, set `run.local.cmd` or `TIMEARC_QT_ROOT` 
 
 ### Basic Usage
 
-Launch `TimeArc`. On Windows it will auto-spawn `time-arc-service` from
-the same directory (detached); Settings → 追踪与应用 also offers an opt-in
-"随系统登录自动启动后台采集" toggle that registers a per-user logon task so the
-tracker starts at login (B1 Route A — it always runs in the interactive user
-session, never Session 0, so capture stays correct). Closing the desktop window
-hides it to the system tray; use the tray menu to restore the window or explicitly
-quit the UI. On macOS the service is not yet started by the UI. The desktop nav is **首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
+Launch `TimeArc`. On macOS, the UI registers the plist embedded at
+`Contents/Library/LaunchAgents/com.timearc.service.plist` using
+`SMAppService`; its `BundleProgram` resolves
+`Contents/MacOS/time-arc-service` even if the app is relocated. On Windows,
+Settings → 追踪与应用 offers an opt-in
+"随系统登录自动启动后台采集" toggle that registers a per-user logon task (B1
+Route A). On Windows and Linux, closing the desktop window hides it to the
+system tray; use the tray menu to restore the window or explicitly quit the UI.
+On macOS the red button closes the window and the app keeps running — reopen it
+from the Dock or the status item, and quit with ⌘Q. The desktop nav is
+**首页 (Memory Lake) · 日历 · 统计 · 设置 · 备忘**,
 with **记忆湖 / Monthly Recap** pinned at the bottom; the Timer page opens when a
 calendar to-do starts timing. Memory Lake is the landing page.
 
@@ -648,9 +771,10 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       LGPL-3.0 combination posture (F1). Qt already links dynamically — verified by
       `tools/verify-linkage.ps1` (Qt6*.dll imports, no static Qt) — and
       `tools/package-release.ps1` produces a portable package bundling the relink-able
-      Qt/MinGW DLLs + `LICENSE` + `licenses/` + `NOTICE.txt`.
+      Qt/MinGW DLLs + `LICENSE` + `licenses/` + `NOTICE.txt`; the macOS release
+      script similarly deploys private Qt frameworks and licenses into `TimeArc.app`.
 - [x] Add an in-app licenses page surfacing all third-party texts (F2). Shipped
-      at Settings → 导入导出 → 「关于与开源许可」: per-component name, version, and
+      as the dedicated Settings → 「关于与开源许可」 page: per-component name, version, and
       full, offline-readable license text (`resources/licenses/`, qrc-embedded).
 - [ ] Wire Parson in as the JSON parser for user preferences /
       configuration.
@@ -683,13 +807,13 @@ or later (GPL-3.0-or-later)**. See `LICENSE` for the full text.
 
 | Component | License                   | Linkage | Notes                                |
 |-----------|---------------------------|---------|--------------------------------------|
-| Qt 6      | LGPL-3.0 (with exceptions)| dynamic | Required for GUI + QML + Svg. Bundled by `tools/package-release.ps1` as relink-able DLLs (LGPL posture). |
+| Qt 6      | LGPL-3.0 (with exceptions)| dynamic | Required for GUI + QML + Svg. Platform release scripts bundle replaceable DLLs/frameworks (LGPL posture). |
 | SQLite    | Public domain             | static  | Vendored under `thirdparty/sqlite3/`; used by the database layer and service storage. |
 | Parson    | MIT                       | static  | Vendored under `thirdparty/parson/`. Will back user config. |
 
 Full license texts for every component above ship in `resources/licenses/*.txt`
 (embedded in the qrc, so they are readable offline) and are viewable in-app at
-Settings → 导入导出 → 「关于与开源许可」, which also shows each component's version
+Settings → 「关于与开源许可」, which also shows each component's version
 (Qt 6.11.1, SQLite 3.51.3, Parson 1.5.3). SQLite is public domain and carries no
 license text, so its entry ships the author's blessing plus an explicit
 "public domain — no license text" note. When a new third-party component is added

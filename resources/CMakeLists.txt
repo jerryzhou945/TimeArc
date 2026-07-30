@@ -1,80 +1,17 @@
 set(TIME_ARC_APP_RESOURCES
     resources/app/TimeArc.svg
-    resources/app/backgrounds/background.png
-    resources/app/backgrounds/background_night.png
     resources/app/icons/navigation/home.svg
     resources/app/icons/navigation/home_white.svg
-    resources/app/icons/navigation/chat.svg
     resources/app/icons/navigation/calendar.svg
     resources/app/icons/navigation/calendar_white.svg
     resources/app/icons/navigation/stats.svg
     resources/app/icons/navigation/stats_white.svg
-    resources/app/icons/navigation/user.svg
     resources/app/icons/navigation/settings.svg
     resources/app/icons/navigation/settings_white.svg
     resources/app/icons/navigation/note.svg
     resources/app/icons/navigation/note_white.svg
     resources/app/icons/navigation/recap.svg
     resources/app/icons/navigation/recap_white.svg
-    resources/app/icons/sites/bilibili.png
-    resources/app/icons/sites/acfun.png
-    resources/app/icons/sites/alipay.png
-    resources/app/icons/sites/baidu.png
-    resources/app/icons/sites/dianping.ico
-    resources/app/icons/sites/douban.ico
-    resources/app/icons/sites/douyin.ico
-    resources/app/icons/sites/douyu.ico
-    resources/app/icons/sites/huya.png
-    resources/app/icons/sites/iqiyi.png
-    resources/app/icons/sites/jd.ico
-    resources/app/icons/sites/kuaishou.ico
-    resources/app/icons/sites/mango-tv.png
-    resources/app/icons/sites/meituan.ico
-    resources/app/icons/sites/netflix.png
-    resources/app/icons/sites/pinduoduo.png
-    resources/app/icons/sites/taobao.png
-    resources/app/icons/sites/tencent-video.png
-    resources/app/icons/sites/tmall.png
-    resources/app/icons/sites/twitch.ico
-    resources/app/icons/sites/weibo.ico
-    resources/app/icons/sites/xiaohongshu.png
-    resources/app/icons/sites/xigua-video.ico
-    resources/app/icons/sites/youtube.png
-    resources/app/icons/sites/youku.png
-    resources/app/icons/sites/zhihu.png
-)
-
-set(TIME_ARC_FEATURE_RESOURCES
-    resources/features/memory-lake/memory_bg.png
-    resources/features/memory-lake/memory_cat_1.png
-    resources/features/memory-lake/memory_cat_2.png
-    resources/features/memory-lake/hotspring_01.png
-    resources/features/memory-lake/hotspring_02.png
-    resources/features/memory-lake/hotspring_03.png
-    resources/features/memory-lake/hotspring_04.png
-    resources/features/memory-lake/hotspring_05.png
-    resources/features/memory-lake/hotspring_06.png
-    resources/features/memory-lake/hotspring_07.png
-    resources/features/memory-lake/hotspring_08.png
-    resources/features/memory-lake/memory_pond_rocks.png
-    resources/features/memory-lake/memory_tree.png
-    resources/features/memory-lake/desktop.png
-    resources/features/memory-lake/exit8.png
-    resources/features/memory-lake/senren.png
-    resources/features/memory-lake/p3r.png
-    resources/features/memory-lake/elden.png
-    resources/features/monthly-recap/month-01.jpg
-    resources/features/monthly-recap/month-02.jpg
-    resources/features/monthly-recap/month-03.jpg
-    resources/features/monthly-recap/month-04.jpg
-    resources/features/monthly-recap/month-05.jpg
-    resources/features/monthly-recap/month-06.jpg
-    resources/features/monthly-recap/month-07.jpg
-    resources/features/monthly-recap/month-08.jpg
-    resources/features/monthly-recap/month-09.jpg
-    resources/features/monthly-recap/month-10.jpg
-    resources/features/monthly-recap/month-11.jpg
-    resources/features/monthly-recap/month-12.jpg
 )
 
 set(TIME_ARC_LICENSES_RESOURCES
@@ -89,7 +26,16 @@ set(TIME_ARC_LICENSES_RESOURCES
 # packaging and are intentionally not embedded in the Qt resource collection.
 set(TIME_ARC_RESOURCE_FILES
     ${TIME_ARC_APP_RESOURCES}
-    ${TIME_ARC_FEATURE_RESOURCES}
     ${TIME_ARC_LICENSES_RESOURCES}
+    PARENT_SCOPE
+)
+
+# Large, content-like GUI assets are functional external RCCs on desktop.
+# Android embeds these same QRCs because its package is already a single
+# application archive. Unreferenced legacy art stays out of release inputs.
+set(TIME_ARC_BUNDLED_RESOURCE_QRCS
+    "${CMAKE_CURRENT_SOURCE_DIR}/backgrounds.qrc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/site-icons.qrc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/monthly-recap.qrc"
     PARENT_SCOPE
 )

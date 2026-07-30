@@ -1,0 +1,4 @@
+[1/178] Automatic MOC and UIC for target time-arc
+[2/177] Running AUTOMOC file extraction for target time-arc
+[3/4] Building CXX object CMakeFiles/time-arc.dir/src/services/macos/macos_status_bar_icon.cpp.o
+[4/4] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

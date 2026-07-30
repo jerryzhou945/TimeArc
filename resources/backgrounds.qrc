@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/time_arc/">
+    <file alias="resources/app/backgrounds/background.png">app/backgrounds/background.png</file>
+    <file alias="resources/app/backgrounds/background_night.png">app/backgrounds/background_night.png</file>
+  </qresource>
+</RCC>

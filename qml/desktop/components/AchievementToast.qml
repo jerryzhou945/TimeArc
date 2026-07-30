@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import "PlatformCursor.js" as Cursor
 
 Item {
     id: root
@@ -865,7 +866,7 @@ Item {
 
     MouseArea {
         anchors.fill: parent
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.button()
         onClicked: root.hideAchievement()
     }
 }

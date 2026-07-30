@@ -8,13 +8,16 @@ Item {
     property bool notifyOn: false
     property bool stayResident: true
     property url iconSource
+    readonly property bool usesNativeMacOsStatusItem:
+        Qt.platform.os === "osx" && macStatusBarController !== null
 
     signal showRequested()
     signal quitRequested()
 
     Platform.SystemTrayIcon {
         id: tray
-        visible: notifier.stayResident || notifier.notifyOn
+        visible: !notifier.usesNativeMacOsStatusItem
+                 && (notifier.stayResident || notifier.notifyOn)
         icon.source: notifier.iconSource
         tooltip: "TimeArc"
         menu: trayMenu
@@ -43,8 +46,20 @@ Item {
         }
     }
 
+    Component.onCompleted: syncNativeVisibility()
+    onNotifyOnChanged: syncNativeVisibility()
+    onStayResidentChanged: syncNativeVisibility()
+
+    function syncNativeVisibility() {
+        if (usesNativeMacOsStatusItem)
+            macStatusBarController.setVisible(stayResident || notifyOn);
+    }
+
     function notify(title, message) {
         if (!notifier.notifyOn) return;
-        tray.showMessage(title, message);
+        if (usesNativeMacOsStatusItem)
+            macStatusBarController.showMessage(title, message);
+        else
+            tray.showMessage(title, message);
     }
 }

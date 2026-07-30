@@ -1,6 +1,8 @@
 set(TIME_ARC_QML_FILES
     qml/main.qml
     qml/desktop/DesktopAppShell.qml
+    qml/desktop/MacMenuBar.qml
+    qml/desktop/PomodoroLayer.qml
     qml/desktop/pages/DesktopHomePage.qml
     qml/desktop/pages/DesktopMemoryLakePage.qml
     qml/desktop/pages/DesktopCalenderPage.qml
@@ -8,14 +10,16 @@ set(TIME_ARC_QML_FILES
     qml/desktop/pages/DesktopProfilePage.qml
     qml/desktop/pages/DesktopStatsPage.qml
     qml/desktop/pages/DesktopMonthlyRecapPage.qml
-    qml/desktop/components/WindowChrome.qml
-    qml/desktop/components/SoftCard.qml
+        qml/desktop/components/WindowChrome.qml
+        qml/desktop/components/SoftCard.qml
     qml/desktop/components/DesktopDailyCardView.qml
     qml/desktop/components/SoftPill.qml
     qml/desktop/components/SoftButton.qml
     qml/desktop/components/AchievementToast.qml
     qml/desktop/components/AppVisual.js
+    qml/desktop/components/Hotkeys.js
     qml/desktop/components/I18n.js
+    qml/desktop/components/PlatformCursor.js
     qml/desktop/components/TagPalette.js
     qml/desktop/memorylake/GenerativeCover.qml
     qml/desktop/memorylake/MemoryLakeStyle.qml

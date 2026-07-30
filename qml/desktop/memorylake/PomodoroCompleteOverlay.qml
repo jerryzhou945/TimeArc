@@ -1,9 +1,10 @@
 import QtQuick
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 番茄完成全屏庆祝弹层（v88 .pomodoro-complete-overlay）。盖在一切之上：随机文案变体、
 // 旋转 conic 光环（分段 Canvas 环近似，避免外部 GraphicalEffects 模块）、大像素番茄弹跳、
-// 粒子迸发；点背景或「回到备忘录」关闭。由 PomodoroWidget 的单一探测器（remain===0）触发。
+// 粒子迸发；点背景或「知道了」关闭。由 PomodoroWidget 的单一探测器（remain===0）触发。
 // 详见 docs/memory-lake-memo-render-pipeline-replication.md §1.6 / 功能文 §2.7。
 Item {
     id: comp
@@ -117,11 +118,13 @@ Item {
             width: 132; height: 38; radius: 12
             color: closeH.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06)
             border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20)
-        Text { anchors.centerIn: parent; text: I18n.t(comp.languageMode, "回到备忘录")
+        // 中性文案：番茄钟与备忘黑板解耦后，这层可能盖在任意页面之上，关掉它回到的是用户
+        // 原来那一页，不一定是黑板，旧文案里的「回到…」承诺已不成立。（zh/en/ja 三语齐备。）
+        Text { anchors.centerIn: parent; text: I18n.t(comp.languageMode, "知道了")
                    color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.9); font.pixelSize: 14 }
             MouseArea {
                 id: closeH; anchors.fill: parent; hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor; onClicked: comp.closed()
+                cursorShape: Cursor.button(); onClicked: comp.closed()
             }
         }
     }

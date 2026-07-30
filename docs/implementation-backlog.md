@@ -96,9 +96,13 @@ G2/G3 打磨 ───────────(随手)
   2026-06-19 已补 Swift helper 的 foreground 写入、`usage_config.json`
   配置读取（`idle_threshold_ms` / `track_enabled`）、单实例文件锁、媒体
   assertion -> `source=audio` session 写入、SIGTERM/SIGINT flush；同日继续补
-  LaunchAgent verbs（install/uninstall/start/stop/status）和 UI macOS helper
-  auto-start 路径探测。剩余：Mac-host 编译与权限 smoke、db_path 实机确认、
-  Accessibility UX、helper bundle 布局、签名/公证/DMG 包装链路。Track B · macOS · 大。
+  LaunchAgent verbs（install/uninstall/start/stop/status）。2026-07-27 UI 改为
+  通过 `SMAppService` 注册 app 内嵌的 `com.timearc.service.plist`，由 launchd
+  管理 `Contents/MacOS/time-arc-service`；
+  同日增加 `tools/build-macos.sh`，覆盖 Release
+  构建/测试、Qt deploy、签名/公证和 DMG。剩余：Mac-host 权限 smoke、
+  db_path 实机确认、Accessibility UX、凭证签名/公证与 clean-machine QA；
+  helper 已固定随 UI 放入 `TimeArc.app/Contents/MacOS`。Track B · macOS · 大。
 - [ ] **C2 Linux 服务从零实现**
   现状：`src/service/linux/main.c` 0 字节。需 X11 + Wayland 前台采样、idle 检测、PipeWire/PulseAudio
   音频、单实例守卫。Track B · Linux · 大。
@@ -120,9 +124,14 @@ G2/G3 打磨 ───────────(随手)
   已实装（**PR #43**）：S1 `tools/verify-linkage.ps1`（objdump 断言 Qt6*.dll 动态、无静态 Qt + shared-libs 部署）
   + 去过时文档（open-issues / rules/06 §1 / README）；S2 许可文本 `resources/licenses/`；S3 `tools/package-release.ps1`
   （windeployqt + 随包 Qt/MinGW DLL + LICENSE + licenses/ + NOTICE.txt relink 声明 + 嵌 S1 断言 + zip；断面机
-  剥离 PATH 解压即跑已验证）。S4 in-tree CMake 部署（改冻结顶层 CMake）仍门控暂缓（须提案）。
+  剥离 PATH 解压即跑已验证）。2026-07-27 补项目自有资源的 in-tree 安装：
+  桌面 GUI 大图按背景/站点图标/月度回顾拆为三个外置 RCC，Windows 包装强制携带；
+  macOS UI/helper 同置 `Contents/MacOS`，`build-macos.sh` 调用 `macdeployqt`
+  部署私有 Qt framework/plugin 并生成签名 DMG；Windows 的
+  `build-windows.ps1` 以相同四模式入口覆盖构建、测试、Qt 部署、可选签名与 ZIP，
+  保留原有两个 Windows 发布工具但不调用它们。
 - [x] **F2 in-app 第三方许可证页面**（surfacing 所有 third-party 文本，`rules/06` §4）— Track B。
-  已实装（**PR #43**）：设置→导入导出→「关于与开源许可」卡（Qt/SQLite/Parson/TimeArc 名+版本+许可+链接方式），
+  已实装（**PR #43**，后续提升为独立设置分区）：设置→「关于与开源许可」（Qt/SQLite/Parson/TimeArc 名+版本+许可+链接方式），
   「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。
 
 ### G. 配置 / 打磨 / 杂项
@@ -133,6 +142,12 @@ G2/G3 打磨 ───────────(随手)
   〔修正：原列「conic-aura shader」已移除——它不属 §A #11–14，且 conic 光环（`PomodoroCompleteOverlay.qml`）+ 运行 aura 辉光（`PomodoroWidget.qml:205`）均已用 Canvas/动画实装、故意不用 shader。〕
 - [ ] **G3 Win11 snap-layouts fly-out**（原生 `WM_NCCALCSIZE`/`WM_NCHITTEST` pass，frameless Step 2 延期）—
   Track B · Windows · 见 agent memory `timearc-frameless-window`。
+- [x] **G3a macOS 侧栏交通灯** — 无可见标题栏；左侧栏贴合左/上/下边缘且无卡片边界，
+  关闭/最小化/全屏交通灯直接嵌入侧栏；Windows 与其他平台布局不变。
+  2026-07-30：交通灯改为常显，备忘黑板打开时不再隐藏（AppKit 标题栏视图本就叠在 Qt 内容
+  之上，无需层级改动）；黑板左上角按 88px 让位、⌘W 解除置灰、关窗前强存备忘文档。
+  见 `docs/macos-memo-traffic-lights-report.md`。遗留：按钮带遮挡黑板左上角约「逻辑
+  16–107 × 5–37」的可点区域，黑板顶部仍不支持拖窗/双击缩放。
 - [~] **G4 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
   2026-06-13 alpha 修复已覆盖截图中的 `r5apex_dx12` → Apex Legends、`nvcontainer` → NVIDIA Container、`svchost` → Service Host，并补入 Apex/NVIDIA/Windows 系统进程的 group key 与分类；2026-06-14 继续补 QQ/TIM/QQ 截图助手显示名与 group key，聚合项新增 `homeRankVisible`，记忆湖首页排行过滤 QQ 截图、Windows/NVIDIA helper 等低信号项，但设置页应用管理保留全量列表。更广泛长尾仍保留为后续渐进覆盖。
   2026-06-14 本轮曾继续收窄设置页应用管理：`allApps()` 输出聚合 `seconds` 与 `settingsVisible`，默认按高频到低频展示大众化应用/站点，并收起 `pid:*`、`.dll`、Windows helper、QQ 截图、NVIDIA helper 等低信号项；搜索仍覆盖全量记录，便于需要时找回并调整显隐。

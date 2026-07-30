@@ -8,6 +8,7 @@ import "../components"
 import "../memorylake"
 import "../components/TagPalette.js" as TagPalette
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 Item {
     id: root
@@ -927,7 +928,7 @@ Item {
                     Text { anchors.centerIn: parent; text: "‹"; color: ml.calGlyph
                            font.pixelSize: 19; font.weight: Font.DemiBold }
                     MouseArea { id: prevMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: previousMonth() }
+                                cursorShape: Cursor.button(); onClicked: previousMonth() }
                 }
 
                 // 今天（aqua→violet 主键）
@@ -942,7 +943,7 @@ Item {
                     }
                     Text { anchors.centerIn: parent; text: root.tr("今天"); color: ml.calBtnInk
                            font.pixelSize: 14; font.weight: Font.DemiBold }
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                    MouseArea { anchors.fill: parent; cursorShape: Cursor.button()
                                 onClicked: {
                                     viewedMonth = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)
                                     selectDate(dateKey(todayDate))
@@ -960,7 +961,7 @@ Item {
                     Text { anchors.centerIn: parent; text: "›"; color: ml.calGlyph
                            font.pixelSize: 19; font.weight: Font.DemiBold }
                     MouseArea { id: nextMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: nextMonth() }
+                                cursorShape: Cursor.button(); onClicked: nextMonth() }
                 }
             }
         }
@@ -1054,7 +1055,7 @@ Item {
                                     id: tabMa
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
+                                    cursorShape: Cursor.button()
                                     onClicked: {
                                         activeView = modelData.key
                                         showCalToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label))
@@ -1303,7 +1304,7 @@ Item {
                                     id: cellMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
+                                    cursorShape: Cursor.button()
                                     onClicked: selectCellDate(modelData)
                                 }
                             }
@@ -1491,7 +1492,7 @@ Item {
                                     id: weekColMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
+                                    cursorShape: Cursor.button()
                                     onClicked: selectCellDate({ dateKey: weekCol.modelData.dateKey,
                                                                 inMonth: dateFromKey(weekCol.modelData.dateKey).getMonth() === viewedMonth.getMonth() })
                                 }
@@ -1716,7 +1717,7 @@ Item {
                                     }
                                     MouseArea {
                                         anchors.fill: parent
-                                        cursorShape: Qt.PointingHandCursor
+                                        cursorShape: Cursor.button()
                                         onClicked: selectCellDate({ dateKey: modelData.dateKey,
                                                                     inMonth: dateFromKey(modelData.dateKey).getMonth() === viewedMonth.getMonth() })
                                     }
@@ -1987,7 +1988,7 @@ Item {
                                         id: photoMa
                                         anchors.fill: parent
                                         hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
+                                        cursorShape: Cursor.button()
                                         onClicked: dayPhotoDialog.open()
                                     }
                                 }
@@ -2066,7 +2067,7 @@ Item {
                                         id: segMa
                                         anchors.fill: parent
                                         hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
+                                        cursorShape: Cursor.button()
                                         onClicked: sidePanelMode = modelData.key
                                     }
                                 }
@@ -2146,7 +2147,7 @@ Item {
                                                 MouseArea {
                                                     anchors.fill: parent
                                                     anchors.margins: -6
-                                                    cursorShape: Qt.PointingHandCursor
+                                                    cursorShape: Cursor.button()
                                                     preventStealing: true
                                                     // 便签投影行：完成态回写到便签（单一来源 odone）；原生行走 todoModel。
                                                     onClicked: {
@@ -2237,7 +2238,7 @@ Item {
                                                     id: startMa
                                                     anchors.fill: parent
                                                     hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
+                                                    cursorShape: Cursor.button()
                                                     preventStealing: true
                                                     onClicked: startTodoProject(agendaItem.text, agendaItem.tag, selectedDateKey, agendaItem.linkedProject)
                                                 }
@@ -2262,7 +2263,7 @@ Item {
                                                     id: delMa
                                                     anchors.fill: parent
                                                     hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
+                                                    cursorShape: Cursor.button()
                                                     preventStealing: true
                                                     // 便签投影行：删除=把便签降级（便签本身保留，不会被下次编辑复活）；原生行才真删。
                                                     onClicked: {
@@ -2413,7 +2414,7 @@ Item {
 
                                         MouseArea {
                                             anchors.fill: parent
-                                            cursorShape: Qt.PointingHandCursor
+                                            cursorShape: Cursor.button()
                                             onClicked: {
                                                 var t = dateFromKey(modelData.dateKey)
                                                 viewedMonth = new Date(t.getFullYear(), t.getMonth(), 1)
@@ -2488,7 +2489,7 @@ Item {
                                                     id: annDelMa
                                                     anchors.fill: parent
                                                     hoverEnabled: true
-                                                    cursorShape: Qt.PointingHandCursor
+                                                    cursorShape: Cursor.button()
                                                     preventStealing: true
                                                     onClicked: removeAnniversaryById(modelData.id)
                                                 }
@@ -2532,7 +2533,7 @@ Item {
                         }
                         MouseArea {
                             anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
+                            cursorShape: Cursor.button()
                             onClicked: openCreate()
                         }
                     }
@@ -2632,7 +2633,7 @@ Item {
                         border.width: 1; border.color: ml.calGhostBorder
                         Text { anchors.centerIn: parent; text: "×"; color: ml.calGlyph; font.pixelSize: 16; font.bold: true }
                         MouseArea { id: closeMa; anchors.fill: parent; hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor; onClicked: closeCreate() }
+                                    cursorShape: Cursor.button(); onClicked: closeCreate() }
                     }
                 }
 
@@ -2668,7 +2669,7 @@ Item {
                             languageMode: root.languageMode
                             big: true
                             selected: root.todoTag === modelData
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            MouseArea { anchors.fill: parent; cursorShape: Cursor.button()
                                         onClicked: root.todoTag = modelData }
                         }
                     }
@@ -2694,7 +2695,7 @@ Item {
                             Text { anchors.centerIn: parent; text: root.tr(modelData)
                                    color: root.annType === modelData ? ml.calBtnInk : ml.textSecondary
                                    font.pixelSize: 13; font.bold: true }
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                            MouseArea { anchors.fill: parent; cursorShape: Cursor.button()
                                         onClicked: root.annType = modelData }
                         }
                     }
@@ -2719,7 +2720,7 @@ Item {
                     }
                     Text { id: timePickChev; anchors.right: parent.right; anchors.rightMargin: 12
                            anchors.verticalCenter: parent.verticalCenter; text: "▾"; color: ml.textTertiary; font.pixelSize: 10 }
-                    MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: openTimePicker() }
+                    MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: openTimePicker() }
                 }
 
                 // 详情（多行，可选）
@@ -2754,7 +2755,7 @@ Item {
                         border.width: 1; border.color: ml.calGhostBorder
                         Text { anchors.centerIn: parent; text: root.tr("取消"); color: ml.textSecondary; font.pixelSize: 14 }
                         MouseArea { id: createCancelMa; anchors.fill: parent; hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor; onClicked: closeCreate() }
+                                    cursorShape: Cursor.button(); onClicked: closeCreate() }
                     }
                     Rectangle {
                         width: (parent.width - 10) / 2; height: 40; radius: 12
@@ -2763,7 +2764,7 @@ Item {
                                              GradientStop { position: 1; color: ml.violet } }
                         Text { anchors.centerIn: parent; text: root.tr("创建"); color: ml.calBtnInk
                                font.pixelSize: 14; font.weight: Font.Bold }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor
+                        MouseArea { anchors.fill: parent; cursorShape: Cursor.button()
                                     onClicked: submitCreate() }
                     }
                 }
@@ -2816,7 +2817,7 @@ Item {
                             border.width: 1; border.color: ml.calGhostBorder
                             Text { anchors.centerIn: parent; text: "▲"; color: ml.aqua; font.pixelSize: 12 }
                             MouseArea { id: hUpMa; anchors.fill: parent; hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor; onClicked: root.pickHour = (root.pickHour + 1) % 24 }
+                                        cursorShape: Cursor.button(); onClicked: root.pickHour = (root.pickHour + 1) % 24 }
                         }
                         Rectangle {
                             width: 64; height: 48; radius: 12
@@ -2830,7 +2831,7 @@ Item {
                             border.width: 1; border.color: ml.calGhostBorder
                             Text { anchors.centerIn: parent; text: "▼"; color: ml.aqua; font.pixelSize: 12 }
                             MouseArea { id: hDnMa; anchors.fill: parent; hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor; onClicked: root.pickHour = (root.pickHour + 23) % 24 }
+                                        cursorShape: Cursor.button(); onClicked: root.pickHour = (root.pickHour + 23) % 24 }
                         }
                     }
 
@@ -2846,7 +2847,7 @@ Item {
                             border.width: 1; border.color: ml.calGhostBorder
                             Text { anchors.centerIn: parent; text: "▲"; color: ml.aqua; font.pixelSize: 12 }
                             MouseArea { id: mUpMa; anchors.fill: parent; hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor; onClicked: root.pickMinute = (root.pickMinute + 5) % 60 }
+                                        cursorShape: Cursor.button(); onClicked: root.pickMinute = (root.pickMinute + 5) % 60 }
                         }
                         Rectangle {
                             width: 64; height: 48; radius: 12
@@ -2860,7 +2861,7 @@ Item {
                             border.width: 1; border.color: ml.calGhostBorder
                             Text { anchors.centerIn: parent; text: "▼"; color: ml.aqua; font.pixelSize: 12 }
                             MouseArea { id: mDnMa; anchors.fill: parent; hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor; onClicked: root.pickMinute = (root.pickMinute + 55) % 60 }
+                                        cursorShape: Cursor.button(); onClicked: root.pickMinute = (root.pickMinute + 55) % 60 }
                         }
                     }
                 }
@@ -2873,7 +2874,7 @@ Item {
                         color: tpClearMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                         border.width: 1; border.color: ml.calGhostBorder
                         Text { anchors.centerIn: parent; text: root.tr("清除"); color: ml.textSecondary; font.pixelSize: 13 }
-                        MouseArea { id: tpClearMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        MouseArea { id: tpClearMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button()
                                     onClicked: { root.createTime = ""; root.timePickerOpen = false } }
                     }
                     Rectangle {
@@ -2883,7 +2884,7 @@ Item {
                                              GradientStop { position: 1; color: ml.violet } }
                         Text { anchors.centerIn: parent; text: root.tr("确定"); color: ml.calBtnInk
                                font.pixelSize: 13; font.weight: Font.DemiBold }
-                        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: commitTimePick() }
+                        MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: commitTimePick() }
                     }
                 }
             }

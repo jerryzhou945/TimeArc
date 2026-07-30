@@ -1,0 +1,14 @@
+[1/182] Copying time-arc qml sources into build dir
+[2/182] Running qmlimportscanner for time-arc
+[3/182] Automatic MOC and UIC for target time-arc
+[4/181] Running AUTOMOC file extraction for target time-arc
+[5/14] Generating .rcc/qmlcache/time-arc_qml/desktop/components/I18n_js.cpp
+[6/14] Generating .rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp.aotstats
+[7/14] Generating .rcc/qmlcache/time-arc_qml/main_qml.cpp, .rcc/qmlcache/time-arc_qml/main_qml.cpp.aotstats
+[8/14] Running rcc for resource time-arc_raw_qml_0
+[9/14] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[10/14] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/I18n_js.cpp.o
+[11/14] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/main_qml.cpp.o
+[12/14] Building CXX object CMakeFiles/time-arc.dir/src/services/macos/macos_menu_localizer.cpp.o
+[13/14] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp.o
+[14/14] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

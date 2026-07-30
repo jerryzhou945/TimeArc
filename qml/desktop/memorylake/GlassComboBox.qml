@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import "../components/PlatformCursor.js" as Cursor
 
 // 暗玻璃下拉（v88 select §7.2）。纯自绘字段 + Controls.Popup 弹层（Popup 的 background 自定义所有
 // 样式都支持，故不触发 native ComboBox 的「current style does not support customization」告警；
@@ -60,7 +61,7 @@ Item {
 
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             preventStealing: true
             onClicked: pop.visible ? pop.close() : pop.open()
         }
@@ -117,7 +118,7 @@ Item {
                     font.weight: (opt.index === opt.owner.comboCurrentIndex) ? Font.DemiBold : Font.Normal
                     elide: Text.ElideRight
                 }
-                HoverHandler { id: optHov; cursorShape: Qt.PointingHandCursor }
+                HoverHandler { id: optHov; cursorShape: Cursor.button() }
                 TapHandler { onTapped: opt.owner.activateIndex(opt.index) }   // 受控：不自写 currentIndex
             }
         }

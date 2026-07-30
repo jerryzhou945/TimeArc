@@ -1,0 +1,30 @@
+<RCC>
+  <qresource prefix="/qt/qml/time_arc/">
+    <file alias="resources/app/icons/sites/bilibili.png">app/icons/sites/bilibili.png</file>
+    <file alias="resources/app/icons/sites/acfun.png">app/icons/sites/acfun.png</file>
+    <file alias="resources/app/icons/sites/alipay.png">app/icons/sites/alipay.png</file>
+    <file alias="resources/app/icons/sites/baidu.png">app/icons/sites/baidu.png</file>
+    <file alias="resources/app/icons/sites/dianping.ico">app/icons/sites/dianping.ico</file>
+    <file alias="resources/app/icons/sites/douban.ico">app/icons/sites/douban.ico</file>
+    <file alias="resources/app/icons/sites/douyin.ico">app/icons/sites/douyin.ico</file>
+    <file alias="resources/app/icons/sites/douyu.ico">app/icons/sites/douyu.ico</file>
+    <file alias="resources/app/icons/sites/huya.png">app/icons/sites/huya.png</file>
+    <file alias="resources/app/icons/sites/iqiyi.png">app/icons/sites/iqiyi.png</file>
+    <file alias="resources/app/icons/sites/jd.ico">app/icons/sites/jd.ico</file>
+    <file alias="resources/app/icons/sites/kuaishou.ico">app/icons/sites/kuaishou.ico</file>
+    <file alias="resources/app/icons/sites/mango-tv.png">app/icons/sites/mango-tv.png</file>
+    <file alias="resources/app/icons/sites/meituan.ico">app/icons/sites/meituan.ico</file>
+    <file alias="resources/app/icons/sites/netflix.png">app/icons/sites/netflix.png</file>
+    <file alias="resources/app/icons/sites/pinduoduo.png">app/icons/sites/pinduoduo.png</file>
+    <file alias="resources/app/icons/sites/taobao.png">app/icons/sites/taobao.png</file>
+    <file alias="resources/app/icons/sites/tencent-video.png">app/icons/sites/tencent-video.png</file>
+    <file alias="resources/app/icons/sites/tmall.png">app/icons/sites/tmall.png</file>
+    <file alias="resources/app/icons/sites/twitch.ico">app/icons/sites/twitch.ico</file>
+    <file alias="resources/app/icons/sites/weibo.ico">app/icons/sites/weibo.ico</file>
+    <file alias="resources/app/icons/sites/xiaohongshu.png">app/icons/sites/xiaohongshu.png</file>
+    <file alias="resources/app/icons/sites/xigua-video.ico">app/icons/sites/xigua-video.ico</file>
+    <file alias="resources/app/icons/sites/youtube.png">app/icons/sites/youtube.png</file>
+    <file alias="resources/app/icons/sites/youku.png">app/icons/sites/youku.png</file>
+    <file alias="resources/app/icons/sites/zhihu.png">app/icons/sites/zhihu.png</file>
+  </qresource>
+</RCC>

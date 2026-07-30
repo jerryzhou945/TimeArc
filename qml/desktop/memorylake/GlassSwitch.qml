@@ -1,4 +1,5 @@
 import QtQuick
+import "../components/PlatformCursor.js" as Cursor
 
 // 暗玻璃药丸开关（v88 .switch §7.1）。受控：checked 由父绑定，点击发 toggled(!checked)，
 // 由父持久化 + 弹 toast（避免组件内双写 KV）。轨 48×28 / 旋钮 22×22；开态 aqua→violet 渐变。
@@ -56,7 +57,7 @@ Item {
         anchors.fill: parent
         enabled: sw.enabledSwitch
         hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.button()
         preventStealing: true   // 嵌在 SilkyFlickable 内时不被滚动吞点击
         onClicked: sw.toggled(!sw.checked)
     }

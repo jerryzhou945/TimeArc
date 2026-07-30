@@ -50,7 +50,7 @@ Consult the Free Software Foundation's list when in doubt.
 
 ## 4. Third-party license surfacing
 
-Shipped (F2). Location: Settings → 导入导出 tab → 「关于与开源许可」 card in
+Shipped (F2). Location: Settings → 「关于与开源许可」 tab in
 `qml/desktop/pages/DesktopProfilePage.qml`. Texts live in `resources/licenses/*.txt`
 (F1-S2 artifact: same files distributed with the package), embedded in the qrc via
 `resources/CMakeLists.txt` and loaded by normalizing the `Qt.resolvedUrl` `qrc:/…`

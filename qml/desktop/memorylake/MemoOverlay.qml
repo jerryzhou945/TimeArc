@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 备忘黑板·模态覆盖层（v88 #memoOverlay）。
 // **入口是动作不是路由**：盖在首页之上、底层页面原样保留，关闭后退回原处，全程不换页
@@ -17,6 +18,12 @@ Item {
     // 身后首页快照源（M0：QML 无实时 backdrop-filter，截首页快照重模糊当黑板磨砂底）。
     property Item backdropSource: null
 
+    // macOS 原生 chrome：交通灯在黑板打开时也常显（AppKit 画在标题栏视图，叠在 QML 之上），
+    // 故左上角自绘 chrome 必须让开按钮带（按钮实占约 7..61 × 7..21pt，沿用侧栏/自绘标题栏
+    // 既有的 88px 让位口径）。其他平台维持原边距。
+    property bool macSidebarChrome: false
+    readonly property int macTrafficLightInset: macSidebarChrome ? 88 : 0
+
     // 开合状态（动作）。开合唯一动画 = opacity .26s ease（功能文 §2.1 / C0）。
     property bool open: false
 
@@ -29,8 +36,16 @@ Item {
     readonly property string docKey: "memoryLakeMemoDoc"
     property bool _loaded: false
 
-    // 番茄钟完成 → 通知 Shell（系统通知；不受结束庆祝开关影响）。
-    signal pomodoroFinished(string title)
+    function shortcutDisplayText(source) {
+        var translated = I18n.t(languageMode, source);
+        return Qt.platform.os === "osx"
+                ? translated.split("Ctrl+").join("⌘")
+                : translated;
+    }
+
+    // 工具条上的番茄按钮：番茄浮窗已搬到 Shell 的 PomodoroLayer（与黑板同级），
+    // 这里只把点击转出去，黑板自身不再持有番茄状态。
+    signal pomodoroRequested()
 
     // —— 多页模型：每页 owns 标签 + 对象 + 画布 PNG。pagesData 为纯数据，pageLabels 单独驱动 UI 绑定。
     property var pagesData: [{ label: "Page 1", objects: [], canvas: "" }]
@@ -196,15 +211,19 @@ Item {
             if (typeof doc.pen.color === "string" && doc.pen.color.length > 0) toolbar.inkColor = doc.pen.color;
         }
     }
+    // 关窗/退出前强存（Shell 调用）：交通灯常显后红灯随时可点，防抖窗口里的最后一笔不能丢。
+    // 只在存档已装载后才写——没开过黑板的会话里 pagesData 还是空白初值，直接存会覆盖用户存档。
+    function flushPendingSave() {
+        if (!_loaded) return;
+        saveTimer.stop();
+        saveDoc();
+    }
     // G-MEMO 自动保存笔迹：memo_autosave 关 → 停连续防抖自动存（关闭时仍强存，内容永不丢失）。
     function scheduleSave() {
         if (!store) return;
         if (store.getBool && !store.getBool("memo_autosave", true)) return;
         saveTimer.restart();
     }
-    // #3 番茄全局快捷键入口：开黑板并开/关番茄浮窗（由 Shell Shortcut 调用）。
-    function togglePomodoro() { open = true; pomodoro.shown = !pomodoro.shown; }
-
     Timer { id: saveTimer; interval: 600; repeat: false; onTriggered: memo.saveDoc() }
 
     // —— 撤回 / 重做（Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y）——
@@ -629,7 +648,7 @@ Item {
         cursorShape: {
             switch (toolbar.currentTool) {
             case "text": return Qt.IBeamCursor;
-            case "note": return Qt.DragCopyCursor;
+            case "note": return Cursor.place();
             case "select": return Qt.ArrowCursor;
             case "none": return Qt.ArrowCursor;
             default: return Qt.CrossCursor;
@@ -941,7 +960,7 @@ Item {
                 id: moveMa
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
-                cursorShape: Qt.SizeAllCursor
+                cursorShape: Cursor.grab()
                 property real gx0: 0
                 property real gy0: 0
                 onPressed: function (m) {
@@ -987,7 +1006,7 @@ Item {
                     Text { id: copyT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "复制")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.92); font.pixelSize: 13 }
                     MouseArea { id: copyMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: memo._copySelection() }
+                                cursorShape: Cursor.button(); onClicked: memo._copySelection() }
                 }
                 Rectangle {
                     width: delT.implicitWidth + 22; height: 30; radius: 8
@@ -997,7 +1016,7 @@ Item {
                     Text { id: delT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "删除")
                            color: Qt.rgba(255 / 255, 235 / 255, 235 / 255, 0.95); font.pixelSize: 13 }
                     MouseArea { id: delMa; anchors.fill: parent; hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor; onClicked: memo._deleteSelection() }
+                                cursorShape: Cursor.button(); onClicked: memo._deleteSelection() }
                 }
             }
         }
@@ -1037,34 +1056,11 @@ Item {
         canUndo: memo.canUndo
         canRedo: memo.canRedo
         onExitRequested: memo.open = false
-        onPomodoroRequested: pomodoro.shown = !pomodoro.shown
+        onPomodoroRequested: memo.pomodoroRequested()
         onClearRequested: clearConfirm.open = true
         onUndoRequested: memo.undo()
         onRedoRequested: memo.redo()
         onCurrentToolChanged: if (currentTool !== "select") memo._clearSelection()
-    }
-
-    // 番茄钟浮窗 + 完成弹层。
-    PomodoroWidget {
-        id: pomodoro
-        z: 4540               // 叠在工具条(z4520)之上
-        style: memo.style
-        languageMode: memo.languageMode
-        store: memo.store     // gap #10：番茄状态持久化（单独键 memoryLakeMemoPomodoro）
-        shown: false
-        onCompleted: function (v) {
-            memo.pomodoroFinished(pomodoro.title);   // #3 系统通知（不受结束庆祝开关影响）
-            // #2 结束庆祝可在设置页关闭（pomodoro_celebrate）；关则静默完成，不弹全屏庆祝。
-            if (memo.store && memo.store.getBool && !memo.store.getBool("pomodoro_celebrate", true)) return;
-            pomodoroComplete.variant = v; pomodoroComplete.shown = true;
-        }
-    }
-    PomodoroCompleteOverlay {
-        id: pomodoroComplete
-        z: 4560               // 全屏庆祝，必须盖过工具条
-        style: memo.style
-        languageMode: memo.languageMode
-        onClosed: pomodoroComplete.shown = false
     }
 
     // 便签截止日期选择器（单例；由便签截止行触发，居中弹出）。
@@ -1126,7 +1122,7 @@ Item {
                 }
                 Text {
                     width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
-                    text: I18n.t(memo.languageMode, "仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。")
+                    text: memo.shortcutDisplayText("仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。")
                     color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12
                 }
                 Row {
@@ -1137,14 +1133,14 @@ Item {
                         color: cancelH.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                         border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
                         Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "取消"); color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
-                        MouseArea { id: cancelH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        MouseArea { id: cancelH; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button()
                             onClicked: clearConfirm.open = false }
                     }
                     Rectangle {
                         width: 96; height: 34; radius: 10
                         color: clearGoH.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.85) : Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.55)
                         Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "清空"); color: "#FFFFFF"; font.pixelSize: 14; font.weight: Font.DemiBold }
-                        MouseArea { id: clearGoH; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                        MouseArea { id: clearGoH; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button()
                             onClicked: { memo.clearCurrentCanvas(); clearConfirm.open = false } }
                     }
                 }
@@ -1191,7 +1187,7 @@ Item {
         Text {
             id: hintText
             anchors.centerIn: parent
-            text: I18n.t(memo.languageMode, memo.toolHints[toolbar.currentTool] || "")
+            text: memo.shortcutDisplayText(memo.toolHints[toolbar.currentTool] || "")
             color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
             font.pixelSize: 13
         }
@@ -1202,7 +1198,9 @@ Item {
         id: saveStatus
         property bool flashOn: false
         function flash(t) { saveStatusText.text = t; flashOn = true; fadeTimer.restart(); }
-        anchors { top: parent.top; left: parent.left; topMargin: 30; leftMargin: 24 }
+        // macOS：右移 88px 让开常显的原生交通灯（macTrafficLightInset）；其他平台维持 24px。
+        anchors { top: parent.top; left: parent.left; topMargin: 30
+                  leftMargin: 24 + memo.macTrafficLightInset }
         height: 30
         width: saveStatusText.implicitWidth + 24
         radius: 15

@@ -1,4 +1,5 @@
 import QtQuick
+import "PlatformCursor.js" as Cursor
 
 Rectangle {
     id: root
@@ -56,7 +57,7 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         enabled: root.enabledButton
-        cursorShape: Qt.PointingHandCursor
+        cursorShape: Cursor.button()
         onClicked: root.clicked()
     }
 }

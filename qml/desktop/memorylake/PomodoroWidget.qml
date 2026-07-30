@@ -1,69 +1,36 @@
 import QtQuick
 import QtQuick.Controls
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
-// 番茄钟浮窗（v88 .pomodoro-widget）。计时状态机 idle→running(收缩成像素番茄)→paused(展开)→
-// complete(展开+弹层)；1Hz；分[1,180]/秒[0,59]；横向填充进度条（非环形，对齐 v88）。
-// 开始约 180ms 收缩成番茄；点番茄=暂停+展开。运行态描边辉光脉冲。可拖动并钳制在覆盖层内。
+// 番茄钟浮窗（v88 .pomodoro-widget）。**纯视图**：状态机、持久化、完成判定都在 C++ 的
+// PomodoroManager 里，这里只显示与手势——收缩成像素番茄、拖动、发光。
+// 展现形态 idle→running(收缩成像素番茄)→paused(展开)→complete(展开+弹层)；
+// 分[0,180]/秒[0,59]；横向填充进度条（非环形，对齐 v88）。开始约 180ms 收缩成番茄；
+// 点番茄=暂停+展开。运行态描边辉光脉冲。可拖动并钳制在覆盖层内。
 // 详见 docs/memory-lake-memo-render-pipeline-replication.md §1.6 / 功能文 §2.7。
 Item {
     id: pomo
 
     property MemoryLakeStyle style
     property string languageMode: "zh"
-    property var store: null               // UI 私有持久化后端（Shell→MemoOverlay 注入）
     property bool shown: false
-    property int total: 25 * 60
-    property int remain: 25 * 60
-    property bool running: false
     property bool compact: false
-    property string title: "专注一会儿"
 
-    signal completed(string variant)
+    // 计时状态一律读引擎，本组件不再持有任何一份副本（免得两处状态各说各话）。
+    // 直接引用 pomodoroManager 上下文属性，与各页引用 timerManager 的写法一致：
+    // 名字对不上会当场 ReferenceError，而不是悄悄退回一组看着正常的默认值。
+    readonly property var engine: pomodoroManager
+    readonly property int total: engine ? engine.total : 25 * 60
+    readonly property int remain: engine ? engine.remain : 25 * 60
+    readonly property bool running: engine ? engine.running : false
+    readonly property string title: engine ? engine.title : ""
+    readonly property string timeText: engine ? engine.timeText : "25:00"
+    readonly property real progress: engine ? engine.progress : 0
 
-    // —— 持久化（gap #10）：番茄是全局（非按页），单独存键；重启恢复为暂停态
-    // （无跨重启墙钟锚点，不自动续跑）。标题/分秒/进度都存。
-    readonly property string _storeKey: "memoryLakeMemoPomodoro"
-    property bool _loaded: false
-    function _save() {
-        if (!store || !_loaded) return;
-        store.setValue(_storeKey, JSON.stringify({ total: total, remain: remain, title: title }));
-    }
-    // 设置页默认专注分钟（#2）：pomodoro_duration（无则 0 表示用本组件默认 25）。
-    function _settingsMinutes() {
-        if (!store) return 0;
-        var v = parseInt(store.getValue("pomodoro_duration", ""));
-        return (!isNaN(v) && v > 0) ? v : 0;
-    }
-    function _load() {
-        var hadSaved = false;
-        if (store) {
-            var raw = store.getValue(_storeKey, "");
-            if (raw && raw.length > 0) {
-                try {
-                    var d = JSON.parse(raw);
-                    if (typeof d.total === "number" && d.total > 0) total = d.total;
-                    if (typeof d.title === "string" && d.title.length > 0) title = d.title;
-                    var rm = (typeof d.remain === "number") ? d.remain : total;
-                    remain = Math.max(0, Math.min(total, rm > 0 ? rm : total));
-                    running = false; compact = false;
-                    hadSaved = true;
-                } catch (e) {}
-            }
-        }
-        if (!hadSaved) {
-            // 无持久会话 → 采用设置页默认时长 / 标题（#2 接备忘番茄引擎）。
-            var m = _settingsMinutes();
-            if (m > 0) { total = m * 60; remain = total; }
-            var t = store ? store.getValue("pomodoro_title", "") : "";
-            if (t && t.length > 0) title = t;
-        }
-        _loaded = true;
-    }
-    Component.onCompleted: _load()
-    Timer { id: _saveT; interval: 500; onTriggered: pomo._save() }
-    onTotalChanged: if (_loaded) _saveT.restart()
-    onTitleChanged: if (_loaded) _saveT.restart()
+    function startTimer() { if (engine) engine.startTimer(); }
+    function pauseTimer() { if (engine) engine.pauseTimer(); }
+    function resetTimer() { if (engine) engine.resetTimer(); }
 
     width: compact ? 104 : 278
     height: compact ? 116 : bodyCol.implicitHeight + 28
@@ -76,39 +43,6 @@ Item {
         easing.bezierCurve: pomo.style ? pomo.style.easeSnappy : [0.18, 0.9, 0.2, 1, 1, 1] } }
     Behavior on height { NumberAnimation { duration: 260; easing.type: Easing.Bezier
         easing.bezierCurve: pomo.style ? pomo.style.easeSnappy : [0.18, 0.9, 0.2, 1, 1, 1] } }
-
-    readonly property int mm: Math.floor(remain / 60)
-    readonly property int ss: remain % 60
-    function _two(n) { return (n < 10 ? "0" : "") + n; }
-    readonly property string timeText: _two(mm) + ":" + _two(ss)
-    readonly property real progress: total > 0 ? (1 - remain / total) : 0
-
-    function _clampMin(v) { return Math.max(0, Math.min(180, v)); }   // 允许 0 分（配合秒做短计时）
-    function _clampSec(v) { return Math.max(0, Math.min(59, v)); }
-    // 总时长为 0（0 分 0 秒）时拒绝开始，避免秒针刚跑就判定完成。
-    function startTimer() { if (running) return; if (total <= 0) return; if (remain <= 0) remain = total; running = true; }
-    function pauseTimer() { running = false; _save(); }
-    function resetTimer() {
-        running = false; compact = false;
-        var m = _settingsMinutes(); if (m > 0) total = m * 60;            // #2 重置回设置页默认时长
-        var t = store ? store.getValue("pomodoro_title", "") : "";
-        if (t && t.length > 0) title = t;                                 // 标题与时长对称同步
-        remain = total; _save();
-    }
-    function setMinutes(m) { var s = remain % 60; total = _clampMin(m) * 60 + (running ? 0 : _clampSec(s)); if (!running) remain = total; }
-    function setSeconds(s) { var mnt = Math.floor((running ? total : remain) / 60); total = mnt * 60 + _clampSec(s); if (!running) remain = total; }
-    // 完成计数（今日，供设置页数据概览）：date-stamped JSON，跨天自动归零；store 空则静默跳过。
-    function _recordCompletion() {
-        if (!store) return;
-        var today = Qt.formatDate(new Date(), "yyyy-MM-dd");
-        var n = 1;
-        try { var o = JSON.parse(store.getValue("pomodoro_today", "")); if (o && o.d === today) n = (o.n || 0) + 1; } catch (e) {}
-        store.setValue("pomodoro_today", JSON.stringify({ d: today, n: n }));
-    }
-    function _pickVariant() {
-        var v = ["FOCUS COMPLETE", "GOOD SESSION", "MEMORY SAVED", "WELL DONE"];
-        return v[Math.floor(Math.random() * v.length)];
-    }
 
     // 深色数字输入（对齐 v88 .pomodoro-number：bg rgba(255,255,255,.055)、边 rgba(142,223,255,.12)、
     // 字 rgba(245,250,255,.92)、r11/h36）。Windows 原生 Controls 风格不支持定制 SpinBox（背景/指示器
@@ -158,7 +92,7 @@ Item {
                 Text { anchors.centerIn: parent; text: "+"
                        color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.85); font.pixelSize: 13 }
                 MouseArea { id: upMa; anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor; onClicked: nf._commit(nf.value + 1) }
+                            cursorShape: Cursor.button(); onClicked: nf._commit(nf.value + 1) }
             }
             Rectangle {
                 width: 20; height: (parent.height - 2) / 2; radius: 6
@@ -168,27 +102,17 @@ Item {
                 Text { anchors.centerIn: parent; text: "−"
                        color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.85); font.pixelSize: 13 }
                 MouseArea { id: dnMa; anchors.fill: parent; hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor; onClicked: nf._commit(nf.value - 1) }
+                            cursorShape: Cursor.button(); onClicked: nf._commit(nf.value - 1) }
             }
         }
     }
 
-    Timer {
-        interval: 1000; repeat: true; running: pomo.running
-        onTriggered: {
-            pomo.remain = Math.max(0, pomo.remain - 1);
-            if (pomo.remain === 0) {
-                pomo.running = false;
-                pomo.compact = false;
-                pomo._save();
-                pomo._recordCompletion();              // 今日完成计数（数据概览）
-                pomo.completed(pomo._pickVariant());   // 单一探测器（功能文 G7/C13）
-            }
-        }
-    }
-    // 开始后约 180ms 收缩成番茄（功能文 §2.7）。
+    // 计时那一拍在 PomodoroManager 里，这里只跟随它的状态变化做形变。
+    // 开始后约 180ms 收缩成番茄（功能文 §2.7）；走到零时引擎先把 running 置假，
+    // 于是同一条 onRunningChanged 负责展开——与旧实现里 complete 分支手动置
+    // compact = false 等价。
     Timer { id: collapseT; interval: 180; onTriggered: if (pomo.running) pomo.compact = true; }
-    onRunningChanged: { if (running) collapseT.restart(); else if (remain > 0) compact = false; }
+    onRunningChanged: { if (running) collapseT.restart(); else compact = false; }
 
     // ===== 玻璃卡（展开态主体 / 紧凑态外壳）=====
     Rectangle {
@@ -267,7 +191,7 @@ Item {
             anchors.fill: parent
             visible: pomo.compact
             enabled: pomo.compact
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             onClicked: { pomo.pauseTimer(); pomo.compact = false; }
         }
 
@@ -290,7 +214,8 @@ Item {
                 placeholderTextColor: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.30)
                 font.pixelSize: 12
                 maximumLength: 30
-                onTextChanged: pomo.title = text
+                // 只在真的不同时回写，免得引擎的 titleChanged 再绕回来触发一轮。
+                onTextChanged: if (pomo.engine && text !== pomo.engine.title) pomo.engine.title = text
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -327,7 +252,7 @@ Item {
                     NumberField {
                         id: minBox
                         from: 0; to: 180; value: Math.floor(pomo.total / 60)
-                        onValueModified: (v) => pomo.setMinutes(v)
+                        onValueModified: (v) => { if (pomo.engine) pomo.engine.setMinutes(v); }
                         implicitWidth: 92
                     }
                 }
@@ -338,7 +263,7 @@ Item {
                     NumberField {
                         id: secBox
                         from: 0; to: 59; value: pomo.total % 60
-                        onValueModified: (v) => pomo.setSeconds(v)
+                        onValueModified: (v) => { if (pomo.engine) pomo.engine.setSeconds(v); }
                         implicitWidth: 92
                     }
                 }
@@ -362,7 +287,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         enabled: parent.canStart
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: pomo.running ? pomo.pauseTimer() : pomo.startTimer()
                     }
                 }
@@ -373,7 +298,7 @@ Item {
                     Text { anchors.centerIn: parent; text: I18n.t(pomo.languageMode, "重置")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
                     MouseArea { id: resetH; anchors.fill: parent; hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor; onClicked: pomo.resetTimer() }
+                        cursorShape: Cursor.button(); onClicked: pomo.resetTimer() }
                 }
             }
         }

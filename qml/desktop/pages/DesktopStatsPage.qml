@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // v88「统计」页（暗玻璃全幅复刻）。规范：docs/stats-functional-replication.md /
 // stats-render-pipeline-replication.md / stats-backend-data-gaps.md。
@@ -759,7 +760,7 @@ Item {
                                 id: tabMa
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                                cursorShape: Cursor.button()
                                 onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label + "视图")) }
                             }
                         }
@@ -862,7 +863,7 @@ Item {
                                 }
                                 MouseArea {
                                     anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
+                                    cursorShape: Cursor.button()
                                     onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label + "视图")) }
                                 }
                             }
@@ -1203,7 +1204,7 @@ Item {
             id: gbtnMa
             anchors.fill: parent
             hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             preventStealing: true
             onClicked: gbtn.tapped()
         }
@@ -1605,7 +1606,7 @@ Item {
                     color: expMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                     border.width: 1; border.color: ml.calGhostBorder
                     Text { id: expLabel; anchors.centerIn: parent; text: root.tr("导出报告"); color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold }
-                    MouseArea { id: expMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; preventStealing: true; onClicked: ic.exportRequested() }
+                    MouseArea { id: expMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button(); preventStealing: true; onClicked: ic.exportRequested() }
                 }
             }
             // 洞察段落（135° aqua/violet 浅染）

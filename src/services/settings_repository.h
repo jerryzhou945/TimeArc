@@ -16,6 +16,13 @@ class SettingsRepository : public QObject {
   Q_INVOKABLE QString getValue(const QString& key,
                                const QString& defaultValue = QString());
 
+  // The effective UI language: the stored `language_mode` when it names a
+  // language TimeArc ships (en | zh | ja), otherwise the closest match to the
+  // system language, persisted on the spot so the store stays the single
+  // source of truth. Every reader of the UI language goes through this — no
+  // caller carries a literal default.
+  Q_INVOKABLE QString languageMode();
+
   Q_INVOKABLE bool setValue(const QString& key, const QString& value);
 
   Q_INVOKABLE bool getBool(const QString& key, bool defaultValue = false);

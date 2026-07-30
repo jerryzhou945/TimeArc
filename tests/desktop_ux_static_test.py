@@ -19,6 +19,9 @@ def reject(text, needle, label):
 
 def main():
     main_cpp = read("src/main.cpp")
+    mac_status_bar_cpp = read(
+        "src/services/macos/macos_status_bar_icon.cpp")
+    app_cmake = read("src/CMakeLists.txt")
     cmake_root = read("CMakeLists.txt")
     android_gradle = read("android/build.gradle") if (ROOT / "android/build.gradle").exists() else ""
     android_manifest = read("android/src/main/AndroidManifest.xml")
@@ -67,6 +70,34 @@ def main():
     require(tray_qml, "Platform.Menu", "tray context menu")
     require(tray_qml, "showRequested", "tray show action")
     require(tray_qml, "quitRequested", "tray quit action")
+    require(tray_qml, "icon.source: notifier.iconSource",
+            "original tray SVG on non-macOS platforms")
+    require(tray_qml, "usesNativeMacOsStatusItem",
+            "macOS native status-item selection")
+    reject(main_cpp, "makeInputSourceTIcon",
+           "macOS status-bar implementation in main")
+    require(main_cpp, "MacStatusBarIcon macStatusBarIcon",
+            "macOS status-bar integration")
+    require(main_cpp, "QApplication app(argc, argv)",
+            "QMenu-compatible macOS application")
+    require(main_cpp, "QGuiApplication app(argc, argv)",
+            "non-macOS GUI application")
+    require(mac_status_bar_cpp, "makeInputSourceTIcon",
+            "macOS status-bar icon factory")
+    require(mac_status_bar_cpp, "logicalWidth = 22.0",
+            "input-source icon width")
+    require(mac_status_bar_cpp, "logicalHeight = 18.0",
+            "input-source icon height")
+    require(mac_status_bar_cpp, "std::array{1.0, 2.0, 3.0}",
+            "explicit Retina icon representations")
+    require(mac_status_bar_cpp, "icon.setIsMask(true)",
+            "macOS template icon mask")
+    require(mac_status_bar_cpp, 'invokeRoot("restoreFromTray")',
+            "native macOS status-item restore action")
+    require(app_cmake, "services/macos/macos_status_bar_icon.cpp",
+            "macOS status-bar source list")
+    require(main_cpp, "#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)",
+            "macOS-only native status-item implementation")
 
     require(toolbar_qml, "undoRequested", "visible undo signal")
     require(toolbar_qml, "redoRequested", "visible redo signal")

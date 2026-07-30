@@ -1,5 +1,6 @@
 import QtQuick
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 右上「档案袋」多页切换器（v88 .memo-page-control）。前盖玻璃卡显示当前页名 + 雪佛龙；
 // 点击展开抽屉（长高 + 后仰 + 厚度层扇开 + 雪佛龙 180°），列出各页行（点切页 / × 删页）+ 新建页。
@@ -100,7 +101,7 @@ Item {
         }
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Cursor.button()
             onClicked: { folder.commitEdit(); folder.openState = !folder.openState }
         }
     }
@@ -178,7 +179,7 @@ Item {
                         id: rowHover
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: { folder.commitEdit(); folder.switchTo(index); folder.openState = false; }
                     }
                     // 重命名输入框（编辑此行时覆盖标题；置于行点击层之上以抢输入）。
@@ -218,7 +219,7 @@ Item {
                             id: editH
                             anchors.fill: parent
                             hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+                            cursorShape: Cursor.button()
                             onClicked: folder.editingIndex = index
                         }
                     }
@@ -235,7 +236,7 @@ Item {
                             id: delH
                             anchors.fill: parent
                             hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
+                            cursorShape: Cursor.button()
                             onClicked: { folder.commitEdit(); folder.deletePageRequested(index) }
                         }
                     }
@@ -307,7 +308,7 @@ Item {
                 anchors.fill: parent
                 enabled: addRow.canAdd
                 hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+                cursorShape: Cursor.button()
                 onClicked: { folder.commitEdit(); folder.addPageRequested() }
             }
         }

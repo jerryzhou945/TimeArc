@@ -6,7 +6,7 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QIcon>
-#include <QProcess>
+#include <QResource>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QStringList>
@@ -32,9 +32,20 @@
 #include "services/app_icon_image_provider.h"
 #include "services/calendar_manager.h"
 #include "services/harness_logger.h"
+#include "services/pomodoro_manager.h"
 #include "services/project_manager.h"
 #include "services/timer_manager.h"
 #include "services/usage_stat_manager.h"
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+#include <QApplication>
+
+#include "services/macos/macos_app_lifecycle.h"
+#include "services/macos/macos_launch_agent.h"
+#include "services/macos/macos_menu_localizer.h"
+#include "services/macos/macos_status_bar_icon.h"
+#include "services/macos/macos_traffic_lights.h"
+#endif
 
 namespace {
 
@@ -100,6 +111,39 @@ bool hasStartInTrayArg(int argc, char* argv[]) {
   return false;
 }
 
+#if !defined(Q_OS_ANDROID)
+QString bundledGuiResourceDirectory() {
+  const QString appDir = QCoreApplication::applicationDirPath();
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  return QDir(appDir).filePath(QStringLiteral("../Resources/assets"));
+#else
+  return QDir(appDir).filePath(QStringLiteral("assets"));
+#endif
+}
+
+bool registerBundledGuiResources() {
+  const QDir resourceDirectory(bundledGuiResourceDirectory());
+  const QStringList resourceFiles = {
+      QStringLiteral("timearc-backgrounds.rcc"),
+      QStringLiteral("timearc-site-icons.rcc"),
+      QStringLiteral("timearc-monthly-recap.rcc"),
+  };
+  for (const QString& resourceFile : resourceFiles) {
+    const QString resourcePath =
+        QFileInfo(resourceDirectory.filePath(resourceFile)).absoluteFilePath();
+    if (!QFileInfo::exists(resourcePath)) {
+      qCritical() << "Required GUI resource pack is missing:" << resourcePath;
+      return false;
+    }
+    if (!QResource::registerResource(resourcePath)) {
+      qCritical() << "Failed to register GUI resource pack:" << resourcePath;
+      return false;
+    }
+  }
+  return true;
+}
+#endif
+
 #if defined(Q_OS_WIN)
 // Use native Win11 DWM corners and shadows for the frameless window.
 // Load dwmapi at runtime to avoid changing the frozen CMakeLists.
@@ -123,45 +167,6 @@ void applyWin11RoundedCorners(QWindow* window) {
 }
 #endif
 
-#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
-QString findMacUsageServicePath(const QString& appDir) {
-  const QString exe = QStringLiteral("time-arc-service");
-  const QStringList candidates = {
-      QDir(appDir).filePath(exe),
-      QDir(appDir).filePath(QStringLiteral("../Helpers/") + exe),
-      QDir(appDir).filePath(QStringLiteral("../../../bin/") + exe),
-      QDir(appDir).filePath(QStringLiteral("../../../") + exe),
-      QDir(appDir).filePath(QStringLiteral("src/service/") + exe),
-      QDir(appDir).filePath(QStringLiteral("../src/service/") + exe),
-  };
-
-  for (const QString& candidate : candidates) {
-    const QFileInfo info(candidate);
-    if (info.exists() && info.isFile() && info.isExecutable()) {
-      return info.absoluteFilePath();
-    }
-  }
-  return {};
-}
-#endif
-
-void startUsageService() {
-#if defined(Q_OS_WIN)
-  const QString appDir = QCoreApplication::applicationDirPath();
-  const QString servicePath = QDir(appDir).filePath("time-arc-service.exe");
-  if (!QFileInfo::exists(servicePath)) return;
-
-  QProcess::startDetached(servicePath, QStringList(), appDir);
-#elif defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
-  const QString appDir = QCoreApplication::applicationDirPath();
-  const QString servicePath = findMacUsageServicePath(appDir);
-  if (servicePath.isEmpty()) return;
-
-  QProcess::startDetached(servicePath, QStringList(),
-                          QFileInfo(servicePath).absolutePath());
-#endif
-}
-
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -180,9 +185,22 @@ int main(int argc, char* argv[]) {
       qEnvironmentVariableIsSet("TIMEARC_MOBILE_PREVIEW");
   const bool startInTray = hasStartInTrayArg(argc, argv) && !mobilePreview;
 
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  // The native status-item menu is QMenu-backed and therefore requires
+  // QApplication. Other platforms retain the lighter QGuiApplication path.
+  QApplication app(argc, argv);
+  // macOS convention: closing the window leaves the app running in the Dock
+  // and menu bar. Quitting is ⌘Q or the status-item menu, not the red button.
+  QGuiApplication::setQuitOnLastWindowClosed(false);
+#else
   QGuiApplication app(argc, argv);
+#endif
   QCoreApplication::setOrganizationName("TimeArc");
   QCoreApplication::setApplicationName("TimeArc");
+
+#if !defined(Q_OS_ANDROID)
+  if (!registerBundledGuiResources()) return 1;
+#endif
 
   // macOS gets its application and Dock icon from CFBundleIconFile. Setting
   // the QRC SVG there would override the native multi-resolution .icns.
@@ -196,9 +214,32 @@ int main(int argc, char* argv[]) {
   // lines into L2 error reports.
   installHarnessLogger();
 
-  startUsageService();
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  const MacLaunchAgentRegistration launchAgent =
+      registerMacLaunchAgent();
+  if (!launchAgent.registered) {
+    qWarning() << "Could not register the macOS LaunchAgent:"
+               << launchAgent.errorMessage;
+  } else if (launchAgent.requiresApproval) {
+    qWarning() << "The macOS LaunchAgent requires approval in System Settings.";
+  }
+#endif
 
   QQmlApplicationEngine engine;
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  MacStatusBarIcon macStatusBarIcon;
+  QObject* macStatusBarControllerContext = macStatusBarIcon.qmlObject();
+  MacMenuLocalizer macMenuLocalizer;
+  MacTrafficLightsController macTrafficLightsController;
+  QObject* macTrafficLightsControllerContext = &macTrafficLightsController;
+  MacAppLifecycle macAppLifecycle;
+  QObject* macAppLifecycleContext = &macAppLifecycle;
+#else
+  QObject* macStatusBarControllerContext = nullptr;
+  QObject* macTrafficLightsControllerContext = nullptr;
+  QObject* macAppLifecycleContext = nullptr;
+#endif
 
   DatabaseManager databaseManager;
   if (!databaseManager.initialize()) {
@@ -213,6 +254,9 @@ int main(int argc, char* argv[]) {
   if (!settingsRepository.migrateLegacyQSettings(&manualProjectRepository)) {
     qWarning() << "Legacy QSettings migration did not complete.";
   }
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  macMenuLocalizer.setLanguage(settingsRepository.languageMode());
+#endif
 
   CalendarManager calendarManager(&settingsRepository);
   MediaSessionRepository mediaRepository;
@@ -223,6 +267,8 @@ int main(int argc, char* argv[]) {
   DailyCardService dailyCardService(&statsService, &frontmostRepository);
   TagRepository tagRepository;
   TimerManager timerManager;
+  // 番茄钟引擎：只读写 SettingsRepository 的 KV，不碰服务磁盘契约。
+  PomodoroManager pomodoroManager(&settingsRepository);
   ProjectManager projectManager(&manualProjectRepository);
   UsageStatManager usageStatManager;
 
@@ -258,11 +304,22 @@ int main(int argc, char* argv[]) {
                                            &dailyCardService);
   engine.rootContext()->setContextProperty("tagRepository", &tagRepository);
   engine.rootContext()->setContextProperty("timerManager", &timerManager);
+  engine.rootContext()->setContextProperty("pomodoroManager", &pomodoroManager);
   engine.rootContext()->setContextProperty("projectManager", &projectManager);
   engine.rootContext()->setContextProperty("usageStatManager",
                                            &usageStatManager);
   engine.rootContext()->setContextProperty("mobilePreview", mobilePreview);
   engine.rootContext()->setContextProperty("startInTray", startInTray);
+  engine.rootContext()->setContextProperty("macStatusBarController",
+                                           macStatusBarControllerContext);
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  engine.rootContext()->setContextProperty("macMenuLocalizer",
+                                           &macMenuLocalizer);
+#endif
+  engine.rootContext()->setContextProperty("macTrafficLightsController",
+                                           macTrafficLightsControllerContext);
+  engine.rootContext()->setContextProperty("macAppLifecycle",
+                                           macAppLifecycleContext);
 
   QObject::connect(
       &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
@@ -271,6 +328,15 @@ int main(int argc, char* argv[]) {
   engine.load(QUrl(QStringLiteral("qrc:/qt/qml/time_arc/qml/main.qml")));
 
   if (engine.rootObjects().isEmpty()) return -1;
+
+#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
+  QWindow* const macRootWindow =
+      qobject_cast<QWindow*>(engine.rootObjects().constFirst());
+  macTrafficLightsController.attach(macRootWindow);
+  macAppLifecycle.attach(macRootWindow);
+  macStatusBarIcon.attach(&settingsRepository, &pomodoroManager);
+  macStatusBarIcon.connectToRoot(engine.rootObjects().constFirst());
+#endif
 
 #if defined(Q_OS_WIN)
   applyWin11RoundedCorners(

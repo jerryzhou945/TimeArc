@@ -1,0 +1,7 @@
+[1/182] Automatic MOC and UIC for target timearc_db_smoke
+[2/181] Automatic MOC and UIC for target time-arc
+[3/180] Running AUTOMOC file extraction for target time-arc
+[4/7] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/settings_repository.cpp.o
+[5/7] Building CXX object CMakeFiles/time-arc.dir/src/services/settings_repository.cpp.o
+[6/7] Linking CXX executable timearc_db_smoke
+[7/7] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

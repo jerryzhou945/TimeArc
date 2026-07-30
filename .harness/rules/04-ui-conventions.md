@@ -46,14 +46,14 @@ desktop theme plumbing into mobile pages.
 
 Reject these in review:
 
-- **`localStorage` / `sessionStorage` / `fetch`**: QML does not have these.
-  Route all persistence through a manager.
-- **Hard-coded colors for new UI elements** that should adapt to night mode.
-  Add them to the theme plumbing instead.
+- **`localStorage` / `sessionStorage` / `fetch`**: QML has none of these; route
+  all persistence through a manager.
+- **Hard-coded colors for new UI** that must adapt to night mode; use the theme.
 - **New QML context properties** injected from C++ without being a `QObject`
   with `Q_PROPERTY`. The existing four managers are the template.
-- **Blocking file I/O in QML**. If you need to read a file, add a method on a
-  manager.
+- **Blocking file I/O in QML**. Add a method on a manager instead.
+- **Raw `Qt.*Cursor` in `qml/desktop/`** for click / disabled / grab / place —
+  macOS reverses all four; go through `components/PlatformCursor.js`.
 
 ## 5. Images and icons
 
@@ -82,18 +82,19 @@ a new range is needed (e.g., `"week"`), add it to both, not just one.
 
 ## 8. Memory Lake memo overlay (备忘黑板)
 
-The 「备忘」 nav entry is a **modal overlay action**, not a page route: clicking it
-sets `memoOverlay.open` over the current page (no `selectedIndex` / `pageLoader`
-switch). Do not add a "memo page" or route it through the Loader. The overlay is
-desktop-only (`DesktopAppShell`); no mobile equivalent yet.
+The 「备忘」 nav entry is a **modal overlay action**, not a page route: it sets
+`memoOverlay.open` over the current page (no `selectedIndex` / `pageLoader` switch).
+Do not add a "memo page" or route it through the Loader. Desktop-only; no mobile yet.
+On macOS the native traffic lights stay **over** the board (AppKit draws above the Qt
+view — no z-order work): never `setVisible(false)` them for it, inset overlay chrome by
+`macTrafficLightInset` (88 px), keep ⌘W/minimize/zoom live, flush the doc from `onClosing`,
+and disable the sidebar's `DragHandler`/`TapHandler` while it is open — handlers get a pass
+ahead of items, so an overlay `MouseArea` can't shield them and a drag moves the window instead of drawing. Any future full-window overlay owes the same gate.
 
 Memo content (canvas ink, sticky notes, text layers, pages) is **UI-private local
 state**, outside the service↔UI disk contract — persist it via a C++ manager
 (`QObject` + `Q_PROPERTY`), never QML `localStorage`/`LocalStorage` (§4) and never
 service database/config paths. New memo components live in `qml/desktop/memorylake/`; all
-colors/easings come from `MemoryLakeStyle` (no inline hex). Specs:
-`docs/memory-lake-memo-functional-replication.md` + `…-memo-render-pipeline-replication.md`.
+colors/easings come from `MemoryLakeStyle` (no inline hex). Specs: `docs/memory-lake-memo-functional-replication.md` + `…-memo-render-pipeline-replication.md`.
 
-Added in the memo QA/feature round: `MemoDatePicker` (self-drawn calendar + 24h
-time, no `Qt.labs`) for sticky due dates (`odue`), and a marquee **select tool**
-(ink region + objects: delete / copy / move / scale). Native style ignores SpinBox custom.
+Memo QA round additions: `MemoDatePicker` (self-drawn calendar + 24h time, no `Qt.labs`) for sticky due dates (`odue`); marquee **select tool** (ink + objects: delete / copy / move / scale). Native style ignores SpinBox custom.

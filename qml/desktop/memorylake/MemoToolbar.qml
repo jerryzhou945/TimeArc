@@ -1,5 +1,6 @@
 import QtQuick
 import "../components/I18n.js" as I18n
+import "../components/PlatformCursor.js" as Cursor
 
 // 备忘工具条（v88 .memo-toolbar）。居中悬浮玻璃药丸，overlay 开时从上方 10px 滑入。
 // 工具 note|text|pen|eraser 互斥，再点当前工具取消(→none)；退出键触发关闭。
@@ -151,7 +152,7 @@ Item {
                         id: tHover
                         anchors.fill: parent
                         hoverEnabled: bar.revealed
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: bar.toggleTool(tbtn.kind)
                     }
                 }
@@ -180,7 +181,7 @@ Item {
                     id: moreHover
                     anchors.fill: parent
                     hoverEnabled: bar.revealed
-                    cursorShape: Qt.PointingHandCursor
+                    cursorShape: Cursor.button()
                     onClicked: bar.pomodoroRequested()
                 }
             }
@@ -204,7 +205,7 @@ Item {
                     id: clearHover
                     anchors.fill: parent
                     hoverEnabled: bar.revealed
-                    cursorShape: Qt.PointingHandCursor
+                    cursorShape: Cursor.button()
                     onClicked: bar.clearRequested()
                 }
             }
@@ -229,7 +230,7 @@ Item {
                     id: undoHover
                     anchors.fill: parent
                     hoverEnabled: bar.revealed && bar.canUndo
-                    cursorShape: bar.canUndo ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    cursorShape: bar.canUndo ? Cursor.button() : Qt.ArrowCursor
                     onClicked: if (bar.canUndo) bar.undoRequested()
                 }
             }
@@ -253,7 +254,7 @@ Item {
                     id: redoHover
                     anchors.fill: parent
                     hoverEnabled: bar.revealed && bar.canRedo
-                    cursorShape: bar.canRedo ? Qt.PointingHandCursor : Qt.ArrowCursor
+                    cursorShape: bar.canRedo ? Cursor.button() : Qt.ArrowCursor
                     onClicked: if (bar.canRedo) bar.redoRequested()
                 }
             }
@@ -286,7 +287,7 @@ Item {
                     id: eHover
                     anchors.fill: parent
                     hoverEnabled: bar.revealed
-                    cursorShape: Qt.PointingHandCursor
+                    cursorShape: Cursor.button()
                     onClicked: bar.exitRequested()
                 }
             }
@@ -350,7 +351,7 @@ Item {
                         id: wHover
                         anchors.fill: parent
                         hoverEnabled: bar.revealed
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: { if (subPop.isPen) bar.penWidth = val; else bar.eraserWidth = val }
                     }
                 }
@@ -383,7 +384,7 @@ Item {
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: bar.revealed
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Cursor.button()
                         onClicked: bar.inkColor = modelData
                     }
                 }
