@@ -236,7 +236,7 @@ Platform.MenuBar {
         Platform.MenuItem {
             id: navMemoryLakeItem
             role: Platform.MenuItem.NoRole
-            text: bar.tr("记忆湖")
+            text: bar.tr("首页")
             shortcut: "Ctrl+1"
             checkable: true
             enabled: bar.canNavigate
@@ -263,7 +263,7 @@ Platform.MenuBar {
         Platform.MenuItem {
             id: navRecapItem
             role: Platform.MenuItem.NoRole
-            text: bar.tr("月度记忆湖")
+            text: bar.tr("记忆湖")
             shortcut: "Ctrl+4"
             checkable: true
             enabled: bar.canNavigate

@@ -85,16 +85,23 @@ and the settings search field.
 
 | Command | Key | Binding |
 |---|---|---|
-| 记忆湖 (首页) | ⌘1 | `selectedIndex = indexOfPage("memorylake")` |
+| 首页 | ⌘1 | `selectedIndex = indexOfPage("memorylake")` |
 | 日历 | ⌘2 | `indexOfPage("calendar")` |
 | 统计 | ⌘3 | `indexOfPage("stats")` |
-| 月度记忆湖 | ⌘4 | `indexOfPage("recap")` |
+| 记忆湖 | ⌘4 | `indexOfPage("recap")` |
 | 备忘黑板 (checkable) | ⇧⌘N | `memoOverlay.open = !memoOverlay.open` (`DesktopAppShell.qml:341`) |
 | 番茄钟 | ⇧⌘P | `memoOverlay.togglePomodoro()` (`:350`) |
 | 夜间模式 (checkable) | ⇧⌘D | `nightMode = !nightMode` — Shell persists `night_mode` |
 | 界面语言 ▸ 中文 / English / 日本語 | — | radio group writing `language_mode` (`DesktopProfilePage.qml:1029` does the same) |
 | 进入全屏幕 | (system key) | AppKit's own row — **still do not declare one**; the window carries `Qt.WindowFullscreenButtonHint`, so the OS contributes it (§4.1) and owns its key equivalent |
 | — (no row) | ⌃⌘F | `Shortcut` in `main.qml`, macOS-gated Loader → `MacAppLifecycle::toggleFullScreen()` |
+
+**On the row labels.** Take them from `navItems[i].title` (`DesktopAppShell.qml:139`),
+never from the `page` key or the English `subtitle`. Two keys are historical and no
+longer describe their page: `memorylake` is the row the sidebar titles 首页 (f881cdc
+promoted Memory Lake to the home slot without renaming its key), and the row actually
+titled 记忆湖 is keyed `recap`. Naming ⌘1/⌘4 after their keys is exactly how this menu
+first shipped 记忆湖 on the home row and 月度记忆湖 on the 记忆湖 row.
 
 **On ⌃⌘F.** The row above is the OS's, and current macOS gives it the system's
 own key equivalent rather than the ⌃⌘F that older muscle memory expects. So the
