@@ -82,18 +82,19 @@ a new range is needed (e.g., `"week"`), add it to both, not just one.
 
 ## 8. Memory Lake memo overlay (备忘黑板)
 
-The 「备忘」 nav entry is a **modal overlay action**, not a page route: clicking it
-sets `memoOverlay.open` over the current page (no `selectedIndex` / `pageLoader`
-switch). Do not add a "memo page" or route it through the Loader. The overlay is
-desktop-only (`DesktopAppShell`); no mobile equivalent yet.
+The 「备忘」 nav entry is a **modal overlay action**, not a page route: it sets
+`memoOverlay.open` over the current page (no `selectedIndex` / `pageLoader` switch).
+Do not add a "memo page" or route it through the Loader. Desktop-only; no mobile yet.
+On macOS the native traffic lights stay **over** the board (AppKit draws them above the
+Qt view, so no z-order work is needed): never `setVisible(false)` them for it, inset
+overlay chrome by `macTrafficLightInset` (88 px), keep window commands (⌘W / minimize /
+zoom) live, and flush the memo doc from `onClosing` so a close can't eat the debounce.
 
 Memo content (canvas ink, sticky notes, text layers, pages) is **UI-private local
 state**, outside the service↔UI disk contract — persist it via a C++ manager
 (`QObject` + `Q_PROPERTY`), never QML `localStorage`/`LocalStorage` (§4) and never
 service database/config paths. New memo components live in `qml/desktop/memorylake/`; all
-colors/easings come from `MemoryLakeStyle` (no inline hex). Specs:
-`docs/memory-lake-memo-functional-replication.md` + `…-memo-render-pipeline-replication.md`.
+colors/easings come from `MemoryLakeStyle` (no inline hex). Specs: `docs/memory-lake-memo-functional-replication.md` + `…-memo-render-pipeline-replication.md`.
 
-Added in the memo QA/feature round: `MemoDatePicker` (self-drawn calendar + 24h
-time, no `Qt.labs`) for sticky due dates (`odue`), and a marquee **select tool**
-(ink region + objects: delete / copy / move / scale). Native style ignores SpinBox custom.
+Memo QA round additions: `MemoDatePicker` (self-drawn calendar + 24h time, no `Qt.labs`) for sticky due dates (`odue`); marquee **select tool** (ink + objects: delete / copy / move / scale).
+Native style ignores SpinBox custom.

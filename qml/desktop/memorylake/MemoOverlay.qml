@@ -17,6 +17,12 @@ Item {
     // 身后首页快照源（M0：QML 无实时 backdrop-filter，截首页快照重模糊当黑板磨砂底）。
     property Item backdropSource: null
 
+    // macOS 原生 chrome：交通灯在黑板打开时也常显（AppKit 画在标题栏视图，叠在 QML 之上），
+    // 故左上角自绘 chrome 必须让开按钮带（按钮实占约 7..61 × 7..21pt，沿用侧栏/自绘标题栏
+    // 既有的 88px 让位口径）。其他平台维持原边距。
+    property bool macSidebarChrome: false
+    readonly property int macTrafficLightInset: macSidebarChrome ? 88 : 0
+
     // 开合状态（动作）。开合唯一动画 = opacity .26s ease（功能文 §2.1 / C0）。
     property bool open: false
 
@@ -202,6 +208,13 @@ Item {
             if (typeof doc.pen.ew === "number") toolbar.eraserWidth = doc.pen.ew;
             if (typeof doc.pen.color === "string" && doc.pen.color.length > 0) toolbar.inkColor = doc.pen.color;
         }
+    }
+    // 关窗/退出前强存（Shell 调用）：交通灯常显后红灯随时可点，防抖窗口里的最后一笔不能丢。
+    // 只在存档已装载后才写——没开过黑板的会话里 pagesData 还是空白初值，直接存会覆盖用户存档。
+    function flushPendingSave() {
+        if (!_loaded) return;
+        saveTimer.stop();
+        saveDoc();
     }
     // G-MEMO 自动保存笔迹：memo_autosave 关 → 停连续防抖自动存（关闭时仍强存，内容永不丢失）。
     function scheduleSave() {
@@ -1209,7 +1222,9 @@ Item {
         id: saveStatus
         property bool flashOn: false
         function flash(t) { saveStatusText.text = t; flashOn = true; fadeTimer.restart(); }
-        anchors { top: parent.top; left: parent.left; topMargin: 30; leftMargin: 24 }
+        // macOS：右移 88px 让开常显的原生交通灯（macTrafficLightInset）；其他平台维持 24px。
+        anchors { top: parent.top; left: parent.left; topMargin: 30
+                  leftMargin: 24 + memo.macTrafficLightInset }
         height: 30
         width: saveStatusText.implicitWidth + 24
         radius: 15

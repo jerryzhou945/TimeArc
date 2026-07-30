@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-30T06:00:14Z | L3 | macos-gui-scree... | Screen Recording and Automation are not granted to the ag... | [report](errors/20260730-060014-B-macos-gui-screenshot-tcc-blocked.md) |
 | 2026-07-29T16:54:54Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-165454-B-build-failure.md) |
 | 2026-07-29T16:53:50Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-165350-B-build-failure.md) |
 | 2026-07-29T16:02:06Z | L2 | macos-menu-lang... | On graceful quit the QML engine outlives SettingsReposito... | [report](errors/20260729-160206-B-macos-menu-language-pinned-at-teardown.md) |
@@ -58,25 +59,11 @@ the harness line budget intact.
 | 2026-07-28T09:12:40Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-091240-C-qt-warning-19f33ebed5.md) |
 | 2026-07-28T09:12:40Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-ee1bf6d1ca.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T08:24:16Z | L1 | desktop-static-... | desktop_ux_static_test.py could not run because android/s... | [report](errors/20260728-082416-C-desktop-static-missing-manifest.md) |
 | 2026-07-28T08:23:14Z | L3 | qt-log-rotation... | Required post-run Qt log scan parsed the log but could no... | [report](errors/20260728-082314-C-qt-log-rotation-permission.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:59:03Z | L1 | hover-index-lin... | Final non-dimming hover audit found the rolling journal i... | [report](errors/20260728-075903-B-hover-index-line-budget.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:49:34Z | L1 | final-index-lin... | Final title-bar-free AppKit audit found the rolling journ... | [report](errors/20260728-074934-B-final-index-line-budget.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:25:27Z | L1 | appkit-harness-... | Final AppKit audit found journal/INDEX.md over its rollin... | [report](errors/20260728-072527-B-appkit-harness-drift.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:24:27Z | L3 | qt-log-scan-app... | The required escalated Qt log scan was not approved, so t... | [report](errors/20260728-072427-B-qt-log-scan-approval.md) |
 | 2026-07-28T07:21:56Z | L3 | swift-flag-list... | Configured CMAKE_Swift_FLAGS with a semicolon, which CMak... | [report](errors/20260728-072156-B-swift-flag-list-separator.md) |
 | 2026-07-28T07:21:40Z | L1 | build-failure | cmake --build exited 127 | [report](errors/20260728-072140-B-build-failure.md) |
@@ -88,13 +75,6 @@ the harness line budget intact.
 | 2026-07-28T07:03:27Z | L1 | macos-chrome-li... | Final harness audit found journal/INDEX.md at 109 lines a... | [report](errors/20260728-070327-B-macos-chrome-line-budget.md) |
 | 2026-07-28T07:03:27Z | L3 | harness-topic-l... | The first harness line-budget error report used a topic l... | [report](errors/20260728-070327-B-harness-topic-length.md) |
 | 2026-07-28T07:02:22Z | L3 | qt-log-scan-san... | Post-run scan re-read stale prior macOS launch warnings a... | [report](errors/20260728-070222-B-qt-log-scan-sandbox-repeat.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T07:00:06Z | L3 | macos-sidebar-e... | Second visual pass still exposed a title-bar-like top ban... | [report](errors/20260728-070006-B-macos-sidebar-edge-to-edge.md) |
 | 2026-07-28T06:56:36Z | L3 | macos-sidebar-t... | First implementation retained a native title-bar region a... | [report](errors/20260728-065636-B-macos-sidebar-titlebar-misread.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

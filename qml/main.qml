@@ -83,8 +83,11 @@ ApplicationWindow {
     // FullScreen，跳过以免存成全屏尺寸），启动时按「启动时恢复上次位置」恢复。只写 UI 私有
     // 设置 KV，不动 usage/磁盘契约。移动预览不参与。
     Component.onCompleted: {
+        // 交通灯常显（含备忘黑板打开时）：AppKit 把它们画在标题栏视图里，天然叠在 QML 内容
+        // 之上，黑板不需要也不该把它们藏掉——最小化/缩放/关窗是窗口级能力，不随页面消失。
+        // 黑板侧只负责让自己的左上角 chrome 躲开按钮带（见 MemoOverlay.macSidebarChrome）。
         if (macSidebarChrome && macTrafficLightsController)
-            macTrafficLightsController.setVisible(!memoOpen)
+            macTrafficLightsController.setVisible(true)
         if (mobilePreview || !settingsRepository) return;
         if (!settingsRepository.getBool("restore_window", true)) return;
         var w = parseInt(settingsRepository.getValue("window_width", ""));
@@ -103,11 +106,11 @@ ApplicationWindow {
             }
         }
     }
-    onMemoOpenChanged: {
-        if (macSidebarChrome && macTrafficLightsController)
-            macTrafficLightsController.setVisible(!memoOpen)
-    }
     onClosing: function (close) {
+        // 红灯在黑板上也可点，关窗随时可能落在两笔之间：先把备忘的 600ms 防抖存盘强制落地，
+        // 否则「关窗口不退进程」这条路径会静静吃掉最后一笔（⌘Q / 收托盘同理）。
+        if (shellLoader.item && shellLoader.item.flushMemoDoc)
+            shellLoader.item.flushMemoDoc()
         if (!mobilePreview && settingsRepository && visibility === Window.Windowed) {
             settingsRepository.setValue("window_width", "" + Math.round(width));
             settingsRepository.setValue("window_height", "" + Math.round(height));

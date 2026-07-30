@@ -31,7 +31,8 @@ Platform.MenuBar {
     // 「窗口」菜单里的 TimeArc 一行才是回来的入口。
     readonly property bool hasWindow: hostWindow !== null && hostWindow.visible
     readonly property bool hasShell: hostShell !== null
-    // 备忘黑板是全屏模态（开启时隐藏交通灯），开着时导航与关窗置灰，只留它自己的开关。
+    // 备忘黑板是全屏模态：开着时换页置灰（底层页面要原样留在身后），只留它自己的开关。
+    // 关窗不再置灰——交通灯在黑板上也常显，红灯可点而 ⌘W 置灰会让鼠标与键盘各说一套。
     readonly property bool memoOpen: hasShell && hostShell.memoOpen
     readonly property bool canNavigate: hasWindow && hasShell && !memoOpen
     // 记忆卡翻面时不可开黑板：与字母快捷键同一个守卫（DesktopAppShell.memoLocked）。
@@ -174,7 +175,7 @@ Platform.MenuBar {
             role: Platform.MenuItem.NoRole
             text: bar.tr("关闭窗口")
             shortcut: "Ctrl+W"
-            enabled: bar.hasWindow && !bar.memoOpen
+            enabled: bar.hasWindow
             onTriggered: bar.hostWindow.close()
         }
     }

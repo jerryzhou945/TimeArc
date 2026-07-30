@@ -144,6 +144,10 @@ G2/G3 打磨 ───────────(随手)
   Track B · Windows · 见 agent memory `timearc-frameless-window`。
 - [x] **G3a macOS 侧栏交通灯** — 无可见标题栏；左侧栏贴合左/上/下边缘且无卡片边界，
   关闭/最小化/全屏交通灯直接嵌入侧栏；Windows 与其他平台布局不变。
+  2026-07-30：交通灯改为常显，备忘黑板打开时不再隐藏（AppKit 标题栏视图本就叠在 Qt 内容
+  之上，无需层级改动）；黑板左上角按 88px 让位、⌘W 解除置灰、关窗前强存备忘文档。
+  见 `docs/macos-memo-traffic-lights-report.md`。遗留：按钮带遮挡黑板左上角约「逻辑
+  16–107 × 5–37」的可点区域，黑板顶部仍不支持拖窗/双击缩放。
 - [~] **G4 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
   2026-06-13 alpha 修复已覆盖截图中的 `r5apex_dx12` → Apex Legends、`nvcontainer` → NVIDIA Container、`svchost` → Service Host，并补入 Apex/NVIDIA/Windows 系统进程的 group key 与分类；2026-06-14 继续补 QQ/TIM/QQ 截图助手显示名与 group key，聚合项新增 `homeRankVisible`，记忆湖首页排行过滤 QQ 截图、Windows/NVIDIA helper 等低信号项，但设置页应用管理保留全量列表。更广泛长尾仍保留为后续渐进覆盖。
   2026-06-14 本轮曾继续收窄设置页应用管理：`allApps()` 输出聚合 `seconds` 与 `settingsVisible`，默认按高频到低频展示大众化应用/站点，并收起 `pid:*`、`.dll`、Windows helper、QQ 截图、NVIDIA helper 等低信号项；搜索仍覆盖全量记录，便于需要时找回并调整显隐。

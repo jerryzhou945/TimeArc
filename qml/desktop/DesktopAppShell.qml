@@ -277,6 +277,11 @@ Item {
             notifierLoader.item.notify(root.tr("TimeArc 已隐藏到托盘"), root.tr("后台采集会继续运行；从托盘菜单可重新打开或退出。"));
     }
 
+    // 关窗/退出前把备忘黑板的待存盘落地（窗口只认识 Shell，不该伸手进覆盖层内部）。
+    function flushMemoDoc() {
+        memoOverlay.flushPendingSave();
+    }
+
     onNightModeChanged: {
         if (settingsRepository)
             settingsRepository.setBool("night_mode", nightMode);
@@ -1280,6 +1285,7 @@ Item {
         anchors.fill: parent
         style: mlStyle
         languageMode: root.languageMode
+        macSidebarChrome: root.macSidebarChrome   // 左上角 chrome 让开原生交通灯按钮带
         backdropSource: desktopStage
         store: settingsRepository    // UI 私有持久化（通用 key-value；非服务磁盘契约）
     }
