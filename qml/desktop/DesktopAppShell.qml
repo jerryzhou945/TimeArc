@@ -346,11 +346,9 @@ Item {
             return;
         memoOverlay.open = !memoOverlay.open;
     }
+    // 番茄钟不再经过备忘黑板，故也不再吃 memoLocked（那是记忆卡翻面锁，与专注计时无关）。
     function menuTogglePomodoro() {
-        if (memoLocked)
-            return;
-        if (memoOverlay.togglePomodoro)
-            memoOverlay.togglePomodoro();
+        pomodoroLayer.toggle();
     }
     function menuToggleNightMode() {
         nightMode = !nightMode;   // onNightModeChanged 负责写 KV 并下发给当前页
@@ -402,14 +400,12 @@ Item {
         onActivated: memoOverlay.open = !memoOverlay.open
     }
 
-    // G-MEMO/#3：番茄钟全局快捷键 —— 开备忘黑板并开/关番茄浮窗（同样 ShortcutOverride 安全）。
+    // #3：番茄钟全局快捷键 —— 直接开/关浮窗，不再先掀开备忘黑板（同样 ShortcutOverride 安全）。
+    // 也不再受 memoLocked 门控：番茄是全局专注计时，记忆卡翻面锁不该把它一起锁住。
     Shortcut {
         sequences: root.pomodoroHotkeyKey.length > 0 ? [root.pomodoroHotkeyKey] : []
-        enabled: !root.memoLocked && root.pomodoroHotkeyKey.length > 0
-        onActivated: {
-            if (memoOverlay.togglePomodoro)
-                memoOverlay.togglePomodoro();
-        }
+        enabled: root.pomodoroHotkeyKey.length > 0
+        onActivated: pomodoroLayer.toggle()
     }
 
     Item {
@@ -1298,6 +1294,18 @@ Item {
         macSidebarChrome: root.macSidebarChrome   // 左上角 chrome 让开原生交通灯按钮带
         backdropSource: desktopStage
         store: settingsRepository    // UI 私有持久化（通用 key-value；非服务磁盘契约）
+        onPomodoroRequested: pomodoroLayer.toggle()   // 工具条上的番茄按钮仍是入口之一
+    }
+
+    // 番茄钟：声明在 memoOverlay 之后，同 z 下后声明者在上，于是黑板打开时浮窗依旧可见
+    // （这是它长在黑板子树里时唯一能用的场景，不能因为搬家而丢掉）。
+    PomodoroLayer {
+        id: pomodoroLayer
+        anchors.fill: parent
+        style: mlStyle
+        languageMode: root.languageMode
+        store: settingsRepository
+        escapeEnabled: !root.hotkeyCapturing   // 设置页录键位时 Esc 归「取消捕获」
     }
 
     // 欢迎入场动画（一次性，启动）：show_welcome 门控（默认开）；**第一帧即满屏显示**→驻留→淡出
@@ -1419,8 +1427,8 @@ Item {
     }
     // 番茄钟完成 → 仅当窗口不在前台（已无全屏庆祝可见）时发系统通知，避免与庆祝重复。
     Connections {
-        target: memoOverlay
-        function onPomodoroFinished(title) {
+        target: pomodoroLayer
+        function onFinished(title) {
             if (!root.notifyEnabled || (root.Window.window && root.Window.window.active))
                 return;
             if (notifierLoader.item)

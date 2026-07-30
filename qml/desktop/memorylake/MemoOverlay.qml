@@ -42,8 +42,9 @@ Item {
                 : translated;
     }
 
-    // 番茄钟完成 → 通知 Shell（系统通知；不受结束庆祝开关影响）。
-    signal pomodoroFinished(string title)
+    // 工具条上的番茄按钮：番茄浮窗已搬到 Shell 的 PomodoroLayer（与黑板同级），
+    // 这里只把点击转出去，黑板自身不再持有番茄状态。
+    signal pomodoroRequested()
 
     // —— 多页模型：每页 owns 标签 + 对象 + 画布 PNG。pagesData 为纯数据，pageLabels 单独驱动 UI 绑定。
     property var pagesData: [{ label: "Page 1", objects: [], canvas: "" }]
@@ -222,9 +223,6 @@ Item {
         if (store.getBool && !store.getBool("memo_autosave", true)) return;
         saveTimer.restart();
     }
-    // #3 番茄全局快捷键入口：开黑板并开/关番茄浮窗（由 Shell Shortcut 调用）。
-    function togglePomodoro() { open = true; pomodoro.shown = !pomodoro.shown; }
-
     Timer { id: saveTimer; interval: 600; repeat: false; onTriggered: memo.saveDoc() }
 
     // —— 撤回 / 重做（Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y）——
@@ -1057,34 +1055,11 @@ Item {
         canUndo: memo.canUndo
         canRedo: memo.canRedo
         onExitRequested: memo.open = false
-        onPomodoroRequested: pomodoro.shown = !pomodoro.shown
+        onPomodoroRequested: memo.pomodoroRequested()
         onClearRequested: clearConfirm.open = true
         onUndoRequested: memo.undo()
         onRedoRequested: memo.redo()
         onCurrentToolChanged: if (currentTool !== "select") memo._clearSelection()
-    }
-
-    // 番茄钟浮窗 + 完成弹层。
-    PomodoroWidget {
-        id: pomodoro
-        z: 4540               // 叠在工具条(z4520)之上
-        style: memo.style
-        languageMode: memo.languageMode
-        store: memo.store     // gap #10：番茄状态持久化（单独键 memoryLakeMemoPomodoro）
-        shown: false
-        onCompleted: function (v) {
-            memo.pomodoroFinished(pomodoro.title);   // #3 系统通知（不受结束庆祝开关影响）
-            // #2 结束庆祝可在设置页关闭（pomodoro_celebrate）；关则静默完成，不弹全屏庆祝。
-            if (memo.store && memo.store.getBool && !memo.store.getBool("pomodoro_celebrate", true)) return;
-            pomodoroComplete.variant = v; pomodoroComplete.shown = true;
-        }
-    }
-    PomodoroCompleteOverlay {
-        id: pomodoroComplete
-        z: 4560               // 全屏庆祝，必须盖过工具条
-        style: memo.style
-        languageMode: memo.languageMode
-        onClosed: pomodoroComplete.shown = false
     }
 
     // 便签截止日期选择器（单例；由便签截止行触发，居中弹出）。

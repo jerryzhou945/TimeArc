@@ -2,6 +2,7 @@ set(TIME_ARC_QML_FILES
     qml/main.qml
     qml/desktop/DesktopAppShell.qml
     qml/desktop/MacMenuBar.qml
+    qml/desktop/PomodoroLayer.qml
     qml/desktop/pages/DesktopHomePage.qml
     qml/desktop/pages/DesktopMemoryLakePage.qml
     qml/desktop/pages/DesktopCalenderPage.qml

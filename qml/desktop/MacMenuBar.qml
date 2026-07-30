@@ -43,6 +43,8 @@ Platform.MenuBar {
     readonly property bool canNavigate: hasWindow && hasShell && !memoOpen && !capturing
     // 记忆卡翻面时不可开黑板：与字母快捷键同一个守卫（DesktopAppShell.memoLocked）。
     readonly property bool canToggleMemo: hasWindow && hasShell && !hostShell.memoLocked && !capturing
+    // 番茄钟与备忘黑板已解耦：它不再是黑板的一部分，故不跟着记忆卡翻面锁一起置灰。
+    readonly property bool canTogglePomodoro: hasWindow && hasShell && !capturing
     // 窗口类命令（关窗 / 最小化 / 缩放）：窗口在，且不在捕获态。
     readonly property bool canWindowCmd: hasWindow && !capturing
     // 统计导出导的是「当前视图的期次」，页面不在眼前就没有意义，故只在统计页可用。
@@ -296,7 +298,7 @@ Platform.MenuBar {
             role: Platform.MenuItem.NoRole
             text: bar.tr("番茄钟")
             shortcut: "Ctrl+Shift+P"
-            enabled: bar.canToggleMemo
+            enabled: bar.canTogglePomodoro
             onTriggered: bar.hostShell.menuTogglePomodoro()
         }
         Platform.MenuSeparator {}

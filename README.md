@@ -166,11 +166,24 @@ with day and night modes.
   max 10, each page owns its own ink + objects and shows a **row thumbnail**), a marquee
   **select tool** (copy / delete / move / scale across ink *and* objects, with a clipboard —
   **Ctrl+C / Ctrl+V** across pages — and visible toolbar **undo / redo** controls
-  backed by **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y**), and a **persisted pomodoro widget**
-  (editable title, collapses to a pixel tomato while running, full-screen completion celebration). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
+  backed by **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y**). The toolbar + folder auto-hide as a Dynamic-Island; the board is a fixed
   1920×1080 logical canvas uniformly scaled to fit the window (16:9). Everything
   **auto-persists** to a UI-private store (`SettingsRepository`), kept **off the service↔UI
   disk contract**. *(Replaces the former local Chat page.)*
+- **Pomodoro** — a **persisted, draggable focus widget** (editable title, minutes/seconds
+  entry, collapses to a pixel tomato while running, full-screen completion celebration that
+  the settings page can switch off). It is a **window-level layer, available from anywhere
+  in the app** — ⇧⌘P (bare **P** on Windows/Linux, both customizable) and the macOS
+  显示 › 番茄钟 row open it over whichever page you are on, without pulling up the memo
+  blackboard; the blackboard's toolbar tomato is a third entry point, and the widget stays
+  visible above the board when it is open. **Esc dismisses it on every platform** — the
+  celebration first, then the widget, and only then does Esc reach the blackboard
+  underneath, so with both up the first press exits the pomodoro and the second closes the
+  board. Dismissing only hides it: a running session keeps counting and comes back with
+  the next ⇧⌘P. State survives restart as a **paused** session —
+  there is no cross-restart wall-clock anchor, so it never silently keeps running.
+  Independent of the manual project timer (`TimerManager`), which counts up against a
+  calendar todo (`qml/desktop/PomodoroLayer.qml`).
 - **Memory Lake home view** — the Memory Lake page is the **home page**, a
   three-panel "记忆湖": a left panel with the app usage ranking, a **center column**
   that stacks the **Today Conclusion** briefing (今日结论: kicker/title/score box +
