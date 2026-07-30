@@ -35,6 +35,11 @@ class MacAppLifecycle final : public QObject {
   // status-item menu. Recreates the platform window if it was closed.
   Q_INVOKABLE void restoreWindow();
 
+  // ⌃⌘F. AppKit contributes its own 进入全屏幕 row to the View menu and keeps
+  // that row's system key equivalent; this is the additional binding declared
+  // in main.qml, so both paths end in the same [NSWindow toggleFullScreen:].
+  Q_INVOKABLE void toggleFullScreen();
+
  private:
   void installReopenHandler();
   void removeReopenHandler();

@@ -150,6 +150,24 @@ ApplicationWindow {
         }
     }
 
+    // macOS 额外的全屏键 ⌃⌘F。系统自己往「显示」菜单里注入的「进入全屏幕」一行、以及
+    // 那一行的系统按键，原样保留（docs/macos-menu-bar-design.md §4.1）——这里只补一个
+    // 等价键，不再画第二行菜单：同一条命令在同一张菜单里出现两次比缺个快捷键更糟。
+    // Qt 在 macOS 上交换 Ctrl/Meta：Ctrl→⌘、Meta→⌃，故 "Ctrl+Meta+F" 即 ⌃⌘F。
+    // 与菜单栏同样用 Loader 门控：Windows/Linux 一个对象也不创建。包一层 Item 是为了让
+    // Shortcut 的 WindowShortcut 上下文能沿可视父链找到本窗口。
+    Loader {
+        active: appWindow.macSidebarChrome && macAppLifecycle
+        sourceComponent: Component {
+            Item {
+                Shortcut {
+                    sequences: ["Ctrl+Meta+F"]
+                    onActivated: macAppLifecycle.toggleFullScreen()
+                }
+            }
+        }
+    }
+
     Component {
         id: desktopShell
 

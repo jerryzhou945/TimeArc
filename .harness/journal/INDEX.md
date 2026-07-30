@@ -8,6 +8,12 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-30T06:49:43Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-064943-C-qt-warning-19f33ebed5.md) |
+| 2026-07-30T06:49:43Z | L2 | qt-warning-5d34... | [WARNING] :0 - macOS menu bar: AppKit is running ""ja"" w... | [report](errors/20260730-064943-C-qt-warning-5d343805b9.md) |
+| 2026-07-30T06:49:42Z | L2 | qt-warning-4fb9... | [WARNING] :0 - macOS menu bar: AppKit is running ""zh-Han... | [report](errors/20260730-064942-C-qt-warning-4fb98ac61f.md) |
+| 2026-07-30T06:49:42Z | L2 | qt-warning-6044... | [WARNING] :0 - macOS menu bar: AppKit is running ""en"" w... | [report](errors/20260730-064942-C-qt-warning-6044d05acc.md) |
+| 2026-07-30T06:49:42Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-064942-C-qt-warning-19f33ebed5.md) |
+| 2026-07-30T06:16:05Z | L2 | macos-restore-e... | 打开 TimeArc in the macOS status menu dropped a full-screen... | [report](errors/20260730-061605-C-macos-restore-exits-fullscreen.md) |
 | 2026-07-30T06:00:14Z | L3 | macos-gui-scree... | Screen Recording and Automation are not granted to the ag... | [report](errors/20260730-060014-B-macos-gui-screenshot-tcc-blocked.md) |
 | 2026-07-29T16:54:54Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-165454-B-build-failure.md) |
 | 2026-07-29T16:53:50Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-165350-B-build-failure.md) |
@@ -52,12 +58,12 @@ the harness line budget intact.
 | 2026-07-28T09:12:41Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091241-C-qt-warning-c26efcf9e0.md) |
 | 2026-07-28T09:12:41Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-091241-C-qt-warning-19f33ebed5.md) |
 | 2026-07-28T09:12:40Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-c26efcf9e0.md) |
-| 2026-07-28T09:12:40Z | L2 | qt-warning-2766... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-2766f01f44.md) |
-| 2026-07-28T09:12:40Z | L2 | qt-fatal-f42b35... | [FATAL] :0 - QWidget: Cannot create a QWidget without QAp... | [report](errors/20260728-091240-C-qt-fatal-f42b357aa6.md) |
-| 2026-07-28T09:12:40Z | L2 | qt-warning-2abb... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-2abb77c1a6.md) |
-| 2026-07-28T09:12:40Z | L2 | qt-warning-e1d2... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-e1d2ce4a0b.md) |
-| 2026-07-28T09:12:40Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-091240-C-qt-warning-19f33ebed5.md) |
-| 2026-07-28T09:12:40Z | L2 | qt-warning-ee1b... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-ee1bf6d1ca.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T08:24:16Z | L1 | desktop-static-... | desktop_ux_static_test.py could not run because android/s... | [report](errors/20260728-082416-C-desktop-static-missing-manifest.md) |
 | 2026-07-28T08:23:14Z | L3 | qt-log-rotation... | Required post-run Qt log scan parsed the log but could no... | [report](errors/20260728-082314-C-qt-log-rotation-permission.md) |

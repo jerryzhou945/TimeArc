@@ -205,12 +205,40 @@ void MacAppLifecycle::restoreWindow() {
 
   if (window_->visibility() == QWindow::Minimized) {
     window_->showNormal();
-  } else {
+  } else if (!window_->isVisible()) {
     // After a close the platform window is gone; show() recreates it.
     window_->show();
   }
+  // An already-visible window is deliberately not re-shown: QWindow::show() is
+  // showNormal() on cocoa, and setWindowStates(WindowNoState) makes
+  // QCocoaWindow::applyWindowState toggleFullScreen out of a full-screen
+  // window. Raising and focusing is all 打开 TimeArc owes a visible window.
   window_->raise();
   window_->requestActivate();
+}
+
+void MacAppLifecycle::toggleFullScreen() {
+  if (!window_) return;
+
+  @autoreleasepool {
+    NSWindow* nativeWindow = nativeWindowFor(window_);
+    // Red button already destroyed the platform window. Deliberately not a
+    // restore: a key press must not put a window back on the user's current
+    // Space — that is what 窗口 › TimeArc and the status item are for.
+    if (!nativeWindow) return;
+
+    // A deferred close is animating out of full screen right now. Re-entering
+    // mid-animation is how a full-screen window ends up closing while it still
+    // owns a Space — journal/errors/20260728-150542-C-macos-fullscreen-close-
+    // black-screen.md.
+    auto* observer =
+        static_cast<TimeArcFullScreenCloseObserver*>(fullScreenCloseObserver_);
+    if ([observer isObserving]) return;
+
+    // AppKit reads its own styleMask here, so a second ⌃⌘F during the ~1s
+    // transition cannot act on a stale Qt-side window state.
+    [nativeWindow toggleFullScreen:nil];
+  }
 }
 
 void MacAppLifecycle::installReopenHandler() {

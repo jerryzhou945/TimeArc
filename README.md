@@ -128,8 +128,10 @@ with day and night modes.
   own localization, per platform convention). The menu bar outlives the window —
   after the red button closes it, commands needing a window grey out and the
   窗口 › TimeArc row is the way back. The N / P letter hotkeys are unchanged;
-  the menu adds ⇧⌘N / ⇧⌘P as extra equivalents. Windows and Linux are
-  unaffected — no menu bar is created there. Design:
+  the menu adds ⇧⌘N / ⇧⌘P as extra equivalents. ⌃⌘F toggles full screen — an
+  extra key next to the 进入全屏幕 row macOS contributes itself (that row and its
+  own system key are untouched, and no second row is drawn). Windows and Linux
+  are unaffected — no menu bar is created there. Design:
   `docs/macos-menu-bar-design.md`.
 - **Desktop window chrome** — Windows uses an immersive custom chrome
   (QQ-Music style): a brand app icon top-left and minimize / maximize / close

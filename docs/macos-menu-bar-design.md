@@ -93,7 +93,21 @@ and the settings search field.
 | 番茄钟 | ⇧⌘P | `memoOverlay.togglePomodoro()` (`:350`) |
 | 夜间模式 (checkable) | ⇧⌘D | `nightMode = !nightMode` — Shell persists `night_mode` |
 | 界面语言 ▸ 中文 / English / 日本語 | — | radio group writing `language_mode` (`DesktopProfilePage.qml:1029` does the same) |
-| 进入全屏 | ⌃⌘F | System-provided; **do not declare** — Qt injects it because the window carries `Qt.WindowFullscreenButtonHint` |
+| 进入全屏幕 | (system key) | AppKit's own row — **still do not declare one**; the window carries `Qt.WindowFullscreenButtonHint`, so the OS contributes it (§4.1) and owns its key equivalent |
+| — (no row) | ⌃⌘F | `Shortcut` in `main.qml`, macOS-gated Loader → `MacAppLifecycle::toggleFullScreen()` |
+
+**On ⌃⌘F.** The row above is the OS's, and current macOS gives it the system's
+own key equivalent rather than the ⌃⌘F that older muscle memory expects. So the
+key is bound separately, and deliberately *without* a menu row: a declared 进入全屏
+would sit next to AppKit's 进入全屏幕 in the same menu — one command, two rows —
+and §4.1 already rejects imitating OS-contributed rows. Both paths end in the
+same `[NSWindow toggleFullScreen:]`. The binding lives on `MacAppLifecycle`
+because that class already owns every full-screen transition here (it exits full
+screen before a close, and deliberately does not exit it on restore); the toggle
+no-ops while that deferred-close animation is in flight, and no-ops when the red
+button has already destroyed the platform window — a key press must not put a
+window back on the user's current Space. Qt swaps Ctrl/Meta on macOS, so the
+sequence string is `"Ctrl+Meta+F"`; `QKeySequence` renders it `⌃⌘F`.
 
 设置 is intentionally absent from 显示: it is ⌘, in the app menu, per platform
 convention, and listing it twice invites two different mental models of where
