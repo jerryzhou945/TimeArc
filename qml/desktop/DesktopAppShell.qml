@@ -6,6 +6,7 @@ import QtQuick.Effects
 import time_arc
 import "memorylake"
 import "components/AppVisual.js" as AppVisual
+import "components/Hotkeys.js" as Hotkeys
 import "components/I18n.js" as I18n
 
 Item {
@@ -83,6 +84,13 @@ Item {
     // 备忘黑板入口守卫：当前记忆卡处于翻面态时不可打开（功能文 §2.1 / C0）。
     // 翻面状态由记忆湖页暴露（DesktopMemoryLakePage.locked = flippedIndex >= 0）。
     readonly property bool memoLocked: onMemoryLake && pageLoader.item && ("locked" in pageLoader.item) && pageLoader.item.locked
+
+    // 设置页的快捷键键帽正在等按键。macOS 菜单栏据此整条置灰（MacMenuBar.capturing）：
+    // NSMenu 的 key equivalent 在窗口收到按键之前就被 AppKit 吃掉，QML 侧的
+    // Keys.onShortcutOverride 拦不住它——不置灰的话捕获时按 ⌘Q 会直接退掉应用。
+    readonly property bool hotkeyCapturing: selectedPage === "settings" && !showingTimerPage
+                                            && pageLoader.item && ("hotkeyCapturing" in pageLoader.item)
+                                            && pageLoader.item.hotkeyCapturing
 
     // 记忆湖时导航栏配色对齐记忆湖左右玻璃面板（全部取自 mlStyle 单一事实源，G1/NAV6）
     readonly property color mlNavGlass: mlStyle.panelBg
@@ -307,24 +315,24 @@ Item {
     }
 
     // 备忘 / 番茄全局快捷键（#3 自定义）：设置 KV 无变更信号，故设置页改键后发 hotkeysChanged，
-    // Shell 重读到这两个响应式属性 → 下方 Shortcut.sequences 即时重绑（单字母）。
-    property string memoHotkeyKey: "N"
-    property string pomodoroHotkeyKey: "P"
+    // Shell 重读到这两个响应式属性 → 下方 Shortcut.sequences 即时重绑（单字母或组合键）。
+    // 出厂默认分平台，取自 components/Hotkeys.js（设置页读的是同一份，别在这里另写字面量）。
+    property string memoHotkeyKey: Hotkeys.memoDefault()
+    property string pomodoroHotkeyKey: Hotkeys.pomodoroDefault()
     property bool notifyEnabled: true   // 系统通知开关（驱动托盘可见 + 是否发通知）
     // 设置页改键 / 改通知开关后发 hotkeysChanged → Shell 重读这些 Shell 侧消费的设置。
     function applyHotkeysFromSettings() {
         if (!settingsRepository)
             return;
-        memoHotkeyKey = settingsRepository.getValue("memo_hotkey_key", "N");
-        pomodoroHotkeyKey = settingsRepository.getValue("pomodoro_hotkey_key", "P");
+        memoHotkeyKey = settingsRepository.getValue("memo_hotkey_key", Hotkeys.memoDefault());
+        pomodoroHotkeyKey = settingsRepository.getValue("pomodoro_hotkey_key", Hotkeys.pomodoroDefault());
         notifyEnabled = settingsRepository.getBool("notify_enabled", true);
     }
 
     // =========================
     // macOS 菜单栏命令入口（qml/desktop/MacMenuBar.qml）
     // 菜单栏只在 macOS 实例化，这些函数在 Windows/Linux 上没有调用方。备忘/番茄沿用
-    // memoLocked 守卫（与字母键一致）；memo_hotkey_n 是「字母键要不要生效」的偏好，
-    // 与菜单命令无关——关掉字母键不该顺带让菜单里的备忘黑板消失。
+    // memoLocked 守卫（与全局快捷键一致）。
     // =========================
     function menuNavigateTo(pageKey) {
         var idx = indexOfPage(pageKey);
@@ -383,17 +391,15 @@ Item {
         }
     }
 
-    // G-MEMO：按 N 开/关备忘黑板（门控 memo_hotkey_n + 记忆卡翻面锁）。Qt 的 ShortcutOverride
-    // 让聚焦中的文本框（设置搜索 / 便签署名 / 便签文字）吃掉该键，故输入时不会误触发；
-    // 偏好在触发时实读，关掉开关后下次按 N 立即失效（无需依赖不存在的设置变更信号）。
+    // G-MEMO：全局键开/关备忘黑板（守卫只剩记忆卡翻面锁）。Qt 的 ShortcutOverride 让聚焦中的
+    // 文本框（设置搜索 / 便签文字）吃掉裸字母，故 Windows/Linux 默认的 N 在输入时不会误触发。
+    // 原先还有个 memo_hotkey_n 开关（「按 N 打开备忘录」）门控这里，已随设置项一起移除：
+    // 键位可带修饰键后就没有要逃的抢键问题，而 macOS 的菜单行 显示 › 备忘黑板 绑同一个
+    // ⇧⌘N 且不受该偏好管，留着只会得到一个关了也不算数的开关。
     Shortcut {
         sequences: root.memoHotkeyKey.length > 0 ? [root.memoHotkeyKey] : []
         enabled: !root.memoLocked && root.memoHotkeyKey.length > 0
-        onActivated: {
-            if (settingsRepository && !settingsRepository.getBool("memo_hotkey_n", true))
-                return;
-            memoOverlay.open = !memoOverlay.open;
-        }
+        onActivated: memoOverlay.open = !memoOverlay.open
     }
 
     // G-MEMO/#3：番茄钟全局快捷键 —— 开备忘黑板并开/关番茄浮窗（同样 ShortcutOverride 安全）。

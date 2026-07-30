@@ -94,13 +94,13 @@
 
 | 控件 | KV 键 | 状态 | 真实消费者 / 取证 | 备注（缺口） |
 |---|---|---|---|---|
-| 按 N 打开备忘录 | `memo_hotkey_n` | ✅ | `DesktopAppShell.qml:257` Shortcut 门控 | G-MEMO |
+| ~~按 N 打开备忘录~~ | ~~`memo_hotkey_n`~~ | 🗑️ 已移除 | 该开关是裸字母抢打字的逃生口；键位改为可带修饰键、macOS 出厂即 ⇧⌘N 后已无此问题，且 macOS 菜单行 显示 › 备忘黑板 绑同一个 ⇧⌘N 却不受它管，关掉也不算数。全局键现只受记忆卡翻面锁约束 | G-MEMO |
 | 自动保存笔迹和便签 | `memo_autosave` | ✅ | `MemoOverlay.qml:197` 门控连续自动存（关闭仍强存） | G-MEMO |
 | 默认便签作者 | `memo_signature` | 🚫⬜ | **无消费者**：便签署名 UI 已停用（`StickyNote.qml:21`「位置让给成为待办」），存了也没人读 | 形同虚设 |
 | 番茄钟 · 默认专注时长 | `pomodoro_duration` | ✅ | `PomodoroWidget.qml:33/92` `_load`(无存档)+`resetTimer` 读 | G-POMODORO（已接真引擎） |
 | 番茄钟 · 默认专注标题 | `pomodoro_title` | ✅ | `PomodoroWidget.qml:56/92` | — |
 | 番茄钟 · 结束庆祝动画 | `pomodoro_celebrate` | ✅ | `MemoOverlay.qml:1044` 门控完成弹层 | — |
-| 快捷键 · 备忘 / 番茄（可改） | `memo_hotkey_key` / `pomodoro_hotkey_key` | ✅ | `DesktopAppShell.qml:232/233` 响应式重绑 Shortcut | — |
+| 快捷键 · 备忘 / 番茄（可改） | `memo_hotkey_key` / `pomodoro_hotkey_key` | ✅ | `DesktopAppShell.qml:318/319` 响应式重绑 Shortcut；存 Qt 可移植序列文本，单字母与组合键（Ctrl/Shift/Alt/Meta）皆可，占用表拒绝内置键；出厂默认分平台（`components/Hotkeys.js`，macOS ⇧⌘N/⇧⌘P）；键帽按 Delete 存空串＝停用（Shell 见空串不绑），macOS 停不掉故改为恢复默认 | — |
 | 快捷键 · Del / Esc / Wheel（展示） | — | 🟡 | 仅静态展示；备忘内部键硬编码、不可改（本期范围外） | — |
 
 ### 导入导出（export）

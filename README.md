@@ -75,7 +75,10 @@ with day and night modes.
   (incl. a search variant), and `KbdChip` — all styled from `MemoryLakeStyle` tokens.
   The app-management tab lists real captured apps for per-app hide; the pomodoro card
   drives the memo blackboard's real countdown (default duration/title/celebration);
-  memo & pomodoro hotkeys are user-customizable; a one-shot welcome animation is gated
+  memo & pomodoro hotkeys are user-customizable (click a key cap, then press any
+  letter with optional Ctrl/Shift/Alt/Meta; built-in keys are refused by name, and
+  Delete turns a hotkey off — on macOS it restores the default instead, since the
+  menu bar owns that key equivalent regardless); a one-shot welcome animation is gated
   by `show_welcome`; and **system notifications** plus the resident tray menu use
   `qml/desktop/memorylake/NotifierTray.qml` (a `Qt.labs.platform` tray, loaded
   defensively so a missing plugin can't break the app). The tray can restore the
@@ -127,8 +130,10 @@ with day and night modes.
   localized in 简体中文 / English / 日本語 (the merged app-menu rows follow macOS's
   own localization, per platform convention). The menu bar outlives the window —
   after the red button closes it, commands needing a window grey out and the
-  窗口 › TimeArc row is the way back. The N / P letter hotkeys are unchanged;
-  the menu adds ⇧⌘N / ⇧⌘P as extra equivalents. ⌃⌘F toggles full screen — an
+  窗口 › TimeArc row is the way back. The customizable memo / pomodoro hotkeys
+  default to ⇧⌘N / ⇧⌘P here — the same sequences these menu rows carry, so both
+  paths hit the same toggle; Windows and Linux keep the bare N / P letters
+  (`qml/desktop/components/Hotkeys.js`). ⌃⌘F toggles full screen — an
   extra key next to the 进入全屏幕 row macOS contributes itself (that row and its
   own system key are untouched, and no second row is drawn). Windows and Linux
   are unaffected — no menu bar is created there. Design:

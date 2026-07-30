@@ -110,7 +110,9 @@
 - 🔴 系统通知权限 —— 无通知能力（G-NOTIFY）。
 
 **备忘番茄 memo**
-- 🟡 N 开备忘 —— Shell `Shortcut "N"` 门控 `memo_hotkey_n`（G-MEMO）。
+- ~~🟡 N 开备忘 —— Shell `Shortcut "N"` 门控 `memo_hotkey_n`（G-MEMO）。~~
+  **后续撤销**：该开关连同 `memo_hotkey_n` 已移除（键位可带修饰键、macOS 出厂 ⇧⌘N，
+  且菜单行绑同键不受其管）。见 `settings-remaining-work.md` 备忘番茄表。
 - 🟡 自动保存笔迹 —— 门控既有保存（备忘已恒持久化）（G-MEMO）。
 - 🟢 默认便签作者 —— `setValue("memo_signature")` 供便签读默认。
 - 🔴 番茄默认时长 / 🔴 像素收缩 / 🔴 结束祝贺 —— **无番茄引擎**（`timer_manager` 是正计时）（G-POMODORO / A-POMODORO）。
@@ -198,7 +200,7 @@
 | G-CLEAR | 无清理/删除 API + 契约 | 清理缓存/删历史/清空 | 仅清 UI 私有/派生；真删 = 停服务迁移工具 | 🧱 契约 D1；A-CLEAR |
 | G-PERM | 无权限探测 | 权限状态 | 恒「就绪」或启发式 OpenProcess 失败探测 | 🔴 Windows N/A；A-PERM |
 | G-NOTIFY | 无通知子系统 | 通知权限/番茄提醒 | 新建 `QSystemTrayIcon::showMessage`/WinRT toast | 🔴 新能力 |
-| G-MEMO | 无 N 全局快捷 + 无自动保存门控键 | N 开/自动保存 | Shell 加 `Shortcut "N"` 门控 `memo_hotkey_n`；保存调用门控 `memo_autosave` | 🟡 UI |
+| G-MEMO | 无 N 全局快捷 + 无自动保存门控键 | N 开/自动保存 | Shell 加全局 `Shortcut`（键位可改、可带修饰键）；~~门控 `memo_hotkey_n`~~ 该开关后续已移除；保存调用门控 `memo_autosave` | 🟡 UI |
 | G-POMODORO | 无番茄引擎 | 默认时长/收缩/祝贺/番茄态 | 暂隐；或新建倒计时番茄（独立功能） | 🔴 新能力；A-POMODORO |
 | G-EXPORT | 无全量设置读 | 导出 JSON | 扩 `SettingsRepository::getAllSettings()`→QVariantMap + 复用 `exportReport()` | 🟡 加方法免提案 |
 | G-IMPORT | 无文件读 + 批量写 | 导入设置 | `FileDialog` + `XMLHttpRequest file://` 或小 `Q_INVOKABLE readTextFile` + 逐键 setValue | 🟡 可选加一读文件 helper |

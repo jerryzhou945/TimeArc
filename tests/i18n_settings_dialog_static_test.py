@@ -71,7 +71,8 @@ def require(text, needle, label):
 def table(js, name):
     """Parse one `var <name> = { ... }` object into a dict.
 
-    Duplicate keys exist in `en` today; later wins, matching JS semantics.
+    Collapsing into a dict matches JS semantics (later key wins) but would also
+    hide a re-declared key; `i18n_duplicate_keys_static_test.py` guards that.
     """
     match = re.search(r"var %s = \{(.*?)\n\}" % name, js, re.S)
     if match is None:

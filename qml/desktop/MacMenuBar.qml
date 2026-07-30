@@ -34,9 +34,17 @@ Platform.MenuBar {
     // 备忘黑板是全屏模态：开着时换页置灰（底层页面要原样留在身后），只留它自己的开关。
     // 关窗不再置灰——交通灯在黑板上也常显，红灯可点而 ⌘W 置灰会让鼠标与键盘各说一套。
     readonly property bool memoOpen: hasShell && hostShell.memoOpen
-    readonly property bool canNavigate: hasWindow && hasShell && !memoOpen
+    // 设置页的快捷键键帽正在等按键：整条菜单栏让位，否则 AppKit 会先把 ⌘ 组合当成 key
+    // equivalent 执行掉（⌘Q 直接退应用），键帽永远等不到那一下。置灰的 NSMenuItem 不吃
+    // 自己的 key equivalent，按键于是落回窗口，由键帽收下并给出「已被 X 占用」的提示。
+    // 「编辑」菜单不必额外处理：焦点在键帽（不是文本控件）上，下面那些 editorCanXxx 本就为假。
+    // 例外是 ⌃⌘F —— 与系统自己注入的「进入全屏幕」同键，那一行不是 Qt 建的，关不掉。
+    readonly property bool capturing: hasShell && hostShell.hotkeyCapturing
+    readonly property bool canNavigate: hasWindow && hasShell && !memoOpen && !capturing
     // 记忆卡翻面时不可开黑板：与字母快捷键同一个守卫（DesktopAppShell.memoLocked）。
-    readonly property bool canToggleMemo: hasWindow && hasShell && !hostShell.memoLocked
+    readonly property bool canToggleMemo: hasWindow && hasShell && !hostShell.memoLocked && !capturing
+    // 窗口类命令（关窗 / 最小化 / 缩放）：窗口在，且不在捕获态。
+    readonly property bool canWindowCmd: hasWindow && !capturing
     // 统计导出导的是「当前视图的期次」，页面不在眼前就没有意义，故只在统计页可用。
     readonly property bool onStatsPage: pageIs("stats")
 
@@ -136,6 +144,7 @@ Platform.MenuBar {
             role: Platform.MenuItem.QuitRole
             text: bar.tr("退出 TimeArc")
             shortcut: "Ctrl+Q"
+            enabled: !bar.capturing
             onTriggered: {
                 if (bar.hostWindow)
                     bar.hostWindow.quitFromTray();
@@ -175,7 +184,7 @@ Platform.MenuBar {
             role: Platform.MenuItem.NoRole
             text: bar.tr("关闭窗口")
             shortcut: "Ctrl+W"
-            enabled: bar.hasWindow
+            enabled: bar.canWindowCmd
             onTriggered: bar.hostWindow.close()
         }
     }
@@ -297,7 +306,7 @@ Platform.MenuBar {
             text: bar.tr("夜间模式")
             shortcut: "Ctrl+Shift+D"
             checkable: true
-            enabled: bar.hasWindow && bar.hasShell
+            enabled: bar.hasWindow && bar.hasShell && !bar.capturing
             onTriggered: bar.hostShell.menuToggleNightMode()
         }
         Platform.Menu {
@@ -339,13 +348,13 @@ Platform.MenuBar {
             role: Platform.MenuItem.NoRole
             text: bar.tr("最小化")
             shortcut: "Ctrl+M"
-            enabled: bar.hasWindow
+            enabled: bar.canWindowCmd
             onTriggered: bar.hostWindow.showMinimized()
         }
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
             text: bar.tr("缩放")
-            enabled: bar.hasWindow
+            enabled: bar.canWindowCmd
             onTriggered: bar.toggleZoom()
         }
         Platform.MenuSeparator {}

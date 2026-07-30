@@ -8,6 +8,8 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-30T12:43:36Z | L2 | qt-warning-1e90... | [WARNING] :0 - macOS menu bar: AppKit is running ""en"" w... | [report](errors/20260730-124336-C-qt-warning-1e90e04428.md) |
+| 2026-07-30T12:43:36Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-124336-C-qt-warning-19f33ebed5.md) |
 | 2026-07-30T06:49:43Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-064943-C-qt-warning-19f33ebed5.md) |
 | 2026-07-30T06:49:43Z | L2 | qt-warning-5d34... | [WARNING] :0 - macOS menu bar: AppKit is running ""ja"" w... | [report](errors/20260730-064943-C-qt-warning-5d343805b9.md) |
 | 2026-07-30T06:49:42Z | L2 | qt-warning-4fb9... | [WARNING] :0 - macOS menu bar: AppKit is running ""zh-Han... | [report](errors/20260730-064942-C-qt-warning-4fb98ac61f.md) |
@@ -56,8 +58,8 @@ the harness line budget intact.
 | 2026-07-28T09:40:24Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260728-094024-B-build-failure.md) |
 | 2026-07-28T09:39:36Z | L2 | macos-collapsed... | The macOS collapsed sidebar TimeArc logo is smaller and h... | [report](errors/20260728-093936-C-macos-collapsed-logo-alignment.md) |
 | 2026-07-28T09:12:41Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091241-C-qt-warning-c26efcf9e0.md) |
-| 2026-07-28T09:12:41Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260728-091241-C-qt-warning-19f33ebed5.md) |
-| 2026-07-28T09:12:40Z | L2 | qt-warning-c26e... | [WARNING] /Users/jz2025/Desktop/Development/TimeArc/src/m... | [report](errors/20260728-091240-C-qt-warning-c26efcf9e0.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |

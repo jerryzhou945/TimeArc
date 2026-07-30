@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
+import "../components/Hotkeys.js" as Hotkeys
 import "../components/I18n.js" as I18n
 
 // v88「设置」页（暗玻璃全幅复刻 / 原地重皮 A-NAME）。规范：
@@ -70,7 +71,6 @@ Item {
     property bool hideTitles: true
     property bool anonymizeExport: false
     property bool notifyEnabled: true
-    property bool memoHotkeyN: true
     property bool memoAutosave: true
 
     // —— Phase 2 只读派生（onCompleted + usageStatsChanged 刷新；真实只读，不造假 G6）——
@@ -113,9 +113,25 @@ Item {
     property string pomodoroDuration: "25"
     property string pomodoroTitle: "专注一会儿"
     property bool pomodoroCelebrate: true
-    // 快捷键自定义（#3）：备忘 / 番茄全局键（单字母；Shell 响应式读，hotkeysChanged 通知）。
-    property string memoHotkeyKey: "N"
-    property string pomodoroHotkeyKey: "P"
+    // 快捷键自定义（#3）：备忘 / 番茄全局键（Shell 响应式读，hotkeysChanged 通知）。
+    // 存的是 Qt 可移植序列文本：单字母 "N" 与组合键 "Ctrl+Shift+K" 都是合法 QKeySequence，
+    // 故旧存档（默认 N / P）原样可读，无需迁移。
+    // 出厂默认分平台，取自 components/Hotkeys.js —— Shell 绑 Shortcut 时读的是同一份，
+    // 各写各的就会出现「这里显示 N、实际生效 ⇧⌘N」。
+    property string memoHotkeyKey: Hotkeys.memoDefault()
+    property string pomodoroHotkeyKey: Hotkeys.pomodoroDefault()
+
+    // 捕获态（哪一枚键帽正在等按键）。Shell 经 pageLoader.item 读 hotkeyCapturing，
+    // 在捕获期间让 macOS 菜单栏整条失效——否则 ⌘Q 等键会被 AppKit 先吃掉（⌘Q 直接退应用），
+    // QML 的 Keys.onShortcutOverride 管不到 NSMenu。
+    property string capturingHotkey: ""      // "" | "memo" | "pomo"
+    readonly property bool hotkeyCapturing: capturingHotkey.length > 0
+    // 只有自己能清自己：点第二枚键帽会抢走第一枚的焦点，两次 capturing 变化的先后不定，
+    // 少了这道归属判断就可能后到的 false 把新的 true 抹掉。
+    function setCapturing(which, on) {
+        if (on) capturingHotkey = which
+        else if (capturingHotkey === which) capturingHotkey = ""
+    }
 
     function tr(source) { return I18n.t(languageMode, source) }
     function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
@@ -229,14 +245,13 @@ Item {
         hideTitles       = _getBool("hide_titles", true)
         anonymizeExport  = _getBool("anonymize_export", false)
         notifyEnabled    = _getBool("notify_enabled", true)
-        memoHotkeyN      = _getBool("memo_hotkey_n", true)
         memoAutosave     = _getBool("memo_autosave", true)
         hiddenApps       = parseHiddenApps()
         pomodoroDuration = _getStr("pomodoro_duration", "25")
         pomodoroTitle    = _getStr("pomodoro_title", "专注一会儿")
         pomodoroCelebrate= _getBool("pomodoro_celebrate", true)
-        memoHotkeyKey    = _getStr("memo_hotkey_key", "N")
-        pomodoroHotkeyKey= _getStr("pomodoro_hotkey_key", "P")
+        memoHotkeyKey    = _getStr("memo_hotkey_key", Hotkeys.memoDefault())
+        pomodoroHotkeyKey= _getStr("pomodoro_hotkey_key", Hotkeys.pomodoroDefault())
     }
 
     // —— 读层过滤推入（2A 游戏/分类/合并 · 2B 显隐 · 2C 标题）——
@@ -368,17 +383,130 @@ Item {
     function showToast(msg) { settingsToast.message = tr(msg); settingsToast.shown = true; toastTimer.restart() }
     function onOff(v) { return v ? tr("功能已开启") : tr("功能已关闭") }
 
-    // 自定义快捷键（#3）：单字母；备忘 / 番茄不能同键；写 KV + 发 hotkeysChanged 让 Shell 重读。
-    function setHotkey(which, k) {
-        if (which === "memo") {
-            if (k === pomodoroHotkeyKey) { showToast("与番茄钟快捷键冲突"); return }
-            memoHotkeyKey = k; _setStr("memo_hotkey_key", k)
-        } else {
-            if (k === memoHotkeyKey) { showToast("与备忘录快捷键冲突"); return }
-            pomodoroHotkeyKey = k; _setStr("pomodoro_hotkey_key", k)
+    // —— 快捷键序列文本（#3）——
+    // 修饰名一律用 Qt 的可移植写法。macOS 上 Qt 交换 Ctrl/Meta（未设
+    // AA_MacDontSwapCtrlAndMeta），故 Ctrl→⌘、Meta→⌃，与 MacMenuBar.qml 里
+    // 那些 "Ctrl+" 字面量同一套语义：一份文本两个平台都对。
+    function _seqFromEvent(e) {
+        var m = e.modifiers
+        var s = ""
+        if (m & Qt.ControlModifier) s += "Ctrl+"
+        if (m & Qt.AltModifier)     s += "Alt+"
+        if (m & Qt.ShiftModifier)   s += "Shift+"
+        if (m & Qt.MetaModifier)    s += "Meta+"
+        return s + String.fromCharCode(e.key)
+    }
+
+    // 归一化后再比较，别直接比字符串：QKeySequence 的修饰键次序不是这里写的次序，
+    // 手写占用表也就不必操心谁在前。顺带把旧存档的小写字母抬成大写。
+    function _canonSeq(text) {
+        var parts = ("" + text).split("+")
+        var base = parts.pop()
+        var has = function (n) { return parts.indexOf(n) >= 0 }
+        return (has("Ctrl") ? "Ctrl+" : "") + (has("Alt") ? "Alt+" : "")
+             + (has("Shift") ? "Shift+" : "") + (has("Meta") ? "Meta+" : "")
+             + base.toUpperCase()
+    }
+
+    // 展示用：非 macOS 原样显示 "Ctrl+Shift+K"；macOS 按苹果惯例的 ⌃⌥⇧⌘ 次序出符号。
+    function hotkeyDisplay(seq) {
+        if (!seq || seq.length === 0) return ""
+        if (Qt.platform.os !== "osx") return seq
+        var parts = ("" + seq).split("+")
+        var base = parts.pop()
+        var has = function (n) { return parts.indexOf(n) >= 0 }
+        return (has("Meta") ? "⌃" : "") + (has("Alt") ? "⌥" : "")
+             + (has("Shift") ? "⇧" : "") + (has("Ctrl") ? "⌘" : "") + base.toUpperCase()
+    }
+
+    // 键帽上的文字：停用（空串）时给个占位，否则空键帽看着像渲染坏了。
+    function hotkeyLabel(seq) {
+        return (seq && seq.length > 0) ? hotkeyDisplay(seq) : tr("未设置")
+    }
+
+    // 内置键占用表。全平台一份（Windows/Linux 没有菜单栏，这些组合其实空闲，但仍照样保留：
+    // 设置导出要能在机器之间搬，卡片文案也才能只讲一条规则）。
+    // 这是三处定义的镜像，没有任何机制保证同步——改动那三处时记得回来看一眼：
+    //   MacMenuBar.qml（菜单项 shortcut）/ main.qml:163（⌃⌘F）/ MemoOverlay.qml:619（画布编辑键）。
+    // 单字母基键出不了 ⌘, 与 ⌘1–⌘4，故表里不列；哪天基键集放宽了再补。
+    // 长远方向是 docs/desktop-keyboard-navigation-design.md §4.1 的 KeyMap.js 单一真源。
+    // owner 用中文菜单词，渲染时走 I18n.menu()，与菜单栏共用同一套词表。
+    // cmd 是「这条内置键本来就是干这件事的」：⇧⌘N 的菜单命令正是开备忘黑板，所以把备忘
+    // 设成 ⇧⌘N 不算抢键（macOS 出厂默认就是它，见 Hotkeys.js），但把「番茄」设成 ⇧⌘N 要拦。
+    readonly property var reservedHotkeys: [
+        { seq: "Ctrl+Q",       owner: "退出 TimeArc",  cmd: "" },
+        { seq: "Ctrl+W",       owner: "关闭窗口",      cmd: "" },
+        { seq: "Ctrl+M",       owner: "最小化",        cmd: "" },
+        { seq: "Ctrl+H",       owner: "隐藏 TimeArc",  cmd: "" },
+        { seq: "Ctrl+Alt+H",   owner: "隐藏其他",      cmd: "" },
+        { seq: "Ctrl+Shift+E", owner: "导出统计报告…", cmd: "" },
+        { seq: "Ctrl+Shift+D", owner: "夜间模式",      cmd: "" },
+        { seq: "Ctrl+Meta+F",  owner: "进入全屏幕",    cmd: "" },
+        { seq: "Ctrl+Shift+N", owner: "备忘黑板",      cmd: "memo" },
+        { seq: "Ctrl+Shift+P", owner: "番茄钟",        cmd: "pomo" },
+        { seq: "Ctrl+Z",       owner: "撤销",          cmd: "" },
+        { seq: "Ctrl+Shift+Z", owner: "重做",          cmd: "" },
+        { seq: "Ctrl+Y",       owner: "重做",          cmd: "" },
+        { seq: "Ctrl+X",       owner: "剪切",          cmd: "" },
+        { seq: "Ctrl+C",       owner: "复制",          cmd: "" },
+        { seq: "Ctrl+V",       owner: "粘贴",          cmd: "" },
+        { seq: "Ctrl+A",       owner: "全选",          cmd: "" }
+    ]
+    // which 是正在设置的那一条（"memo" / "pomo"）：命中自己那条内置键时放行。
+    function _reservedOwner(seq, which) {
+        var c = _canonSeq(seq)
+        for (var i = 0; i < reservedHotkeys.length; i++) {
+            var r = reservedHotkeys[i]
+            if (_canonSeq(r.seq) === c)
+                return r.cmd === which ? "" : r.owner
         }
+        return ""
+    }
+
+    // 自定义快捷键（#3）：单字母或组合键；备忘 / 番茄不能同键，也不能抢内置键。
+    // 写 KV + 发 hotkeysChanged 让 Shell 重读。
+    // 返回值就是「键帽该不该退出捕获态」：成功 true（调用方清 capturing，键帽回到显示新键位），
+    // 被拒 false（留在捕获态，可直接再按一次）。捕获态本身只由键帽的 capturing 属性驱动，
+    // 这里不代它写——本页拿不到那枚键帽，两处各写一半就会出现「页面以为结束了、键帽还亮着」。
+    function setHotkey(which, k) {
+        var seq = _canonSeq(k)
+
+        // 键帽收到 Delete / Backspace 时送空串 = 停用。
+        // macOS 停不掉（菜单行常驻同一个 key equivalent，见 Hotkeys.canDisable 的注释），
+        // 那边改为恢复出厂键位；提示只报结果，原因留给注释与文档，不塞进一行 toast。
+        var restored = false
+        if (seq.length === 0 && !Hotkeys.canDisable()) {
+            seq = _canonSeq(Hotkeys.defaultFor(which))
+            restored = true
+        }
+
+        // 空串（真停用）不参与占位检查：它谁也不抢，两边同时停用也不算撞车。
+        if (seq.length > 0) {
+            var owner = _reservedOwner(seq, which)
+            if (owner.length > 0) {
+                showToast(sentence("hotkeyReserved", { owner: I18n.menu(languageMode, owner) },
+                                   "「" + owner + "」已在用这个组合"))
+                return false
+            }
+            var other = which === "memo" ? pomodoroHotkeyKey : memoHotkeyKey
+            if (seq === _canonSeq(other)) {
+                showToast(which === "memo" ? "与番茄钟快捷键冲突" : "与备忘录快捷键冲突")
+                return false
+            }
+        }
+
+        if (which === "memo") { memoHotkeyKey = seq; _setStr("memo_hotkey_key", seq) }
+        else                  { pomodoroHotkeyKey = seq; _setStr("pomodoro_hotkey_key", seq) }
         hotkeysChanged()
-        showToast("快捷键已更新为 " + k)
+        if (restored)
+            showToast(sentence("hotkeyRestoredDefault", { key: hotkeyDisplay(seq) },
+                               "已恢复默认 " + hotkeyDisplay(seq)))
+        else if (seq.length === 0)
+            showToast("快捷键已停用")
+        else
+            showToast(sentence("hotkeyUpdated", { key: hotkeyDisplay(seq) },
+                               "快捷键已更新为 " + hotkeyDisplay(seq)))
+        return true
     }
 
     // 顶栏标题/描述（settingsCopy 逐字，v88 17835–17841）
@@ -445,7 +573,8 @@ Item {
     }
     function copySummary() {
         clipHelper.text = "TimeArc 设置摘要：" + (root.nightMode ? "暗玻璃主题" : "白天浅瓷主题")
-                + " / 本地保存 / " + (memoHotkeyN ? "N 打开备忘录" : "N 快捷键关闭")
+                + " / 本地保存 / " + (memoHotkeyKey.length > 0 ? hotkeyDisplay(memoHotkeyKey) + " 打开备忘录"
+                                                              : "备忘快捷键已停用")
                 + " / 强调色 " + accentColor
         clipHelper.selectAll(); clipHelper.copy(); clipHelper.deselect()
         showToast("配置摘要已复制")
@@ -493,6 +622,9 @@ Item {
             var n = 0
             for (var k in s) { if (s.hasOwnProperty(k)) { settingsRepository.setValue("" + k, "" + s[k]); n++ } }
             reloadFromKV()
+            // reloadFromKV 只把值读回本页；导入的快捷键要让 Shell 重绑 Shortcut，否则得等重启
+            // 才生效——键位现在可能是组合键，「按了没反应」比以前更难自己想明白。
+            hotkeysChanged()
             showToast(n > 0 ? "设置文件已读取" : "JSON 文件格式不正确")
         } catch (e) { showToast("JSON 文件格式不正确") }
     }
@@ -1407,14 +1539,10 @@ Item {
                                 cardDesc: "控制便签、画笔、页数和快捷键体验。"
                                 keywords: "备忘录 便签 画笔 页面 作者"
 
-                                SettingRow {
-                                    rowTitle: "按 N 打开备忘录"
-                                    rowSub: "再次按 N 可以关闭备忘录。"
-                                    GlassSwitch {
-                                        style: ml; checked: root.memoHotkeyN
-                                        onToggled: function (c) { root.memoHotkeyN = c; root._setBool("memo_hotkey_n", c); root.showToast(root.onOff(c)) }
-                                    }
-                                }
+                                // 「按 N 打开备忘录」开关（memo_hotkey_n）已移除：它原本是裸字母抢打字的
+                                // 逃生口，而键位如今可带修饰键、macOS 出厂即 ⇧⌘N，已无需要逃的东西。
+                                // 何况 macOS 的菜单行 显示 › 备忘黑板 同样绑 ⇧⌘N 且不受该偏好管，关掉开关
+                                // 快捷键照样生效——一个说了不算的开关比没有更糟。键位本身仍可在下面改。
                                 SettingRow {
                                     rowTitle: "自动保存笔迹和便签"
                                     rowSub: "每个页面独立保存，不互相影响。"
@@ -1466,12 +1594,12 @@ Item {
                                 }
                             }
 
-                            // 快捷键（#3 自定义）：备忘 / 番茄全局键可点按重设（仅单字母）；其余为内置只读。
+                            // 快捷键（#3 自定义）：备忘 / 番茄全局键可点按重设（字母，可带修饰键）；其余为内置只读。
                             SettingsCard {
                                 badge: "⌘"
                                 cardTitle: "快捷键"
-                                cardDesc: "自定义备忘录与番茄钟的全局快捷键（点按键重设，仅单字母；其余为内置键）。"
-                                keywords: "快捷键 keyboard shortcut 自定义 备忘 番茄 N P"
+                                cardDesc: "自定义备忘录与番茄钟的全局快捷键（点按键位后按下组合键，可加 Ctrl / Shift / Alt；按 Delete 停用；其余为内置键）。"
+                                keywords: "快捷键 keyboard shortcut 自定义 备忘 番茄 N P 修饰键 组合键 停用 禁用 delete"
                                 Column {
                                     Layout.fillWidth: true
                                     spacing: 8
@@ -1488,17 +1616,31 @@ Item {
                                             color: ml.calSunkBg
                                             border.width: 1; border.color: ml.cellHair
                                             Row {
+                                                id: hotkeyRow
                                                 anchors.left: parent.left
                                                 anchors.leftMargin: 10
+                                                anchors.right: parent.right
+                                                anchors.rightMargin: 10
                                                 anchors.verticalCenter: parent.verticalCenter
                                                 spacing: 10
                                                 KeyCaptureChip {
+                                                    id: hotkeyChip
                                                     anchors.verticalCenter: parent.verticalCenter
-                                                    keyText: modelData.which === "memo" ? root.memoHotkeyKey : root.pomodoroHotkeyKey
-                                                    onCaptured: function (k) { root.setHotkey(modelData.which, k) }
+                                                    keyText: root.hotkeyLabel(modelData.which === "memo" ? root.memoHotkeyKey
+                                                                                                         : root.pomodoroHotkeyKey)
+                                                    // 设置成功就退出捕获态，键帽回到显示新键位；被拒时留着，可直接再按一次。
+                                                    onCaptured: function (k) {
+                                                        if (root.setHotkey(modelData.which, k))
+                                                            hotkeyChip.capturing = false
+                                                    }
+                                                    // 捕获期间让 Shell（进而 macOS 菜单栏）知道，别把 ⌘ 组合抢在键帽之前。
+                                                    onCapturingChanged: root.setCapturing(modelData.which, capturing)
                                                 }
                                                 Text {
                                                     anchors.verticalCenter: parent.verticalCenter
+                                                    // 组合键把键帽撑宽后说明文字要让位，否则会顶出卡片。
+                                                    width: Math.max(0, hotkeyRow.width - hotkeyChip.width - hotkeyRow.spacing)
+                                                    elide: Text.ElideRight
                                                     text: modelData.d; color: ml.textSecondary; font.pixelSize: 11
                                                 }
                                             }
@@ -2090,20 +2232,25 @@ Item {
         }
     }
 
-    // 单字母快捷键捕获键帽（#3）：点击进入捕获、按 A–Z 设定、Esc 取消。受控（不自写 keyText，
-    // 父经 setHotkey 回写 → 绑定回流）。Keys.onShortcutOverride 让捕获时吃掉全局 Shortcut（否则按
-    // 旧 N/P 会触发备忘/番茄而非被捕获）。
+    // 快捷键捕获键帽（#3）：点击进入捕获、按下「A–Z + 任意修饰键」设定、Esc 取消。
+    // 受控（不自写 keyText，父经 setHotkey 回写 → 绑定回流）。捕获态也是受控的：按键只发
+    // captured，退不退出由外面按 setHotkey 的返回值决定——成功清、被拒留（可直接再按一次）。
+    // capturing 是这件事唯一的开关，别在页面侧另写一份：本页拿不到这枚键帽，
+    // 两处各写一半就成了「页面以为结束了、键帽还亮着等按键」。
+    // Keys.onShortcutOverride 让捕获时吃掉全局 Shortcut（否则按旧 N/P 会触发备忘/番茄而非被捕获）；
+    // 它管不到 macOS 菜单栏的 NSMenu，那条路由 hotkeyCapturing 在 MacMenuBar 侧置灰。
     component KeyCaptureChip: Rectangle {
         id: kc
         property string keyText: "N"
         property bool capturing: false
         signal captured(string key)
-        implicitWidth: 54; implicitHeight: 30
+        implicitWidth: Math.max(54, kcLabel.implicitWidth + 18); implicitHeight: 30
         radius: 9
         color: capturing ? ml.accentSoft : ml.calGhostBg
         border.width: 1
         border.color: capturing ? ml.accentSoftBorder : ml.calGhostBorder
         Text {
+            id: kcLabel
             anchors.centerIn: parent
             text: kc.capturing ? root.tr("按键…") : kc.keyText
             color: kc.capturing ? ml.aqua : ml.textPrimary
@@ -2118,9 +2265,17 @@ Item {
         Keys.onPressed: function (e) {
             if (!kc.capturing) return
             if (e.key === Qt.Key_Escape) { kc.capturing = false; e.accepted = true; return }
+            // Delete / Backspace = 停用本条快捷键。送空串出去，怎么解释由 setHotkey 决定
+            // （macOS 停不掉，会改成恢复出厂键位）。
+            if (e.key === Qt.Key_Delete || e.key === Qt.Key_Backspace) {
+                kc.captured("")
+                e.accepted = true
+                return
+            }
+            // 只认字母做基键。单按修饰键（Qt.Key_Shift 等于 0x01000020）本来就落在区间外，
+            // 于是「按住 ⌘ 还没按字母」这段自然什么都不发生。
             if (e.key >= Qt.Key_A && e.key <= Qt.Key_Z) {
-                kc.capturing = false
-                kc.captured(String.fromCharCode(e.key))   // Qt.Key_A==65 → 'A'
+                kc.captured(root._seqFromEvent(e))   // Qt.Key_A==65 → 'A'
                 e.accepted = true
             }
         }
