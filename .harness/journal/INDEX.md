@@ -8,6 +8,8 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-07-30T20:57:33Z | L3 | create-dmg-note... | select_dmg_tool returns its choice on stdout but also cal... | [report](errors/20260730-205733-B-create-dmg-note-stdout-capture.md) |
+| 2026-07-30T20:57:24Z | L3 | create-dmg-dotf... | Staged the DMG background as a dotfile (.timearc-dmg-back... | [report](errors/20260730-205724-B-create-dmg-dotfile-background.md) |
 | 2026-07-30T19:53:23Z | L2 | macos-cursor-co... | macOS 桌面 UI 使用 Windows 指针惯例：90 处光标（指针手/禁止/SizeAll/DragCop... | [report](errors/20260730-195323-C-macos-cursor-conventions.md) |
 | 2026-07-30T19:52:20Z | L2 | qt-warning-637d... | [WARNING] :0 - The macOS LaunchAgent requires approval in... | [report](errors/20260730-195220-C-qt-warning-637dce87d8.md) |
 | 2026-07-30T19:52:20Z | L2 | qt-warning-5d34... | [WARNING] :0 - macOS menu bar: AppKit is running ""ja"" w... | [report](errors/20260730-195220-C-qt-warning-5d343805b9.md) |
@@ -95,6 +97,4 @@ the harness line budget intact.
 | 2026-07-28T07:03:40Z | L3 | chained-error-r... | Used a semicolon to combine two record_error invocations ... | [report](errors/20260728-070340-B-chained-error-report-command.md) |
 | 2026-07-28T07:03:27Z | L1 | macos-chrome-li... | Final harness audit found journal/INDEX.md at 109 lines a... | [report](errors/20260728-070327-B-macos-chrome-line-budget.md) |
 | 2026-07-28T07:03:27Z | L3 | harness-topic-l... | The first harness line-budget error report used a topic l... | [report](errors/20260728-070327-B-harness-topic-length.md) |
-| 2026-07-28T07:02:22Z | L3 | qt-log-scan-san... | Post-run scan re-read stale prior macOS launch warnings a... | [report](errors/20260728-070222-B-qt-log-scan-sandbox-repeat.md) |
-| 2026-07-28T07:00:06Z | L3 | macos-sidebar-e... | Second visual pass still exposed a title-bar-like top ban... | [report](errors/20260728-070006-B-macos-sidebar-edge-to-edge.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

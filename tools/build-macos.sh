@@ -18,6 +18,9 @@ Usage: tools/build-macos.sh [--release|--build|--test|--package]
   --test     Configure, build, and run the Release tests.
   --package  Configure, build, deploy Qt, sign, and create a DMG.
 
+The DMG is styled with create-dmg when that tool is in PATH, and is otherwise
+a plain hdiutil image with the same contents.
+
 Environment:
   TIMEARC_BUILD_DIR            Build directory (default: build).
   TIMEARC_DIST_DIR             Release output directory (default: dist).
@@ -29,6 +32,9 @@ Environment:
   TIMEARC_SERVICE_ENTITLEMENTS Optional entitlements for time-arc-service.
   TIMEARC_NOTARY_PROFILE       notarytool Keychain profile.
   TIMEARC_REQUIRE_SIGNING=1    Reject an ad-hoc local package.
+  TIMEARC_DMG_TOOL             DMG backend: auto (default), create-dmg, hdiutil.
+                               create-dmg needs a GUI session; use hdiutil when
+                               packaging headlessly.
 EOF
 }
 
@@ -415,6 +421,143 @@ sign_bundle() {
   codesign --verify --deep --strict --verbose=1 "$app_bundle"
 }
 
+# Finder layout for the styled DMG. Coordinates are window-relative points.
+DMG_VOLUME_NAME="TimeArc"
+DMG_WINDOW_POS_X=200
+DMG_WINDOW_POS_Y=120
+DMG_WINDOW_WIDTH=720
+DMG_WINDOW_HEIGHT=420
+DMG_ICON_SIZE=112
+DMG_TEXT_SIZE=14
+DMG_APP_ICON_X=180
+DMG_APP_ICON_Y=200
+DMG_DROP_LINK_X=540
+DMG_DROP_LINK_Y=200
+DMG_VOLICON="$REPO_ROOT/resources/bundle/macos/TimeArc.icns"
+DMG_BACKGROUND="$REPO_ROOT/resources/bundle/macos/dmg_background.png"
+
+# Callers read the chosen tool from stdout, so progress notes go to stderr.
+select_dmg_tool() {
+  local requested="${TIMEARC_DMG_TOOL:-auto}"
+  case "$requested" in
+    hdiutil)
+      printf '%s\n' "hdiutil"
+      return
+      ;;
+    create-dmg)
+      command -v create-dmg >/dev/null 2>&1 ||
+        die "TIMEARC_DMG_TOOL=create-dmg but create-dmg is not in PATH"
+      ;;
+    auto)
+      if ! command -v create-dmg >/dev/null 2>&1; then
+        note "create-dmg not found; building a plain DMG with hdiutil" >&2
+        printf '%s\n' "hdiutil"
+        return
+      fi
+      ;;
+    *)
+      die "unknown TIMEARC_DMG_TOOL: $requested"
+      ;;
+  esac
+
+  # A second, unrelated tool ships under the same name with a different CLI.
+  # Only the create-dmg/create-dmg one understands the layout options below.
+  if ! create-dmg --help 2>&1 | grep -q -- "--app-drop-link"; then
+    [[ "$requested" != "create-dmg" ]] ||
+      die "the create-dmg in PATH does not support --app-drop-link"
+    note "the create-dmg in PATH is a different tool; building a plain DMG" >&2
+    printf '%s\n' "hdiutil"
+    return
+  fi
+
+  printf '%s\n' "create-dmg"
+}
+
+image_dimension() {
+  sips -g "$2" "$1" | sed -nE "s/.*$2: ([0-9]+).*/\1/p"
+}
+
+stage_dmg_background() {
+  local staged="$1"
+  local width
+  local height
+  width="$(image_dimension "$DMG_BACKGROUND" pixelWidth)"
+  height="$(image_dimension "$DMG_BACKGROUND" pixelHeight)"
+  [[ -n "$width" && -n "$height" ]] ||
+    die "could not read DMG background dimensions: $DMG_BACKGROUND"
+
+  # Finder neither scales nor centers the background, so an image that is not
+  # exactly the window size leaves the icon coordinates pointing at the wrong
+  # part of the artwork.
+  if [[ "$width" == "$DMG_WINDOW_WIDTH" && "$height" == "$DMG_WINDOW_HEIGHT" ]]; then
+    ditto "$DMG_BACKGROUND" "$staged"
+    return
+  fi
+  note "resizing DMG background ${width}x${height} to ${DMG_WINDOW_WIDTH}x${DMG_WINDOW_HEIGHT}"
+  sips -z "$DMG_WINDOW_HEIGHT" "$DMG_WINDOW_WIDTH" "$DMG_BACKGROUND" \
+    --out "$staged" >/dev/null
+}
+
+create_dmg_package() {
+  local dmg_path="$1"
+  local source_dir="$2"
+  require_command create-dmg
+  require_command sips
+  [[ -f "$DMG_VOLICON" ]] || die "DMG volume icon not found: $DMG_VOLICON"
+  [[ -f "$DMG_BACKGROUND" ]] || die "DMG background not found: $DMG_BACKGROUND"
+
+  # create-dmg copies this file into the volume's .background directory and
+  # then addresses it from AppleScript, which cannot name a dotfile. Keep the
+  # staged file itself visible and hide the directory holding it instead.
+  local asset_dir="$DIST_DIR/.timearc-dmg-assets"
+  local background="$asset_dir/dmg-background.png"
+  safe_remove "$asset_dir"
+  mkdir -p "$asset_dir"
+  stage_dmg_background "$background"
+
+  note "creating $dmg_path with create-dmg"
+  local status=0
+  create-dmg \
+    --volname "$DMG_VOLUME_NAME" \
+    --volicon "$DMG_VOLICON" \
+    --background "$background" \
+    --window-pos "$DMG_WINDOW_POS_X" "$DMG_WINDOW_POS_Y" \
+    --window-size "$DMG_WINDOW_WIDTH" "$DMG_WINDOW_HEIGHT" \
+    --icon-size "$DMG_ICON_SIZE" \
+    --text-size "$DMG_TEXT_SIZE" \
+    --icon "TimeArc.app" "$DMG_APP_ICON_X" "$DMG_APP_ICON_Y" \
+    --hide-extension "TimeArc.app" \
+    --app-drop-link "$DMG_DROP_LINK_X" "$DMG_DROP_LINK_Y" \
+    --format UDZO \
+    --overwrite \
+    "$dmg_path" \
+    "$source_dir" || status=$?
+
+  safe_remove "$asset_dir"
+  # create-dmg leaves its writable intermediate next to the output when it
+  # bails out partway through.
+  rm -f -- "$DIST_DIR"/rw.*."$(basename "$dmg_path")"
+  if [[ "$status" -ne 0 || ! -f "$dmg_path" ]]; then
+    die "create-dmg failed (exit $status);" \
+      "set TIMEARC_DMG_TOOL=hdiutil to build a plain DMG instead"
+  fi
+}
+
+hdiutil_package() {
+  local dmg_path="$1"
+  local source_dir="$2"
+  require_command hdiutil
+  ln -s /Applications "$source_dir/Applications"
+
+  note "creating $dmg_path"
+  hdiutil create \
+    -volname "$DMG_VOLUME_NAME" \
+    -srcfolder "$source_dir" \
+    -format UDZO \
+    -ov \
+    "$dmg_path"
+}
+
 package_release() {
   require_command hdiutil
   require_command codesign
@@ -424,6 +567,8 @@ package_release() {
   require_command lipo
   require_command ditto
 
+  local dmg_tool
+  dmg_tool="$(select_dmg_tool)"
   local macdeployqt
   macdeployqt="$(find_macdeployqt)"
   local version
@@ -468,15 +613,12 @@ package_release() {
   mkdir -p "$package_dir" "$dmg_root"
   ditto "$app_bundle" "$package_dir/TimeArc.app"
   ditto "$app_bundle" "$dmg_root/TimeArc.app"
-  ln -s /Applications "$dmg_root/Applications"
 
-  note "creating $dmg_path"
-  hdiutil create \
-    -volname "TimeArc" \
-    -srcfolder "$dmg_root" \
-    -format UDZO \
-    -ov \
-    "$dmg_path"
+  if [[ "$dmg_tool" == "create-dmg" ]]; then
+    create_dmg_package "$dmg_path" "$dmg_root"
+  else
+    hdiutil_package "$dmg_path" "$dmg_root"
+  fi
   if [[ -n "${TIMEARC_CODESIGN_IDENTITY:-}" ]]; then
     codesign --force --timestamp \
       --sign "$TIMEARC_CODESIGN_IDENTITY" "$dmg_path"
