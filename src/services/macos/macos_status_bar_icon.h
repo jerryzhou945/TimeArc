@@ -6,6 +6,7 @@
 #include <memory>
 
 class QObject;
+class PomodoroManager;
 class SettingsRepository;
 
 class MacStatusBarIcon final {
@@ -18,9 +19,10 @@ class MacStatusBarIcon final {
 
   QObject* qmlObject() const;
 
-  // Supplies the language lookup for the menu rows. May be null; the menu
-  // then stays on its Chinese default.
-  void attach(SettingsRepository* settings);
+  // Supplies the language lookup and the pomodoro engine the timer rows drive.
+  // Either may be null: without settings the menu stays on its English default,
+  // without an engine the three pomodoro rows are disabled.
+  void attach(SettingsRepository* settings, PomodoroManager* pomodoro);
 
   void connectToRoot(QObject* rootObject);
 

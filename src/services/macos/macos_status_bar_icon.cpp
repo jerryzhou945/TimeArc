@@ -15,6 +15,7 @@
 #include <array>
 #include <utility>
 
+#include "services/pomodoro_manager.h"
 #include "services/settings_repository.h"
 
 namespace {
@@ -83,14 +84,24 @@ QIcon makeInputSourceTIcon() {
 // own table. Columns follow I18n.js langKey(): zh, en, ja.
 struct MenuStrings {
   const char* open;
+  const char* pomodoro;   // 前缀，后接 mm:ss
+  const char* startTimer;
+  const char* resumeTimer;
+  const char* pauseTimer;
+  const char* resetTimer;
   const char* autostart;
   const char* quit;
 };
 
-constexpr MenuStrings kZh{"打开 TimeArc", "开机自启", "退出 TimeArc"};
-constexpr MenuStrings kEn{"Open TimeArc", "Launch at Login", "Quit TimeArc"};
-constexpr MenuStrings kJa{"TimeArc を開く", "ログイン時に起動",
-                          "TimeArc を終了"};
+constexpr MenuStrings kZh{"打开 TimeArc", "番茄钟",   "开始计时",
+                          "继续计时",     "暂停计时", "重置计时",
+                          "开机自启",     "退出 TimeArc"};
+constexpr MenuStrings kEn{"Open TimeArc",  "Pomodoro",    "Start Timer",
+                          "Resume Timer",  "Pause Timer", "Reset Timer",
+                          "Launch at Login", "Quit TimeArc"};
+constexpr MenuStrings kJa{"TimeArc を開く",   "ポモドーロ",       "計測を開始",
+                          "計測を再開",       "計測を一時停止",   "計測をリセット",
+                          "ログイン時に起動", "TimeArc を終了"};
 
 // Mirrors I18n.js langKey(): anything unrecognized falls back to English.
 const MenuStrings& stringsForMode(const QString& mode) {
@@ -105,6 +116,11 @@ class MacStatusBarIcon::Impl {
  public:
   Impl() : icon(makeInputSourceTIcon()) {
     showAction = menu.addAction(QString());
+    menu.addSeparator();
+    // 番茄钟三行：读数（可点，打开浮窗）+ 主命令（开始/继续/暂停）+ 重置。
+    pomodoroAction = menu.addAction(QString());
+    pomodoroPrimaryAction = menu.addAction(QString());
+    pomodoroResetAction = menu.addAction(QString());
     menu.addSeparator();
     autostartAction = menu.addAction(QString());
     // Placeholder: SettingsRepository::autostartSupported() is Windows-only and
@@ -123,6 +139,12 @@ class MacStatusBarIcon::Impl {
     icon.setContextMenu(&menu);
   }
 
+  // 暂停态 = 停表但走过一段（remain 已被扣过）。空闲态 remain 与 total 相等。
+  bool pomodoroPaused() const {
+    return pomodoro && !pomodoro->running() &&
+           pomodoro->remain() != pomodoro->total();
+  }
+
   void sync() {
     const QString mode =
         settings ? settings->languageMode() : QStringLiteral("en");
@@ -131,14 +153,46 @@ class MacStatusBarIcon::Impl {
     showAction->setText(QString::fromUtf8(s.open));
     autostartAction->setText(QString::fromUtf8(s.autostart));
     quitAction->setText(QString::fromUtf8(s.quit));
+
+    syncPomodoro(s);
+  }
+
+  void syncPomodoro(const MenuStrings& s) {
+    // 读数只在菜单打开的那一刻取一次：菜单一经点击即关闭（AppKit 先撤下菜单再派发
+    // 动作），停留期间没人盯着秒数走，故不需要边开边刷。引擎按墙钟锚点算，睡眠醒来
+    // 后这一次取值照样是准的。
+    const QString timeText =
+        pomodoro ? pomodoro->timeText() : QStringLiteral("00:00");
+    pomodoroAction->setText(QString::fromUtf8(s.pomodoro) + QLatin1Char(' ') +
+                            timeText);
+    pomodoroAction->setEnabled(pomodoro != nullptr);
+
+    const bool running = pomodoro && pomodoro->running();
+    if (running) {
+      pomodoroPrimaryAction->setText(QString::fromUtf8(s.pauseTimer));
+    } else if (pomodoroPaused()) {
+      pomodoroPrimaryAction->setText(QString::fromUtf8(s.resumeTimer));
+    } else {
+      pomodoroPrimaryAction->setText(QString::fromUtf8(s.startTimer));
+    }
+    // 0 分 0 秒时 startTimer() 会拒绝开始，那一行便不该是可点的。
+    pomodoroPrimaryAction->setEnabled(pomodoro &&
+                                      (running || pomodoro->total() > 0));
+
+    pomodoroResetAction->setText(QString::fromUtf8(s.resetTimer));
+    pomodoroResetAction->setEnabled(pomodoro != nullptr);
   }
 
   QMenu menu;
   QSystemTrayIcon icon;
   QAction* showAction = nullptr;
+  QAction* pomodoroAction = nullptr;
+  QAction* pomodoroPrimaryAction = nullptr;
+  QAction* pomodoroResetAction = nullptr;
   QAction* autostartAction = nullptr;
   QAction* quitAction = nullptr;
   SettingsRepository* settings = nullptr;
+  PomodoroManager* pomodoro = nullptr;
 };
 
 MacStatusBarIcon::MacStatusBarIcon() : impl_(std::make_unique<Impl>()) {}
@@ -147,8 +201,10 @@ MacStatusBarIcon::~MacStatusBarIcon() = default;
 
 QObject* MacStatusBarIcon::qmlObject() const { return &impl_->icon; }
 
-void MacStatusBarIcon::attach(SettingsRepository* settings) {
+void MacStatusBarIcon::attach(SettingsRepository* settings,
+                              PomodoroManager* pomodoro) {
   impl_->settings = settings;
+  impl_->pomodoro = pomodoro;
   impl_->sync();
 }
 
@@ -164,6 +220,27 @@ void MacStatusBarIcon::connectToRoot(QObject* rootObject) {
                    [invokeRoot]() { invokeRoot("restoreFromTray"); });
   QObject::connect(impl_->quitAction, &QAction::triggered, &impl_->icon,
                    [invokeRoot]() { invokeRoot("quitFromTray"); });
+
+  Impl* const impl = impl_.get();
+  // 读数行：浮窗长在窗口里，光把它标为可见没用，得先把窗口叫回来。
+  QObject::connect(impl_->pomodoroAction, &QAction::triggered, &impl_->icon,
+                   [invokeRoot]() { invokeRoot("showPomodoroFromTray"); });
+  // 三态一行：开始 / 继续 / 暂停。startTimer() 只在 remain 归零时重填，因此暂停态
+  // 调它就是原地继续。菜单开着的这几秒里状态若变了（比如刚好走完），这些调用都是
+  // 安全的空操作——引擎各自在入口处挡掉了不合时宜的那一次。
+  QObject::connect(impl_->pomodoroPrimaryAction, &QAction::triggered,
+                   &impl_->icon, [impl]() {
+                     if (!impl->pomodoro) return;
+                     if (impl->pomodoro->running()) {
+                       impl->pomodoro->pauseTimer();
+                     } else {
+                       impl->pomodoro->startTimer();
+                     }
+                   });
+  QObject::connect(impl_->pomodoroResetAction, &QAction::triggered,
+                   &impl_->icon, [impl]() {
+                     if (impl->pomodoro) impl->pomodoro->resetTimer();
+                   });
 
   // Deliberately no QSystemTrayIcon::activated handler. macOS status items
   // open their menu on click; restoring the window is 打开 TimeArc in that

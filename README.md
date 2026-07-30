@@ -107,10 +107,16 @@ with day and night modes.
   the status item — is the quit path. Closing from full screen exits full
   screen first, then closes. On macOS, the status item uses a monochrome
   template “T” that follows the menu bar's light or dark appearance; the
-  colorful brand icon remains in the Dock and app window. Its menu carries three
-  rows — open the window, a disabled 开机自启 placeholder, and quit — relabelled
-  in 简体中文 / English / 日本語 from the same `language_mode` setting the UI
-  uses, applied the next time the menu opens. Timer control stays in the window.
+  colorful brand icon remains in the Dock and app window. Its menu carries open
+  the window, a **pomodoro trio**, a disabled 开机自启 placeholder, and quit —
+  all relabelled in 简体中文 / English / 日本語 from the same `language_mode`
+  setting the UI uses, applied the next time the menu opens. The pomodoro rows
+  are a readout (`番茄钟 12:34`, click to bring the window back with the widget
+  open), one command that reads 开始 / 继续 / 暂停计时 by state, and 重置计时.
+  The readout is a snapshot taken as the menu opens, not a ticking display —
+  macOS dismisses the menu on click, and the wall-clock engine makes that single
+  reading correct even straight out of sleep. Manual project timing stays in the
+  window, where a project can be chosen.
 - **Interface language** — 简体中文 / English / 日本語, chosen in 设置 › 界面语言
   and stored in `language_mode`. On first run TimeArc adopts the **system**
   language (Simplified Chinese, Japanese, or English; Traditional Chinese and

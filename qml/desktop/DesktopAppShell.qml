@@ -358,6 +358,10 @@ Item {
     function menuTogglePomodoro() {
         pomodoroLayer.toggle();
     }
+    // 状态栏读数行走这条：那里点「番茄钟 12:34」意思是「让我看见它」，不是切换开关。
+    function menuShowPomodoro() {
+        pomodoroLayer.show();
+    }
     function menuToggleNightMode() {
         nightMode = !nightMode;   // onNightModeChanged 负责写 KV 并下发给当前页
     }

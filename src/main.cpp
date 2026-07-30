@@ -334,7 +334,7 @@ int main(int argc, char* argv[]) {
       qobject_cast<QWindow*>(engine.rootObjects().constFirst());
   macTrafficLightsController.attach(macRootWindow);
   macAppLifecycle.attach(macRootWindow);
-  macStatusBarIcon.attach(&settingsRepository);
+  macStatusBarIcon.attach(&settingsRepository, &pomodoroManager);
   macStatusBarIcon.connectToRoot(engine.rootObjects().constFirst());
 #endif
 

@@ -74,6 +74,14 @@ ApplicationWindow {
         requestActivate()
     }
 
+    // 状态栏「番茄钟 mm:ss」：浮窗长在窗口的 QML 树里，窗口不回来点了也看不见，
+    // 故先复原窗口再让它显示。
+    function showPomodoroFromTray() {
+        restoreFromTray()
+        if (shellLoader.item && shellLoader.item.menuShowPomodoro)
+            shellLoader.item.menuShowPomodoro()
+    }
+
     function quitFromTray() {
         forceQuit = true
         Qt.quit()

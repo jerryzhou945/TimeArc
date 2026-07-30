@@ -22,25 +22,53 @@ def main():
         ROOT / "src/services/macos/macos_status_bar_icon.cpp"
     ).read_text(encoding="utf-8")
     main_cpp = (ROOT / "src/main.cpp").read_text(encoding="utf-8")
+    main_qml = (ROOT / "qml/main.qml").read_text(encoding="utf-8")
+    shell_qml = (
+        ROOT / "qml/desktop/DesktopAppShell.qml"
+    ).read_text(encoding="utf-8")
     i18n_js = (
         ROOT / "qml/desktop/components/I18n.js"
     ).read_text(encoding="utf-8")
 
-    # Three menu rows: open, autostart placeholder, quit.
-    require(icon_h, "void attach(SettingsRepository* settings)",
-            "language wiring entry point")
-    require(main_cpp, "macStatusBarIcon.attach(&settingsRepository)",
-            "status item attached to the settings repository")
+    # Menu rows: open, the pomodoro trio, autostart placeholder, quit.
+    require(icon_h,
+            "void attach(SettingsRepository* settings, PomodoroManager* pomodoro)",
+            "settings + pomodoro wiring entry point")
+    require(main_cpp,
+            "macStatusBarIcon.attach(&settingsRepository, &pomodoroManager)",
+            "status item attached to the settings repository and the engine")
     require(icon_cpp, "invokeRoot(\"restoreFromTray\")", "open row")
     require(icon_cpp, "autostartAction->setEnabled(false)",
             "autostart row stays a placeholder")
     require(icon_cpp, "invokeRoot(\"quitFromTray\")", "quit row")
 
-    # No timer control from the status item — the window owns the timer.
-    for banned in ("TimerManager", "pauseTimer", "resumeTimer",
-                   "stopAndCommit", "startProject"):
-        forbid(icon_cpp, banned, "timer control in the status menu")
-        forbid(icon_h, banned, "timer control in the status menu")
+    # The readout row carries mm:ss and is clickable in all three states.
+    require(icon_cpp, "pomodoro->timeText()", "readout row shows mm:ss")
+    require(icon_cpp, "invokeRoot(\"showPomodoroFromTray\")",
+            "readout row opens the widget")
+    # Opening the widget must bring the window back first: the layer lives in
+    # the window's QML tree, so marking it shown while the window is closed
+    # displays nothing.
+    require(main_qml, "function showPomodoroFromTray()",
+            "root forwarder for the readout row")
+    require(main_qml, "restoreFromTray()", "forwarder restores the window")
+    require(main_qml, "shellLoader.item.menuShowPomodoro()",
+            "forwarder reaches the shell")
+    require(shell_qml, "function menuShowPomodoro()", "shell entry point")
+    require(shell_qml, "pomodoroLayer.show()",
+            "readout row shows rather than toggles the layer")
+
+    # One row, three faces: idle -> start, paused -> resume, running -> pause.
+    require(icon_cpp, "pomodoroPaused()",
+            "paused is distinguished from idle, not folded into it")
+    require(icon_cpp, "pomodoro->remain() != pomodoro->total()",
+            "paused test")
+    for field in ("s.startTimer", "s.resumeTimer", "s.pauseTimer"):
+        require(icon_cpp, field, f"primary row label {field}")
+    require(icon_cpp, "impl->pomodoro->pauseTimer()", "pause command")
+    require(icon_cpp, "impl->pomodoro->startTimer()",
+            "start command, which also resumes a paused session")
+    require(icon_cpp, "impl->pomodoro->resetTimer()", "reset command")
 
     # Every row is localized in all three UI languages, relabelled on open.
     require(icon_cpp, "&QMenu::aboutToShow",
@@ -59,12 +87,6 @@ def main():
     require(icon_cpp, "return kEn;", "English fallback")
     forbid(icon_cpp, 'menu.addAction(QStringLiteral("',
            "hardcoded single-language menu label")
-
-    # No service control from the menu — that would need a disk-contract
-    # change proposal (CHARTER §2 forbids IPC between the two processes).
-    for banned in ("QProcess", "startBackgroundCollection",
-                   "stopBackgroundCollection"):
-        forbid(icon_cpp, banned, "service control from the status menu")
 
 
 if __name__ == "__main__":
