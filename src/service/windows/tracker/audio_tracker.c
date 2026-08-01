@@ -1,5 +1,6 @@
 #include "audio_tracker.h"
 
+#include "../platform/app_identity.h"
 #include "../platform/audio_win.h"
 #include "data_bridge.h"
 
@@ -11,7 +12,7 @@ static int same_audio_app(const AppInfo* a, const AppInfo* b) {
     return 0;
   }
 
-  return strcmp(a->exec_path, b->exec_path) == 0;
+  return timearc_app_identity_equal(a, b);
 }
 
 static void close_audio_session(TimeArcAudioSession* session,

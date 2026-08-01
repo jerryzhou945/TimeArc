@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "app_identity.h"
 #include "foreground_state.h"
 #include "idle_win.h"
 #include "process_activity_win.h"
@@ -43,6 +44,18 @@ static int step(TimeArcForegroundState* state, AppInfo value,
 static void test_idle_tick_wrap(void) {
   assert(timearc_win_idle_delta_ms(25u, UINT32_MAX - 24u) == 50u);
   assert(timearc_win_idle_delta_ms(500u, 125u) == 375u);
+}
+
+static void test_normalized_identity_includes_pid_and_title(void) {
+  AppInfo left = app("player.exe", 70, "Song A");
+  AppInfo right = app("player.exe", 70, "Song A");
+
+  assert(timearc_app_identity_equal(&left, &right));
+  right.process_id = 71;
+  assert(!timearc_app_identity_equal(&left, &right));
+  right = left;
+  snprintf(right.window_title, sizeof(right.window_title), "%s", "Song B");
+  assert(!timearc_app_identity_equal(&left, &right));
 }
 
 static void test_lease_expires_and_resume_keeps_one_session(void) {
@@ -176,6 +189,7 @@ static void test_process_tree_aggregates_only_root_and_descendants(void) {
 
 int main(void) {
   test_idle_tick_wrap();
+  test_normalized_identity_includes_pid_and_title();
   test_lease_expires_and_resume_keeps_one_session();
   test_media_or_process_evidence_renews_lease();
   test_identity_change_closes_with_active_duration();

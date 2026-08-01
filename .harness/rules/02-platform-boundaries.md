@@ -45,7 +45,7 @@ Every platform service must:
 - `tracker/foreground_state.c`: Win32/SQLite-free lease and session transitions.
 - `tracker/audio_tracker.c`: per-process audio sessions; its current timing
   behavior is an implementation detail rather than the portable contract.
-- `platform/active_app_win.c`: `GetForegroundWindow` + `GetWindowText` + exe path.
+- `platform/{active_app_win,app_identity}.c`: app observation + stable identity.
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
 - `platform/{idle,process_activity}_win.c`: input idle + process-tree counters.
 - `tracker/*.c`: submits completed sessions through `data_bridge.h`; shared

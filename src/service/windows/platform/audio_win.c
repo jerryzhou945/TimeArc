@@ -1,6 +1,7 @@
 #include "audio_win.h"
 
 #include "active_app_win.h"
+#include "app_identity.h"
 
 #define COBJMACROS
 #define WIN32_LEAN_AND_MEAN
@@ -189,11 +190,10 @@ static int ensure_com_initialized(void) {
   return -1;
 }
 
-static AppInfo* find_added_audio_app(AppInfo* apps,
-                                     size_t count,
-                                     const char* exec_path) {
+static AppInfo* find_equal_audio_observation(AppInfo* apps, size_t count,
+                                             const AppInfo* candidate) {
   for (size_t i = 0; i < count; ++i) {
-    if (strcmp(apps[i].exec_path, exec_path) == 0) {
+    if (timearc_app_identity_equal(&apps[i], candidate)) {
       return &apps[i];
     }
   }
@@ -673,15 +673,10 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
         const char* title =
             choose_media_title(control, foreground_ptr, pid, path, app_name,
                                media_title, sizeof(media_title));
-        AppInfo* existing = find_added_audio_app(out_apps, added, path);
-        if (existing != NULL) {
-          if (!useful_media_title(existing->window_title, existing->app_name) &&
-              useful_media_title(title, app_name)) {
-            copy_string(existing->window_title, sizeof(existing->window_title),
-                        title);
-          }
-        } else {
-          fill_audio_app(&out_apps[added], pid, path, title);
+        AppInfo candidate;
+        fill_audio_app(&candidate, pid, path, title);
+        if (find_equal_audio_observation(out_apps, added, &candidate) == NULL) {
+          out_apps[added] = candidate;
           ++added;
         }
       }

@@ -212,6 +212,7 @@ add_test(NAME timearc_pomodoro_test COMMAND timearc_pomodoro_test)
 if(WIN32)
     add_executable(timearc_windows_foreground_state_test
         tests/windows_foreground_state_test.c
+        src/service/windows/platform/app_identity.c
         src/service/windows/tracker/foreground_state.c
         src/service/windows/platform/idle_win.c
         src/service/windows/platform/process_activity_win.c

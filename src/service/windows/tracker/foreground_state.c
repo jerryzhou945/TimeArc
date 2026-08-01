@@ -1,13 +1,8 @@
 #include "foreground_state.h"
 
-#include <string.h>
+#include "../platform/app_identity.h"
 
-static int same_identity(const AppInfo* left, const AppInfo* right) {
-  return left != NULL && right != NULL &&
-         left->process_id == right->process_id &&
-         strcmp(left->exec_path, right->exec_path) == 0 &&
-         strcmp(left->window_title, right->window_title) == 0;
-}
+#include <string.h>
 
 static void advance(TimeArcForegroundState* state, int64_t wall_sec,
                     uint64_t monotonic_ms) {
@@ -90,7 +85,8 @@ int timearc_foreground_state_step(
   }
 
   advance(state, sample->wall_sec, sample->monotonic_ms);
-  if (sample->has_app && !same_identity(&state->app, &sample->app)) {
+  if (sample->has_app &&
+      !timearc_app_identity_equal(&state->app, &sample->app)) {
     export_closed(state, out_closed);
     start_session(state, sample);
     return 1;
