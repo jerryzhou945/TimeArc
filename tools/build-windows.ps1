@@ -25,6 +25,7 @@ Environment:
   TIMEARC_MINGW_BIN             Optional MinGW bin directory.
   TIMEARC_OBJDUMP               Optional explicit objdump.exe path.
   TIMEARC_CMAKE_GENERATOR       Optional CMake generator.
+  TIMEARC_BUILD_PARALLEL        Build job count (default: 2).
   TIMEARC_SIGNTOOL              Optional explicit signtool.exe path.
   TIMEARC_SIGN_CERTIFICATE_SHA1 Authenticode certificate thumbprint.
   TIMEARC_TIMESTAMP_URL         RFC 3161 timestamp URL.
@@ -114,6 +115,12 @@ function Invoke-Native(
 
 $buildDir = Resolve-RepoPath (Get-EnvironmentValue "TIMEARC_BUILD_DIR" "build")
 $distDir = Resolve-RepoPath (Get-EnvironmentValue "TIMEARC_DIST_DIR" "dist")
+$buildParallelText = Get-EnvironmentValue "TIMEARC_BUILD_PARALLEL" "2"
+$buildParallel = 0
+if (-not [int]::TryParse($buildParallelText, [ref]$buildParallel) -or
+    $buildParallel -lt 1 -or $buildParallel -gt 64) {
+  Fail "TIMEARC_BUILD_PARALLEL must be an integer from 1 to 64"
+}
 New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 $buildDir = (Resolve-Path $buildDir).Path
@@ -158,12 +165,22 @@ function Configure-Release {
 }
 
 function Build-Release {
-  $cmake = Require-Command "cmake"
+  $localPython = Join-Path $script:RepoRoot ".local-python/Python312/python.exe"
+  $python = if (Test-Path $localPython -PathType Leaf) {
+    $localPython
+  } else {
+    Require-Command "python"
+  }
+  $buildScript = Join-Path $script:RepoRoot ".harness/tools/build.py"
   Note "building Release"
-  Invoke-Native $cmake @(
-    "--build", $script:buildDir,
+  Invoke-Native $python @(
+    $buildScript,
+    "--build-dir", $script:buildDir,
+    "--track", "B",
+    "--topic", "windows-release-build",
+    "--",
     "--config", "Release",
-    "--parallel"
+    "--parallel", $buildParallel
   )
 }
 

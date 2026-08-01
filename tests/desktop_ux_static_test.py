@@ -24,7 +24,7 @@ def main():
     app_cmake = read("src/CMakeLists.txt")
     cmake_root = read("CMakeLists.txt")
     android_gradle = read("android/build.gradle") if (ROOT / "android/build.gradle").exists() else ""
-    android_manifest = read("android/src/main/AndroidManifest.xml")
+    android_manifest = read("android/AndroidManifest.xml")
     main_qml = read("qml/main.qml")
     shell_qml = read("qml/desktop/DesktopAppShell.qml")
     mobile_shell_qml = read("qml/mobile/MobileAppShell.qml")
