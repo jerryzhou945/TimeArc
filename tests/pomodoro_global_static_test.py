@@ -22,6 +22,9 @@ def main():
     shell = (
         ROOT / "qml/desktop/DesktopAppShell.qml"
     ).read_text(encoding="utf-8")
+    tray = (
+        ROOT / "qml/desktop/memorylake/NotifierTray.qml"
+    ).read_text(encoding="utf-8")
     menu_bar = (ROOT / "qml/desktop/MacMenuBar.qml").read_text(encoding="utf-8")
     qml_cmake = (ROOT / "qml/CMakeLists.txt").read_text(encoding="utf-8")
     i18n_js = (
@@ -54,6 +57,24 @@ def main():
             "global hotkey opens the widget directly")
     require(shell, "target: pomodoroLayer",
             "completion notification listens to the layer")
+
+    # The non-macOS tray exposes the same engine-backed timer controls as the
+    # native macOS status item, without creating another clock in QML.
+    for fragment in (
+        "pomodoroTimeText",
+        "pomodoroRunning",
+        "pomodoroPaused",
+        "pomodoroShowRequested",
+        "pomodoroPrimaryRequested",
+        "pomodoroResetRequested",
+    ):
+        require(tray, fragment, "Windows tray Pomodoro parity")
+    for fragment in (
+        "pomodoroManager.startTimer()",
+        "pomodoroManager.pauseTimer()",
+        "pomodoroManager.resetTimer()",
+    ):
+        require(shell, fragment, "tray action uses shared Pomodoro manager")
 
     # Declared after MemoOverlay: same z, later sibling paints on top, so the
     # widget stays visible while the blackboard is open.

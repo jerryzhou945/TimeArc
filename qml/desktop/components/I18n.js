@@ -834,6 +834,12 @@ var sentencesJa = {
 // 上面的 en/ja：菜单里的「复制」「番茄钟」等词与页面内同名条目写法一致，若补进主表
 // 会顺带改动 Windows/Linux 上已有界面的译法。这张表只有 macOS 的菜单栏读。
 var menuEn = {
+    "打开 TimeArc": "Open TimeArc",
+    "开始计时": "Start Timer",
+    "继续计时": "Resume Timer",
+    "暂停计时": "Pause Timer",
+    "重置计时": "Reset Timer",
+    "后台采集继续运行": "Background tracking continues",
     "文件": "File",
     "编辑": "Edit",
     "显示": "View",
@@ -874,6 +880,12 @@ var menuEn = {
 // 系统菜单条目沿用 Apple 日本語版的既有译法（しまう / 拡大縮小 / カット…），
 // 免得同一条菜单里一半是系统词一半是自造词。
 var menuJa = {
+    "打开 TimeArc": "TimeArc を開く",
+    "开始计时": "計測を開始",
+    "继续计时": "計測を再開",
+    "暂停计时": "計測を一時停止",
+    "重置计时": "計測をリセット",
+    "后台采集继续运行": "バックグラウンド記録は継続中",
     "文件": "ファイル",
     "编辑": "編集",
     "显示": "表示",

@@ -1426,8 +1426,24 @@ Item {
         source: "memorylake/NotifierTray.qml"
         onLoaded: {
             item.iconSource = Qt.resolvedUrl("../../resources/app/TimeArc.svg");
+            item.languageMode = Qt.binding(function () {
+                return root.languageMode;
+            });
             item.notifyOn = Qt.binding(function () {
                 return root.notifyEnabled;
+            });
+            item.pomodoroTimeText = Qt.binding(function () {
+                return pomodoroManager.timeText;
+            });
+            item.pomodoroRunning = Qt.binding(function () {
+                return pomodoroManager.running;
+            });
+            item.pomodoroPaused = Qt.binding(function () {
+                return !pomodoroManager.running
+                        && pomodoroManager.remain !== pomodoroManager.total;
+            });
+            item.pomodoroCanStart = Qt.binding(function () {
+                return pomodoroManager.running || pomodoroManager.total > 0;
             });
             item.stayResident = true;
             item.showRequested.connect(function () {
@@ -1435,6 +1451,19 @@ Item {
             });
             item.quitRequested.connect(function () {
                 root.trayQuitRequested();
+            });
+            item.pomodoroShowRequested.connect(function () {
+                pomodoroLayer.show();
+                root.trayShowRequested();
+            });
+            item.pomodoroPrimaryRequested.connect(function () {
+                if (pomodoroManager.running)
+                    pomodoroManager.pauseTimer();
+                else
+                    pomodoroManager.startTimer();
+            });
+            item.pomodoroResetRequested.connect(function () {
+                pomodoroManager.resetTimer();
             });
         }
     }
