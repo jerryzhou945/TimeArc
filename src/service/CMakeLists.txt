@@ -59,6 +59,7 @@ elseif(WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/service_config.h
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/service_config.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker/usage_tracker.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker/foreground_state.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/tracker/audio_tracker.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/active_app_win.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/audio_win.c
