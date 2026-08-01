@@ -64,6 +64,7 @@ elseif(WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/active_app_win.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/audio_win.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/idle_win.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/windows/platform/process_activity_win.c
         ${CMAKE_CURRENT_SOURCE_DIR}/windows/service/win_service.c
     )
 elseif(UNIX)

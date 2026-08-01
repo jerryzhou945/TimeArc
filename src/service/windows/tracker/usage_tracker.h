@@ -5,6 +5,7 @@
 
 #define TIMEARC_USAGE_POLL_INTERVAL_MS 1000
 #define TIMEARC_USAGE_IDLE_THRESHOLD_MS 60000
+#define TIMEARC_USAGE_WORK_LEASE_MS 90000
 
 // Per-session Local\ kernel object names shared by the tracker and lifecycle verbs.
 //
@@ -26,10 +27,9 @@ typedef struct TimeArcUsageTrackerConfig {
 
 // Foreground collection loop.
 //
-// Each sample updates audio, checks idle time, then reads the foreground window.
-// A changed executable or title starts a new session.
-// Run the foreground-app tracker loop. This call blocks until stop is requested
-// and persists a record whenever focus changes or the user becomes idle.
+// Each sample combines input idle, foreground identity, foreground process-tree
+// work, and audio presence. Idle pauses active time without closing the logical
+// session. This call blocks until stop is requested.
 int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig *config);
 void timearc_usage_tracker_request_stop(void);
 

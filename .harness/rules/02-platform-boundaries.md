@@ -47,7 +47,7 @@ Every platform service must:
   behavior is an implementation detail rather than the portable contract.
 - `platform/active_app_win.c`: `GetForegroundWindow` + `GetWindowText` + exe path.
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
-- `platform/idle_win.c`: `GetLastInputInfo`.
+- `platform/{idle,process_activity}_win.c`: input idle + process-tree counters.
 - `tracker/*.c`: submits completed sessions through `data_bridge.h`; shared
   `database_storage.*` owns SQLite history writes.
 - `service/win_service.c`: user-session autostart verbs

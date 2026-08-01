@@ -214,6 +214,7 @@ if(WIN32)
         tests/windows_foreground_state_test.c
         src/service/windows/tracker/foreground_state.c
         src/service/windows/platform/idle_win.c
+        src/service/windows/platform/process_activity_win.c
     )
     target_include_directories(timearc_windows_foreground_state_test PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/include

@@ -5,6 +5,7 @@
 
 #include "foreground_state.h"
 #include "idle_win.h"
+#include "process_activity_win.h"
 
 static AppInfo app(const char* path, uint32_t pid, const char* title) {
   AppInfo value;
@@ -121,6 +122,58 @@ static void test_shutdown_flushes_idle_session_once(void) {
   assert(!timearc_foreground_state_shutdown(&state, 5004, 4000, &closed));
 }
 
+static TimeArcProcessCounters counters(uint64_t cpu_100ns,
+                                       uint64_t io_bytes) {
+  TimeArcProcessCounters value;
+  value.cpu_100ns = cpu_100ns;
+  value.io_bytes = io_bytes;
+  value.available = 1;
+  return value;
+}
+
+static void test_process_delta_requires_meaningful_change(void) {
+  TimeArcProcessActivityProbe probe;
+  TimeArcProcessCounters value;
+
+  timearc_process_activity_init(&probe);
+  value = counters(100, 1000);
+  assert(!timearc_process_activity_delta(&probe, 41, &value));
+  assert(!timearc_process_activity_delta(&probe, 41, &value));
+  value = counters(50100, 1000);
+  assert(timearc_process_activity_delta(&probe, 41, &value));
+  value = counters(50100, 5096);
+  assert(timearc_process_activity_delta(&probe, 41, &value));
+}
+
+static void test_process_delta_resets_for_pid_or_counter_reset(void) {
+  TimeArcProcessActivityProbe probe;
+  TimeArcProcessCounters value;
+
+  timearc_process_activity_init(&probe);
+  value = counters(90000, 9000);
+  assert(!timearc_process_activity_delta(&probe, 41, &value));
+  value = counters(1, 1);
+  assert(!timearc_process_activity_delta(&probe, 42, &value));
+  value = counters(0, 0);
+  assert(!timearc_process_activity_delta(&probe, 42, &value));
+}
+
+static void test_process_tree_aggregates_only_root_and_descendants(void) {
+  const TimeArcProcessEntry entries[] = {
+      {10, 1, 100, 1000, 1},
+      {11, 10, 200, 2000, 1},
+      {12, 11, 300, 3000, 1},
+      {99, 1, 900, 9000, 1},
+      {13, 10, 400, 4000, 0},
+  };
+  TimeArcProcessCounters total;
+
+  assert(timearc_process_activity_aggregate(entries, 5, 10, &total));
+  assert(total.available);
+  assert(total.cpu_100ns == 600);
+  assert(total.io_bytes == 6000);
+}
+
 int main(void) {
   test_idle_tick_wrap();
   test_lease_expires_and_resume_keeps_one_session();
@@ -128,6 +181,9 @@ int main(void) {
   test_identity_change_closes_with_active_duration();
   test_missing_observation_cannot_renew_lease();
   test_shutdown_flushes_idle_session_once();
+  test_process_delta_requires_meaningful_change();
+  test_process_delta_resets_for_pid_or_counter_reset();
+  test_process_tree_aggregates_only_root_and_descendants();
   puts("Windows foreground state tests passed");
   return 0;
 }
