@@ -50,7 +50,7 @@ step(&state, sample("codex.exe", 41, "Task", 92000, 0, 0));
 assert(state.mode == TIMEARC_FOREGROUND_IDLE);
 step(&state, sample("codex.exe", 41, "Task", 93000, 1, 0));
 assert(state.mode == TIMEARC_FOREGROUND_ACTIVE);
-assert(state.active_ms == 2000);
+assert(state.active_ms == 92000);
 ```
 
 - [ ] **Step 2: Configure and run the new target to verify RED**
