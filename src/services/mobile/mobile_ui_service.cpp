@@ -99,6 +99,16 @@ void removeAvatarFileLater(const QString& path) {
 }
 
 #ifdef Q_OS_ANDROID
+void androidConfigureEdgeToEdge(bool light) {
+  const QJniObject context =
+      QNativeInterface::QAndroidApplication::context();
+  if (!context.isValid()) return;
+  QJniObject::callStaticMethod<void>(
+      "com/timearc/mobile/ui/MobileUiBridge", "configureEdgeToEdge",
+      "(Landroid/content/Context;Z)V", context.object<jobject>(),
+      static_cast<jboolean>(light));
+}
+
 bool androidCopyUri(const QUrl& source, const QString& targetPath) {
   const QJniObject context =
       QNativeInterface::QAndroidApplication::context();
@@ -188,6 +198,9 @@ QString androidShareImageToChannel(const QString& pathValue,
 MobileUiService::MobileUiService(SettingsRepository* settingsRepository,
                                  QObject* parent)
     : QObject(parent), settingsRepository_(settingsRepository) {
+#ifdef Q_OS_ANDROID
+  androidConfigureEdgeToEdge(false);
+#endif
   if (!settingsRepository_) return;
   const QString saved =
       settingsRepository_->getValue(kWallpaperSetting).trimmed();
@@ -199,6 +212,14 @@ MobileUiService::MobileUiService(SettingsRepository* settingsRepository,
     avatarPath_ = savedAvatar;
   }
   removeStaleAvatarFiles(avatarPath_);
+}
+
+void MobileUiService::setSystemBarsLight(bool light) {
+#ifdef Q_OS_ANDROID
+  androidConfigureEdgeToEdge(light);
+#else
+  Q_UNUSED(light);
+#endif
 }
 
 QString MobileUiService::wallpaperUrl() const {

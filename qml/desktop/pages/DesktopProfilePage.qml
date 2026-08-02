@@ -162,7 +162,11 @@ Item {
         { name: "Parson", badge: "P", version: "1.5.3",
           license: "MIT",
           linkage: "静态 / static",
-          texts: [ { btn: "查看许可全文", file: "parson-mit.txt" } ] }
+          texts: [ { btn: "查看许可全文", file: "parson-mit.txt" } ] },
+        { name: "Material Symbols", badge: "M", version: "2026-08 snapshot",
+          license: "Apache-2.0",
+          linkage: "SVG 资源 / qrc assets",
+          texts: [ { btn: "查看许可全文", file: "material-symbols-apache-2.0.txt" } ] }
     ]
 
     // 许可全文的 Qt 资源路径。坑链（实测）：

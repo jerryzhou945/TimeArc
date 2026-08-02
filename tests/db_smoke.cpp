@@ -1080,7 +1080,11 @@ int main(int argc, char* argv[]) {
           QStringLiteral("小红书") ||
       MobileUsageService::friendlyDisplayName(
           QStringLiteral("com.tencent.mm"), QStringLiteral("微信")) !=
-          QStringLiteral("微信")) {
+          QStringLiteral("微信") ||
+      MobileUsageService::friendlyDisplayName(
+          QStringLiteral("com.huawei.android.launcher.LauncherApplication"),
+          QStringLiteral("com.huawei.android.launcher.LauncherApplication")) !=
+          QStringLiteral("华为桌面")) {
     return fail(QStringLiteral("Mobile friendly app naming failed."));
   }
   if (secondDashboardApp.value(QStringLiteral("firstDateLocal")).toString() !=

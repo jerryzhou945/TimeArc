@@ -135,6 +135,7 @@ G2/G3 打磨 ───────────(随手)
   「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。
 
 ### G. 配置 / 打磨 / 杂项
+- [x] **G6 Android Edge-to-Edge 与分享视觉打磨** — 2026-08-02 完成：保留鸿蒙可启动默认 QtActivity Theme；运行时透明系统栏、安全区导航、Material Symbols SVG、全局应用图标圆角、华为桌面元数据，以及单应用/排行/月报分享预览重构。Pura 90 Pro 最终视觉 QA 待安装包验收。
 - [x] **G0 Windows QSettings smoke 测试隔离** — 命名 legacy 设置显式采用 `defaultFormat()` + `UserScope`，生产仍读 NativeFormat，测试可靠落入 IniFormat 隔离目录；见 [`qsettings-smoke-test-isolation-fix.md`](qsettings-smoke-test-isolation-fix.md)。
 - [x] **G1 用户偏好外置为可编辑配置 + 接 Parson（alpha 口径收束）** — 2026-06-14 决策：alpha 不引入第二套人类可编辑 JSON 偏好文件；约 30 项用户偏好继续以 SQLite `settings` 表（`SettingsRepository`）为唯一 UI 偏好源，避免与 H5/D2 的 `usage_config.json` 控制文件形成双写。设置页移除可见「导出设置 JSON」入口，仅保留导入设置与复制配置摘要；`doExport()` 功能函数暂保留为内部/诊断能力。后续若要真正 Parson 外置配置，应另开提案并定义与 SQLite KV 的同步边界。
   2026-06-14 本轮补齐深色全幅页导航图标一致性：新增 `recap_white.svg`，底部「记忆湖」入口与其他导航项一样在夜间/全幅深色页使用白色图标。
@@ -192,6 +193,15 @@ G2/G3 打磨 ───────────(随手)
   以及遵循“减少动态效果”的 1.12 秒 QML 进入动画；arm64-v8a debug APK 已构建并通过
   包名、SDK、ABI、资源清单和 SHA-256 检查。仍需 Android/HarmonyOS 真机 ROM 验收。
   见 [`android-launch-experience-implementation-report.md`](android-launch-experience-implementation-report.md)。
+- [x] **M3 鸿蒙卓易通安全启动诊断版** — 2026-08-02
+  该诊断版移除了 AndroidX 自动初始化并延迟 Usage Access，但 Pura 90 Pro 仍一秒黑屏退出，
+  因而计时/WorkManager 根因假设已被否定并回退。见
+  [`harmony-zhuoyitong-safe-start-implementation-report.md`](harmony-zhuoyitong-safe-start-implementation-report.md)。
+- [x] **M4 鸿蒙 QtActivity 默认主题对照版** — 2026-08-02
+  对比确认 7 月 4 日可运行包与当前包的 SDK、ABI、签名和 Qt native 运行库一致；恢复完整计时权限和
+  WorkManager，仅取消新加入的原生 Activity 主题绑定。最新 UI、功能、图标和 QML 启动动画保留，
+  等待 Pura 90 Pro 真机复测。见
+  [`harmony-zhuoyitong-default-theme-comparison-report.md`](harmony-zhuoyitong-default-theme-comparison-report.md)。
 
 ---
 

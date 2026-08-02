@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import ".."
 
 Item {
@@ -11,16 +12,16 @@ Item {
 
     Rectangle {
         id: monthlyShareSheet
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: Math.min(parent.height - 78, 704)
-        radius: 22
+        anchors.fill: parent
+        radius: 0
         color: root.theme.surface
 
         Column {
             anchors.fill: parent
-            anchors.margins: 18
+            anchors.leftMargin: 18
+            anchors.rightMargin: 18
+            anchors.topMargin: SafeArea.margins.top + 58
+            anchors.bottomMargin: SafeArea.margins.bottom + 12
             spacing: 12
 
             Row {
@@ -63,7 +64,9 @@ Item {
 
             Item {
                 width: parent.width
-                height: Math.min(480, monthlyShareSheet.height - 160)
+                height: Math.min(532, monthlyShareSheet.height
+                                  - SafeArea.margins.top
+                                  - SafeArea.margins.bottom - 214)
 
                 MobileRoundedFrame {
                     id: monthlyPoster
@@ -151,44 +154,30 @@ Item {
                         anchors.bottomMargin: 20
                         spacing: 9
 
-                        Rectangle {
+                        Column {
                             width: parent.width
-                            height: facts.implicitHeight + 24
-                            radius: 14
-                            color: "#46FFFFFF"
-                            border.width: 1
-                            border.color: "#3FFFFFFF"
+                            spacing: 6
 
-                            Column {
-                                id: facts
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 12
-                                spacing: 6
+                            Text {
+                                text: root.report.totalText || "0 分钟"
+                                color: "white"
+                                font.family: root.theme.numberFontFamily
+                                font.pixelSize: 31
+                                font.weight: Font.Black
+                            }
 
-                                Text {
-                                    text: root.report.totalText || "0 分钟"
-                                    color: "white"
-                                    font.family: root.theme.numberFontFamily
-                                    font.pixelSize: 25
-                                    font.weight: Font.Black
-                                }
-
-                                Text {
-                                    width: parent.width
-                                    text: root.report.summary
-                                          || root.profile.opening
-                                          || "真实记录会在这里组成这个月的故事。"
-                                    color: "#E7FFFFFF"
-                                    font.family: root.theme.fontFamily
-                                    font.pixelSize: 11
-                                    lineHeight: 1.4
-                                    wrapMode: Text.WordWrap
-                                    maximumLineCount: 3
-                                    elide: Text.ElideRight
-                                }
+                            Text {
+                                width: parent.width
+                                text: root.report.summary
+                                      || root.profile.opening
+                                      || "真实记录会在这里组成这个月的故事。"
+                                color: "#E7FFFFFF"
+                                font.family: root.theme.fontFamily
+                                font.pixelSize: 11
+                                lineHeight: 1.42
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: 4
+                                elide: Text.ElideRight
                             }
                         }
 

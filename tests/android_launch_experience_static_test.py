@@ -22,12 +22,45 @@ def require_file(relative_path):
 
 def main():
     manifest = read("android/AndroidManifest.xml")
+    mobile_ui_bridge = read(
+        "android/src/main/java/com/timearc/mobile/ui/MobileUiBridge.java")
+    mobile_ui_header = read("src/services/mobile/mobile_ui_service.h")
+    mobile_ui_cpp = read("src/services/mobile/mobile_ui_service.cpp")
+    main_qml = read("qml/main.qml")
     require(manifest, 'android:icon="@mipmap/ic_launcher"',
             "standard launcher icon")
     require(manifest, 'android:roundIcon="@mipmap/ic_launcher_round"',
             "round launcher icon")
-    require(manifest, 'android:theme="@style/TimeArcLaunchTheme"',
-            "launch theme")
+    if 'android:theme="@style/TimeArcLaunchTheme"' in manifest:
+        raise AssertionError(
+            "QtActivity must retain the Qt default theme for compatibility")
+
+    require(mobile_ui_bridge, "configureEdgeToEdge(Context context",
+            "runtime edge-to-edge bridge")
+    require(mobile_ui_bridge,
+            "WindowCompat.setDecorFitsSystemWindows(window, false)",
+            "decor-fits disablement")
+    require(mobile_ui_bridge, "window.setStatusBarColor(Color.TRANSPARENT)",
+            "transparent status bar")
+    require(mobile_ui_bridge,
+            "window.setNavigationBarColor(Color.TRANSPARENT)",
+            "transparent navigation bar")
+    require(mobile_ui_bridge, "setNavigationBarContrastEnforced(false)",
+            "navigation contrast scrim disablement")
+    require(mobile_ui_header, "setSystemBarsLight(bool light)",
+            "QML system-bar appearance API")
+    require(mobile_ui_cpp, "androidConfigureEdgeToEdge(light)",
+            "native runtime edge-to-edge call")
+    require(main_qml, "topPadding: runningOnAndroid",
+            "Android root safe-area padding branch")
+    require(main_qml, "? 0 : (macSidebarChrome ? 0 : SafeArea.margins.top)",
+            "Android root safe-area padding disablement")
+    require(main_qml, "bottomPadding: runningOnAndroid ? 0 : SafeArea.margins.bottom",
+            "Android bottom safe-area padding disablement")
+    require(main_qml, "leftPadding: runningOnAndroid ? 0 : SafeArea.margins.left",
+            "Android left safe-area padding disablement")
+    require(main_qml, "rightPadding: runningOnAndroid ? 0 : SafeArea.margins.right",
+            "Android right safe-area padding disablement")
 
     required_resources = (
         "android/res/drawable-nodpi/timearc_icon_artwork.png",
@@ -74,6 +107,12 @@ def main():
         raise AssertionError("launch animation must not loop indefinitely")
 
     shell = read("qml/mobile/MobileAppShell.qml")
+    require(shell, "safeTopInset", "mobile top safe-area inset")
+    require(shell, "safeBottomInset", "mobile bottom safe-area inset")
+    require(shell, "74 + root.safeBottomInset",
+            "gesture-area tab bar extension")
+    require(shell, "mobileUiService.setSystemBarsLight",
+            "theme-aware system-bar icons")
     require(shell, "MobileLaunchOverlay", "mobile launch overlay instance")
     require(shell, "reducedMotion: mobileTheme.reducedMotion",
             "saved reduced-motion preference")

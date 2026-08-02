@@ -6,10 +6,18 @@ Item {
     required property var theme
     property var app: ({})
     property int iconSize: 48
-    property int cornerRadius: 12
+    readonly property real adaptiveCornerRatio: 0.22
+    property int cornerRadius: Math.round(iconSize * adaptiveCornerRatio)
     readonly property string appIconPath: (app && app.appIconPath)
                                                ? app.appIconPath.toString()
                                                : ""
+    readonly property string appIdentifier: (app && app.packageName)
+                                                    ? app.packageName.toString()
+                                                    : ((app && app.appIdentifier)
+                                                       ? app.appIdentifier.toString()
+                                                       : "")
+    readonly property bool launcherFallback:
+        appIdentifier.toLowerCase().indexOf("com.huawei.android.launcher") === 0
 
     width: iconSize
     height: iconSize
@@ -32,25 +40,40 @@ Item {
         color: root.theme.surfaceRaised
         clip: true
 
+        MobileSymbolIcon {
+            anchors.centerIn: parent
+            visible: iconImage.status !== Image.Ready && root.launcherFallback
+            name: "home"
+            color: root.theme.accentBright
+            iconSize: Math.round(root.iconSize * 0.52)
+        }
+
         Text {
             anchors.centerIn: parent
             text: (root.app && root.app.initial) ? root.app.initial : "时"
-            visible: iconImage.status !== Image.Ready
+            visible: iconImage.status !== Image.Ready && !root.launcherFallback
             color: root.theme.accentBright
             font.family: root.theme.fontFamily
             font.pixelSize: Math.max(13, Math.round(root.iconSize * 0.34))
             font.weight: Font.Bold
         }
 
-        Image {
-            id: iconImage
+        Rectangle {
             anchors.fill: parent
             anchors.margins: 3
-            source: root.normalizedSource(root.appIconPath)
-            fillMode: Image.PreserveAspectFit
-            asynchronous: true
-            smooth: true
-            visible: status === Image.Ready
+            radius: Math.max(1, root.cornerRadius - 3)
+            color: "transparent"
+            clip: true
+
+            Image {
+                id: iconImage
+                anchors.fill: parent
+                source: root.normalizedSource(root.appIconPath)
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+                smooth: true
+                visible: status === Image.Ready
+            }
         }
     }
 }

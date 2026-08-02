@@ -2,16 +2,21 @@
 
 package com.timearc.mobile.ui;
 
+import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.view.Window;
 
 import androidx.core.content.FileProvider;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -21,6 +26,27 @@ import java.io.OutputStream;
 
 public final class MobileUiBridge {
     private MobileUiBridge() {
+    }
+
+    public static void configureEdgeToEdge(Context context,
+                                           boolean lightSystemBars) {
+        if (!(context instanceof Activity)) {
+            return;
+        }
+        Activity activity = (Activity) context;
+        activity.runOnUiThread(() -> {
+            Window window = activity.getWindow();
+            WindowCompat.setDecorFitsSystemWindows(window, false);
+            window.setStatusBarColor(Color.TRANSPARENT);
+            window.setNavigationBarColor(Color.TRANSPARENT);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                window.setNavigationBarContrastEnforced(false);
+            }
+            WindowInsetsControllerCompat controller =
+                    WindowCompat.getInsetsController(window, window.getDecorView());
+            controller.setAppearanceLightStatusBars(lightSystemBars);
+            controller.setAppearanceLightNavigationBars(lightSystemBars);
+        });
     }
 
     public static boolean copyUriToFile(Context context, String uriValue,

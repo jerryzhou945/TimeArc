@@ -10,13 +10,13 @@ Item {
     implicitHeight: compact ? 62 : 72
 
     readonly property var actions: [
-        { channel: "gallery", label: "保存到图库", mark: "↓",
+        { channel: "gallery", label: "保存到图库", icon: "download",
           color: theme.accent },
-        { channel: "moments", label: "朋友圈", mark: "●",
+        { channel: "moments", label: "朋友圈", icon: "group",
           color: "#20B45A" },
-        { channel: "qzone", label: "QQ动态", mark: "QQ",
+        { channel: "qzone", label: "QQ动态", icon: "star",
           color: "#2B7DE9" },
-        { channel: "system", label: "更多", mark: "···",
+        { channel: "system", label: "更多", icon: "more",
           color: theme.textMuted }
     ]
 
@@ -50,14 +50,11 @@ Item {
                             }
                         }
 
-                        Text {
+                        MobileSymbolIcon {
                             anchors.centerIn: parent
-                            text: modelData.mark
+                            name: modelData.icon
                             color: "white"
-                            font.family: root.theme.numberFontFamily
-                            font.pixelSize: modelData.channel === "qzone"
-                                            ? 11 : 17
-                            font.weight: Font.Bold
+                            iconSize: root.compact ? 19 : 21
                         }
                     }
 

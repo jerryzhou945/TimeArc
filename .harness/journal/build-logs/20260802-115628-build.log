@@ -1,0 +1,22 @@
+[0/1] Re-running CMake...
+-- Android toolchain file within NDK detected: D:\Tools\Android\Sdk\ndk\27.2.12479018/build/cmake/android.toolchain.cmake
+-- Configuring 'time-arc' for the following Android ABIs: arm64-v8a (default)
+-- Found android platform plugin at: D:/TimeArc/QT/6.11.0/android_arm64_v8a/plugins/platforms/libplugins_platforms_qtforandroid_arm64-v8a.so
+-- Configuring done (7.2s)
+-- Generating done (1.1s)
+-- Build files have been written to: D:/TimeArc/time-arc/build-android-arm64_v8a
+[1/240] Copying time-arc qml sources into build dir
+[2/240] Copying time-arc qml resources into build dir
+[3/240] Linking C executable src\service\time-arc-service
+FAILED: src/service/time-arc-service 
+C:\WINDOWS\system32\cmd.exe /C "cd . && D:\Tools\Android\Sdk\ndk\27.2.12479018\toolchains\llvm\prebuilt\windows-x86_64\bin\clang.exe --target=aarch64-none-linux-android26 --sysroot=D:/Tools/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/sysroot -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security -Wl,--build-id=sha1 -Wl,--no-rosegment -Wl,--no-undefined-version -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments src/service/CMakeFiles/time_arc_service.dir/linux/main.c.o src/service/CMakeFiles/time_arc_service.dir/shared/data_bridge.c.o src/service/CMakeFiles/time_arc_service.dir/shared/database_storage.c.o src/service/CMakeFiles/time_arc_service.dir/shared/database_path.c.o -o src\service\time-arc-service  thirdparty/sqlite3/libtime-arc-sqlite3.a  thirdparty/parson/libtime-arc-parson.a  -latomic -lm && cd ."
+ld.lld: error: undefined symbol: main
+>>> referenced by crtbegin.c
+>>>               D:/Tools/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/26/crtbegin_dynamic.o:(_start_main)
+>>> referenced by crtbegin.c
+>>>               D:/Tools/Android/Sdk/ndk/27.2.12479018/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/26/crtbegin_dynamic.o:(_start_main)
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+[4/240] Automatic MOC and UIC for target timearc_db_smoke
+[5/240] Automatic MOC and UIC for target timearc_pomodoro_test
+[6/240] Automatic MOC and UIC for target time-arc
+ninja: build stopped: subcommand failed.

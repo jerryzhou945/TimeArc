@@ -32,21 +32,50 @@ public final class AndroidAppMetadataResolver {
             return new AppMetadata(packageName == null ? "" : packageName, "");
         }
 
+        String normalizedPackageName = normalizePackageName(packageName);
         PackageManager packageManager = context.getPackageManager();
-        String label = packageName;
+        String knownLabel = friendlyLabel(normalizedPackageName);
+        String label = knownLabel.isEmpty() ? packageName : knownLabel;
         String iconPath = "";
 
         try {
-            ApplicationInfo info = getApplicationInfo(packageManager, packageName);
+            ApplicationInfo info = getApplicationInfo(
+                    packageManager, normalizedPackageName);
             CharSequence appLabel = packageManager.getApplicationLabel(info);
-            if (appLabel != null && appLabel.length() > 0) {
+            if (knownLabel.isEmpty() && appLabel != null && appLabel.length() > 0) {
                 label = appLabel.toString();
             }
-            iconPath = writeIconPng(context, packageManager, packageName);
+            iconPath = writeIconPng(
+                    context, packageManager, normalizedPackageName);
         } catch (PackageManager.NameNotFoundException ignored) {
         }
 
         return new AppMetadata(label, iconPath);
+    }
+
+    static String normalizePackageName(String packageName) {
+        String value = packageName == null ? "" : packageName.trim();
+        if (value.equals("com.huawei.android.launcher")
+                || value.startsWith("com.huawei.android.launcher.")) {
+            return "com.huawei.android.launcher";
+        }
+        int separator = value.lastIndexOf('.');
+        if (separator > 0 && separator + 1 < value.length()) {
+            String tail = value.substring(separator + 1);
+            if (Character.isUpperCase(tail.charAt(0))
+                    || tail.endsWith("Activity")
+                    || tail.endsWith("Application")) {
+                return value.substring(0, separator);
+            }
+        }
+        return value;
+    }
+
+    private static String friendlyLabel(String packageName) {
+        if ("com.huawei.android.launcher".equals(packageName)) {
+            return "华为桌面";
+        }
+        return "";
     }
 
     private static ApplicationInfo getApplicationInfo(

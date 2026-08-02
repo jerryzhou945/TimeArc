@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 
 Item {
     id: root
@@ -16,6 +17,7 @@ Item {
     signal closed()
 
     anchors.fill: parent
+    parent: root.Window.window ? root.Window.window.contentItem : undefined
     visible: opened
     enabled: visible
     z: 100
@@ -85,12 +87,9 @@ Item {
 
     Rectangle {
         id: sheet
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: Math.min(parent.height - 22, 760)
-        radius: 18
-        color: root.theme.surface
+        anchors.fill: parent
+        radius: 0
+        color: root.theme.bg
 
         MouseArea {
             anchors.fill: parent
@@ -99,7 +98,10 @@ Item {
 
         Column {
             anchors.fill: parent
-            anchors.margins: 18
+            anchors.leftMargin: 18
+            anchors.rightMargin: 18
+            anchors.topMargin: SafeArea.margins.top + 14
+            anchors.bottomMargin: SafeArea.margins.bottom + 10
             spacing: 12
 
             Row {
@@ -132,11 +134,11 @@ Item {
                     radius: 22
                     color: root.theme.surfaceRaised
 
-                    Text {
+                    MobileSymbolIcon {
                         anchors.centerIn: parent
-                        text: "×"
+                        name: "close"
                         color: root.theme.textPrimary
-                        font.pixelSize: 24
+                        iconSize: 22
                     }
 
                     MouseArea {
@@ -148,7 +150,9 @@ Item {
 
             Item {
                 width: parent.width
-                height: Math.min(510, sheet.height - 188)
+                height: Math.min(560, sheet.height
+                                 - SafeArea.margins.top
+                                 - SafeArea.margins.bottom - 220)
 
                 MobileRoundedFrame {
                     id: poster
@@ -238,6 +242,8 @@ Item {
                                 font.family: root.theme.fontFamily
                                 font.pixelSize: 19
                                 font.weight: Font.Bold
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: 2
                                 elide: Text.ElideRight
                             }
                         }

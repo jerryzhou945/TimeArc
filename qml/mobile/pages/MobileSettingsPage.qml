@@ -784,23 +784,12 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             color: root.theme.withAlpha(root.theme.accent, 0.18)
 
-            Text {
+            MobileSymbolIcon {
                 anchors.centerIn: parent
-                text: {
-                    if (settingRow.iconName === "shield") return "✓"
-                    if (settingRow.iconName === "sync") return "↻"
-                    if (settingRow.iconName === "clock") return "◷"
-                    if (settingRow.iconName === "image") return "▧"
-                    if (settingRow.iconName === "clear") return "−"
-                    if (settingRow.iconName === "sun") return "☼"
-                    if (settingRow.iconName === "motion") return "≋"
-                    if (settingRow.iconName === "mask") return "◉"
-                    return "⌂"
-                }
+                name: settingRow.iconName.length > 0
+                      ? settingRow.iconName : "lock"
                 color: root.theme.accentBright
-                font.family: root.theme.numberFontFamily
-                font.pixelSize: 18
-                font.weight: Font.DemiBold
+                iconSize: 20
             }
         }
 

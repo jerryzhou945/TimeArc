@@ -47,6 +47,7 @@ class MobileUiService : public QObject {
   Q_INVOKABLE QVariantMap socialShareStatus(const QString& channel) const;
   Q_INVOKABLE bool setSocialAppId(const QString& channel,
                                   const QString& value);
+  Q_INVOKABLE void setSystemBarsLight(bool light);
 
  signals:
   void wallpaperChanged();
