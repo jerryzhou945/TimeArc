@@ -36,7 +36,7 @@
         android:requestLegacyExternalStorage="true">
 
         <activity
-            android:name="org.qtproject.qt.android.bindings.QtActivity"
+            android:name="com.timearc.mobile.ui.TimeArcActivity"
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density"
             android:exported="true"
             android:label="-- %%INSERT_APP_NAME%% --"

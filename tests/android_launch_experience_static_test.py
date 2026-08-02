@@ -24,6 +24,9 @@ def main():
     manifest = read("android/AndroidManifest.xml")
     mobile_ui_bridge = read(
         "android/src/main/java/com/timearc/mobile/ui/MobileUiBridge.java")
+    activity_path = require_file(
+        "android/src/main/java/com/timearc/mobile/ui/TimeArcActivity.java")
+    timearc_activity = activity_path.read_text(encoding="utf-8")
     mobile_ui_header = read("src/services/mobile/mobile_ui_service.h")
     mobile_ui_cpp = read("src/services/mobile/mobile_ui_service.cpp")
     main_qml = read("qml/main.qml")
@@ -34,6 +37,27 @@ def main():
     if 'android:theme="@style/TimeArcLaunchTheme"' in manifest:
         raise AssertionError(
             "QtActivity must retain the Qt default theme for compatibility")
+    require(manifest,
+            'android:name="com.timearc.mobile.ui.TimeArcActivity"',
+            "TimeArc lifecycle activity")
+    if "android:theme=" in manifest:
+        raise AssertionError(
+            "TimeArcActivity must inherit Qt's default Android theme")
+
+    require(timearc_activity,
+            "extends org.qtproject.qt.android.bindings.QtActivity",
+            "Qt-compatible Activity inheritance")
+    require(timearc_activity, "protected void onCreate(Bundle savedInstanceState)",
+            "Activity create hook")
+    require(timearc_activity, "protected void onResume()",
+            "Activity resume hook")
+    require(timearc_activity,
+            "UsageSyncScheduler.enqueueImmediateSync(this)",
+            "resume-triggered immediate usage sync")
+    if timearc_activity.count(
+            "MobileUiBridge.configureEdgeToEdge(this, false)") < 2:
+        raise AssertionError(
+            "edge-to-edge must be applied on both Activity create and resume")
 
     require(mobile_ui_bridge, "configureEdgeToEdge(Context context",
             "runtime edge-to-edge bridge")
@@ -47,6 +71,15 @@ def main():
             "transparent navigation bar")
     require(mobile_ui_bridge, "setNavigationBarContrastEnforced(false)",
             "navigation contrast scrim disablement")
+    require(mobile_ui_bridge, "View.SYSTEM_UI_FLAG_LAYOUT_STABLE",
+            "compatibility stable-layout flag")
+    require(mobile_ui_bridge, "View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN",
+            "compatibility fullscreen-layout flag")
+    require(mobile_ui_bridge, "View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION",
+            "compatibility navigation-layout flag")
+    require(mobile_ui_bridge,
+            "LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES",
+            "display-cutout edge coverage")
     require(mobile_ui_header, "setSystemBarsLight(bool light)",
             "QML system-bar appearance API")
     require(mobile_ui_cpp, "androidConfigureEdgeToEdge(light)",

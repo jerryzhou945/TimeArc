@@ -1,0 +1,43 @@
+[0/1] Re-running CMake...
+-- Android toolchain file within NDK detected: D:\Tools\Android\Sdk\ndk\27.2.12479018/build/cmake/android.toolchain.cmake
+-- Configuring 'time-arc' for the following Android ABIs: arm64-v8a (default)
+-- Found android platform plugin at: D:/TimeArc/QT/6.11.0/android_arm64_v8a/plugins/platforms/libplugins_platforms_qtforandroid_arm64-v8a.so
+-- Configuring done (7.3s)
+-- Generating done (1.0s)
+-- Build files have been written to: D:/TimeArc/time-arc/build-android-arm64_v8a
+[1/197] Copying time-arc qml resources into build dir
+[2/197] Copying time-arc qml sources into build dir
+[3/197] Automatic MOC and UIC for target time-arc
+[4/197] Running AUTOMOC file extraction for target time-arc
+[5/197] Running rcc for resource time-arc_raw_res_0
+[6/197] Running moc --collect-json for target time-arc
+[7/37] Running rcc for resource time-arc_raw_qml_0
+[8/37] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp.aotstats
+[9/37] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp.aotstats
+[10/37] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp.aotstats
+[11/37] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp.aotstats
+[12/37] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.aotstats
+[13/37] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp.aotstats
+[14/37] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.aotstats
+[15/37] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp.aotstats
+[16/37] Generating .rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp.aotstats
+[17/37] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.aotstats
+[18/37] Generating .rcc/qmlcache/time-arc_qml/main_qml.cpp, .rcc/qmlcache/time-arc_qml/main_qml.cpp.aotstats
+[19/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.qt/rcc/qrc_time-arc_raw_res_0.cpp.o
+[20/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[21/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp.o
+[22/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp.o
+[23/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/main_qml.cpp.o
+[24/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp.o
+[25/37] Building CXX object CMakeFiles/time-arc.dir/time-arc_autogen/mocs_compilation.cpp.o
+[26/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp.o
+[27/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp.o
+[28/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.o
+[29/37] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_ui_service.cpp.o
+[30/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.o
+[31/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp.o
+[32/37] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[33/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp.o
+[34/37] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_usage_service.cpp.o
+[35/37] Building CXX object CMakeFiles/time-arc.dir/build-android-arm64_v8a/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.o
+[36/37] Linking CXX shared module libTimeArc_arm64-v8a.so

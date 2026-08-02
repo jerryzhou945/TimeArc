@@ -4,8 +4,9 @@
 - [x] Approve lifecycle-owned approach A.
 - [x] Add and pass the genuine rounded-mask regression.
 - [x] Implement the rounded application-icon mask.
-- [-] Add failing lifecycle and daily-sync regressions.
-- [ ] Implement system-bar coverage.
+- [x] Add and pass the lifecycle edge-to-edge regression.
+- [x] Implement Activity-owned system-bar coverage without a custom theme.
+- [-] Add failing daily-sync and replacement regressions.
 - [ ] Implement per-day replacement and resume-triggered sync completion.
 - [ ] Verify Windows, Android, APK signature, permissions, and default Activity theme.
 - [ ] Install and visually verify on Pura 90 Pro through Zhuoyitong.
