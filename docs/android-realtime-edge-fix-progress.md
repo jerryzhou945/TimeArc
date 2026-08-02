@@ -2,8 +2,10 @@
 
 - [x] Confirm Pura 90 Pro evidence and isolate root causes.
 - [x] Approve lifecycle-owned approach A.
-- [-] Add failing regressions for icon mask, edge-to-edge lifecycle, and daily sync.
-- [ ] Implement rounded mask and system-bar coverage.
+- [x] Add and pass the genuine rounded-mask regression.
+- [x] Implement the rounded application-icon mask.
+- [-] Add failing lifecycle and daily-sync regressions.
+- [ ] Implement system-bar coverage.
 - [ ] Implement per-day replacement and resume-triggered sync completion.
 - [ ] Verify Windows, Android, APK signature, permissions, and default Activity theme.
 - [ ] Install and visually verify on Pura 90 Pro through Zhuoyitong.

@@ -1,0 +1,52 @@
+[0/1] Re-running CMake...
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR) 
+-- Configuring done (8.9s)
+-- Generating done (1.3s)
+-- Build files have been written to: D:/TimeArc/time-arc/build
+[1/213] Copying time-arc qml resources into build dir
+[2/213] Copying time-arc qml sources into build dir
+[3/213] Automatic MOC and UIC for target timearc_resource_bundle_smoke
+[4/211] Automatic MOC and UIC for target timearc_windows_foreground_state_test
+[5/209] Automatic MOC and UIC for target timearc_db_smoke
+[6/208] Automatic MOC and UIC for target timearc_pomodoro_test
+[7/207] Running qmlimportscanner for time-arc
+[8/207] Automatic MOC and UIC for target time-arc
+[9/207] Running rcc for resource time-arc_raw_res_0
+[10/207] Running AUTOMOC file extraction for target time-arc
+[11/207] Running rcc for resource time-arc_raw_qml_0
+[12/207] Running moc --collect-json for target time-arc
+[13/47] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp.aotstats
+[14/47] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp.aotstats
+[15/47] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp.aotstats
+[16/47] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp.aotstats
+[17/47] Generating .rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp.aotstats
+[18/47] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.aotstats
+[19/47] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp.aotstats
+[20/47] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.aotstats
+[21/47] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp.aotstats
+[22/47] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.aotstats
+[23/47] Generating .rcc/qmlcache/time-arc_qml/main_qml.cpp, .rcc/qmlcache/time-arc_qml/main_qml.cpp.aotstats
+[24/47] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/mobile/mobile_usage_service.cpp.obj
+[25/47] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/mobile/mobile_usage_service.cpp.obj
+[26/47] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_res_0.cpp.obj
+[27/47] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.obj
+[28/47] Linking CXX executable timearc_pomodoro_test.exe
+[29/47] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.obj
+[30/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp.obj
+[31/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp.obj
+[32/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/main_qml.cpp.obj
+[33/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp.obj
+[34/47] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_ui_service.cpp.obj
+[35/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp.obj
+[36/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp.obj
+[37/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp.obj
+[38/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.obj
+[39/47] Linking CXX executable timearc_db_smoke.exe
+[40/47] Building CXX object CMakeFiles/time-arc.dir/time-arc_autogen/mocs_compilation.cpp.obj
+[41/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.obj
+[42/47] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_usage_service.cpp.obj
+[43/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp.obj
+[44/47] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.obj
+[45/47] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.obj
+[46/47] Linking CXX executable TimeArc.exe
