@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-08-02T05:19:33Z | L3 | pr-no-checks-re... | gh pr checks reported no configured checks for PR 75; rel... | [report](errors/20260802-051933-C-pr-no-checks-reported.md) |
 | 2026-08-02T05:17:35Z | L3 | generated-apk-l... | git diff --cached --check found trailing whitespace and e... | [report](errors/20260802-051735-C-generated-apk-log-whitespace.md) |
 | 2026-08-02T05:14:43Z | L3 | immediate-sync-... | Expected TDD RED: usage static test rejects ExistingWorkP... | [report](errors/20260802-051443-C-immediate-sync-replace-red.md) |
 | 2026-08-02T05:12:41Z | L2 | harness-index-b... | harness_check found journal INDEX.md at 105 lines after a... | [report](errors/20260802-051241-C-harness-index-budget.md) |
