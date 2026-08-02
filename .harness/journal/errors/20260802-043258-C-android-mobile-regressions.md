@@ -30,9 +30,9 @@ Pura 90 Pro shows square app icons, non-edge-to-edge system bar bands, and missi
 
 ## 4. Fix
 
-- Files changed: pending implementation.
+- Files changed: `MobileAppIcon.qml`, Android Activity/UI/usage bridges, mobile usage repository/JNI/service, and targeted tests.
 - Short description: use a real rounded mask, lifecycle-owned edge-to-edge/sync, per-day replacement, and completion-driven UI refresh.
-- Commit: pending commit.
+- Commit: `75b99ecb`, `0cb1114c`, `2f79fb1a`.
 
 ## 5. Prevention
 

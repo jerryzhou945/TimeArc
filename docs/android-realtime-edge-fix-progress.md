@@ -8,12 +8,12 @@
 - [x] Implement Activity-owned system-bar coverage without a custom theme.
 - [x] Add and pass daily replacement and sync-completion regressions.
 - [x] Implement per-day replacement and resume-triggered completion refresh.
-- [-] Build the final Android APK and verify the merged manifest.
-- [ ] Verify Windows, Android, APK signature, permissions, and default Activity theme.
+- [x] Build the final Android APK and verify the merged manifest.
+- [x] Verify Windows, Android, APK signature, permissions, and default Activity theme.
 - [ ] Install and visually verify on Pura 90 Pro through Zhuoyitong.
 
-Completed: root-cause analysis and design approval.  
-Incomplete: code, APK, and real-device verification.  
-Verification: Track C preflight is clean.  
-Next: test-first implementation.  
+Completed: rounded mask, edge-to-edge lifecycle, per-day repair, coalesced resume sync, completion refresh, and APK.
+Incomplete: Pura 90 Pro real-device verification.
+Verification: Windows/Android builds, CTest 4/4, static tests, APK v2/package/ABI/permission/manifest checks pass.
+Next: install the realtime-edge APK and verify today's data.
 Risks: device-specific system-bar behavior still requires final Pura 90 Pro evidence.

@@ -20,6 +20,8 @@ def main():
     stats_reader = read("android/src/main/java/com/timearc/mobile/usage/UsageStatsReader.java")
     events_reader = read("android/src/main/java/com/timearc/mobile/usage/UsageEventsReader.java")
     sync_worker = read("android/src/main/java/com/timearc/mobile/usage/UsageSyncWorker.java")
+    sync_scheduler = read(
+        "android/src/main/java/com/timearc/mobile/usage/UsageSyncScheduler.java")
     native_bridge_java = read(
         "android/src/main/java/com/timearc/mobile/usage/AndroidUsageNativeBridge.java")
     jni_bridge = read("src/services/mobile/android_usage_jni_bridge.cpp")
@@ -64,6 +66,10 @@ def main():
             "one aggregate import per day")
     require(sync_worker, "notifySyncFinished(syncOk)",
             "post-persistence completion notification")
+    require(sync_scheduler, "ExistingWorkPolicy.KEEP",
+            "resume sync coalescing without cancelling active work")
+    if "ExistingWorkPolicy.REPLACE" in sync_scheduler:
+        raise AssertionError("immediate sync must not replace active daily backfill")
     require(native_bridge_java, "nativeSyncFinished(boolean success)",
             "native sync completion callback")
     require(jni_bridge, "\"appIconPath\"", "JNI icon path field extraction")

@@ -10,7 +10,7 @@ import com.timearc.mobile.usage.UsageSyncScheduler;
 public final class TimeArcActivity
         extends org.qtproject.qt.android.bindings.QtActivity {
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         MobileUiBridge.configureEdgeToEdge(this, false);
     }

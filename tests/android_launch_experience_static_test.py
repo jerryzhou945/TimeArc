@@ -47,7 +47,7 @@ def main():
     require(timearc_activity,
             "extends org.qtproject.qt.android.bindings.QtActivity",
             "Qt-compatible Activity inheritance")
-    require(timearc_activity, "protected void onCreate(Bundle savedInstanceState)",
+    require(timearc_activity, "public void onCreate(Bundle savedInstanceState)",
             "Activity create hook")
     require(timearc_activity, "protected void onResume()",
             "Activity resume hook")

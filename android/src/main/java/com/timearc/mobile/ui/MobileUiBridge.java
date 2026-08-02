@@ -30,6 +30,7 @@ public final class MobileUiBridge {
     private MobileUiBridge() {
     }
 
+    @SuppressWarnings("deprecation")
     public static void configureEdgeToEdge(Context context,
                                            boolean lightSystemBars) {
         if (!(context instanceof Activity)) {
