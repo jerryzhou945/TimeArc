@@ -8,6 +8,9 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-08-02T04:36:53Z | L3 | qt-header-searc... | Broad PowerShell search of Qt Android headers timed out; ... | [report](errors/20260802-043653-C-qt-header-search-timeout.md) |
+| 2026-08-02T04:33:46Z | L3 | impeccable-node... | Impeccable context script could not run because node is n... | [report](errors/20260802-043346-C-impeccable-node-unavailable.md) |
+| 2026-08-02T04:32:58Z | L2 | android-mobile-... | Pura 90 Pro shows square app icons, non-edge-to-edge syst... | [report](errors/20260802-043258-C-android-mobile-regressions.md) |
 | 2026-08-02T04:12:41Z | L1 | android-mobile-apk | cmake --build exited 1 | [report](errors/20260802-041241-B-android-mobile-apk.md) |
 | 2026-08-02T04:02:48Z | L3 | journal-index-l... | Pre-commit harness audit found journal INDEX.md exceeded ... | [report](errors/20260802-040248-B-journal-index-line-budget.md) |
 | 2026-08-02T03:59:43Z | L1 | android-mobile-apk | cmake --build exited 1 | [report](errors/20260802-035943-B-android-mobile-apk.md) |
@@ -90,6 +93,6 @@ the harness line budget intact.
 | 2026-07-29T10:04:44Z | L3 | clang-format-un... | clang-format is not installed in the macOS workspace, so ... | [report](errors/20260729-100444-C-clang-format-unavailable.md) |
 | 2026-07-29T10:04:35Z | L1 | macos-build-scr... | The existing macos_build_script_static_test still expects... | [report](errors/20260729-100435-C-macos-build-script-static-baseline.md) |
 | 2026-07-29T10:01:27Z | L2 | macos-app-menu-... | The native macOS TimeArc application menu stays English b... | [report](errors/20260729-100127-C-macos-app-menu-localization.md) |
-| 2026-07-29T08:56:05Z | L2 | macos-double-cl... | The preference-aware sidebar double-click handler omitted... | [report](errors/20260729-085605-B-macos-double-click-fill.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-29T08:43:17Z | L3 | unrelated-froze... | Final harness check found an unrelated concurrent CMakeLi... | [report](errors/20260729-084317-B-unrelated-frozen-cmake-drift.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |
