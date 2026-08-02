@@ -81,6 +81,7 @@ Rectangle {
         if (prompted !== "1") {
             settingsRepository.setValue("android_usage_access_prompted", "1")
             root.currentTab = "settings"
+            mobileUsageService.openUsageAccessSettings()
         }
     }
 
@@ -107,13 +108,6 @@ Rectangle {
         function onStatusChanged() {
             root.refreshReportNotification()
         }
-    }
-
-    Timer {
-        id: usageOnboardingTimer
-        interval: 250
-        repeat: false
-        onTriggered: root.ensureUsageAccessOnboarding()
     }
 
     Timer {
@@ -292,10 +286,7 @@ Rectangle {
         theme: mobileTheme
         reducedMotion: mobileTheme.reducedMotion
         visible: root.launchOverlayVisible
-        onFinished: {
-            root.launchOverlayVisible = false
-            usageOnboardingTimer.start()
-        }
+        onFinished: root.launchOverlayVisible = false
     }
 
     Component.onCompleted: {
@@ -303,5 +294,6 @@ Rectangle {
         loadThemePreference()
         launchOverlay.begin()
         refreshReportNotification()
+        ensureUsageAccessOnboarding()
     }
 }

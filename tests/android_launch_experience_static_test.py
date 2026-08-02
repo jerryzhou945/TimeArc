@@ -26,8 +26,9 @@ def main():
             "standard launcher icon")
     require(manifest, 'android:roundIcon="@mipmap/ic_launcher_round"',
             "round launcher icon")
-    require(manifest, 'android:theme="@style/TimeArcLaunchTheme"',
-            "launch theme")
+    if 'android:theme="@style/TimeArcLaunchTheme"' in manifest:
+        raise AssertionError(
+            "QtActivity must retain the Qt default theme for compatibility")
 
     required_resources = (
         "android/res/drawable-nodpi/timearc_icon_artwork.png",

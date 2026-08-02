@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-08-02T02:56:16Z | L2 | harmony-safe-st... | Pura 90 Pro still black-screened for one second and exite... | [report](errors/20260802-025616-C-harmony-safe-start-still-exits.md) |
 | 2026-08-02T02:48:24Z | L3 | git-index-lock-... | git add could not refresh the corrected error report beca... | [report](errors/20260802-024824-C-git-index-lock-safe-start.md) |
 | 2026-08-02T02:47:43Z | L3 | generated-repor... | git diff --cached --check found trailing whitespace copie... | [report](errors/20260802-024743-C-generated-report-trailing-space.md) |
 | 2026-08-02T02:46:09Z | L1 | harness-index-l... | harness_check found journal INDEX.md at 104 lines after m... | [report](errors/20260802-024609-C-harness-index-line-budget.md) |
@@ -81,7 +82,7 @@ the harness line budget intact.
 | 2026-07-29T10:01:27Z | L2 | macos-app-menu-... | The native macOS TimeArc application menu stays English b... | [report](errors/20260729-100127-C-macos-app-menu-localization.md) |
 | 2026-07-29T08:56:05Z | L2 | macos-double-cl... | The preference-aware sidebar double-click handler omitted... | [report](errors/20260729-085605-B-macos-double-click-fill.md) |
 | 2026-07-29T08:43:17Z | L3 | unrelated-froze... | Final harness check found an unrelated concurrent CMakeLi... | [report](errors/20260729-084317-B-unrelated-frozen-cmake-drift.md) |
-| 2026-07-29T08:38:01Z | L2 | macos-double-cl... | Sidebar double-click always maximized/restored instead of... | [report](errors/20260729-083801-B-macos-double-click-preference.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |

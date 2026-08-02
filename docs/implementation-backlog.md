@@ -193,10 +193,14 @@ G2/G3 打磨 ───────────(随手)
   包名、SDK、ABI、资源清单和 SHA-256 检查。仍需 Android/HarmonyOS 真机 ROM 验收。
   见 [`android-launch-experience-implementation-report.md`](android-launch-experience-implementation-report.md)。
 - [x] **M3 鸿蒙卓易通安全启动诊断版** — 2026-08-02
-  移除 AndroidX 进程级自动初始化，将 Usage Access 与 WorkManager 延迟并改成可降级路径，
-  同时固定 Android OpenGL 后端。编译、Manifest、ABI 和签名验证已完成；Pura 90 Pro
-  真机结果仍需用新 APK 复测。见
+  该诊断版移除了 AndroidX 自动初始化并延迟 Usage Access，但 Pura 90 Pro 仍一秒黑屏退出，
+  因而计时/WorkManager 根因假设已被否定并回退。见
   [`harmony-zhuoyitong-safe-start-implementation-report.md`](harmony-zhuoyitong-safe-start-implementation-report.md)。
+- [x] **M4 鸿蒙 QtActivity 默认主题对照版** — 2026-08-02
+  对比确认 7 月 4 日可运行包与当前包的 SDK、ABI、签名和 Qt native 运行库一致；恢复完整计时权限和
+  WorkManager，仅取消新加入的原生 Activity 主题绑定。最新 UI、功能、图标和 QML 启动动画保留，
+  等待 Pura 90 Pro 真机复测。见
+  [`harmony-zhuoyitong-default-theme-comparison-report.md`](harmony-zhuoyitong-default-theme-comparison-report.md)。
 
 ---
 

@@ -23,11 +23,11 @@ Qt's first frame and QML immediately called Usage Access and WorkManager paths.
 
 ## 3. Root cause
 
-- Immediate cause: Android framework-dependent initialization ran before the
-  first durable QML frame and could propagate compatibility failures.
-- Underlying cause: WorkManager used process-start AndroidX initialization;
-  Usage Access probing and permission-Activity launch were also eager and JNI
-  calls did not convert Java exceptions into a safe failure state.
+- Immediate cause: the process exits before a durable QML frame; exact crash
+  site is unavailable without a Zhuoyitong device log.
+- Underlying cause: the initial WorkManager/Usage Access hypothesis was
+  rejected by the safe-start device test. APK comparison now isolates the
+  custom `TimeArcLaunchTheme` binding as the next testable startup difference.
 - Why the harness/checklists did not prevent it: build/static checks do not
   exercise third-party Android compatibility containers, and no HarmonyOS
   device was attached during the original Android release.

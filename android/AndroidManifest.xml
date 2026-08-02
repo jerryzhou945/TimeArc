@@ -41,8 +41,7 @@
             android:exported="true"
             android:label="-- %%INSERT_APP_NAME%% --"
             android:launchMode="singleTop"
-            android:screenOrientation="unspecified"
-            android:theme="@style/TimeArcLaunchTheme">
+            android:screenOrientation="unspecified">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -67,11 +66,5 @@
                 android:resource="@xml/qtprovider_paths" />
         </provider>
 
-        <!-- WorkManager must not initialize before Qt renders its first frame.
-             Compatibility containers can omit Android services WorkManager
-             expects, so TimeArc initializes it only when a sync is requested. -->
-        <provider
-            android:name="androidx.startup.InitializationProvider"
-            tools:node="remove" />
     </application>
 </manifest>

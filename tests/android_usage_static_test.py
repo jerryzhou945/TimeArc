@@ -20,12 +20,7 @@ def main():
     stats_reader = read("android/src/main/java/com/timearc/mobile/usage/UsageStatsReader.java")
     events_reader = read("android/src/main/java/com/timearc/mobile/usage/UsageEventsReader.java")
     sync_worker = read("android/src/main/java/com/timearc/mobile/usage/UsageSyncWorker.java")
-    sync_scheduler = read(
-        "android/src/main/java/com/timearc/mobile/usage/UsageSyncScheduler.java")
-    usage_access_bridge = read(
-        "android/src/main/java/com/timearc/mobile/usage/UsageAccessBridge.java")
     jni_bridge = read("src/services/mobile/android_usage_jni_bridge.cpp")
-    mobile_usage_service = read("src/services/mobile/mobile_usage_service.cpp")
     mobile_repo_h = read("src/services/mobile/mobile_usage_repository.h")
     mobile_repo_cpp = read("src/services/mobile/mobile_usage_repository.cpp")
     app_repo_cpp = read("src/services/app_repository.cpp")
@@ -41,15 +36,9 @@ def main():
             "foreground active-state filter")
     require(main_cpp, "mobileUsageService.requestImmediateSync()",
             "foreground resume usage sync request")
-    require(main_cpp, 'qputenv("QSG_RHI_BACKEND", "opengl")',
-            "conservative Android Qt Quick rendering backend")
 
     require(manifest, "android.permission.QUERY_ALL_PACKAGES",
             "Android package visibility for app labels/icons")
-    require(manifest,
-            'android:name="androidx.startup.InitializationProvider"\n'
-            '            tools:node="remove"',
-            "AndroidX process-start initializer removal")
     require(record_dto, "appIconPath", "aggregated usage icon path DTO field")
     require(session_dto, "appIconPath", "usage session icon path DTO field")
     require(stats_reader, "AndroidAppMetadataResolver.resolve",
@@ -60,20 +49,6 @@ def main():
             "monthly session lookback")
     require(sync_worker, "startOfPreviousMonthMs",
             "current and previous month aggregate backfill")
-    require(sync_scheduler, "public static boolean enqueueImmediateSync",
-            "fallible immediate sync scheduling contract")
-    require(sync_scheduler, "WorkManager.initialize",
-            "lazy WorkManager initialization")
-    require(sync_scheduler, "catch (Throwable failure)",
-            "compatibility-safe WorkManager failure guard")
-    require(usage_access_bridge, "resolveActivity",
-            "Usage Access settings availability check")
-    require(usage_access_bridge, "catch (Throwable failure)",
-            "compatibility-safe Usage Access failure guard")
-    require(mobile_usage_service, "QJniEnvironment env",
-            "JNI exception environment")
-    require(mobile_usage_service, "checkAndClearExceptions",
-            "JNI exception clearing")
     require(jni_bridge, "\"appIconPath\"", "JNI icon path field extraction")
     require(mobile_repo_h, "const QString& appIconPath",
             "mobile repository icon path parameter")
@@ -92,10 +67,8 @@ def main():
             "first-run Usage Access onboarding")
     require(mobile_shell, "android_usage_access_prompted",
             "persistent Usage Access prompt guard")
-    require(mobile_shell, "id: usageOnboardingTimer",
-            "delayed Usage Access onboarding timer")
-    require(mobile_shell, "usageOnboardingTimer.start()",
-            "post-launch Usage Access onboarding")
+    require(mobile_shell, "openUsageAccessSettings()",
+            "automatic Usage Access settings handoff")
 
     print("Android usage static checks passed")
 
