@@ -187,6 +187,11 @@ G2/G3 打磨 ───────────(随手)
   设计与验证见
   [`mobile-qml-time-album-implementation-report.md`](mobile-qml-time-album-implementation-report.md)。
   剩余仅为 Android 多 ROM 的相册 URI、FileProvider 分享和安全区设备验收。Track B · 跨。
+- [x] **M2 Android 桌面图标与启动体验** — 2026-08-02
+  已补齐 adaptive/round/legacy launcher icon、Android 12+ 系统 splash、旧版启动背景，
+  以及遵循“减少动态效果”的 1.12 秒 QML 进入动画；arm64-v8a debug APK 已构建并通过
+  包名、SDK、ABI、资源清单和 SHA-256 检查。仍需 Android/HarmonyOS 真机 ROM 验收。
+  见 [`android-launch-experience-implementation-report.md`](android-launch-experience-implementation-report.md)。
 
 ---
 

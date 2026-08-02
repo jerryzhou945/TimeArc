@@ -73,6 +73,7 @@ set(TIME_ARC_QML_FILES
     qml/mobile/components/MobileTabButton.qml
     qml/mobile/components/MobileGlassPanel.qml
     qml/mobile/components/MobileAppIcon.qml
+    qml/mobile/components/MobileLaunchOverlay.qml
     qml/mobile/components/MobileUsageRankRow.qml
     qml/mobile/components/MobileShareOverlay.qml
     qml/mobile/components/MobileMonthlyStory.qml
