@@ -1,5 +1,6 @@
 #include "audio_tracker.h"
 
+#include "../platform/app_identity.h"
 #include "../platform/audio_win.h"
 #include "data_bridge.h"
 
@@ -11,7 +12,7 @@ static int same_audio_app(const AppInfo* a, const AppInfo* b) {
     return 0;
   }
 
-  return strcmp(a->exec_path, b->exec_path) == 0;
+  return timearc_app_identity_equal(a, b);
 }
 
 static void close_audio_session(TimeArcAudioSession* session,
@@ -82,7 +83,6 @@ static void start_or_update_session(TimeArcAudioTrackerState* state,
   }
 
   session->seen_this_poll = 1;
-  session->last_seen_sec = now_sec;
 }
 
 void timearc_audio_tracker_init(TimeArcAudioTrackerState* state) {
@@ -103,9 +103,10 @@ void timearc_audio_tracker_poll(TimeArcAudioTrackerState* state,
 
   AppInfo apps[TIMEARC_AUDIO_MAX_APPS];
   size_t app_count = 0;
-  // Close sessions absent from the audible sample after the grace period.
-  if (timearc_win_get_audio_apps(apps, TIMEARC_AUDIO_MAX_APPS, &app_count) ==
-      0) {
+  const int sample_succeeded =
+      timearc_win_get_audio_apps(apps, TIMEARC_AUDIO_MAX_APPS, &app_count) == 0;
+  state->last_sample_succeeded = sample_succeeded;
+  if (sample_succeeded) {
     for (size_t i = 0; i < app_count; ++i) {
       start_or_update_session(state, &apps[i], now_sec);
     }
@@ -117,22 +118,33 @@ void timearc_audio_tracker_poll(TimeArcAudioTrackerState* state,
       continue;
     }
 
-    if (session->seen_this_poll &&
-        now_sec - session->start_sec >= TIMEARC_AUDIO_FLUSH_INTERVAL_SEC) {
-      // Checkpoint long playback so it becomes visible before shutdown.
-      AppInfo app = session->app;
+    if (sample_succeeded && !session->seen_this_poll) {
       close_audio_session(session, now_sec);
-      start_or_update_session(state, &app, now_sec);
-      continue;
-    }
-
-    if (!session->seen_this_poll &&
-        now_sec - session->last_seen_sec > TIMEARC_AUDIO_SILENCE_GRACE_SEC) {
-      // Allow brief peak gaps before treating playback as stopped or muted.
-      int64_t end_sec = session->last_seen_sec + 1;
-      close_audio_session(session, end_sec);
     }
   }
+}
+
+int timearc_audio_tracker_has_foreground(
+    const TimeArcAudioTrackerState* state, const AppInfo* foreground) {
+  if (state == NULL || foreground == NULL || !state->last_sample_succeeded) {
+    return 0;
+  }
+
+  for (int i = 0; i < TIMEARC_AUDIO_MAX_TRACKED_APPS; ++i) {
+    const TimeArcAudioSession* session = &state->sessions[i];
+    if (!session->active || !session->seen_this_poll) {
+      continue;
+    }
+    if (session->app.process_id != 0 && foreground->process_id != 0 &&
+        session->app.process_id == foreground->process_id) {
+      return 1;
+    }
+    if (session->app.exec_path[0] != '\0' &&
+        strcmp(session->app.exec_path, foreground->exec_path) == 0) {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 void timearc_audio_tracker_flush(TimeArcAudioTrackerState* state,

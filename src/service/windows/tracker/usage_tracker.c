@@ -2,8 +2,10 @@
 
 #include "../platform/active_app_win.h"
 #include "../platform/idle_win.h"
+#include "../platform/process_activity_win.h"
 #include "audio_tracker.h"
 #include "data_bridge.h"
+#include "foreground_state.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <string.h>
@@ -43,29 +45,20 @@ static int64_t unix_time_sec(void) {
   return (int64_t)((value.QuadPart - 116444736000000000ULL) / 10000000ULL);
 }
 
-static int same_active_app(const AppInfo* a, const AppInfo* b) {
-  if (a == NULL || b == NULL) {
-    return 0;
-  }
-
-  // Continue foreground time while executable and window title both match.
-  return strcmp(a->exec_path, b->exec_path) == 0 &&
-         strcmp(a->window_title, b->window_title) == 0;
-}
-
-static void close_session(const AppInfo* app, int64_t start_sec,
-                          int64_t end_sec) {
+static void close_session(const TimeArcForegroundClosedSession* session) {
   // Drop zero-second segments created by polling-boundary jitter.
-  if (app == NULL || app->exec_path[0] == '\0' || end_sec <= start_sec) {
+  if (session == NULL || session->app.exec_path[0] == '\0' ||
+      session->end_wall_sec <= session->start_wall_sec) {
     return;
   }
 
-  if (update_apps(app->exec_path, "windows", app->app_name, "",
-                  app->exec_path, end_sec) != 0) {
+  if (update_apps(session->app.exec_path, "windows", session->app.app_name, "",
+                  session->app.exec_path, session->end_wall_sec) != 0) {
     return;
   }
-  update_frontmost(app->exec_path, app->window_title, start_sec, end_sec,
-                   end_sec - start_sec);
+  update_frontmost(session->app.exec_path, session->app.window_title,
+                   session->start_wall_sec, session->end_wall_sec,
+                   (int64_t)(session->active_ms / 1000ULL));
 }
 
 int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
@@ -95,10 +88,11 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   // If creation fails, console shutdown remains available.
   HANDLE stop_event = CreateEventA(NULL, TRUE, FALSE, TIMEARC_STOP_EVENT_NAME);
 
-  AppInfo current_app;
-  memset(&current_app, 0, sizeof(current_app));
-  int has_session = 0;
-  int64_t session_start_sec = 0;
+  TimeArcForegroundState foreground_state;
+  timearc_foreground_state_init(&foreground_state,
+                                TIMEARC_USAGE_WORK_LEASE_MS);
+  TimeArcProcessActivityProbe process_probe;
+  timearc_process_activity_init(&process_probe);
   TimeArcAudioTrackerState audio_state;
   timearc_audio_tracker_init(&audio_state);
 
@@ -108,42 +102,48 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
     // Record audio independently of keyboard and mouse idle time.
     timearc_audio_tracker_poll(&audio_state, now_sec);
 
-    // End foreground activity while idle and resume after input.
-    int is_idle = timearc_win_is_idle(active_config.idle_threshold_ms);
-
-    if (is_idle) {
-      if (has_session) {
-        close_session(&current_app, session_start_sec, now_sec);
-        memset(&current_app, 0, sizeof(current_app));
-        has_session = 0;
-      }
-      tracker_wait(stop_event, (DWORD)active_config.poll_interval_ms);
-      continue;
-    }
-
+    TimeArcForegroundSample sample;
+    memset(&sample, 0, sizeof(sample));
+    sample.wall_sec = now_sec;
+    sample.monotonic_ms = GetTickCount64();
     AppInfo next_app;
-    if (timearc_win_get_active_app(&next_app) != 0) {
-      tracker_wait(stop_event, (DWORD)active_config.poll_interval_ms);
-      continue;
+    if (timearc_win_get_active_app(&next_app) == 0) {
+      sample.app = next_app;
+      sample.has_app = 1;
+      sample.input_active =
+          timearc_win_get_idle_ms() < active_config.idle_threshold_ms;
+
+      TimeArcProcessCounters counters;
+      if (timearc_win_process_activity_sample(next_app.process_id, &counters)) {
+        sample.autonomous_active = timearc_process_activity_delta(
+            &process_probe, next_app.process_id, &counters);
+      } else {
+        memset(&counters, 0, sizeof(counters));
+        timearc_process_activity_delta(&process_probe, next_app.process_id,
+                                       &counters);
+      }
+      if (timearc_audio_tracker_has_foreground(&audio_state, &next_app)) {
+        sample.autonomous_active = 1;
+      }
+    } else {
+      TimeArcProcessCounters unavailable;
+      memset(&unavailable, 0, sizeof(unavailable));
+      timearc_process_activity_delta(&process_probe, 0, &unavailable);
     }
 
-    // Start on the first active sample and roll over when path or title changes.
-    if (!has_session) {
-      current_app = next_app;
-      session_start_sec = now_sec;
-      has_session = 1;
-    } else if (!same_active_app(&current_app, &next_app)) {
-      close_session(&current_app, session_start_sec, now_sec);
-      current_app = next_app;
-      session_start_sec = now_sec;
+    TimeArcForegroundClosedSession closed;
+    if (timearc_foreground_state_step(&foreground_state, &sample, &closed)) {
+      close_session(&closed);
     }
 
     tracker_wait(stop_event, (DWORD)active_config.poll_interval_ms);
   }
 
-  int64_t final_sec = unix_time_sec();
-  if (has_session) {
-    close_session(&current_app, session_start_sec, final_sec);
+  const int64_t final_sec = unix_time_sec();
+  TimeArcForegroundClosedSession closed;
+  if (timearc_foreground_state_shutdown(&foreground_state, final_sec,
+                                        GetTickCount64(), &closed)) {
+    close_session(&closed);
   }
   timearc_audio_tracker_flush(&audio_state, final_sec);
   timearc_audio_tracker_shutdown();

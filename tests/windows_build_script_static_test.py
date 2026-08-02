@@ -24,6 +24,7 @@ def main() -> None:
         '".harness/tools/build.py"',
         "harness-wrapped compilation",
     )
+    require(source, "TIMEARC_BUILD_PARALLEL", "bounded build parallelism")
     if "cmake --build" in source:
         raise AssertionError("script must not bypass the harness build wrapper")
     for legacy_script in ("package-release.ps1", "verify-linkage.ps1"):

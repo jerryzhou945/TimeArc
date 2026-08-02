@@ -1,7 +1,6 @@
 # Rule 02 - Platform Boundaries
 
-Which code gets compiled on which OS, and what the per-platform implementation
-has to provide.
+What compiles on each OS and what each platform implementation must provide.
 
 ## 1. Compile-gating
 
@@ -24,10 +23,10 @@ Every platform service must:
 3. Use complete normalized observations as logical session identity for both
    foreground and media tracking. If every captured field is equal, continue
    the same logical session; if any field differs, create a boundary.
-4. Honor an idle threshold (default 60 s). While input-idle, keep the
-   foreground session open but stop accumulating `active_sec`; resume on user
-   activity. If the foreground observation has video-like playback evidence,
-   treat it as active regardless of input-idle duration.
+4. Honor an idle threshold (default 60 s). Input-idle keeps the session open
+   but pauses `active_sec`. Supported foreground-work evidence (video playback
+   or meaningful process-tree CPU/I/O) may grant a bounded activity lease;
+   process existence alone is never evidence.
 5. End media as soon as it is absent from a sample; there is no silence grace.
 6. Periodic media persistence checkpoints are optional. Implementations may
    write long-running media incrementally or only at a later boundary; a
@@ -42,12 +41,13 @@ Every platform service must:
 ### Windows - reference implementation
 
 - `main.c`: console handler + named mutex + tracker loop.
-- `tracker/usage_tracker.c`: 1 s poll, idle check, same-app check, audio poll.
+- `tracker/usage_tracker.c`: orchestrates app, idle, work, and audio samples.
+- `tracker/foreground_state.c`: Win32/SQLite-free lease and session transitions.
 - `tracker/audio_tracker.c`: per-process audio sessions; its current timing
   behavior is an implementation detail rather than the portable contract.
-- `platform/active_app_win.c`: `GetForegroundWindow` + `GetWindowText` + exe path.
+- `platform/{active_app_win,app_identity}.c`: app observation + stable identity.
 - `platform/audio_win.c`: WASAPI `IAudioMeterInformation` peak read.
-- `platform/idle_win.c`: `GetLastInputInfo`.
+- `platform/{idle,process_activity}_win.c`: input idle + process-tree counters.
 - `tracker/*.c`: submits completed sessions through `data_bridge.h`; shared
   `database_storage.*` owns SQLite history writes.
 - `service/win_service.c`: user-session autostart verbs

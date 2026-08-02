@@ -209,6 +209,27 @@ target_link_libraries(timearc_pomodoro_test
 
 add_test(NAME timearc_pomodoro_test COMMAND timearc_pomodoro_test)
 
+if(WIN32)
+    add_executable(timearc_windows_foreground_state_test
+        tests/windows_foreground_state_test.c
+        src/service/windows/platform/app_identity.c
+        src/service/windows/tracker/foreground_state.c
+        src/service/windows/platform/idle_win.c
+        src/service/windows/platform/process_activity_win.c
+    )
+    target_include_directories(timearc_windows_foreground_state_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/service/shared
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/service/windows/tracker
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/service/windows/platform
+    )
+    target_link_libraries(timearc_windows_foreground_state_test PRIVATE user32)
+    add_test(
+        NAME timearc_windows_foreground_state_test
+        COMMAND timearc_windows_foreground_state_test
+    )
+endif()
+
 include(GNUInstallDirs)
 install(TARGETS time-arc
     BUNDLE DESTINATION .
