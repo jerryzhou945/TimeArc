@@ -11,6 +11,7 @@ Rectangle {
     property int topReserve: 0
     property url wallpaperSource: ""
     property bool reportUnread: false
+    property bool launchOverlayVisible: true
     property string currentReportReleaseToken: ""
     readonly property bool wallpaperActive:
         wallpaperSource.toString().length > 0
@@ -279,9 +280,19 @@ Rectangle {
         }
     }
 
+    MobileLaunchOverlay {
+        id: launchOverlay
+        anchors.fill: parent
+        theme: mobileTheme
+        reducedMotion: mobileTheme.reducedMotion
+        visible: root.launchOverlayVisible
+        onFinished: root.launchOverlayVisible = false
+    }
+
     Component.onCompleted: {
         refreshWallpaper()
         loadThemePreference()
+        launchOverlay.begin()
         refreshReportNotification()
         ensureUsageAccessOnboarding()
     }

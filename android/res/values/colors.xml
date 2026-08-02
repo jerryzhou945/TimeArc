@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="timearc_icon_background">#91B5F2</color>
+    <color name="timearc_launch_background">#111317</color>
+    <color name="timearc_accent">#2D7780</color>
+</resources>

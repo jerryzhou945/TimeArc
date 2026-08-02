@@ -8,6 +8,29 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-08-02T02:11:11Z | L3 | git-index-lock-... | A residual git process from the build-log stash holds .gi... | [report](errors/20260802-021111-B-git-index-lock-after-log-stash.md) |
+| 2026-08-02T02:09:46Z | L3 | open-issues-com... | First open-issues compaction patch kept the same two-line... | [report](errors/20260802-020946-B-open-issues-compaction-noop.md) |
+| 2026-08-02T02:09:31Z | L3 | open-issues-tai... | PowerShell counted open-issues.md at 100 lines while harn... | [report](errors/20260802-020931-B-open-issues-tail-line-count.md) |
+| 2026-08-02T02:07:47Z | L3 | android-final-h... | Final harness gate found INDEX.md at 119 lines and open-i... | [report](errors/20260802-020747-B-android-final-harness-line-budget.md) |
+| 2026-08-02T02:07:02Z | L3 | build-log-lock-... | WMI denied reading the command lines of residual git proc... | [report](errors/20260802-020702-B-build-log-lock-owner-probe.md) |
+| 2026-08-02T02:06:27Z | L3 | android-build-l... | The one preserved Android build log is still locked by an... | [report](errors/20260802-020627-B-android-build-log-locked.md) |
+| 2026-08-02T02:05:57Z | L3 | android-build-l... | git stash preserved the Android build logs but Windows co... | [report](errors/20260802-020557-B-android-build-log-stash-unlink.md) |
+| 2026-08-02T02:03:57Z | L1 | android-launch-... | cmake --build exited 1 | [report](errors/20260802-020357-B-android-launch-final-apk.md) |
+| 2026-08-02T02:01:59Z | L3 | launch-overlay-... | Pre-commit review found child QML animation could start b... | [report](errors/20260802-020159-B-launch-overlay-reduced-motion-race.md) |
+| 2026-08-02T01:58:41Z | L3 | timearc-process... | Get-Process returned non-zero because no TimeArc instance... | [report](errors/20260802-015841-B-timearc-process-probe.md) |
+| 2026-08-02T01:52:49Z | L3 | adb-device-prob... | adb devices did not return and was terminated; APK metada... | [report](errors/20260802-015249-B-adb-device-probe-timeout.md) |
+| 2026-08-02T01:50:29Z | L1 | android-launch-... | cmake --build exited 1 | [report](errors/20260802-015029-B-android-launch-apk-retry.md) |
+| 2026-08-02T01:49:37Z | L3 | android-splash-... | The design incorrectly used framework-prefixed postSplash... | [report](errors/20260802-014937-B-android-splash-theme-attribute.md) |
+| 2026-08-02T01:49:11Z | L1 | android-launch-apk | cmake --build exited 1 | [report](errors/20260802-014911-B-android-launch-apk.md) |
+| 2026-08-02T01:43:52Z | L1 | android-launch-apk | cmake --build exited 1 | [report](errors/20260802-014352-B-android-launch-apk.md) |
+| 2026-08-02T01:43:29Z | L3 | android-build-w... | Android APK build wrapper was terminated by an overly sho... | [report](errors/20260802-014329-B-android-build-wrapper-timeout.md) |
+| 2026-08-02T01:43:06Z | L3 | disk-space-wmi-... | WMI denied the read-only D: free-space query; using Syste... | [report](errors/20260802-014306-B-disk-space-wmi-denied.md) |
+| 2026-08-02T01:42:22Z | L3 | android-env-probe | Optional Android environment-variable lookup returned non... | [report](errors/20260802-014222-B-android-env-probe.md) |
+| 2026-08-02T01:36:00Z | L3 | powershell-rend... | Windows execution policy blocked the temporary reviewed S... | [report](errors/20260802-013600-B-powershell-render-policy.md) |
+| 2026-08-02T01:35:42Z | L3 | edge-svg-render... | Headless Edge exited after repeated GPU process failures ... | [report](errors/20260802-013542-B-edge-svg-render-failure.md) |
+| 2026-08-02T01:34:19Z | L3 | imagegen-svg-re... | ImageGen rejected the SVG reference MIME type; will rende... | [report](errors/20260802-013419-B-imagegen-svg-reference.md) |
+| 2026-08-02T01:33:56Z | L3 | svg-rasterizer-... | No ImageMagick/rsvg-convert/CairoSVG runtime is installed... | [report](errors/20260802-013356-B-svg-rasterizer-unavailable.md) |
+| 2026-08-02T01:33:36Z | L3 | android-launch-... | Expected TDD RED: Android launch static test fails becaus... | [report](errors/20260802-013336-B-android-launch-red-test.md) |
 | 2026-07-30T20:57:33Z | L3 | create-dmg-note... | select_dmg_tool returns its choice on stdout but also cal... | [report](errors/20260730-205733-B-create-dmg-note-stdout-capture.md) |
 | 2026-07-30T20:57:24Z | L3 | create-dmg-dotf... | Staged the DMG background as a dotfile (.timearc-dmg-back... | [report](errors/20260730-205724-B-create-dmg-dotfile-background.md) |
 | 2026-07-30T19:53:23Z | L2 | macos-cursor-co... | macOS 桌面 UI 使用 Windows 指针惯例：90 处光标（指针手/禁止/SizeAll/DragCop... | [report](errors/20260730-195323-C-macos-cursor-conventions.md) |
@@ -71,30 +94,4 @@ the harness line budget intact.
 | 2026-07-28T09:45:59Z | L3 | build-track-def... | Invoked build.py without --track C, so its missing-build-... | [report](errors/20260728-094559-C-build-track-default.md) |
 | 2026-07-28T09:41:07Z | L1 | swift-config-to... | Recreating the missing build directory failed because Swi... | [report](errors/20260728-094107-C-swift-config-toolchain-cache.md) |
 | 2026-07-28T09:40:24Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260728-094024-B-build-failure.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| 2026-07-28T08:24:16Z | L1 | desktop-static-... | desktop_ux_static_test.py could not run because android/s... | [report](errors/20260728-082416-C-desktop-static-missing-manifest.md) |
-| 2026-07-28T08:23:14Z | L3 | qt-log-rotation... | Required post-run Qt log scan parsed the log but could no... | [report](errors/20260728-082314-C-qt-log-rotation-permission.md) |
-| 2026-07-28T07:59:03Z | L1 | hover-index-lin... | Final non-dimming hover audit found the rolling journal i... | [report](errors/20260728-075903-B-hover-index-line-budget.md) |
-| 2026-07-28T07:49:34Z | L1 | final-index-lin... | Final title-bar-free AppKit audit found the rolling journ... | [report](errors/20260728-074934-B-final-index-line-budget.md) |
-| 2026-07-28T07:25:27Z | L1 | appkit-harness-... | Final AppKit audit found journal/INDEX.md over its rollin... | [report](errors/20260728-072527-B-appkit-harness-drift.md) |
-| 2026-07-28T07:24:27Z | L3 | qt-log-scan-app... | The required escalated Qt log scan was not approved, so t... | [report](errors/20260728-072427-B-qt-log-scan-approval.md) |
-| 2026-07-28T07:21:56Z | L3 | swift-flag-list... | Configured CMAKE_Swift_FLAGS with a semicolon, which CMak... | [report](errors/20260728-072156-B-swift-flag-list-separator.md) |
-| 2026-07-28T07:21:40Z | L1 | build-failure | cmake --build exited 127 | [report](errors/20260728-072140-B-build-failure.md) |
-| 2026-07-28T07:21:03Z | L1 | swift-config-cache | CMake regeneration failed because Swift could not write t... | [report](errors/20260728-072103-B-swift-config-cache.md) |
-| 2026-07-28T07:20:23Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260728-072023-B-build-failure.md) |
-| 2026-07-28T07:04:35Z | L1 | open-issues-lin... | Second harness audit passed the journal trim but open-iss... | [report](errors/20260728-070435-B-open-issues-line-budget.md) |
-| 2026-07-28T07:04:00Z | L3 | index-trim-context | The first rolling INDEX trim patch used an expanded summa... | [report](errors/20260728-070400-B-index-trim-context.md) |
-| 2026-07-28T07:03:40Z | L3 | chained-error-r... | Used a semicolon to combine two record_error invocations ... | [report](errors/20260728-070340-B-chained-error-report-command.md) |
-| 2026-07-28T07:03:27Z | L1 | macos-chrome-li... | Final harness audit found journal/INDEX.md at 109 lines a... | [report](errors/20260728-070327-B-macos-chrome-line-budget.md) |
-| 2026-07-28T07:03:27Z | L3 | harness-topic-l... | The first harness line-budget error report used a topic l... | [report](errors/20260728-070327-B-harness-topic-length.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

@@ -30,8 +30,9 @@
         android:enableOnBackInvokedCallback="false"
         android:fullBackupOnly="false"
         android:hardwareAccelerated="true"
-        android:icon="-- %%INSERT_APP_ICON%% --"
+        android:icon="@mipmap/ic_launcher"
         android:label="-- %%INSERT_APP_NAME%% --"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:requestLegacyExternalStorage="true">
 
         <activity
@@ -40,7 +41,8 @@
             android:exported="true"
             android:label="-- %%INSERT_APP_NAME%% --"
             android:launchMode="singleTop"
-            android:screenOrientation="unspecified">
+            android:screenOrientation="unspecified"
+            android:theme="@style/TimeArcLaunchTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
