@@ -8,6 +8,20 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-08-02T05:19:33Z | L3 | pr-no-checks-re... | gh pr checks reported no configured checks for PR 75; rel... | [report](errors/20260802-051933-C-pr-no-checks-reported.md) |
+| 2026-08-02T05:17:35Z | L3 | generated-apk-l... | git diff --cached --check found trailing whitespace and e... | [report](errors/20260802-051735-C-generated-apk-log-whitespace.md) |
+| 2026-08-02T05:14:43Z | L3 | immediate-sync-... | Expected TDD RED: usage static test rejects ExistingWorkP... | [report](errors/20260802-051443-C-immediate-sync-replace-red.md) |
+| 2026-08-02T05:12:41Z | L2 | harness-index-b... | harness_check found journal INDEX.md at 105 lines after a... | [report](errors/20260802-051241-C-harness-index-budget.md) |
+| 2026-08-02T05:09:59Z | L1 | android-realtim... | cmake --build exited 1 | [report](errors/20260802-050959-C-android-realtime-edge-final-apk.md) |
+| 2026-08-02T05:08:51Z | L3 | backlog-patch-c... | Combined apply_patch used stale M4 context; inspected exa... | [report](errors/20260802-050851-C-backlog-patch-context.md) |
+| 2026-08-02T05:08:12Z | L3 | rg-access-denied | rg.exe access denied while locating backlog milestone; us... | [report](errors/20260802-050812-C-rg-access-denied.md) |
+| 2026-08-02T05:02:30Z | L3 | qtactivity-oncr... | The lifecycle regression assumed protected onCreate, but ... | [report](errors/20260802-050230-C-qtactivity-oncreate-visibility.md) |
+| 2026-08-02T05:02:13Z | L1 | android-realtim... | cmake --build exited 1 | [report](errors/20260802-050213-C-android-realtime-edge-apk.md) |
+| 2026-08-02T04:53:23Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260802-045323-B-build-failure.md) |
+| 2026-08-02T04:45:34Z | L3 | git-index-lock-... | Git could not create index.lock in the managed sandbox wh... | [report](errors/20260802-044534-C-git-index-lock-plan.md) |
+| 2026-08-02T04:36:53Z | L3 | qt-header-searc... | Broad PowerShell search of Qt Android headers timed out; ... | [report](errors/20260802-043653-C-qt-header-search-timeout.md) |
+| 2026-08-02T04:33:46Z | L3 | impeccable-node... | Impeccable context script could not run because node is n... | [report](errors/20260802-043346-C-impeccable-node-unavailable.md) |
+| 2026-08-02T04:32:58Z | L2 | android-mobile-... | Pura 90 Pro shows square app icons, non-edge-to-edge syst... | [report](errors/20260802-043258-C-android-mobile-regressions.md) |
 | 2026-08-02T04:12:41Z | L1 | android-mobile-apk | cmake --build exited 1 | [report](errors/20260802-041241-B-android-mobile-apk.md) |
 | 2026-08-02T04:02:48Z | L3 | journal-index-l... | Pre-commit harness audit found journal INDEX.md exceeded ... | [report](errors/20260802-040248-B-journal-index-line-budget.md) |
 | 2026-08-02T03:59:43Z | L1 | android-mobile-apk | cmake --build exited 1 | [report](errors/20260802-035943-B-android-mobile-apk.md) |
@@ -76,20 +90,4 @@ the harness line budget intact.
 | 2026-07-30T06:49:42Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-064942-C-qt-warning-19f33ebed5.md) |
 | 2026-07-30T06:16:05Z | L2 | macos-restore-e... | 打开 TimeArc in the macOS status menu dropped a full-screen... | [report](errors/20260730-061605-C-macos-restore-exits-fullscreen.md) |
 | 2026-07-30T06:00:14Z | L3 | macos-gui-scree... | Screen Recording and Automation are not granted to the ag... | [report](errors/20260730-060014-B-macos-gui-screenshot-tcc-blocked.md) |
-| 2026-07-29T16:54:54Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-165454-B-build-failure.md) |
-| 2026-07-29T16:53:50Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-165350-B-build-failure.md) |
-| 2026-07-29T16:02:06Z | L2 | macos-menu-lang... | On graceful quit the QML engine outlives SettingsReposito... | [report](errors/20260729-160206-B-macos-menu-language-pinned-at-teardown.md) |
-| 2026-07-29T14:28:09Z | L2 | macos-menu-bar-... | MacMenuBar's lang fallback hardcoded zh, so every launch ... | [report](errors/20260729-142809-B-macos-menu-bar-startup-language-fallback.md) |
-| 2026-07-29T14:23:25Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260729-142325-B-build-failure.md) |
-| 2026-07-29T10:33:38Z | L1 | journal-index-l... | Harness audit found journal/INDEX.md at 102 lines after r... | [report](errors/20260729-103338-C-journal-index-line-budget.md) |
-| 2026-07-29T10:32:55Z | L1 | desktop-ux-miss... | Desktop UX static test cannot start because android/src/m... | [report](errors/20260729-103255-C-desktop-ux-missing-android.md) |
-| 2026-07-29T10:32:11Z | L2 | macos-memo-shor... | Memo Board help text displays Ctrl for shortcuts that use... | [report](errors/20260729-103211-C-macos-memo-shortcut-label.md) |
-| 2026-07-29T10:19:30Z | L3 | journal-index-l... | Mandatory error reports pushed the rolling journal index ... | [report](errors/20260729-101930-C-journal-index-line-budget.md) |
-| 2026-07-29T10:17:32Z | L3 | frozen-manifest... | After correcting the files list assumption, iterated the ... | [report](errors/20260729-101732-C-frozen-manifest-nesting.md) |
-| 2026-07-29T10:17:27Z | L3 | frozen-manifest... | Assumed frozen-files.json stored a keyed object, but it s... | [report](errors/20260729-101727-C-frozen-manifest-shape.md) |
-| 2026-07-29T10:04:44Z | L3 | clang-format-un... | clang-format is not installed in the macOS workspace, so ... | [report](errors/20260729-100444-C-clang-format-unavailable.md) |
-| 2026-07-29T10:04:35Z | L1 | macos-build-scr... | The existing macos_build_script_static_test still expects... | [report](errors/20260729-100435-C-macos-build-script-static-baseline.md) |
-| 2026-07-29T10:01:27Z | L2 | macos-app-menu-... | The native macOS TimeArc application menu stays English b... | [report](errors/20260729-100127-C-macos-app-menu-localization.md) |
-| 2026-07-29T08:56:05Z | L2 | macos-double-cl... | The preference-aware sidebar double-click handler omitted... | [report](errors/20260729-085605-B-macos-double-click-fill.md) |
-| 2026-07-29T08:43:17Z | L3 | unrelated-froze... | Final harness check found an unrelated concurrent CMakeLi... | [report](errors/20260729-084317-B-unrelated-frozen-cmake-drift.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

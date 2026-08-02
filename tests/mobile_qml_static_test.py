@@ -23,6 +23,15 @@ def main():
     monthly_story = read("qml/mobile/components/MobileMonthlyStory.qml")
     monthly_share = read(
         "qml/mobile/components/monthly/MonthlySharePage.qml")
+    app_icon = read("qml/mobile/components/MobileAppIcon.qml")
+
+    require(app_icon, "MobileRoundedFrame {",
+            "GPU rounded application icon mask")
+    require(app_icon, "radius: root.cornerRadius",
+            "application icon adaptive corner radius")
+    if "clip: true" in app_icon:
+        raise AssertionError(
+            "application icons must not rely on rectangular QML clipping")
 
     require(settings, "MobileSymbolIcon {", "settings SVG icon renderer")
     require(actions, "icon: \"download\"", "gallery SVG action")

@@ -26,6 +26,11 @@ class MobileUsageRepository : public QObject {
       const QString& source,
       const QString& appIconPath = QString());
 
+  Q_INVOKABLE bool clearDailyUsageSummaries(
+      const QString& deviceId,
+      const QString& dateLocal,
+      const QString& source);
+
   Q_INVOKABLE QVariantList getUsageByDateRange(const QString& startDateLocal,
                                                const QString& endDateLocal,
                                                const QString& platform);

@@ -66,9 +66,15 @@ int stableConversionVariant(const QString& appKey) {
 
 }  // namespace
 
+QPointer<MobileUsageService> MobileUsageService::androidInstance_;
+
 MobileUsageService::MobileUsageService(MobileUsageRepository* repository,
                                        QObject* parent)
-    : QObject(parent), repository_(repository) {}
+    : QObject(parent), repository_(repository) {
+#ifdef Q_OS_ANDROID
+  androidInstance_ = this;
+#endif
+}
 
 bool MobileUsageService::usageAccessGranted() const {
   return usageAccessGranted_;
@@ -545,12 +551,33 @@ bool MobileUsageService::requestImmediateSync() {
       "(Landroid/content/Context;)V", context.object<jobject>());
   setStatus(usageAccessGranted_, QStringLiteral("queued"),
             QStringLiteral("Android usage sync queued"));
-  emit dataChanged();
   return true;
 #else
   setStatus(false, QStringLiteral("preview"),
             QStringLiteral("Sync runs on Android device"));
   return false;
+#endif
+}
+
+void MobileUsageService::notifyAndroidSyncFinished(bool success) {
+#ifdef Q_OS_ANDROID
+  const QPointer<MobileUsageService> instance = androidInstance_;
+  if (instance.isNull()) return;
+  QMetaObject::invokeMethod(
+      instance.data(),
+      [instance, success]() {
+        if (instance.isNull()) return;
+        instance->setStatus(
+            instance->usageAccessGranted_,
+            success ? QStringLiteral("synced")
+                    : QStringLiteral("retrying"),
+            success ? QStringLiteral("Android usage sync complete")
+                    : QStringLiteral("Android usage sync will retry"));
+        if (success) emit instance->dataChanged();
+      },
+      Qt::QueuedConnection);
+#else
+  Q_UNUSED(success);
 #endif
 }
 

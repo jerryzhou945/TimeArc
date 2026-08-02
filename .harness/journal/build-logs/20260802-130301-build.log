@@ -1,0 +1,104 @@
+[1/2] Copying time-arc binary to apk folder
+[2/2] Creating APK for time-arc
+Generating Android Package
+  Input file: D:/TimeArc/time-arc/build-android-arm64_v8a/android-time-arc-deployment-settings.json
+  Output directory: D:/TimeArc/time-arc/build-android-arm64_v8a/android-build/
+  Application binary: TimeArc
+  Android build platform: android-36
+  Install to device: No
+Warning: QML import could not be resolved in any of the import paths: QtQuick.Controls.Windows
+Warning: QML import could not be resolved in any of the import paths: QtQuick.Controls.macOS
+Warning: QML import could not be resolved in any of the import paths: QtQuick.Controls.iOS
+Warning: QML import could not be resolved in any of the import paths: QtQuick.NativeStyle
+Warning: QML import could not be resolved in any of the import paths: QtQuick.Controls.Windows.impl
+> Task :preBuild UP-TO-DATE
+> Task :preDebugBuild UP-TO-DATE
+> Task :mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :generateDebugResources UP-TO-DATE
+> Task :packageDebugResources UP-TO-DATE
+> Task :processDebugNavigationResources UP-TO-DATE
+> Task :parseDebugLocalResources UP-TO-DATE
+> Task :generateDebugRFile UP-TO-DATE
+> Task :compileDebugKotlin NO-SOURCE
+> Task :javaPreCompileDebug UP-TO-DATE
+
+> Task :compileDebugJavaWithJavac
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:42: 警告: [deprecation] LayoutParams中的FLAG_TRANSLUCENT_STATUS已过时
+                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                                              ^
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:43: 警告: [deprecation] LayoutParams中的FLAG_TRANSLUCENT_NAVIGATION已过时
+                            | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+                                                        ^
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:49: 警告: [deprecation] View中的getSystemUiVisibility()已过时
+                    decorView.getSystemUiVisibility()
+                             ^
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:50: 警告: [deprecation] View中的SYSTEM_UI_FLAG_LAYOUT_STABLE已过时
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                  ^
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:51: 警告: [deprecation] View中的SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN已过时
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                  ^
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:52: 警告: [deprecation] View中的SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION已过时
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+                                  ^
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:48: 警告: [deprecation] View中的setSystemUiVisibility(int)已过时
+            decorView.setSystemUiVisibility(
+                     ^
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:60: 警告: [deprecation] Window中的setStatusBarColor(int)已过时
+            window.setStatusBarColor(Color.TRANSPARENT);
+                  ^
+D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\src\main\java\com\timearc\mobile\ui\MobileUiBridge.java:61: 警告: [deprecation] Window中的setNavigationBarColor(int)已过时
+            window.setNavigationBarColor(Color.TRANSPARENT);
+                  ^
+9 个警告
+
+> Task :generateDebugAssets UP-TO-DATE
+> Task :mergeDebugAssets UP-TO-DATE
+> Task :compressDebugAssets UP-TO-DATE
+> Task :desugarDebugFileDependencies UP-TO-DATE
+> Task :checkDebugAarMetadata UP-TO-DATE
+> Task :compileDebugNavigationResources UP-TO-DATE
+> Task :mapDebugSourceSetPaths UP-TO-DATE
+> Task :mergeDebugResources UP-TO-DATE
+> Task :createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :extractDeepLinksDebug UP-TO-DATE
+
+> Task :processDebugMainManifest
+package="com.timearc.app" found in source AndroidManifest.xml: D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.timearc.app" from the source AndroidManifest.xml: D:\TimeArc\time-arc\build-android-arm64_v8a\android-build\AndroidManifest.xml.
+
+> Task :processDebugManifest
+> Task :processDebugJavaRes NO-SOURCE
+> Task :mergeDebugJavaResource UP-TO-DATE
+> Task :checkDebugDuplicateClasses UP-TO-DATE
+> Task :mergeExtDexDebug UP-TO-DATE
+> Task :mergeLibDexDebug UP-TO-DATE
+> Task :mergeDebugJniLibFolders
+> Task :validateSigningDebug UP-TO-DATE
+> Task :writeDebugAppMetadata UP-TO-DATE
+> Task :writeDebugSigningConfigVersions UP-TO-DATE
+> Task :processDebugManifestForPackage
+> Task :processDebugResources
+> Task :dexBuilderDebug
+> Task :mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :mergeProjectDexDebug
+> Task :mergeDebugNativeLibs
+> Task :stripDebugDebugSymbols
+> Task :packageDebug
+> Task :createDebugApkListingFileRedirect UP-TO-DATE
+> Task :assembleDebug
+
+[Incubating] Problems report is available at: file:///D:/TimeArc/time-arc/build-android-arm64_v8a/android-build/build/reports/problems/problems-report.html
+
+
+
+BUILD SUCCESSFUL in 12s
+
+35 actionable tasks: 11 executed, 24 up-to-date
+
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html
+
+Android package built successfully in 29.782 ms.
+
+  -- File: D:/TimeArc/time-arc/build-android-arm64_v8a/android-build//build/outputs/apk/debug/android-build-debug.apk

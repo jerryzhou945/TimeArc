@@ -34,11 +34,14 @@ Item {
         return value.charAt(0) === "/" ? "file://" + value : "file:///" + value
     }
 
-    Rectangle {
+    MobileRoundedFrame {
         anchors.fill: parent
         radius: root.cornerRadius
-        color: root.theme.surfaceRaised
-        clip: true
+
+        Rectangle {
+            anchors.fill: parent
+            color: root.theme.surfaceRaised
+        }
 
         MobileSymbolIcon {
             anchors.centerIn: parent
@@ -58,22 +61,15 @@ Item {
             font.weight: Font.Bold
         }
 
-        Rectangle {
+        Image {
+            id: iconImage
             anchors.fill: parent
             anchors.margins: 3
-            radius: Math.max(1, root.cornerRadius - 3)
-            color: "transparent"
-            clip: true
-
-            Image {
-                id: iconImage
-                anchors.fill: parent
-                source: root.normalizedSource(root.appIconPath)
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-                smooth: true
-                visible: status === Image.Ready
-            }
+            source: root.normalizedSource(root.appIconPath)
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            smooth: true
+            visible: status === Image.Ready
         }
     }
 }

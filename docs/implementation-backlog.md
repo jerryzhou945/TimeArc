@@ -202,6 +202,10 @@ G2/G3 打磨 ───────────(随手)
   WorkManager，仅取消新加入的原生 Activity 主题绑定。最新 UI、功能、图标和 QML 启动动画保留，
   等待 Pura 90 Pro 真机复测。见
   [`harmony-zhuoyitong-default-theme-comparison-report.md`](harmony-zhuoyitong-default-theme-comparison-report.md)。
+- [x] **M5 Android 真圆角、全屏与逐日实时同步** — 2026-08-02
+  真实应用图标改用 GPU 圆角遮罩；默认 Qt Theme 下由生命周期 Activity 重设 Edge-to-Edge；
+  UsageStats 按本地自然日覆盖修复，并在持久化完成后刷新页面。
+  Pura 90 Pro 卓易通真机复验仍待安装新 APK。
 
 ---
 

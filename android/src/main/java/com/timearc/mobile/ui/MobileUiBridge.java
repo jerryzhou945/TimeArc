@@ -12,7 +12,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.view.View;
 import android.view.Window;
+import android.view.WindowManager;
 
 import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
@@ -28,6 +30,7 @@ public final class MobileUiBridge {
     private MobileUiBridge() {
     }
 
+    @SuppressWarnings("deprecation")
     public static void configureEdgeToEdge(Context context,
                                            boolean lightSystemBars) {
         if (!(context instanceof Activity)) {
@@ -36,7 +39,25 @@ public final class MobileUiBridge {
         Activity activity = (Activity) context;
         activity.runOnUiThread(() -> {
             Window window = activity.getWindow();
+            window.clearFlags(
+                    WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                            | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            window.addFlags(
+                    WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
             WindowCompat.setDecorFitsSystemWindows(window, false);
+            View decorView = window.getDecorView();
+            decorView.setSystemUiVisibility(
+                    decorView.getSystemUiVisibility()
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                WindowManager.LayoutParams attributes = window.getAttributes();
+                attributes.layoutInDisplayCutoutMode =
+                        WindowManager.LayoutParams
+                                .LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                window.setAttributes(attributes);
+            }
             window.setStatusBarColor(Color.TRANSPARENT);
             window.setNavigationBarColor(Color.TRANSPARENT);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
