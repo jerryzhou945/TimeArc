@@ -44,7 +44,7 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   fallback hardening, Memory Lake card-tip fadeout, day-mode sidebar icon selection,
   and GitHub-style monthly stats heatmap/layout fixes. **Mobile equivalent is
   implemented** with real usage, four ranges, Memory Lake, wallpaper and sharing.
-  Adaptive/round/legacy launcher icons and the native-to-QML launch experience are also implemented; Android/HarmonyOS device/ROM validation remains. **Still open:** broader classifier long-tail keyword
+  Adaptive/round/legacy launcher icons and the native-to-QML launch experience are also implemented. A Pura 90 Pro Zhuoyitong one-second startup exit now has a safe-start diagnostic APK; physical-device confirmation and Android/HarmonyOS multi-ROM validation remain. **Still open:** broader classifier long-tail keyword
   coverage (`A4` — uncommon apps can still fall to 其他). Implementation issues + resolutions (A1–A7, B1–B11):
   `docs/memory-lake-integration-issues.md`; per-surface plan:
   `docs/memory-lake-backend-integration-plan.md` (also `…-implementation-plan.md` §4).

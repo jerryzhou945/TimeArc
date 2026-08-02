@@ -10,6 +10,7 @@
 
 #ifdef Q_OS_ANDROID
 #include <QGuiApplication>
+#include <QJniEnvironment>
 #include <QJniObject>
 #include <QtCore/qcoreapplication_platform.h>
 #endif
@@ -503,11 +504,22 @@ QVariantMap MobileUsageService::getMemoryLakeForCurrentMonth() {
 
 bool MobileUsageService::refreshUsageAccessState() {
 #ifdef Q_OS_ANDROID
-  const QJniObject activity =
+  const QJniObject context =
       QNativeInterface::QAndroidApplication::context();
+  if (!context.isValid()) {
+    setStatus(false, QStringLiteral("unsupported"),
+              QStringLiteral("Android context unavailable"));
+    return false;
+  }
+  QJniEnvironment env;
   const bool granted = QJniObject::callStaticMethod<jboolean>(
       "com/timearc/mobile/usage/UsageAccessBridge", "hasUsageAccess",
-      "(Landroid/content/Context;)Z", activity.object<jobject>());
+      "(Landroid/content/Context;)Z", context.object<jobject>());
+  if (env.checkAndClearExceptions()) {
+    setStatus(false, QStringLiteral("unsupported"),
+              QStringLiteral("Usage Access is unavailable"));
+    return false;
+  }
   setStatus(granted, syncStatus_,
             granted ? QStringLiteral("Usage Access granted")
                     : QStringLiteral("Usage Access required"));
@@ -521,12 +533,23 @@ bool MobileUsageService::refreshUsageAccessState() {
 
 bool MobileUsageService::openUsageAccessSettings() {
 #ifdef Q_OS_ANDROID
-  const QJniObject activity =
+  const QJniObject context =
       QNativeInterface::QAndroidApplication::context();
-  QJniObject::callStaticMethod<void>(
+  if (!context.isValid()) {
+    setStatus(false, QStringLiteral("unsupported"),
+              QStringLiteral("Android context unavailable"));
+    return false;
+  }
+  QJniEnvironment env;
+  const bool opened = QJniObject::callStaticMethod<jboolean>(
       "com/timearc/mobile/usage/UsageAccessBridge",
       "openUsageAccessSettings",
-      "(Landroid/content/Context;)V", activity.object<jobject>());
+      "(Landroid/content/Context;)Z", context.object<jobject>());
+  if (env.checkAndClearExceptions() || !opened) {
+    setStatus(false, QStringLiteral("unsupported"),
+              QStringLiteral("Usage Access settings unavailable"));
+    return false;
+  }
   return true;
 #else
   setStatus(false, QStringLiteral("preview"),
@@ -537,12 +560,28 @@ bool MobileUsageService::openUsageAccessSettings() {
 
 bool MobileUsageService::requestImmediateSync() {
 #ifdef Q_OS_ANDROID
+  if (!usageAccessGranted_) {
+    setStatus(false, QStringLiteral("permission_required"),
+              QStringLiteral("Usage Access required before sync"));
+    return false;
+  }
   const QJniObject context =
       QNativeInterface::QAndroidApplication::context();
-  QJniObject::callStaticMethod<void>(
+  if (!context.isValid()) {
+    setStatus(usageAccessGranted_, QStringLiteral("unsupported"),
+              QStringLiteral("Android context unavailable"));
+    return false;
+  }
+  QJniEnvironment env;
+  const bool queued = QJniObject::callStaticMethod<jboolean>(
       "com/timearc/mobile/usage/UsageSyncScheduler",
       "enqueueImmediateSync",
-      "(Landroid/content/Context;)V", context.object<jobject>());
+      "(Landroid/content/Context;)Z", context.object<jobject>());
+  if (env.checkAndClearExceptions() || !queued) {
+    setStatus(usageAccessGranted_, QStringLiteral("unsupported"),
+              QStringLiteral("Background sync unavailable"));
+    return false;
+  }
   setStatus(usageAccessGranted_, QStringLiteral("queued"),
             QStringLiteral("Android usage sync queued"));
   emit dataChanged();

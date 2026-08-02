@@ -8,6 +8,16 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-08-02T02:48:24Z | L3 | git-index-lock-... | git add could not refresh the corrected error report beca... | [report](errors/20260802-024824-C-git-index-lock-safe-start.md) |
+| 2026-08-02T02:47:43Z | L3 | generated-repor... | git diff --cached --check found trailing whitespace copie... | [report](errors/20260802-024743-C-generated-report-trailing-space.md) |
+| 2026-08-02T02:46:09Z | L1 | harness-index-l... | harness_check found journal INDEX.md at 104 lines after m... | [report](errors/20260802-024609-C-harness-index-line-budget.md) |
+| 2026-08-02T02:41:33Z | L1 | preexisting-mac... | Full static suite found macos_build_script_static_test.py... | [report](errors/20260802-024133-C-preexisting-macos-build-static-test.md) |
+| 2026-08-02T02:37:43Z | L3 | cim-process-acc... | Win32_Process command-line inspection was denied while mo... | [report](errors/20260802-023743-C-cim-process-access-denied.md) |
+| 2026-08-02T02:37:08Z | L3 | repeated-apk-wr... | Repeated the undersized shell timeout while launching the... | [report](errors/20260802-023708-C-repeated-apk-wrapper-timeout.md) |
+| 2026-08-02T02:36:15Z | L1 | harmony-safe-start | cmake --build exited 1 | [report](errors/20260802-023615-C-harmony-safe-start.md) |
+| 2026-08-02T02:36:12Z | L3 | android-build-w... | Android harness build command exceeded an undersized 1-se... | [report](errors/20260802-023612-C-android-build-wrapper-timeout.md) |
+| 2026-08-02T02:31:09Z | L2 | harmony-zhuoyit... | TimeArc APK shows launch background for about one second ... | [report](errors/20260802-023109-C-harmony-zhuoyitong-startup-exit.md) |
+| 2026-08-02T02:25:13Z | L3 | rg-access-denied | rg.exe was blocked by Windows access policy during startu... | [report](errors/20260802-022513-C-rg-access-denied.md) |
 | 2026-08-02T02:11:11Z | L3 | git-index-lock-... | A residual git process from the build-log stash holds .gi... | [report](errors/20260802-021111-B-git-index-lock-after-log-stash.md) |
 | 2026-08-02T02:09:46Z | L3 | open-issues-com... | First open-issues compaction patch kept the same two-line... | [report](errors/20260802-020946-B-open-issues-compaction-noop.md) |
 | 2026-08-02T02:09:31Z | L3 | open-issues-tai... | PowerShell counted open-issues.md at 100 lines while harn... | [report](errors/20260802-020931-B-open-issues-tail-line-count.md) |
@@ -72,7 +82,7 @@ the harness line budget intact.
 | 2026-07-29T08:56:05Z | L2 | macos-double-cl... | The preference-aware sidebar double-click handler omitted... | [report](errors/20260729-085605-B-macos-double-click-fill.md) |
 | 2026-07-29T08:43:17Z | L3 | unrelated-froze... | Final harness check found an unrelated concurrent CMakeLi... | [report](errors/20260729-084317-B-unrelated-frozen-cmake-drift.md) |
 | 2026-07-29T08:38:01Z | L2 | macos-double-cl... | Sidebar double-click always maximized/restored instead of... | [report](errors/20260729-083801-B-macos-double-click-preference.md) |
-| 2026-07-29T07:23:53Z | L2 | open-folder-uni... | _folderUrlOf prefixed file:/// unconditionally, which is ... | [report](errors/20260729-072353-C-open-folder-unix-file-url.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | 2026-07-28T20:15:46Z | L3 | macos-menu-bar-... | MacMenuBar was given 'appWindow: appWindow'; the RHS reso... | [report](errors/20260728-201546-B-macos-menu-bar-self-bound-window.md) |
@@ -85,13 +95,4 @@ the harness line budget intact.
 | 2026-07-28T15:21:10Z | L3 | fullscreen-fix-... | A source-discovery search included a nonexistent cmake di... | [report](errors/20260728-152110-C-fullscreen-fix-rg-missing-cmake-dir.md) |
 | 2026-07-28T15:07:29Z | L3 | fullscreen-diag... | Harness fast check found journal/INDEX.md at 102 lines af... | [report](errors/20260728-150729-C-fullscreen-diagnosis-index-line-budget.md) |
 | 2026-07-28T15:06:12Z | L3 | macos-status-ba... | Looked for macOS status-bar implementation under an incor... | [report](errors/20260728-150612-C-macos-status-bar-path-assumption.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| 2026-07-28T14:29:36Z | L3 | qml-rule-path | Attempted to read a nonexistent rules/04-qml-runtime.md i... | [report](errors/20260728-142936-B-qml-rule-path.md) |
-| 2026-07-28T09:55:35Z | L1 | macos-logo-cont... | cmake --build exited 1 | [report](errors/20260728-095535-C-macos-logo-container-only-resize.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| 2026-07-28T09:47:21Z | L3 | gui-launch-not-... | Visual verification could not launch the newly built app ... | [report](errors/20260728-094721-C-gui-launch-not-authorized.md) |
-| 2026-07-28T09:46:58Z | L3 | process-list-sa... | Visual-verification process-list check could not access m... | [report](errors/20260728-094658-C-process-list-sandbox.md) |
-| 2026-07-28T09:45:59Z | L3 | build-track-def... | Invoked build.py without --track C, so its missing-build-... | [report](errors/20260728-094559-C-build-track-default.md) |
-| 2026-07-28T09:41:07Z | L1 | swift-config-to... | Recreating the missing build directory failed because Swi... | [report](errors/20260728-094107-C-swift-config-toolchain-cache.md) |
-| 2026-07-28T09:40:24Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260728-094024-B-build-failure.md) |
 | ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |

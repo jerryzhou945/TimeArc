@@ -192,6 +192,11 @@ G2/G3 打磨 ───────────(随手)
   以及遵循“减少动态效果”的 1.12 秒 QML 进入动画；arm64-v8a debug APK 已构建并通过
   包名、SDK、ABI、资源清单和 SHA-256 检查。仍需 Android/HarmonyOS 真机 ROM 验收。
   见 [`android-launch-experience-implementation-report.md`](android-launch-experience-implementation-report.md)。
+- [x] **M3 鸿蒙卓易通安全启动诊断版** — 2026-08-02
+  移除 AndroidX 进程级自动初始化，将 Usage Access 与 WorkManager 延迟并改成可降级路径，
+  同时固定 Android OpenGL 后端。编译、Manifest、ABI 和签名验证已完成；Pura 90 Pro
+  真机结果仍需用新 APK 复测。见
+  [`harmony-zhuoyitong-safe-start-implementation-report.md`](harmony-zhuoyitong-safe-start-implementation-report.md)。
 
 ---
 

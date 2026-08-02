@@ -170,6 +170,12 @@ void applyWin11RoundedCorners(QWindow* window) {
 }  // namespace
 
 int main(int argc, char* argv[]) {
+#if defined(Q_OS_ANDROID)
+  if (!qEnvironmentVariableIsSet("QSG_RHI_BACKEND")) {
+    qputenv("QSG_RHI_BACKEND", "opengl");
+  }
+#endif
+
 #if defined(Q_OS_WIN)
   HANDLE uiInstanceMutex =
       CreateMutexW(nullptr, TRUE, kTimeArcUiMutexName);

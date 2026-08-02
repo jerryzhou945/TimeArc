@@ -28,6 +28,13 @@ dependencies {
 }
 ```
 
-The minimum periodic interval is controlled by WorkManager. TimeArc also calls
-`UsageSyncScheduler.enqueueImmediateSync()` when the app opens so usage data is
-refreshed without waiting for the periodic worker.
+The minimum periodic interval is controlled by WorkManager. AndroidX Startup
+is deliberately removed from the merged manifest: compatibility containers
+may not expose every service WorkManager expects before Qt renders. TimeArc
+initializes WorkManager lazily after Usage Access is confirmed and converts an
+unavailable scheduler into a UI status instead of terminating the process.
+
+Usage Access onboarding also runs after the QML launch overlay. The first run
+navigates to the settings page, but only an explicit user action opens the
+system Usage Access activity. This keeps startup usable on Android-compatible
+environments that do not implement that settings intent.

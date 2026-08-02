@@ -66,5 +66,12 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/qtprovider_paths" />
         </provider>
+
+        <!-- WorkManager must not initialize before Qt renders its first frame.
+             Compatibility containers can omit Android services WorkManager
+             expects, so TimeArc initializes it only when a sync is requested. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            tools:node="remove" />
     </application>
 </manifest>
