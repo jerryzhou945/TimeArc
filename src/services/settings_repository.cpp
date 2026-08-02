@@ -72,7 +72,8 @@ QString legacyChatMessages() {
   appSettings.endGroup();
   if (!grouped.trimmed().isEmpty()) return grouped;
 
-  QSettings namedSettings(QStringLiteral("TimeArc"), QStringLiteral("TimeArc"));
+  QSettings namedSettings(QSettings::defaultFormat(), QSettings::UserScope,
+                          QStringLiteral("TimeArc"), QStringLiteral("TimeArc"));
   namedSettings.beginGroup(QStringLiteral("DesktopChatPageData"));
   const QString named =
       namedSettings.value(QStringLiteral("savedChats")).toString();
@@ -95,7 +96,8 @@ QVariant legacyNightModeValue() {
     if (appSettings.contains(key)) return appSettings.value(key);
   }
 
-  QSettings namedSettings(QStringLiteral("TimeArc"), QStringLiteral("TimeArc"));
+  QSettings namedSettings(QSettings::defaultFormat(), QSettings::UserScope,
+                          QStringLiteral("TimeArc"), QStringLiteral("TimeArc"));
   for (const QString& key : keys) {
     if (namedSettings.contains(key)) return namedSettings.value(key);
   }
@@ -273,7 +275,8 @@ bool SettingsRepository::migrateLegacyQSettings(
   bool ok = true;
 
   if (manualProjectRepository) {
-    QSettings projectSettings(QStringLiteral("TimeArc"),
+    QSettings projectSettings(QSettings::defaultFormat(),
+                              QSettings::UserScope, QStringLiteral("TimeArc"),
                               QStringLiteral("ProjectManagerData"));
     const QVariantList projects =
         projectSettings.value(QStringLiteral("projects")).toList();
@@ -336,7 +339,8 @@ bool SettingsRepository::migrateLegacyQSettings(
     }
   }
 
-  QSettings calendarSettings(QStringLiteral("TimeArc"),
+  QSettings calendarSettings(QSettings::defaultFormat(),
+                             QSettings::UserScope, QStringLiteral("TimeArc"),
                              QStringLiteral("CalendarManagerData"));
   const QString legacyTodos =
       calendarSettings.value(QStringLiteral("savedTodos")).toString();
