@@ -286,7 +286,8 @@ bool hasInsertedSession(const QVariantList& sessions,
 }
 
 void seedLegacyQSettings() {
-  QSettings projectSettings(QStringLiteral("TimeArc"),
+  QSettings projectSettings(QSettings::defaultFormat(), QSettings::UserScope,
+                            QStringLiteral("TimeArc"),
                             QStringLiteral("ProjectManagerData"));
   QVariantMap legacyProject;
   legacyProject.insert(QStringLiteral("name"), QStringLiteral("Legacy Project"));
@@ -324,7 +325,8 @@ void seedLegacyQSettings() {
   todosRoot.insert(QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd")),
                    todos);
 
-  QSettings calendarSettings(QStringLiteral("TimeArc"),
+  QSettings calendarSettings(QSettings::defaultFormat(), QSettings::UserScope,
+                             QStringLiteral("TimeArc"),
                              QStringLiteral("CalendarManagerData"));
   calendarSettings.setValue(
       QStringLiteral("savedTodos"),
@@ -341,7 +343,8 @@ void seedLegacyQSettings() {
   appSettings.endGroup();
   appSettings.sync();
 
-  QSettings namedAppSettings(QStringLiteral("TimeArc"),
+  QSettings namedAppSettings(QSettings::defaultFormat(), QSettings::UserScope,
+                             QStringLiteral("TimeArc"),
                              QStringLiteral("TimeArc"));
   namedAppSettings.setValue(QStringLiteral("night_mode"), true);
   namedAppSettings.beginGroup(QStringLiteral("DesktopChatPageData"));

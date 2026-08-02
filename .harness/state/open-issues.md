@@ -1,7 +1,6 @@
 # Open Issues
 
 Known-broken or incomplete; keep entries short and move fixed items to a session log.
-
 > Actionable backlog: [`implementation-backlog.md`](../../docs/implementation-backlog.md).
 
 ## Platform
@@ -84,6 +83,7 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 
 ## Harness itself
 
+- ~~Windows DB smoke named QSettings escaped the test IniFormat path.~~ **Fixed:** named legacy settings now use `defaultFormat()` with an isolated UserScope fixture.
 - ~~`record_error.py` is a stub.~~ **Implemented.** Writes report, appends
   JSONL, updates INDEX.md atomically. Exit 0/1/2.
 - ~~`harness_check.py` is a stub.~~ **Implemented.** 7 passes (line-budget,
