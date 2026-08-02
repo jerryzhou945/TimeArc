@@ -265,6 +265,43 @@ DO UPDATE SET
   return true;
 }
 
+bool MobileUsageRepository::clearDailyUsageSummaries(
+    const QString& deviceId,
+    const QString& dateLocal,
+    const QString& source) {
+  if (!isIsoDate(dateLocal)) {
+    qWarning() << "Cannot clear Android usage with invalid local date:"
+               << dateLocal;
+    return false;
+  }
+
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) return false;
+
+  QSqlQuery query(db);
+  if (!query.prepare(QStringLiteral(R"SQL(
+DELETE FROM device_usage_summaries
+WHERE platform = :platform
+  AND device_id = :device_id
+  AND date_local = :date_local
+  AND source = :source;
+)SQL"))) {
+    qWarning() << "Failed to prepare clearDailyUsageSummaries:"
+               << query.lastError().text();
+    return false;
+  }
+  query.bindValue(QStringLiteral(":platform"), kAndroidPlatform);
+  query.bindValue(QStringLiteral(":device_id"), normalizeDeviceId(deviceId));
+  query.bindValue(QStringLiteral(":date_local"), dateLocal);
+  query.bindValue(QStringLiteral(":source"), normalizeSource(source));
+  if (!query.exec()) {
+    qWarning() << "Failed to clear Android daily usage summaries:"
+               << query.lastError().text();
+    return false;
+  }
+  return true;
+}
+
 QVariantList MobileUsageRepository::getUsageByDateRange(
     const QString& startDateLocal,
     const QString& endDateLocal,

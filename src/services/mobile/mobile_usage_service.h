@@ -4,6 +4,7 @@
 #include <QDate>
 #include <QDateTime>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QVariantList>
 #include <QVariantMap>
@@ -40,6 +41,7 @@ class MobileUsageService : public QObject {
   static QString latestReleasedYearKey(const QDateTime& localNow);
   static QString friendlyDisplayName(const QString& packageName,
                                      const QString& currentLabel);
+  static void notifyAndroidSyncFinished(bool success);
 
  signals:
   void statusChanged();
@@ -56,6 +58,7 @@ class MobileUsageService : public QObject {
   bool usageAccessGranted_ = false;
   QString syncStatus_ = QStringLiteral("idle");
   QString syncStatusText_ = QStringLiteral("Ready");
+  static QPointer<MobileUsageService> androidInstance_;
 };
 
 #endif

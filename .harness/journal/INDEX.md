@@ -8,6 +8,7 @@ the harness line budget intact.
 
 | Date (UTC) | Lvl | Topic | Summary | Report |
 |------------|-----|-------|---------|--------|
+| 2026-08-02T04:53:23Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260802-045323-B-build-failure.md) |
 | 2026-08-02T04:45:34Z | L3 | git-index-lock-... | Git could not create index.lock in the managed sandbox wh... | [report](errors/20260802-044534-C-git-index-lock-plan.md) |
 | 2026-08-02T04:36:53Z | L3 | qt-header-searc... | Broad PowerShell search of Qt Android headers timed out; ... | [report](errors/20260802-043653-C-qt-header-search-timeout.md) |
 | 2026-08-02T04:33:46Z | L3 | impeccable-node... | Impeccable context script could not run because node is n... | [report](errors/20260802-043346-C-impeccable-node-unavailable.md) |

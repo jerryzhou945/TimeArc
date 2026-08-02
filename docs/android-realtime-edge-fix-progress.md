@@ -6,8 +6,9 @@
 - [x] Implement the rounded application-icon mask.
 - [x] Add and pass the lifecycle edge-to-edge regression.
 - [x] Implement Activity-owned system-bar coverage without a custom theme.
-- [-] Add failing daily-sync and replacement regressions.
-- [ ] Implement per-day replacement and resume-triggered sync completion.
+- [x] Add and pass daily replacement and sync-completion regressions.
+- [x] Implement per-day replacement and resume-triggered completion refresh.
+- [-] Build the final Android APK and verify the merged manifest.
 - [ ] Verify Windows, Android, APK signature, permissions, and default Activity theme.
 - [ ] Install and visually verify on Pura 90 Pro through Zhuoyitong.
 

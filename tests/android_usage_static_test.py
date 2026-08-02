@@ -20,9 +20,13 @@ def main():
     stats_reader = read("android/src/main/java/com/timearc/mobile/usage/UsageStatsReader.java")
     events_reader = read("android/src/main/java/com/timearc/mobile/usage/UsageEventsReader.java")
     sync_worker = read("android/src/main/java/com/timearc/mobile/usage/UsageSyncWorker.java")
+    native_bridge_java = read(
+        "android/src/main/java/com/timearc/mobile/usage/AndroidUsageNativeBridge.java")
     jni_bridge = read("src/services/mobile/android_usage_jni_bridge.cpp")
     mobile_repo_h = read("src/services/mobile/mobile_usage_repository.h")
     mobile_repo_cpp = read("src/services/mobile/mobile_usage_repository.cpp")
+    mobile_service_h = read("src/services/mobile/mobile_usage_service.h")
+    mobile_service_cpp = read("src/services/mobile/mobile_usage_service.cpp")
     app_repo_cpp = read("src/services/app_repository.cpp")
     mobile_shell = read("qml/mobile/MobileAppShell.qml")
     stats_page = read("qml/mobile/pages/MobileStatsPage.qml")
@@ -49,9 +53,30 @@ def main():
             "usage event metadata resolver")
     require(sync_worker, "RECENT_SESSION_LOOKBACK_DAYS = 35",
             "monthly session lookback")
-    require(sync_worker, "startOfPreviousMonthMs",
+    require(sync_worker, "startOfPreviousMonth()",
             "current and previous month aggregate backfill")
+    require(sync_worker, "while (dayStartMs < endMs)",
+            "per-local-day aggregate partition loop")
+    require(sync_worker, "calendar.add(Calendar.DAY_OF_MONTH, 1)",
+            "calendar-day advancement across DST")
+    require(sync_worker,
+            "syncAggregatedUsage(context, dayStartMs, dayEndMs)",
+            "one aggregate import per day")
+    require(sync_worker, "notifySyncFinished(syncOk)",
+            "post-persistence completion notification")
+    require(native_bridge_java, "nativeSyncFinished(boolean success)",
+            "native sync completion callback")
     require(jni_bridge, "\"appIconPath\"", "JNI icon path field extraction")
+    require(jni_bridge, "clearDailyUsageSummaries",
+            "stale per-day aggregate replacement")
+    require(jni_bridge, "notifyAndroidSyncFinished",
+            "Qt-thread completion delivery")
+    require(mobile_repo_h, "clearDailyUsageSummaries(",
+            "daily aggregate clearing repository API")
+    require(mobile_service_h, "notifyAndroidSyncFinished(bool success)",
+            "mobile service completion API")
+    require(mobile_service_cpp, "Qt::QueuedConnection",
+            "thread-safe Android completion dispatch")
     require(mobile_repo_h, "const QString& appIconPath",
             "mobile repository icon path parameter")
     require(mobile_repo_cpp, "normalizedAppIconPath",

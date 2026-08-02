@@ -1,4 +1,5 @@
 #include "services/mobile/mobile_usage_repository.h"
+#include "services/mobile/mobile_usage_service.h"
 
 #ifdef Q_OS_ANDROID
 
@@ -33,6 +34,14 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncAggregatedUsage
     jlong endMs) {
   if (records == nullptr) return JNI_FALSE;
 
+  const QDate localDate = QDateTime::fromMSecsSinceEpoch(beginMs).date();
+  MobileUsageRepository repository;
+  if (!repository.clearDailyUsageSummaries(
+          QString(), localDate.toString(Qt::ISODate),
+          QStringLiteral("android_usage_stats_aggregate"))) {
+    return JNI_FALSE;
+  }
+
   const jsize count = env->GetArrayLength(records);
   if (count == 0) return JNI_TRUE;
 
@@ -50,12 +59,9 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncAggregatedUsage
       fieldId(env, recordClass, "source", "Ljava/lang/String;");
   env->DeleteLocalRef(first);
 
-  const QDate localDate =
-      QDateTime::fromMSecsSinceEpoch(beginMs).date();
   const qint64 beginSec = beginMs / 1000LL;
   const qint64 endSec = endMs / 1000LL;
 
-  MobileUsageRepository repository;
   for (jsize i = 0; i < count; ++i) {
     jobject record = env->GetObjectArrayElement(records, i);
     const QString packageName = javaString(
@@ -136,6 +142,12 @@ Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncRecentSessions(
   }
 
   return JNI_TRUE;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_timearc_mobile_usage_AndroidUsageNativeBridge_nativeSyncFinished(
+    JNIEnv*, jclass, jboolean success) {
+  MobileUsageService::notifyAndroidSyncFinished(success == JNI_TRUE);
 }
 
 #endif

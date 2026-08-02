@@ -1175,6 +1175,46 @@ int main(int argc, char* argv[]) {
     return fail(QStringLiteral("Estimated mobile usage session fields failed."));
   }
 
+  const QString repairDate = QStringLiteral("2026-07-02");
+  const QString aggregateSource =
+      QStringLiteral("android_usage_stats_aggregate");
+  if (!mobileUsageRepository.upsertDailyUsageSummary(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.example.stale"), QStringLiteral("Stale"),
+          QStringLiteral("Stale"), repairDate, 1782950400, 1783036800,
+          7200, aggregateSource) ||
+      !mobileUsageRepository.upsertDailyUsageSummary(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.example.keep"), QStringLiteral("Keep"),
+          QStringLiteral("Keep"), repairDate, 1782950400, 1783036800,
+          90, QStringLiteral("manual_import")) ||
+      !mobileUsageRepository.addUsageSession(
+          QStringLiteral("pixel-usage-smoke"),
+          QStringLiteral("com.example.stale"), QStringLiteral("Stale"),
+          QStringLiteral("Stale"), 1783000000, 1783000060,
+          QStringLiteral("android_usage_events"))) {
+    return fail(QStringLiteral("Mobile daily repair fixture insert failed."));
+  }
+  if (!mobileUsageRepository.clearDailyUsageSummaries(
+          QStringLiteral("pixel-usage-smoke"), repairDate,
+          aggregateSource)) {
+    return fail(QStringLiteral("Mobile daily aggregate clear failed."));
+  }
+  const QVariantList repairedRows = mobileUsageRepository.getUsageByDateRange(
+      repairDate, repairDate, QStringLiteral("android"));
+  if (repairedRows.size() != 1 ||
+      repairedRows.first().toMap().value(QStringLiteral("source")).toString() !=
+          QStringLiteral("manual_import")) {
+    return fail(QStringLiteral(
+        "Daily repair removed unrelated source or retained stale aggregate."));
+  }
+  const QVariantList preservedRepairSessions =
+      mobileUsageRepository.getSessionsByRange(
+          1783000000, 1783000100, QStringLiteral("android"));
+  if (preservedRepairSessions.size() != 1) {
+    return fail(QStringLiteral("Daily repair removed usage sessions."));
+  }
+
   QVariantList insightDailyRows;
   for (int day = 11; day <= 17; ++day) {
     QVariantMap row;

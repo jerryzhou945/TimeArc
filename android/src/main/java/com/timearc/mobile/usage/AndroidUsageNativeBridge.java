@@ -40,6 +40,10 @@ public final class AndroidUsageNativeBridge {
         return aggregateOk && sessionsOk;
     }
 
+    public static void notifySyncFinished(boolean success) {
+        nativeSyncFinished(success);
+    }
+
     private static native boolean nativeSyncAggregatedUsage(
             UsageRecordDto[] records,
             long beginMs,
@@ -49,4 +53,6 @@ public final class AndroidUsageNativeBridge {
             UsageSessionDto[] sessions,
             long beginMs,
             long endMs);
+
+    private static native void nativeSyncFinished(boolean success);
 }
