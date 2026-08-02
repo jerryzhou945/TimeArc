@@ -810,6 +810,7 @@ or later (GPL-3.0-or-later)**. See `LICENSE` for the full text.
 | Qt 6      | LGPL-3.0 (with exceptions)| dynamic | Required for GUI + QML + Svg. Platform release scripts bundle replaceable DLLs/frameworks (LGPL posture). |
 | SQLite    | Public domain             | static  | Vendored under `thirdparty/sqlite3/`; used by the database layer and service storage. |
 | Parson    | MIT                       | static  | Vendored under `thirdparty/parson/`. Will back user config. |
+| Material Symbols | Apache-2.0          | asset / qrc | Selected rounded Google SVG icons used by the mobile UI. |
 
 Full license texts for every component above ship in `resources/licenses/*.txt`
 (embedded in the qrc, so they are readable offline) and are viewable in-app at

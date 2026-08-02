@@ -1,0 +1,61 @@
+[1/2] Copying time-arc binary to apk folder
+[2/2] Creating APK for time-arc
+Generating Android Package
+  Input file: D:/TimeArc/time-arc/build-android-arm64_v8a/android-time-arc-deployment-settings.json
+  Output directory: D:/TimeArc/time-arc/build-android-arm64_v8a/android-build/
+  Application binary: TimeArc
+  Android build platform: android-36
+  Install to device: No
+Warning: QML import could not be resolved in any of the import paths: QtQuick.Controls.Windows
+Warning: QML import could not be resolved in any of the import paths: QtQuick.Controls.macOS
+Warning: QML import could not be resolved in any of the import paths: QtQuick.Controls.iOS
+Warning: QML import could not be resolved in any of the import paths: QtQuick.NativeStyle
+Warning: QML import could not be resolved in any of the import paths: QtQuick.Controls.Windows.impl
+> Task :preBuild UP-TO-DATE
+> Task :preDebugBuild UP-TO-DATE
+> Task :mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :generateDebugResources UP-TO-DATE
+> Task :packageDebugResources UP-TO-DATE
+> Task :processDebugNavigationResources UP-TO-DATE
+> Task :parseDebugLocalResources UP-TO-DATE
+> Task :generateDebugRFile UP-TO-DATE
+> Task :compileDebugKotlin NO-SOURCE
+> Task :javaPreCompileDebug UP-TO-DATE
+> Task :compileDebugJavaWithJavac UP-TO-DATE
+> Task :generateDebugAssets UP-TO-DATE
+> Task :mergeDebugAssets UP-TO-DATE
+> Task :compressDebugAssets UP-TO-DATE
+> Task :desugarDebugFileDependencies UP-TO-DATE
+> Task :checkDebugAarMetadata UP-TO-DATE
+> Task :compileDebugNavigationResources UP-TO-DATE
+> Task :mapDebugSourceSetPaths UP-TO-DATE
+> Task :mergeDebugResources UP-TO-DATE
+> Task :createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :extractDeepLinksDebug UP-TO-DATE
+> Task :processDebugMainManifest UP-TO-DATE
+> Task :processDebugManifest UP-TO-DATE
+> Task :processDebugManifestForPackage UP-TO-DATE
+> Task :processDebugResources UP-TO-DATE
+> Task :dexBuilderDebug UP-TO-DATE
+> Task :mergeDebugGlobalSynthetics UP-TO-DATE
+> Task :processDebugJavaRes NO-SOURCE
+> Task :mergeDebugJavaResource UP-TO-DATE
+> Task :checkDebugDuplicateClasses UP-TO-DATE
+> Task :mergeExtDexDebug UP-TO-DATE
+> Task :mergeLibDexDebug UP-TO-DATE
+> Task :mergeProjectDexDebug UP-TO-DATE
+> Task :mergeDebugJniLibFolders
+> Task :validateSigningDebug UP-TO-DATE
+> Task :writeDebugAppMetadata UP-TO-DATE
+> Task :writeDebugSigningConfigVersions UP-TO-DATE
+> Task :mergeDebugNativeLibs
+> Task :stripDebugDebugSymbols
+> Task :packageDebug
+> Task :createDebugApkListingFileRedirect UP-TO-DATE
+> Task :assembleDebug
+
+BUILD SUCCESSFUL in 9s
+35 actionable tasks: 4 executed, 31 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.3.1/userguide/configuration_cache_enabling.html
+Android package built successfully in 26.607 ms.
+  -- File: D:/TimeArc/time-arc/build-android-arm64_v8a/android-build//build/outputs/apk/debug/android-build-debug.apk

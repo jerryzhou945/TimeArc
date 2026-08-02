@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import "components"
 import "pages"
 
@@ -13,6 +14,10 @@ Rectangle {
     property bool reportUnread: false
     property bool launchOverlayVisible: true
     property string currentReportReleaseToken: ""
+    readonly property int safeTopInset: Qt.platform.os === "android"
+                                         ? SafeArea.margins.top : 0
+    readonly property int safeBottomInset: Qt.platform.os === "android"
+                                            ? SafeArea.margins.bottom : 0
     readonly property bool wallpaperActive:
         wallpaperSource.toString().length > 0
 
@@ -31,10 +36,14 @@ Rectangle {
         mobileTheme.isDark = mode !== "light"
         mobileTheme.reducedMotion =
             settingsRepository.getBool("mobile_reduced_motion", false)
+        if (typeof mobileUiService !== "undefined" && mobileUiService)
+            mobileUiService.setSystemBarsLight(!mobileTheme.isDark)
     }
 
     function setDarkMode(enabled) {
         mobileTheme.isDark = enabled
+        if (typeof mobileUiService !== "undefined" && mobileUiService)
+            mobileUiService.setSystemBarsLight(!enabled)
         if (typeof settingsRepository !== "undefined" && settingsRepository)
             settingsRepository.setValue("mobile_theme_mode",
                                         enabled ? "dark" : "light")
@@ -184,7 +193,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.topMargin: root.topReserve
+        anchors.topMargin: root.topReserve + root.safeTopInset
         anchors.bottom: tabBar.top
 
         MobileHomePage {
@@ -233,7 +242,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 74
+        height: 74 + root.safeBottomInset
         color: root.wallpaperActive
                ? mobileTheme.tabBarBg
                : mobileTheme.withAlpha(mobileTheme.surface, 0.78)
@@ -249,8 +258,12 @@ Rectangle {
         }
 
         Row {
-            anchors.fill: parent
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
             anchors.topMargin: 3
+            anchors.bottomMargin: root.safeBottomInset
 
             Repeater {
                 model: [

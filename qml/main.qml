@@ -22,7 +22,11 @@ ApplicationWindow {
     // Qt 6.9+ automatically pads ApplicationWindow.contentItem by the native
     // safe-area margins. On macOS our sidebar intentionally occupies that area
     // behind the window-owned traffic lights, so do not reserve the title inset.
-    topPadding: macSidebarChrome ? 0 : SafeArea.margins.top
+    topPadding: runningOnAndroid
+                ? 0 : (macSidebarChrome ? 0 : SafeArea.margins.top)
+    bottomPadding: runningOnAndroid ? 0 : SafeArea.margins.bottom
+    leftPadding: runningOnAndroid ? 0 : SafeArea.margins.left
+    rightPadding: runningOnAndroid ? 0 : SafeArea.margins.right
 
     // Windows/其他桌面使用无边框自绘 chrome；macOS 保留有标题能力的原生窗口，
     // 再由 AppKit 把内容延伸到透明标题区。这样侧栏仍铺到顶边，但交通灯由系统窗口自己管理。

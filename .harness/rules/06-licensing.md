@@ -10,8 +10,9 @@ enters the build must pass this rule.
 | Qt        | LGPL-3.0 (with exceptions) | **dynamic** | Dynamically linked (objdump: Qt6*.dll imports); `tools/verify-linkage.ps1` asserts pre-release. |
 | SQLite    | Public domain          | static          | Bundled as `thirdparty/sqlite3`.           |
 | Parson    | MIT                    | static          | Bundled as `thirdparty/parson`. For config JSON.       |
+| Material Symbols | Apache-2.0       | asset / qrc     | Selected Google SVG icons under `resources/app/icons/mobile`. |
 
-All three are listed in `README.md` under *Third-Party Components*. Keep that
+All components are listed in `README.md` under *Third-Party Components*. Keep that
 list in sync with this one.
 
 ## 2. Before adding any dependency

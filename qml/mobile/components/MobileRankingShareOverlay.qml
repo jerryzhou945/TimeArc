@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 
 Item {
     id: root
@@ -10,6 +11,7 @@ Item {
     property string message: ""
 
     anchors.fill: parent
+    parent: root.Window.window ? root.Window.window.contentItem : undefined
     visible: opened
     enabled: visible
     z: 110
@@ -61,12 +63,9 @@ Item {
     }
 
     Rectangle {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: Math.min(parent.height - 20, 750)
-        radius: 22
-        color: root.theme.surface
+        anchors.fill: parent
+        radius: 0
+        color: root.theme.bg
 
         MouseArea {
             anchors.fill: parent
@@ -75,7 +74,10 @@ Item {
 
         Column {
             anchors.fill: parent
-            anchors.margins: 18
+            anchors.leftMargin: 18
+            anchors.rightMargin: 18
+            anchors.topMargin: SafeArea.margins.top + 14
+            anchors.bottomMargin: SafeArea.margins.bottom + 10
             spacing: 12
 
             Row {
@@ -95,11 +97,11 @@ Item {
                     height: 42
                     radius: 21
                     color: root.theme.surfaceRaised
-                    Text {
+                    MobileSymbolIcon {
                         anchors.centerIn: parent
-                        text: "×"
+                        name: "close"
                         color: root.theme.textPrimary
-                        font.pixelSize: 23
+                        iconSize: 22
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -110,7 +112,9 @@ Item {
 
             Item {
                 width: parent.width
-                height: Math.min(526, parent.parent.height - 154)
+                height: Math.min(570, parent.parent.height
+                                 - SafeArea.margins.top
+                                 - SafeArea.margins.bottom - 150)
 
                 Rectangle {
                     id: poster

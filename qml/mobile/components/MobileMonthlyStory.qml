@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Window
 import "monthly"
 import "MobileMonthProfiles.js" as MonthProfiles
 
@@ -15,6 +16,7 @@ Item {
     signal closed()
 
     anchors.fill: parent
+    parent: root.Window.window ? root.Window.window.contentItem : undefined
     visible: opened
     enabled: visible
     z: 90
@@ -155,7 +157,7 @@ Item {
             anchors.top: parent.top
             anchors.leftMargin: 20
             anchors.rightMargin: 68
-            anchors.topMargin: 50
+            anchors.topMargin: SafeArea.margins.top + 18
             height: 36
             spacing: 5
 
@@ -177,7 +179,7 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.rightMargin: 14
-            anchors.topMargin: 34
+            anchors.topMargin: SafeArea.margins.top + 8
             width: 44
             height: 44
             radius: 22
@@ -185,12 +187,11 @@ Item {
             border.width: 1
             border.color: "#35FFFFFF"
 
-            Text {
+            MobileSymbolIcon {
                 anchors.centerIn: parent
-                text: "×"
+                name: "close"
                 color: "white"
-                font.pixelSize: 25
-                font.weight: Font.Light
+                iconSize: 22
             }
 
             MouseArea {
@@ -203,7 +204,7 @@ Item {
             anchors.left: parent.left
             anchors.bottom: parent.bottom
             anchors.leftMargin: 24
-            anchors.bottomMargin: 28
+            anchors.bottomMargin: SafeArea.margins.bottom + 18
             text: root.currentPage === root.pageCount - 1
                   ? "轻触按钮，带走这段时间"
                   : "轻触两侧或左右滑动"
@@ -216,7 +217,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.rightMargin: 24
-            anchors.bottomMargin: 23
+            anchors.bottomMargin: SafeArea.margins.bottom + 13
             text: (root.currentPage + 1) + " / " + root.pageCount
             color: "#AFFFFFFF"
             font.family: root.theme.numberFontFamily
@@ -226,7 +227,7 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: 30
+            anchors.bottomMargin: SafeArea.margins.bottom + 20
             width: parent.width - 120
             visible: root.errorText.length > 0 || root.feedbackText.length > 0
             text: root.errorText.length > 0 ? root.errorText : root.feedbackText

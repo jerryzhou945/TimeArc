@@ -27,6 +27,8 @@ def main():
     mobile_shell = read("qml/mobile/MobileAppShell.qml")
     stats_page = read("qml/mobile/pages/MobileStatsPage.qml")
     app_icon = read("qml/mobile/components/MobileAppIcon.qml")
+    metadata_resolver = read(
+        "android/src/main/java/com/timearc/mobile/usage/AndroidAppMetadataResolver.java")
 
     require(main_cpp, "#if defined(Q_OS_ANDROID)",
             "Android-gated lifecycle sync")
@@ -63,6 +65,15 @@ def main():
     require(app_icon, "appIconPath",
             "mobile shared app icon source")
     require(app_icon, "Image {", "mobile shared real app icon rendering")
+    require(app_icon, "readonly property real adaptiveCornerRatio: 0.22",
+            "consistent rounded app-icon ratio")
+    require(app_icon, "MobileSymbolIcon", "semantic app-icon fallback")
+    require(metadata_resolver, "normalizePackageName",
+            "Android class-suffix package normalization")
+    require(metadata_resolver, '"com.huawei.android.launcher"',
+            "Huawei launcher package mapping")
+    require(metadata_resolver, '"华为桌面"',
+            "Huawei launcher friendly label")
     require(mobile_shell, "ensureUsageAccessOnboarding",
             "first-run Usage Access onboarding")
     require(mobile_shell, "android_usage_access_prompted",

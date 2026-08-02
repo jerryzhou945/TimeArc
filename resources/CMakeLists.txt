@@ -12,6 +12,21 @@ set(TIME_ARC_APP_RESOURCES
     resources/app/icons/navigation/note_white.svg
     resources/app/icons/navigation/recap.svg
     resources/app/icons/navigation/recap_white.svg
+    resources/app/icons/mobile/download.svg
+    resources/app/icons/mobile/group.svg
+    resources/app/icons/mobile/star.svg
+    resources/app/icons/mobile/more.svg
+    resources/app/icons/mobile/shield.svg
+    resources/app/icons/mobile/sync.svg
+    resources/app/icons/mobile/clock.svg
+    resources/app/icons/mobile/image.svg
+    resources/app/icons/mobile/clear.svg
+    resources/app/icons/mobile/sun.svg
+    resources/app/icons/mobile/motion.svg
+    resources/app/icons/mobile/mask.svg
+    resources/app/icons/mobile/lock.svg
+    resources/app/icons/mobile/home.svg
+    resources/app/icons/mobile/close.svg
 )
 
 set(TIME_ARC_LICENSES_RESOURCES
@@ -20,6 +35,7 @@ set(TIME_ARC_LICENSES_RESOURCES
     resources/licenses/sqlite-public-domain.txt
     resources/licenses/parson-mit.txt
     resources/licenses/timearc-gpl-3.0.txt
+    resources/licenses/material-symbols-apache-2.0.txt
 )
 
 # Native bundle inputs under resources/bundle/ are consumed by platform

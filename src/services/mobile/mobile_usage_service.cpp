@@ -596,7 +596,11 @@ QDate MobileUsageService::startDateForRange(const QString& range,
 QString MobileUsageService::friendlyDisplayName(
     const QString& packageName,
     const QString& currentLabel) {
-  const QString package = packageName.trimmed().toLower();
+  QString package = packageName.trimmed().toLower();
+  if (package == QStringLiteral("com.huawei.android.launcher") ||
+      package.startsWith(QStringLiteral("com.huawei.android.launcher."))) {
+    package = QStringLiteral("com.huawei.android.launcher");
+  }
   const QString label = currentLabel.trimmed();
   const bool labelLooksLikePackage =
       label.isEmpty() || label.compare(packageName, Qt::CaseInsensitive) == 0 ||
@@ -615,6 +619,8 @@ QString MobileUsageService::friendlyDisplayName(
       {QStringLiteral("com.spotify.music"), QStringLiteral("Spotify")},
       {QStringLiteral("com.google.android.youtube"), QStringLiteral("YouTube")},
       {QStringLiteral("com.termux"), QStringLiteral("Termux")},
+      {QStringLiteral("com.huawei.android.launcher"),
+       QStringLiteral("华为桌面")},
   };
   const auto it = names.constFind(package);
   if (it != names.cend()) return it.value();
