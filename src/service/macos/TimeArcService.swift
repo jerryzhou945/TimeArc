@@ -2,85 +2,39 @@
 // Copyright (C) 2026 Jeff Zhang
 
 import Darwin
-import Dispatch
 import Foundation
 
+// The service entry point. It parses the command line, dispatches the command,
+// and reports the exit code. Command behavior belongs to the command types.
 @main
 struct TimeArcService {
   static func main() {
-    let accessibilityGranted = AccessibilityRequest.request()
-    debug(
-      "Starting service: pid=\(getpid()), "
-        + "accessibilityGranted=\(accessibilityGranted)"
-    )
-
-    let coordinator = TrackingCoordinator(
-      idleThreshold: 60,
-      enableFrontmost: true,
-      enableMedia: true
-    )
-
-    Darwin.signal(SIGINT, SIG_IGN)
-    Darwin.signal(SIGTERM, SIG_IGN)
-
-    let interruptSource = DispatchSource.makeSignalSource(
-      signal: SIGINT,
-      queue: .main
-    )
-    let terminateSource = DispatchSource.makeSignalSource(
-      signal: SIGTERM,
-      queue: .main
-    )
-
-    interruptSource.setEventHandler {
-      debug("Received SIGINT.")
-      CFRunLoopStop(CFRunLoopGetMain())
-    }
-    terminateSource.setEventHandler {
-      debug("Received SIGTERM.")
-      CFRunLoopStop(CFRunLoopGetMain())
-    }
-
-    interruptSource.activate()
-    terminateSource.activate()
-
-    defer {
-      interruptSource.cancel()
-      terminateSource.cancel()
-    }
-
-    let pollTimer = Timer(timeInterval: 1, repeats: true) { _ in
-      let pollUnixSec = Int64(Date().timeIntervalSince1970)
-      debug("Polling trackers: unixSec=\(pollUnixSec)")
-      do {
-        try coordinator.update(at: pollUnixSec)
-      } catch {
-        report("Tracking update failed: \(error)")
-      }
-    }
-    pollTimer.tolerance = 0
-    RunLoop.main.add(pollTimer, forMode: .common)
-    pollTimer.fire()
-    CFRunLoopRun()
-    pollTimer.invalidate()
-
-    debug("Flushing trackers before shutdown.")
-    do {
-      try coordinator.shutdown(at: Int64(Date().timeIntervalSince1970))
-      debug("Shutdown complete.")
-    } catch {
-      report("Tracking shutdown failed: \(error)")
-      exit(EXIT_FAILURE)
+    let arguments = Array(CommandLine.arguments.dropFirst())
+    switch ServiceCommandParser.parse(arguments) {
+    case .success(let command):
+      exit(self.dispatch(command).rawValue)
+    case .failure(let error):
+      ServiceUsage.reportUsageError(error)
+      exit(ServiceExitCode.usage.rawValue)
     }
   }
 
-  private static func report(_ message: String) {
-    FileHandle.standardError.write(Data((message + "\n").utf8))
-  }
-
-  private static func debug(_ message: @autoclosure () -> String) {
-    #if TIMEARC_DEBUG
-      report("[DEBUG] \(message())")
-    #endif
+  // Execute the parsed command and report its exit code.
+  private static func dispatch(_ command: ServiceCommand) -> ServiceExitCode {
+    switch command {
+    case .run:
+      return RunCommand().execute()
+    case .help:
+      ServiceUsage.printHelp()
+      return .success
+    case .version:
+      ServiceUsage.printVersion()
+      return .success
+    case .enable, .disable, .start, .stop, .restart, .status, .doctor:
+      // These commands need the autostart, configuration, and diagnostics
+      // slices, which are not implemented yet.
+      ServiceUsage.reportUnimplemented(command)
+      return .internalError
+    }
   }
 }

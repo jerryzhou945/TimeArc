@@ -85,16 +85,16 @@ Windows branch of `src/service/CMakeLists.txt`.
 `.harness/tools/cmake/HarnessHooks.cmake` provides:
 
 - `timearc_harness_enable()`: finds Python, registers the check target.
-- `timearc_harness_add_check_target()`: adds a `harness-check` custom target
-  (not in ALL) running `tools/harness_check.py`.
-- `timearc_harness_record_build_target(<target> <track> <topic>)`:
-  POST_BUILD marker for successful builds of a specific target.
+- `timearc_harness_add_check_target()`: `harness-check` target (not in ALL).
+- `timearc_harness_record_build_target(...)`: POST_BUILD success marker.
 
-For **build-failure** capture, wrap the build itself:
+For build-failure capture, wrap the build with `python .harness/tools/build.py
+[-- <cmake extra args>]`: it runs `cmake --build`, tees the log, and auto-files L1
+errors on non-zero exit. Prefer it in scripted use; it must stay optional.
 
-    python .harness/tools/build.py [-- <cmake extra args>]
-
-`build.py` runs `cmake --build`, tees the log, and auto-files L1 errors on
-non-zero exit. Prefer it over raw `cmake --build` in scripted use.
-
-These opt-ins must not make the harness a hard build dependency.
+Documented exception: `tools/build-macos.sh` calls `cmake --build` directly, and
+`tests/macos_build_script_static_test.py` asserts that. Its DMG path must build
+from a plain checkout (Xcode/Qt/CMake only), so the wrapper would make Python a
+distribution dependency, and its journal/`errors` writes would mutate tracked
+state during a release. `build-windows.ps1` keeps the wrapper; `AGENTS.md` step 3
+binds agent-initiated builds.

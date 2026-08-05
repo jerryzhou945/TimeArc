@@ -41,6 +41,11 @@ endif()
 if(APPLE)
     set(TIME_ARC_SERVICE_PLATFORM_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/TimeArcService.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/CommandLine/ServiceCommand.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/CommandLine/ServiceCommandParser.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/CommandLine/ServiceExitCode.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/CommandLine/ServiceUsage.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/RunCommand.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/TrackingPorts.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/AccessibilityRequest.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/ApplicationProbe.swift

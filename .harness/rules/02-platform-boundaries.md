@@ -55,24 +55,24 @@ Every platform service must:
   The tracker stays in the interactive user session. A true SCM Session-0
   service is deferred.
 
-### macOS - foreground/config/media/lifecycle MVP, packaged smoke passing
+### macOS - tracking + CLI skeleton, packaged smoke passing
 
-- `AppEnv.swift`: frontmost app via `NSWorkspace`, idle via `CGEventSource`,
-  media playback via `IOPMCopyAssertionsByProcess`.
-- `WindowIdentifying.swift`: focused-window title via accessibility API.
-- `AppInfo.swift`, `BinaryFloatingPoint+ToUInt.swift`: helpers.
-- `TimeArcService.swift`: initializes shared storage, reads
-  `~/Library/Application Support/TimeArc/usage/usage_config.json` for `idle_threshold_ms` and
-  `track_enabled`, takes a per-user file lock, writes foreground sessions,
-  writes media assertions as `source=audio`, pauses foreground active-time
-  accumulation while idle, flushes pending sessions on `SIGTERM`/`SIGINT`, and provides
-  `--install`/`--uninstall`/`--start`/`--stop`/`--status` verbs backed by a
-  per-user LaunchAgent.
+- `Tracking/TrackingPorts.swift`: record value types, probe protocols, `TrackingError`.
+- `Tracking/*Probe.swift`: frontmost app via `NSWorkspace`, titles via the
+  accessibility API, idle via `CGEventSource`, playback via
+  `IOPMCopyAssertionsByProcess`, audio processes via CoreAudio.
+- `Tracking/{Frontmost,Media}StateMachine.swift`: pure session transitions, no OS
+  or SQLite calls; `Tracking/DataBridge.swift` writes through `data_bridge.h`.
+- `Tracking/TrackingCoordinator.swift`: samples probes, drives both state
+  machines, and takes the sample time from its caller.
+- `CommandLine/`: total argv parser, `ServiceCommand`, README exit-code table.
+- `Runtime/RunCommand.swift`: 1 s poll loop, SIGINT/SIGTERM flush, run exit code.
+- `TimeArcService.swift`: `@main` composition root that parses, dispatches, and
+  exits. No arguments means `run`, which is how launchd starts the bundled agent.
 - On launch, the GUI registers embedded `com.timearc.service.plist` through
-  `SMAppService`; it never copies the plist or executes the helper directly.
-- The helper is bundled as `.app/Contents/MacOS/time-arc-service`.
-- The packaged app launch-smoke confirms launchd runs the deployed helper.
-- Still pending: Accessibility UX, Developer ID signing, and notarization.
+  `SMAppService`; the helper ships at `.app/Contents/MacOS/time-arc-service`.
+- Still pending: the other seven CLI verbs, the config read, the instance lock,
+  Accessibility UX, Developer ID signing, and notarization.
 
 ### Linux - not started
 

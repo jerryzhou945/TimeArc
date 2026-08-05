@@ -37,7 +37,7 @@
     },
     {
       "path": "src/service/CMakeLists.txt",
-      "sha256": "1871d8022358f7f0ed6af914ab13761c4491a3cbbaf14543d61546d427424d4f"
+      "sha256": "c91f082ab6b3228cce297d452a83d6d0f2713bd6ff8dc6c9866c0aa096c4dbff"
     },
     {
       "path": ".harness/CHARTER.md",
