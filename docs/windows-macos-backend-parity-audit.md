@@ -8,6 +8,14 @@
 > media 都按完整规范化 observation 判断逻辑 session；前台 video-like 播放
 > 覆盖 input idle；media 缺失即结束、没有 silence grace；长媒体是否定期持久化
 > 均可，checkpoint 不改变逻辑 session identity。
+>
+> **补充复核（2026-08-05）：macOS 列的配置 / 单实例 / verbs 结论同样已过期。**
+> helper 重构为 `Tracking/` 探针 + 状态机后，`TimeArcService.swift:17-21` 把
+> `idleThreshold: 60` 与 frontmost/media 开关**硬编码**，**不读任何配置**，也没有
+> `time-arc-service.lock` 与生命周期 verbs；表中 `db_path` 键早已退役（先 `db_dir`，
+> v1 起为 `database.dir`）。当前事实见 `.harness/rules/02-platform-boundaries.md` §3，
+> 配置格式见 [`src/service/README.md`](../src/service/README.md)（`service_config.json` v1，
+> `CHARTER` v0.13，设计已批、尚未实装）。
 
 ## 核心结论
 

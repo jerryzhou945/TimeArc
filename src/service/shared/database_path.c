@@ -20,8 +20,11 @@
 #endif
 
 // The service database filename is fixed by the disk contract. Only the
-// containing directory may be redirected through usage_config.json `db_dir`.
+// containing directory may be redirected, through `database.dir` in
+// service_config.json. See CHARTER v0.13.
 #define TIMEARC_SERVICE_DB_FILENAME "timearc_service.db"
+
+#define TIMEARC_CONFIG_FILENAME "service_config.json"
 
 static int copy_string(char* dst, size_t dst_size, const char* src) {
   if (dst == NULL || dst_size == 0 || src == NULL) {
@@ -73,22 +76,15 @@ static int create_dir_if_missing(const char* path) {
   return -1;
 }
 
-// usage_config.json remains in the shared usage/config location so the UI can
-// atomically update service settings without linking service code.
-static int build_usage_config_dir(char* out_path, size_t out_path_size) {
+// Platform config base: roaming %APPDATA% on Windows, ~/Library/Application
+// Support on macOS, $XDG_CONFIG_HOME or ~/.config elsewhere.
+static int build_config_base(char* out_path, size_t out_path_size) {
 #ifdef _WIN32
-  const char* local_app_data = getenv("LOCALAPPDATA");
-  if (local_app_data == NULL || local_app_data[0] == '\0') {
+  const char* base = getenv("APPDATA");
+  if (base == NULL || base[0] == '\0') {
     return -1;
   }
-
-  char app_dir[TA_MAX_PATH_BYTES];
-  if (join_path(app_dir, sizeof(app_dir), local_app_data, "TimeArc") != 0 ||
-      create_dir_if_missing(app_dir) != 0 ||
-      join_path(out_path, out_path_size, app_dir, "usage") != 0 ||
-      create_dir_if_missing(out_path) != 0) {
-    return -1;
-  }
+  return copy_string(out_path, out_path_size, base);
 #elif defined(__APPLE__)
   const char* home = getenv("HOME");
   if (home == NULL || home[0] == '\0') {
@@ -96,54 +92,48 @@ static int build_usage_config_dir(char* out_path, size_t out_path_size) {
   }
 
   char library_dir[TA_MAX_PATH_BYTES];
-  char app_support_dir[TA_MAX_PATH_BYTES];
-  char app_dir[TA_MAX_PATH_BYTES];
   if (join_path(library_dir, sizeof(library_dir), home, "Library") != 0 ||
       create_dir_if_missing(library_dir) != 0 ||
-      join_path(app_support_dir, sizeof(app_support_dir), library_dir,
-                "Application Support") != 0 ||
-      create_dir_if_missing(app_support_dir) != 0 ||
-      join_path(app_dir, sizeof(app_dir), app_support_dir, "TimeArc") != 0 ||
-      create_dir_if_missing(app_dir) != 0 ||
-      join_path(out_path, out_path_size, app_dir, "usage") != 0 ||
+      join_path(out_path, out_path_size, library_dir, "Application Support") !=
+          0 ||
       create_dir_if_missing(out_path) != 0) {
     return -1;
   }
+  return 0;
 #else
-  char config_base[TA_MAX_PATH_BYTES];
   const char* xdg_config_home = getenv("XDG_CONFIG_HOME");
   if (xdg_config_home != NULL && xdg_config_home[0] != '\0') {
-    if (copy_string(config_base, sizeof(config_base), xdg_config_home) != 0 ||
-        create_dir_if_missing(config_base) != 0) {
+    if (copy_string(out_path, out_path_size, xdg_config_home) != 0 ||
+        create_dir_if_missing(out_path) != 0) {
       return -1;
     }
-  } else {
-    const char* home = getenv("HOME");
-    if (home == NULL || home[0] == '\0' ||
-        join_path(config_base, sizeof(config_base), home, ".config") != 0 ||
-        create_dir_if_missing(config_base) != 0) {
-      return -1;
-    }
+    return 0;
   }
 
-  char app_dir[TA_MAX_PATH_BYTES];
-  if (join_path(app_dir, sizeof(app_dir), config_base, "TimeArc") != 0 ||
-      create_dir_if_missing(app_dir) != 0 ||
-      join_path(out_path, out_path_size, app_dir, "usage") != 0 ||
+  const char* home = getenv("HOME");
+  if (home == NULL || home[0] == '\0' ||
+      join_path(out_path, out_path_size, home, ".config") != 0 ||
       create_dir_if_missing(out_path) != 0) {
     return -1;
   }
-#endif
   return 0;
+#endif
 }
 
-static int build_usage_config_path(char* out_path, size_t out_path_size) {
-  char usage_dir[TA_MAX_PATH_BYTES];
-  if (build_usage_config_dir(usage_dir, sizeof(usage_dir)) != 0) {
+// The control file. It stays in a shared config location so the UI can update
+// service settings atomically without linking service code.
+static int build_config_path(char* out_path, size_t out_path_size) {
+  char base[TA_MAX_PATH_BYTES];
+  char app_dir[TA_MAX_PATH_BYTES];
+  char dir[TA_MAX_PATH_BYTES];
+  if (build_config_base(base, sizeof(base)) != 0 ||
+      join_path(app_dir, sizeof(app_dir), base, "TimeArc") != 0 ||
+      create_dir_if_missing(app_dir) != 0 ||
+      join_path(dir, sizeof(dir), app_dir, "config") != 0 ||
+      create_dir_if_missing(dir) != 0) {
     return -1;
   }
-
-  return join_path(out_path, out_path_size, usage_dir, "usage_config.json");
+  return join_path(out_path, out_path_size, dir, TIMEARC_CONFIG_FILENAME);
 }
 
 // Default DB storage is separate from the config directory:
@@ -232,11 +222,15 @@ static int build_default_database_path(char* out_path, size_t out_path_size) {
 }
 
 // Returns 0 when a configured directory was used, 1 when the config is absent
-// or has no non-empty db_dir, and -1 when the configured database path cannot
-// fit. Missing or malformed config is a normal fallback case.
+// or has no non-empty `database.dir`, and -1 when the configured database path
+// cannot fit. Missing or malformed config is a normal fallback case.
+//
+// There is no legacy fallback: the retired flat `db_dir` in usage_config.json
+// is never read. An install that relocated its database under the old format
+// must re-select the directory once, which rewrites the pointer here.
 static int read_configured_database_dir(char* out_path, size_t out_path_size) {
   char config_path[TA_MAX_PATH_BYTES];
-  if (build_usage_config_path(config_path, sizeof(config_path)) != 0) {
+  if (build_config_path(config_path, sizeof(config_path)) != 0) {
     return 1;
   }
 
@@ -248,7 +242,7 @@ static int read_configured_database_dir(char* out_path, size_t out_path_size) {
   int rc = 1;
   JSON_Object* obj = json_value_get_object(root);
   if (obj != NULL) {
-    const char* db_dir = json_object_get_string(obj, "db_dir");
+    const char* db_dir = json_object_dotget_string(obj, "database.dir");
     if (db_dir != NULL && db_dir[0] != '\0') {
       rc = build_database_path_from_dir(out_path, out_path_size, db_dir) == 0
                ? 0

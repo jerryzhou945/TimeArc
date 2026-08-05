@@ -323,7 +323,9 @@ I1 现把「UI may start the service via `startUsageService` + `Local\` mutex」
    `usage_paths` 路径、`usage_records.jsonl`/`usage_current.json`/`timearc.db` 的写法，**不新增 UI↔service 数据方向**
    （区别于 service-config 提案那种「UI→service 通道」）。这条让 B1 与 A1 无冲突、且无需 I2 提案。
 6. **许可姿态（I6）**：只用 Windows 系统库/系统 exe，不引入新第三方依赖（§3）。
-7. **H5 idle/track 配置仍须抵达 worker**：若 `usage_config.json` 通道（已填提案
+7. **H5 idle/track 配置仍须抵达 worker**（配置文件 v1 起为 `service_config.json`，位于
+   `TimeArc/config/`、Windows 根改 `%APPDATA%`——见 `CHARTER` v0.13 与 `src/service/README.md`；
+   本条的耦合结论不变，只是路径与键名换了）：若 `usage_config.json` 通道（已填提案
    `20260609-0150-B-service-config-proposal.md`）日后签核，worker 须在**它实际运行的用户会话**读到该文件
    （路径仍由 `usage_paths.c` 决定，回到 §4.2 的 env 一致性）。B1 与 H5 在「worker 跑在何处、以何身份读盘」上耦合，
    设计时交叉引用，勿让 Route B 的 broker 把 worker env 改坏导致 H5 读不到配置。

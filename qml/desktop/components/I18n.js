@@ -741,7 +741,7 @@ var sentencesEn = {
     "localLicenseEmpty": "(License text failed to load: {file})\nResource not found: {path}. Please confirm it is included in resources/CMakeLists.txt.",
     "localVersion": "TimeArc · Local version {version}",
     "thisDayLabel": "This day · {date}",
-    "serviceConfigWriteFailed": "Failed to write service config (usage_config.json is not writable or is damaged); collection was not restarted.",
+    "serviceConfigWriteFailed": "Failed to write service config (service_config.json is not writable or is damaged); collection was not restarted.",
     "serviceConfigSavedNextStart": "Config saved; it will take effect next time collection starts.",
     "collectionRestarted": "Background collection restarted; new settings are active.",
     "collectionStartFailed": "Collection could not start. Please check the background service.",

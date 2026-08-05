@@ -69,6 +69,17 @@ G2/G3 打磨 ───────────(随手)
   - [x] **S5** 退役旧历史流写入和 UI fallback/parity 读路径，完成 `rules/03` / Charter 最终修订；旧文件不自动删除。
   - [x] **契约清理**（`CHARTER` v0.10）：删除已无消费者的聚合 session 头和说明文档，统一以 `data_bridge.h` 与 SQLite 三表为契约。
   实测：回填后 SQLite==JSONL（week/month/year/all 全 diff 0、记录 53108==53108）。Track B · 平台跨 · `usage_paths` db 访问器未加。
+- [ ] **A3 服务配置格式 v1（`service_config.json`）— 设计已批，未实装**
+  `CHARTER` v0.13 批准以 `service_config.json` 取代扁平的 `usage_config.json`：带 `schema_version`、
+  分节命名、单位改**秒**，新增 `tracking.sampling.poll_period_sec` / `min_session_sec` /
+  `max_session_sec`（长记录定期落盘，防非正常退出丢整段）与 frontmost/media 子开关；
+  配置目录迁至 `TimeArc/config/`（Windows 根改 `%APPDATA%`）。
+  规范：[`../src/service/README.md`](../src/service/README.md)；迁移与重叠期：
+  `.harness/journal/sessions/20260805-2143-B-service-config-v1.md`（**待维护者签核，签核前不落代码**）。
+  影响面：service reader（Win/macOS/Linux）、`database_path.{c,h}`（**冻结**）、
+  `DatabaseManager::{writeServiceConfig,writeDbDirPointer}`、设置页分钟→**秒**换算、`db_smoke`。
+  Track B · 跨平台 · 中 · 提案：**是**（碰 I1/I2 + 冻结文件）。
+  与 C1/C2 的关系：macOS 配置接线与 Linux 从零实现都应直接对 v1 写，不要再接旧格式。
 - [ ] **A2 跨天手动 session 按天拆分/分摊**
   现状：靠重叠区间查询保留，未按天 split/prorate。Track B · UI(`project_manager`) · 中 · 提案：否。
 
@@ -100,8 +111,12 @@ G2/G3 打磨 ───────────(随手)
   通过 `SMAppService` 注册 app 内嵌的 `com.timearc.service.plist`，由 launchd
   管理 `Contents/MacOS/time-arc-service`；
   同日增加 `tools/build-macos.sh`，覆盖 Release
-  构建/测试、Qt deploy、签名/公证和 DMG。剩余：Mac-host 权限 smoke、
-  db_path 实机确认、Accessibility UX、凭证签名/公证与 clean-machine QA；
+  构建/测试、Qt deploy、签名/公证和 DMG。
+  **复核（2026-08-05）：上述配置读取 / 单实例锁 / verbs 已随 `Tracking/` 重构消失** ——
+  `TimeArcService.swift:17-21` 现把 `idleThreshold: 60` 与 frontmost/media 开关硬编码，
+  helper **不读任何配置**；配置接线仍是待办，且应直接对 `service_config.json` v1（见 A3）实现。
+  剩余：配置接线、Mac-host 权限 smoke、
+  DB 目录指针实机确认、Accessibility UX、凭证签名/公证与 clean-machine QA；
   helper 已固定随 UI 放入 `TimeArc.app/Contents/MacOS`。Track B · macOS · 大。
 - [ ] **C2 Linux 服务从零实现**
   现状：`src/service/linux/main.c` 0 字节。需 X11 + Wayland 前台采样、idle 检测、PipeWire/PulseAudio
@@ -177,6 +192,8 @@ G2/G3 打磨 ───────────(随手)
   提案 `.harness/journal/sessions/20260609-0150-B-service-config-proposal.md`（维护者签核，CHARTER v0.3 channel 复用）。
   **S3 删除历史（G-CLEAR）暂缓**（append-only；要 purge 须 CHARTER 修订或外部停服工具，非本轮）。计划见
   [`h5-service-config-channel-kickoff.md`](h5-service-config-channel-kickoff.md)。
+  **后续：格式已被 A3 取代**——键改 `tracking.enabled` / `tracking.frontmost.idle_threshold_sec`（**秒**），
+  设置页的分钟换算须由「分钟→毫秒」改为「分钟→秒」；行为语义不变。
 - [ ] **H6 [天花板] 磨砂实时模糊（G-BLUR）** — `blur_strength` 已持久化无真实效果；QML 无实时 backdrop blur，唯一
   近似（面板半透明）伤可读性 + 改每页玻璃令牌（面大）。结论：**保留为标注偏好**，除非接受半透明代价或换渲染路径。
   Track B · UI · 低/不做。

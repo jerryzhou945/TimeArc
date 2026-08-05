@@ -17,10 +17,10 @@ shared memory. See `rules/03-data-contract.md` for the files.
 ## 2. Invariants
 
 **I1. Two-process separation.** UI does not sample. Service does not draw.
-The UI may start the service (`src/main.cpp::startUsageService`) and may write the
-sanctioned control file `usage_config.json` (db dir / idle / track) it reads at
-startup — disk-only, no IPC; the UI must not link service code. A single service is
-guaranteed by a named mutex (`Local\TimeArcUsageService` on Windows); same on new platforms.
+The UI may start the service (`src/main.cpp::startUsageService`) and may write the one
+sanctioned control file it reads at startup — `service_config.json` (§5 v0.13, spec in
+`src/service/README.md`; retired `usage_config.json` never read/written) — disk-only, no IPC;
+the UI must not link service code. A single service is guaranteed by a named mutex (`Local\TimeArcUsageService` on Windows); same on new platforms.
 
 **I2. Data contract on disk.** The service writes automatic usage exclusively
 to SQLite `timearc_service.db` (only tables
@@ -30,9 +30,9 @@ The UI opens `timearc_service.db` read-only for history. The GUI writes its own 
 never reads or writes it. Service SQLite filename is locked; its directory
 defaults to the platform service-data dir (`%APPDATA%\TimeArc\service`,
 `~/Library/Application Support/TimeArc/service`,
-`${XDG_DATA_HOME:-~/.local/share}/TimeArc/service`) and is redirectable via
-`usage_config.json` `db_dir` (service and UI append `timearc_service.db`; UI only
-writes the pointer, never the DB). Other paths from `database_path.c`. A field
+`${XDG_DATA_HOME:-~/.local/share}/TimeArc/service`) and is redirectable via the control
+file's directory pointer, `service_config.json` `database.dir`
+(service and UI append `timearc_service.db`; UI only writes the pointer, never the DB). Other paths from `database_path.c`. A field
 rename/type change, a service-table DDL change, or a file move requires a charter
 amendment + migration plan.
 Foreground idle stays in the current segment without increasing `active_sec`, unless video-like foreground playback overrides input idle; generated `idle_sec` records the difference. On every platform, complete normalized foreground and media observations define logical identity: all fields equal continues the session, while any changed field creates a boundary. Missing media ends immediately without silence grace; periodic media persistence checkpoints are optional and do not change logical identity.
@@ -97,3 +97,4 @@ Bump the version below.
 - **v0.10** — Retire the unused aggregate usage-record header; the table-specific `data_bridge.h` API and SQLite schema are the service contract. Proposal: `journal/sessions/20260712-2043-B-retire-usage-record-contract.md`.
 - **v0.11** — Keep foreground sessions open across idle intervals; paused active time is represented by generated `idle_sec`. Proposal: `journal/sessions/20260718-1619-B-idle-continuity-contract.md`.
 - **v0.12** — Define portable full-observation session identity, video-over-idle foreground behavior, immediate media absence, and optional media checkpointing. Proposal: `journal/sessions/20260723-1653-B-tracking-session-semantics.md`.
+- **v0.13** — Approve the redesigned control file `service_config.json` v1 (versioned, namespaced, seconds-based; adds sampling period, min/max session length, frontmost/media sub-switches) superseding `usage_config.json`; config dir moves to `TimeArc/config/`. Spec in `src/service/README.md`. **Clean break, no fallback**: the retired file is never read or written, so an install that had relocated its DB falls back to the default until the user re-selects the directory. UI writer + DB pointer implemented; the service-side tracking reader is pending (backlog A3). Proposal: `journal/sessions/20260805-2143-B-service-config-v1.md`.
