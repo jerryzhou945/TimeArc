@@ -550,6 +550,12 @@ Files written in the usage directory:
 
 - `usage_config.json` - UI-written service configuration and DB-directory pointer.
 
+> **Changing.** A redesigned control file, `service_config.json`, is approved
+> (`CHARTER` v0.13) but **not yet implemented**. It is versioned, namespaced, and
+> seconds-based, and it moves to `TimeArc/config/` (on Windows, under `%APPDATA%`).
+> The full specification lives in [`src/service/README.md`](src/service/README.md);
+> the paths and keys above describe what ships today.
+
 The service SQLite file is separate from the usage directory. Its filename is
 locked to `timearc_service.db`, and it defaults to the platform service-data directory:
 `%APPDATA%\TimeArc\service\timearc_service.db` on Windows,
@@ -605,6 +611,16 @@ file: the UI writes it and the service reads it via the bundled Parson parser.
 It carries the `db_dir` redirect (D2) and the H5 `idle_threshold_ms` /
 `track_enabled` keys; both writers do an atomic read-modify-write that preserves
 the other's keys. Other UI preferences live in the SQLite settings table.
+
+**Next format (approved, not implemented).** `service_config.json` v1 replaces
+this flat file with a versioned, namespaced document: a `tracking` section
+(master switch, sampling period, min/max record length, frontmost and media
+sub-switches, idle threshold in **seconds**) and a `database` section carrying
+the directory pointer. It also moves to `TimeArc/config/`. Keys, ranges, and
+per-platform paths are specified in
+[`src/service/README.md`](src/service/README.md); the migration and the
+one-release overlap are recorded in `CHARTER` v0.13 and
+`.harness/journal/sessions/20260805-2143-B-service-config-v1.md`.
 
 ## Project Structure
 

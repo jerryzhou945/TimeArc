@@ -2,6 +2,16 @@
 
 日期：2026-06-19
 
+> **⚠️ 历史报告，已被后续重写取代（复核于 2026-08-05）。** macOS helper 之后被重构为
+> `Tracking/` 探针 + 状态机架构（`TrackingCoordinator` / `FrontmostStateMachine` /
+> `MediaStateMachine`）。本文记录的以下能力**在当前代码里并不存在**：读取
+> `usage_config.json`（`TimeArcService.swift:17-21` 把 `idleThreshold: 60` /
+> `enableFrontmost` / `enableMedia` **硬编码**）、`time-arc-service.lock` 文件锁、
+> `usage_current.json` live snapshot（`CHARTER` v0.9 已退役）、`source=audio` 写法
+> （现为 `media_sessions` 表）。当前事实见 `.harness/rules/02-platform-boundaries.md` §3。
+> 配置格式本身也已重新设计：见 [`src/service/README.md`](../src/service/README.md)（`service_config.json` v1，
+> `CHARTER` v0.13，设计已批、尚未实装）。
+
 ## 目标
 
 按照 `docs/platform-parity-packaging-gap.md` 中的差异，把 macOS 后台 helper 从“能写最小 foreground session”推进到接近 Windows 后端契约的 MVP：配置读取、单实例、防止 stale current、媒体 session 写入和优雅退出 flush。

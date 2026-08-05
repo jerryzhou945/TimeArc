@@ -9,11 +9,11 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   Needed: X11 + Wayland foreground sampling, idle detection, audio (likely
   PipeWire / PulseAudio), and a single-instance guard. See
   [`../rules/02-platform-boundaries.md`](../rules/02-platform-boundaries.md) §3.
-- **macOS validation/packaging still open.** Helper now has foreground/media,
-  config, single-instance and LaunchAgent registration; UI uses `SMAppService`
-  with the embedded production plist; `tools/build-macos.sh` automates Qt deployment,
-  signing/notarization and DMG creation. Remaining: credentialed release,
-  runtime/Accessibility smoke, and clean-machine QA.
+- **macOS validation/packaging still open.** Helper has foreground/media tracking;
+  it reads **no** config and has no CLI verbs or single-instance guard (`rules/02` §3).
+  UI uses `SMAppService` with the embedded production plist; `tools/build-macos.sh`
+  automates Qt deployment, signing/notarization and DMG creation. Remaining: config
+  wiring, credentialed release, runtime/Accessibility smoke, and clean-machine QA.
 - **Windows background autostart shipped (B1 Route A).** `win_service.c` verbs
   + Settings toggle register an opt-in per-user logon task; SCM Session-0
   (Route B) deferred. See [`B1 kickoff`](../../docs/b1-windows-service-scm-kickoff.md).
@@ -78,8 +78,8 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 
 - **Qt dynamic link + release packaging — shipped (F1).** Windows now has the
   full `build-windows.ps1` entry point; the older linkage/package utilities remain.
-- **No JSON parser wired for user config.** Parson is bundled but unused;
-  README TO-DO lists "JSON parser for user preferences".
+- **Service config v1 approved, not implemented** (`CHARTER` v0.13). `service_config.json`
+  supersedes `usage_config.json`; spec `src/service/README.md`, plan `20260805-2143-B-service-config-v1.md`.
 
 ## Harness itself
 

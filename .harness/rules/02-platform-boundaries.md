@@ -55,19 +55,19 @@ Every platform service must:
   The tracker stays in the interactive user session. A true SCM Session-0
   service is deferred.
 
-### macOS - foreground/config/media/lifecycle MVP, packaged smoke passing
+### macOS - foreground/media tracking; no config read, no CLI verbs
 
-- `AppEnv.swift`: frontmost app via `NSWorkspace`, idle via `CGEventSource`,
-  media playback via `IOPMCopyAssertionsByProcess`.
-- `WindowIdentifying.swift`: focused-window title via accessibility API.
-- `AppInfo.swift`, `BinaryFloatingPoint+ToUInt.swift`: helpers.
-- `TimeArcService.swift`: initializes shared storage, reads
-  `~/Library/Application Support/TimeArc/usage/usage_config.json` for `idle_threshold_ms` and
-  `track_enabled`, takes a per-user file lock, writes foreground sessions,
-  writes media assertions as `source=audio`, pauses foreground active-time
-  accumulation while idle, flushes pending sessions on `SIGTERM`/`SIGINT`, and provides
-  `--install`/`--uninstall`/`--start`/`--stop`/`--status` verbs backed by a
-  per-user LaunchAgent.
+- `Tracking/ApplicationProbe.swift`: frontmost app + app information via `NSWorkspace`.
+- `Tracking/TitleProbe.swift`: window and audio titles via the accessibility API.
+- `Tracking/InputActionProbe.swift` (`CGEventSource` idle), `SleepAssertionProbe.swift`
+  (`IOPMCopyAssertionsByProcess`), `AudioProcessProbe.swift`: sampling primitives.
+- `Tracking/{Frontmost,Media}StateMachine.swift` own session identity and boundaries;
+  `TrackingCoordinator.swift` drives them and writes through `DataBridge.swift`.
+- `TimeArcService.swift`: `@main`; 1s poll timer, `SIGTERM`/`SIGINT` flush, final
+  shutdown flush. **It reads no configuration** — `idleThreshold: 60`,
+  `enableFrontmost: true`, `enableMedia: true` are hardcoded at the call site
+  (`TimeArcService.swift:17-21`), so the control file has no effect on macOS yet.
+  No CLI verbs and no single-instance guard here; both are Windows-only today.
 - On launch, the GUI registers embedded `com.timearc.service.plist` through
   `SMAppService`; it never copies the plist or executes the helper directly.
 - The helper is bundled as `.app/Contents/MacOS/time-arc-service`.
