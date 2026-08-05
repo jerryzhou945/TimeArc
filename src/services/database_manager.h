@@ -20,7 +20,8 @@ class DatabaseManager : public QObject {
   // GUI database path (`timearc.db`).
   Q_INVOKABLE QString getDatabasePath() const;
   // Service history database path (`timearc_service.db`), resolved from
-  // usage_config.json db_dir or the platform service-data default.
+  // service_config.json database.dir (legacy usage_config.json db_dir as a
+  // fallback) or the platform service-data default.
   Q_INVOKABLE QString getServiceDatabasePath() const;
 
   // GUI DB backup via VACUUM INTO. destPath empty -> auto target in the
@@ -41,20 +42,21 @@ class DatabaseManager : public QObject {
   // Returns {ok, error, newPath}.
   Q_INVOKABLE QVariantMap relocateDatabaseTo(const QString& targetDirOrUrl);
 
-  // Clear db_dir so the service DB falls back to the platform default.
+  // Clear database.dir so the service DB falls back to the platform default.
   Q_INVOKABLE QVariantMap restoreDefaultDatabaseLocation();
 
-  // H5 S2: write the background collector's idle-timeout (ms) + tracking on/off
-  // flag into usage_config.json so the service applies them at startup. Same
-  // atomic RMW + key-preservation as the D2 db_dir writer (they share one
-  // helper), so neither clobbers the other's keys. idleMs <= 0 omits the key
-  // (service keeps its compile-time default). Restart the collector
-  // (SettingsRepository) for immediate effect. Returns false on a write failure.
-  Q_INVOKABLE bool writeServiceConfig(int idleMs, bool trackEnabled);
+  // Write the background collector's idle timeout (**seconds** -- v1 changed
+  // the unit) + tracking on/off into service_config.json so the service applies
+  // them at startup. Same atomic RMW + key-preservation as the database.dir
+  // writer (they share one helper), so neither clobbers the other's keys.
+  // idleSec < 0 omits the key (service keeps its compile-time default); 0 is a
+  // real value meaning "never idle". Restart the collector (SettingsRepository)
+  // for immediate effect. Returns false on a write failure.
+  Q_INVOKABLE bool writeServiceConfig(int idleSec, bool trackEnabled);
 
   // Service history DB directory shown in the settings UI.
   Q_INVOKABLE QString currentDatabaseLocationDir() const;
-  // True when a service db_dir redirect is active.
+  // True when a service database.dir redirect is active.
   Q_INVOKABLE bool isUsingCustomDatabaseLocation() const;
 
  signals:
@@ -65,8 +67,8 @@ class DatabaseManager : public QObject {
   QString defaultGuiDatabasePath() const;
   QString serviceDatabasePath() const;
   QString defaultServiceDatabasePath() const;
-  // Atomic read-modify-write of usage_config.json db_dir (empty clears the
-  // key). Preserves every other key (idle/track share this file).
+  // Atomic read-modify-write of service_config.json database.dir (empty clears
+  // the leaf). Preserves every other key (tracking.* shares this file).
   bool writeDbDirPointer(const QString& dbDirOrEmpty);
   bool openGuiDatabase();
   bool openServiceDatabaseReadOnly();

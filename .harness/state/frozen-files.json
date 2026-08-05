@@ -9,11 +9,11 @@
     },
     {
       "path": "src/service/shared/database_path.h",
-      "sha256": "e5f934f1784ec00bfe7ee1e02074fa79c9e5b98d58a3db7c9763e605902f4755"
+      "sha256": "9ceea6f0e62701f3adb3ad88a949ad5c2feaec1ae8b90d9d507902e595a39c65"
     },
     {
       "path": "src/service/shared/database_path.c",
-      "sha256": "f3bd903f2c5f709e396c0c241c438b3241d546f204eede9404fae0a5efaace64"
+      "sha256": "eed5a90ded2f80f701fce21e0060e0d1a882aec69a45c1c29a9abf8d10e212e7"
     },
     {
       "path": "src/service/shared/app_info.h",

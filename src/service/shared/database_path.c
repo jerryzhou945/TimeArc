@@ -20,8 +20,13 @@
 #endif
 
 // The service database filename is fixed by the disk contract. Only the
-// containing directory may be redirected through usage_config.json `db_dir`.
+// containing directory may be redirected: through `database.dir` in
+// service_config.json (v1), or the legacy flat `db_dir` in usage_config.json
+// while the one-release overlap lasts. See CHARTER v0.13.
 #define TIMEARC_SERVICE_DB_FILENAME "timearc_service.db"
+
+#define TIMEARC_CONFIG_FILENAME "service_config.json"
+#define TIMEARC_LEGACY_CONFIG_FILENAME "usage_config.json"
 
 static int copy_string(char* dst, size_t dst_size, const char* src) {
   if (dst == NULL || dst_size == 0 || src == NULL) {
@@ -73,77 +78,92 @@ static int create_dir_if_missing(const char* path) {
   return -1;
 }
 
-// usage_config.json remains in the shared usage/config location so the UI can
-// atomically update service settings without linking service code.
-static int build_usage_config_dir(char* out_path, size_t out_path_size) {
+// Platform config base. Windows v1 uses roaming %APPDATA%; the legacy file
+// stayed under %LOCALAPPDATA%, so the two roots differ there and only there.
+// `create` is 0 for read-only fallbacks so probing never materializes a
+// directory the user does not already have.
+static int build_config_base(char* out_path, size_t out_path_size, int legacy,
+                             int create) {
 #ifdef _WIN32
-  const char* local_app_data = getenv("LOCALAPPDATA");
-  if (local_app_data == NULL || local_app_data[0] == '\0') {
+  (void)create;
+  const char* base = getenv(legacy ? "LOCALAPPDATA" : "APPDATA");
+  if (base == NULL || base[0] == '\0') {
     return -1;
   }
-
-  char app_dir[TA_MAX_PATH_BYTES];
-  if (join_path(app_dir, sizeof(app_dir), local_app_data, "TimeArc") != 0 ||
-      create_dir_if_missing(app_dir) != 0 ||
-      join_path(out_path, out_path_size, app_dir, "usage") != 0 ||
-      create_dir_if_missing(out_path) != 0) {
-    return -1;
-  }
+  return copy_string(out_path, out_path_size, base);
 #elif defined(__APPLE__)
+  (void)legacy;
   const char* home = getenv("HOME");
   if (home == NULL || home[0] == '\0') {
     return -1;
   }
 
   char library_dir[TA_MAX_PATH_BYTES];
-  char app_support_dir[TA_MAX_PATH_BYTES];
-  char app_dir[TA_MAX_PATH_BYTES];
   if (join_path(library_dir, sizeof(library_dir), home, "Library") != 0 ||
-      create_dir_if_missing(library_dir) != 0 ||
-      join_path(app_support_dir, sizeof(app_support_dir), library_dir,
-                "Application Support") != 0 ||
-      create_dir_if_missing(app_support_dir) != 0 ||
-      join_path(app_dir, sizeof(app_dir), app_support_dir, "TimeArc") != 0 ||
-      create_dir_if_missing(app_dir) != 0 ||
-      join_path(out_path, out_path_size, app_dir, "usage") != 0 ||
-      create_dir_if_missing(out_path) != 0) {
+      (create && create_dir_if_missing(library_dir) != 0) ||
+      join_path(out_path, out_path_size, library_dir, "Application Support") !=
+          0 ||
+      (create && create_dir_if_missing(out_path) != 0)) {
     return -1;
   }
+  return 0;
 #else
-  char config_base[TA_MAX_PATH_BYTES];
+  (void)legacy;
   const char* xdg_config_home = getenv("XDG_CONFIG_HOME");
   if (xdg_config_home != NULL && xdg_config_home[0] != '\0') {
-    if (copy_string(config_base, sizeof(config_base), xdg_config_home) != 0 ||
-        create_dir_if_missing(config_base) != 0) {
+    if (copy_string(out_path, out_path_size, xdg_config_home) != 0 ||
+        (create && create_dir_if_missing(out_path) != 0)) {
       return -1;
     }
-  } else {
-    const char* home = getenv("HOME");
-    if (home == NULL || home[0] == '\0' ||
-        join_path(config_base, sizeof(config_base), home, ".config") != 0 ||
-        create_dir_if_missing(config_base) != 0) {
-      return -1;
-    }
+    return 0;
   }
 
-  char app_dir[TA_MAX_PATH_BYTES];
-  if (join_path(app_dir, sizeof(app_dir), config_base, "TimeArc") != 0 ||
-      create_dir_if_missing(app_dir) != 0 ||
-      join_path(out_path, out_path_size, app_dir, "usage") != 0 ||
-      create_dir_if_missing(out_path) != 0) {
+  const char* home = getenv("HOME");
+  if (home == NULL || home[0] == '\0' ||
+      join_path(out_path, out_path_size, home, ".config") != 0 ||
+      (create && create_dir_if_missing(out_path) != 0)) {
     return -1;
   }
+  return 0;
 #endif
+}
+
+// "<config base>/TimeArc/<leaf>".
+static int build_app_subdir(char* out_path, size_t out_path_size,
+                            const char* base, const char* leaf, int create) {
+  char app_dir[TA_MAX_PATH_BYTES];
+  if (join_path(app_dir, sizeof(app_dir), base, "TimeArc") != 0 ||
+      (create && create_dir_if_missing(app_dir) != 0) ||
+      join_path(out_path, out_path_size, app_dir, leaf) != 0 ||
+      (create && create_dir_if_missing(out_path) != 0)) {
+    return -1;
+  }
   return 0;
 }
 
-static int build_usage_config_path(char* out_path, size_t out_path_size) {
-  char usage_dir[TA_MAX_PATH_BYTES];
-  if (build_usage_config_dir(usage_dir, sizeof(usage_dir)) != 0) {
+// v1 control file. It stays in a shared config location so the UI can update
+// service settings atomically without linking service code.
+static int build_config_path(char* out_path, size_t out_path_size) {
+  char base[TA_MAX_PATH_BYTES];
+  char dir[TA_MAX_PATH_BYTES];
+  if (build_config_base(base, sizeof(base), 0, 1) != 0 ||
+      build_app_subdir(dir, sizeof(dir), base, "config", 1) != 0) {
     return -1;
   }
+  return join_path(out_path, out_path_size, dir, TIMEARC_CONFIG_FILENAME);
+}
 
-  return join_path(out_path, out_path_size, usage_dir, "usage_config.json");
+// Legacy v0 control file: read-only fallback for the overlap release. Nothing
+// writes it, so a rollback to an older build finds it intact.
+static int build_legacy_config_path(char* out_path, size_t out_path_size) {
+  char base[TA_MAX_PATH_BYTES];
+  char dir[TA_MAX_PATH_BYTES];
+  if (build_config_base(base, sizeof(base), 1, 0) != 0 ||
+      build_app_subdir(dir, sizeof(dir), base, "usage", 0) != 0) {
+    return -1;
+  }
+  return join_path(out_path, out_path_size, dir,
+                   TIMEARC_LEGACY_CONFIG_FILENAME);
 }
 
 // Default DB storage is separate from the config directory:
@@ -231,24 +251,22 @@ static int build_default_database_path(char* out_path, size_t out_path_size) {
   return build_database_path_from_dir(out_path, out_path_size, db_dir);
 }
 
-// Returns 0 when a configured directory was used, 1 when the config is absent
-// or has no non-empty db_dir, and -1 when the configured database path cannot
-// fit. Missing or malformed config is a normal fallback case.
-static int read_configured_database_dir(char* out_path, size_t out_path_size) {
-  char config_path[TA_MAX_PATH_BYTES];
-  if (build_usage_config_path(config_path, sizeof(config_path)) != 0) {
-    return 1;
-  }
-
+// Reads one control file and applies its directory pointer. Returns 0 when a
+// directory was configured, 1 when the file parses but names none, 2 when the
+// file is absent or unparseable, and -1 when the resulting path cannot fit.
+static int apply_config_database_dir(char* out_path, size_t out_path_size,
+                                     const char* config_path,
+                                     const char* key_path, int dotted) {
   JSON_Value* root = json_parse_file(config_path);
   if (root == NULL) {
-    return 1;
+    return 2;
   }
 
   int rc = 1;
   JSON_Object* obj = json_value_get_object(root);
   if (obj != NULL) {
-    const char* db_dir = json_object_get_string(obj, "db_dir");
+    const char* db_dir = dotted ? json_object_dotget_string(obj, key_path)
+                                : json_object_get_string(obj, key_path);
     if (db_dir != NULL && db_dir[0] != '\0') {
       rc = build_database_path_from_dir(out_path, out_path_size, db_dir) == 0
                ? 0
@@ -258,6 +276,33 @@ static int read_configured_database_dir(char* out_path, size_t out_path_size) {
 
   json_value_free(root);
   return rc;
+}
+
+// Returns 0 when a configured directory was used, 1 when the config is absent
+// or has no non-empty directory pointer, and -1 when the configured database
+// path cannot fit. Missing or malformed config is a normal fallback case.
+//
+// A v1 file that parses decides on its own: the legacy file is consulted only
+// when v1 is absent or unparseable. The two are never key-merged, so a v1
+// document that deliberately omits `database.dir` means "use the default"
+// rather than "inherit whatever the old file said".
+static int read_configured_database_dir(char* out_path, size_t out_path_size) {
+  char config_path[TA_MAX_PATH_BYTES];
+  if (build_config_path(config_path, sizeof(config_path)) == 0) {
+    const int rc = apply_config_database_dir(out_path, out_path_size,
+                                             config_path, "database.dir", 1);
+    if (rc != 2) {
+      return rc;
+    }
+  }
+
+  char legacy_path[TA_MAX_PATH_BYTES];
+  if (build_legacy_config_path(legacy_path, sizeof(legacy_path)) != 0) {
+    return 1;
+  }
+  const int legacy_rc = apply_config_database_dir(out_path, out_path_size,
+                                                  legacy_path, "db_dir", 0);
+  return legacy_rc == 2 ? 1 : legacy_rc;
 }
 
 int get_database_path(char* out_path, size_t out_path_size) {

@@ -198,16 +198,17 @@ Item {
     function _setBool(k, v) { if (settingsRepository) settingsRepository.setBool(k, v) }
     function _setStr(k, v) { if (settingsRepository) settingsRepository.setValue(k, v) }
 
-    // —— H5 服务侧配置（空闲超时 / 真停采集）——
-    // idle 选单是分钟串（"5"/"10"/…），后台服务要毫秒。两进程经磁盘 usage_config.json
-    // 通信（守 I1，无 IPC）：C++ writeServiceConfig 原子 RMW 写入并保留 D2 的 db_dir 键。
-    function _idleMs() { return (parseInt(root.idleTimeout) || 5) * 60000 }
-    // 返回写盘是否成功：usage_config.json 损坏/不可写时 mergeUsageConfig 拒写并返回
-    // false（守 D2 db_dir 键不被覆盖）。调用方据此提示，避免「假成功」。无写入通道
-    // （如平台未绑定）视为 true，不报假失败、保持旧行为。
+    // —— 服务侧配置（空闲超时 / 真停采集）——
+    // idle 选单是分钟串（"5"/"10"/…），配置 v1 要**秒**（v0 是毫秒，单位已改）。
+    // 两进程经磁盘 service_config.json 通信（守 I1，无 IPC）：C++ writeServiceConfig
+    // 原子 RMW 写入 tracking.* 叶子并保留 database.dir 键。
+    function _idleSec() { return (parseInt(root.idleTimeout) || 5) * 60 }
+    // 返回写盘是否成功：service_config.json 损坏/不可写时 patchServiceConfig 拒写并
+    // 返回 false（守 database.dir 键不被覆盖）。调用方据此提示，避免「假成功」。无写入
+    // 通道（如平台未绑定）视为 true，不报假失败、保持旧行为。
     function _writeServiceConfig() {
         if (databaseManager && databaseManager.writeServiceConfig)
-            return databaseManager.writeServiceConfig(_idleMs(), root.trackRunning)
+            return databaseManager.writeServiceConfig(_idleSec(), root.trackRunning)
         return true
     }
     // 「应用并重启采集」：写最新 idle+track 后优雅停采集，再按追踪开关决定是否重启。
@@ -215,7 +216,7 @@ Item {
     // 追踪关闭＝服务**真停**采集（非仅 UI 软暂停）：此时只停、不重启。
     function applyAndRestartCollection() {
         if (!_writeServiceConfig()) {
-            showToast("服务配置写入失败（usage_config.json 不可写或已损坏），未重启采集"); return
+            showToast("服务配置写入失败（service_config.json 不可写或已损坏），未重启采集"); return
         }
         if (!settingsRepository || !settingsRepository.stopBackgroundCollection) {
             showToast("已写入配置；下次启动采集时生效"); return
@@ -691,7 +692,7 @@ Item {
         // 成功路径由 databaseManager.databaseRestored 信号触发重启提示
     }
 
-    // D2 服务数据位置：选目录只更新 usage_config.json db_dir 指针。GUI 不移动或写入
+    // D2 服务数据位置：选目录只更新 service_config.json database.dir 指针。GUI 不移动或写入
     // timearc_service.db；后台服务会在下次启动时写入该目录。
     function dbLocationText() {
         return (databaseManager && databaseManager.currentDatabaseLocationDir)
@@ -1228,7 +1229,7 @@ Item {
                                         onToggled: function (c) {
                                             root.trackRunning = c; root._setBool("track_running", c); root.pushReadFilters()
                                             root.showToast(!root._writeServiceConfig()
-                                                ? "已保存到本机，但服务配置写入失败（usage_config.json 不可写或已损坏）"
+                                                ? "已保存到本机，但服务配置写入失败（service_config.json 不可写或已损坏）"
                                                 : (c ? "已开启追踪（应用并重启采集后生效）" : "已关闭追踪（应用并重启采集后服务停止记录）"))
                                         }
                                     }
@@ -1265,7 +1266,7 @@ Item {
                                         model: [root.tr("5 分钟"), root.tr("10 分钟"), root.tr("15 分钟"), root.tr("30 分钟")]
                                         property var _vals: ["5", "10", "15", "30"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.idleTimeout))
-                                        onActivated: function (i) { root.idleTimeout = _vals[i]; root._setStr("idle_timeout", _vals[i]); root.showToast(root._writeServiceConfig() ? "空闲超时已保存（应用并重启采集后生效）" : "已保存到本机，但服务配置写入失败（usage_config.json 不可写或已损坏）") }
+                                        onActivated: function (i) { root.idleTimeout = _vals[i]; root._setStr("idle_timeout", _vals[i]); root.showToast(root._writeServiceConfig() ? "空闲超时已保存（应用并重启采集后生效）" : "已保存到本机，但服务配置写入失败（service_config.json 不可写或已损坏）") }
                                     }
                                 }
                                 SettingRow {

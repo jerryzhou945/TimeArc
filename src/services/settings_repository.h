@@ -62,7 +62,9 @@ class SettingsRepository : public QObject {
 
   // H5 S2：立即拉起一个后台采集进程（time-arc-service.exe --start；单实例 mutex 令其
   // 幂等——已在跑则新实例静默退出）。配合 stopBackgroundCollection 实现设置页「应用并
-  // 重启采集」。被拉起的服务在启动时重读 usage_config.json，故新写入的 idle/track 即时
+  // 重启采集」。被拉起的服务在启动时重读控制文件（v1 service_config.json；idle/track 两键
+  // 目前仍由服务从旧 usage_config.json 读，见 DatabaseManager::writeServiceConfig 的
+  // overlap shim），故新写入的 idle/track 即时
   // 生效。返回启动后是否在采集（追踪被关时服务自行退出→false，即诚实的「已暂停」）。
   // 守 I1：纯 UI→子进程命令。
   Q_INVOKABLE bool startBackgroundCollection();

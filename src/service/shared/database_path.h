@@ -13,9 +13,14 @@ extern "C" {
 
 // Resolve the service-owned SQLite database path.
 //
-// Resolution order:
-// 1. `usage_config.json` `db_dir`, with `timearc_service.db` appended.
-// 2. The platform default service-data directory, with the same filename.
+// Resolution order (CHARTER v0.13):
+// 1. `service_config.json` `database.dir`, with `timearc_service.db` appended.
+//    A v1 file that parses decides on its own — it is never key-merged with
+//    the legacy file, so omitting the key means "use the default".
+// 2. Only when no v1 file is present or it does not parse: the legacy
+//    `usage_config.json` `db_dir`, same filename appended. Read-only fallback
+//    for the one-release overlap; nothing writes that file.
+// 3. The platform default service-data directory, with the same filename.
 //
 // Returns 0 on success and -1 when arguments are invalid, a path does not fit,
 // or a required directory cannot be created.
