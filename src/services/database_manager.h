@@ -20,8 +20,7 @@ class DatabaseManager : public QObject {
   // GUI database path (`timearc.db`).
   Q_INVOKABLE QString getDatabasePath() const;
   // Service history database path (`timearc_service.db`), resolved from
-  // service_config.json database.dir (legacy usage_config.json db_dir as a
-  // fallback) or the platform service-data default.
+  // service_config.json database.dir or the platform service-data default.
   Q_INVOKABLE QString getServiceDatabasePath() const;
 
   // GUI DB backup via VACUUM INTO. destPath empty -> auto target in the

@@ -9,11 +9,11 @@
     },
     {
       "path": "src/service/shared/database_path.h",
-      "sha256": "9ceea6f0e62701f3adb3ad88a949ad5c2feaec1ae8b90d9d507902e595a39c65"
+      "sha256": "3026e12251620d573ee6e1c55f0e35a9cb73ba411e4a0aeb7f746b60aa2f7b8d"
     },
     {
       "path": "src/service/shared/database_path.c",
-      "sha256": "eed5a90ded2f80f701fce21e0060e0d1a882aec69a45c1c29a9abf8d10e212e7"
+      "sha256": "540ca59c13e6bbe1172c445510708a315bcb533636fb775e9adfee5bcdd9a02d"
     },
     {
       "path": "src/service/shared/app_info.h",
@@ -41,7 +41,7 @@
     },
     {
       "path": ".harness/CHARTER.md",
-      "sha256": "e53db6e9950761feef439b1e86ea0ceef7ef7920e529ecab7506ca62c1496eb3"
+      "sha256": "55d9832bb16ba338e7489a26d1b44de7157e8c01e39351d56512ba7a1a435b56"
     },
     {
       "path": ".harness/AGENTS.md",

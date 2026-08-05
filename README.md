@@ -83,8 +83,9 @@ with day and night modes.
   `qml/desktop/memorylake/NotifierTray.qml` (a `Qt.labs.platform` tray, loaded
   defensively so a missing plugin can't break the app). The tray can restore the
   hidden window and provides the explicit quit path. The **idle timeout** and
-  **true track pause** now take real effect: they write `usage_config.json` and an
-  "应用并重启采集" action restarts the service to apply them (H5). Items still without a
+  **true track pause** write `service_config.json`, and an "应用并重启采集" action
+  restarts the service; the collector applies them once the service-side reader
+  lands (backlog A3). Items still without a
   backend (real history deletion, real-time backdrop blur, global accent color) stay
   honest placeholders rather than faked; the page is read-only over the service database
   and never bypasses the disk contract.
@@ -542,21 +543,21 @@ calendar to-do starts timing. Memory Lake is the landing page.
 
 | Platform | Path                                                     |
 |----------|----------------------------------------------------------|
-| Windows  | `%LOCALAPPDATA%\TimeArc\usage\`                           |
-| macOS    | `~/Library/Application Support/TimeArc/usage/`            |
-| Linux    | `${XDG_CONFIG_HOME:-~/.config}/TimeArc/usage/`            |
+| Windows  | `%APPDATA%\TimeArc\config\`                               |
+| macOS    | `~/Library/Application Support/TimeArc/config/`           |
+| Linux    | `${XDG_CONFIG_HOME:-~/.config}/TimeArc/config/`           |
 
-Files written in the usage directory:
+Files written in the config directory:
 
-- `usage_config.json` - UI-written service configuration and DB-directory pointer.
+- `service_config.json` - UI-written service configuration and DB-directory pointer.
 
-> **Changing.** A redesigned control file, `service_config.json`, is approved
-> (`CHARTER` v0.13) but **not yet implemented**. It is versioned, namespaced, and
-> seconds-based, and it moves to `TimeArc/config/` (on Windows, under `%APPDATA%`).
-> The full specification lives in [`src/service/README.md`](src/service/README.md);
-> the paths and keys above describe what ships today.
+> **Upgrading from an older build.** This replaces `usage_config.json` in the old
+> `TimeArc/usage/` directory (`CHARTER` v0.13). The old file is **not** read or
+> migrated. If you had moved your database to a custom folder, re-select it once
+> under Settings → 服务数据库目录 — your existing database is untouched on disk,
+> but nothing points at it until you do. The old file can then be deleted.
 
-The service SQLite file is separate from the usage directory. Its filename is
+The service SQLite file is separate from the config directory. Its filename is
 locked to `timearc_service.db`, and it defaults to the platform service-data directory:
 `%APPDATA%\TimeArc\service\timearc_service.db` on Windows,
 `~/Library/Application Support/TimeArc/service/timearc_service.db` on macOS, and
@@ -570,12 +571,12 @@ written only by the GUI and stores settings, tags, manual projects/sessions,
 mobile sync tables, and UI-private state.
 
 **Choosing a different location (D2).** Only the database directory is
-redirectable (a larger disk, an external/synced volume) via the `db_dir` key in
-`usage_config.json` (in the fixed usage directory above). Both processes read
-the same directory pointer — the UI read-only service connection and the service
-in `get_database_path()` — and append `timearc_service.db`. Missing or
-malformed config falls back to the default; stale `db_path` keys are ignored and
-removed by the next database-location write.
+redirectable (a larger disk, an external/synced volume) via the `database.dir`
+key in `service_config.json` (in the fixed config directory above). Both
+processes read the same directory pointer — the UI read-only service connection
+and the service in `get_database_path()` — and append `timearc_service.db`.
+Missing or malformed config falls back to the default; the retired `db_dir` /
+`db_path` spellings are ignored and dropped by the next database-location write.
 Settings → 导入导出 → **服务数据库目录** updates only this pointer. The GUI does
 not copy, vacuum, restore, or write `timearc_service.db`; the service creates and
 writes the file in the selected directory after restart. A **还原默认位置** button
@@ -594,33 +595,32 @@ written to `<GenericDataLocation>/TimeArc/logs/harness-qt.log`.
 
 ### TimeArc Service
 
-The service samples foreground windows and per-process audio every
-second (configurable via `TIMEARC_USAGE_POLL_INTERVAL_MS`). The idle
-threshold defaults to 60 s (`TIMEARC_USAGE_IDLE_THRESHOLD_MS`) but is
-**overridable at startup** via `usage_config.json` `idle_threshold_ms`;
-`track_enabled=false` in that file makes the service collect nothing and
-exit (a true pause — never a deletion). It guarantees a single running
-instance via the named mutex `Local\TimeArcUsageService` on Windows, and a
-`Ctrl+C`, console close, or `--stop` triggers an orderly flush of the
-current session.
+The service samples foreground windows and per-process audio every second, with a
+60 s idle threshold. It guarantees a single running instance via the named mutex
+`Local\TimeArcUsageService` on Windows, and a `Ctrl+C`, console close, or
+`--stop` triggers an orderly flush of the current session.
+
+Those two values still come from compile-time defaults
+(`TIMEARC_USAGE_POLL_INTERVAL_MS`, `TIMEARC_USAGE_IDLE_THRESHOLD_MS`): the
+collector does not read the `tracking.*` settings yet, so the idle-timeout and
+tracking switches in Settings persist to the config file but have no reader until
+backlog A3 lands. The database-directory pointer half **is** live on both sides.
 
 ### Configuration
 
-`usage_config.json` (in the fixed usage dir) is the one cross-process config
+`service_config.json` (in the fixed config dir) is the one cross-process config
 file: the UI writes it and the service reads it via the bundled Parson parser.
-It carries the `db_dir` redirect (D2) and the H5 `idle_threshold_ms` /
-`track_enabled` keys; both writers do an atomic read-modify-write that preserves
-the other's keys. Other UI preferences live in the SQLite settings table.
+It is versioned (`schema_version`) and namespaced — a `tracking` section (master
+switch, sampling period, min/max record length, frontmost and media sub-switches,
+idle threshold in **seconds**) and a `database` section carrying the directory
+pointer. Every key, range, and per-platform path is specified in
+[`src/service/README.md`](src/service/README.md).
 
-**Next format (approved, not implemented).** `service_config.json` v1 replaces
-this flat file with a versioned, namespaced document: a `tracking` section
-(master switch, sampling period, min/max record length, frontmost and media
-sub-switches, idle threshold in **seconds**) and a `database` section carrying
-the directory pointer. It also moves to `TimeArc/config/`. Keys, ranges, and
-per-platform paths are specified in
-[`src/service/README.md`](src/service/README.md); the migration and the
-one-release overlap are recorded in `CHARTER` v0.13 and
-`.harness/journal/sessions/20260805-2143-B-service-config-v1.md`.
+Writes are an atomic leaf patch that preserves every other key — including
+sections a given build does not recognize — so the pointer writer and the
+tracking writer cannot clobber each other. The retired `usage_config.json` is
+never read or written (`CHARTER` v0.13; see the upgrade note under Data
+Location). Other UI preferences live in the SQLite settings table.
 
 ## Project Structure
 
@@ -803,10 +803,10 @@ See `.harness/CHARTER.md` for invariants and frozen files;
       Shipped GUI `timearc.db` backup via `VACUUM INTO` + validated restore;
       retention (S3) deferred.
 - [x] Add a safe database-directory migration flow for user-selectable data
-      locations (D2). A cross-process `db_dir` pointer in `usage_config.json`
-      (read by the UI read-only service connection and the service
-      `get_database_path`, with `timearc_service.db` appended) + a Settings →
-      服务数据库目录 pointer update and 还原默认位置 button.
+      locations (D2). A cross-process `database.dir` pointer in
+      `service_config.json` (read by the UI read-only service connection and the
+      service `get_database_path`, with `timearc_service.db` appended) + a
+      Settings → 服务数据库目录 pointer update and 还原默认位置 button.
 - [ ] Expand local memo management only as local/offline tooling; do not
       describe it as AI chat unless an actual AI feature is added later.
 - [ ] Finish the Settings page remainders: app-wide accent-color theming and

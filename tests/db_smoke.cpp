@@ -1900,12 +1900,11 @@ int main(int argc, char* argv[]) {
 
   // ---- D2: cross-process database.dir pointer + UI relocation round-trip ----
   // S1: getServiceDatabasePath() honors service_config.json database.dir
-  // (resolve / absent / corrupt -> default; configured dir wins), and falls back
-  // to the legacy flat db_dir only when no v1 document parses. S2:
-  // relocateDatabaseTo writes only the pointer; restoreDefaultDatabaseLocation
-  // clears it. In test mode both control files live under the test-mode AppData
-  // (testDataPath), so this never touches the real user's config dir.
-  // Pure QtCore + QtSql (no USM).
+  // (resolve / absent / corrupt -> default; configured dir wins). The retired
+  // flat db_dir is never consulted. S2: relocateDatabaseTo writes only the
+  // pointer; restoreDefaultDatabaseLocation clears it. In test mode the control
+  // file lives under the test-mode AppData (testDataPath), so this never
+  // touches the real user's config dir. Pure QtCore + QtSql (no USM).
   {
     const QString configPath =
         QDir(testDataPath).filePath(QStringLiteral("service_config.json"));
@@ -2001,25 +2000,18 @@ int main(int argc, char* argv[]) {
     QFile::remove(blocker);
     removeConfig();
 
-    // S1 state 5 (v1 migration): with no v1 file, the legacy flat db_dir is
-    // still honored, so an existing install keeps its relocated DB across the
-    // upgrade. Must match database_path.c, or the two processes split-brain.
+    // S1 state 5 (legacy retirement): the retired flat db_dir is never read.
+    // Even as the ONLY control file present, it must not redirect anything --
+    // this is what makes an old relocated install fall back to the default
+    // until the user re-selects the directory. Must match database_path.c.
     {
       QJsonObject legacy;
       legacy.insert(QStringLiteral("db_dir"), customDir);
       if (!writeFile(legacyPath, QJsonDocument(legacy).toJson()))
         return fail(QStringLiteral("D2 S1: could not write legacy config."));
     }
-    if (cleaned(databaseManager.getServiceDatabasePath()) != customDb)
-      return fail(QStringLiteral("D2 S1: legacy db_dir fallback was not honored."));
-
-    // S1 state 6: a v1 file that parses wins outright -- never key-merged with
-    // the legacy file. v1 omits the pointer, so the answer is the default even
-    // though the legacy file still names a directory.
-    if (!writeConfig(QByteArrayLiteral("{\"schema_version\":1}")))
-      return fail(QStringLiteral("D2 S1: could not write empty v1 config."));
     if (cleaned(databaseManager.getServiceDatabasePath()) != cleaned(defaultDbPath))
-      return fail(QStringLiteral("D2 S1: legacy db_dir leaked past a valid v1 file."));
+      return fail(QStringLiteral("D2 S1: retired db_dir was still honored."));
     removeConfig();
 
     // S2: pointer round-trip. The GUI no longer moves or writes the service DB
@@ -2068,15 +2060,15 @@ int main(int argc, char* argv[]) {
         << QStringLiteral("D2 database.dir pointer + relocate round-trip ok.");
   }
 
-  // ---- UI->service config channel (idle / track), v1 ------------------------
+  // ---- UI->service config channel (idle / track) ----------------------------
   // DatabaseManager::writeServiceConfig writes tracking.frontmost.
   // idle_threshold_sec + tracking.enabled into the SAME service_config.json the
   // database.dir pointer lives in, through the shared patchServiceConfig RMW
   // helper. Asserts: values land nested with the right types and in SECONDS,
-  // idleSec<0 omits the key while 0 is a real "never idle" value, the overlap
-  // shim mirrors both keys into the legacy file in the v0 spelling/unit, and --
-  // the headline invariant (#3) -- the two writers preserve each other's keys in
-  // BOTH directions. Test mode keeps both files under testDataPath.
+  // idleSec<0 omits the key while 0 is a real "never idle" value, the retired
+  // usage_config.json is never written, and -- the headline invariant (#3) --
+  // the two writers preserve each other's keys in BOTH directions. Test mode
+  // keeps the file under testDataPath.
   {
     const QString configPath =
         QDir(testDataPath).filePath(QStringLiteral("service_config.json"));
@@ -2128,17 +2120,9 @@ int main(int argc, char* argv[]) {
         return fail(QStringLiteral("config: tracking.enabled not written as false."));
     }
 
-    // 1b. Overlap shim: the two keys are mirrored into the legacy file in the v0
-    //     spelling and unit, so the not-yet-updated collector keeps working.
-    {
-      const QJsonObject legacy = readObj(legacyPath);
-      if (legacy.value(QStringLiteral("idle_threshold_ms")).toInt() != 300000)
-        return fail(QStringLiteral("config: legacy mirror lost the ms conversion."));
-      if (legacy.value(QStringLiteral("track_enabled")).toBool() != false)
-        return fail(QStringLiteral("config: legacy mirror lost track_enabled."));
-      if (legacy.contains(QStringLiteral("schema_version")))
-        return fail(QStringLiteral("config: legacy mirror must stay unversioned."));
-    }
+    // 1b. Legacy retirement: the retired file is never created or touched.
+    if (QFileInfo::exists(legacyPath))
+      return fail(QStringLiteral("config: writer resurrected usage_config.json."));
 
     // 2. idleSec < 0 omits the key (service keeps its compile-time default);
     //    tracking.enabled is still written (the user's explicit choice).
@@ -2149,8 +2133,6 @@ int main(int argc, char* argv[]) {
         return fail(QStringLiteral("config: idleSec<0 did not omit the idle key."));
       if (trackValue().toBool() != true)
         return fail(QStringLiteral("config: tracking.enabled not updated to true."));
-      if (readObj(legacyPath).contains(QStringLiteral("idle_threshold_ms")))
-        return fail(QStringLiteral("config: legacy mirror kept a removed idle key."));
     }
 
     // 2b. 0 is a REAL value in v1 ("never idle"), not a request for the default.
@@ -2242,7 +2224,7 @@ int main(int argc, char* argv[]) {
     // 5. Corrupt-existing-file guard: a non-empty UNPARSEABLE service_config.json
     //    must NOT be silently overwritten (that would truncate the other
     //    writer's key). writeServiceConfig refuses (returns false) and leaves the
-    //    file byte-intact -- and never reaches the legacy mirror either.
+    //    file byte-intact.
     {
       const QByteArray garbage = QByteArrayLiteral("{ not valid json :: database");
       QFile f(configPath);
@@ -2259,12 +2241,10 @@ int main(int argc, char* argv[]) {
       rf.close();
       if (after != garbage)
         return fail(QStringLiteral("config: corrupt config was mutated instead of preserved."));
-      if (QFileInfo::exists(legacyPath))
-        return fail(QStringLiteral("config: refused v1 write still ran the legacy mirror."));
       QFile::remove(configPath);
     }
     qInfo().noquote()
-        << QStringLiteral("service-config v1 write + key-preservation ok.");
+        << QStringLiteral("service-config write + key-preservation ok.");
   }
 
   qInfo().noquote() << QStringLiteral("database smoke ok: %1").arg(databasePath);

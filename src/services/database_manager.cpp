@@ -33,21 +33,16 @@ QString testAppDataLocation() {
 // D2/H5: the cross-process pointer lives in the control file in a fixed config
 // dir, not beside a movable DB. In test mode there is no service, so the pointer
 // stays under the test AppData path to isolate db_smoke from the real user.
-//
-// `legacy` selects the retired v0 layout (`TimeArc/usage`, and on Windows the
-// non-roaming %LOCALAPPDATA% root). It exists only so the UI can read a v0 file
-// written by an older build, and to mirror the two H5 keys the service has not
-// been taught to read from v1 yet. Must mirror database_path.c exactly.
-QString controlFileDir(bool legacy) {
+// Must mirror build_config_path in database_path.c exactly.
+QString controlFileDir() {
   if (QStandardPaths::isTestModeEnabled()) {
     return testAppDataLocation();
   }
 
-  const QString leaf =
-      legacy ? QStringLiteral("TimeArc/usage") : QStringLiteral("TimeArc/config");
+  const QString leaf = QStringLiteral("TimeArc/config");
 
 #if defined(Q_OS_WIN)
-  QString base = qEnvironmentVariable(legacy ? "LOCALAPPDATA" : "APPDATA");
+  QString base = qEnvironmentVariable("APPDATA");
   if (base.trimmed().isEmpty()) return QString();
   return QDir(base).filePath(leaf);
 #elif defined(Q_OS_MACOS)
@@ -67,15 +62,9 @@ QString controlFileDir(bool legacy) {
 }
 
 QString serviceConfigPath() {
-  const QString dir = controlFileDir(false);
+  const QString dir = controlFileDir();
   if (dir.isEmpty()) return QString();
   return QDir(dir).filePath(QStringLiteral("service_config.json"));
-}
-
-QString legacyConfigPath() {
-  const QString dir = controlFileDir(true);
-  if (dir.isEmpty()) return QString();
-  return QDir(dir).filePath(QStringLiteral("usage_config.json"));
 }
 
 // Dotted-leaf access over the nested v1 document. Reading a missing branch
@@ -126,8 +115,9 @@ void removeJsonLeaf(QJsonObject& root, const QString& dotted) {
   }
 }
 
-// D2/H5: atomic read-modify-write of a control file. Inserts/overwrites every
-// dotted leaf in `updates`, removes every leaf in `removeLeaves`, and PRESERVES
+// D2/H5: atomic read-modify-write of the control file. Every UI write goes
+// through here, version-stamped. Inserts/overwrites every dotted leaf in
+// `updates`, removes every leaf in `removeLeaves`, and PRESERVES
 // all other keys -- including whole sections this build knows nothing about, so
 // an older UI cannot delete a newer service's settings. Both the D2 database.dir
 // writer and the H5 tracking writer funnel through this one helper, so neither
@@ -135,15 +125,16 @@ void removeJsonLeaf(QJsonObject& root, const QString& dotted) {
 // impossible rather than guarded by convention).
 // QSaveFile gives the atomic tmp-write + rename the disk contract requires.
 // Returns false on any failure (G6 honest -- caller must not assume success).
-bool patchConfigFile(const QString& cfgPath, const QVariantMap& updates,
-                     const QStringList& removeLeaves, bool stampSchemaVersion) {
+bool patchServiceConfig(const QVariantMap& updates,
+                        const QStringList& removeLeaves) {
+  const QString cfgPath = serviceConfigPath();
   if (cfgPath.isEmpty()) {
-    qWarning() << "patchConfigFile: cannot resolve control file path.";
+    qWarning() << "patchServiceConfig: cannot resolve control file path.";
     return false;
   }
   const QString cfgDir = QFileInfo(cfgPath).absolutePath();
   if (!QDir().mkpath(cfgDir)) {
-    qWarning() << "patchConfigFile: cannot create config dir:" << cfgDir;
+    qWarning() << "patchServiceConfig: cannot create config dir:" << cfgDir;
     return false;
   }
 
@@ -163,7 +154,7 @@ bool patchConfigFile(const QString& cfgPath, const QVariantMap& updates,
         QJsonParseError err;
         const QJsonDocument doc = QJsonDocument::fromJson(raw, &err);
         if (err.error != QJsonParseError::NoError || !doc.isObject()) {
-          qWarning() << "patchConfigFile: refusing to overwrite unparseable "
+          qWarning() << "patchServiceConfig: refusing to overwrite unparseable "
                         "control file (preserving sibling keys for recovery):"
                      << cfgPath;
           return false;
@@ -175,65 +166,51 @@ bool patchConfigFile(const QString& cfgPath, const QVariantMap& updates,
   for (const QString& leaf : removeLeaves) removeJsonLeaf(obj, leaf);
   for (auto it = updates.begin(); it != updates.end(); ++it)
     setJsonLeaf(obj, it.key(), QJsonValue::fromVariant(it.value()));
-  // Stamp the version last so a v0 file this writer touches becomes a valid v1
-  // document, and so a hand-edited file cannot end up versionless.
-  if (stampSchemaVersion && !obj.isEmpty())
-    obj.insert(QStringLiteral("schema_version"), 1);
+  // Stamp the version last so a hand-edited file cannot end up versionless.
+  if (!obj.isEmpty()) obj.insert(QStringLiteral("schema_version"), 1);
 
   const QByteArray bytes = QJsonDocument(obj).toJson(QJsonDocument::Indented);
   QSaveFile out(cfgPath);
   if (!out.open(QIODevice::WriteOnly)) {
-    qWarning() << "patchConfigFile: cannot open for write:" << cfgPath;
+    qWarning() << "patchServiceConfig: cannot open for write:" << cfgPath;
     return false;
   }
   if (out.write(bytes) != bytes.size()) {
     out.cancelWriting();
-    qWarning() << "patchConfigFile: short write:" << cfgPath;
+    qWarning() << "patchServiceConfig: short write:" << cfgPath;
     return false;
   }
   if (!out.commit()) {
-    qWarning() << "patchConfigFile: commit failed:" << cfgPath;
+    qWarning() << "patchServiceConfig: commit failed:" << cfgPath;
     return false;
   }
   return true;
 }
 
-// The v1 control file, version-stamped. Every UI write goes through here.
-bool patchServiceConfig(const QVariantMap& updates,
-                        const QStringList& removeLeaves) {
-  return patchConfigFile(serviceConfigPath(), updates, removeLeaves, true);
-}
-
-// Parse a control file. Returns true only when the file exists and holds a JSON
-// object -- absent, unreadable, and malformed all return false, which is the
-// distinction database_path.c uses to decide whether to fall back.
-bool readConfigObject(const QString& cfgPath, QJsonObject* out) {
-  if (out) *out = QJsonObject();
-  if (cfgPath.isEmpty()) return false;
+// Parse the control file into an object. Empty when absent, unreadable, or
+// malformed -- all three mean "no configured pointer" to every caller here.
+QJsonObject readConfigObject(const QString& cfgPath) {
+  if (cfgPath.isEmpty()) return QJsonObject();
   QFile f(cfgPath);
-  if (!f.exists() || !f.open(QIODevice::ReadOnly)) return false;
+  if (!f.exists() || !f.open(QIODevice::ReadOnly)) return QJsonObject();
   const QByteArray bytes = f.readAll();
   f.close();
   QJsonParseError err;
   const QJsonDocument doc = QJsonDocument::fromJson(bytes, &err);
-  if (err.error != QJsonParseError::NoError || !doc.isObject()) return false;
-  if (out) *out = doc.object();
-  return true;
+  if (err.error != QJsonParseError::NoError || !doc.isObject())
+    return QJsonObject();
+  return doc.object();
 }
 
 // Raw database directory pointer (empty when absent / unreadable / malformed).
 // No validation here -- callers decide what to do with it. Mirrors the
-// resolution order in database_path.c exactly: a v1 file that PARSES decides on
-// its own, even when it omits the key; the legacy flat `db_dir` is consulted
-// only when v1 is absent or unparseable. The two readers must stay in step or
-// the processes split-brain over where history lives.
+// resolution in database_path.c exactly; the retired flat `db_dir` is never
+// read. The two readers must stay in step or the processes split-brain over
+// where history lives.
 QString readConfigDbDirRaw() {
-  QJsonObject obj;
-  if (readConfigObject(serviceConfigPath(), &obj))
-    return jsonLeaf(obj, QStringLiteral("database.dir")).toString();
-
-  readConfigObject(legacyConfigPath(), &obj);
-  return obj.value(QStringLiteral("db_dir")).toString();
+  return jsonLeaf(readConfigObject(serviceConfigPath()),
+                  QStringLiteral("database.dir"))
+      .toString();
 }
 
 // A directory is usable when it exists (or can be created) and a probe write
@@ -1022,31 +999,11 @@ bool DatabaseManager::writeServiceConfig(int idleSec, bool trackEnabled) {
   else
     remove << idleKey;
   updates.insert(QStringLiteral("tracking.enabled"), trackEnabled);
-  if (!patchServiceConfig(updates, remove)) return false;
-
-  // OVERLAP SHIM (remove with backlog A3, once the service reads v1 tracking
-  // keys). service_config.c still reads only the flat v0 keys from the legacy
-  // file, so writing v1 alone would silently stop idle/track from reaching the
-  // collector -- a shipped feature (H5) going dark with no error. Mirror just
-  // these two keys, in the v0 spelling and unit. The database pointer is NOT
-  // mirrored: database_path.c already reads v1 and would ignore it anyway.
-  // A mirror failure is not fatal: v1 is the authoritative write and already
-  // succeeded, so report success and leave a breadcrumb. Note idleSec == 0
-  // ("never idle") has no v0 spelling: 0 ms falls outside the old reader's
-  // [1000, 86400000] clamp, so the collector keeps its 60s default until it
-  // reads v1. That is a v1-only capability, not a regression of a v0 one.
-  QVariantMap legacyUpdates;
-  QStringList legacyRemove;
-  if (idleSec >= 0)
-    legacyUpdates.insert(QStringLiteral("idle_threshold_ms"), idleSec * 1000);
-  else
-    legacyRemove << QStringLiteral("idle_threshold_ms");
-  legacyUpdates.insert(QStringLiteral("track_enabled"), trackEnabled);
-  if (!patchConfigFile(legacyConfigPath(), legacyUpdates, legacyRemove, false))
-    qWarning() << "writeServiceConfig: v1 written, but the legacy mirror "
-                  "failed; the collector keeps its previous idle/track values "
-                  "until it learns to read service_config.json.";
-  return true;
+  // The retired usage_config.json is never written. Until the collector is
+  // taught to read these keys from service_config.json (backlog A3), it keeps
+  // its compile-time idle/track defaults -- the settings still persist and
+  // still reach the file, they just have no reader yet.
+  return patchServiceConfig(updates, remove);
 }
 
 QVariantMap DatabaseManager::relocateDatabaseTo(const QString& targetDirOrUrl) {

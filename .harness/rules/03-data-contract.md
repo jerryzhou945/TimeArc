@@ -20,48 +20,48 @@ The service-owned SQLite history DB lives in the platform service-data directory
 | `timearc.db`              | GUI only                    | GUI            | settings/tags/manual/mobile/UI tables |
 
 SQLite (`timearc_service.db`) is the UI's **only** history source as of
-`CHARTER` v0.8, and the service is its only writer. The
-service and UI resolve it through the same control-file directory pointer,
-then append the locked filename. The UI opens it read-only; a missing, empty, or
-unreadable database produces empty history rather than consulting another source.
-The GUI's original
-`timearc.db` is separate and GUI-only; it owns settings, tags, manual project
-state, Android/mobile sync tables, and UI app metadata. No process writes the
-other process's SQLite file.
+`CHARTER` v0.8, and the service is its only writer. The service and UI resolve it
+through the same control-file directory pointer, then append the locked filename.
+The UI opens it read-only; a missing, empty, or unreadable database produces empty
+history rather than consulting another source. The GUI's original `timearc.db` is
+separate and GUI-only; it owns settings, tags, manual project state,
+Android/mobile sync tables, and UI app metadata. No process writes the other
+process's SQLite file.
 
 ## 1b. The control file
 
-One UI-written, service-read JSON file carries the DB directory pointer and the
-collection settings. It is the **only** sanctioned UI→service channel (I1): disk-only, read at service startup, never IPC.
+One UI-written, service-read JSON file carries the DB directory pointer and the collection
+settings. **Only** sanctioned UI→service channel (I1): disk-only, read at service startup, never IPC.
 
-**Shipped today — `usage_config.json`** in `<config base>/TimeArc/usage/`
-(`%LOCALAPPDATA%`, `~/Library/Application Support`, `${XDG_CONFIG_HOME:-~/.config}`).
-Flat, unversioned, three keys: `db_dir` (service-DB directory — D2, `CHARTER` v0.5;
-the filename stays locked to `timearc_service.db`), `idle_threshold_ms` (clamped
-1s-24h — H5, `CHARTER` v0.4), and `track_enabled` (`false` = service self-exits,
-never a deletion).
+**`service_config.json`** (`CHARTER` v0.13) in `<config base>/TimeArc/config/`
+(`%APPDATA%`, `~/Library/Application Support`, `${XDG_CONFIG_HOME:-~/.config}`).
+Versioned and namespaced; every key, range, and path: `src/service/README.md`
+§Configuration File. `database.dir` carries the service-DB directory (D2; filename
+stays locked to `timearc_service.db`); `tracking.*` the collection settings, idle
+in **seconds**.
 
 The service resolves the DB through shared `get_database_path`; the UI mirrors
-the same config-first logic for its read-only history connection. Absent,
-unreadable, malformed, or empty values fall back to compile-time defaults. GUI
-"relocation" only writes the pointer — it never copies, vacuums, restores, or
-writes `timearc_service.db`. The retired `db_path` key is ignored and removed by
-the next UI DB-location write. Both writers share `mergeUsageConfig`, an atomic
-RMW that preserves the other's keys.
+that logic in `readConfigDbDirRaw`. **The two must stay in step or the processes
+split-brain over where history lives.** Absent, unreadable, or malformed config
+falls back to compile-time defaults. GUI "relocation" only writes the pointer — it
+never copies, vacuums, restores, or writes `timearc_service.db`. Writes go through
+`patchServiceConfig`, an atomic leaf-patching RMW that preserves every other key,
+including sections this build does not know about.
 
-**Approved successor — `service_config.json` v1** (`CHARTER` v0.13, **not yet
-implemented**). Versioned and namespaced; lives in `<config base>/TimeArc/config/`
-(Windows root moves to `%APPDATA%`). Full specification, including every key,
-range, and the file location table: `src/service/README.md` §Configuration File.
-Migration and the one-release overlap plan:
-`journal/sessions/20260805-2143-B-service-config-v1.md`. Key mapping: `db_dir` →
-`database.dir`; `track_enabled` → `tracking.enabled`; `idle_threshold_ms` →
-`tracking.frontmost.idle_threshold_sec` with `round(ms/1000)`, clamped 0-86400.
+**The retired `usage_config.json` is never read or written** — no fallback, no
+mirror, no importer. Release-note consequence: an install that had relocated its
+database loses the pointer and falls back to the platform default until the user
+re-selects the directory in Settings; the old database is untouched on disk.
+Retired spellings `db_dir`/`db_path` are dropped from the new file on the next
+DB-location write. Key mapping, for anyone migrating by hand:
+`db_dir` → `database.dir`; `track_enabled` → `tracking.enabled`;
+`idle_threshold_ms` → `tracking.frontmost.idle_threshold_sec` (`round(ms/1000)`).
 
-Until the implementation session lands, code and tests must keep reading the
-shipped format. Writing v1 keys into `usage_config.json`, or the reverse, is
-drift. Earlier proposals: `journal/sessions/20260609-0150-B-service-config-proposal.md`
-(H5), `journal/sessions/20260610-1705-B-d2-db-path-pointer-proposal.md` (D2).
+Implemented: the UI writer and the DB pointer on both sides. **Pending (backlog
+A3): the service-side reader for `tracking.*`** — until it lands the collector
+keeps compile-time idle/track defaults. Proposal:
+`journal/sessions/20260805-2143-B-service-config-v1.md` (superseding the H5
+`20260609-0150` and D2 `20260610-1705` proposals).
 
 ## 2. Invariants
 
