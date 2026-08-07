@@ -45,6 +45,15 @@ if(APPLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/CommandLine/ServiceCommandParser.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/CommandLine/ServiceExitCode.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/CommandLine/ServiceUsage.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Configuration/ConfigurationPorts.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Configuration/ServiceConfigurationPath.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Configuration/FileConfigurationStore.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/RuntimePorts.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/SystemClock.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/RunLoopTicker.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/SignalObserver.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/FileInstanceLock.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/ServiceRuntime.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/RunCommand.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/TrackingPorts.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/AccessibilityRequest.swift

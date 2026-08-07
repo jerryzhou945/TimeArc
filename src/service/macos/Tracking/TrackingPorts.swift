@@ -16,6 +16,47 @@ enum SleepAssertionType: String, Equatable, Sendable {
   case background
 }
 
+// The collection policy that drives the tracking coordinator. The configuration
+// layer maps the control file onto this type; tracking never reads the file.
+struct TrackingPolicy: Equatable, Sendable {
+  // Whether frontmost app tracking is enabled.
+  let enableFrontmost: Bool
+
+  // Whether media tracking is enabled.
+  let enableMedia: Bool
+
+  // The seconds without input after which a frontmost session becomes idle.
+  // Zero disables idle detection.
+  let idleThresholdSec: Int64
+
+  // Whether video-like foreground playback keeps a session active while input is idle.
+  let videoOverridesIdle: Bool
+
+  // Records shorter than this many seconds are not written.
+  let minSessionSec: Int64
+
+  // When an open record reaches this many seconds it is written and a new one
+  // starts. Zero leaves record length uncapped.
+  let maxSessionSec: Int64
+
+  // Initialize the policy with the documented defaults.
+  init(
+    enableFrontmost: Bool = true,
+    enableMedia: Bool = true,
+    idleThresholdSec: Int64 = 60,
+    videoOverridesIdle: Bool = true,
+    minSessionSec: Int64 = 1,
+    maxSessionSec: Int64 = 300
+  ) {
+    self.enableFrontmost = enableFrontmost
+    self.enableMedia = enableMedia
+    self.idleThresholdSec = idleThresholdSec
+    self.videoOverridesIdle = videoOverridesIdle
+    self.minSessionSec = minSessionSec
+    self.maxSessionSec = maxSessionSec
+  }
+}
+
 // Information about an app.
 struct AppInformation: Equatable, Sendable, Hashable {
   let pid: Int32

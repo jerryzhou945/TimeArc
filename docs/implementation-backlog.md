@@ -69,13 +69,18 @@ G2/G3 打磨 ───────────(随手)
   - [x] **S5** 退役旧历史流写入和 UI fallback/parity 读路径，完成 `rules/03` / Charter 最终修订；旧文件不自动删除。
   - [x] **契约清理**（`CHARTER` v0.10）：删除已无消费者的聚合 session 头和说明文档，统一以 `data_bridge.h` 与 SQLite 三表为契约。
   实测：回填后 SQLite==JSONL（week/month/year/all 全 diff 0、记录 53108==53108）。Track B · 平台跨 · `usage_paths` db 访问器未加。
-- [ ] **A3 服务配置格式 v1（`service_config.json`）— 设计已批，未实装**
+- [~] **A3 服务配置格式 v1（`service_config.json`）— UI 写入 + DB 指针 + macOS 读取已实装；Win/Linux reader 待办**
+  macOS 侧（`20260806-0227-B-macos-service-config.md`）：`Configuration/` 读全部 `tracking.*` 键并映射为
+  `TrackingPolicy`；缺失/损坏/越界回落默认值并告警，`schema_version` 更新则退出 4；
+  `max_session_sec` 用既有状态机转换落盘为连续行，`min_session_sec` 过滤短记录；
+  同时补上 `flock` 单实例锁（I1）与睡眠/改钟缺口处理。配置路径在 Swift 侧复刻
+  `database_path.c`（其 helper 为 static），由 `tests/macos_service_config_static_test.py` 守护防漂移。
   `CHARTER` v0.13 批准以 `service_config.json` 取代扁平的 `usage_config.json`：带 `schema_version`、
   分节命名、单位改**秒**，新增 `tracking.sampling.poll_period_sec` / `min_session_sec` /
   `max_session_sec`（长记录定期落盘，防非正常退出丢整段）与 frontmost/media 子开关；
   配置目录迁至 `TimeArc/config/`（Windows 根改 `%APPDATA%`）。
   规范：[`../src/service/README.md`](../src/service/README.md)；迁移与重叠期：
-  `.harness/journal/sessions/20260805-2143-B-service-config-v1.md`（**待维护者签核，签核前不落代码**）。
+  `.harness/journal/sessions/20260805-2143-B-service-config-v1.md`（维护者已签核 2026-08-05）。
   影响面：service reader（Win/macOS/Linux）、`database_path.{c,h}`（**冻结**）、
   `DatabaseManager::{writeServiceConfig,writeDbDirPointer}`、设置页分钟→**秒**换算、`db_smoke`。
   Track B · 跨平台 · 中 · 提案：**是**（碰 I1/I2 + 冻结文件）。

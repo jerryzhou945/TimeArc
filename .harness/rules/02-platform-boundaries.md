@@ -55,24 +55,24 @@ Every platform service must:
   The tracker stays in the interactive user session. A true SCM Session-0
   service is deferred.
 
-### macOS - tracking + CLI skeleton; no config read
+### macOS - tracking + config + CLI skeleton
 
-- `Tracking/*Probe.swift`: frontmost app via `NSWorkspace`, window/audio titles
-  via the accessibility API, idle via `CGEventSource`, playback via
-  `IOPMCopyAssertionsByProcess`, audio processes via CoreAudio.
-- `Tracking/{Frontmost,Media}StateMachine.swift` own session identity and
-  boundaries with no OS or SQLite calls; `TrackingCoordinator.swift` drives them
-  and writes through `DataBridge.swift`; `TrackingPorts.swift` holds the ports.
-- `CommandLine/` + `TimeArcService.swift`: total argv parser, `ServiceCommand`,
-  README exit-code table, `@main` composition root. No arguments means `run` —
+- `Tracking/`: frontmost app via `NSWorkspace`, titles via the accessibility API,
+  idle via `CGEventSource`, playback via `IOPMCopyAssertionsByProcess`, audio via
+  CoreAudio; the two state machines own session identity with no OS or SQLite
+  calls, and `TrackingCoordinator.swift` drives them under a `TrackingPolicy`.
+- `Configuration/`: reads `service_config.json` into a `TrackingPolicy`. Absent,
+  malformed, or out-of-range keys fall back to defaults; a newer `schema_version`
+  exits 4. Its path mirrors `database_path.c`, guarded by a static test.
+- `Runtime/ServiceRuntime.swift`: `flock` instance guard (I1), configured poll
+  period, `SIGTERM`/`SIGINT` flush, and a gap check that closes sessions across
+  sleep or a corrected clock instead of billing the gap as active time.
+- `CommandLine/` + `TimeArcService.swift`: total argv parser and README exit-code
+  table behind an `@main` composition root. No arguments means `run`, which is
   how launchd starts the agent; only `run`/`help`/`version` act today.
-- `Runtime/RunCommand.swift`: 1 s poll loop, `SIGTERM`/`SIGINT` flush, run exit
-  code. **It reads no configuration** — `idleThreshold: 60` and both tracking
-  switches are hardcoded there, so `service_config.json` has no effect (A3).
 - On launch, the GUI registers embedded `com.timearc.service.plist` through
   `SMAppService`; the helper ships at `.app/Contents/MacOS/time-arc-service`.
-- Still pending: the other seven CLI verbs, the config read, the instance lock,
-  Accessibility UX, Developer ID signing, and notarization.
+- Still pending: the other seven CLI verbs, Accessibility UX, and notarization.
 
 ### Linux - not started
 
