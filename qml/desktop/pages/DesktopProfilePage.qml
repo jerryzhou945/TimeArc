@@ -65,7 +65,11 @@ Item {
     property bool trackRunning: true
     property bool autostartEnabled: false  // B1：开机自启实际注册态（读 --status，非 KV）
     property bool gameMode: true
-    property string idleTimeout: "5"
+    // 空闲阈值以**秒**存取，与 service_config.json 的 idle_threshold_sec 同单位同量程
+    // （0–86400，0=不判空闲）。旧键 idle_timeout 存的是分钟，reloadFromKV 里一次性迁移。
+    property int idleTimeoutSec: 300
+    readonly property int idleTimeoutSecMin: 0
+    readonly property int idleTimeoutSecMax: 86400
     property bool autoClassify: true
     property bool mergeWindows: true
     property bool privacyLocalOnly: true
@@ -199,10 +203,33 @@ Item {
     function _setStr(k, v) { if (settingsRepository) settingsRepository.setValue(k, v) }
 
     // —— 服务侧配置（空闲超时 / 真停采集）——
-    // idle 选单是分钟串（"5"/"10"/…），配置 v1 要**秒**（v0 是毫秒，单位已改）。
+    // 输入框与配置 v1 同为**秒**（v0 是毫秒，单位已改），故 UI 边界不再做换算。
     // 两进程经磁盘 service_config.json 通信（守 I1，无 IPC）：C++ writeServiceConfig
     // 原子 RMW 写入 tracking.* 叶子并保留 database.dir 键。
-    function _idleSec() { return (parseInt(root.idleTimeout) || 5) * 60 }
+    // 注意 0 是合法值（不判空闲），不能用 `|| 默认值` 兜底——0 在 JS 里是 falsy。
+    function _clampIdleSec(v) {
+        var n = parseInt(v, 10)
+        if (isNaN(n)) return root.idleTimeoutSec
+        return Math.max(root.idleTimeoutSecMin, Math.min(root.idleTimeoutSecMax, n))
+    }
+    function _idleSec() { return _clampIdleSec(root.idleTimeoutSec) }
+    // 读空闲阈值：优先秒键；仅当秒键缺失时，把旧的分钟键（"5"/"10"/…）×60 迁移一次并落盘，
+    // 免得老装机的「5 分钟」被当成 5 秒。两键都缺则用默认 300 秒。
+    function _readIdleTimeoutSec() {
+        var stored = _getStr("idle_timeout_sec", "")
+        if (String(stored).length > 0) return _clampIdleSec(stored)
+
+        var legacyMinutes = parseInt(_getStr("idle_timeout", ""), 10)
+        var seconds = isNaN(legacyMinutes) ? 300 : _clampIdleSec(legacyMinutes * 60)
+        _setStr("idle_timeout_sec", String(seconds))
+        return seconds
+    }
+    // 保存空闲阈值：落 KV + 写服务配置，返回写盘是否成功供提示用。
+    function _commitIdleTimeout(raw) {
+        root.idleTimeoutSec = _clampIdleSec(raw)
+        root._setStr("idle_timeout_sec", String(root.idleTimeoutSec))
+        return root._writeServiceConfig()
+    }
     // 返回写盘是否成功：service_config.json 损坏/不可写时 patchServiceConfig 拒写并
     // 返回 false（守 database.dir 键不被覆盖）。调用方据此提示，避免「假成功」。无写入
     // 通道（如平台未绑定）视为 true，不报假失败、保持旧行为。
@@ -244,7 +271,7 @@ Item {
         timeFormat       = _getStr("time_format", "24")
         trackRunning     = _getBool("track_running", true)
         gameMode         = _getBool("game_mode", true)
-        idleTimeout      = _getStr("idle_timeout", "5")
+        idleTimeoutSec   = _readIdleTimeoutSec()
         autoClassify     = _getBool("auto_classify", true)
         mergeWindows     = _getBool("merge_windows", true)
         privacyLocalOnly = _getBool("privacy_local_only", true)
@@ -1260,13 +1287,34 @@ Item {
                                 }
                                 SettingRow {
                                     rowTitle: "空闲超过"
-                                    rowSub: "无键鼠输入超过该时间即结束当前前台计时（应用并重启采集后生效）。"
-                                    GlassComboBox {
-                                        style: ml
-                                        model: [root.tr("5 分钟"), root.tr("10 分钟"), root.tr("15 分钟"), root.tr("30 分钟")]
-                                        property var _vals: ["5", "10", "15", "30"]
-                                        currentIndex: Math.max(0, _vals.indexOf(root.idleTimeout))
-                                        onActivated: function (i) { root.idleTimeout = _vals[i]; root._setStr("idle_timeout", _vals[i]); root.showToast(root._writeServiceConfig() ? "空闲超时已保存（应用并重启采集后生效）" : "已保存到本机，但服务配置写入失败（service_config.json 不可写或已损坏）") }
+                                    rowSub: "无键鼠输入超过该秒数即暂停当前前台计时；可填 0–86400 的整数，0 表示不判空闲（应用并重启采集后生效）。"
+                                    RowLayout {
+                                        spacing: 8
+                                        GlassTextField {
+                                            id: idleField
+                                            style: ml
+                                            implicitWidth: 96
+                                            // 输入层只放整数；越界值在提交时收敛到量程内。
+                                            validator: IntValidator { bottom: root.idleTimeoutSecMin; top: root.idleTimeoutSecMax }
+                                            inputMethodHints: Qt.ImhDigitsOnly
+                                            text: String(root.idleTimeoutSec)
+                                            // 失焦或回车提交：回填收敛后的值，避免输入框与实际写入的值不一致。
+                                            function commit() {
+                                                var ok = root._commitIdleTimeout(text)
+                                                text = String(root.idleTimeoutSec)
+                                                root.showToast(ok ? "空闲超时已保存（应用并重启采集后生效）"
+                                                                  : "已保存到本机，但服务配置写入失败（service_config.json 不可写或已损坏）")
+                                            }
+                                            onEditingFinished: commit()
+                                            onAccepted: commit()
+                                        }
+                                        Text {
+                                            Layout.alignment: Qt.AlignVCenter
+                                            text: root.idleTimeoutSec === 0
+                                                  ? root.tr("秒（已关闭空闲判定）")
+                                                  : root.tr("秒")
+                                            color: ml.textTertiary; font.pixelSize: 11
+                                        }
                                     }
                                 }
                                 SettingRow {

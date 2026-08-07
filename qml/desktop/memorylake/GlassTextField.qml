@@ -11,6 +11,9 @@ Rectangle {
     property alias text: input.text
     property string placeholderText: ""
     property bool search: false
+    // 数值输入用：挂 IntValidator 即可把非法字符挡在输入层（如空闲超时 0–86400 秒）。
+    property alias validator: input.validator
+    property alias inputMethodHints: input.inputMethodHints
     signal textEdited(string text)
     signal editingFinished()
     signal accepted()
