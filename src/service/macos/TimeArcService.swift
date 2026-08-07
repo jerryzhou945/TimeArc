@@ -46,8 +46,10 @@ struct TimeArcService {
     case .version:
       ServiceUsage.printVersion()
       return .success
-    case .status, .doctor:
-      // These commands need the diagnostics slice, which is not implemented yet.
+    case .status(let options):
+      return StatusCommand().execute(options)
+    case .doctor:
+      // Doctor needs the rest of the diagnostics slice: the per-check reports.
       ServiceUsage.reportUnimplemented(command)
       return .internalError
     }

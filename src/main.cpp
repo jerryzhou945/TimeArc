@@ -10,6 +10,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QStringList>
+#include <QTimer>
 #include <QUrl>
 #include <QWindow>
 
@@ -248,6 +249,15 @@ int main(int argc, char* argv[]) {
   }
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
   macMenuLocalizer.setLanguage(settingsRepository.languageMode());
+  // Startup self-check: only for a user who already turned autostart on, ask the
+  // service for its state and repair a registration that went missing. The app
+  // never registers itself just by being launched (CHARTER v0.14).
+  //
+  // Deferred to the event loop rather than run here: it shells out to the
+  // service, and a hung helper would otherwise hold up the first window.
+  QTimer::singleShot(0, &settingsRepository, [&settingsRepository]() {
+    settingsRepository.verifyBackgroundCollection();
+  });
 #endif
 
   CalendarManager calendarManager(&settingsRepository);

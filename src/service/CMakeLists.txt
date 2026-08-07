@@ -67,6 +67,9 @@ if(APPLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Autostart/LaunchAgentAutostart.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Autostart/EnableCommand.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Autostart/DisableCommand.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Diagnostics/DiagnosticsPorts.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Diagnostics/StatusRenderer.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Diagnostics/StatusCommand.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/TrackingPorts.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/AccessibilityRequest.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/ApplicationProbe.swift

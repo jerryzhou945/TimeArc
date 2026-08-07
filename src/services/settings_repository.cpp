@@ -4,6 +4,8 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMetaType>
 #include <QSettings>
 #include <QSqlDatabase>
@@ -504,6 +506,40 @@ int runServiceVerb(const QString& verb, QString* out = nullptr) {
   if (out) *out = QString::fromLocal8Bit(proc.readAllStandardOutput());
   return proc.exitCode();
 }
+
+// 跑 `status --json` 并把关心的叶子摊平成 map。退出码 10 表示服务自己也答不准，
+// 视为查询失败；其余码都带有效负载（12=没跑但配置开着，等等），照常解析。
+bool readServiceStatus(QVariantMap* out) {
+  const QString exe = serviceExePath();
+  if (!QFileInfo::exists(exe)) return false;
+  QProcess proc;
+  proc.start(exe, QStringList{QStringLiteral("status"),
+                              QStringLiteral("--json")});
+  if (!proc.waitForStarted(3000)) return false;
+  if (!proc.waitForFinished(15000)) {
+    proc.kill();
+    return false;
+  }
+  if (proc.exitCode() == 10) return false;
+
+  const QJsonDocument doc =
+      QJsonDocument::fromJson(proc.readAllStandardOutput());
+  if (!doc.isObject()) return false;
+  const QJsonObject root = doc.object();
+  const QJsonObject tracking = root.value(QStringLiteral("tracking")).toObject();
+  const QJsonObject autostart =
+      root.value(QStringLiteral("autostart")).toObject();
+
+  out->insert(QStringLiteral("tracking.running"),
+              tracking.value(QStringLiteral("running")).toBool());
+  out->insert(QStringLiteral("tracking.enabled"),
+              tracking.value(QStringLiteral("enabled")).toBool());
+  out->insert(QStringLiteral("autostart.enabled"),
+              autostart.value(QStringLiteral("enabled")).toBool());
+  out->insert(QStringLiteral("autostart.backend"),
+              autostart.value(QStringLiteral("backend")).toVariant());
+  return true;
+}
 #endif
 }  // namespace
 
@@ -523,11 +559,16 @@ bool SettingsRepository::autostartEnabled() {
          command.contains(QStringLiteral("--start-in-tray"),
                           Qt::CaseInsensitive);
 #elif defined(Q_OS_MACOS)
-  // Stopgap: the registration lives in launchd and the service owns it, but the
-  // read-back verb (`status`) is not implemented yet, so this reports what we
-  // last successfully set rather than querying. It can drift if the user removes
-  // the login item by hand. Replace this with `status --json` once that lands.
-  return getBool(QStringLiteral("macos_autostart_enabled"), false);
+  // launchd is the only record of this, and the service owns launchd. Nothing is
+  // mirrored here: a stored copy could disagree with the registration, and then
+  // neither value would be trustworthy. A query that fails reports "off",
+  // because an autostart we cannot confirm is not one the user can rely on.
+  QVariantMap state;
+  if (!readServiceStatus(&state)) {
+    qWarning() << "TimeArc: could not read the service autostart state";
+    return false;
+  }
+  return state.value(QStringLiteral("autostart.enabled")).toBool();
 #else
   return false;
 #endif
@@ -541,11 +582,11 @@ bool SettingsRepository::setAutostartEnabled(bool enabled) {
   runServiceVerb(QStringLiteral("--uninstall"));
   return enabled ? writeUiAutostartCommand() : removeUiAutostartCommand();
 #elif defined(Q_OS_MACOS)
+  // The verb is the write. There is nothing to record afterwards: the next read
+  // asks the service again.
   const QString verb =
       enabled ? QStringLiteral("enable") : QStringLiteral("disable");
-  if (runServiceVerb(verb) != 0) return false;
-  setBool(QStringLiteral("macos_autostart_enabled"), enabled);
-  return true;
+  return runServiceVerb(verb) == 0;
 #else
   Q_UNUSED(enabled);
   return false;
@@ -622,6 +663,41 @@ bool SettingsRepository::startBackgroundCollection() {
   return runServiceVerb(QStringLiteral("enable")) == 0;
 #else
   return false;  // no background collector to start on this platform yet
+#endif
+}
+
+bool SettingsRepository::verifyBackgroundCollection() {
+#if defined(Q_OS_MACOS)
+  QVariantMap state;
+  if (!readServiceStatus(&state)) {
+    qWarning() << "TimeArc: could not query the background service state";
+    return false;
+  }
+
+  const bool registered =
+      state.value(QStringLiteral("autostart.enabled")).toBool();
+  const bool running = state.value(QStringLiteral("tracking.running")).toBool();
+  const bool trackingEnabled =
+      state.value(QStringLiteral("tracking.enabled")).toBool();
+
+  // An existing registration is the opt-in. Without one there is nothing to
+  // repair and nothing to infer: launching the app must never create a login
+  // item the user did not ask for.
+  if (!registered) return false;
+
+  // Not running while tracking is switched off in configuration is the correct
+  // state, not a fault -- the collector exits on purpose.
+  if (running || !trackingEnabled) return running;
+
+  qWarning() << "TimeArc: autostart is registered but nothing is collecting"
+             << "-- restarting the service";
+  if (runServiceVerb(QStringLiteral("enable")) != 0) {
+    qWarning() << "TimeArc: could not restart the background service";
+    return false;
+  }
+  return true;
+#else
+  return false;  // startup self-check is macOS-only
 #endif
 }
 

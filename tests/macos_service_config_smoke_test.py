@@ -267,6 +267,36 @@ def case_start_respects_disabled_tracking(home: Path) -> None:
         raise AssertionError("start with tracking disabled must not create the database")
 
 
+def case_status_reports_state(home: Path) -> None:
+    """status answers from disk, so it works with nothing running."""
+    write_config(home, {"schema_version": 1, "tracking": {"enabled": True}})
+
+    idle = subprocess.run(
+        [str(BINARY), "status", "--json"],
+        env=environment(home), capture_output=True, text=True, timeout=30,
+    )
+    # Nothing running, tracking enabled in configuration.
+    if idle.returncode != 12:
+        raise AssertionError(f"stopped + enabled must exit 12, got {idle.returncode}")
+    state = json.loads(idle.stdout)
+    if state["tracking"]["running"] is not False:
+        raise AssertionError("status must report the collector as stopped")
+    if state["autostart"]["enabled"] is not False or state["autostart"]["backend"] is not None:
+        raise AssertionError("a redirected run has no autostart registration to report")
+    if state["schema_version"] != 1 or state["command"] != "status":
+        raise AssertionError("status JSON envelope is wrong")
+
+    # Tracking switched off in configuration, still nothing running.
+    write_config(home, {"schema_version": 1, "tracking": {"enabled": False}})
+    off = subprocess.run(
+        [str(BINARY), "status"], env=environment(home), capture_output=True, text=True, timeout=30
+    )
+    if off.returncode != 13:
+        raise AssertionError(f"stopped + disabled must exit 13, got {off.returncode}")
+    if "Tracking: stopped" not in off.stdout:
+        raise AssertionError(f"text output must name the tracking state: {off.stdout!r}")
+
+
 def main() -> None:
     if not BINARY.exists():
         print(f"macOS service not built, skipping: {BINARY}")
@@ -281,6 +311,7 @@ def main() -> None:
         case_single_instance,
         case_start_stop_round_trip,
         case_start_respects_disabled_tracking,
+        case_status_reports_state,
     ]
     if "--long" in sys.argv:
         cases.append(case_max_session)

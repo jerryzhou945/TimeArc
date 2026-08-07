@@ -67,6 +67,12 @@ class SettingsRepository : public QObject {
   // 返回启动后是否在采集（追踪被关时服务自行退出→false，即诚实的「已暂停」）。
   // 守 I1：纯 UI→子进程命令。
   Q_INVOKABLE bool startBackgroundCollection();
+
+  // macOS 启动自检：设置里开着自启时，问一次 `status --json`，把开关同步成真值，
+  // 发现没注册/没在跑就 `enable` 修复（RunAtLoad 顺带把采集拉起来）。设置里没开自启
+  // 就什么都不做——绝不擅自装登录项。返回自检后是否在采集。
+  // 其他平台恒 false（Windows 行为不变）。守 I1：纯 UI→子进程命令。
+  Q_INVOKABLE bool verifyBackgroundCollection();
 };
 
 #endif

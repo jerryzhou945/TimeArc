@@ -83,18 +83,18 @@ hand (`launchctl bootout gui/$UID/com.timearc.service`, then delete
 ## Outcome
 
 Done, verified on the real binary and on launchd.
-
 `enable` → `user-launch-agent` (SMAppService `notFound` on this ad-hoc build, as
 the spike predicted), wrote `KeepAlive {SuccessfulExit: false}`, bootstrapped it,
 launchd started the collector. `disable` unloaded it — note `bootout` also
 terminates the job, so on macOS `disable` implicitly stops: platform behavior.
-After `stop` the job stayed stopped; after `kill -9` launchd restarted it
-(32229 → 32637). `stop` exits 0, unlinks the socket, no-ops when idle; `start` is
-idempotent; a same-user impostor was refused with no reply.
+After `stop` the job stayed stopped; after `kill -9` launchd restarted it (32229 →
+32637). `stop` exits 0, unlinks the socket, no-ops when idle; `start` is idempotent;
+a same-user impostor was refused with no reply.
 
 Two corrections while verifying: liveness comes from the instance lock, not the
 socket, so `stop` works against an instance older than the channel (the first
-attempt returned 3 — that instance was signalled and `KeepAlive: true` restarted
-it, the exact bug this removes); and `start` skips launchd when the control file
-is redirected, since a launchd job does not inherit the caller's environment.
+attempt returned 3 — signalled, then `KeepAlive: true` restarted it, the exact bug
+this removes); and `start` skips launchd when the control file is redirected, since
+a launchd job does not inherit the caller's environment. Followed by
+`20260807-2115-B-macos-service-status.md`.
 

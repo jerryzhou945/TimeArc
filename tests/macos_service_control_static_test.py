@@ -52,6 +52,25 @@ def check_socket_location() -> None:
         raise AssertionError("sun_path is 104 bytes; the bind path must be length-checked")
 
 
+def check_enable_starts_the_collector() -> None:
+    """`enable` must start a collector that is registered but not running.
+
+    RunAtLoad only fires when launchd loads the job, so re-registering an agent
+    that is already registered starts nothing. That is the state `enable` is in
+    every time the UI uses it to resume collection rather than to set it up, and
+    it silently left the user with autostart on and nothing collecting.
+    """
+    command = (ROOT / "src" / "service" / "macos" / "Autostart" / "EnableCommand.swift").read_text(
+        encoding="utf-8"
+    )
+    if "LaunchAgentControl.kickstart" not in command:
+        raise AssertionError("enable must ask launchd to run an already-registered job")
+    if "FileInstanceLock.isHeld" not in command:
+        raise AssertionError("enable must skip the kickstart when a collector already holds the lock")
+    if "isCollecting" not in command:
+        raise AssertionError("enable must not wait on a collector that configuration will stop")
+
+
 def check_charter_permits_it() -> None:
     charter = CHARTER.read_text(encoding="utf-8")
     if "v0.14" not in charter:
@@ -64,6 +83,7 @@ def main() -> None:
     check_peer_defenses()
     check_versioned_wire()
     check_socket_location()
+    check_enable_starts_the_collector()
     check_charter_permits_it()
     print("macOS service control channel checks passed")
 
