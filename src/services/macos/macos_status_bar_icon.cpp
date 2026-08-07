@@ -3,6 +3,7 @@
 #include "macos_status_bar_icon.h"
 
 #include <QAction>
+#include <QDebug>
 #include <QIcon>
 #include <QMenu>
 #include <QMetaObject>
@@ -12,6 +13,7 @@
 #include <QString>
 #include <QSvgRenderer>
 #include <QSystemTrayIcon>
+#include <QVariantMap>
 #include <array>
 #include <utility>
 
@@ -90,18 +92,23 @@ struct MenuStrings {
   const char* pauseTimer;
   const char* resetTimer;
   const char* autostart;
+  const char* startTracking;
+  const char* stopTracking;
   const char* quit;
 };
 
 constexpr MenuStrings kZh{"打开 TimeArc", "番茄钟",   "开始计时",
                           "继续计时",     "暂停计时", "重置计时",
-                          "开机自启",     "退出 TimeArc"};
+                          "开机自启",     "开始采集", "停止采集",
+                          "退出 TimeArc"};
 constexpr MenuStrings kEn{"Open TimeArc",  "Pomodoro",    "Start Timer",
                           "Resume Timer",  "Pause Timer", "Reset Timer",
-                          "Launch at Login", "Quit TimeArc"};
+                          "Launch at Login", "Start Tracking", "Stop Tracking",
+                          "Quit TimeArc"};
 constexpr MenuStrings kJa{"TimeArc を開く",   "ポモドーロ",       "計測を開始",
                           "計測を再開",       "計測を一時停止",   "計測をリセット",
-                          "ログイン時に起動", "TimeArc を終了"};
+                          "ログイン時に起動", "記録を開始",       "記録を停止",
+                          "TimeArc を終了"};
 
 // Mirrors I18n.js langKey(): anything unrecognized falls back to English.
 const MenuStrings& stringsForMode(const QString& mode) {
@@ -122,11 +129,16 @@ class MacStatusBarIcon::Impl {
     pomodoroPrimaryAction = menu.addAction(QString());
     pomodoroResetAction = menu.addAction(QString());
     menu.addSeparator();
+    // 采集开关（临时）+ 开机自启（持久）。两件不同的事，故两行：前者只管此刻有没有
+    // 在采集，后者只管登录时要不要自动起来。状态每次开菜单向服务问一次，UI 不留副本。
+    trackingAction = menu.addAction(QString());
+    QObject::connect(trackingAction, &QAction::triggered, &icon,
+                     [this]() { toggleTracking(); });
+
     autostartAction = menu.addAction(QString());
-    // Placeholder: the service now owns registration and the Settings page
-    // drives it, but this menu has no SettingsRepository handle to toggle it
-    // from, and no read-back until `time-arc-service status` lands.
-    autostartAction->setEnabled(false);
+    autostartAction->setCheckable(true);
+    QObject::connect(autostartAction, &QAction::triggered, &icon,
+                     [this](bool checked) { toggleAutostart(checked); });
     menu.addSeparator();
     quitAction = menu.addAction(QString());
 
@@ -152,10 +164,59 @@ class MacStatusBarIcon::Impl {
     const MenuStrings& s = stringsForMode(mode);
 
     showAction->setText(QString::fromUtf8(s.open));
-    autostartAction->setText(QString::fromUtf8(s.autostart));
     quitAction->setText(QString::fromUtf8(s.quit));
 
+    syncService(s);
     syncPomodoro(s);
+  }
+
+  // 服务两行：问一次 status，两行共用同一次结果（一次开菜单只 spawn 一个子进程）。
+  void syncService(const MenuStrings& s) {
+    const QVariantMap state =
+        settings ? settings->serviceState() : QVariantMap{};
+    const bool reachable = state.value(QStringLiteral("ok")).toBool();
+    const bool running =
+        state.value(QStringLiteral("trackingRunning")).toBool();
+    const bool autostart =
+        state.value(QStringLiteral("autostartEnabled")).toBool();
+
+    // 采集行按当前是否在跑改写：在跑给「停止」，没跑给「开始」。
+    trackingAction->setText(QString::fromUtf8(running ? s.stopTracking
+                                                      : s.startTracking));
+    trackingAction->setEnabled(reachable);
+
+    // 服务问不到时不画勾：没勾是一个断言，问不出来就别断言。
+    autostartAction->setText(QString::fromUtf8(s.autostart));
+    autostartAction->setChecked(reachable && autostart);
+    autostartAction->setEnabled(reachable);
+  }
+
+  // 采集开关：停用 `stop`，开用 `start`（有注册拉注册的，没注册起临时的）。
+  void toggleTracking() {
+    if (!settings) return;
+    const bool running = settings->serviceState()
+                             .value(QStringLiteral("trackingRunning"))
+                             .toBool();
+    const bool ok = running ? settings->stopBackgroundCollection()
+                            : settings->startTrackingNow();
+    if (!ok) {
+      qWarning() << "TimeArc: could not"
+                 << (running ? "stop" : "start") << "background tracking";
+    }
+  }
+
+  // 自启开关：写的是 launchd 注册，不是本地设置。失败就把勾回退到真值，免得菜单
+  // 显示一个并没有发生的状态。
+  void toggleAutostart(bool enabled) {
+    if (!settings) {
+      autostartAction->setChecked(false);
+      return;
+    }
+    if (!settings->setAutostartEnabled(enabled)) {
+      qWarning() << "TimeArc: could not"
+                 << (enabled ? "enable" : "disable") << "launch at login";
+    }
+    autostartAction->setChecked(settings->autostartEnabled());
   }
 
   void syncPomodoro(const MenuStrings& s) {
@@ -190,6 +251,7 @@ class MacStatusBarIcon::Impl {
   QAction* pomodoroAction = nullptr;
   QAction* pomodoroPrimaryAction = nullptr;
   QAction* pomodoroResetAction = nullptr;
+  QAction* trackingAction = nullptr;
   QAction* autostartAction = nullptr;
   QAction* quitAction = nullptr;
   SettingsRepository* settings = nullptr;

@@ -68,6 +68,16 @@ class SettingsRepository : public QObject {
   // 守 I1：纯 UI→子进程命令。
   Q_INVOKABLE bool startBackgroundCollection();
 
+  // 一次 `status --json` 取回服务状态，供状态栏菜单一次开菜单只 spawn 一个子进程。
+  // 键：ok / autostartEnabled / trackingRunning / trackingEnabled。ok=false 时其余
+  // 键不可信（服务不可达），调用方应显示「未知」而非假的「关」。
+  Q_INVOKABLE QVariantMap serviceState();
+
+  // 立即开始采集：有注册就叫 launchd 拉起注册的实例，没注册就起一个临时实例
+  // （`start` 动词）。与「应用并重启采集」不同——那条路只走 `enable`，绝不制造
+  // launchd 管不着的进程；这条是用户在菜单里显式要求的临时采集。
+  Q_INVOKABLE bool startTrackingNow();
+
   // macOS 启动自检：设置里开着自启时，问一次 `status --json`，把开关同步成真值，
   // 发现没注册/没在跑就 `enable` 修复（RunAtLoad 顺带把采集拉起来）。设置里没开自启
   // 就什么都不做——绝不擅自装登录项。返回自检后是否在采集。

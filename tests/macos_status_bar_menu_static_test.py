@@ -30,7 +30,7 @@ def main():
         ROOT / "qml/desktop/components/I18n.js"
     ).read_text(encoding="utf-8")
 
-    # Menu rows: open, the pomodoro trio, autostart placeholder, quit.
+    # Menu rows: open, the pomodoro trio, the two service rows, quit.
     require(icon_h,
             "void attach(SettingsRepository* settings, PomodoroManager* pomodoro)",
             "settings + pomodoro wiring entry point")
@@ -38,9 +38,30 @@ def main():
             "macStatusBarIcon.attach(&settingsRepository, &pomodoroManager)",
             "status item attached to the settings repository and the engine")
     require(icon_cpp, "invokeRoot(\"restoreFromTray\")", "open row")
-    require(icon_cpp, "autostartAction->setEnabled(false)",
-            "autostart row stays a placeholder")
     require(icon_cpp, "invokeRoot(\"quitFromTray\")", "quit row")
+
+    # Two separate concerns, two rows: collecting right now, and starting at
+    # login. Folding them into one control would make "stop tracking" look like
+    # it also cancels autostart.
+    require(icon_cpp, "autostartAction->setCheckable(true)",
+            "autostart row is a checkable toggle, not a placeholder")
+    forbid(icon_cpp, "autostartAction->setEnabled(false)",
+           "autostart row hardwired off; it now follows the service")
+    require(icon_cpp, "settings->setAutostartEnabled(enabled)",
+            "autostart row writes the launchd registration")
+    require(icon_cpp, "settings->startTrackingNow()", "tracking row start command")
+    require(icon_cpp, "settings->stopBackgroundCollection()",
+            "tracking row stop command")
+    for field in ("s.startTracking", "s.stopTracking"):
+        require(icon_cpp, field, f"tracking row label {field}")
+
+    # State comes from the service on every open, never from a UI-side copy, and
+    # both rows share one query so opening the menu spawns one helper at most.
+    require(icon_cpp, "settings->serviceState()", "rows read live service state")
+    require(icon_cpp, "autostartAction->setChecked(reachable && autostart)",
+            "no checkmark is claimed when the service cannot be reached")
+    require(icon_cpp, "trackingAction->setEnabled(reachable)",
+            "tracking row disabled when the service cannot be reached")
 
     # The readout row carries mm:ss and is clickable in all three states.
     require(icon_cpp, "pomodoro->timeText()", "readout row shows mm:ss")

@@ -21,6 +21,17 @@ CMAKE = ROOT / "CMakeLists.txt"
 PLIST = ROOT / "resources/bundle/macos/com.timearc.service.plist"
 
 
+def extract_function(source: str, signature: str) -> str:
+    """The body of one C++ member function, so verb checks can be scoped to it."""
+    start = source.find(signature)
+    if start < 0:
+        raise AssertionError(f"function not found: {signature}")
+    end = source.find("\n}", start)
+    if end < 0:
+        raise AssertionError(f"unterminated function: {signature}")
+    return source[start:end]
+
+
 def check_ui_does_not_own_lifecycle() -> None:
     """The UI may not start the collector or register its agent."""
     source = MAIN.read_text(encoding="utf-8")
@@ -51,11 +62,23 @@ def check_ui_drives_the_cli() -> None:
         if verb not in settings:
             raise AssertionError(f"the macOS UI branch must invoke {verb}")
 
-    # The UI must never spawn a collector launchd does not supervise. Starting
-    # collection goes through `enable`, whose RunAtLoad gets it running under the
-    # supervisor. Matches the bare verb only, so Windows's `--start` is untouched.
-    if 'QStringLiteral("start")' in settings:
-        raise AssertionError("the UI must never invoke the service `start` verb")
+    # "Apply & Restart" must not spawn a collector launchd does not supervise: it
+    # goes through `enable`, whose RunAtLoad gets one running under the supervisor.
+    # `start` is reachable from exactly one place, the status-bar "Start Tracking"
+    # item, where a temporary unsupervised instance is what the user asked for.
+    apply_path = extract_function(settings, "SettingsRepository::startBackgroundCollection")
+    if 'QStringLiteral("start")' in apply_path:
+        raise AssertionError("apply-and-restart must use `enable`, not `start`")
+    if 'QStringLiteral("enable")' not in apply_path:
+        raise AssertionError("apply-and-restart must go through `enable`")
+
+    starters = [
+        name
+        for name in ("startTrackingNow", "startBackgroundCollection", "verifyBackgroundCollection")
+        if 'QStringLiteral("start")' in extract_function(settings, f"SettingsRepository::{name}")
+    ]
+    if starters != ["startTrackingNow"]:
+        raise AssertionError(f"only the explicit tracking toggle may call `start`, got {starters}")
 
 
 def check_service_owns_registration() -> None:

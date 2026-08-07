@@ -666,6 +666,39 @@ bool SettingsRepository::startBackgroundCollection() {
 #endif
 }
 
+QVariantMap SettingsRepository::serviceState() {
+  QVariantMap result;
+  result.insert(QStringLiteral("ok"), false);
+  result.insert(QStringLiteral("autostartEnabled"), false);
+  result.insert(QStringLiteral("trackingRunning"), false);
+  result.insert(QStringLiteral("trackingEnabled"), false);
+
+#if defined(Q_OS_MACOS)
+  QVariantMap state;
+  if (!readServiceStatus(&state)) return result;
+
+  result.insert(QStringLiteral("ok"), true);
+  result.insert(QStringLiteral("autostartEnabled"),
+                state.value(QStringLiteral("autostart.enabled")).toBool());
+  result.insert(QStringLiteral("trackingRunning"),
+                state.value(QStringLiteral("tracking.running")).toBool());
+  result.insert(QStringLiteral("trackingEnabled"),
+                state.value(QStringLiteral("tracking.enabled")).toBool());
+#endif
+  return result;
+}
+
+bool SettingsRepository::startTrackingNow() {
+#if defined(Q_OS_MACOS)
+  // `start` on purpose: the user asked for collection now, and a temporary
+  // unsupervised instance is the honest answer when nothing is registered.
+  // Autostart is a separate decision, made by the checkable menu item.
+  return runServiceVerb(QStringLiteral("start")) == 0;
+#else
+  return false;
+#endif
+}
+
 bool SettingsRepository::verifyBackgroundCollection() {
 #if defined(Q_OS_MACOS)
   QVariantMap state;
