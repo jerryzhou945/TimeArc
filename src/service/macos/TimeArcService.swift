@@ -24,15 +24,30 @@ struct TimeArcService {
     switch command {
     case .run:
       return RunCommand().execute()
+    case .start:
+      return StartCommand().execute()
+    case .stop:
+      return StopCommand().execute()
+    case .restart:
+      // Restart is the composition of the two, not a third code path: stop
+      // waits for the flush, so start always sees a released lock and socket.
+      let stopped = StopCommand().execute()
+      guard stopped == .success else {
+        return stopped
+      }
+      return StartCommand().execute()
+    case .enable:
+      return EnableCommand().execute()
+    case .disable:
+      return DisableCommand().execute()
     case .help:
       ServiceUsage.printHelp()
       return .success
     case .version:
       ServiceUsage.printVersion()
       return .success
-    case .enable, .disable, .start, .stop, .restart, .status, .doctor:
-      // These commands need the autostart, configuration, and diagnostics
-      // slices, which are not implemented yet.
+    case .status, .doctor:
+      // These commands need the diagnostics slice, which is not implemented yet.
       ServiceUsage.reportUnimplemented(command)
       return .internalError
     }

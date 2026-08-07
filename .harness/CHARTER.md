@@ -11,16 +11,17 @@ Two processes, by design:
 | UI                | `TimeArc`           | C++ (Qt6) + QML | User-facing; reads journal, runs timers.   |
 | Background service| `time-arc-service`  | C (Win/Linux) + Swift (macOS) | Samples foreground + audio, writes journal. |
 
-They communicate **exclusively via files on disk** — no IPC, sockets,
-shared memory. See `rules/03-data-contract.md` for the files.
+**UI↔service**: files on disk plus CLI invocation only — no IPC/sockets/shared memory
+between them; files in `rules/03-data-contract.md`. IPC **between `time-arc-service`
+instances** is allowed (§5 v0.14); that channel refuses any peer that is not the same executable.
 
 ## 2. Invariants
 
-**I1. Two-process separation.** UI does not sample. Service does not draw.
-The UI may start the service (`src/main.cpp::startUsageService`) and may write the one
-sanctioned control file it reads at startup — `service_config.json` (§5 v0.13, spec in
-`src/service/README.md`; retired `usage_config.json` never read/written) — disk-only, no IPC;
-the UI must not link service code. A single service is guaranteed by a named mutex (`Local\TimeArcUsageService` on Windows); same on new platforms.
+**I1. Two-process separation.** UI does not sample. Service does not draw. The UI drives the
+service only by invoking its CLI and by writing the one sanctioned control file it reads at
+startup — `service_config.json` (§5 v0.13, spec in `src/service/README.md`) — disk-only; it must
+not link service code, register the launch agent, or use the control channel. A single service is
+guaranteed by a named mutex (`Local\TimeArcUsageService`, Windows) or a per-user `flock` (macOS).
 
 **I2. Data contract on disk.** The service writes automatic usage exclusively
 to SQLite `timearc_service.db` (only tables
@@ -73,8 +74,7 @@ Editing any file in this list requires filing a change proposal at
 - `.harness/AGENTS.md`
 - `AGENTS.md` (project root — Codex CLI entry shim)
 
-The list may grow as the project stabilizes. It may shrink only through a
-charter amendment.
+The list may grow as the project stabilizes; it may shrink only through a charter amendment.
 
 ## 4. Amendment procedure
 
@@ -92,9 +92,9 @@ Bump the version below.
 - **v0.5** — Lock service DB filename and replace `db_path` with `db_dir`. Proposal: `journal/sessions/20260709-0014-B-db-dir-service-db.md`.
 - **v0.6** — Split SQLite ownership: service `timearc_service.db`, GUI `timearc.db`. Proposal: `journal/sessions/20260709-0037-B-split-service-gui-dbs.md`.
 - **v0.7** — Rename DB-path resolver files to `database_path.*`; no on-disk change. Proposal: `journal/sessions/20260709-1727-B-database-path-rename.md`.
-- **v0.8** — Retire JSONL usage history; `timearc_service.db` is the sole historical store and JSON remains live/config only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.
-- **v0.9** — Retire the JSON live snapshot and schema; automatic usage now crosses the process boundary through `timearc_service.db` only. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.
+- **v0.8–v0.9** — Retire JSONL usage history and then the JSON live snapshot and schema; `timearc_service.db` is the sole historical store, JSON remains config only, and automatic usage crosses the process boundary through the DB alone. Proposal: `journal/sessions/20260711-2135-B-retire-jsonl-history.md`.
 - **v0.10** — Retire the unused aggregate usage-record header; the table-specific `data_bridge.h` API and SQLite schema are the service contract. Proposal: `journal/sessions/20260712-2043-B-retire-usage-record-contract.md`.
 - **v0.11** — Keep foreground sessions open across idle intervals; paused active time is represented by generated `idle_sec`. Proposal: `journal/sessions/20260718-1619-B-idle-continuity-contract.md`.
 - **v0.12** — Define portable full-observation session identity, video-over-idle foreground behavior, immediate media absence, and optional media checkpointing. Proposal: `journal/sessions/20260723-1653-B-tracking-session-semantics.md`.
 - **v0.13** — Approve the redesigned control file `service_config.json` v1 (versioned, namespaced, seconds-based; adds sampling period, min/max session length, frontmost/media sub-switches) superseding `usage_config.json`; config dir moves to `TimeArc/config/`. Spec in `src/service/README.md`. **Clean break, no fallback**: the retired file is never read or written, so an install that had relocated its DB falls back to the default until the user re-selects the directory. UI writer + DB pointer implemented; the service-side tracking reader is pending (backlog A3). Proposal: `journal/sessions/20260805-2143-B-service-config-v1.md`.
+- **v0.14** — Permit IPC **between `time-arc-service` instances** (a per-user unix socket beside the instance lock) while UI↔service stays disk + CLI; the service, not the UI, now owns launch-agent registration and start/stop, and the macOS agent restarts only on unsuccessful exit so `stop` is distinct from `disable`. Proposal: `journal/sessions/20260807-1423-B-macos-service-lifecycle.md`.

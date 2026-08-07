@@ -29,6 +29,18 @@ enum ServiceConfigurationPath {
   // fixed while the database directory is user-redirectable.
   private static let lockFileName = "time-arc-service.lock"
 
+  // The control socket name. It lives beside the lock for the same reason, and
+  // because holding the lock is what entitles an instance to own the socket.
+  private static let socketFileName = "time-arc-service.sock"
+
+  // Whether the control file has been redirected away from its canonical
+  // location. A redirected caller wants the instance that reads *that* file,
+  // which is never the one launchd starts: a launchd job does not inherit this
+  // process's environment.
+  static var isRedirected: Bool {
+    (ProcessInfo.processInfo.environment[self.overrideVariable] ?? "").isEmpty == false
+  }
+
   // The control file path, honoring the test redirect.
   static var configurationFile: URL {
     if let override = ProcessInfo.processInfo.environment[self.overrideVariable],
@@ -42,6 +54,12 @@ enum ServiceConfigurationPath {
   // The instance lock file path.
   static var lockFile: URL {
     self.directory.appendingPathComponent(self.lockFileName)
+  }
+
+  // The control socket path. Unix socket paths are limited to 104 bytes on this
+  // platform, which the control layer checks before binding.
+  static var controlSocket: URL {
+    self.directory.appendingPathComponent(self.socketFileName)
   }
 
   // The directory holding the control file. When the control file is redirected

@@ -36,10 +36,11 @@ if(APPLE)
     set_source_files_properties(${TIME_ARC_MACOS_LAUNCH_AGENT} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Library/LaunchAgents"
     )
+    # The launch agent template is still bundled, but the UI no longer registers
+    # it: the service owns that (CHARTER v0.14) through `time-arc-service enable`.
     list(APPEND TIME_ARC_APP_SOURCES
         ${TIME_ARC_MACOS_BUNDLE_ICON}
         ${TIME_ARC_MACOS_LAUNCH_AGENT}
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/services/macos/macos_launch_agent.mm"
     )
     set(MACOSX_BUNDLE_ICON_FILE "TimeArc.icns")
 endif()
@@ -150,10 +151,6 @@ if(APPLE)
             "$<TARGET_BUNDLE_DIR:time-arc>/Contents/MacOS/time-arc-service"
         VERBATIM
     )
-    find_library(TIMEARC_SERVICE_MANAGEMENT_FRAMEWORK
-        ServiceManagement REQUIRED)
-    target_link_libraries(time-arc PRIVATE
-        ${TIMEARC_SERVICE_MANAGEMENT_FRAMEWORK})
 endif()
 
 enable_testing()

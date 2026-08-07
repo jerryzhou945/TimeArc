@@ -49,9 +49,10 @@ Concrete anti-examples — if you see these, reject the diff:
 
 The service is the **producer**. The UI is the **consumer**. Data flows one
 way: service → disk → UI. Do not reverse this. If the UI needs to influence
-sampling (e.g., pause, filter), introduce a control file in
-`~/.timearc/control/` and define it in `rules/03-data-contract.md` — do not
-open a pipe.
+sampling (e.g., pause, filter), write `service_config.json` (`rules/03`) or
+invoke a service CLI verb — never open a pipe or socket to it. The service's own
+control socket (CHARTER v0.14) is for `time-arc-service` instances only and
+rejects any peer that is not that same executable; the UI must not use it.
 
 ## 3. UI managers and repositories
 

@@ -29,7 +29,7 @@
     },
     {
       "path": "CMakeLists.txt",
-      "sha256": "62dbcc112a09321d07d862b05b3878f2921830e477a56f55dc144ca22183a6f7"
+      "sha256": "7933e05dd250a3d3ea9e571ec07573fbf1e7138f61b5b1558ebc242852790d63"
     },
     {
       "path": "src/CMakeLists.txt",
@@ -37,11 +37,11 @@
     },
     {
       "path": "src/service/CMakeLists.txt",
-      "sha256": "109ed3afe7bc7d617960050af73c9471951bf093dc609fc43e57310735b5da75"
+      "sha256": "14b2b866ba1b28cf8d51aee01b41cc1445d1dbeaabf9608612d20eaf0e0e886f"
     },
     {
       "path": ".harness/CHARTER.md",
-      "sha256": "55d9832bb16ba338e7489a26d1b44de7157e8c01e39351d56512ba7a1a435b56"
+      "sha256": "be3f3a6865c0c533d516f031c1789260593de39bf3a7e4a13f1e2b39c0b65ee2"
     },
     {
       "path": ".harness/AGENTS.md",

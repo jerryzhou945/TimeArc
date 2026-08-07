@@ -123,8 +123,9 @@ class MacStatusBarIcon::Impl {
     pomodoroResetAction = menu.addAction(QString());
     menu.addSeparator();
     autostartAction = menu.addAction(QString());
-    // Placeholder: SettingsRepository::autostartSupported() is Windows-only and
-    // registerMacLaunchAgent() has no query/unregister path yet.
+    // Placeholder: the service now owns registration and the Settings page
+    // drives it, but this menu has no SettingsRepository handle to toggle it
+    // from, and no read-back until `time-arc-service status` lands.
     autostartAction->setEnabled(false);
     menu.addSeparator();
     quitAction = menu.addAction(QString());

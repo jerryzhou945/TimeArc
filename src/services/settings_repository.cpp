@@ -480,11 +480,35 @@ int runServiceVerb(const QString& verb, QString* out = nullptr) {
   if (out) *out = QString::fromLocal8Bit(proc.readAllStandardOutput());
   return proc.exitCode();
 }
+#elif defined(Q_OS_MACOS)
+// 与 Windows 同形（UI→子进程命令，守 I1，不经磁盘契约），但动词是新 CLI 的裸动词，
+// 且 helper 与 UI 同在 Contents/MacOS。CHARTER v0.14：注册/启停归 service 自己，
+// UI 只调 CLI。退出码含义见 src/service/README.md。
+QString serviceExePath() {
+  return QDir(QCoreApplication::applicationDirPath())
+      .filePath(QStringLiteral("time-arc-service"));
+}
+
+// 同步跑一个动词并返回退出码（启动失败 -1）。enable/disable 要等 launchctl 落定，
+// start/stop 要等实例就绪/冲刷完成，故超时给到 15s。
+int runServiceVerb(const QString& verb, QString* out = nullptr) {
+  const QString exe = serviceExePath();
+  if (!QFileInfo::exists(exe)) return -1;
+  QProcess proc;
+  proc.start(exe, QStringList{verb});
+  if (!proc.waitForStarted(3000)) return -1;
+  if (!proc.waitForFinished(15000)) {
+    proc.kill();
+    return -1;
+  }
+  if (out) *out = QString::fromLocal8Bit(proc.readAllStandardOutput());
+  return proc.exitCode();
+}
 #endif
 }  // namespace
 
 bool SettingsRepository::autostartSupported() const {
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
   return true;
 #else
   return false;
@@ -498,6 +522,12 @@ bool SettingsRepository::autostartEnabled() {
                           Qt::CaseInsensitive) &&
          command.contains(QStringLiteral("--start-in-tray"),
                           Qt::CaseInsensitive);
+#elif defined(Q_OS_MACOS)
+  // Stopgap: the registration lives in launchd and the service owns it, but the
+  // read-back verb (`status`) is not implemented yet, so this reports what we
+  // last successfully set rather than querying. It can drift if the user removes
+  // the login item by hand. Replace this with `status --json` once that lands.
+  return getBool(QStringLiteral("macos_autostart_enabled"), false);
 #else
   return false;
 #endif
@@ -510,6 +540,12 @@ bool SettingsRepository::setAutostartEnabled(bool enabled) {
   // user expectation that TimeArc itself is available after reboot.
   runServiceVerb(QStringLiteral("--uninstall"));
   return enabled ? writeUiAutostartCommand() : removeUiAutostartCommand();
+#elif defined(Q_OS_MACOS)
+  const QString verb =
+      enabled ? QStringLiteral("enable") : QStringLiteral("disable");
+  if (runServiceVerb(verb) != 0) return false;
+  setBool(QStringLiteral("macos_autostart_enabled"), enabled);
+  return true;
 #else
   Q_UNUSED(enabled);
   return false;
@@ -545,8 +581,12 @@ bool SettingsRepository::stopBackgroundCollection() {
   QString out;
   return runServiceVerb(QStringLiteral("--status"), &out) >= 0 &&
          out.contains(QStringLiteral("running=no"));
+#elif defined(Q_OS_MACOS)
+  // `stop` already waits for the instance to flush and release its lock before
+  // returning, so no polling loop is needed here.
+  return runServiceVerb(QStringLiteral("stop")) == 0;
 #else
-  return true;  // no background collector to stop on non-Windows yet
+  return true;  // no background collector to stop on this platform yet
 #endif
 }
 
@@ -568,8 +608,20 @@ bool SettingsRepository::startBackgroundCollection() {
   QString out;
   return runServiceVerb(QStringLiteral("--status"), &out) >= 0 &&
          out.contains(QStringLiteral("running=yes"));
+#elif defined(Q_OS_MACOS)
+  // The UI never calls `start`: that would leave a collector this process
+  // spawned and launchd does not supervise. `enable` registers the agent, and
+  // RunAtLoad means launchd starts it immediately, so collection begins under
+  // the supervisor that will also bring it back at login.
+  //
+  // Only when autostart is already on. Registering here otherwise would install
+  // a login item the user never asked for, as a side effect of a button labelled
+  // "apply and restart". The Settings button is disabled in that case; this is
+  // the same rule enforced on the calling side.
+  if (!autostartEnabled()) return false;
+  return runServiceVerb(QStringLiteral("enable")) == 0;
 #else
-  return false;  // no background collector to start on non-Windows yet
+  return false;  // no background collector to start on this platform yet
 #endif
 }
 

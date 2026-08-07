@@ -39,6 +39,40 @@ final class FileInstanceLock: InstanceLocking {
     self.descriptor = descriptor
   }
 
+  // Whether some instance currently holds the lock.
+  //
+  // This is the authoritative liveness test, and it is deliberately not "does
+  // the control socket answer": an instance from a build older than the control
+  // channel, or one wedged before it started serving, still holds the lock and
+  // is still collecting. Taking the lock and dropping it immediately is
+  // race-free in a way that checking a recorded pid is not.
+  static func isHeld() -> Bool {
+    let descriptor = open(ServiceConfigurationPath.lockFile.path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+    guard descriptor >= 0 else {
+      return false
+    }
+    defer { close(descriptor) }
+
+    guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
+      return true
+    }
+    flock(descriptor, LOCK_UN)
+    return false
+  }
+
+  // The pid recorded by the instance that holds the lock, if any. This file's
+  // format is owned here, so the signal fallback in `stop` reads it through this
+  // accessor rather than parsing the file itself.
+  static func holderPid() -> pid_t? {
+    guard let contents = try? String(contentsOf: ServiceConfigurationPath.lockFile, encoding: .utf8),
+      let pid = pid_t(contents.trimmingCharacters(in: .whitespacesAndNewlines)),
+      pid > 0
+    else {
+      return nil
+    }
+    return pid
+  }
+
   // Release the lock. Closing the descriptor would be enough, but unlocking
   // first keeps the intent explicit.
   func release() {

@@ -53,8 +53,17 @@ def write_config(home: Path, config) -> None:
 
 
 def environment(home: Path) -> dict:
+    """Sandbox both sides of the split.
+
+    HOME steers the shared C database resolver; TIMEARC_SERVICE_CONFIG steers the
+    Swift control-file resolver and, with it, the lock and control socket. Setting
+    the redirect also keeps `start` from kickstarting the real launchd agent,
+    which would not inherit this environment and so would answer for a different
+    configuration entirely.
+    """
     env = dict(os.environ)
     env["HOME"] = str(home)
+    env["TIMEARC_SERVICE_CONFIG"] = str(config_path(home))
     return env
 
 
@@ -208,6 +217,56 @@ def case_max_session(home: Path) -> None:
             raise AssertionError(f"record for {app_id} ending {end} has no contiguous successor")
 
 
+def case_start_stop_round_trip(home: Path) -> None:
+    """start is idempotent, stop actually stops, and stop is safe when idle."""
+    write_config(home, {"schema_version": 1, "tracking": {"enabled": True}})
+
+    first = subprocess.run(
+        [str(BINARY), "start"], env=environment(home), capture_output=True, text=True, timeout=30
+    )
+    if first.returncode != EXIT_SUCCESS:
+        raise AssertionError(f"start must exit 0, got {first.returncode}: {first.stderr}")
+
+    # A second start must not spawn a second collector.
+    second = subprocess.run(
+        [str(BINARY), "start"], env=environment(home), capture_output=True, text=True, timeout=30
+    )
+    if second.returncode != EXIT_SUCCESS:
+        raise AssertionError(f"start must be idempotent, got {second.returncode}")
+
+    stopped = subprocess.run(
+        [str(BINARY), "stop"], env=environment(home), capture_output=True, text=True, timeout=30
+    )
+    if stopped.returncode != EXIT_SUCCESS:
+        raise AssertionError(f"stop must exit 0, got {stopped.returncode}: {stopped.stderr}")
+
+    # The socket is the instance's own; a stopped instance must leave none behind.
+    socket_path = (
+        home / "Library" / "Application Support" / "TimeArc" / "config" / "time-arc-service.sock"
+    )
+    if socket_path.exists():
+        raise AssertionError("stop must unlink the control socket")
+
+    # Stopping nothing is success, not an error.
+    again = subprocess.run(
+        [str(BINARY), "stop"], env=environment(home), capture_output=True, text=True, timeout=30
+    )
+    if again.returncode != EXIT_SUCCESS:
+        raise AssertionError(f"stop with nothing running must exit 0, got {again.returncode}")
+
+
+def case_start_respects_disabled_tracking(home: Path) -> None:
+    """Starting a collector that would immediately exit is a successful no-op."""
+    write_config(home, {"schema_version": 1, "tracking": {"enabled": False}})
+    result = subprocess.run(
+        [str(BINARY), "start"], env=environment(home), capture_output=True, text=True, timeout=30
+    )
+    if result.returncode != EXIT_SUCCESS:
+        raise AssertionError(f"start with tracking disabled must exit 0, got {result.returncode}")
+    if database_path(home).exists():
+        raise AssertionError("start with tracking disabled must not create the database")
+
+
 def main() -> None:
     if not BINARY.exists():
         print(f"macOS service not built, skipping: {BINARY}")
@@ -220,6 +279,8 @@ def main() -> None:
         case_malformed_config,
         case_out_of_range,
         case_single_instance,
+        case_start_stop_round_trip,
+        case_start_respects_disabled_tracking,
     ]
     if "--long" in sys.argv:
         cases.append(case_max_session)

@@ -54,7 +54,19 @@ if(APPLE)
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/SignalObserver.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/FileInstanceLock.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/ServiceRuntime.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/ProcessIdentity.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Runtime/RunCommand.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Control/ControlPorts.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Control/ControlSocket.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Control/ControlServer.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Control/ControlClient.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Control/StartCommand.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Control/StopCommand.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Autostart/AutostartPorts.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Autostart/LaunchAgentControl.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Autostart/LaunchAgentAutostart.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Autostart/EnableCommand.swift
+        ${CMAKE_CURRENT_SOURCE_DIR}/macos/Autostart/DisableCommand.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/TrackingPorts.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/AccessibilityRequest.swift
         ${CMAKE_CURRENT_SOURCE_DIR}/macos/Tracking/ApplicationProbe.swift
@@ -129,6 +141,7 @@ elseif(APPLE)
     find_library(TIMEARC_COREAUDIO_FRAMEWORK CoreAudio REQUIRED)
     find_library(TIMEARC_COREGRAPHICS_FRAMEWORK CoreGraphics REQUIRED)
     find_library(TIMEARC_IOKIT_FRAMEWORK IOKit REQUIRED)
+    find_library(TIMEARC_SERVICEMANAGEMENT_FRAMEWORK ServiceManagement REQUIRED)
 
     target_link_libraries(time_arc_service PRIVATE
         ${TIMEARC_APPKIT_FRAMEWORK}
@@ -136,6 +149,7 @@ elseif(APPLE)
         ${TIMEARC_COREAUDIO_FRAMEWORK}
         ${TIMEARC_COREGRAPHICS_FRAMEWORK}
         ${TIMEARC_IOKIT_FRAMEWORK}
+        ${TIMEARC_SERVICEMANAGEMENT_FRAMEWORK}
     )
 else()
     target_link_libraries(time_arc_service PRIVATE

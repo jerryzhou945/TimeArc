@@ -41,7 +41,6 @@
 #include <QApplication>
 
 #include "services/macos/macos_app_lifecycle.h"
-#include "services/macos/macos_launch_agent.h"
 #include "services/macos/macos_menu_localizer.h"
 #include "services/macos/macos_status_bar_icon.h"
 #include "services/macos/macos_traffic_lights.h"
@@ -214,16 +213,9 @@ int main(int argc, char* argv[]) {
   // lines into L2 error reports.
   installHarnessLogger();
 
-#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
-  const MacLaunchAgentRegistration launchAgent =
-      registerMacLaunchAgent();
-  if (!launchAgent.registered) {
-    qWarning() << "Could not register the macOS LaunchAgent:"
-               << launchAgent.errorMessage;
-  } else if (launchAgent.requiresApproval) {
-    qWarning() << "The macOS LaunchAgent requires approval in System Settings.";
-  }
-#endif
+  // The service owns its own launch agent (CHARTER v0.14): registration happens
+  // when the user enables autostart, through `time-arc-service enable`, not as a
+  // side effect of every app launch.
 
   QQmlApplicationEngine engine;
 

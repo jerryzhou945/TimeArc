@@ -55,24 +55,23 @@ Every platform service must:
   The tracker stays in the interactive user session. A true SCM Session-0
   service is deferred.
 
-### macOS - tracking + config + CLI skeleton
+### macOS - tracking + config + lifecycle; status/doctor pending
 
-- `Tracking/`: frontmost app via `NSWorkspace`, titles via the accessibility API,
-  idle via `CGEventSource`, playback via `IOPMCopyAssertionsByProcess`, audio via
-  CoreAudio; the two state machines own session identity with no OS or SQLite
-  calls, and `TrackingCoordinator.swift` drives them under a `TrackingPolicy`.
-- `Configuration/`: reads `service_config.json` into a `TrackingPolicy`. Absent,
-  malformed, or out-of-range keys fall back to defaults; a newer `schema_version`
-  exits 4. Its path mirrors `database_path.c`, guarded by a static test.
-- `Runtime/ServiceRuntime.swift`: `flock` instance guard (I1), configured poll
-  period, `SIGTERM`/`SIGINT` flush, and a gap check that closes sessions across
-  sleep or a corrected clock instead of billing the gap as active time.
-- `CommandLine/` + `TimeArcService.swift`: total argv parser and README exit-code
-  table behind an `@main` composition root. No arguments means `run`, which is
-  how launchd starts the agent; only `run`/`help`/`version` act today.
-- On launch, the GUI registers embedded `com.timearc.service.plist` through
-  `SMAppService`; the helper ships at `.app/Contents/MacOS/time-arc-service`.
-- Still pending: the other seven CLI verbs, Accessibility UX, and notarization.
+- `Tracking/`: frontmost app via `NSWorkspace`, titles via the accessibility API, idle
+  via `CGEventSource`, playback via `IOPMCopyAssertionsByProcess`, audio via CoreAudio;
+  two state machines own session identity, driven by `TrackingCoordinator` under a policy.
+- `Configuration/`: reads `service_config.json` into that policy; absent, malformed, or
+  out-of-range keys fall back to defaults, and a newer `schema_version` exits 4.
+- `Runtime/`: `flock` instance guard (I1), configured poll period, `SIGTERM` flush, and a
+  gap check that closes sessions across sleep or a corrected clock.
+- `Control/`: per-user unix socket beside the lock, served on the main queue by the lock
+  holder (CHARTER v0.14); `start`/`stop` use it and it accepts only this same binary.
+- `Autostart/`: `enable`/`disable` own the launch agent — SMAppService for the bundled one,
+  falling back to a user-level plist, which is what registers until Developer ID signing.
+  Restart-on-failure only, so `stop` stays stopped while a crash still recovers.
+- `TimeArcService.swift` + `CommandLine/`: argv parser, exit-code table, `@main` root; no
+  arguments means `run`, how launchd starts it. The GUI only invokes this CLI now.
+  Still pending: `status`/`doctor`, Accessibility UX, notarization.
 
 ### Linux - not started
 

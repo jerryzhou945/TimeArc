@@ -17,6 +17,7 @@ final class ServiceRuntime {
   private let clock: any Clocking
   private let ticker: any Ticking
   private let signals: any SignalObserving
+  private let controlServer: any ControlServing
 
   // Builds the coordinator once the policy is known, so tests can substitute probes.
   private let makeCoordinator: (TrackingPolicy) -> TrackingCoordinator
@@ -35,6 +36,7 @@ final class ServiceRuntime {
     clock: any Clocking = SystemClock(),
     ticker: any Ticking = RunLoopTicker(),
     signals: any SignalObserving = SignalObserver(),
+    controlServer: any ControlServing = ControlServer(),
     makeCoordinator: @escaping (TrackingPolicy) -> TrackingCoordinator = { policy in
       TrackingCoordinator(policy: policy)
     }
@@ -44,6 +46,7 @@ final class ServiceRuntime {
     self.clock = clock
     self.ticker = ticker
     self.signals = signals
+    self.controlServer = controlServer
     self.makeCoordinator = makeCoordinator
   }
 
@@ -101,6 +104,19 @@ final class ServiceRuntime {
       self?.requestStop()
     }
     defer { self.signals.cancel() }
+
+    // Serve the control channel for as long as this instance holds the lock, so
+    // another invocation of this binary can stop it or, later, read its state.
+    // A failure here is not fatal: collecting without a control channel beats
+    // not collecting at all.
+    do {
+      try self.controlServer.start { [weak self] request in
+        self?.handle(request) ?? ControlResponse.unsupported(request.rawValue)
+      }
+    } catch {
+      self.report("control channel unavailable: \(error)")
+    }
+    defer { self.controlServer.stop() }
 
     self.debug("Starting service: pid=\(getpid()), pollPeriodSec=\(pollPeriodSec)")
     self.ticker.start(everySec: pollPeriodSec) { [weak self] in
@@ -160,6 +176,22 @@ final class ServiceRuntime {
   private func requestStop() {
     self.debug("Received a stop signal.")
     self.ticker.stop()
+  }
+
+  // Answer one control request. This runs on the main queue between ticks, so
+  // it observes a consistent view of the runtime without any locking.
+  private func handle(_ request: ControlRequest) -> ControlResponse {
+    switch request {
+    case .ping:
+      return .success(request)
+    case .stop:
+      // Stop the loop and answer immediately. The flush happens in the shutdown
+      // path once run() regains control; the caller waits for the socket to
+      // close, which is the honest signal that the flush finished.
+      self.debug("Received a stop request over the control channel.")
+      self.ticker.stop()
+      return .success(request)
+    }
   }
 
   // Apply the failure policy. A storage failure is fatal because every later
