@@ -380,10 +380,29 @@ Item {
         function onUsageStatsChanged() { root.refreshStorage(); root.refreshOverview() }
     }
 
-    // B1：读 service --status 的实际注册态（源是 OS 登录任务/Run 键，非 KV 设置）。
+    // 读服务侧的实际注册态（真值在 launchd / OS 登录项，不是本地 KV）。
+    // root.autostartEnabled 只是这一刻的快照，故凡是可能变过的时机都要重读。
     function refreshAutostart() {
         if (settingsRepository && settingsRepository.autostartEnabled)
             root.autostartEnabled = settingsRepository.autostartEnabled()
+    }
+
+    // app 内改动（状态栏菜单那两行、本页开关、启动自检）都经 SettingsRepository，
+    // 由它广播；否则本页会一直显示打开页面那一刻的旧值。
+    Connections {
+        target: settingsRepository
+        function onServiceStateChanged() { root.refreshAutostart() }
+    }
+
+    // app 外改动收不到任何信号——用户可以直接在「系统设置 → 登录项」里关掉。
+    // 唯一可靠的时机是 app 重新激活（从系统设置切回来那一下）：本页在 Loader 里，
+    // 换页即销毁重建，所以 visible 在其存活期间不会变，盯 visible 是抓不到的。
+    Connections {
+        target: Application
+        function onStateChanged() {
+            if (Application.state === Qt.ApplicationActive)
+                root.refreshAutostart()
+        }
     }
 
     Component.onCompleted: {

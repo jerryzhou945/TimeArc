@@ -78,6 +78,15 @@ class SettingsRepository : public QObject {
   // launchd 管不着的进程；这条是用户在菜单里显式要求的临时采集。
   Q_INVOKABLE bool startTrackingNow();
 
+ signals:
+  // 服务侧生命周期状态可能已变（自启注册、是否在采集），请重读。
+  //
+  // 只报「变了」不带新值：真值在 launchd，带值等于又造一份副本。状态栏菜单和设置页
+  // 都经本类改状态，故本类是唯一能同时通知到两边的地方。注意这只覆盖 app 内的改动——
+  // 用户在系统设置里手动关掉登录项，谁也收不到，那种要靠页面可见时重读。
+  void serviceStateChanged();
+
+ public:
   // macOS 启动自检：设置里开着自启时，问一次 `status --json`，把开关同步成真值，
   // 发现没注册/没在跑就 `enable` 修复（RunAtLoad 顺带把采集拉起来）。设置里没开自启
   // 就什么都不做——绝不擅自装登录项。返回自检后是否在采集。

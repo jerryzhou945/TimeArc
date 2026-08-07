@@ -583,10 +583,14 @@ bool SettingsRepository::setAutostartEnabled(bool enabled) {
   return enabled ? writeUiAutostartCommand() : removeUiAutostartCommand();
 #elif defined(Q_OS_MACOS)
   // The verb is the write. There is nothing to record afterwards: the next read
-  // asks the service again.
+  // asks the service again. Announce it either way -- a failed write can still
+  // have moved launchd (a denied re-register leaves it needing approval), so
+  // every view should re-read rather than assume the old value survived.
   const QString verb =
       enabled ? QStringLiteral("enable") : QStringLiteral("disable");
-  return runServiceVerb(verb) == 0;
+  const bool ok = runServiceVerb(verb) == 0;
+  emit serviceStateChanged();
+  return ok;
 #else
   Q_UNUSED(enabled);
   return false;
@@ -625,7 +629,9 @@ bool SettingsRepository::stopBackgroundCollection() {
 #elif defined(Q_OS_MACOS)
   // `stop` already waits for the instance to flush and release its lock before
   // returning, so no polling loop is needed here.
-  return runServiceVerb(QStringLiteral("stop")) == 0;
+  const bool ok = runServiceVerb(QStringLiteral("stop")) == 0;
+  emit serviceStateChanged();
+  return ok;
 #else
   return true;  // no background collector to stop on this platform yet
 #endif
@@ -660,7 +666,9 @@ bool SettingsRepository::startBackgroundCollection() {
   // "apply and restart". The Settings button is disabled in that case; this is
   // the same rule enforced on the calling side.
   if (!autostartEnabled()) return false;
-  return runServiceVerb(QStringLiteral("enable")) == 0;
+  const bool ok = runServiceVerb(QStringLiteral("enable")) == 0;
+  emit serviceStateChanged();
+  return ok;
 #else
   return false;  // no background collector to start on this platform yet
 #endif
@@ -693,7 +701,9 @@ bool SettingsRepository::startTrackingNow() {
   // `start` on purpose: the user asked for collection now, and a temporary
   // unsupervised instance is the honest answer when nothing is registered.
   // Autostart is a separate decision, made by the checkable menu item.
-  return runServiceVerb(QStringLiteral("start")) == 0;
+  const bool ok = runServiceVerb(QStringLiteral("start")) == 0;
+  emit serviceStateChanged();
+  return ok;
 #else
   return false;
 #endif
@@ -724,7 +734,9 @@ bool SettingsRepository::verifyBackgroundCollection() {
 
   qWarning() << "TimeArc: autostart is registered but nothing is collecting"
              << "-- restarting the service";
-  if (runServiceVerb(QStringLiteral("enable")) != 0) {
+  const bool ok = runServiceVerb(QStringLiteral("enable")) == 0;
+  emit serviceStateChanged();
+  if (!ok) {
     qWarning() << "TimeArc: could not restart the background service";
     return false;
   }

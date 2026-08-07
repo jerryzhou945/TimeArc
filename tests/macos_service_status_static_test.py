@@ -92,6 +92,32 @@ def check_status_reads_locally() -> None:
         raise AssertionError("status must not depend on the control channel")
 
 
+def check_views_cannot_go_stale() -> None:
+    """Every view re-reads; none of them caches a value with no invalidation.
+
+    The Settings switch is a QML-side snapshot of launchd state. Two ways it can
+    fall behind: a change made elsewhere in the app (the status-bar rows), and a
+    change made outside it (System Settings). The first needs a signal from the
+    one class both paths call; the second can only be caught when the app is
+    activated again, since nothing notifies us at all.
+    """
+    header = (ROOT / "src" / "services" / "settings_repository.h").read_text(encoding="utf-8")
+    if "void serviceStateChanged();" not in header:
+        raise AssertionError("SettingsRepository must announce service-state changes")
+
+    settings = SETTINGS.read_text(encoding="utf-8")
+    if settings.count("emit serviceStateChanged();") < 4:
+        raise AssertionError("every path that changes service state must announce it")
+
+    page = (ROOT / "qml" / "desktop" / "pages" / "DesktopProfilePage.qml").read_text(
+        encoding="utf-8"
+    )
+    if "function onServiceStateChanged()" not in page:
+        raise AssertionError("the settings page must listen for in-app changes")
+    if "Qt.ApplicationActive" not in page:
+        raise AssertionError("the settings page must re-read when the app is activated")
+
+
 def check_gui_consumes_json() -> None:
     """The GUI reads autostart state from the service and mirrors none of it.
 
@@ -111,6 +137,7 @@ def check_gui_consumes_json() -> None:
 
 
 def main() -> None:
+    check_views_cannot_go_stale()
     check_json_fields()
     check_exit_code_table()
     check_status_reads_locally()
