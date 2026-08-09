@@ -6,6 +6,12 @@
 > ——设置页 DOM `13897–14165`、CSS（暗）`8194–8830`（+ 共享类 `prototype-status 11608`、
 > `workflow-map 11689`、`theme-switch/chip 12313–12418`）、设置页 JS `17824–18008`、
 > 白天模式 JS `18678–18740`、light 覆盖 `12420–13500`、导航「设置」项 `DesktopAppShell.qml:135`。
+>
+> **配置键将更名（2026-08-05）。** 文中写 `usage_config.json` 的 `track_enabled` /
+> `idle_threshold_ms` 是**今天的行为**；`service_config.json` v1（`CHARTER` v0.13，**尚未实装**）
+> 改为 `tracking.enabled` 与 `tracking.frontmost.idle_threshold_sec`（**秒**）。
+> 规范见 [`../src/service/README.md`](../src/service/README.md)；C7 验收口径届时按新键改写。
+>
 > 数据来源：设置持久化走 **`SettingsRepository`**（SQLite `settings` 表，UI 私有 KV，
 > **非服务磁盘契约**）；数据概览走与首页/统计**同款只读路径**——`usageStatManager` /
 > `projectManager` / `dailyCardService`，**不新开数据通道**（详见 §3 + 问题文档）。

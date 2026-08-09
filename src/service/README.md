@@ -2,13 +2,69 @@
 
 TimeArc uses separate service implementations per platform, but all of them share the same CLI and write the same service-owned database.
 
-> The service CLI design has not been implemented yet.
+> The service CLI and configuration designs have not been implemented yet.
 
 - `shared/`: shared protocol, app snapshots, environment interfaces, SQLite
   database storage, and path helpers.
 - `windows/`: Windows implementation in C.
 - `macos/`: macOS implementation in Swift.
 - `linux/`: Linux implementation in C.
+
+## Configuration File
+
+The service configuration file is a JSON file that contains the service's settings and preferences.
+
+### Configuration Format
+
+The configuration file format and default values.
+
+```json
+{
+  "schema_version": 1,
+  "tracking": {
+    "enabled": true,
+    "sampling": {
+      "poll_period_sec": 1,
+      "min_session_sec": 1,
+      "max_session_sec": 300
+    },
+    "frontmost": {
+      "enabled": true,
+      "idle_threshold_sec": 60,
+      "video_overrides_idle": true
+    },
+    "media": {
+      "enabled": true
+    }
+  },
+  "database": {
+    "dir": null
+  }
+}
+```
+
+### Key Descriptions
+
+| **Key**                                       | **Type**           |     **Range** | **Meaning**                                                                                                          |
+| --------------------------------------------- | ------------------ | ------------: | -------------------------------------------------------------------------------------------------------------------- |
+| **`schema_version`**                          | `int`              |             1 | The configuration schema version.                                                                                    |
+| **`tracking.enabled`**                        | `bool`             |             - | Whether tracking is enabled.                                                                                         |
+| **`tracking.sampling.poll_period_sec`**       | `int`              |          1-60 | Sampling period for tracking information.                                                                            |
+| **`tracking.sampling.min_session_sec`**       | `int`              |          1-60 | Records shorter than this are not written.                                                                           |
+| **`tracking.sampling.max_session_sec`**       | `int`              | 0 or 60-86400 | When an open record reaches this length, it is written and a new one starts. `0` means uncapped.                     |
+| **`tracking.frontmost.enabled`**              | `bool`             |             - | Whether frontmost app tracking is enabled.                                                                           |
+| **`tracking.frontmost.idle_threshold_sec`**   | `int`              |       0-86400 | The idle threshold for frontmost app tracking. `0` disables idle detection.                                          |
+| **`tracking.frontmost.video_overrides_idle`** | `bool`             |             - | Whether video-like foreground playback keeps the session active regardless of input idle.                            |
+| **`tracking.media.enabled`**                  | `bool`             |             - | Whether media tracking is enabled.                                                                                   |
+| **`database.dir`**                            | `string` or `null` | Absolute path | The directory holding the service database. If `null`, the service will use the platform-specific default directory. |
+
+### File Location
+
+| **Platform** | **Path**                                                           |
+| ------------ | ------------------------------------------------------------------ |
+| **Windows**  | `%APPDATA%\TimeArc\config\service_config.json`                     |
+| **macOS**    | `~/Library/Application Support/TimeArc/config/service_config.json` |
+| **Linux**    | `${XDG_CONFIG_HOME:-~/.config}/TimeArc/config/service_config.json` |
 
 ## Command-Line Interface
 
@@ -59,13 +115,15 @@ Queries the service state and prints it in the requested format. The default for
 
 Status descriptions:
 
-- **`platform`**: The operating system (`windows`, `macos`, or `linux`).
-- **`tracking.running`**: Whether the service is actively tracking.
-- **`tracking.enabled`**: Whether tracking is enabled in the configuration.
-- **`tracking.frontmost.enabled`**: Whether frontmost app tracking is enabled.
-- **`tracking.media.enabled`**: Whether media tracking is enabled.
-- **`autostart.enabled`**: Whether the service is registered for autostart on login.
-- **`autostart.backend`**: The backend used for autostart registration, which is platform-specific. If the service is not registered for autostart, it is `null`.
+| **Service State**                | **Type**           | **Meaning**                                                                                                                            |
+| -------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **`platform`**                   | `string`           | The operating system (`windows`, `macos`, or `linux`).                                                                                 |
+| **`tracking.running`**           | `bool`             | Whether the service is actively tracking.                                                                                              |
+| **`tracking.enabled`**           | `bool`             | Whether tracking is enabled in the configuration.                                                                                      |
+| **`tracking.frontmost.enabled`** | `bool`             | Whether frontmost app tracking is enabled.                                                                                             |
+| **`tracking.media.enabled`**     | `bool`             | Whether media tracking is enabled.                                                                                                     |
+| **`autostart.enabled`**          | `bool`             | Whether the service is registered for autostart on login.                                                                              |
+| **`autostart.backend`**          | `string` or `null` | The backend used for autostart registration, which is platform-specific. If the service is not registered for autostart, it is `null`. |
 
 Text output example:
 
@@ -190,7 +248,7 @@ JSON output example:
           "summary": "Service configuration file path is valid.",
           // Verbose
           "details": {
-            "path": "/Users/steve/Library/Application Support/TimeArc/usage/usage_config.json",
+            "path": "/Users/steve/Library/Application Support/TimeArc/config/service_config.json",
             "exists": true,
             "readable": true,
             "writable": true

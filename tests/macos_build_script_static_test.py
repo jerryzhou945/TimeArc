@@ -19,13 +19,18 @@ def main() -> None:
     for option in ("--release", "--build", "--test", "--package"):
         require(source, option, f"{option} option")
 
+    # The packaging script deliberately calls CMake directly instead of the
+    # harness wrapper: a distribution build must stay runnable without Python
+    # or a writable .harness tree. See rules/05-build-system.md 8.
     require(
         source,
-        '"$REPO_ROOT/.harness/tools/build.py"',
-        "harness-wrapped compilation",
+        'cmake --build "$BUILD_DIR" --config Release --parallel',
+        "direct Release compilation",
     )
-    if "cmake --build" in source:
-        raise AssertionError("script must not bypass the harness build wrapper")
+    if ".harness/tools/build.py" in source:
+        raise AssertionError(
+            "packaging must not depend on the harness build wrapper"
+        )
 
     require(source, "ctest --test-dir", "test execution")
     require(source, "select_swift_generator", "Swift-capable generator selection")

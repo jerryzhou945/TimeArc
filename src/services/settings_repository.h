@@ -62,10 +62,36 @@ class SettingsRepository : public QObject {
 
   // H5 S2：立即拉起一个后台采集进程（time-arc-service.exe --start；单实例 mutex 令其
   // 幂等——已在跑则新实例静默退出）。配合 stopBackgroundCollection 实现设置页「应用并
-  // 重启采集」。被拉起的服务在启动时重读 usage_config.json，故新写入的 idle/track 即时
-  // 生效。返回启动后是否在采集（追踪被关时服务自行退出→false，即诚实的「已暂停」）。
+  // 重启采集」。被拉起的服务在启动时重读 service_config.json，故新写入的 idle/track 即时
+  // 生效（服务侧读取待 A3 落地，见 DatabaseManager::writeServiceConfig）。
+  // 返回启动后是否在采集（追踪被关时服务自行退出→false，即诚实的「已暂停」）。
   // 守 I1：纯 UI→子进程命令。
   Q_INVOKABLE bool startBackgroundCollection();
+
+  // 一次 `status --json` 取回服务状态，供状态栏菜单一次开菜单只 spawn 一个子进程。
+  // 键：ok / autostartEnabled / trackingRunning / trackingEnabled。ok=false 时其余
+  // 键不可信（服务不可达），调用方应显示「未知」而非假的「关」。
+  Q_INVOKABLE QVariantMap serviceState();
+
+  // 立即开始采集：有注册就叫 launchd 拉起注册的实例，没注册就起一个临时实例
+  // （`start` 动词）。与「应用并重启采集」不同——那条路只走 `enable`，绝不制造
+  // launchd 管不着的进程；这条是用户在菜单里显式要求的临时采集。
+  Q_INVOKABLE bool startTrackingNow();
+
+ signals:
+  // 服务侧生命周期状态可能已变（自启注册、是否在采集），请重读。
+  //
+  // 只报「变了」不带新值：真值在 launchd，带值等于又造一份副本。状态栏菜单和设置页
+  // 都经本类改状态，故本类是唯一能同时通知到两边的地方。注意这只覆盖 app 内的改动——
+  // 用户在系统设置里手动关掉登录项，谁也收不到，那种要靠页面可见时重读。
+  void serviceStateChanged();
+
+ public:
+  // macOS 启动自检：设置里开着自启时，问一次 `status --json`，把开关同步成真值，
+  // 发现没注册/没在跑就 `enable` 修复（RunAtLoad 顺带把采集拉起来）。设置里没开自启
+  // 就什么都不做——绝不擅自装登录项。返回自检后是否在采集。
+  // 其他平台恒 false（Windows 行为不变）。守 I1：纯 UI→子进程命令。
+  Q_INVOKABLE bool verifyBackgroundCollection();
 };
 
 #endif

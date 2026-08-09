@@ -20,32 +20,48 @@ The service-owned SQLite history DB lives in the platform service-data directory
 | `timearc.db`              | GUI only                    | GUI            | settings/tags/manual/mobile/UI tables |
 
 SQLite (`timearc_service.db`) is the UI's **only** history source as of
-`CHARTER` v0.8, and the service is its only writer. The
-service and UI resolve it through the same `usage_config.json` `db_dir` pointer,
-then append the locked filename. The UI opens it read-only; a missing, empty, or
-unreadable database produces empty history rather than consulting another source.
-The GUI's original
-`timearc.db` is separate and GUI-only; it owns settings, tags, manual project
-state, Android/mobile sync tables, and UI app metadata. No process writes the
-other process's SQLite file.
+`CHARTER` v0.8, and the service is its only writer. The service and UI resolve it
+through the same control-file directory pointer, then append the locked filename.
+The UI opens it read-only; a missing, empty, or unreadable database produces empty
+history rather than consulting another source. The GUI's original `timearc.db` is
+separate and GUI-only; it owns settings, tags, manual project state,
+Android/mobile sync tables, and UI app metadata. No process writes the other
+process's SQLite file.
 
-**DB path (D2, `CHARTER` v0.5).** The filename is locked to
-`timearc_service.db`; only the containing directory is configurable via
-`usage_config.json` `db_dir`. The service resolves it through shared
-`get_database_path`, and the UI mirrors the same config-first logic for its
-read-only service-history connection. Absent, unreadable, malformed, or empty
-`db_dir` falls back to the default. A non-empty configured `db_dir` wins; actual
-open/create failures surface at database-open time. GUI "relocation" only writes
-the `db_dir` pointer; it never copies, vacuums, restores, or writes
-`timearc_service.db`. The old `db_path` key is ignored and removed by the next
-UI DB-location write.
+## 1b. The control file
 
-**Service config (H5, `CHARTER` v0.4).** `usage_config.json` also carries
-`idle_threshold_ms` (clamped 1s-24h) and `track_enabled` (`false` = service
-self-exits, no deletion). The UI writes them via
-`DatabaseManager::writeServiceConfig`; D2 and H5 share `mergeUsageConfig`, an
-atomic RMW that preserves the other's keys. Absent/invalid keys use compile-time defaults; the channel is disk-only and honors I1. Proposal:
-`journal/sessions/20260609-0150-B-service-config-proposal.md`.
+One UI-written, service-read JSON file carries the DB directory pointer and the collection
+settings. **Only** sanctioned UI→service channel (I1): disk-only, read at service startup, never IPC.
+
+**`service_config.json`** (`CHARTER` v0.13) in `<config base>/TimeArc/config/`
+(`%APPDATA%`, `~/Library/Application Support`, `${XDG_CONFIG_HOME:-~/.config}`).
+Versioned and namespaced; every key, range, and path: `src/service/README.md`
+§Configuration File. `database.dir` carries the service-DB directory (D2; filename
+stays locked to `timearc_service.db`); `tracking.*` the collection settings, idle
+in **seconds**.
+
+The service resolves the DB through shared `get_database_path`; the UI mirrors
+that logic in `readConfigDbDirRaw`. **The two must stay in step or the processes
+split-brain over where history lives.** Absent, unreadable, or malformed config
+falls back to compile-time defaults. GUI "relocation" only writes the pointer — it
+never copies, vacuums, restores, or writes `timearc_service.db`. Writes go through
+`patchServiceConfig`, an atomic leaf-patching RMW that preserves every other key,
+including sections this build does not know about.
+
+**The retired `usage_config.json` is never read or written** — no fallback, no
+mirror, no importer. Release-note consequence: an install that had relocated its
+database loses the pointer and falls back to the platform default until the user
+re-selects the directory in Settings; the old database is untouched on disk.
+Retired spellings `db_dir`/`db_path` are dropped from the new file on the next
+DB-location write. Key mapping, for anyone migrating by hand:
+`db_dir` → `database.dir`; `track_enabled` → `tracking.enabled`;
+`idle_threshold_ms` → `tracking.frontmost.idle_threshold_sec` (`round(ms/1000)`).
+
+Implemented: the UI writer, the DB pointer, and the macOS service-side `tracking.*`
+reader (every key honored; absent/malformed file and out-of-range keys fall back to
+defaults, a newer `schema_version` refuses to start). **Pending: the Windows and
+Linux readers.** Proposals: `journal/sessions/20260805-2143-B-service-config-v1.md`
+(superseding H5 `20260609-0150` and D2 `20260610-1705`) + `20260806-0227-B-macos-service-config.md`.
 
 ## 2. Invariants
 

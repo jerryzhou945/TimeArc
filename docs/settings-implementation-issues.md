@@ -4,6 +4,11 @@
 > **最新落地状态 + 未实装审计 + 服务侧配置提案**见 `docs/settings-remaining-work.md`。下方 §8 复选框是初始
 > 规划，未随实装逐个勾选——以 remaining-work 审计为准。
 >
+> **配置键将更名（2026-08-05）**：G-IDLE / G-TRACK 所述 `usage_config.json` 的
+> `idle_threshold_ms` / `track_enabled`，在 `service_config.json` v1（`CHARTER` v0.13，**尚未实装**）
+> 中为 `tracking.frontmost.idle_threshold_sec`（**秒**）/ `tracking.enabled`。
+> 规范见 [`../src/service/README.md`](../src/service/README.md)。
+>
 > 前置：本文是设置页复刻的**数据侧 + 决策侧问题清单 + 接入计划**，体例对齐
 > `docs/stats-backend-data-gaps.md`。配套：`docs/settings-functional-replication.md`（功能/行为/法规）+
 > `docs/settings-render-pipeline-replication.md`（美术/像素）。

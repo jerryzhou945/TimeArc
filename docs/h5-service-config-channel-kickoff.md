@@ -1,5 +1,13 @@
 # H5 · 服务侧配置通道（空闲超时 / 真停采集 / 删除历史）· 实现 Kickoff
 
+> **⚠️ 已被取代（2026-08-05）。** 本文描述的 `usage_config.json` 扁平三键格式已由
+> **`service_config.json` v1** 取代（`CHARTER` v0.13，**设计已批、尚未实装**）：带
+> `schema_version`、分节命名、单位改为**秒**，并新增采样周期 / 记录最短最长长度 /
+> frontmost 与 media 子开关；配置目录迁至 `TimeArc/config/`。
+> 格式规范见 [`src/service/README.md`](../src/service/README.md)；迁移与一版本重叠期见
+> `.harness/journal/sessions/20260805-2143-B-service-config-v1.md`。
+> **本文以下内容保留为 H5 当时的实装记录**（PR #42 仍是今天磁盘上的行为），不再是格式权威。
+
 > 用途：把 `docs/implementation-backlog.md §H5` 从「待办」展开成**带依赖、可逐 session 落地**的执行计划。
 > H5 让设置页里现为「软暂停 + 受限标注」的 **空闲超时 / 真停采集** 真正生效，并就 **删除历史** 拍板。
 >

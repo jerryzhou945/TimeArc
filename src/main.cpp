@@ -10,6 +10,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QStringList>
+#include <QTimer>
 #include <QUrl>
 #include <QWindow>
 
@@ -41,7 +42,6 @@
 #include <QApplication>
 
 #include "services/macos/macos_app_lifecycle.h"
-#include "services/macos/macos_launch_agent.h"
 #include "services/macos/macos_menu_localizer.h"
 #include "services/macos/macos_status_bar_icon.h"
 #include "services/macos/macos_traffic_lights.h"
@@ -214,16 +214,9 @@ int main(int argc, char* argv[]) {
   // lines into L2 error reports.
   installHarnessLogger();
 
-#if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
-  const MacLaunchAgentRegistration launchAgent =
-      registerMacLaunchAgent();
-  if (!launchAgent.registered) {
-    qWarning() << "Could not register the macOS LaunchAgent:"
-               << launchAgent.errorMessage;
-  } else if (launchAgent.requiresApproval) {
-    qWarning() << "The macOS LaunchAgent requires approval in System Settings.";
-  }
-#endif
+  // The service owns its own launch agent (CHARTER v0.14): registration happens
+  // when the user enables autostart, through `time-arc-service enable`, not as a
+  // side effect of every app launch.
 
   QQmlApplicationEngine engine;
 
@@ -256,6 +249,15 @@ int main(int argc, char* argv[]) {
   }
 #if defined(Q_OS_MACOS) || defined(Q_OS_DARWIN)
   macMenuLocalizer.setLanguage(settingsRepository.languageMode());
+  // Startup self-check: only for a user who already turned autostart on, ask the
+  // service for its state and repair a registration that went missing. The app
+  // never registers itself just by being launched (CHARTER v0.14).
+  //
+  // Deferred to the event loop rather than run here: it shells out to the
+  // service, and a hung helper would otherwise hold up the first window.
+  QTimer::singleShot(0, &settingsRepository, [&settingsRepository]() {
+    settingsRepository.verifyBackgroundCollection();
+  });
 #endif
 
   CalendarManager calendarManager(&settingsRepository);

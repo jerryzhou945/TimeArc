@@ -3,6 +3,12 @@
 > 配套：`settings-functional-replication.md`（功能法规）/ `settings-render-pipeline-replication.md`（美术）/
 > `settings-implementation-issues.md`（缺口 G-* · 决策 A-* · 三阶段）。本文档只做一件事：**逐项实测每个
 > 设置控件的真实落地状态**，把「未实现 / 仅持久化 / 受限」的内容归纳成单一清单，供后续排期。
+>
+> **配置键将更名（2026-08-05）。** 文中 `usage_config.json` / `idle_threshold_ms` / `track_enabled`
+> 描述的是**今天磁盘上的行为**；已批准的 `service_config.json` v1（`CHARTER` v0.13，**尚未实装**）
+> 改为 `tracking.frontmost.idle_threshold_sec`（**秒**，UI 的分钟换算移到 UI 边界）与 `tracking.enabled`，
+> 并新增 frontmost/media 子开关。规范见 [`../src/service/README.md`](../src/service/README.md)。
+> 注意：设置页写入时的**分钟→秒**换算与旧的分钟→毫秒不同，接线时须一并改。
 
 ## 目的与方法
 

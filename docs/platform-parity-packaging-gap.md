@@ -2,6 +2,14 @@
 
 更新日期：2026-06-19
 
+> **⚠️ 历史对比表，macOS 列已过期（复核于 2026-08-05）。** helper 后被重构为 `Tracking/`
+> 探针 + 状态机架构，表中记为「已完成」的 **service config 读取 / 单实例文件锁 /
+> LaunchAgent verbs / live snapshot** 在当前代码里都不存在——`TimeArcService.swift:17-21`
+> 把 idle 与 frontmost/media 开关**硬编码**，配置对 macOS 目前**完全无效**。
+> 当前事实见 `.harness/rules/02-platform-boundaries.md` §3；配置格式已重新设计，见
+> [`src/service/README.md`](../src/service/README.md)（`service_config.json` v1，`CHARTER` v0.13，
+> 设计已批、尚未实装）。
+
 ## 结论
 
 TimeArc 桌面 UI 使用同一套 Qt/QML 页面，Windows 和 macOS 的界面目标基本一致。当前差距主要在后端采集服务、系统权限、服务生命周期、自动启动和打包发布链路。

@@ -8,10 +8,8 @@ final class TrackingCoordinator {
   private var frontmost: FrontmostStateMachine
   private var media: MediaStateMachine
 
-  // Configuration parameters for idle detection and tracking.
-  private let idleThreshold: Int64
-  private let enableFrontmost: Bool
-  private let enableMedia: Bool
+  // The collection policy resolved from the control file.
+  private let policy: TrackingPolicy
 
   // Probes for frontmost and media session information.
   private let frontmostAppProbe: any FrontmostAppProbing
@@ -25,9 +23,7 @@ final class TrackingCoordinator {
 
   // Initialize the tracking coordinator with the necessary probes and initial state.
   init(
-    idleThreshold: Int64,
-    enableFrontmost: Bool,
-    enableMedia: Bool,
+    policy: TrackingPolicy,
     frontmostAppProbe: any FrontmostAppProbing = ApplicationProbe(),
     appInformationProbe: any AppInformationProbing = ApplicationProbe(),
     windowTitleProbe: any WindowTitleProbing = TitleProbe(),
@@ -37,10 +33,8 @@ final class TrackingCoordinator {
     audioProcessProbe: any AudioProcessProbing = AudioProcessProbe(),
     dataBridge: any DataBridging = DataBridge()
   ) {
-    // Set the configuration parameters.
-    self.idleThreshold = idleThreshold
-    self.enableFrontmost = enableFrontmost
-    self.enableMedia = enableMedia
+    // Set the collection policy.
+    self.policy = policy
 
     // Set the probes and data bridge.
     self.frontmostAppProbe = frontmostAppProbe
@@ -60,25 +54,25 @@ final class TrackingCoordinator {
   // Update the tracking state and write the records to the database.
   func update(at time: Int64) throws(TrackingError) {
     var assertions: [Int32: SleepAssertionType]?
-    if enableFrontmost || enableMedia {
+    if self.policy.enableFrontmost || self.policy.enableMedia {
       assertions = try self.sleepAssertionProbe.getSleepAssertions()
     }
-    if enableFrontmost {
+    if self.policy.enableFrontmost {
       try self.updateFrontmost(with: assertions, at: time)
     }
-    if enableMedia {
+    if self.policy.enableMedia {
       try self.updateMedia(with: assertions, at: time)
     }
   }
 
   // Shutdown the tracking coordinator and write any remaining records to the database.
   func shutdown(at time: Int64) throws(TrackingError) {
-    if enableFrontmost, let record = try self.frontmost.shutdown(at: time) {
-      try self.dataBridge.bridgeFrontmostRecord(record)
+    if self.policy.enableFrontmost, let record = try self.frontmost.shutdown(at: time) {
+      try self.bridge(record)
     }
-    if enableMedia, let records = try self.media.shutdown(at: time) {
+    if self.policy.enableMedia, let records = try self.media.shutdown(at: time) {
       for record in records {
-        try self.dataBridge.bridgeMediaRecord(record)
+        try self.bridge(record)
       }
     }
   }
@@ -93,7 +87,7 @@ final class TrackingCoordinator {
       guard let record = try self.frontmost.shutdown(at: time) else {
         return
       }
-      try self.dataBridge.bridgeFrontmostRecord(record)
+      try self.bridge(record)
       return
     }
 
@@ -102,6 +96,15 @@ final class TrackingCoordinator {
     case .active(let data):
       // Check if the new frontmost app information matches the current record.
       if self.isSame(frontmostSession, data) {
+        // Flush the open record when it reaches the configured maximum length.
+        // Refreshing with the same session keeps the identity and restarts the
+        // record at this time, so the written rows stay contiguous.
+        if self.hasReachedMaximum(from: data.startUnixSec, at: time),
+          let record = try self.frontmost.refresh(with: frontmostSession, at: time)
+        {
+          try self.bridge(record, enforcingMinimum: false)
+        }
+
         if self.isIdle(try self.getIdleTime(from: assertions, for: frontmostSession.app.pid)) {
           try self.frontmost.idle(at: time)
         }
@@ -112,10 +115,20 @@ final class TrackingCoordinator {
       guard let record = try self.frontmost.refresh(with: frontmostSession, at: time) else {
         return
       }
-      try self.dataBridge.bridgeFrontmostRecord(record)
+      try self.bridge(record)
     case .idle(let data):
       // Check if the new frontmost app information matches the current record.
       if self.isSame(frontmostSession, data) {
+        // Flush the open record when it reaches the configured maximum length.
+        // Refreshing reactivates the session, so mark it idle again at the same
+        // time, which accumulates no active seconds.
+        if self.hasReachedMaximum(from: data.startUnixSec, at: time),
+          let record = try self.frontmost.refresh(with: frontmostSession, at: time)
+        {
+          try self.bridge(record, enforcingMinimum: false)
+          try self.frontmost.idle(at: time)
+        }
+
         if !self.isIdle(try self.getIdleTime(from: assertions, for: frontmostSession.app.pid)) {
           try self.frontmost.reactivate(at: time)
         }
@@ -126,7 +139,7 @@ final class TrackingCoordinator {
       guard let record = try self.frontmost.refresh(with: frontmostSession, at: time) else {
         return
       }
-      try self.dataBridge.bridgeFrontmostRecord(record)
+      try self.bridge(record)
     default:
       // Activate the frontmost state machine with the new session information.
       try self.frontmost.activate(with: frontmostSession, at: time)
@@ -144,19 +157,34 @@ final class TrackingCoordinator {
         return
       }
       for record in records {
-        try self.dataBridge.bridgeMediaRecord(record)
+        try self.bridge(record)
       }
       return
     }
 
     // Update the media state machine based on the current state and the new session information.
-    if case .active(_) = self.media.state {
+    if case .active(let data) = self.media.state {
+      // Flush every open record that reached the configured maximum length by
+      // retiring those sessions; the refresh below re-adds them at this time,
+      // so their identity is unchanged and the written rows stay contiguous.
+      let matured = Set(data.filter { self.hasReachedMaximum(from: $0.value, at: time) }.keys)
+      if !matured.isEmpty,
+        let records = try self.media.refresh(
+          with: Set(data.keys).subtracting(matured),
+          at: time
+        )
+      {
+        for record in records {
+          try self.bridge(record, enforcingMinimum: false)
+        }
+      }
+
       // Refresh the media state machine with the new session information.
       guard let records = try self.media.refresh(with: mediaSessions, at: time) else {
         return
       }
       for record in records {
-        try self.dataBridge.bridgeMediaRecord(record)
+        try self.bridge(record)
       }
     } else {
       // Activate the media state machine with the new session information.
@@ -164,14 +192,46 @@ final class TrackingCoordinator {
     }
   }
 
+  // Write a frontmost record unless it is shorter than the configured minimum.
+  private func bridge(_ record: FrontmostRecord, enforcingMinimum: Bool = true)
+    throws(TrackingError)
+  {
+    guard self.isLongEnough(record.lastUpdateUnixSec - record.startUnixSec, enforcingMinimum)
+    else {
+      return
+    }
+    try self.dataBridge.bridgeFrontmostRecord(record)
+  }
+
+  // Write a media record unless it is shorter than the configured minimum.
+  private func bridge(_ record: MediaRecord, enforcingMinimum: Bool = true) throws(TrackingError) {
+    guard self.isLongEnough(record.lastUpdateUnixSec - record.startUnixSec, enforcingMinimum)
+    else {
+      return
+    }
+    try self.dataBridge.bridgeMediaRecord(record)
+  }
+
+  // Check whether a record is long enough to be written. Records flushed at the
+  // configured maximum length are always written.
+  private func isLongEnough(_ durationSec: Int64, _ enforcingMinimum: Bool) -> Bool {
+    !enforcingMinimum || durationSec >= self.policy.minSessionSec
+  }
+
+  // Check whether an open record has reached the configured maximum length.
+  private func hasReachedMaximum(from startUnixSec: Int64, at time: Int64) -> Bool {
+    self.policy.maxSessionSec > 0 && time - startUnixSec >= self.policy.maxSessionSec
+  }
+
   // Compare the frontmost session with the active record.
   private func isSame(_ session: FrontmostSession, _ record: FrontmostRecord) -> Bool {
     session.app == record.app && session.windowTitle == record.windowTitle
   }
 
-  // Check if the current time exceeds the idle threshold.
+  // Check if the current time exceeds the idle threshold. A threshold of zero
+  // disables idle detection.
   private func isIdle(_ time: Int64) -> Bool {
-    time >= self.idleThreshold
+    self.policy.idleThresholdSec > 0 && time >= self.policy.idleThresholdSec
   }
 
   // Get the frontmost session.
@@ -234,11 +294,12 @@ final class TrackingCoordinator {
     return mediaSessions.isEmpty ? nil : mediaSessions
   }
 
-  // Get the idle time for the given PID.
+  // Get the idle time for the given PID. Foreground playback counts as activity
+  // only when the policy allows video to override input idle.
   private func getIdleTime(from assertions: [Int32: SleepAssertionType]?, for pid: Int32)
     throws(TrackingError) -> Int64
   {
-    if let assertions, assertions[pid] == .foreground {
+    if self.policy.videoOverridesIdle, let assertions, assertions[pid] == .foreground {
       return 0
     } else {
       return try self.inputActionProbe.getSecondsSinceLastInput()

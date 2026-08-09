@@ -1,5 +1,11 @@
 # D2 · 用户可选数据库路径 + 安全迁移流 · 实现启动（Kickoff / 多 session 拆分）
 
+> **⚠️ 指针键将更名（2026-08-05）。** 本文所述 `usage_config.json` 的 `db_dir` 键，在
+> **`service_config.json` v1** 中改为 **`database.dir`**（`CHARTER` v0.13，**设计已批、尚未实装**）；
+> 配置文件迁至 `TimeArc/config/`（Windows 根目录改 `%APPDATA%`）。**D2 的语义不变**：文件名仍锁死
+> `timearc_service.db`，UI 只写指针、绝不写库。格式见 [`src/service/README.md`](../src/service/README.md)，
+> 迁移见 `.harness/journal/sessions/20260805-2143-B-service-config-v1.md`。
+
 > 用途：把 `docs/implementation-backlog.md` §D2（数据运维）从「散落待办」展开成**带依赖、可逐 session 落地**的
 > 执行计划。D2 是 Track **B**、跨进程（UI + service）、**碰 I2 数据契约（须变更提案 + CHARTER 修订）**、且
 > **依赖服务侧配置通道（与 H5 同源，待签核）+ 服务构建/测试流水线**。本文先钉死**真实现状**，再给拆分、文件红线、

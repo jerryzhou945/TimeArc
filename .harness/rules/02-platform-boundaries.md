@@ -55,24 +55,24 @@ Every platform service must:
   The tracker stays in the interactive user session. A true SCM Session-0
   service is deferred.
 
-### macOS - foreground/config/media/lifecycle MVP, packaged smoke passing
+### macOS - tracking + config + lifecycle + status; doctor pending
 
-- `AppEnv.swift`: frontmost app via `NSWorkspace`, idle via `CGEventSource`,
-  media playback via `IOPMCopyAssertionsByProcess`.
-- `WindowIdentifying.swift`: focused-window title via accessibility API.
-- `AppInfo.swift`, `BinaryFloatingPoint+ToUInt.swift`: helpers.
-- `TimeArcService.swift`: initializes shared storage, reads
-  `~/Library/Application Support/TimeArc/usage/usage_config.json` for `idle_threshold_ms` and
-  `track_enabled`, takes a per-user file lock, writes foreground sessions,
-  writes media assertions as `source=audio`, pauses foreground active-time
-  accumulation while idle, flushes pending sessions on `SIGTERM`/`SIGINT`, and provides
-  `--install`/`--uninstall`/`--start`/`--stop`/`--status` verbs backed by a
-  per-user LaunchAgent.
-- On launch, the GUI registers embedded `com.timearc.service.plist` through
-  `SMAppService`; it never copies the plist or executes the helper directly.
-- The helper is bundled as `.app/Contents/MacOS/time-arc-service`.
-- The packaged app launch-smoke confirms launchd runs the deployed helper.
-- Still pending: Accessibility UX, Developer ID signing, and notarization.
+- `Tracking/`: frontmost app via `NSWorkspace`, titles via the accessibility API, idle via
+  `CGEventSource`, playback via `IOPMCopyAssertionsByProcess`, audio via CoreAudio; two
+  state machines own session identity, driven by `TrackingCoordinator` under a policy.
+- `Configuration/` reads `service_config.json` into that policy (absent, malformed, or
+  out-of-range keys fall back to defaults; a newer `schema_version` exits 4). `Runtime/`
+  adds the `flock` instance guard (I1), the configured poll period, `SIGTERM` flush, and a
+  gap check that closes sessions across sleep or a corrected clock.
+- `Control/`: per-user unix socket beside the lock, served on the main queue by the lock
+  holder (v0.14); `start`/`stop` use it; it accepts only this same binary.
+- `Autostart/`: `enable`/`disable` own the launch agent — SMAppService for the bundled one,
+  falling back to a user-level plist until Developer ID signing. Restart-on-failure only, so
+  `stop` stays stopped; `enable` kickstarts an already-registered job, which RunAtLoad won't.
+- `Diagnostics/`: `status` reports from config, lock, and autostart backend, not the control
+  channel. launchd is autostart's only record; the UI mirrors none of it and never registers.
+- `TimeArcService.swift` + `CommandLine/`: argv parser, exit-code table, `@main` root; no
+  args means `run`. Pending: `doctor`, Accessibility UX, notarization.
 
 ### Linux - not started
 
