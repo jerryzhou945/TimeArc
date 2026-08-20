@@ -1,0 +1,46 @@
+# Error Report - codex-family-resolver-red
+
+## Metadata
+
+- Level: **L1**
+- Track: **C**
+- Topic: codex-family-resolver-red
+- Recorded: 2026-08-20T15:34:47Z
+- Session: .harness/journal/sessions/20260820-2321-C-windows-codex-autonomous-activity.md
+- Platform: n-a
+- Tooling: (fill in)
+
+## 1. What happened
+
+cmake --build exited 1
+
+## 2. Evidence
+
+```
+[1/4] Automatic MOC and UIC for target timearc_windows_foreground_state_test
+[2/3] Building C object CMakeFiles/timearc_windows_foreground_state_test.dir/tests/windows_foreground_state_test.c.obj
+[3/3] Linking CXX executable timearc_windows_foreground_state_test.exe
+FAILED: timearc_windows_foreground_state_test.exe
+C:\WINDOWS\system32\cmd.exe /C "cd . && D:\TimeArc\QT\Tools\mingw1310_64\bin\g++.exe -O3 -DNDEBUG  CMakeFiles/timearc_windows_foreground_state_test.dir/timearc_windows_foreground_state_test_autogen/mocs_compilation.cpp.obj CMakeFiles/timearc_windows_foreground_state_test.dir/tests/windows_foreground_state_test.c.obj CMakeFiles/timearc_windows_foreground_state_test.dir/src/service/windows/platform/app_identity.c.obj CMakeFiles/timearc_windows_foreground_state_test.dir/src/service/windows/tracker/foreground_state.c.obj CMakeFiles/timearc_windows_foreground_state_test.dir/src/service/windows/platform/idle_win.c.obj CMakeFiles/timearc_windows_foreground_state_test.dir/src/service/windows/platform/process_activity_win.c.obj -o timearc_windows_foreground_state_test.exe -Wl,--out-implib,libtimearc_windows_foreground_state_test.dll.a -Wl,--major-image-version,0,--minor-image-version,0  -luser32  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 && cd ."
+D:/TimeArc/QT/Tools/mingw1310_64/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: CMakeFiles/timearc_windows_foreground_state_test.dir/tests/windows_foreground_state_test.c.obj:windows_foreground_state_test.c:(.text+0x170): undefined reference to `timearc_process_activity_find_codex_root'
+D:/TimeArc/QT/Tools/mingw1310_64/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: CMakeFiles/timearc_windows_foreground_state_test.dir/tests/windows_foreground_state_test.c.obj:windows_foreground_state_test.c:(.text+0x198): undefined reference to `timearc_process_activity_find_codex_root'
+D:/TimeArc/QT/Tools/mingw1310_64/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: CMakeFiles/timearc_windows_foreground_state_test.dir/tests/windows_foreground_state_test.c.obj:windows_foreground_state_test.c:(.text+0x1b8): undefined reference to `timearc_process_activity_find_codex_root'
+collect2.exe: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.
+```
+
+## 3. Root cause
+
+- Immediate cause:
+- Underlying cause:
+- Why the harness/checklists did not prevent it:
+
+## 4. Fix
+
+- Files changed:
+- Short description:
+- Commit:
+
+## 5. Prevention
+
+Concrete harness upgrade, or 'one-off, no harness change'.

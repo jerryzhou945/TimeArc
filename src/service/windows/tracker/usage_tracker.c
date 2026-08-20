@@ -115,7 +115,8 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
                                 active_config.idle_threshold_ms;
 
       TimeArcProcessCounters counters;
-      if (timearc_win_process_activity_sample(next_app.process_id, &counters)) {
+      if (timearc_win_process_activity_sample(
+              next_app.process_id, next_app.exec_path, &counters)) {
         sample.autonomous_active = timearc_process_activity_delta(
             &process_probe, next_app.process_id, &counters);
       } else {

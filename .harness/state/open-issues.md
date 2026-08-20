@@ -13,10 +13,9 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   CLI lifecycle/status and a single-instance guard. `tools/build-macos.sh` automates
   packaging; remaining work is credentialed signing/notarization, runtime/Accessibility
   smoke, launchd/login verification, and clean-machine QA.
-- **Windows background startup restored (2026-08-20).** Opening TimeArc starts the
-  current-user collector idempotently; login is opt-in. v1 enabled/idle + JSON status
-  work; advanced leaves and SCM Session-0 remain deferred.
-- **Windows idle counter breaks after ~49.7 days uptime.** `idle_win.c` mixes 64/32-bit ticks; use wrap-safe `DWORD` subtraction.
+- **Windows background startup restored (2026-08-20).** UI start, v1 enabled/idle and JSON
+  status work. Codex counts changing related-worker CPU/I/O, never mere process presence;
+  advanced leaves and SCM Session-0 remain deferred.
 
 ## Storage
 
@@ -75,8 +74,9 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 
 ## Build / distribution
 
-- **Qt dynamic link + release packaging — shipped (F1).** Windows now has the
-  full `build-windows.ps1` entry point; the older linkage/package utilities remain.
+- **Qt dynamic link + release packaging — shipped (F1).** Windows has `build-windows.ps1`.
+- **Windows public distribution remains unsigned.** Portable ZIP is suitable for a disclosed
+  small beta; signing, installer/update, clean-machine QA and build/test CI remain open.
 - **Service config v1 partially shipped** (`CHARTER` v0.13). UI and macOS full reader
   are implemented; Windows reads tracking enabled + idle, while Windows advanced leaves
   and the Linux reader remain open. `usage_config.json` is retired.

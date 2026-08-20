@@ -6,6 +6,20 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
+
+static int ascii_contains_ignore_case(const char* text, const char* needle) {
+  if (text == NULL || needle == NULL || needle[0] == '\0') {
+    return 0;
+  }
+  const size_t needle_length = strlen(needle);
+  for (const char* start = text; *start != '\0'; ++start) {
+    if (_strnicmp(start, needle, needle_length) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
 
 static uint64_t filetime_value(FILETIME value) {
   ULARGE_INTEGER ticks;
@@ -83,14 +97,33 @@ void timearc_process_activity_init(TimeArcProcessActivityProbe* probe) {
 int timearc_process_activity_aggregate(const TimeArcProcessEntry* entries,
                                        size_t count, uint32_t root_pid,
                                        TimeArcProcessCounters* out_counters) {
-  if (entries == NULL || out_counters == NULL || root_pid == 0) {
+  return timearc_process_activity_aggregate_roots(
+      entries, count, &root_pid, root_pid == 0 ? 0 : 1, out_counters);
+}
+
+int timearc_process_activity_aggregate_roots(
+    const TimeArcProcessEntry* entries, size_t count,
+    const uint32_t* root_pids, size_t root_count,
+    TimeArcProcessCounters* out_counters) {
+  if (entries == NULL || out_counters == NULL || root_pids == NULL ||
+      root_count == 0) {
     return 0;
   }
 
   memset(out_counters, 0, sizeof(*out_counters));
   for (size_t i = 0; i < count; ++i) {
-    if (!entries[i].available ||
-        !belongs_to_root(entries, count, i, root_pid)) {
+    if (!entries[i].available) {
+      continue;
+    }
+    int included = 0;
+    for (size_t root_index = 0; root_index < root_count; ++root_index) {
+      if (root_pids[root_index] != 0 &&
+          belongs_to_root(entries, count, i, root_pids[root_index])) {
+        included = 1;
+        break;
+      }
+    }
+    if (!included) {
       continue;
     }
     out_counters->cpu_100ns += entries[i].cpu_100ns;
@@ -98,6 +131,57 @@ int timearc_process_activity_aggregate(const TimeArcProcessEntry* entries,
     out_counters->available = 1;
   }
   return out_counters->available;
+}
+
+size_t timearc_process_activity_find_codex_roots(
+    const TimeArcProcessEntry* entries, size_t count,
+    uint32_t foreground_pid, const char* foreground_exec_path,
+    uint32_t* out_root_pids, size_t root_capacity) {
+  if (entries == NULL || foreground_pid == 0 ||
+      foreground_exec_path == NULL || out_root_pids == NULL ||
+      root_capacity == 0 ||
+      !ascii_contains_ignore_case(foreground_exec_path, "OpenAI.Codex_")) {
+    return 0;
+  }
+
+  size_t foreground_index = 0;
+  if (!find_entry(entries, count, foreground_pid, &foreground_index) ||
+      _wcsicmp(entries[foreground_index].image_name, L"ChatGPT.exe") != 0) {
+    return 0;
+  }
+
+  uint32_t family_root = foreground_pid;
+  size_t family_index = foreground_index;
+  while (entries[family_index].parent_pid != 0) {
+    size_t parent_index = 0;
+    if (!find_entry(entries, count, entries[family_index].parent_pid,
+                    &parent_index) ||
+        _wcsicmp(entries[parent_index].image_name, L"ChatGPT.exe") != 0) {
+      break;
+    }
+    family_root = entries[parent_index].pid;
+    family_index = parent_index;
+  }
+
+  size_t found = 0;
+  for (size_t i = 0; i < count && found < root_capacity; ++i) {
+    if (_wcsicmp(entries[i].image_name, L"codex.exe") == 0 &&
+        belongs_to_root(entries, count, i, family_root)) {
+      out_root_pids[found++] = entries[i].pid;
+    }
+  }
+  return found;
+}
+
+uint32_t timearc_process_activity_find_codex_root(
+    const TimeArcProcessEntry* entries, size_t count,
+    uint32_t foreground_pid, const char* foreground_exec_path) {
+  uint32_t root_pid = 0;
+  return timearc_process_activity_find_codex_roots(
+             entries, count, foreground_pid, foreground_exec_path,
+             &root_pid, 1) == 1
+             ? root_pid
+             : 0;
 }
 
 int timearc_process_activity_delta(TimeArcProcessActivityProbe* probe,
@@ -129,6 +213,7 @@ int timearc_process_activity_delta(TimeArcProcessActivityProbe* probe,
 }
 
 int timearc_win_process_activity_sample(uint32_t root_pid,
+                                        const char* foreground_exec_path,
                                         TimeArcProcessCounters* out_counters) {
   if (root_pid == 0 || out_counters == NULL) {
     return 0;
@@ -171,18 +256,40 @@ int timearc_win_process_activity_sample(uint32_t root_pid,
     entries[count].pid = (uint32_t)process_entry.th32ProcessID;
     entries[count].parent_pid =
         (uint32_t)process_entry.th32ParentProcessID;
+    wcsncpy(entries[count].image_name, process_entry.szExeFile,
+            TIMEARC_PROCESS_IMAGE_NAME_CHARS - 1);
+    entries[count].image_name[TIMEARC_PROCESS_IMAGE_NAME_CHARS - 1] = L'\0';
     ++count;
     more = Process32NextW(snapshot, &process_entry);
   }
   CloseHandle(snapshot);
 
+  uint32_t* roots =
+      (uint32_t*)calloc(count + 1, sizeof(*roots));
+  if (roots == NULL) {
+    free(entries);
+    return 0;
+  }
+  roots[0] = root_pid;
+  size_t root_count = 1;
+  root_count += timearc_process_activity_find_codex_roots(
+      entries, count, root_pid, foreground_exec_path, roots + 1, count);
+
   for (size_t i = 0; i < count; ++i) {
-    if (belongs_to_root(entries, count, i, root_pid)) {
+    int included = 0;
+    for (size_t root_index = 0; root_index < root_count; ++root_index) {
+      if (belongs_to_root(entries, count, i, roots[root_index])) {
+        included = 1;
+        break;
+      }
+    }
+    if (included) {
       query_entry(&entries[i]);
     }
   }
-  const int available = timearc_process_activity_aggregate(
-      entries, count, root_pid, out_counters);
+  const int available = timearc_process_activity_aggregate_roots(
+      entries, count, roots, root_count, out_counters);
+  free(roots);
   free(entries);
   return available;
 }

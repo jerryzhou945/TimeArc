@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | UI 与浅色/深色页面 | 共用 Qt/QML | 共用 Qt/QML | 功能页面同源；原生窗口和菜单按平台实现 |
 | 打开应用后采集 | UI 启动后幂等执行 `--start` | 已注册登录项时由 launchd 自检/拉起 | Windows 本轮已恢复 |
-| 前台与闲置 | Win32 前台窗口、键鼠 idle、进程树工作证据 | NSWorkspace/AX、CGEventSource、播放证据 | 都遵守共享 session 约定，探针不同 |
+| 前台与闲置 | Win32 前台窗口、键鼠 idle、CPU/I/O 工作证据；Codex 可关联同包命令后端 | NSWorkspace/AX、CGEventSource、音频与 IOPM 防休眠/播放断言 | 都只用实际工作证据覆盖 idle；进程存在本身不计时 |
 | 音频/媒体 | WASAPI per-process audio | CoreAudio/IOPM | Windows 粒度更细；Mac 需实机权限验证 |
 | 配置 | `service_config.json`：已读追踪总开关和 idle（0=不判闲置） | `tracking.*` 全量 reader | Windows 的 poll/min/max 与子开关仍待接线 |
 | 状态与立即启动 | `--status --json`、运行态、立即启动已接 SettingsRepository | JSON status、launchd 状态、立即启动 | 共享 UI facade 已对齐，后端语义保留平台差异 |
@@ -18,6 +18,12 @@
 本轮 Windows 不计时的根因有两个：`620f6022` 在替换 macOS 启动逻辑时误删了原有
 Windows 启动分支；Windows collector 又仍在读取已经退役的 `usage_config.json`。
 两处均已修复，并增加真实 UI/collector 进程烟测防回归。
+
+补充：Codex Windows 桌面版的可见窗口属于 `ChatGPT.exe`，实际命令运行在同一
+`OpenAI.Codex_` 包进程家族的 `codex.exe` 同级分支。Windows 现在把该命令子树的
+CPU/I/O 变化合并为 bounded work lease；计数器不变化时照常 idle。macOS 没有同一套
+CPU/I/O 探针，它以 CoreAudio/IOPM assertion 等原生证据覆盖 idle，因此是共享语义、
+平台不同探针，不是按应用名称永久放行。
 
 日期：2026-06-19
 

@@ -109,6 +109,11 @@ G2/G3 打磨 ───────────(随手)
   Track B · Windows/shared · 小 · commit `74cc033`。
 - [x] **B3 Windows JSON 覆盖路径已退役**——自动使用历史已统一为 SQLite
   WAL，旧 `usage_storage.c` 随 Windows 存储适配层一并删除。
+- [x] **B4 Codex 自主命令计时** — 2026-08-20 修复 Electron 前台 UI 与
+  `codex.exe` 命令后端位于同级进程分支时的漏记：仅官方 `OpenAI.Codex_` 包内
+  命令子树的 CPU/I/O 变化续租，进程仅存在或计数器不变仍会 idle；同时恢复
+  Release 构建下 Windows C 测试断言。详见
+  [`windows-test-release-audit-2026-08-20.md`](windows-test-release-audit-2026-08-20.md)。
 
 ### C. 跨平台服务（**非 Windows**）
 - [~] **C1 macOS tracker 主循环接线**

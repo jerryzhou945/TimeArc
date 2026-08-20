@@ -1,3 +1,6 @@
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -187,6 +190,73 @@ static void test_process_tree_aggregates_only_root_and_descendants(void) {
   assert(total.io_bytes == 6000);
 }
 
+static void test_process_tree_aggregates_foreground_and_related_worker_once(void) {
+  const TimeArcProcessEntry entries[] = {
+      {10, 1, 100, 1000, 1},   // Desktop app family root.
+      {11, 10, 200, 2000, 1},  // Foreground ChatGPT branch.
+      {12, 11, 300, 3000, 1},  // Foreground renderer.
+      {20, 10, 400, 4000, 1},  // Related Codex backend.
+      {21, 20, 500, 5000, 1},  // Active command worker.
+      {30, 10, 900, 9000, 1},  // Unrelated sibling branch.
+  };
+  const uint32_t roots[] = {11, 20};
+  TimeArcProcessCounters total;
+
+  assert(timearc_process_activity_aggregate_roots(
+      entries, 6, roots, 2, &total));
+  assert(total.available);
+  assert(total.cpu_100ns == 1400);
+  assert(total.io_bytes == 14000);
+}
+
+static void test_codex_root_requires_same_packaged_process_family(void) {
+  const TimeArcProcessEntry entries[] = {
+      {10, 1, 0, 0, 1, L"ChatGPT.exe"},
+      {11, 10, 0, 0, 1, L"ChatGPT.exe"},
+      {12, 11, 0, 0, 1, L"ChatGPT.exe"},
+      {20, 10, 0, 0, 1, L"codex.exe"},
+      {21, 20, 0, 0, 1, L"pwsh.exe"},
+      {90, 1, 0, 0, 1, L"other.exe"},
+      {91, 90, 0, 0, 1, L"codex.exe"},
+  };
+  const char* packaged_path =
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.814.5517.0_x64__"
+      "2p2nqsd0c76g0\\app\\ChatGPT.exe";
+
+  assert(timearc_process_activity_find_codex_root(
+             entries, 7, 12, packaged_path) == 20);
+  assert(timearc_process_activity_find_codex_root(
+             entries, 7, 12,
+             "d:\\windowsapps\\openai.codex_26.814.5517.0_x64__"
+             "2p2nqsd0c76g0\\app\\chatgpt.exe") == 20);
+  assert(timearc_process_activity_find_codex_root(
+             entries, 7, 12, "C:\\Apps\\ChatGPT.exe") == 0);
+  assert(timearc_process_activity_find_codex_root(
+             entries, 7, 90, packaged_path) == 0);
+}
+
+static void test_codex_collects_every_backend_in_the_packaged_family(void) {
+  const TimeArcProcessEntry entries[] = {
+      {10, 1, 0, 0, 1, L"ChatGPT.exe"},
+      {11, 10, 0, 0, 1, L"ChatGPT.exe"},
+      {20, 10, 0, 0, 1, L"codex.exe"},
+      {21, 20, 0, 0, 1, L"pwsh.exe"},
+      {30, 10, 0, 0, 1, L"codex.exe"},
+      {31, 30, 0, 0, 1, L"cmd.exe"},
+      {90, 1, 0, 0, 1, L"codex.exe"},
+  };
+  uint32_t roots[3] = {0, 0, 0};
+  const char* packaged_path =
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.814.5517.0_x64__"
+      "2p2nqsd0c76g0\\app\\ChatGPT.exe";
+
+  assert(timearc_process_activity_find_codex_roots(
+             entries, 7, 11, packaged_path, roots, 3) == 2);
+  assert(roots[0] == 20);
+  assert(roots[1] == 30);
+  assert(roots[2] == 0);
+}
+
 int main(void) {
   test_idle_tick_wrap();
   test_normalized_identity_includes_pid_and_title();
@@ -198,6 +268,9 @@ int main(void) {
   test_process_delta_requires_meaningful_change();
   test_process_delta_resets_for_pid_or_counter_reset();
   test_process_tree_aggregates_only_root_and_descendants();
+  test_process_tree_aggregates_foreground_and_related_worker_once();
+  test_codex_root_requires_same_packaged_process_family();
+  test_codex_collects_every_backend_in_the_packaged_family();
   puts("Windows foreground state tests passed");
   return 0;
 }
