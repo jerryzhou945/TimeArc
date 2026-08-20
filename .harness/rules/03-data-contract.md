@@ -57,10 +57,10 @@ DB-location write. Key mapping, for anyone migrating by hand:
 `db_dir` → `database.dir`; `track_enabled` → `tracking.enabled`;
 `idle_threshold_ms` → `tracking.frontmost.idle_threshold_sec` (`round(ms/1000)`).
 
-Implemented: the UI writer, the DB pointer, and the macOS service-side `tracking.*`
-reader (every key honored; absent/malformed file and out-of-range keys fall back to
-defaults, a newer `schema_version` refuses to start). **Pending: the Windows and
-Linux readers.** Proposals: `journal/sessions/20260805-2143-B-service-config-v1.md`
+Implemented: UI writer + DB pointer; macOS reads every `tracking.*` key with
+validation/newer-schema refusal; Windows reads `tracking.enabled` and frontmost
+idle. Windows advanced leaves and all Linux reading remain pending. Proposals:
+`journal/sessions/20260805-2143-B-service-config-v1.md`
 (superseding H5 `20260609-0150` and D2 `20260610-1705`) + `20260806-0227-B-macos-service-config.md`.
 
 ## 2. Invariants

@@ -1,93 +1,66 @@
 # Journal Index
 
-Rolling, human-friendly index of recent notable reports. The authoritative
-machine-readable log is `errors.jsonl`; older rows may be omitted here to keep
-the harness line budget intact.
+Rolling index of recent reports. `errors.jsonl` is authoritative; older rows are
+omitted here to preserve the harness line budget.
 
 ## Error entries
 
-| Date (UTC) | Lvl | Topic | Summary | Report |
-|------------|-----|-------|---------|--------|
-| 2026-08-02T05:19:33Z | L3 | pr-no-checks-re... | gh pr checks reported no configured checks for PR 75; rel... | [report](errors/20260802-051933-C-pr-no-checks-reported.md) |
-| 2026-08-02T05:17:35Z | L3 | generated-apk-l... | git diff --cached --check found trailing whitespace and e... | [report](errors/20260802-051735-C-generated-apk-log-whitespace.md) |
-| 2026-08-02T05:14:43Z | L3 | immediate-sync-... | Expected TDD RED: usage static test rejects ExistingWorkP... | [report](errors/20260802-051443-C-immediate-sync-replace-red.md) |
-| 2026-08-02T05:12:41Z | L2 | harness-index-b... | harness_check found journal INDEX.md at 105 lines after a... | [report](errors/20260802-051241-C-harness-index-budget.md) |
-| 2026-08-02T05:09:59Z | L1 | android-realtim... | cmake --build exited 1 | [report](errors/20260802-050959-C-android-realtime-edge-final-apk.md) |
-| 2026-08-02T05:08:51Z | L3 | backlog-patch-c... | Combined apply_patch used stale M4 context; inspected exa... | [report](errors/20260802-050851-C-backlog-patch-context.md) |
-| 2026-08-02T05:08:12Z | L3 | rg-access-denied | rg.exe access denied while locating backlog milestone; us... | [report](errors/20260802-050812-C-rg-access-denied.md) |
-| 2026-08-02T05:02:30Z | L3 | qtactivity-oncr... | The lifecycle regression assumed protected onCreate, but ... | [report](errors/20260802-050230-C-qtactivity-oncreate-visibility.md) |
-| 2026-08-02T05:02:13Z | L1 | android-realtim... | cmake --build exited 1 | [report](errors/20260802-050213-C-android-realtime-edge-apk.md) |
-| 2026-08-02T04:53:23Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260802-045323-B-build-failure.md) |
-| 2026-08-02T04:45:34Z | L3 | git-index-lock-... | Git could not create index.lock in the managed sandbox wh... | [report](errors/20260802-044534-C-git-index-lock-plan.md) |
-| 2026-08-02T04:36:53Z | L3 | qt-header-searc... | Broad PowerShell search of Qt Android headers timed out; ... | [report](errors/20260802-043653-C-qt-header-search-timeout.md) |
-| 2026-08-02T04:33:46Z | L3 | impeccable-node... | Impeccable context script could not run because node is n... | [report](errors/20260802-043346-C-impeccable-node-unavailable.md) |
-| 2026-08-02T04:32:58Z | L2 | android-mobile-... | Pura 90 Pro shows square app icons, non-edge-to-edge syst... | [report](errors/20260802-043258-C-android-mobile-regressions.md) |
-| 2026-08-02T04:12:41Z | L1 | android-mobile-apk | cmake --build exited 1 | [report](errors/20260802-041241-B-android-mobile-apk.md) |
-| 2026-08-02T04:02:48Z | L3 | journal-index-l... | Pre-commit harness audit found journal INDEX.md exceeded ... | [report](errors/20260802-040248-B-journal-index-line-budget.md) |
-| 2026-08-02T03:59:43Z | L1 | android-mobile-apk | cmake --build exited 1 | [report](errors/20260802-035943-B-android-mobile-apk.md) |
-| 2026-08-02T03:56:42Z | L1 | android-mobile-... | cmake --build exited 1 | [report](errors/20260802-035642-B-android-mobile-polish.md) |
-| 2026-08-02T03:56:19Z | L3 | disk-space-cim-... | A WMI/CIM disk-space probe was denied by the environment;... | [report](errors/20260802-035619-B-disk-space-cim-denied.md) |
-| 2026-08-02T03:33:29Z | L3 | harness-build-t... | The first post-edge-to-edge harness build was launched wi... | [report](errors/20260802-033329-B-harness-build-timeout.md) |
-| 2026-08-02T03:31:12Z | L3 | mobile-qml-test... | The implementation plan referenced tests/mobile_qml_stati... | [report](errors/20260802-033112-B-mobile-qml-test-missing.md) |
-| 2026-08-02T03:28:02Z | L3 | rg-access-denied | Repository search via rg.exe was denied by the environmen... | [report](errors/20260802-032802-B-rg-access-denied.md) |
-| 2026-08-02T03:27:43Z | L3 | impeccable-node... | The UI context helper initially failed because node.exe w... | [report](errors/20260802-032743-B-impeccable-node-path.md) |
-| 2026-08-02T03:27:43Z | L3 | mobile-theme-path | Looked for MobileTheme.qml under qml/mobile/components be... | [report](errors/20260802-032743-B-mobile-theme-path.md) |
-| 2026-08-02T02:56:16Z | L2 | harmony-safe-st... | Pura 90 Pro still black-screened for one second and exite... | [report](errors/20260802-025616-C-harmony-safe-start-still-exits.md) |
-| 2026-08-02T02:48:24Z | L3 | git-index-lock-... | git add could not refresh the corrected error report beca... | [report](errors/20260802-024824-C-git-index-lock-safe-start.md) |
-| 2026-08-02T02:47:43Z | L3 | generated-repor... | git diff --cached --check found trailing whitespace copie... | [report](errors/20260802-024743-C-generated-report-trailing-space.md) |
-| 2026-08-02T02:46:09Z | L1 | harness-index-l... | harness_check found journal INDEX.md at 104 lines after m... | [report](errors/20260802-024609-C-harness-index-line-budget.md) |
-| 2026-08-02T02:41:33Z | L1 | preexisting-mac... | Full static suite found macos_build_script_static_test.py... | [report](errors/20260802-024133-C-preexisting-macos-build-static-test.md) |
-| 2026-08-02T02:37:43Z | L3 | cim-process-acc... | Win32_Process command-line inspection was denied while mo... | [report](errors/20260802-023743-C-cim-process-access-denied.md) |
-| 2026-08-02T02:37:08Z | L3 | repeated-apk-wr... | Repeated the undersized shell timeout while launching the... | [report](errors/20260802-023708-C-repeated-apk-wrapper-timeout.md) |
-| 2026-08-02T02:36:15Z | L1 | harmony-safe-start | cmake --build exited 1 | [report](errors/20260802-023615-C-harmony-safe-start.md) |
-| 2026-08-02T02:36:12Z | L3 | android-build-w... | Android harness build command exceeded an undersized 1-se... | [report](errors/20260802-023612-C-android-build-wrapper-timeout.md) |
-| 2026-08-02T02:31:09Z | L2 | harmony-zhuoyit... | TimeArc APK shows launch background for about one second ... | [report](errors/20260802-023109-C-harmony-zhuoyitong-startup-exit.md) |
-| 2026-08-02T02:25:13Z | L3 | rg-access-denied | rg.exe was blocked by Windows access policy during startu... | [report](errors/20260802-022513-C-rg-access-denied.md) |
-| 2026-08-02T02:11:11Z | L3 | git-index-lock-... | A residual git process from the build-log stash holds .gi... | [report](errors/20260802-021111-B-git-index-lock-after-log-stash.md) |
-| 2026-08-02T02:09:46Z | L3 | open-issues-com... | First open-issues compaction patch kept the same two-line... | [report](errors/20260802-020946-B-open-issues-compaction-noop.md) |
-| 2026-08-02T02:09:31Z | L3 | open-issues-tai... | PowerShell counted open-issues.md at 100 lines while harn... | [report](errors/20260802-020931-B-open-issues-tail-line-count.md) |
-| 2026-08-02T02:07:47Z | L3 | android-final-h... | Final harness gate found INDEX.md at 119 lines and open-i... | [report](errors/20260802-020747-B-android-final-harness-line-budget.md) |
-| 2026-08-02T02:07:02Z | L3 | build-log-lock-... | WMI denied reading the command lines of residual git proc... | [report](errors/20260802-020702-B-build-log-lock-owner-probe.md) |
-| 2026-08-02T02:06:27Z | L3 | android-build-l... | The one preserved Android build log is still locked by an... | [report](errors/20260802-020627-B-android-build-log-locked.md) |
-| 2026-08-02T02:05:57Z | L3 | android-build-l... | git stash preserved the Android build logs but Windows co... | [report](errors/20260802-020557-B-android-build-log-stash-unlink.md) |
-| 2026-08-02T02:03:57Z | L1 | android-launch-... | cmake --build exited 1 | [report](errors/20260802-020357-B-android-launch-final-apk.md) |
-| 2026-08-02T02:01:59Z | L3 | launch-overlay-... | Pre-commit review found child QML animation could start b... | [report](errors/20260802-020159-B-launch-overlay-reduced-motion-race.md) |
-| 2026-08-02T01:58:41Z | L3 | timearc-process... | Get-Process returned non-zero because no TimeArc instance... | [report](errors/20260802-015841-B-timearc-process-probe.md) |
-| 2026-08-02T01:52:49Z | L3 | adb-device-prob... | adb devices did not return and was terminated; APK metada... | [report](errors/20260802-015249-B-adb-device-probe-timeout.md) |
-| 2026-08-02T01:50:29Z | L1 | android-launch-... | cmake --build exited 1 | [report](errors/20260802-015029-B-android-launch-apk-retry.md) |
-| 2026-08-02T01:49:37Z | L3 | android-splash-... | The design incorrectly used framework-prefixed postSplash... | [report](errors/20260802-014937-B-android-splash-theme-attribute.md) |
-| 2026-08-02T01:49:11Z | L1 | android-launch-apk | cmake --build exited 1 | [report](errors/20260802-014911-B-android-launch-apk.md) |
-| 2026-08-02T01:43:52Z | L1 | android-launch-apk | cmake --build exited 1 | [report](errors/20260802-014352-B-android-launch-apk.md) |
-| 2026-08-02T01:43:29Z | L3 | android-build-w... | Android APK build wrapper was terminated by an overly sho... | [report](errors/20260802-014329-B-android-build-wrapper-timeout.md) |
-| 2026-08-02T01:43:06Z | L3 | disk-space-wmi-... | WMI denied the read-only D: free-space query; using Syste... | [report](errors/20260802-014306-B-disk-space-wmi-denied.md) |
-| 2026-08-02T01:42:22Z | L3 | android-env-probe | Optional Android environment-variable lookup returned non... | [report](errors/20260802-014222-B-android-env-probe.md) |
-| 2026-08-02T01:36:00Z | L3 | powershell-rend... | Windows execution policy blocked the temporary reviewed S... | [report](errors/20260802-013600-B-powershell-render-policy.md) |
-| 2026-08-02T01:35:42Z | L3 | edge-svg-render... | Headless Edge exited after repeated GPU process failures ... | [report](errors/20260802-013542-B-edge-svg-render-failure.md) |
-| 2026-08-02T01:34:19Z | L3 | imagegen-svg-re... | ImageGen rejected the SVG reference MIME type; will rende... | [report](errors/20260802-013419-B-imagegen-svg-reference.md) |
-| 2026-08-02T01:33:56Z | L3 | svg-rasterizer-... | No ImageMagick/rsvg-convert/CairoSVG runtime is installed... | [report](errors/20260802-013356-B-svg-rasterizer-unavailable.md) |
-| 2026-08-02T01:33:36Z | L3 | android-launch-... | Expected TDD RED: Android launch static test fails becaus... | [report](errors/20260802-013336-B-android-launch-red-test.md) |
-| 2026-07-30T20:57:33Z | L3 | create-dmg-note... | select_dmg_tool returns its choice on stdout but also cal... | [report](errors/20260730-205733-B-create-dmg-note-stdout-capture.md) |
-| 2026-07-30T20:57:24Z | L3 | create-dmg-dotf... | Staged the DMG background as a dotfile (.timearc-dmg-back... | [report](errors/20260730-205724-B-create-dmg-dotfile-background.md) |
-| 2026-07-30T19:53:23Z | L2 | macos-cursor-co... | macOS 桌面 UI 使用 Windows 指针惯例：90 处光标（指针手/禁止/SizeAll/DragCop... | [report](errors/20260730-195323-C-macos-cursor-conventions.md) |
-| 2026-07-30T19:52:20Z | L2 | qt-warning-637d... | [WARNING] :0 - The macOS LaunchAgent requires approval in... | [report](errors/20260730-195220-C-qt-warning-637dce87d8.md) |
-| 2026-07-30T19:52:20Z | L2 | qt-warning-5d34... | [WARNING] :0 - macOS menu bar: AppKit is running ""ja"" w... | [report](errors/20260730-195220-C-qt-warning-5d343805b9.md) |
-| 2026-07-30T19:52:20Z | L2 | qt-warning-3c34... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-195220-C-qt-warning-3c34c057fd.md) |
-| 2026-07-30T19:52:20Z | L2 | qt-warning-4fb9... | [WARNING] :0 - macOS menu bar: AppKit is running ""zh-Han... | [report](errors/20260730-195220-C-qt-warning-4fb98ac61f.md) |
-| 2026-07-30T19:52:20Z | L2 | qt-warning-b406... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-195220-C-qt-warning-b4068cf85f.md) |
-| 2026-07-30T19:52:20Z | L2 | qt-warning-1e90... | [WARNING] :0 - macOS menu bar: AppKit is running ""en"" w... | [report](errors/20260730-195220-C-qt-warning-1e90e04428.md) |
-| 2026-07-30T19:52:20Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-195220-C-qt-warning-19f33ebed5.md) |
-| 2026-07-30T19:52:19Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-195219-C-qt-warning-19f33ebed5.md) |
-| 2026-07-30T18:03:18Z | L3 | frozen-hash-drift | Preflight found hash mismatches in CMakeLists.txt and src... | [report](errors/20260730-180318-C-frozen-hash-drift.md) |
-| 2026-07-30T15:57:25Z | L3 | about-card-patc... | Initial About card restructuring patch did not apply beca... | [report](errors/20260730-155725-B-about-card-patch-context.md) |
-| 2026-07-30T15:46:55Z | L3 | mac-menu-static... | macos_menu_bar_static_test.py expects a 月度记忆湖 translation... | [report](errors/20260730-154655-B-mac-menu-static-stale-monthly-label.md) |
-| 2026-07-30T15:46:39Z | L3 | desktop-ux-test... | desktop_ux_static_test.py aborts before UI assertions bec... | [report](errors/20260730-154639-B-desktop-ux-test-missing-android-manifest.md) |
-| 2026-07-30T12:43:36Z | L2 | qt-warning-1e90... | [WARNING] :0 - macOS menu bar: AppKit is running ""en"" w... | [report](errors/20260730-124336-C-qt-warning-1e90e04428.md) |
-| 2026-07-30T12:43:36Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-124336-C-qt-warning-19f33ebed5.md) |
-| 2026-07-30T06:49:43Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-064943-C-qt-warning-19f33ebed5.md) |
-| 2026-07-30T06:49:43Z | L2 | qt-warning-5d34... | [WARNING] :0 - macOS menu bar: AppKit is running ""ja"" w... | [report](errors/20260730-064943-C-qt-warning-5d343805b9.md) |
-| 2026-07-30T06:49:42Z | L2 | qt-warning-4fb9... | [WARNING] :0 - macOS menu bar: AppKit is running ""zh-Han... | [report](errors/20260730-064942-C-qt-warning-4fb98ac61f.md) |
-| 2026-07-30T06:49:42Z | L2 | qt-warning-6044... | [WARNING] :0 - macOS menu bar: AppKit is running ""en"" w... | [report](errors/20260730-064942-C-qt-warning-6044d05acc.md) |
-| 2026-07-30T06:49:42Z | L2 | qt-warning-19f3... | [WARNING] :0 - Could not register the macOS LaunchAgent: ... | [report](errors/20260730-064942-C-qt-warning-19f33ebed5.md) |
-| 2026-07-30T06:16:05Z | L2 | macos-restore-e... | 打开 TimeArc in the macOS status menu dropped a full-screen... | [report](errors/20260730-061605-C-macos-restore-exits-fullscreen.md) |
-| 2026-07-30T06:00:14Z | L3 | macos-gui-scree... | Screen Recording and Automation are not granted to the ag... | [report](errors/20260730-060014-B-macos-gui-screenshot-tcc-blocked.md) |
-| ... | ... | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |
+| Date (UTC) | Lvl | Topic | Report |
+|---|---|---|---|
+| 2026-08-20T15:53:01Z | L1 | open-issues-lin... | Final harness check found .harness/state/open-issues.md a... | [report](errors/20260820-155301-C-open-issues-line-budget.md) |
+| 2026-08-20T15:47:06Z | L1 | codex-multi-bac... | cmake --build exited 1 | [report](errors/20260820-154706-C-codex-multi-backend-red.md) |
+| 2026-08-20T15:46:34Z | L1 | harness-logger-... | Diagnostic read used nonexistent src/services/harnesslogg... | [report](errors/20260820-154634-C-harness-logger-source-path.md) |
+| 2026-08-20T15:45:42Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260820-154542-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T15:45:41Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260820-154541-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T15:45:40Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260820-154540-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T15:45:40Z | L2 | qt-warning-2c32... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260820-154540-C-qt-warning-2c3265c8aa.md) |
+| 2026-08-20T15:45:39Z | L2 | qt-warning-0da6... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260820-154539-C-qt-warning-0da685df17.md) |
+| 2026-08-20T15:45:39Z | L2 | qt-warning-9398... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260820-154539-C-qt-warning-93988783fd.md) |
+| 2026-08-20T15:45:39Z | L2 | qt-warning-81cd... | [WARNING] qrc:/qt/qml/time_arc/qml/desktop/DesktopAppShel... | [report](errors/20260820-154539-C-qt-warning-81cdaca126.md) |
+| 2026-08-20T15:45:39Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260820-154539-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T15:45:38Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260820-154538-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T15:45:37Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260820-154537-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T15:45:36Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260820-154536-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T15:43:30Z | L1 | alpha3-package-... | Explicit D:/TimeArc/QT/6.11.1 path was also absent; resol... | [report](errors/20260820-154330-C-alpha3-package-qt-version-path.md) |
+| 2026-08-20T15:43:14Z | L1 | alpha3-package-... | package-release.ps1 defaulted to missing C:/Qt windeployq... | [report](errors/20260820-154314-C-alpha3-package-qt-path.md) |
+| 2026-08-20T15:39:59Z | L2 | codex-package-p... | TDD regression confirmed Codex package detection was case... | [report](errors/20260820-153959-C-codex-package-path-case-red.md) |
+| 2026-08-20T15:38:25Z | L1 | timearc-close-a... | Running build TimeArc.exe ignored CloseMainWindow and non... | [report](errors/20260820-153825-C-timearc-close-access-denied.md) |
+| 2026-08-20T15:37:50Z | L2 | windows-service... | windows_service_runtime_smoke_test failed because opening... | [report](errors/20260820-153750-C-windows-service-runtime-smoke.md) |
+| 2026-08-20T15:37:17Z | L3 | python-test-dis... | unittest discover exited zero but found 0 repository test... | [report](errors/20260820-153717-C-python-test-discovery-zero.md) |
+| 2026-08-20T15:34:47Z | L1 | codex-family-re... | cmake --build exited 1 | [report](errors/20260820-153447-C-codex-family-resolver-red.md) |
+| 2026-08-20T15:33:48Z | L1 | codex-related-r... | cmake --build exited 1 | [report](errors/20260820-153348-C-codex-related-roots-green.md) |
+| 2026-08-20T15:33:02Z | L1 | codex-related-r... | cmake --build exited 1 | [report](errors/20260820-153302-C-codex-related-roots-red.md) |
+| 2026-08-20T15:32:44Z | L2 | windows-tests-n... | Release build defined NDEBUG, compiling every assert and ... | [report](errors/20260820-153244-C-windows-tests-ndebug.md) |
+| 2026-08-20T15:32:01Z | L3 | codex-red-defau... | Default harness build did not compile windows_foreground_... | [report](errors/20260820-153201-C-codex-red-default-target.md) |
+| 2026-08-20T15:29:23Z | L1 | recent-session-... | PowerShell Get-Content could not bind the piped FullName ... | [report](errors/20260820-152923-C-recent-session-pipeline.md) |
+| 2026-08-20T15:25:58Z | L1 | github-api-sand... | GitHub CLI PR and Actions audit requests were blocked by ... | [report](errors/20260820-152558-C-github-api-sandbox-network.md) |
+| 2026-08-20T15:24:19Z | L2 | windows-codex-s... | Windows autonomous activity samples only the foreground P... | [report](errors/20260820-152419-C-windows-codex-sibling-activity.md) |
+| 2026-08-20T15:24:08Z | L1 | bundled-rg-acce... | Bundled Codex rg.exe was denied execution during two rele... | [report](errors/20260820-152408-C-bundled-rg-access-denied.md) |
+| 2026-08-20T15:23:17Z | L1 | codex-process-t... | Get-CimInstance Win32_Process access denied while auditin... | [report](errors/20260820-152317-C-codex-process-tree-cim-access.md) |
+| 2026-08-20T00:49:44Z | L3 | harness-line-bu... | First compaction left rules/02-platform-boundaries.md at ... | [report](errors/20260820-004944-C-harness-line-budget-retry.md) |
+| 2026-08-20T00:47:43Z | L3 | harness-line-budget | [report](errors/20260820-004743-C-harness-line-budget.md) |
+| 2026-08-20T00:44:13Z | L3 | tray-context-teardown-red | [report](errors/20260820-004413-C-tray-context-teardown-red.md) |
+| 2026-08-20T00:43:42Z | L3 | qt-log-rotate-denied | [report](errors/20260820-004342-C-qt-log-rotate-denied.md) |
+| 2026-08-20T00:43:28Z | L2 | qt-warning-60b8e32bf0 | [report](errors/20260820-004328-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T00:43:27Z | L2 | qt-warning-60b8e32bf0 | [report](errors/20260820-004327-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T00:43:26Z | L2 | qt-warning-2c3265c8aa | [report](errors/20260820-004326-C-qt-warning-2c3265c8aa.md) |
+| 2026-08-20T00:43:26Z | L2 | qt-warning-0da685df17 | [report](errors/20260820-004326-C-qt-warning-0da685df17.md) |
+| 2026-08-20T00:43:26Z | L2 | qt-warning-93988783fd | [report](errors/20260820-004326-C-qt-warning-93988783fd.md) |
+| 2026-08-20T00:43:26Z | L2 | qt-warning-81cdaca126 | [report](errors/20260820-004326-C-qt-warning-81cdaca126.md) |
+| 2026-08-20T00:43:26Z | L2 | qt-warning-60b8e32bf0 | [report](errors/20260820-004326-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T00:43:25Z | L2 | qt-warning-60b8e32bf0 | [report](errors/20260820-004325-C-qt-warning-60b8e32bf0.md) |
+| 2026-08-20T00:43:24Z | L2 | qt-warning-60b8e32bf0 | [report](errors/20260820-004324-C-qt-warning-60b8e32bf0.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| 2026-08-20T00:31:31Z | L3 | desktop-static-android-activity | [report](errors/20260820-003131-C-desktop-static-android-activity.md) |
+| 2026-08-20T00:27:01Z | L3 | windows-settings-parity-red | [report](errors/20260820-002701-C-windows-settings-parity-red.md) |
+| 2026-08-20T00:26:35Z | L3 | tests-cmake-path | [report](errors/20260820-002635-C-tests-cmake-path.md) |
+| 2026-08-20T00:26:07Z | L3 | settings-repository-path | [report](errors/20260820-002607-C-settings-repository-path.md) |
+| 2026-08-20T00:25:54Z | L3 | search-and-rule-path | [report](errors/20260820-002554-C-search-and-rule-path.md) |
+| 2026-08-20T00:22:47Z | L3 | windows-status-json-red | [report](errors/20260820-002247-C-windows-status-json-red.md) |
+| 2026-08-20T00:21:11Z | L3 | parson-header-path | [report](errors/20260820-002111-C-parson-header-path.md) |
+| 2026-08-20T00:19:45Z | L3 | windows-service-config-red | [report](errors/20260820-001945-C-windows-service-config-red.md) |
+| 2026-08-20T00:18:05Z | L3 | windows-startup-smoke-red | [report](errors/20260820-001805-C-windows-startup-smoke-red.md) |
+| 2026-08-20T00:15:42Z | L1 | windows-tracking-baseline | [report](errors/20260820-001542-C-windows-tracking-baseline.md) |
+| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
+| ... | ... | Older reports are in `errors.jsonl` | |

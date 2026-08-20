@@ -1,5 +1,6 @@
 #include "win_service.h"
 
+#include "../service_config.h"
 #include "../tracker/usage_tracker.h"  // TIMEARC_INSTANCE_MUTEX_NAME / TIMEARC_STOP_EVENT_NAME
 
 #define WIN32_LEAN_AND_MEAN
@@ -179,6 +180,42 @@ int timearc_win_service_status(void) {
 
   printf("autostart=%s\n", registered ? "on" : "off");
   printf("running=%s\n", running ? "yes" : "no");
+  return registered ? 0 : 1;
+}
+
+int timearc_win_service_status_json(void) {
+  const int has_task = logon_task_exists();
+  const int has_run_key = run_key_exists();
+  const int registered = has_task || has_run_key;
+
+  HANDLE mutex =
+      OpenMutexA(SYNCHRONIZE, FALSE, TIMEARC_INSTANCE_MUTEX_NAME);
+  const int running = mutex != NULL;
+  if (mutex != NULL) CloseHandle(mutex);
+
+  int64_t idle_threshold_ms = TIMEARC_USAGE_IDLE_THRESHOLD_MS;
+  int tracking_enabled = 1;
+  timearc_read_service_config(&idle_threshold_ms, &tracking_enabled);
+
+  const char* backend = has_task ? "scheduled_task"
+                                 : (has_run_key ? "run_key" : NULL);
+  printf("{\"schema_version\":1,\"command\":\"status\","
+         "\"platform\":\"windows\",\"tracking\":{"
+         "\"running\":%s,\"enabled\":%s,"
+         "\"frontmost\":{\"enabled\":true,"
+         "\"idle_threshold_sec\":%lld},"
+         "\"media\":{\"enabled\":true}},"
+         "\"autostart\":{\"enabled\":%s,\"backend\":",
+         running ? "true" : "false",
+         tracking_enabled ? "true" : "false",
+         (long long)(idle_threshold_ms / 1000),
+         registered ? "true" : "false");
+  if (backend != NULL) {
+    printf("\"%s\"", backend);
+  } else {
+    printf("null");
+  }
+  printf("}}\n");
   return registered ? 0 : 1;
 }
 

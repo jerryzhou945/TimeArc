@@ -482,6 +482,45 @@ int runServiceVerb(const QString& verb, QString* out = nullptr) {
   if (out) *out = QString::fromLocal8Bit(proc.readAllStandardOutput());
   return proc.exitCode();
 }
+
+// Windows keeps its human-readable `--status` output for compatibility, while
+// the UI consumes the same JSON leaves as macOS. Exit code 1 only means that no
+// legacy service autostart registration exists; the JSON payload is still valid.
+bool readServiceStatus(QVariantMap* out) {
+  const QString exe = serviceExePath();
+  if (!QFileInfo::exists(exe)) return false;
+  QProcess proc;
+  proc.setCreateProcessArgumentsModifier(
+      [](QProcess::CreateProcessArguments* args) {
+        args->flags |= 0x08000000;  // CREATE_NO_WINDOW
+      });
+  proc.start(exe, QStringList{QStringLiteral("--status"),
+                              QStringLiteral("--json")});
+  if (!proc.waitForStarted(3000)) return false;
+  if (!proc.waitForFinished(8000)) {
+    proc.kill();
+    return false;
+  }
+  if (proc.exitStatus() != QProcess::NormalExit || proc.exitCode() > 1) {
+    return false;
+  }
+
+  const QJsonDocument doc =
+      QJsonDocument::fromJson(proc.readAllStandardOutput());
+  if (!doc.isObject()) return false;
+  const QJsonObject root = doc.object();
+  if (root.value(QStringLiteral("schema_version")).toInt() != 1 ||
+      root.value(QStringLiteral("platform")).toString() !=
+          QStringLiteral("windows")) {
+    return false;
+  }
+  const QJsonObject tracking = root.value(QStringLiteral("tracking")).toObject();
+  out->insert(QStringLiteral("tracking.running"),
+              tracking.value(QStringLiteral("running")).toBool());
+  out->insert(QStringLiteral("tracking.enabled"),
+              tracking.value(QStringLiteral("enabled")).toBool());
+  return true;
+}
 #elif defined(Q_OS_MACOS)
 // 与 Windows 同形（UI→子进程命令，守 I1，不经磁盘契约），但动词是新 CLI 的裸动词，
 // 且 helper 与 UI 同在 Contents/MacOS。CHARTER v0.14：注册/启停归 service 自己，
@@ -681,7 +720,19 @@ QVariantMap SettingsRepository::serviceState() {
   result.insert(QStringLiteral("trackingRunning"), false);
   result.insert(QStringLiteral("trackingEnabled"), false);
 
-#if defined(Q_OS_MACOS)
+#if defined(Q_OS_WIN)
+  QVariantMap state;
+  if (!readServiceStatus(&state)) return result;
+
+  result.insert(QStringLiteral("ok"), true);
+  // Windows registers the TimeArc UI (which starts the collector) at login;
+  // the service's retired direct registration is deliberately kept removed.
+  result.insert(QStringLiteral("autostartEnabled"), autostartEnabled());
+  result.insert(QStringLiteral("trackingRunning"),
+                state.value(QStringLiteral("tracking.running")).toBool());
+  result.insert(QStringLiteral("trackingEnabled"),
+                state.value(QStringLiteral("tracking.enabled")).toBool());
+#elif defined(Q_OS_MACOS)
   QVariantMap state;
   if (!readServiceStatus(&state)) return result;
 
@@ -697,7 +748,11 @@ QVariantMap SettingsRepository::serviceState() {
 }
 
 bool SettingsRepository::startTrackingNow() {
-#if defined(Q_OS_MACOS)
+#if defined(Q_OS_WIN)
+  const bool ok = startBackgroundCollection();
+  emit serviceStateChanged();
+  return ok;
+#elif defined(Q_OS_MACOS)
   // `start` on purpose: the user asked for collection now, and a temporary
   // unsupervised instance is the honest answer when nothing is registered.
   // Autostart is a separate decision, made by the checkable menu item.

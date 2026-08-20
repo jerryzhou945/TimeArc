@@ -1,5 +1,19 @@
 # TimeArc Windows/macOS 包装前差异对比
 
+## 2026-08-20 发布候选快照
+
+- Windows：主程序打开会自动、幂等拉起当前用户 collector；追踪关闭时服务正常退出，
+  不能误报为“闲置”。当前 `service_config.json` 的总开关和 idle 秒数已经生效，状态
+  可经 JSON 查询。Windows 构建、CTest 与真实双进程 smoke 已通过。
+- macOS：最新 `dev` 已包含完整配置、单实例、生命周期、状态与 launchd 工作；源码与
+  共享 UI 已同步，但本 Windows 机器无法替代 Mac 的编译、Accessibility 权限、签名、
+  notarization、DMG 和 clean-machine 验证。
+- 仍需同步：Windows 尚未读取 `poll_period_sec`、`min_session_sec`、
+  `max_session_sec` 及 frontmost/media 子开关；这不阻塞当前 beta 的默认计时，但必须在
+  UI 暴露这些高级项前完成。
+
+测试招募与视频发布口径见 [`beta-tester-release-kit.md`](beta-tester-release-kit.md)。
+
 更新日期：2026-06-19
 
 > **⚠️ 历史对比表，macOS 列已过期（复核于 2026-08-05）。** helper 后被重构为 `Tracking/`

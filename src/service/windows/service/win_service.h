@@ -23,6 +23,9 @@ int timearc_win_service_stop(void);
 // Print machine-readable autostart and running state. Return 0 if registered.
 int timearc_win_service_status(void);
 
+// Print the cross-platform status payload documented in src/service/README.md.
+int timearc_win_service_status_json(void);
+
 // Deferred Route B SCM service entry point.
 int timearc_win_service_run(void);
 

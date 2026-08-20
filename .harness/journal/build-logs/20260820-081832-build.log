@@ -1,0 +1,4 @@
+[1/188] Automatic MOC and UIC for target time-arc
+[2/187] Running AUTOMOC file extraction for target time-arc
+[3/4] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.obj
+[4/4] Linking CXX executable TimeArc.exe

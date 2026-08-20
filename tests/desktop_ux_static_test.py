@@ -25,6 +25,7 @@ def main():
     cmake_root = read("CMakeLists.txt")
     android_gradle = read("android/build.gradle") if (ROOT / "android/build.gradle").exists() else ""
     android_manifest = read("android/AndroidManifest.xml")
+    android_activity = read("android/src/main/java/com/timearc/mobile/ui/TimeArcActivity.java")
     main_qml = read("qml/main.qml")
     shell_qml = read("qml/desktop/DesktopAppShell.qml")
     mobile_shell_qml = read("qml/mobile/MobileAppShell.qml")
@@ -58,8 +59,10 @@ def main():
     require(android_gradle, "src/main/java", "Android Java source directory")
     require(android_manifest, "android.permission.PACKAGE_USAGE_STATS",
             "Android usage stats permission")
-    require(android_manifest, "org.qtproject.qt.android.bindings.QtActivity",
-            "Qt Android activity")
+    require(android_manifest, "com.timearc.mobile.ui.TimeArcActivity",
+            "TimeArc Android activity")
+    require(android_activity, "extends org.qtproject.qt.android.bindings.QtActivity",
+            "TimeArc activity inherits the Qt Android activity")
     require(android_manifest, "android.app.lib_name", "Qt Android lib metadata")
 
     require(main_qml, "hideToTrayOnClose", "close-to-tray gate")
@@ -72,6 +75,10 @@ def main():
     require(tray_qml, "quitRequested", "tray quit action")
     require(tray_qml, "icon.source: notifier.iconSource",
             "original tray SVG on non-macOS platforms")
+    require(shell_qml, "pomodoroManager ? pomodoroManager.timeText",
+            "tray binding tolerates context teardown")
+    require(shell_qml, "pomodoroManager ? pomodoroManager.running : false",
+            "tray running binding tolerates context teardown")
     require(tray_qml, "usesNativeMacOsStatusItem",
             "macOS native status-item selection")
     reject(main_cpp, "makeInputSourceTIcon",

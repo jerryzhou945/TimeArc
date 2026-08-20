@@ -1,0 +1,5 @@
+[1/6] Automatic MOC and UIC for target timearc_windows_foreground_state_test
+[2/5] Building C object src/service/CMakeFiles/time_arc_service.dir/windows/platform/process_activity_win.c.obj
+[3/5] Building C object CMakeFiles/timearc_windows_foreground_state_test.dir/src/service/windows/platform/process_activity_win.c.obj
+[4/5] Linking C executable time-arc-service.exe
+[5/5] Linking CXX executable timearc_windows_foreground_state_test.exe

@@ -1,0 +1,4 @@
+[1/4] Building C object src/service/CMakeFiles/time_arc_service.dir/windows/service_config.c.obj
+[2/4] Building C object src/service/CMakeFiles/time_arc_service.dir/windows/main.c.obj
+[3/4] Building C object src/service/CMakeFiles/time_arc_service.dir/windows/tracker/usage_tracker.c.obj
+[4/4] Linking C executable time-arc-service.exe
