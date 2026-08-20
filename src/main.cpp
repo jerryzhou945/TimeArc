@@ -258,6 +258,14 @@ int main(int argc, char* argv[]) {
   QTimer::singleShot(0, &settingsRepository, [&settingsRepository]() {
     settingsRepository.verifyBackgroundCollection();
   });
+#elif defined(Q_OS_WIN)
+  // Opening TimeArc means collection should be live in this user session.
+  // Go through the service CLI wrapper so the named mutex keeps this
+  // idempotent and the collector remains a separate process (CHARTER I1).
+  QTimer::singleShot(0, &settingsRepository, [&settingsRepository]() {
+    // A false result is also the expected state when tracking.enabled=false.
+    settingsRepository.startBackgroundCollection();
+  });
 #endif
 
   CalendarManager calendarManager(&settingsRepository);

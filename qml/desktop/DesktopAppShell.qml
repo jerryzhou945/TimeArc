@@ -1433,17 +1433,21 @@ Item {
                 return root.notifyEnabled;
             });
             item.pomodoroTimeText = Qt.binding(function () {
-                return pomodoroManager.timeText;
+                return pomodoroManager ? pomodoroManager.timeText : "";
             });
             item.pomodoroRunning = Qt.binding(function () {
-                return pomodoroManager.running;
+                return pomodoroManager ? pomodoroManager.running : false;
             });
             item.pomodoroPaused = Qt.binding(function () {
-                return !pomodoroManager.running
-                        && pomodoroManager.remain !== pomodoroManager.total;
+                return pomodoroManager
+                        ? (!pomodoroManager.running
+                           && pomodoroManager.remain !== pomodoroManager.total)
+                        : false;
             });
             item.pomodoroCanStart = Qt.binding(function () {
-                return pomodoroManager.running || pomodoroManager.total > 0;
+                return pomodoroManager
+                        ? (pomodoroManager.running || pomodoroManager.total > 0)
+                        : false;
             });
             item.stayResident = true;
             item.showRequested.connect(function () {

@@ -51,10 +51,10 @@ Every platform service must:
 - `tracker/*.c`: submits completed sessions through `data_bridge.h`; shared
   `database_storage.*` owns SQLite history writes.
 - `service/win_service.c`: user-session autostart verbs
-  (`--install`/`--uninstall`/`--start`/`--stop`/`--status`) via `schtasks`/Run-key.
-  The tracker stays in the interactive user session. A true SCM Session-0
-  service is deferred.
-
+  (`--install`/`--uninstall`/`--start`/`--stop`/`--status`) via `schtasks`/Run-key;
+  JSON status feeds the UI. The tracker stays interactive-user-session; SCM
+  Session-0 is deferred. Opening the UI starts it idempotently; config controls
+  tracking enabled and frontmost idle (`0` disables idle classification).
 ### macOS - tracking + config + lifecycle + status; doctor pending
 
 - `Tracking/`: frontmost app via `NSWorkspace`, titles via the accessibility API, idle via

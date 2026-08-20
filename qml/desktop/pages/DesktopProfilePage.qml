@@ -1341,12 +1341,12 @@ Item {
                                     rowSub: "把上面的空闲超时与追踪开关写入后台服务并重启采集，立即生效；否则下次启动采集时才生效。"
                                     GhostBtn {
                                         label: "应用并重启采集"; primary: true
-                                        // 需先开「开机自启」：重启采集要经 launchd 拉起（`enable`），
-                                        // UI 不自己起进程；未开自启时按钮置灰，免得点一下就被
-                                        // 悄悄装上登录项。
+                                        // macOS 需先开「开机自启」，让 launchd 监督重启；
+                                        // Windows 可随时幂等拉起当前用户会话的 collector，
+                                        // 登录自启是另一项选择，不应阻止设置立即生效。
                                         enabled: !!(settingsRepository && settingsRepository.autostartSupported
                                                     && settingsRepository.autostartSupported())
-                                                 && root.autostartEnabled
+                                                 && (Qt.platform.os === "windows" || root.autostartEnabled)
                                         opacity: enabled ? 1 : 0.45
                                         onTapped: root.applyAndRestartCollection()
                                     }

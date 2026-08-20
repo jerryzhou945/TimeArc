@@ -34,20 +34,20 @@ static int join_path(char* out, size_t out_size, const char* parent,
 }
 
 static int build_config_path(char* out, size_t out_size) {
-  const char* local_app_data = getenv("LOCALAPPDATA");
-  if (local_app_data == NULL || local_app_data[0] == '\0') {
+  const char* app_data = getenv("APPDATA");
+  if (app_data == NULL || app_data[0] == '\0') {
     return -1;
   }
 
   char app_dir[TA_MAX_PATH_BYTES];
-  char usage_dir[TA_MAX_PATH_BYTES];
-  if (join_path(app_dir, sizeof(app_dir), local_app_data, "TimeArc") != 0 ||
+  char config_dir[TA_MAX_PATH_BYTES];
+  if (join_path(app_dir, sizeof(app_dir), app_data, "TimeArc") != 0 ||
       create_dir_if_missing(app_dir) != 0 ||
-      join_path(usage_dir, sizeof(usage_dir), app_dir, "usage") != 0 ||
-      create_dir_if_missing(usage_dir) != 0) {
+      join_path(config_dir, sizeof(config_dir), app_dir, "config") != 0 ||
+      create_dir_if_missing(config_dir) != 0) {
     return -1;
   }
-  return join_path(out, out_size, usage_dir, "usage_config.json");
+  return join_path(out, out_size, config_dir, "service_config.json");
 }
 
 int timearc_read_service_config(int64_t* idle_threshold_ms,
@@ -64,24 +64,31 @@ int timearc_read_service_config(int64_t* idle_threshold_ms,
 
   JSON_Object* object = json_value_get_object(root);
   if (object != NULL) {
-    if (idle_threshold_ms != NULL && json_object_has_value_of_type(
-                                         object, "idle_threshold_ms",
-                                         JSONNumber)) {
+    JSON_Value* idle_value = json_object_dotget_value(
+        object, "tracking.frontmost.idle_threshold_sec");
+    if (idle_threshold_ms != NULL &&
+        json_value_get_type(idle_value) == JSONNumber) {
       const double value =
-          json_object_get_number(object, "idle_threshold_ms");
-      if (value >= 1000.0 && value <= 86400000.0) {
-        *idle_threshold_ms = (int64_t)value;
+          json_object_dotget_number(
+              object, "tracking.frontmost.idle_threshold_sec");
+      const int64_t seconds = (int64_t)value;
+      if (value == (double)seconds && seconds >= 0 && seconds <= 86400) {
+        *idle_threshold_ms = seconds * 1000;
       } else {
         fprintf(stderr,
-                "TimeArc service: usage_config.json idle_threshold_ms %.0f "
-                "out of range [1000,86400000]; using the default.\n",
+                "TimeArc service: service_config.json "
+                "tracking.frontmost.idle_threshold_sec %.3f invalid; "
+                "using the default.\n",
                 value);
       }
     }
-    if (track_enabled != NULL && json_object_has_value_of_type(
-                                     object, "track_enabled", JSONBoolean)) {
-      *track_enabled =
-          json_object_get_boolean(object, "track_enabled") ? 1 : 0;
+    JSON_Value* enabled_value =
+        json_object_dotget_value(object, "tracking.enabled");
+    if (track_enabled != NULL &&
+        json_value_get_type(enabled_value) == JSONBoolean) {
+      *track_enabled = json_object_dotget_boolean(object, "tracking.enabled")
+                           ? 1
+                           : 0;
     }
   }
 

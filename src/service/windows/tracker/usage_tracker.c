@@ -72,7 +72,7 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
     if (config->poll_interval_ms > 0) {
       active_config.poll_interval_ms = config->poll_interval_ms;
     }
-    if (config->idle_threshold_ms > 0) {
+    if (config->idle_threshold_ms >= 0) {
       active_config.idle_threshold_ms = config->idle_threshold_ms;
     }
     active_config.track_enabled = config->track_enabled ? 1 : 0;
@@ -110,8 +110,9 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
     if (timearc_win_get_active_app(&next_app) == 0) {
       sample.app = next_app;
       sample.has_app = 1;
-      sample.input_active =
-          timearc_win_get_idle_ms() < active_config.idle_threshold_ms;
+      sample.input_active = active_config.idle_threshold_ms == 0 ||
+                            timearc_win_get_idle_ms() <
+                                active_config.idle_threshold_ms;
 
       TimeArcProcessCounters counters;
       if (timearc_win_process_activity_sample(next_app.process_id, &counters)) {

@@ -29,12 +29,18 @@ static BOOL WINAPI console_handler(DWORD event_type) {
 
 // Dispatch lifecycle verbs. No arguments runs the tracker for compatibility;
 // verbs manage autostart and the tracker in the current user session.
-static int dispatch_verb(const char* verb) {
+static int dispatch_verb(int argc, char** argv) {
+  const char* verb = argv[1];
   if (strcmp(verb, "--install") == 0) return timearc_win_service_install();
   if (strcmp(verb, "--uninstall") == 0) return timearc_win_service_uninstall();
   if (strcmp(verb, "--start") == 0) return timearc_win_service_start();
   if (strcmp(verb, "--stop") == 0) return timearc_win_service_stop();
-  if (strcmp(verb, "--status") == 0) return timearc_win_service_status();
+  if (strcmp(verb, "--status") == 0) {
+    if (argc >= 3 && strcmp(argv[2], "--json") == 0) {
+      return timearc_win_service_status_json();
+    }
+    return timearc_win_service_status();
+  }
   if (strcmp(verb, "--run-service") == 0) return timearc_win_service_run();
 
   fprintf(stderr,
@@ -47,7 +53,7 @@ static int dispatch_verb(const char* verb) {
 
 int main(int argc, char** argv) {
   if (argc >= 2) {
-    return dispatch_verb(argv[1]);
+    return dispatch_verb(argc, argv);
   }
 
   SetConsoleCtrlHandler(console_handler, TRUE);
@@ -63,7 +69,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  // Start with compatible defaults, then apply valid usage_config.json values.
+  // Start with compatible defaults, then apply valid service_config.json values.
   // Explicitly initialize track_enabled because omitted fields become zero.
   TimeArcUsageTrackerConfig config = {
       .poll_interval_ms = TIMEARC_USAGE_POLL_INTERVAL_MS,

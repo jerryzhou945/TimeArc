@@ -1,5 +1,24 @@
 # Windows / macOS 后端差异审计
 
+## 2026-08-20 当前结论
+
+下方 2026-06-19 内容保留为历史审计；当前实现以本节和 harness 规则为准。
+
+| 能力 | Windows | macOS | 当前差异 |
+| --- | --- | --- | --- |
+| UI 与浅色/深色页面 | 共用 Qt/QML | 共用 Qt/QML | 功能页面同源；原生窗口和菜单按平台实现 |
+| 打开应用后采集 | UI 启动后幂等执行 `--start` | 已注册登录项时由 launchd 自检/拉起 | Windows 本轮已恢复 |
+| 前台与闲置 | Win32 前台窗口、键鼠 idle、进程树工作证据 | NSWorkspace/AX、CGEventSource、播放证据 | 都遵守共享 session 约定，探针不同 |
+| 音频/媒体 | WASAPI per-process audio | CoreAudio/IOPM | Windows 粒度更细；Mac 需实机权限验证 |
+| 配置 | `service_config.json`：已读追踪总开关和 idle（0=不判闲置） | `tracking.*` 全量 reader | Windows 的 poll/min/max 与子开关仍待接线 |
+| 状态与立即启动 | `--status --json`、运行态、立即启动已接 SettingsRepository | JSON status、launchd 状态、立即启动 | 共享 UI facade 已对齐，后端语义保留平台差异 |
+| 登录自启 | HKCU 中注册 TimeArc UI，UI 再启动 collector | LaunchAgent/SMAppService | 均为用户级，但注册对象不同 |
+| 发布验证 | 本机可构建、运行烟测、可生成 ZIP | 必须在 Mac 上编译、签名/公证并做权限烟测 | Mac 实机仍是发布门槛 |
+
+本轮 Windows 不计时的根因有两个：`620f6022` 在替换 macOS 启动逻辑时误删了原有
+Windows 启动分支；Windows collector 又仍在读取已经退役的 `usage_config.json`。
+两处均已修复，并增加真实 UI/collector 进程烟测防回归。
+
 日期：2026-06-19
 
 > 历史审计：其存储结论已被 2026-07-10 至 07-12 的共享数据库与

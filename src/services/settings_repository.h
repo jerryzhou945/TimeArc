@@ -69,13 +69,15 @@ class SettingsRepository : public QObject {
   Q_INVOKABLE bool startBackgroundCollection();
 
   // 一次 `status --json` 取回服务状态，供状态栏菜单一次开菜单只 spawn 一个子进程。
+  // Windows 与 macOS 都返回真实运行态；Windows 的 autostartEnabled 取 TimeArc UI
+  // 登录启动项（UI 再拉起 collector），macOS 取 service/launchd 注册态。
   // 键：ok / autostartEnabled / trackingRunning / trackingEnabled。ok=false 时其余
   // 键不可信（服务不可达），调用方应显示「未知」而非假的「关」。
   Q_INVOKABLE QVariantMap serviceState();
 
-  // 立即开始采集：有注册就叫 launchd 拉起注册的实例，没注册就起一个临时实例
-  // （`start` 动词）。与「应用并重启采集」不同——那条路只走 `enable`，绝不制造
-  // launchd 管不着的进程；这条是用户在菜单里显式要求的临时采集。
+  // 立即开始采集：Windows 走幂等 `--start`；macOS 有注册就叫 launchd 拉起，
+  // 没注册则起一个临时实例（`start` 动词）。与 macOS「应用并重启采集」不同——
+  // 后者只走 `enable`，绝不制造 launchd 管不着的进程。
   Q_INVOKABLE bool startTrackingNow();
 
  signals:
