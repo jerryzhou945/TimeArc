@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>TimeArc 统计重构 Demo</title>
+  <link rel="stylesheet" href="./timearc-stats-rework-v1.css">
+</head>
+<body>
+  <div class="app-window">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">T</span>
+        <span class="brand-copy"><strong>TimeArc</strong><small>时间档案</small></span>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item" type="button" data-shell-page="home" aria-label="首页保持现状">
+          <img src="../../resources/app/icons/navigation/home_white.svg" alt="">
+          <span><strong>首页</strong><small>Memory</small></span>
+        </button>
+        <button class="nav-item" type="button" data-shell-page="calendar">
+          <img src="../../resources/app/icons/navigation/calendar_white.svg" alt="">
+          <span><strong>日历</strong><small>Calendar</small></span>
+        </button>
+        <button class="nav-item is-active" type="button" data-shell-page="stats" aria-current="page">
+          <img src="../../resources/app/icons/navigation/stats_white.svg" alt="">
+          <span><strong>统计</strong><small>Statistics</small></span>
+        </button>
+        <button class="nav-item" type="button" data-shell-page="settings">
+          <img src="../../resources/app/icons/navigation/settings_white.svg" alt="">
+          <span><strong>设置</strong><small>Settings</small></span>
+        </button>
+        <button class="nav-item" type="button" data-shell-page="memo">
+          <img src="../../resources/app/icons/navigation/note_white.svg" alt="">
+          <span><strong>备忘</strong><small>Notes</small></span>
+        </button>
+      </nav>
+
+      <button class="nav-item recap-item" type="button" data-shell-page="recap">
+        <img src="../../resources/app/icons/navigation/recap_white.svg" alt="">
+        <span><strong>记忆湖</strong><small>Memory Recap</small></span>
+      </button>
+      <div class="sidebar-status">
+        <span class="status-pulse" aria-hidden="true"></span>
+        <span><strong>记录中</strong><small>本地数据 · 实时</small></span>
+      </div>
+    </aside>
+
+    <main class="stats-page" id="stats-page">
+      <header class="page-header">
+        <div>
+          <p class="page-context">时间统计</p>
+          <h1>今天的时间，落在了哪里</h1>
+          <p class="page-description">先看一天的形状，再下钻到具体应用。</p>
+        </div>
+        <div class="header-actions">
+          <button class="icon-button" type="button" id="privacy-toggle" aria-pressed="false" aria-label="隐藏应用名称">
+            <span aria-hidden="true">◉</span>
+          </button>
+          <button class="quiet-button" type="button" id="export-button">导出今日记录</button>
+        </div>
+      </header>
+
+      <div class="period-toolbar" aria-label="统计周期">
+        <div class="range-tabs" role="tablist" aria-label="统计范围">
+          <button type="button" role="tab" aria-selected="true" data-range="day">每日</button>
+          <button type="button" role="tab" aria-selected="false" data-range="week">每周</button>
+          <button type="button" role="tab" aria-selected="false" data-range="month">每月</button>
+          <button type="button" role="tab" aria-selected="false" data-range="year">每年</button>
+        </div>
+        <div class="date-switcher">
+          <button type="button" class="date-arrow" id="previous-period" aria-label="上一天">‹</button>
+          <button type="button" class="date-label" id="period-label">8月21日 · 星期五</button>
+          <button type="button" class="date-arrow" id="next-period" aria-label="下一天" disabled>›</button>
+        </div>
+      </div>
+
+      <section id="daily-view" class="view-panel is-visible" aria-label="每日统计">
+        <section class="desktop-overview" aria-label="今日概览">
+          <div class="overview-item"><span>本期总时长</span><strong id="overview-period-total">7h 42m</strong><small>从 08:12 开始</small></div>
+          <div class="overview-item"><span>全部软件累计</span><strong id="overview-lifetime-total">1,876h 40m</strong><small>所有保留记录</small></div>
+          <div class="overview-item"><span>本期活跃软件</span><strong id="overview-active-apps">8 / 14</strong><small>11 段有效记录</small></div>
+          <div class="overview-item"><span>累计最长</span><strong>Codex</strong><small>300h</small></div>
+        </section>
+
+        <div class="daily-layout">
+          <section class="clock-section" aria-labelledby="clock-title">
+            <div class="section-heading clock-heading">
+              <div>
+                <h2 id="clock-title">应用时钟</h2>
+                <p>每个扇区都是一段真实的前台应用记录</p>
+              </div>
+              <div class="halfday-toggle" role="group" aria-label="上午或下午">
+                <button type="button" class="is-active" data-halfday="am">AM</button>
+                <button type="button" data-halfday="pm">PM</button>
+              </div>
+            </div>
+
+            <div class="clock-composition">
+              <div class="clock-wrap" id="clock-wrap">
+                <svg class="clock-svg" viewBox="0 0 440 440" role="img" aria-labelledby="clock-svg-title clock-svg-description">
+                  <title id="clock-svg-title">当天应用使用时钟</title>
+                  <desc id="clock-svg-description">应用按实际开始和结束时间排列。将鼠标移到扇区可放大并查看详情。</desc>
+                  <circle class="clock-track" cx="220" cy="220" r="146"></circle>
+                  <g id="clock-ticks" aria-hidden="true"></g>
+                  <g id="clock-sectors"></g>
+                  <circle class="clock-inner" cx="220" cy="220" r="96"></circle>
+                </svg>
+                <div class="clock-center" id="clock-center" aria-live="polite">
+                  <span class="center-kicker">今日已记录</span>
+                  <strong id="center-total">7h 42m</strong>
+                  <span id="center-detail">9 个应用 · 14 段记录</span>
+                  <small id="center-hint">滑过扇区查看应用</small>
+                </div>
+                <div class="clock-marker marker-12">12</div>
+                <div class="clock-marker marker-3">3</div>
+                <div class="clock-marker marker-6">6</div>
+                <div class="clock-marker marker-9">9</div>
+              </div>
+              <p class="clock-instruction"><span aria-hidden="true">↗</span> 悬停会放大应用扇区，点击可锁定详情</p>
+            </div>
+          </section>
+
+          <aside class="day-summary" aria-labelledby="summary-title">
+            <div class="section-heading">
+              <div>
+                <h2 id="summary-title">今天的组成</h2>
+                <p>颜色说明类别，名称说明具体应用</p>
+              </div>
+            </div>
+            <div class="category-list" id="category-list"></div>
+            <div class="summary-evidence">
+              <div class="summary-evidence-heading">
+                <h3>今日证据</h3>
+                <span>不做效率评分</span>
+              </div>
+              <dl class="evidence-list compact-evidence">
+                <div><dt>最早记录</dt><dd>08:12</dd></div>
+                <div><dt>最长连续段</dt><dd>Codex · 1h 28m</dd></div>
+                <div><dt>切换最频繁</dt><dd>10:00 至 11:00 · 5次</dd></div>
+              </dl>
+            </div>
+            <button class="text-action" type="button" id="manage-categories">管理应用分类 <span aria-hidden="true">→</span></button>
+          </aside>
+        </div>
+
+        <div class="desktop-lower-grid">
+          <section class="timeline-section" aria-labelledby="timeline-title">
+            <div class="section-heading inline-heading">
+              <div>
+                <h2 id="timeline-title">24 小时时间流</h2>
+                <p>按实际顺序展开；短于5分钟的记录收进“零碎时刻”。</p>
+              </div>
+              <button class="text-action" type="button" id="expand-timeline">展开全部记录</button>
+            </div>
+            <div class="timeline-scale" aria-hidden="true">
+              <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span>
+            </div>
+            <div class="timeline-track" id="timeline-track" aria-label="当天应用时间线"></div>
+          </section>
+
+          <section class="ranking-section" aria-labelledby="ranking-title">
+            <div class="section-heading inline-heading">
+              <div>
+                <h2 id="ranking-title">应用排行</h2>
+                <p>只呈现有解释价值的前五项</p>
+              </div>
+              <span class="record-count">14 段记录</span>
+            </div>
+            <div class="ranking-list" id="ranking-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="aggregate-view" class="view-panel aggregate-view" aria-label="周期统计" hidden>
+        <div class="aggregate-header">
+          <div>
+            <p id="aggregate-context">本周记录</p>
+            <strong id="aggregate-total">31h 24m</strong>
+            <span id="aggregate-days">6 个记录日</span>
+          </div>
+          <p id="aggregate-fact">使用时间主要分布在开发、浏览和社交。</p>
+        </div>
+        <section class="trend-section" aria-labelledby="trend-title">
+          <div class="section-heading inline-heading">
+            <div>
+              <h2 id="trend-title">时间趋势</h2>
+              <p id="trend-description">每日记录时长</p>
+            </div>
+            <span class="trend-legend"><i></i> 记录时长</span>
+          </div>
+          <div class="trend-chart" id="trend-chart" aria-label="时间趋势柱状图"></div>
+        </section>
+        <div class="aggregate-columns">
+          <section class="aggregate-categories">
+            <div class="section-heading"><div><h2>分类分布</h2><p>只保留这一周期最重要的结构</p></div></div>
+            <div id="aggregate-category-list" class="category-list"></div>
+          </section>
+          <section class="aggregate-ranking">
+            <div class="section-heading"><div><h2>应用排行</h2><p>点击应用查看该周期的记录</p></div></div>
+            <div id="aggregate-ranking-list" class="ranking-list compact"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="app-library-section" aria-labelledby="app-library-title">
+        <header class="app-library-header">
+          <div>
+            <h2 id="app-library-title">所有应用</h2>
+            <p>像应用库一样查看每个软件的本期记录和累计总时长，不受 Top 排行限制。</p>
+          </div>
+          <div class="library-total">
+            <span>全部应用累计记录</span>
+            <strong id="library-lifetime-total">1,842h 16m</strong>
+            <small id="library-app-count">14 个应用</small>
+          </div>
+        </header>
+
+        <div class="app-library-toolbar">
+          <label class="library-search">
+            <span aria-hidden="true">⌕</span>
+            <input id="app-library-search" type="search" placeholder="搜索应用或类别" autocomplete="off">
+          </label>
+          <label class="library-sort">
+            <span>排序</span>
+            <select id="app-library-sort">
+              <option value="period">本期时长</option>
+              <option value="lifetime">累计总时长</option>
+              <option value="recent">最近使用</option>
+              <option value="name">应用名称</option>
+            </select>
+          </label>
+          <label class="library-switch">
+            <input id="show-inactive-apps" type="checkbox" checked>
+            <span>显示本期未使用</span>
+          </label>
+        </div>
+
+        <div class="app-library-table" role="table" aria-label="所有应用使用时长">
+          <div class="app-library-columns" role="row">
+            <span role="columnheader">应用</span>
+            <span role="columnheader">本期时长</span>
+            <span role="columnheader">累计总时长</span>
+            <span role="columnheader">最近记录</span>
+          </div>
+          <div id="app-library-list" class="app-library-list" role="rowgroup"></div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="app-detail-panel" id="app-detail-panel" aria-labelledby="detail-app-name" aria-hidden="true">
+      <button class="detail-close" id="detail-close" type="button" aria-label="关闭应用详情">×</button>
+      <div class="detail-app-icon" id="detail-app-icon">Co</div>
+      <p class="detail-category" id="detail-category">开发</p>
+      <h2 id="detail-app-name">Codex</h2>
+      <strong class="detail-duration" id="detail-duration">1h 28m</strong>
+      <p class="detail-copy" id="detail-copy">08:12 至 09:40 留在 Codex。该时间来自前台与运行活动记录。</p>
+      <dl>
+        <div><dt>开始</dt><dd id="detail-start">08:12</dd></div>
+        <div><dt>结束</dt><dd id="detail-end">09:40</dd></div>
+        <div><dt>记录类型</dt><dd>前台应用</dd></div>
+      </dl>
+      <button class="quiet-button full-width" type="button">查看全部记录</button>
+    </aside>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="./timearc-stats-rework-v1.js"></script>
+</body>
+</html>

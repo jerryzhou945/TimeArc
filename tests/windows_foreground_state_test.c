@@ -138,6 +138,44 @@ static void test_shutdown_flushes_idle_session_once(void) {
   assert(!timearc_foreground_state_shutdown(&state, 5004, 4000, &closed));
 }
 
+static void test_checkpoint_exports_contiguous_active_segment(void) {
+  TimeArcForegroundState state;
+  TimeArcForegroundClosedSession closed;
+  AppInfo codex = app("codex.exe", 53, "Autonomous task");
+
+  timearc_foreground_state_init(&state, 90000);
+  assert(!step(&state, codex, 6000, 0, 0, 1, &closed));
+  assert(!step(&state, codex, 6060, 60000, 0, 1, &closed));
+  assert(timearc_foreground_state_checkpoint(&state, 6060, 60000, &closed));
+  assert(closed.start_wall_sec == 6000);
+  assert(closed.end_wall_sec == 6060);
+  assert(closed.active_ms == 60000);
+  assert(state.start_wall_sec == 6060);
+  assert(state.active_ms == 0);
+  assert(state.mode == TIMEARC_FOREGROUND_ACTIVE);
+  assert(strcmp(state.app.window_title, "Autonomous task") == 0);
+
+  assert(!step(&state, codex, 6061, 61000, 0, 0, &closed));
+  assert(state.active_ms == 1000);
+  assert(state.mode == TIMEARC_FOREGROUND_ACTIVE);
+}
+
+static void test_checkpoint_preserves_idle_mode_without_active_growth(void) {
+  TimeArcForegroundState state;
+  TimeArcForegroundClosedSession closed;
+  AppInfo editor = app("editor.exe", 54, "Idle document");
+
+  timearc_foreground_state_init(&state, 1000);
+  assert(!step(&state, editor, 7000, 0, 1, 0, &closed));
+  assert(!step(&state, editor, 7002, 2000, 0, 0, &closed));
+  assert(state.mode == TIMEARC_FOREGROUND_IDLE);
+  assert(timearc_foreground_state_checkpoint(&state, 7060, 60000, &closed));
+  assert(closed.active_ms == 2000);
+  assert(state.mode == TIMEARC_FOREGROUND_IDLE);
+  assert(state.start_wall_sec == 7060);
+  assert(state.active_ms == 0);
+}
+
 static TimeArcProcessCounters counters(uint64_t cpu_100ns,
                                        uint64_t io_bytes) {
   TimeArcProcessCounters value;
@@ -265,6 +303,8 @@ int main(void) {
   test_identity_change_closes_with_active_duration();
   test_missing_observation_cannot_renew_lease();
   test_shutdown_flushes_idle_session_once();
+  test_checkpoint_exports_contiguous_active_segment();
+  test_checkpoint_preserves_idle_mode_without_active_growth();
   test_process_delta_requires_meaningful_change();
   test_process_delta_resets_for_pid_or_counter_reset();
   test_process_tree_aggregates_only_root_and_descendants();

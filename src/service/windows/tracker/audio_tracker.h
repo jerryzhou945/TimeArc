@@ -18,9 +18,11 @@ typedef struct TimeArcAudioSession {
 typedef struct TimeArcAudioTrackerState {
   TimeArcAudioSession sessions[TIMEARC_AUDIO_MAX_TRACKED_APPS];
   int last_sample_succeeded;
+  int64_t checkpoint_sec;
 } TimeArcAudioTrackerState;
 
-void timearc_audio_tracker_init(TimeArcAudioTrackerState* state);
+void timearc_audio_tracker_init(TimeArcAudioTrackerState* state,
+                                int64_t checkpoint_sec);
 void timearc_audio_tracker_poll(TimeArcAudioTrackerState* state,
                                 int64_t now_sec);
 void timearc_audio_tracker_flush(TimeArcAudioTrackerState* state,

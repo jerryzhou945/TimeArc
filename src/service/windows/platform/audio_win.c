@@ -61,6 +61,8 @@ interface IAudioMeterInformation {
 
 #define TIMEARC_AUDIO_PEAK_THRESHOLD 0.005f
 #define TIMEARC_GSMTC_CACHE_SEC 10
+#define TIMEARC_BROWSER_MEDIA_CACHE_SEC 30
+#define TIMEARC_BROWSER_MEDIA_CACHE_SIZE 4
 
 static const char* kGsmtcQueryCommand =
     "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass "
@@ -70,6 +72,17 @@ static const char* kGsmtcQueryCommand =
 static char g_gsmtc_cache_app[TA_MAX_NAME_BYTES];
 static char g_gsmtc_cache_title[TA_MAX_TITLE_BYTES];
 static time_t g_gsmtc_cache_time = 0;
+
+typedef struct BrowserMediaTitleCache {
+  char path[TA_MAX_PATH_BYTES];
+  uint32_t process_id;
+  char system_title[TA_MAX_TITLE_BYTES];
+  char observed_title[TA_MAX_TITLE_BYTES];
+  time_t last_seen_time;
+} BrowserMediaTitleCache;
+
+static BrowserMediaTitleCache
+    g_browser_media_title_cache[TIMEARC_BROWSER_MEDIA_CACHE_SIZE];
 
 // Initialize thread-local COM lazily and track whether this file owns cleanup.
 static int g_com_initialized = 0;
@@ -429,6 +442,102 @@ static int useful_media_title(const char* title, const char* app_name) {
   return 1;
 }
 
+static int is_browser_path(const char* path) {
+  return contains_ascii_case_insensitive(path, "chrome.exe") ||
+         contains_ascii_case_insensitive(path, "msedge.exe") ||
+         contains_ascii_case_insensitive(path, "firefox.exe") ||
+         contains_ascii_case_insensitive(path, "brave.exe") ||
+         contains_ascii_case_insensitive(path, "vivaldi.exe") ||
+         contains_ascii_case_insensitive(path, "opera.exe");
+}
+
+static int foreground_title_matches_system_media(const char* foreground_title,
+                                                 const char* system_title) {
+  if (foreground_title == NULL || foreground_title[0] == '\0' ||
+      system_title == NULL || system_title[0] == '\0') {
+    return 0;
+  }
+  if (contains_ascii_case_insensitive(foreground_title, system_title)) {
+    return 1;
+  }
+
+  const char* artist_separator = strstr(system_title, " - ");
+  if (artist_separator == NULL || artist_separator - system_title < 3) {
+    return 0;
+  }
+  char media_title[TA_MAX_TITLE_BYTES];
+  size_t title_len = (size_t)(artist_separator - system_title);
+  if (title_len >= sizeof(media_title)) title_len = sizeof(media_title) - 1;
+  memcpy(media_title, system_title, title_len);
+  media_title[title_len] = '\0';
+  return contains_ascii_case_insensitive(foreground_title, media_title);
+}
+
+void timearc_win_reset_observed_media_title_cache(void) {
+  memset(g_browser_media_title_cache, 0, sizeof(g_browser_media_title_cache));
+}
+
+static const char* stable_browser_media_title(
+    const char* path, uint32_t process_id, const char* system_media_title,
+    const char* matching_foreground_title) {
+  const time_t now = time(NULL);
+  BrowserMediaTitleCache* available = NULL;
+  BrowserMediaTitleCache* oldest = &g_browser_media_title_cache[0];
+  for (size_t i = 0; i < TIMEARC_BROWSER_MEDIA_CACHE_SIZE; ++i) {
+    BrowserMediaTitleCache* entry = &g_browser_media_title_cache[i];
+    const int expired = entry->observed_title[0] == '\0' ||
+                        now - entry->last_seen_time >
+                            TIMEARC_BROWSER_MEDIA_CACHE_SEC;
+    if (expired && available == NULL) available = entry;
+    if (!expired && strcmp(entry->path, path) == 0 &&
+        entry->process_id == process_id &&
+        strcmp(entry->system_title, system_media_title) == 0) {
+      if (foreground_title_matches_system_media(matching_foreground_title,
+                                                system_media_title) &&
+          strcmp(entry->observed_title, matching_foreground_title) != 0) {
+        copy_string(entry->observed_title, sizeof(entry->observed_title),
+                    matching_foreground_title);
+      }
+      entry->last_seen_time = now;
+      return entry->observed_title;
+    }
+    if (entry->last_seen_time < oldest->last_seen_time) oldest = entry;
+  }
+
+  BrowserMediaTitleCache* entry = available != NULL ? available : oldest;
+  memset(entry, 0, sizeof(*entry));
+  copy_string(entry->path, sizeof(entry->path), path);
+  entry->process_id = process_id;
+  copy_string(entry->system_title, sizeof(entry->system_title),
+              system_media_title);
+  const char* initial_title =
+      foreground_title_matches_system_media(matching_foreground_title,
+                                            system_media_title)
+          ? matching_foreground_title
+          : system_media_title;
+  copy_string(entry->observed_title, sizeof(entry->observed_title),
+              initial_title);
+  entry->last_seen_time = now;
+  return entry->observed_title;
+}
+
+const char* timearc_win_preferred_observed_media_title(
+    const char* path, uint32_t process_id, const char* system_media_title,
+    const char* matching_foreground_title) {
+  if (system_media_title != NULL && system_media_title[0] != '\0') {
+    if (is_browser_path(path)) {
+      return stable_browser_media_title(path, process_id, system_media_title,
+                                        matching_foreground_title);
+    }
+    return system_media_title;
+  }
+  if (is_browser_path(path) && matching_foreground_title != NULL &&
+      matching_foreground_title[0] != '\0') {
+    return matching_foreground_title;
+  }
+  return matching_foreground_title;
+}
+
 static const char* matching_foreground_title(const AppInfo* foreground,
                                              DWORD pid,
                                              const char* path) {
@@ -534,14 +643,15 @@ static const char* choose_media_title(IAudioSessionControl* control,
                                       const char* app_name,
                                       char* scratch_title,
                                       size_t scratch_title_size) {
-  if (query_gsmtc_media_title(app_name, scratch_title, scratch_title_size) ==
-      0) {
-    return scratch_title;
-  }
-
-  const char* title = matching_foreground_title(foreground, pid, path);
-  if (title != NULL) {
-    return title;
+  const int has_system_title =
+      query_gsmtc_media_title(app_name, scratch_title, scratch_title_size) == 0;
+  const char* foreground_title =
+      matching_foreground_title(foreground, pid, path);
+  const char* preferred = timearc_win_preferred_observed_media_title(
+      path, (uint32_t)pid, has_system_title ? scratch_title : NULL,
+      foreground_title);
+  if (preferred != NULL) {
+    return preferred;
   }
 
   if (query_process_window_title(pid, app_name, scratch_title,
@@ -702,4 +812,5 @@ void timearc_win_audio_shutdown(void) {
   }
   g_com_initialized = 0;
   g_should_uninitialize_com = 0;
+  timearc_win_reset_observed_media_title_cache();
 }

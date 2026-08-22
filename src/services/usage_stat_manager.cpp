@@ -857,6 +857,7 @@ QVariantList UsageStatManager::aggregateSoftware(
     QVector<UsageInterval> foregroundIntervals;
     QVector<UsageInterval> audioIntervals;
     QMap<QString, quint64> categorySeconds;  // 按窗口标题逐记录分类、时长加权
+    qint64 lastUsedUnixSec = 0;
     bool hasForeground = false;
     bool hasAudio = false;
   };
@@ -893,6 +894,8 @@ QVariantList UsageStatManager::aggregateSoftware(
     }
     const UsageInterval interval{record.startUnixSec, endUnixSec};
     aggregate.intervals.append(interval);
+    aggregate.lastUsedUnixSec =
+        std::max(aggregate.lastUsedUnixSec, endUnixSec);
     // 保留 foreground/audio 分项，UI 可以同时显示总时长和来源拆分。
     if (record.source == "audio") {
       aggregate.audioIntervals.append(interval);
@@ -982,6 +985,7 @@ QVariantList UsageStatManager::aggregateSoftware(
     item["seconds"] = static_cast<qlonglong>(seconds);
     item["minutes"] = static_cast<int>(seconds / 60);
     item["time"] = secondsToTimeText(seconds);
+    item["lastUsedUnixSec"] = aggregate.lastUsedUnixSec;
     item["foregroundSeconds"] =
         static_cast<qlonglong>(foregroundSeconds);
     item["audioSeconds"] = static_cast<qlonglong>(audioSeconds);
@@ -1502,6 +1506,7 @@ QVariantList UsageStatManager::allApps() const {
     QString appName;
     QString path;
     QVector<UsageInterval> intervals;
+    qint64 lastUsedUnixSec = 0;
   };
 
   QMap<QString, AppListEntry> seen;
@@ -1526,6 +1531,7 @@ QVariantList UsageStatManager::allApps() const {
       entry.path = record.path;
     }
     entry.intervals.append({record.startUnixSec, endUnixSec});
+    entry.lastUsedUnixSec = std::max(entry.lastUsedUnixSec, endUnixSec);
   };
   for (const UsageRecord& record : m_records) addApp(record);
 
@@ -1539,9 +1545,14 @@ QVariantList UsageStatManager::allApps() const {
     const QString displayName =
         activityDisplayName(entry.groupKey, entry.appId, entry.appName,
                             entry.path);
-    const QString category =
+    QString category =
         classifyActivity(entry.groupKey, entry.appId, entry.appName, entry.path,
                          QString());
+    if (!m_autoClassify) {
+      category = QStringLiteral("其他");
+    } else if (!m_gameClassify && category == QStringLiteral("游戏")) {
+      category = QStringLiteral("其他");
+    }
 
     QVariantMap item;
     item["groupKey"] = entry.groupKey;
@@ -1552,6 +1563,7 @@ QVariantList UsageStatManager::allApps() const {
     item["path"] = entry.path;
     item["category"] = category;
     item["seconds"] = static_cast<qlonglong>(seconds);
+    item["lastUsedUnixSec"] = entry.lastUsedUnixSec;
     item["settingsVisible"] = isSettingsListVisibleActivity(
         entry.groupKey, entry.appId, entry.appName, entry.path, displayName,
         category, seconds);

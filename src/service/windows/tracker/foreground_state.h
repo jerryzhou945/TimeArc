@@ -43,6 +43,9 @@ void timearc_foreground_state_init(TimeArcForegroundState* state,
 int timearc_foreground_state_step(
     TimeArcForegroundState* state, const TimeArcForegroundSample* sample,
     TimeArcForegroundClosedSession* out_closed);
+int timearc_foreground_state_checkpoint(
+    TimeArcForegroundState* state, int64_t wall_sec, uint64_t monotonic_ms,
+    TimeArcForegroundClosedSession* out_closed);
 int timearc_foreground_state_shutdown(
     TimeArcForegroundState* state, int64_t wall_sec, uint64_t monotonic_ms,
     TimeArcForegroundClosedSession* out_closed);

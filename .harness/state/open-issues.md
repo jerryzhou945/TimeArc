@@ -5,10 +5,8 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 
 ## Platform
 
-- **Linux service is empty.** `src/service/linux/main.c` is a 0-byte file.
-  Needed: X11 + Wayland foreground sampling, idle detection, audio (likely
-  PipeWire / PulseAudio), and a single-instance guard. See
-  [`../rules/02-platform-boundaries.md`](../rules/02-platform-boundaries.md) §3.
+- **Linux service is empty.** `src/service/linux/main.c` is a 0-byte file. Needed: X11 + Wayland
+  foreground/idle/audio/single-instance support; see [`rules/02`](../rules/02-platform-boundaries.md) §3.
 - **macOS validation/packaging still open.** Helper now has tracking, full v1 config,
   CLI lifecycle/status and a single-instance guard. `tools/build-macos.sh` automates
   packaging; remaining work is credentialed signing/notarization, runtime/Accessibility
@@ -28,6 +26,8 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   and `docs/cross-device-sync-progress.md`.
 
 ## UI
+
+- **Desktop statistics redesign is prototype-only.** Daily icon clock and full app/lifetime-time library: `docs/prototypes/timearc-stats-rework-v1.html`; production QML/data wiring is pending.
 
 - ~~**Memory Lake is a placeholder page.**~~ **Replaced** by a 1:1 port of the
   `MemoryLakeDesign/` prototype (`qml/desktop/memorylake/`). Renders **demo data**.

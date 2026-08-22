@@ -1,0 +1,215 @@
+[0/1] Re-running CMake...
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR)
+-- Could NOT find WrapVulkanHeaders (missing: Vulkan_INCLUDE_DIR)
+CMake Warning (dev) at D:/TimeArc/QT/6.11.0/mingw_64/lib/cmake/Qt6Qml/Qt6QmlMacros.cmake:3747 (message):
+  qml/desktop/pages/StatsViewModel.js is not an ECMAScript module and also
+  doesn't contain '.pragma library'.  It will be re-evaluated in the context
+  of every QML document that explicitly or implicitly imports time_arc.  Set
+  its QT_QML_SKIP_QMLDIR_ENTRY source file property to FALSE if you really
+  want this to happen.  Set it to TRUE to prevent it.
+Call Stack (most recent call first):
+  D:/TimeArc/QT/6.11.0/mingw_64/lib/cmake/Qt6Qml/Qt6QmlMacros.cmake:1035 (qt6_target_qml_sources)
+  D:/TimeArc/QT/6.11.0/mingw_64/lib/cmake/Qt6Qml/Qt6QmlMacros.cmake:1507 (qt6_add_qml_module)
+  CMakeLists.txt:54 (qt_add_qml_module)
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Configuring done (14.0s)
+-- Generating done (0.9s)
+-- Build files have been written to: D:/TimeArc/time-arc/build
+[1/210] Copying time-arc qml sources into build dir
+[2/210] Automatic MOC and UIC for target timearc_resource_bundle_smoke
+[3/208] Automatic MOC and UIC for target timearc_windows_foreground_state_test
+[4/206] Automatic MOC and UIC for target timearc_db_smoke
+[5/204] Automatic MOC and UIC for target timearc_pomodoro_test
+[6/202] Running qmlimportscanner for time-arc
+[7/202] Automatic MOC and UIC for target time-arc
+[8/201] Running AUTOMOC file extraction for target time-arc
+[9/198] Running rcc for resource qmake_time_arc
+[10/198] Generating .rcc/qmlcache/time-arc_qmlcache_loader.cpp
+[11/198] Running rcc for resource time-arc_raw_qml_0
+[12/198] Generating .rcc/qmlcache/time-arc_qml/desktop/PomodoroLayer_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/PomodoroLayer_qml.cpp.aotstats
+[13/198] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp
+[14/198] Generating .rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp.aotstats
+[15/198] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopTimerPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopTimerPage_qml.cpp.aotstats
+[16/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/SoftCard_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/SoftCard_qml.cpp.aotstats
+[17/198] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp.aotstats
+[18/198] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp.aotstats
+[19/198] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMonthlyRecapPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMonthlyRecapPage_qml.cpp.aotstats
+[20/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/SoftPill_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/SoftPill_qml.cpp.aotstats
+[21/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/WindowChrome_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/WindowChrome_qml.cpp.aotstats
+[22/198] Generating .rcc/qmlcache/time-arc_qml/main_qml.cpp, .rcc/qmlcache/time-arc_qml/main_qml.cpp.aotstats
+[23/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/Hotkeys_js.cpp
+[24/198] Generating .rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.aotstats
+[25/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/DesktopDailyCardView_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/DesktopDailyCardView_qml.cpp.aotstats
+[26/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/AppVisual_js.cpp
+[27/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/SoftButton_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/SoftButton_qml.cpp.aotstats
+[28/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/I18n_js.cpp
+[29/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/PlatformCursor_js.cpp
+[30/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/TagPalette_js.cpp
+[31/198] Generating .rcc/qmlcache/time-arc_qml/desktop/components/AchievementToast_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/components/AchievementToast_qml.cpp.aotstats
+[32/198] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.aotstats
+[33/198] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.aotstats
+[34/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GenerativeCover_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GenerativeCover_qml.cpp.aotstats
+[35/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoryLakeStyle_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoryLakeStyle_qml.cpp.aotstats
+[36/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDotTexture_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDotTexture_qml.cpp.aotstats
+[37/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoInkCanvas_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoInkCanvas_qml.cpp.aotstats
+[38/198] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopCalenderPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopCalenderPage_qml.cpp.aotstats
+[39/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolGlyph_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolGlyph_qml.cpp.aotstats
+[40/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolbar_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolbar_qml.cpp.aotstats
+[41/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/TextLayer_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/TextLayer_qml.cpp.aotstats
+[42/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/PixelTomato_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/PixelTomato_qml.cpp.aotstats
+[43/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoPageFolder_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoPageFolder_qml.cpp.aotstats
+[44/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/StickyNote_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/StickyNote_qml.cpp.aotstats
+[45/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroWidget_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroWidget_qml.cpp.aotstats
+[46/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoOverlay_qml.cpp.aotstats
+[47/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroCompleteOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroCompleteOverlay_qml.cpp.aotstats
+[48/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassPanel_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassPanel_qml.cpp.aotstats
+[49/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GridTexture_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GridTexture_qml.cpp.aotstats
+[50/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDatePicker_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDatePicker_qml.cpp.aotstats
+[51/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlowCircle_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlowCircle_qml.cpp.aotstats
+[52/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/AmbientBackground_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/AmbientBackground_qml.cpp.aotstats
+[53/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/UsageRankList_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/UsageRankList_qml.cpp.aotstats
+[54/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/RoundedFrame_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/RoundedFrame_qml.cpp.aotstats
+[55/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/TimeRiver_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/TimeRiver_qml.cpp.aotstats
+[56/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/FrostCard_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/FrostCard_qml.cpp.aotstats
+[57/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoryCard_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoryCard_qml.cpp.aotstats
+[58/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/DetailPanel_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/DetailPanel_qml.cpp.aotstats
+[59/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/CardCarousel_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/CardCarousel_qml.cpp.aotstats
+[60/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/TodayConclusionCard_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/TodayConclusionCard_qml.cpp.aotstats
+[61/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/DailyUsageShare_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/DailyUsageShare_qml.cpp.aotstats
+[62/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/SilkyFlickable_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/SilkyFlickable_qml.cpp.aotstats
+[63/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/CalendarSyncList_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/CalendarSyncList_qml.cpp.aotstats
+[64/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassSwitch_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassSwitch_qml.cpp.aotstats
+[65/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/TagChip_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/TagChip_qml.cpp.aotstats
+[66/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassComboBox_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassComboBox_qml.cpp.aotstats
+[67/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapSlide_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapSlide_qml.cpp.aotstats
+[68/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassTextField_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassTextField_qml.cpp.aotstats
+[69/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/KbdChip_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/KbdChip_qml.cpp.aotstats
+[70/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassSlider_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassSlider_qml.cpp.aotstats
+[71/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/NotifierTray_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/NotifierTray_qml.cpp.aotstats
+[72/198] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapOverlay_qml.cpp.aotstats
+[73/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileStatusBar_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileStatusBar_qml.cpp.aotstats
+[74/198] Generating .rcc/qmlcache/time-arc_qml/mobile/MobileTheme_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/MobileTheme_qml.cpp.aotstats
+[75/198] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileHomePage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileHomePage_qml.cpp.aotstats
+[76/198] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileStatsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileStatsPage_qml.cpp.aotstats
+[77/198] Generating .rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp.aotstats
+[78/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileSectionTitle_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileSectionTitle_qml.cpp.aotstats
+[79/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileSettingRow_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileSettingRow_qml.cpp.aotstats
+[80/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileSwitch_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileSwitch_qml.cpp.aotstats
+[81/198] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileHistoryPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileHistoryPage_qml.cpp.aotstats
+[82/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileTabButton_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileTabButton_qml.cpp.aotstats
+[83/198] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp.aotstats
+[84/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileFlipCard_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileFlipCard_qml.cpp.aotstats
+[85/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileGlassPanel_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileGlassPanel_qml.cpp.aotstats
+[86/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp.aotstats
+[87/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileLaunchOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileLaunchOverlay_qml.cpp.aotstats
+[88/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp.aotstats
+[89/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthProfiles_js.cpp
+[90/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileUsageRankRow_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileUsageRankRow_qml.cpp.aotstats
+[91/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp.aotstats
+[92/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileSeasonScene_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileSeasonScene_qml.cpp.aotstats
+[93/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp.aotstats
+[94/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.aotstats
+[95/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileRoundedFrame_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileRoundedFrame_qml.cpp.aotstats
+[96/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.aotstats
+[97/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyOverviewPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyOverviewPage_qml.cpp.aotstats
+[98/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCoverPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCoverPage_qml.cpp.aotstats
+[99/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyHighlightPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyHighlightPage_qml.cpp.aotstats
+[100/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCompanionPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCompanionPage_qml.cpp.aotstats
+[101/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyRankingPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyRankingPage_qml.cpp.aotstats
+[102/198] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp.aotstats
+[103/198] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_qmake_time_arc.cpp.obj
+[104/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp.obj
+[105/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMonthlyRecapPage_qml.cpp.obj
+[106/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftButton_qml.cpp.obj
+[107/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/PomodoroLayer_qml.cpp.obj
+[108/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftPill_qml.cpp.obj
+[109/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/SoftCard_qml.cpp.obj
+[110/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/DesktopDailyCardView_qml.cpp.obj
+[111/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/main_qml.cpp.obj
+[112/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qmlcache_loader.cpp.obj
+[113/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/MacMenuBar_qml.cpp.obj
+[114/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopTimerPage_qml.cpp.obj
+[115/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/WindowChrome_qml.cpp.obj
+[116/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp.obj
+[117/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/Hotkeys_js.cpp.obj
+[118/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/I18n_js.cpp.obj
+[119/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/AppVisual_js.cpp.obj
+[120/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/PlatformCursor_js.cpp.obj
+[121/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/TagPalette_js.cpp.obj
+[122/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp.obj
+[123/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDotTexture_qml.cpp.obj
+[124/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoryLakeStyle_qml.cpp.obj
+[125/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoInkCanvas_qml.cpp.obj
+[126/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolGlyph_qml.cpp.obj
+[127/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GenerativeCover_qml.cpp.obj
+[128/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.obj
+[129/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/components/AchievementToast_qml.cpp.obj
+[130/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolbar_qml.cpp.obj
+[131/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/PixelTomato_qml.cpp.obj
+[132/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.obj
+[133/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TextLayer_qml.cpp.obj
+[134/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlowCircle_qml.cpp.obj
+[135/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GridTexture_qml.cpp.obj
+[136/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroCompleteOverlay_qml.cpp.obj
+[137/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.obj
+[138/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/AmbientBackground_qml.cpp.obj
+[139/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassPanel_qml.cpp.obj
+[140/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoPageFolder_qml.cpp.obj
+[141/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoOverlay_qml.cpp.obj
+[142/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroWidget_qml.cpp.obj
+[143/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/StickyNote_qml.cpp.obj
+[144/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/UsageRankList_qml.cpp.obj
+[145/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/RoundedFrame_qml.cpp.obj
+[146/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDatePicker_qml.cpp.obj
+[147/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/FrostCard_qml.cpp.obj
+[148/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoryCard_qml.cpp.obj
+[149/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TimeRiver_qml.cpp.obj
+[150/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/DetailPanel_qml.cpp.obj
+[151/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TagChip_qml.cpp.obj
+[152/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/SilkyFlickable_qml.cpp.obj
+[153/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/KbdChip_qml.cpp.obj
+[154/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassSlider_qml.cpp.obj
+[155/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassTextField_qml.cpp.obj
+[156/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/CalendarSyncList_qml.cpp.obj
+[157/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassSwitch_qml.cpp.obj
+[158/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopCalenderPage_qml.cpp.obj
+[159/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/CardCarousel_qml.cpp.obj
+[160/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TodayConclusionCard_qml.cpp.obj
+[161/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlassComboBox_qml.cpp.obj
+[162/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/NotifierTray_qml.cpp.obj
+[163/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/DailyUsageShare_qml.cpp.obj
+[164/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapSlide_qml.cpp.obj
+[165/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapOverlay_qml.cpp.obj
+[166/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileHomePage_qml.cpp.obj
+[167/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/MobileAppShell_qml.cpp.obj
+[168/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileStatusBar_qml.cpp.obj
+[169/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/MobileTheme_qml.cpp.obj
+[170/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSwitch_qml.cpp.obj
+[171/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSectionTitle_qml.cpp.obj
+[172/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileGlassPanel_qml.cpp.obj
+[173/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileStatsPage_qml.cpp.obj
+[174/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileAppIcon_qml.cpp.obj
+[175/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileTabButton_qml.cpp.obj
+[176/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSettingRow_qml.cpp.obj
+[177/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSymbolIcon_qml.cpp.obj
+[178/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileLaunchOverlay_qml.cpp.obj
+[179/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileUsageRankRow_qml.cpp.obj
+[180/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileHistoryPage_qml.cpp.obj
+[181/198] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.obj
+[182/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileFlipCard_qml.cpp.obj
+[183/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/pages/MobileSettingsPage_qml.cpp.obj
+[184/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthProfiles_js.cpp.obj
+[185/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileShareActionBar_qml.cpp.obj
+[186/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileRoundedFrame_qml.cpp.obj
+[187/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCoverPage_qml.cpp.obj
+[188/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyOverviewPage_qml.cpp.obj
+[189/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyHighlightPage_qml.cpp.obj
+[190/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCompanionPage_qml.cpp.obj
+[191/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyRankingPage_qml.cpp.obj
+[192/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileShareOverlay_qml.cpp.obj
+[193/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileSeasonScene_qml.cpp.obj
+[194/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.obj
+[195/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlySharePage_qml.cpp.obj
+[196/198] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.obj
+[197/198] Linking CXX executable TimeArc.exe

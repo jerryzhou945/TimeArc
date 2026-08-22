@@ -1,0 +1,24 @@
+[1/190] Automatic MOC and UIC for target time-arc
+[2/189] Running AUTOMOC file extraction for target time-arc
+[3/4] Building CXX object CMakeFiles/time-arc.dir/src/services/usage_stat_manager.cpp.obj
+FAILED: CMakeFiles/time-arc.dir/src/services/usage_stat_manager.cpp.obj
+D:\TimeArc\QT\Tools\mingw1310_64\bin\g++.exe -DMINGW_HAS_SECURE_API=1 -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DQT_SQL_LIB -DQT_SVG_LIB -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN64 -ID:/TimeArc/time-arc/build/time-arc_autogen/include -ID:/TimeArc/time-arc/src -ID:/TimeArc/time-arc/src/services -ID:/TimeArc/time-arc -ID:/TimeArc/time-arc/thirdparty/sqlite3 -ID:/TimeArc/time-arc/thirdparty/parson -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtQml -isystem D:/TimeArc/QT/6.11.0/mingw_64/include -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtCore -isystem D:/TimeArc/QT/6.11.0/mingw_64/mkspecs/win32-g++ -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtQmlIntegration -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtNetwork -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtQuick -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtGui -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtOpenGL -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtSvg -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtSql -isystem D:/TimeArc/QT/6.11.0/mingw_64/include/QtWidgets -O3 -DNDEBUG -std=gnu++17 -MD -MT CMakeFiles/time-arc.dir/src/services/usage_stat_manager.cpp.obj -MF CMakeFiles\time-arc.dir\src\services\usage_stat_manager.cpp.obj.d -o CMakeFiles/time-arc.dir/src/services/usage_stat_manager.cpp.obj -c D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp
+D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp: In member function 'QVariantList UsageStatManager::aggregateSoftware(const std::function<bool(const UsageRecord&)>&, const QString&) const':
+D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp:861:30: error: redeclaration of 'qint64 UsageStatManager::aggregateSoftware(const std::function<bool(const UsageRecord&)>&, const QString&) const::Aggregate::lastUsedUnixSec'
+  861 |     qint64 lastUsedUnixSec = 0;
+      |                              ^
+D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp:857:12: note: previous declaration 'qint64 UsageStatManager::aggregateSoftware(const std::function<bool(const UsageRecord&)>&, const QString&) const::Aggregate::lastUsedUnixSec'
+  857 |     qint64 lastUsedUnixSec = 0;
+      |            ^~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp: In lambda function:
+D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp:1534:11: error: 'struct UsageStatManager::allApps() const::AppListEntry' has no member named 'lastUsedUnixSec'
+ 1534 |     entry.lastUsedUnixSec = std::max(entry.lastUsedUnixSec, endUnixSec);
+      |           ^~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp:1534:44: error: 'struct UsageStatManager::allApps() const::AppListEntry' has no member named 'lastUsedUnixSec'
+ 1534 |     entry.lastUsedUnixSec = std::max(entry.lastUsedUnixSec, endUnixSec);
+      |                                            ^~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp: In member function 'QVariantList UsageStatManager::allApps() const':
+D:/TimeArc/time-arc/src/services/usage_stat_manager.cpp:1561:37: error: 'struct UsageStatManager::allApps() const::AppListEntry' has no member named 'lastUsedUnixSec'
+ 1561 |     item["lastUsedUnixSec"] = entry.lastUsedUnixSec;
+      |                                     ^~~~~~~~~~~~~~~
+ninja: build stopped: subcommand failed.

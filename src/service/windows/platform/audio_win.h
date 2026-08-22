@@ -16,6 +16,14 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
                                size_t max_apps,
                                size_t* out_count);
 
+// Keep the stable GSMTC media identity whenever it is available. A correlated
+// browser foreground title may enrich the identity with its site marker, then
+// remains cached while unrelated tabs take focus so playback is not split.
+const char* timearc_win_preferred_observed_media_title(
+    const char* path, uint32_t process_id, const char* system_media_title,
+    const char* matching_foreground_title);
+void timearc_win_reset_observed_media_title_cache(void);
+
 void timearc_win_audio_shutdown(void);
 
 #endif  // TIMEARC_AUDIO_WIN_H

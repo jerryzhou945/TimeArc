@@ -43,6 +43,7 @@ def main():
     app_visual_js = read("qml/desktop/components/AppVisual.js")
     settings_cpp = read("src/services/settings_repository.cpp")
     usage_cpp = read("src/services/usage_stat_manager.cpp")
+    all_apps_cpp = usage_cpp.split("QVariantList UsageStatManager::allApps() const", 1)[1]
     icon_provider_cpp = read("src/services/app_icon_image_provider.cpp")
     adapter_registry_h = read("src/services/adapters/desktop_app_adapter_registry.h")
     activity_registry_h = read("src/services/adapters/activity_adapter_registry.h")
@@ -132,6 +133,7 @@ def main():
     require(settings_qml, "accentChanged(accentColor)", "restore defaults reapplies accent")
     reject(settings_qml, "后续阶段开放", "accent no longer deferred")
     require(stats_qml, "accentSeed: root.themeAccentColor", "stats uses injected accent")
+    reject(stats_qml, "Cursor.text()", "undefined platform text cursor helper")
     require(memory_page_qml, "accentSeed: root.themeAccentColor", "home uses injected accent")
     require(calendar_qml, "accentSeed: root.themeAccentColor", "calendar uses injected accent")
 
@@ -139,13 +141,18 @@ def main():
     require(usage_cpp, "app:uu-accelerator", "UU accelerator has its own activity group")
     reject(usage_cpp, 'containsAny(text, {"cloudmusic", "netease"})',
            "generic NetEase app matching")
+    require(usage_cpp, 'item["lastUsedUnixSec"]', "application aggregate recent record time")
+    require(all_apps_cpp, "if (!m_autoClassify)", "all-app library auto-classify gating")
+    require(all_apps_cpp, "!m_gameClassify", "all-app library game-classify gating")
 
-    require(stats_qml, 'title: "高频应用"; sub: "本月使用排行"', "monthly ranking card")
-    require(stats_qml, 'title: "活跃热力"; sub: "本月每日强度', "monthly heatmap card")
-    if stats_qml.find('title: "高频应用"; sub: "本月使用排行"') > stats_qml.find('title: "活跃热力"; sub: "本月每日强度'):
-        raise AssertionError("monthly ranking must render before monthly heatmap")
-    require(stats_qml, "columnSpacing: heat.columnGap", "heatmap stretches columns")
-    reject(stats_qml, "id: heatGridWrap\n                    anchors.centerIn: parent", "heatmap centered grid")
+    require(stats_qml, "component StatsAggregateSummary", "shared aggregate summary")
+    require(stats_qml, "radius: aggregateSummary.radius", "aggregate summary overlay has a concrete radius")
+    require(stats_qml, "component StatsCategoryDistribution", "shared category distribution")
+    require(stats_qml, "// ====== 周/月/年共用聚合视图 ======", "shared period layout")
+    require(stats_qml, 'barCount: root.vmTrendBars.length', "period-specific trend density")
+    require(stats_qml, 'text: root.tr("最近记录")', "application library recent record column")
+    reject(stats_qml, 'title: "月度日历"', "retired standalone monthly calendar")
+    reject(stats_qml, "StatsYearRhythm {", "retired standalone yearly rhythm")
 
     require(app_visual_js, 'identity.indexOf("site:") !== 0', "app ids can resolve icons")
     require(icon_provider_cpp, "iconPixmapCache", "app icon provider cache")

@@ -1,0 +1,9 @@
+[1/9] Copying time-arc qml sources into build dir
+[2/9] Running qmlimportscanner for time-arc
+[3/9] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp
+[4/9] Running rcc for resource time-arc_raw_qml_0
+[5/9] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.aotstats
+[6/9] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.obj
+[7/9] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp.obj
+[8/9] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.obj
+[9/9] Linking CXX executable TimeArc.exe

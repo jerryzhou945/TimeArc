@@ -30,7 +30,12 @@ def main() -> None:
     reject(header, "TIMEARC_AUDIO_SILENCE_GRACE_SEC", "silence grace")
     reject(header, "TIMEARC_AUDIO_FLUSH_INTERVAL_SEC", "periodic split")
     reject(source, "last_seen_sec + 1", "delayed media end")
-    reject(source, "start_sec >= TIMEARC_AUDIO", "periodic checkpoint")
+    require(header, "checkpoint_sec", "bounded persistence checkpoint state")
+    require(
+        source,
+        "persist_audio_session(session, now_sec)",
+        "open-session checkpoint persistence",
+    )
     reject(platform, "find_added_audio_app", "path-only platform deduplication")
     require(
         source,

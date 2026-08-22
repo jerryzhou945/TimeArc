@@ -1,0 +1,18 @@
+[1/194] Copying time-arc qml sources into build dir
+[2/194] Running qmlimportscanner for time-arc
+[3/194] Automatic MOC and UIC for target time-arc
+[4/193] Running AUTOMOC file extraction for target time-arc
+[5/12] Running rcc for resource time-arc_raw_qml_0
+[6/12] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp
+[7/12] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.aotstats
+[8/12] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.obj
+[9/12] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp.obj
+[10/12] Building CXX object CMakeFiles/time-arc.dir/src/services/usage_stat_manager.cpp.obj
+[11/12] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.obj
+[12/12] Linking CXX executable TimeArc.exe
+FAILED: TimeArc.exe
+C:\WINDOWS\system32\cmd.exe /C "cd . && D:\TimeArc\QT\Tools\mingw1310_64\bin\g++.exe -O3 -DNDEBUG -mwindows @CMakeFiles\time-arc.rsp -o TimeArc.exe -Wl,--out-implib,libTimeArc.dll.a -Wl,--major-image-version,0,--minor-image-version,0 && C:\WINDOWS\system32\cmd.exe /C "cd /D D:\TimeArc\time-arc\build && D:\TimeArc\QT\Tools\CMake_64\bin\cmake.exe -E make_directory D:/TimeArc/time-arc/build/assets && D:\TimeArc\QT\Tools\CMake_64\bin\cmake.exe -E remove -f D:/TimeArc/time-arc/build/assets/timearc-gui-assets.rcc && cd /D D:\TimeArc\time-arc\build && D:\TimeArc\QT\Tools\CMake_64\bin\cmake.exe -E copy_if_different D:/TimeArc/time-arc/build/timearc-backgrounds.rcc D:/TimeArc/time-arc/build/assets/timearc-backgrounds.rcc && cd /D D:\TimeArc\time-arc\build && D:\TimeArc\QT\Tools\CMake_64\bin\cmake.exe -E copy_if_different D:/TimeArc/time-arc/build/timearc-site-icons.rcc D:/TimeArc/time-arc/build/assets/timearc-site-icons.rcc && cd /D D:\TimeArc\time-arc\build && D:\TimeArc\QT\Tools\CMake_64\bin\cmake.exe -E copy_if_different D:/TimeArc/time-arc/build/timearc-monthly-recap.rcc D:/TimeArc/time-arc/build/assets/timearc-monthly-recap.rcc""
+D:/TimeArc/QT/Tools/mingw1310_64/bin/../lib/gcc/x86_64-w64-mingw32/13.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot open output file TimeArc.exe: Permission denied
+
+collect2.exe: error: ld returned 1 exit status
+ninja: build stopped: subcommand failed.

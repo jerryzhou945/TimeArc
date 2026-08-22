@@ -225,6 +225,41 @@ if(WIN32)
         NAME timearc_windows_foreground_state_test
         COMMAND timearc_windows_foreground_state_test
     )
+
+    add_executable(timearc_windows_audio_tracker_test
+        tests/windows_audio_tracker_test.c
+        src/service/windows/tracker/audio_tracker.c
+        src/service/windows/platform/app_identity.c
+    )
+    target_include_directories(timearc_windows_audio_tracker_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/service/shared
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/service/windows/tracker
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/service/windows/platform
+    )
+    add_test(
+        NAME timearc_windows_audio_tracker_test
+        COMMAND timearc_windows_audio_tracker_test
+    )
+
+    add_executable(timearc_windows_audio_title_policy_test
+        tests/windows_audio_title_policy_test.c
+        src/service/windows/platform/audio_win.c
+        src/service/windows/platform/active_app_win.c
+        src/service/windows/platform/app_identity.c
+    )
+    target_include_directories(timearc_windows_audio_title_policy_test PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/service/shared
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/service/windows/platform
+    )
+    target_link_libraries(timearc_windows_audio_title_policy_test PRIVATE
+        user32 psapi ole32 uuid
+    )
+    add_test(
+        NAME timearc_windows_audio_title_policy_test
+        COMMAND timearc_windows_audio_title_policy_test
+    )
 endif()
 
 include(GNUInstallDirs)
