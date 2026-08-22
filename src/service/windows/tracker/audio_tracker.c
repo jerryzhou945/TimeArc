@@ -15,22 +15,32 @@ static int same_audio_app(const AppInfo* a, const AppInfo* b) {
   return timearc_app_identity_equal(a, b);
 }
 
-static void close_audio_session(TimeArcAudioSession* session,
-                                int64_t end_sec) {
+static int persist_audio_session(const TimeArcAudioSession* session,
+                                 int64_t end_sec) {
   if (session == NULL || !session->active ||
       session->app.exec_path[0] == '\0' || end_sec <= session->start_sec) {
-    return;
+    return -1;
   }
 
   if (update_apps(session->app.exec_path, "windows", session->app.app_name, "",
-                  session->app.exec_path, end_sec) == 0) {
-    const char* title = session->app.window_title[0] != '\0'
-                            ? session->app.window_title
-                            : "Audio playback";
-    update_media(session->app.exec_path, "audio", title, session->start_sec,
-                 end_sec);
+                  session->app.exec_path, end_sec) != 0) {
+    return -1;
   }
 
+  const char* title = session->app.window_title[0] != '\0'
+                          ? session->app.window_title
+                          : "Audio playback";
+  return update_media(session->app.exec_path, "audio", title,
+                      session->start_sec, end_sec);
+}
+
+static void close_audio_session(TimeArcAudioSession* session,
+                                int64_t end_sec) {
+  if (session == NULL || !session->active) {
+    return;
+  }
+
+  persist_audio_session(session, end_sec);
   memset(session, 0, sizeof(*session));
 }
 
@@ -85,9 +95,11 @@ static void start_or_update_session(TimeArcAudioTrackerState* state,
   session->seen_this_poll = 1;
 }
 
-void timearc_audio_tracker_init(TimeArcAudioTrackerState* state) {
+void timearc_audio_tracker_init(TimeArcAudioTrackerState* state,
+                                int64_t checkpoint_sec) {
   if (state != NULL) {
     memset(state, 0, sizeof(*state));
+    state->checkpoint_sec = checkpoint_sec > 0 ? checkpoint_sec : 0;
   }
 }
 
@@ -120,6 +132,14 @@ void timearc_audio_tracker_poll(TimeArcAudioTrackerState* state,
 
     if (sample_succeeded && !session->seen_this_poll) {
       close_audio_session(session, now_sec);
+      continue;
+    }
+
+    if (sample_succeeded && session->seen_this_poll &&
+        state->checkpoint_sec > 0 &&
+        now_sec - session->start_sec >= state->checkpoint_sec &&
+        persist_audio_session(session, now_sec) == 0) {
+      session->start_sec = now_sec;
     }
   }
 }

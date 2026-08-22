@@ -1,0 +1,9 @@
+[1/10] Building C object CMakeFiles/timearc_windows_audio_tracker_test.dir/src/service/windows/tracker/audio_tracker.c.obj
+[2/10] Building C object src/service/CMakeFiles/time_arc_service.dir/windows/tracker/audio_tracker.c.obj
+[3/10] Automatic MOC and UIC for target timearc_windows_audio_title_policy_test
+[4/9] Linking CXX executable timearc_windows_audio_tracker_test.exe
+[5/9] Building C object CMakeFiles/timearc_windows_audio_title_policy_test.dir/tests/windows_audio_title_policy_test.c.obj
+[6/9] Building C object CMakeFiles/timearc_windows_audio_title_policy_test.dir/src/service/windows/platform/audio_win.c.obj
+[7/9] Building C object src/service/CMakeFiles/time_arc_service.dir/windows/platform/audio_win.c.obj
+[8/9] Linking CXX executable timearc_windows_audio_title_policy_test.exe
+[9/9] Linking C executable time-arc-service.exe

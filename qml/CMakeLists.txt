@@ -9,6 +9,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/pages/DesktopTimerPage.qml
     qml/desktop/pages/DesktopProfilePage.qml
     qml/desktop/pages/DesktopStatsPage.qml
+    qml/desktop/pages/StatsViewModel.js
     qml/desktop/pages/DesktopMonthlyRecapPage.qml
         qml/desktop/components/WindowChrome.qml
         qml/desktop/components/SoftCard.qml

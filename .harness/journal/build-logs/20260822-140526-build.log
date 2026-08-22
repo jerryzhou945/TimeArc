@@ -1,0 +1,138 @@
+[1/4] Automatic MOC and UIC for target timearc_windows_audio_title_policy_test
+[2/3] Building C object CMakeFiles/timearc_windows_audio_title_policy_test.dir/tests/windows_audio_title_policy_test.c.obj
+FAILED: CMakeFiles/timearc_windows_audio_title_policy_test.dir/tests/windows_audio_title_policy_test.c.obj
+D:\TimeArc\QT\Tools\mingw1310_64\bin\gcc.exe  -ID:/TimeArc/time-arc/build/timearc_windows_audio_title_policy_test_autogen/include -ID:/TimeArc/time-arc/src/include -ID:/TimeArc/time-arc/src/service/shared -ID:/TimeArc/time-arc/src/service/windows/platform -O3 -DNDEBUG -std=gnu11 -MD -MT CMakeFiles/timearc_windows_audio_title_policy_test.dir/tests/windows_audio_title_policy_test.c.obj -MF CMakeFiles\timearc_windows_audio_title_policy_test.dir\tests\windows_audio_title_policy_test.c.obj.d -o CMakeFiles/timearc_windows_audio_title_policy_test.dir/tests/windows_audio_title_policy_test.c.obj -c D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c: In function 'test_browser_keeps_initial_site_identity_when_foreground_changes':
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:15:7: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   15 |       101,
+      |       ^~~
+      |       |
+      |       int
+In file included from D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:9:
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:13:26: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   13 |   const char* selected = timearc_win_preferred_observed_media_title(
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:23:7: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   23 |       101,
+      |       ^~~
+      |       |
+      |       int
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:21:14: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   21 |   selected = timearc_win_preferred_observed_media_title(
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c: In function 'test_music_app_keeps_richer_system_media_title':
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:32:35: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   32 |       "C:\\Apps\\cloudmusic.exe", 202, "Song - Artist", "网易云音乐");
+      |                                   ^~~
+      |                                   |
+      |                                   int
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:31:26: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   31 |   const char* selected = timearc_win_preferred_observed_media_title(
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c: In function 'test_browser_without_matching_foreground_uses_system_title':
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:40:7: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   40 |       303, "Background video", NULL);
+      |       ^~~
+      |       |
+      |       int
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:38:26: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   38 |   const char* selected = timearc_win_preferred_observed_media_title(
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c: In function 'test_browser_without_system_title_uses_matching_foreground':
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:47:69: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   47 |       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", 404,
+      |                                                                     ^~~
+      |                                                                     |
+      |                                                                     int
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:46:26: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   46 |   const char* selected = timearc_win_preferred_observed_media_title(
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c: In function 'test_browser_same_title_new_process_does_not_inherit_old_site':
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:56:69: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   56 |       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", 501,
+      |                                                                     ^~~
+      |                                                                     |
+      |                                                                     int
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:55:26: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   55 |   const char* selected = timearc_win_preferred_observed_media_title(
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:62:69: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   62 |       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", 502,
+      |                                                                     ^~~
+      |                                                                     |
+      |                                                                     int
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:61:14: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   61 |   selected = timearc_win_preferred_observed_media_title(
+      |              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c: In function 'test_browser_correlated_new_context_replaces_cached_site':
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:70:69: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   70 |       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", 601,
+      |                                                                     ^~~
+      |                                                                     |
+      |                                                                     int
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:69:3: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   69 |   timearc_win_preferred_observed_media_title(
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:75:69: warning: passing argument 2 of 'timearc_win_preferred_observed_media_title' makes pointer from integer without a cast [-Wint-conversion]
+   75 |       "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", 601,
+      |                                                                     ^~~
+      |                                                                     |
+      |                                                                     int
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:23:35: note: expected 'const char *' but argument is of type 'int'
+   23 |     const char* path, const char* system_media_title,
+      |                       ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/tests/windows_audio_title_policy_test.c:74:26: error: too many arguments to function 'timearc_win_preferred_observed_media_title'
+   74 |   const char* selected = timearc_win_preferred_observed_media_title(
+      |                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:/TimeArc/time-arc/src/service/windows/platform/audio_win.h:22:13: note: declared here
+   22 | const char* timearc_win_preferred_observed_media_title(
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ninja: build stopped: subcommand failed.

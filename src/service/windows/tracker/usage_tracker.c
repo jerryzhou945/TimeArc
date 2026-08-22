@@ -94,7 +94,7 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   TimeArcProcessActivityProbe process_probe;
   timearc_process_activity_init(&process_probe);
   TimeArcAudioTrackerState audio_state;
-  timearc_audio_tracker_init(&audio_state);
+  timearc_audio_tracker_init(&audio_state, TIMEARC_USAGE_CHECKPOINT_SEC);
 
   while (!should_stop()) {
     int64_t now_sec = unix_time_sec();
@@ -135,6 +135,13 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
 
     TimeArcForegroundClosedSession closed;
     if (timearc_foreground_state_step(&foreground_state, &sample, &closed)) {
+      close_session(&closed);
+    }
+    if (foreground_state.mode != TIMEARC_FOREGROUND_CLOSED &&
+        now_sec - foreground_state.start_wall_sec >=
+            TIMEARC_USAGE_CHECKPOINT_SEC &&
+        timearc_foreground_state_checkpoint(
+            &foreground_state, now_sec, sample.monotonic_ms, &closed)) {
       close_session(&closed);
     }
 

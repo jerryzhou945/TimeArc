@@ -4,6 +4,7 @@ import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
 import "../components/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
+import "StatsViewModel.js" as StatsViewModel
 
 // v88「统计」页（暗玻璃全幅复刻）。规范：docs/stats-functional-replication.md /
 // stats-render-pipeline-replication.md / stats-backend-data-gaps.md。
@@ -44,7 +45,7 @@ Item {
     // ============================================================
     // 状态
     // ============================================================
-    property string range: "week"        // 默认周（§2.2 必须）；week 由 G-1 后端支持
+    property string range: "day"         // 默认先看今天；周/月/年保留聚合视图
     property int periodOffset: 0          // 期次偏移（0=本期，负=过去；不超过本期）
     property int refreshTick: 0           // bump 触发派生绑定重算
     // 重算去重：仅当数据代际 / 范围 / 期次三者之一变化才做昂贵聚合（5s Timer 空闲 tick 跳过，
@@ -64,10 +65,21 @@ Item {
     property var vmHeat: []               // 月热力 [{level,day,seconds}]
     property var vmLine: []               // 月周趋势 [{x,y,seconds}]
     property var vmRanking: []
+    property var vmCategories: []
+    property var vmTrendBars: []
+    property string vmAggregateFact: ""
+    property var vmClockSegments: []
+    property var vmLifetimeApps: []
+    property var vmLibraryRows: []
+    property int vmLifetimeTotalSec: 0
     property string vmInsight: ""
     property var vmRecs: []
     property var vmKeywords: []
     property string vmPeriodLabel: ""     // 顶栏期次标签（周/月/年窗口）
+    property string clockHalf: "am"
+    property string libraryQuery: ""
+    property string librarySort: "period"
+    property bool showInactiveApps: true
 
     readonly property bool hasData: vmTotalSec > 0 || (vmApps && vmApps.length > 0)
     readonly property bool sideCollapsed: root.width < 1200   // ≤1200 左栏折叠（C10）
@@ -77,16 +89,48 @@ Item {
     onRangeChanged: { if (periodOffset !== 0) periodOffset = 0; else rebuild() }
     onPeriodOffsetChanged: rebuild()
     onLanguageModeChanged: { _builtGen = -1; rebuild() }
+    onClockHalfChanged: rebuildClockSegments()
+    onLibraryQueryChanged: rebuildLibrary()
+    onLibrarySortChanged: rebuildLibrary()
+    onShowInactiveAppsChanged: rebuildLibrary()
 
     // ============================================================
     // 工具：时间格式 / 范围文案
     // ============================================================
-    function rangeWord(r) { return r === "week" ? tr("周") : r === "month" ? tr("月") : tr("年") }
-    function rangeLabel(r) { return r === "week" ? tr("本周") : r === "month" ? tr("本月") : tr("本年") }
+    function rangeWord(r) { return r === "day" ? tr("日") : r === "week" ? tr("周") : r === "month" ? tr("月") : tr("年") }
+    function rangeLabel(r) { return r === "day" ? tr("今天") : r === "week" ? tr("本周") : r === "month" ? tr("本月") : tr("本年") }
     function isEnglish() { return I18n.langKey(languageMode) === "en" }
     function weekdayShortLabels() { return isEnglish() ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["周一", "周二", "周三", "周四", "周五", "周六", "周日"] }
     function heatWeekLabels() { return isEnglish() ? ["Mon", "", "Wed", "", "Fri", "", ""] : ["一", "", "三", "", "五", "", ""] }
     function monthShortLabels() { return isEnglish() ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"] }
+
+    function aggregateContextText() {
+        if (range === "week") return tr("本周记录")
+        return vmPeriodLabel + tr("记录")
+    }
+
+    function aggregateUnitLabel() {
+        return range === "year" ? tr("活跃月") : tr("记录日")
+    }
+
+    function aggregateTrendSubtitle() {
+        if (range === "month") return tr("每周记录时长")
+        if (range === "year") return tr("每月记录时长")
+        return tr("每日记录时长")
+    }
+
+    function recentRecordText(unixSec) {
+        var value = Number(unixSec || 0)
+        if (value <= 0) return "—"
+        var date = new Date(value * 1000)
+        var now = new Date()
+        var startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+        var startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+        var timeText = Qt.formatTime(date, "HH:mm")
+        if (startDate === startToday) return tr("今天") + " " + timeText
+        if (startDate === startToday - 86400000) return tr("昨天") + " " + timeText
+        return isEnglish() ? Qt.formatDate(date, "MMM d") : ((date.getMonth() + 1) + "月" + date.getDate() + "日")
+    }
 
     function secondsToDisplay(seconds) {
         var total = Math.max(0, Math.floor(seconds ? seconds : 0))
@@ -235,7 +279,12 @@ Item {
     // 与 C++ matchesRange 当前周期 / dailySecondsForRange / *ForWindow 同口径）。
     function periodWindow(r, off) {
         var now = new Date()
-        if (r === "week") {
+        if (r === "day") {
+            var day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off, 0, 0, 0, 0)
+            var nextDay = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 0, 0, 0, 0)
+            return { start: Math.floor(day.getTime() / 1000), end: Math.floor(nextDay.getTime() / 1000) - 1,
+                     label: fmtMD(day), kind: "day" }
+        } else if (r === "week") {
             var dow = (now.getDay() + 6) % 7
             var mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + off * 7, 0, 0, 0, 0)
             var s = Math.floor(mon.getTime() / 1000)
@@ -264,6 +313,15 @@ Item {
         var endSec = Math.min(win.end, nowSec)
         if (endSec < win.start) return 0
         return Math.floor((endSec - win.start) / 86400) + 1
+    }
+
+    function activePeriodUnitCount() {
+        var rows = range === "month" ? vmHeat : vmBars
+        var count = 0
+        for (var i = 0; rows && i < rows.length; i++) {
+            if (!rows[i].empty && Number(rows[i].seconds || 0) > 0) count++
+        }
+        return count
     }
     // 环比字串（升=绿/降=粉）；无上一周期真实数据→空（不显示假箭头 C6/A-7）。
     function changeStr(curSec, prevSec, hasPrev) {
@@ -398,6 +456,9 @@ Item {
         var byKey = {}
         for (var i = 0; i < segs.length; i++) byKey[segs[i].groupKey] = segs[i].sessionCount ? segs[i].sessionCount : 0
         var sorted = apps.slice().sort(function (a, b) { return (b.seconds ? b.seconds : 0) - (a.seconds ? a.seconds : 0) })
+        var totalSeconds = 0
+        for (var totalIndex = 0; totalIndex < sorted.length; totalIndex++)
+            totalSeconds += sorted[totalIndex].seconds ? sorted[totalIndex].seconds : 0
         var out = []
         for (var j = 0; j < sorted.length && j < n; j++) {
             var a = sorted[j]
@@ -418,9 +479,34 @@ Item {
                        category: AppVisual.modelCategory(a),
                        seconds: a.seconds ? a.seconds : 0,
                        time: a.time ? a.time : secondsToDisplay(a.seconds ? a.seconds : 0),
-                       sessions: byKey[key] !== undefined ? byKey[key] : 0 })
+                       sessions: byKey[key] !== undefined ? byKey[key] : 0,
+                       percent: totalSeconds > 0 ? Math.round((a.seconds ? a.seconds : 0) * 100 / totalSeconds) : 0 })
         }
         return out
+    }
+
+    function rebuildClockSegments() {
+        var win = periodWindow("day", range === "day" ? periodOffset : 0)
+        vmClockSegments = StatsViewModel.buildClockSegments(
+                    vmSegments ? vmSegments : [], vmApps ? vmApps : [],
+                    win.start, clockHalf)
+    }
+
+    function rebuildLibrary() {
+        vmLibraryRows = StatsViewModel.buildAppLibrary(
+                    vmApps ? vmApps : [], vmLifetimeApps ? vmLifetimeApps : [],
+                    { query: libraryQuery, sort: librarySort,
+                      showInactive: showInactiveApps })
+    }
+
+    function dayMetrics(total, apps, lifetimeApps, lifetimeTotal) {
+        var longest = lifetimeApps && lifetimeApps.length > 0 ? lifetimeApps[0] : null
+        return [
+            { title: "本期总时长", sub: "今天的有效记录", badge: "日", value: secondsToDisplay(total), change: "", changeDown: false },
+            { title: "全部软件累计", sub: "所有保留记录", badge: "总", value: hoursText(lifetimeTotal), change: "", changeDown: false },
+            { title: "本期活跃软件", sub: "今天 / 全部", badge: "日", value: apps.length + " / " + lifetimeApps.length, change: "", changeDown: false },
+            { title: "累计最长", sub: longest ? AppVisual.modelDisplayName(longest) : "—", badge: "总", value: longest ? StatsViewModel.formatCompactDuration(longest.seconds) : "—", change: "", changeDown: false }
+        ]
     }
 
     // ====== 指标卡模型（每范围 4 张；缺真实环比→change:"" 不显示假箭头 C6）======
@@ -515,12 +601,20 @@ Item {
         vmPeriodLabel = win.label
         var apps = usageStatManager.activeSoftwareForWindow(win.start, win.end)
         var segs = usageStatManager.foregroundSegmentsForWindow(win.start, win.end)
+        var lifetimeApps = usageStatManager.allApps ? usageStatManager.allApps() : []
         if (!apps) apps = []
         if (!segs) segs = []
+        if (!lifetimeApps) lifetimeApps = []
         // 总秒由已取 apps 求和（口径同 activeSoftwareSecondsForWindow，省一次全量重聚合 / 5s）。
         var total = 0
         for (var ti = 0; ti < apps.length; ti++) total += apps[ti].seconds ? apps[ti].seconds : 0
+        var lifetimeTotal = 0
+        for (var li = 0; li < lifetimeApps.length; li++)
+            if (!lifetimeApps[li].hidden) lifetimeTotal += lifetimeApps[li].seconds ? lifetimeApps[li].seconds : 0
         vmApps = apps; vmSegments = segs; vmTotalSec = total
+        vmLifetimeApps = lifetimeApps; vmLifetimeTotalSec = lifetimeTotal
+        rebuildClockSegments()
+        rebuildLibrary()
 
         var share = []
         if (typeof dailyCardService !== "undefined" && dailyCardService) {
@@ -531,7 +625,7 @@ Item {
         vmShareTotalText = hoursText(total)
 
         var cat = categorySums(apps)
-        vmRanking = buildRanking(apps, segs, 4)
+        vmRanking = buildRanking(apps, segs, 5)
 
         // 上一周期环比（WoW/MoM/YoY）+ 专注聚合（焦点类目连续块）。
         var prevWin = periodWindow(r, periodOffset - 1)
@@ -545,7 +639,10 @@ Item {
         var focusSeconds = focus.focusSeconds ? focus.focusSeconds : 0
         var focusDays = focus.focusDays ? focus.focusDays : 0
 
-        if (r === "week") {
+        if (r === "day") {
+            vmBars = []; vmHeat = []; vmLine = []; vmKeywords = []
+            vmMetrics = dayMetrics(total, apps, lifetimeApps, lifetimeTotal)
+        } else if (r === "week") {
             vmBars = computeWindowDailyBars(win)
             vmHeat = []; vmLine = []; vmKeywords = []
             vmMetrics = weekMetrics(total, segs, win, prevSec, hasPrev)
@@ -562,6 +659,10 @@ Item {
             vmKeywords = monthKeywords(apps, segs, prevApps, daily)
             vmMetrics = monthMetrics(total, apps, cat, focusDays, prevSec, hasPrev)
         }
+
+        vmTrendBars = r === "day" ? [] : StatsViewModel.normalizeTrendRows(r, r === "month" ? vmLine : vmBars)
+        vmCategories = r === "day" ? [] : StatsViewModel.buildCategoryDistribution(apps, 6)
+        vmAggregateFact = r === "day" ? "" : StatsViewModel.buildAggregateFact(r, vmCategories, vmTrendBars)
 
         vmInsight = buildInsight(r, share, total, cat)
         vmRecs = buildRecs(r, share, total, cat)
@@ -644,6 +745,7 @@ Item {
     // 范围 Tab 数据
     // ============================================================
     readonly property var rangeModel: [
+        { key: "day", label: "日", glyph: "日", glyphEn: "D", en: "Day" },
         { key: "week", label: "周", glyph: "周", glyphEn: "W", en: "Week" },
         { key: "month", label: "月", glyph: "月", glyphEn: "M", en: "Month" },
         { key: "year", label: "年", glyph: "年", glyphEn: "Y", en: "Year" }
@@ -912,60 +1014,11 @@ Item {
                     width: scroll.width
                     spacing: 14
 
-                    // —— 共享指标行（4 卡）——
-                    GridLayout {
+                    // —— 共享指标条：一条读完，不再重复四张卡片 ——
+                    StatsMetricStrip {
                         width: parent.width
-                        columns: 12
-                        columnSpacing: 14
-                        rowSpacing: 14
-                        Repeater {
-                            model: root.vmMetrics
-                            delegate: FrostCard {
-                                required property var modelData
-                                Layout.fillWidth: true
-                                Layout.columnSpan: root.sideCollapsed ? 3 : 3
-                                Layout.preferredHeight: 118
-                                style: ml
-                                radius: 18
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 14
-                                    spacing: 4
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 8
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 1
-                                            Text { text: root.tr(modelData.title); color: ml.textSecondary; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Text { text: root.tr(modelData.sub); color: ml.textTertiary; font.pixelSize: 11; elide: Text.ElideRight; Layout.fillWidth: true }
-                                        }
-                                        Rectangle {
-                                            visible: modelData.badge !== ""
-                                            radius: 13; color: ml.accentSoft
-                                            border.width: 1; border.color: ml.accentSoftBorder
-                                            implicitWidth: badgeT.implicitWidth + 16; implicitHeight: 24
-                                            Text { id: badgeT; anchors.centerIn: parent; text: root.tr(modelData.badge); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
-                                        }
-                                    }
-                                    Item { Layout.fillHeight: true }
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: modelData.value
-                                        color: ml.textPrimary
-                                        font.pixelSize: 27; font.weight: 900; font.letterSpacing: -0.8
-                                        font.features: { "tnum": 1 }
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        visible: modelData.change !== ""
-                                        text: modelData.change
-                                        color: modelData.changeDown ? ml.changeDown : ml.changeUp
-                                        font.pixelSize: 12; font.weight: Font.DemiBold
-                                    }
-                                }
-                            }
-                        }
+                        height: 88
+                        metrics: root.vmMetrics
                     }
 
                     // —— 空态（诚实占位 C6）——
@@ -984,149 +1037,101 @@ Item {
                         }
                     }
 
-                    // ====== 周视图 ======
+                    // ====== 日视图：应用时钟 + 组成 + 时间流 + Top ======
                     GridLayout {
                         width: parent.width
                         columns: 12
                         columnSpacing: 14
                         rowSpacing: 14
-                        visible: root.range === "week" && root.hasData
+                        visible: root.range === "day" && root.hasData
 
-                        StatsBarChart {
+                        StatsApplicationClock {
                             Layout.columnSpan: root.sideCollapsed ? 12 : 8
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 262
-                            title: "每日使用"; sub: "本周 7 天 active 时长"
-                            bars: root.vmBars; barCount: 7
+                            Layout.preferredHeight: 486
+                            segments: root.vmClockSegments
+                            half: root.clockHalf
+                            totalText: root.secondsToDisplay(root.vmTotalSec)
+                            onHalfRequested: function (value) { root.clockHalf = value }
                         }
                         DailyUsageShare {
                             Layout.columnSpan: root.sideCollapsed ? 12 : 4
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 262
+                            Layout.preferredHeight: 486
                             style: ml
                             languageMode: root.languageMode
                             glassStrength: 0.45
                             showInsight: false
-                            titleKicker: "Category Share"
-                            titleText: root.tr("本周主题占比")
+                            titleKicker: "Today"
+                            titleText: root.tr("今天的组成")
                             share: root.vmShare
                             total: root.vmShareTotalText
                         }
-                        StatsRankingList {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 7
+                        StatsDayTimeline {
+                            Layout.columnSpan: root.sideCollapsed ? 12 : 8
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 300
-                            title: "高频应用"; sub: "本周使用排行"
-                            rows: root.vmRanking
+                            Layout.preferredHeight: 248
+                            groups: root.vmSegments
                         }
-                        StatsInsightCard {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 5
+                        StatsRankingList {
+                            Layout.columnSpan: root.sideCollapsed ? 12 : 4
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 300
-                            insight: root.vmInsight
-                            recs: root.vmRecs
-                            keywords: []
-                            onExportRequested: root.doExport()
+                            Layout.preferredHeight: 248
+                            title: "应用排行"; sub: "只展示今天靠前的应用"
+                            rows: root.vmRanking
                         }
                     }
 
-                    // ====== 月视图 ======
+                    // ====== 周视图（与月/年共用同一桌面聚合拓扑）======
+                    // ====== 周/月/年共用聚合视图 ======
                     GridLayout {
                         width: parent.width
                         columns: 12
                         columnSpacing: 14
                         rowSpacing: 14
-                        visible: root.range === "month" && root.hasData
+                        visible: root.range !== "day" && root.hasData
 
-                        DailyUsageShare {
+                        StatsAggregateSummary {
                             Layout.columnSpan: root.sideCollapsed ? 12 : 4
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 262
-                            style: ml
-                            languageMode: root.languageMode
-                            glassStrength: 0.45
-                            showInsight: false
-                            titleKicker: "Category Share"
-                            titleText: root.tr("本月主题占比")
-                            share: root.vmShare
-                            total: root.vmShareTotalText
-                        }
-                        StatsLineChart {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 8
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 262
-                            title: "周趋势"; sub: "本月各周 active 时长"
-                            points: root.vmLine
-                        }
-                        StatsRankingList {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 5
-                            Layout.fillWidth: true
                             Layout.preferredHeight: 320
-                            title: "高频应用"; sub: "本月使用排行"
-                            rows: root.vmRanking
+                            contextText: root.aggregateContextText()
+                            totalText: root.hoursText(root.vmTotalSec)
+                            unitValue: root.activePeriodUnitCount()
+                            unitLabel: root.aggregateUnitLabel()
+                            factText: root.vmAggregateFact
                         }
-                        StatsHeatmap {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 7
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 320
-                            title: "活跃热力"; sub: "本月每日强度（按当月峰值分级）"
-                            cells: root.vmHeat
-                        }
-                        StatsInsightCard {
-                            Layout.columnSpan: 12
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 260
-                            insight: root.vmInsight
-                            recs: root.vmRecs
-                            keywords: root.vmKeywords
-                            onExportRequested: root.doExport()
-                        }
-                    }
-
-                    // ====== 年视图 ======
-                    GridLayout {
-                        width: parent.width
-                        columns: 12
-                        columnSpacing: 14
-                        rowSpacing: 14
-                        visible: root.range === "year" && root.hasData
-
                         StatsBarChart {
                             Layout.columnSpan: root.sideCollapsed ? 12 : 8
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 262
-                            title: "月度使用"; sub: "本年 12 个月 active 时长"
-                            bars: root.vmBars; barCount: 12
+                            Layout.preferredHeight: 320
+                            title: "时间趋势"
+                            sub: root.aggregateTrendSubtitle()
+                            bars: root.vmTrendBars
+                            barCount: root.vmTrendBars.length
                         }
-                        DailyUsageShare {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 4
+                        StatsCategoryDistribution {
+                            Layout.columnSpan: root.sideCollapsed ? 12 : 6
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 262
-                            style: ml
-                            languageMode: root.languageMode
-                            glassStrength: 0.45
-                            showInsight: false
-                            titleKicker: "Category Share"
-                            titleText: root.tr("本年主题占比")
-                            share: root.vmShare
-                            total: root.vmShareTotalText
+                            Layout.preferredHeight: 300
+                            rows: root.vmCategories
                         }
                         StatsRankingList {
                             Layout.columnSpan: root.sideCollapsed ? 12 : 6
                             Layout.fillWidth: true
                             Layout.preferredHeight: 300
-                            title: "高频应用"; sub: "本年使用排行"
+                            title: "应用排行"
+                            sub: "点击应用查看该周期的记录"
                             rows: root.vmRanking
                         }
-                        StatsInsightCard {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 6
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 300
-                            insight: root.vmInsight
-                            recs: root.vmRecs
-                            keywords: []
-                            onExportRequested: root.doExport()
-                        }
+                    }
+
+                    StatsAppLibrary {
+                        width: parent.width
+                        height: 540
+                        visible: root.vmLifetimeApps && root.vmLifetimeApps.length > 0
+                        rows: root.vmLibraryRows
+                        lifetimeTotalText: root.hoursText(root.vmLifetimeTotalSec)
                     }
 
                     Item { width: 1; height: 6 }
@@ -1210,6 +1215,658 @@ Item {
         }
     }
 
+    component StatsMetricStrip: Item {
+        id: metricStrip
+        property var metrics: []
+
+        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; height: 1; color: ml.cardBorder }
+        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: ml.cardBorder }
+        RowLayout {
+            anchors.fill: parent
+            spacing: 0
+            Repeater {
+                model: metricStrip.metrics
+                delegate: Item {
+                    required property int index
+                    required property var modelData
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    Rectangle {
+                        visible: index > 0
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 1; height: parent.height - 28
+                        color: ml.cardBorder
+                    }
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 18; anchors.rightMargin: 18
+                        spacing: 12
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+                            Text { Layout.fillWidth: true; text: root.tr(modelData.title); color: ml.textTertiary; font.pixelSize: 10; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                            Text { Layout.fillWidth: true; text: root.tr(modelData.sub); color: ml.textTertiary; font.pixelSize: 9; elide: Text.ElideRight }
+                        }
+                        ColumnLayout {
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                            spacing: 4
+                            Text { Layout.alignment: Qt.AlignRight; text: modelData.value; color: ml.textPrimary; font.pixelSize: 21; font.weight: 900; font.letterSpacing: -0.5; font.features: { "tnum": 1 } }
+                            Text { Layout.alignment: Qt.AlignRight; visible: modelData.change !== ""; text: modelData.change; color: modelData.changeDown ? ml.changeDown : ml.changeUp; font.pixelSize: 9; font.weight: Font.DemiBold }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    component StatsApplicationClock: FrostCard {
+        id: dialCard
+        property var segments: []
+        property string half: "am"
+        property string totalText: "0m"
+        property string hoveredId: ""
+        signal halfRequested(string value)
+        readonly property var focusedSegment: {
+            for (var i = 0; i < segments.length; i++)
+                if (segments[i].segmentId === hoveredId) return segments[i]
+            return null
+        }
+        style: ml
+        radius: 18
+        onSegmentsChanged: dialCanvas.requestPaint()
+        onHoveredIdChanged: dialCanvas.requestPaint()
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 18
+            spacing: 8
+
+            RowLayout {
+                Layout.fillWidth: true
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 2
+                    Text { text: root.tr("应用时钟"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
+                    Text { text: root.tr("每个扇区是一段真实的前台应用记录"); color: ml.textTertiary; font.pixelSize: 12 }
+                }
+                Row {
+                    spacing: 4
+                    Repeater {
+                        model: [{ key: "am", label: "AM" }, { key: "pm", label: "PM" }]
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: 44; height: 32; radius: 10
+                            color: dialCard.half === modelData.key ? ml.accentSoft : ml.calGhostBg
+                            border.width: 1
+                            border.color: dialCard.half === modelData.key ? ml.accentSoftBorder : ml.calGhostBorder
+                            Text { anchors.centerIn: parent; text: modelData.label; color: dialCard.half === modelData.key ? ml.aqua : ml.calGlyph; font.pixelSize: 11; font.weight: Font.DemiBold }
+                            MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: dialCard.halfRequested(modelData.key) }
+                        }
+                    }
+                }
+            }
+
+            Item {
+                id: dialWrap
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                Canvas {
+                    id: dialCanvas
+                    anchors.centerIn: parent
+                    width: Math.min(parent.width, parent.height)
+                    height: width
+                    antialiasing: true
+
+                    onWidthChanged: requestPaint()
+                    onHeightChanged: requestPaint()
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.reset()
+                        var cx = width / 2, cy = height / 2
+                        var base = Math.min(width, height) / 2
+                        var trackWidth = base * 0.082
+
+                        // Three quiet concentric tracks preserve simultaneous
+                        // foreground/media observations without visual overlap.
+                        ctx.lineWidth = trackWidth
+                        ctx.strokeStyle = ml.calSunkBg
+                        for (var lane = 0; lane < 3; lane++) {
+                            ctx.beginPath()
+                            ctx.arc(cx, cy, base * (0.50 + lane * 0.12), 0, Math.PI * 2)
+                            ctx.stroke()
+                        }
+
+                        for (var i = 0; i < dialCard.segments.length; i++) {
+                            var segment = dialCard.segments[i]
+                            var active = dialCard.hoveredId === "" || dialCard.hoveredId === segment.segmentId
+                            var emphasized = dialCard.hoveredId === segment.segmentId
+                            var start = (segment.startAngle - 89.2) * Math.PI / 180
+                            var end = (segment.endAngle - 90.8) * Math.PI / 180
+                            if (end <= start) end = start + 0.01
+                            var segmentRadius = base * (0.50 + Number(segment.lane || 0) * 0.12)
+                            ctx.globalAlpha = active ? 1.0 : 0.22
+                            ctx.lineWidth = trackWidth * (emphasized ? 1.38 : 0.92)
+                            ctx.lineCap = "round"
+                            ctx.beginPath()
+                            ctx.arc(cx, cy, segmentRadius, start, end, false)
+                            ctx.strokeStyle = root.categoryHeatBase(AppVisual.modelCategory(segment))
+                            ctx.stroke()
+                        }
+                        ctx.globalAlpha = 1.0
+
+                        // Sixty ticks make the dial read as an actual clock;
+                        // five-minute marks are longer and stronger.
+                        for (var tick = 0; tick < 60; tick++) {
+                            var major = tick % 5 === 0
+                            var angle = (tick * 6 - 90) * Math.PI / 180
+                            var tickInner = base * (major ? 0.89 : 0.925)
+                            ctx.strokeStyle = major ? ml.textTertiary : ml.cardBorder
+                            ctx.lineWidth = major ? 1.6 : 1
+                            ctx.lineCap = "round"
+                            ctx.beginPath()
+                            ctx.moveTo(cx + Math.cos(angle) * tickInner, cy + Math.sin(angle) * tickInner)
+                            ctx.lineTo(cx + Math.cos(angle) * base * 0.97, cy + Math.sin(angle) * base * 0.97)
+                            ctx.stroke()
+                        }
+                    }
+                }
+
+                Repeater {
+                    model: 12
+                    delegate: Text {
+                        id: hourNumber
+                        required property int index
+                        readonly property real hourAngle: ((index + 1) * 30 - 90) * Math.PI / 180
+                        readonly property real hourRadius: dialCanvas.width * 0.418
+                        width: 22; height: 22
+                        x: dialCanvas.x + dialCanvas.width / 2 + Math.cos(hourAngle) * hourRadius - width / 2
+                        y: dialCanvas.y + dialCanvas.height / 2 + Math.sin(hourAngle) * hourRadius - height / 2
+                        z: 3
+                        text: index + 1
+                        color: ml.textTertiary
+                        font.pixelSize: index === 11 || index === 2 || index === 5 || index === 8 ? 11 : 9
+                        font.weight: index === 11 || index === 2 || index === 5 || index === 8 ? Font.DemiBold : Font.Normal
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+                Repeater {
+                    model: dialCard.segments
+                    delegate: Rectangle {
+                        id: dialIcon
+                        required property var modelData
+                        readonly property real midpoint: (modelData.startAngle + modelData.endAngle) / 2 - 90
+                        readonly property real markRadius: dialCanvas.width * (0.25 + Number(modelData.lane || 0) * 0.06)
+                        width: dialCard.hoveredId === modelData.segmentId ? 38 : 30
+                        height: width; radius: 10
+                        x: dialCanvas.x + dialCanvas.width / 2 + Math.cos(midpoint * Math.PI / 180) * markRadius - width / 2
+                        y: dialCanvas.y + dialCanvas.height / 2 + Math.sin(midpoint * Math.PI / 180) * markRadius - height / 2
+                        z: 4
+                        visible: modelData.showIcon || dialCard.hoveredId === modelData.segmentId
+                        color: AppVisual.modelAppColor(modelData)
+                        border.width: 2; border.color: ml.panelBg
+                        opacity: dialCard.hoveredId === "" || dialCard.hoveredId === modelData.segmentId ? 1 : 0.3
+                        Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                        Behavior on opacity { NumberAnimation { duration: 120 } }
+                        Image {
+                            id: dialAppImage
+                            anchors.centerIn: parent
+                            width: parent.width - 10; height: width
+                            source: AppVisual.modelIconSource(modelData)
+                            sourceSize.width: 64; sourceSize.height: 64
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true; smooth: true; mipmap: true
+                            visible: source != "" && status === Image.Ready
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: AppVisual.modelIconSource(modelData) === "" || dialAppImage.status !== Image.Ready
+                            text: AppVisual.modelIconLabel(modelData)
+                            color: root.nightMode ? "#FFFFFF" : "#2D2724"
+                            font.pixelSize: 11; font.weight: 900
+                        }
+                    }
+                }
+
+                Rectangle {
+                    anchors.centerIn: dialCanvas
+                    width: dialCanvas.width * 0.39; height: width; radius: width / 2
+                    z: 5
+                    color: ml.panelBg
+                    border.width: 1; border.color: ml.panelBorder
+                    Column {
+                        anchors.centerIn: parent
+                        width: parent.width - 26
+                        spacing: 5
+                        Text {
+                            width: parent.width
+                            text: dialCard.focusedSegment ? AppVisual.modelDisplayNameForLanguage(dialCard.focusedSegment, root.languageMode) : root.tr("今日已记录")
+                            color: dialCard.focusedSegment ? ml.aqua : ml.textTertiary
+                            font.pixelSize: 11; font.weight: Font.DemiBold
+                            horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
+                        }
+                        Text {
+                            width: parent.width
+                            text: dialCard.focusedSegment ? StatsViewModel.formatCompactDuration(dialCard.focusedSegment.seconds) : dialCard.totalText
+                            color: ml.textPrimary; font.pixelSize: 29; font.weight: 900
+                            horizontalAlignment: Text.AlignHCenter
+                        }
+                        Text {
+                            width: parent.width
+                            text: dialCard.focusedSegment ? root.tr(AppVisual.modelCategory(dialCard.focusedSegment)) : root.sentence("appCount", {count: root.vmApps.length}, root.vmApps.length + " 个应用")
+                            color: ml.textTertiary; font.pixelSize: 10
+                            horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: dialCanvas
+                    z: 8
+                    hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
+                    function updateFocus(x, y) {
+                        var dx = x - width / 2, dy = y - height / 2
+                        var radius = Math.sqrt(dx * dx + dy * dy)
+                        var base = Math.min(width, height) / 2
+                        if (radius < base * 0.43 || radius > base * 0.82) { dialCard.hoveredId = ""; return }
+                        var angle = (Math.atan2(dy, dx) * 180 / Math.PI + 450) % 360
+                        var found = ""
+                        for (var i = dialCard.segments.length - 1; i >= 0; i--) {
+                            var segment = dialCard.segments[i]
+                            var laneRadius = base * (0.50 + Number(segment.lane || 0) * 0.12)
+                            if (Math.abs(radius - laneRadius) <= base * 0.06
+                                    && angle >= segment.startAngle && angle <= segment.endAngle) {
+                                found = segment.segmentId
+                                break
+                            }
+                        }
+                        dialCard.hoveredId = found
+                    }
+                    onPositionChanged: function (mouse) { updateFocus(mouse.x, mouse.y) }
+                    onExited: dialCard.hoveredId = ""
+                }
+            }
+
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                text: root.tr("悬停应用扇区，查看这一段时间")
+                color: ml.textTertiary; font.pixelSize: 11
+            }
+        }
+    }
+
+    component StatsDayTimeline: FrostCard {
+        id: timelineCard
+        property var groups: []
+        style: ml
+        radius: 18
+        onGroupsChanged: timelineCanvas.requestPaint()
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 16
+            spacing: 10
+            RowLayout {
+                Layout.fillWidth: true
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 2
+                    Text { text: root.tr("24 小时时间流"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                    Text { text: root.tr("按实际顺序展开今天的前台记录"); color: ml.textTertiary; font.pixelSize: 12 }
+                }
+                Text { text: root.tr("完整记录"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
+            }
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Canvas {
+                    id: timelineCanvas
+                    anchors.fill: parent
+                    onWidthChanged: requestPaint()
+                    onHeightChanged: requestPaint()
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.reset()
+                        var left = 8, right = width - 8, y = height * 0.52, trackH = 42
+                        ctx.fillStyle = ml.calSunkBg
+                        ctx.roundedRect(left, y - trackH / 2, right - left, trackH, 10, 10)
+                        ctx.fill()
+                        var win = root.periodWindow("day", root.periodOffset)
+                        for (var g = 0; g < timelineCard.groups.length; g++) {
+                            var group = timelineCard.groups[g]
+                            var segments = group.segments || []
+                            ctx.fillStyle = AppVisual.modelAppColor(group)
+                            for (var s = 0; s < segments.length; s++) {
+                                var start = Math.max(win.start, Number(segments[s].startUnixSec))
+                                var end = Math.min(win.end + 1, Number(segments[s].endUnixSec))
+                                if (end <= start) continue
+                                var x = left + (start - win.start) / 86400 * (right - left)
+                                var w = Math.max(2, (end - start) / 86400 * (right - left))
+                                ctx.roundedRect(x, y - trackH / 2 + 5, w, trackH - 10, 6, 6)
+                                ctx.fill()
+                            }
+                        }
+                        ctx.fillStyle = ml.textTertiary
+                        ctx.font = "10px sans-serif"
+                        ctx.textAlign = "center"
+                        for (var hour = 0; hour <= 24; hour += 6) {
+                            var tx = left + hour / 24 * (right - left)
+                            ctx.fillText((hour < 10 ? "0" : "") + hour + ":00", tx, 14)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    component StatsAppLibrary: FrostCard {
+        id: libraryCard
+        property var rows: []
+        property string lifetimeTotalText: "0h"
+        style: ml
+        radius: 18
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 18
+            spacing: 12
+
+            RowLayout {
+                Layout.fillWidth: true
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 2
+                    Text { text: root.tr("所有应用"); color: ml.textPrimary; font.pixelSize: 18; font.weight: Font.DemiBold }
+                    Text { text: root.tr("查看每个软件的本期记录与累计总时长，不受 Top 排行限制"); color: ml.textTertiary; font.pixelSize: 12 }
+                }
+                ColumnLayout {
+                    spacing: 1
+                    Text { Layout.alignment: Qt.AlignRight; text: root.tr("全部应用累计记录"); color: ml.textTertiary; font.pixelSize: 10 }
+                    Text { Layout.alignment: Qt.AlignRight; text: libraryCard.lifetimeTotalText; color: ml.textPrimary; font.pixelSize: 26; font.weight: 900 }
+                    Text { Layout.alignment: Qt.AlignRight; text: libraryCard.rows.length + " " + root.tr("个应用"); color: ml.textTertiary; font.pixelSize: 10 }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+                Rectangle {
+                    Layout.fillWidth: true; Layout.preferredHeight: 40
+                    radius: 11; color: ml.calSunkBg
+                    border.width: 1; border.color: librarySearch.activeFocus ? ml.accentSoftBorder : ml.cardBorder
+                    Text { anchors.left: parent.left; anchors.leftMargin: 13; anchors.verticalCenter: parent.verticalCenter; text: "⌕"; color: ml.textTertiary; font.pixelSize: 14 }
+                    TextInput {
+                        id: librarySearch
+                        anchors.left: parent.left; anchors.leftMargin: 36
+                        anchors.right: parent.right; anchors.rightMargin: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: ml.textPrimary; selectionColor: ml.accentSoft; selectedTextColor: ml.textPrimary
+                        font.pixelSize: 12; clip: true
+                        onTextChanged: root.libraryQuery = text
+                    }
+                    Text { anchors.left: librarySearch.left; anchors.verticalCenter: parent.verticalCenter; visible: librarySearch.text.length === 0 && !librarySearch.activeFocus; text: root.tr("搜索应用或类别"); color: ml.textTertiary; font.pixelSize: 12 }
+                    MouseArea { anchors.fill: parent; cursorShape: Qt.IBeamCursor; onClicked: librarySearch.forceActiveFocus(); z: -1 }
+                }
+                Row {
+                    spacing: 4
+                    Repeater {
+                        model: [{ key: "period", label: "本期时长" }, { key: "lifetime", label: "累计总时长" }, { key: "name", label: "名称" }]
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: sortText.implicitWidth + 20; height: 40; radius: 11
+                            color: root.librarySort === modelData.key ? ml.accentSoft : ml.calGhostBg
+                            border.width: 1; border.color: root.librarySort === modelData.key ? ml.accentSoftBorder : ml.calGhostBorder
+                            Text { id: sortText; anchors.centerIn: parent; text: root.tr(modelData.label); color: root.librarySort === modelData.key ? ml.aqua : ml.calGlyph; font.pixelSize: 11; font.weight: Font.DemiBold }
+                            MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: root.librarySort = modelData.key }
+                        }
+                    }
+                }
+                Row {
+                    spacing: 7; Layout.alignment: Qt.AlignVCenter
+                    Rectangle {
+                        width: 34; height: 20; radius: 10
+                        color: root.showInactiveApps ? ml.aqua : ml.calSunkBg
+                        border.width: 1; border.color: root.showInactiveApps ? ml.accentSoftBorder : ml.cardBorder
+                        Rectangle {
+                            width: 14; height: 14; radius: 7; y: 3
+                            x: root.showInactiveApps ? parent.width - width - 3 : 3
+                            color: root.showInactiveApps ? ml.calBtnInk : ml.textTertiary
+                            Behavior on x { NumberAnimation { duration: 130 } }
+                        }
+                        MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: root.showInactiveApps = !root.showInactiveApps }
+                    }
+                    Text { text: root.tr("显示本期未使用"); color: ml.textSecondary; font.pixelSize: 11 }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true; Layout.preferredHeight: 24
+                Text { Layout.fillWidth: true; text: root.tr("应用"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 170; text: root.tr("本期时长"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 130; text: root.tr("累计总时长"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 140; text: root.tr("最近记录"); color: ml.textTertiary; font.pixelSize: 10 }
+            }
+
+            ListView {
+                id: libraryList
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: 0
+                boundsBehavior: Flickable.StopAtBounds
+                model: libraryCard.rows
+                delegate: Rectangle {
+                    required property var modelData
+                    width: libraryList.width; height: 58
+                    color: "transparent"
+                    border.width: 0
+                    Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: ml.cardBorder }
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 2; anchors.rightMargin: 2
+                        spacing: 11
+                        Rectangle {
+                            Layout.preferredWidth: 38; Layout.preferredHeight: 38; radius: 12
+                            color: AppVisual.modelAppColor(modelData)
+                            Image {
+                                id: libraryAppImage
+                                anchors.centerIn: parent; width: 25; height: 25
+                                source: AppVisual.modelIconSource(modelData)
+                                sourceSize.width: 64; sourceSize.height: 64
+                                fillMode: Image.PreserveAspectFit; asynchronous: true; smooth: true; mipmap: true
+                                visible: source != "" && status === Image.Ready
+                            }
+                            Text { anchors.centerIn: parent; visible: AppVisual.modelIconSource(modelData) === "" || libraryAppImage.status !== Image.Ready; text: AppVisual.modelIconLabel(modelData); color: root.nightMode ? "#FFFFFF" : "#2D2724"; font.pixelSize: 13; font.weight: 900 }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true; spacing: 2
+                            Text { Layout.fillWidth: true; text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                            Text { Layout.fillWidth: true; text: root.tr(AppVisual.modelCategory(modelData) || "其他") + (modelData.periodSeconds > 0 ? " · " + root.tr("本期有记录") : " · " + root.tr("本期未使用")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
+                        }
+                        ColumnLayout {
+                            Layout.preferredWidth: 170; spacing: 4
+                            Text { text: modelData.periodTime; color: modelData.periodSeconds > 0 ? ml.textPrimary : ml.textTertiary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                            Rectangle {
+                                Layout.preferredWidth: 150; Layout.preferredHeight: 3; radius: 2; color: ml.calSunkBg
+                                Rectangle { width: parent.width * Math.min(1, modelData.percent / 100); height: parent.height; radius: parent.radius; color: ml.aqua }
+                            }
+                        }
+                        ColumnLayout {
+                            Layout.preferredWidth: 130; spacing: 2
+                            Text { text: modelData.lifetimeTime; color: ml.textPrimary; font.pixelSize: 14; font.weight: 800 }
+                            Text { text: root.tr("累计总时长"); color: ml.textTertiary; font.pixelSize: 9 }
+                        }
+                        ColumnLayout {
+                            Layout.preferredWidth: 140; spacing: 2
+                            Text { text: root.recentRecordText(modelData.lastUsedUnixSec); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold }
+                            Text { text: modelData.periodSeconds > 0 ? root.tr("本期有记录") : root.tr("历史记录"); color: ml.textTertiary; font.pixelSize: 9 }
+                        }
+                    }
+                }
+                Text { anchors.centerIn: parent; visible: libraryList.count === 0; text: root.tr("没有符合条件的应用"); color: ml.textTertiary; font.pixelSize: 12 }
+            }
+        }
+    }
+
+    component StatsAggregateSummary: FrostCard {
+        id: aggregateSummary
+        property string contextText: ""
+        property string totalText: "0m"
+        property int unitValue: 0
+        property string unitLabel: ""
+        property string factText: ""
+        style: ml
+        radius: 18
+
+        Rectangle {
+            anchors.fill: parent
+            radius: aggregateSummary.radius
+            color: root.nightMode ? Qt.rgba(0.16, 0.50, 0.45, 0.10) : Qt.rgba(0.20, 0.58, 0.50, 0.08)
+        }
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 26
+            spacing: 7
+
+            Text {
+                text: aggregateSummary.contextText
+                color: ml.textTertiary
+                font.pixelSize: 12; font.weight: Font.DemiBold
+            }
+            Text {
+                text: aggregateSummary.totalText
+                color: ml.textPrimary
+                font.pixelSize: 38; font.weight: 900; font.letterSpacing: -1.2
+                font.features: { "tnum": 1 }
+            }
+            Row {
+                spacing: 6
+                Text { text: aggregateSummary.unitValue; color: ml.accentText; font.pixelSize: 13; font.weight: Font.DemiBold }
+                Text { text: aggregateSummary.unitLabel; color: ml.textTertiary; font.pixelSize: 12 }
+            }
+            Item { Layout.fillHeight: true }
+            Text {
+                Layout.fillWidth: true
+                text: aggregateSummary.factText
+                color: ml.textSecondary
+                font.pixelSize: 13
+                lineHeight: 1.55
+                wrapMode: Text.WordWrap
+            }
+        }
+    }
+
+    component StatsCategoryDistribution: FrostCard {
+        id: categoryCard
+        property var rows: []
+        style: ml
+        radius: 18
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 18
+            spacing: 10
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 3
+                Text { text: root.tr("分类分布"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { text: root.tr("只保留这一周期最重要的结构"); color: ml.textTertiary; font.pixelSize: 12 }
+            }
+            Column {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: 0
+                Repeater {
+                    model: categoryCard.rows ? categoryCard.rows.slice(0, 6) : []
+                    delegate: Item {
+                        required property var modelData
+                        width: parent.width
+                        height: 36
+                        Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: ml.cardBorder }
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 10
+                            Rectangle { Layout.preferredWidth: 8; Layout.preferredHeight: 8; radius: 3; color: root.categoryHeatBase(modelData.name) }
+                            ColumnLayout {
+                                Layout.fillWidth: true; spacing: 1
+                                Text { Layout.fillWidth: true; text: I18n.category(root.languageMode, modelData.name); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                                Text { Layout.fillWidth: true; text: modelData.appsText; color: ml.textTertiary; font.pixelSize: 9; elide: Text.ElideRight }
+                            }
+                            ColumnLayout {
+                                Layout.preferredWidth: 96; spacing: 1
+                                Text { Layout.alignment: Qt.AlignRight; text: modelData.time; color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold }
+                                Text { Layout.alignment: Qt.AlignRight; text: modelData.percent + "%"; color: ml.textTertiary; font.pixelSize: 9 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    component StatsYearRhythm: FrostCard {
+        id: yearRhythm
+        property var bars: []
+        style: ml
+        radius: 18
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 18
+            spacing: 16
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 3
+                Text { text: root.tr("12 个月的节奏"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { text: root.tr("每格是一个月，长度表示该月有效记录时长"); color: ml.textTertiary; font.pixelSize: 12 }
+            }
+            GridLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                columns: 6
+                columnSpacing: 16
+                rowSpacing: 14
+                Repeater {
+                    model: 12
+                    delegate: Item {
+                        id: monthCell
+                        required property int index
+                        readonly property var bar: yearRhythm.bars && index < yearRhythm.bars.length ? yearRhythm.bars[index] : null
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.minimumHeight: 68
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            spacing: 6
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Text { Layout.fillWidth: true; text: monthCell.bar ? monthCell.bar.label : root.monthShortLabels()[monthCell.index]; color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                Text { text: monthCell.bar ? monthCell.bar.valueText : "0m"; color: ml.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold; font.features: { "tnum": 1 } }
+                            }
+                            Item { Layout.fillHeight: true }
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 5
+                                radius: 3
+                                color: ml.calSunkBg
+                                Rectangle {
+                                    width: parent.width * (monthCell.bar ? Number(monthCell.bar.ratio || 0) : 0)
+                                    height: parent.height
+                                    radius: parent.radius
+                                    color: ml.aqua
+                                    Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
+                                }
+                            }
+                            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: ml.cardBorder }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // 柱状图卡（周 7 / 年 12）。柱高用 Behavior 平滑跟随数据（避免每 5s 重建重播入场）。
     component StatsBarChart: FrostCard {
         id: chart
@@ -1223,11 +1880,18 @@ Item {
             anchors.fill: parent
             anchors.margins: 16
             spacing: 10
-            ColumnLayout {
+            RowLayout {
                 Layout.fillWidth: true
-                spacing: 2
-                Text { text: root.tr(chart.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { visible: chart.sub !== ""; text: root.tr(chart.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 2
+                    Text { text: root.tr(chart.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                    Text { visible: chart.sub !== ""; text: root.tr(chart.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
+                }
+                Row {
+                    spacing: 7; Layout.alignment: Qt.AlignTop
+                    Rectangle { width: 8; height: 8; radius: 2; color: ml.aqua }
+                    Text { text: root.tr("记录时长"); color: ml.textTertiary; font.pixelSize: 10 }
+                }
             }
             Item {
                 Layout.fillWidth: true
@@ -1244,29 +1908,27 @@ Item {
                             readonly property var bar: (chart.bars && barItem.index < chart.bars.length) ? chart.bars[barItem.index] : null
                             width: (barsRow.width - 8 * (chart.barCount - 1)) / chart.barCount
                             height: barsRow.height
-                            readonly property real avail: height - 22
+                            readonly property real avail: height - 34
 
                             Rectangle {
                                 id: barRect
                                 anchors.bottom: parent.bottom
                                 anchors.bottomMargin: 20
-                                width: parent.width
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                width: Math.min(42, Math.max(8, parent.width * 0.62))
                                 radius: 6
                                 height: Math.max(2, barItem.avail * (barItem.bar ? (barItem.bar.ratio ? barItem.bar.ratio : 0) : 0))
-                                gradient: Gradient {
-                                    GradientStop { position: 0; color: Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.88) }
-                                    GradientStop { position: 1; color: Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0.58) }
-                                }
-                                Behavior on height { NumberAnimation { duration: 560; easing.type: Easing.Bezier; easing.bezierCurve: ml.easeSnappy } }
+                                color: Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, barMa.containsMouse ? 0.96 : 0.72)
+                                Behavior on height { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
                             }
                             Text {
                                 anchors.bottom: barRect.top
                                 anchors.bottomMargin: 3
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                visible: barMa.containsMouse && barItem.bar
+                                visible: barItem.bar !== null
                                 text: barItem.bar ? barItem.bar.valueText : ""
-                                color: ml.accentText
-                                font.pixelSize: 11; font.weight: Font.DemiBold
+                                color: ml.textSecondary
+                                font.pixelSize: chart.barCount > 7 ? 9 : 10; font.weight: Font.DemiBold
                             }
                             Text {
                                 anchors.bottom: parent.bottom
@@ -1509,22 +2171,30 @@ Item {
                     anchors.top: parent.top
                     anchors.left: parent.left
                     anchors.right: parent.right
-                    spacing: 8
+                    spacing: 0
                     Repeater {
-                        model: rl.rows ? rl.rows.slice(0, 4) : []
+                        model: rl.rows ? rl.rows.slice(0, 5) : []
                         delegate: Rectangle {
                             required property var modelData
                             required property int index
                             width: rlBody.width
-                            height: 50
-                            radius: 14
-                            color: ml.calSunkBg
-                            border.width: 1; border.color: ml.cardBorder
+                            height: 48
+                            radius: 0
+                            color: "transparent"
+                            border.width: 0
+                            Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: ml.cardBorder }
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.leftMargin: 10
                                 anchors.rightMargin: 12
                                 spacing: 10
+                                Text {
+                                    Layout.preferredWidth: 20
+                                    text: String(index + 1).padStart(2, "0")
+                                    color: ml.textTertiary
+                                    font.pixelSize: 10
+                                    font.features: { "tnum": 1 }
+                                }
                                 Rectangle {
                                     Layout.preferredWidth: 34; Layout.preferredHeight: 34
                                     radius: 11
@@ -1565,11 +2235,21 @@ Item {
                                         elide: Text.ElideRight
                                     }
                                 }
-                                Text {
-                                    text: modelData.time
-                                    color: ml.accentText
-                                    font.pixelSize: 13; font.weight: Font.DemiBold
-                                    font.features: { "tnum": 1 }
+                                ColumnLayout {
+                                    Layout.preferredWidth: 96; spacing: 1
+                                    Text {
+                                        Layout.alignment: Qt.AlignRight
+                                        text: modelData.time
+                                        color: ml.textPrimary
+                                        font.pixelSize: 13; font.weight: Font.DemiBold
+                                        font.features: { "tnum": 1 }
+                                    }
+                                    Text {
+                                        Layout.alignment: Qt.AlignRight
+                                        text: modelData.percent + "%"
+                                        color: ml.textTertiary
+                                        font.pixelSize: 9
+                                    }
                                 }
                             }
                         }

@@ -99,6 +99,24 @@ int timearc_foreground_state_step(
   return 0;
 }
 
+int timearc_foreground_state_checkpoint(
+    TimeArcForegroundState* state, int64_t wall_sec, uint64_t monotonic_ms,
+    TimeArcForegroundClosedSession* out_closed) {
+  if (state == NULL || state->mode == TIMEARC_FOREGROUND_CLOSED) {
+    return 0;
+  }
+
+  advance(state, wall_sec, monotonic_ms);
+  if (state->last_wall_sec <= state->start_wall_sec) {
+    return 0;
+  }
+
+  export_closed(state, out_closed);
+  state->start_wall_sec = state->last_wall_sec;
+  state->active_ms = 0;
+  return 1;
+}
+
 int timearc_foreground_state_shutdown(
     TimeArcForegroundState* state, int64_t wall_sec, uint64_t monotonic_ms,
     TimeArcForegroundClosedSession* out_closed) {

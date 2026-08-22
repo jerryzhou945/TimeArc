@@ -57,13 +57,17 @@ with day and night modes.
   optional photos, link to-dos to projects to merge into the timeline. Calendar
   to-dos are stored in the SQLite settings table.
 - **Statistics (统计)** — a full-bleed dark-glass analytics page (v88) with
-  **week / month / year** views and period **prev / next** navigation, driven by
-  real read-only usage-journal data. Metric cards (total / daily-average / longest
-  streak / switch count) with period-over-period change (WoW / MoM / YoY), a
-  reduced-glass **category-share donut**, a 7-day / 12-month **bar chart**, a month
-  **activity heatmap** + week-trend line, a **top-apps ranking** (real icons +
-  open counts), **focus** time (开发/办公/笔记 derived blocks), and local
-  deterministic **insights / recommendations** (no AI over raw logs). Honest
+  **day / week / month / year** views and period **prev / next** navigation,
+  driven by real read-only usage-journal data. A flat overview strip replaces
+  repeated metric cards. Day view uses a three-lane, 60-tick **application
+  clock**: every measured segment remains a time arc, while non-overlapping app
+  icons and hover focus keep busy days legible. Week, month, and year share one
+  desktop aggregate layout: period total and factual summary, time-trend bars,
+  category distribution, and a compact Top-5 application ranking. A
+  searchable/sortable **all-app library** always exposes every application's
+  period duration, lifetime duration, and most recent record beyond the Top
+  ranking. Aggregate copy is deterministically derived from recorded categories
+  and trend peaks (no AI over raw logs). Honest
   placeholders where history is thin; **report export** to a JSON file. Read-only —
   never writes usage/SQLite.
 - **Settings (设置)** — a full-bleed dark-glass settings page (v88) with five tabs
