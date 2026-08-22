@@ -7,6 +7,7 @@ omitted here to preserve the harness line budget.
 
 | Date (UTC) | Lvl | Topic | Report |
 |---|---|---|---|
+| 2026-08-22T06:15:09Z | L3 | gh-pr-network-s... | GitHub PR creation was blocked by sandbox socket permissi... | [report](errors/20260822-061509-C-gh-pr-network-sandbox.md) |
 | 2026-08-22T06:12:41Z | L3 | generated-log-d... | Generated Windows build logs contained doubled carriage r... | [report](errors/20260822-061241-C-generated-log-double-cr.md) |
 | 2026-08-22T06:11:57Z | L3 | index-after-for... | Harness check found INDEX.md one line above budget after ... | [report](errors/20260822-061157-C-index-after-format-report.md) |
 | 2026-08-22T06:11:27Z | L3 | whitespace-file... | First journal whitespace-normalization command constructe... | [report](errors/20260822-061127-C-whitespace-file-list-shape.md) |
