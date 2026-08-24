@@ -28,6 +28,7 @@ def main():
     android_activity = read("android/src/main/java/com/timearc/mobile/ui/TimeArcActivity.java")
     main_qml = read("qml/main.qml")
     shell_qml = read("qml/desktop/DesktopAppShell.qml")
+    mac_menu_qml = read("qml/desktop/MacMenuBar.qml")
     mobile_shell_qml = read("qml/mobile/MobileAppShell.qml")
     tray_qml = read("qml/desktop/memorylake/NotifierTray.qml")
     toolbar_qml = read("qml/desktop/memorylake/MemoToolbar.qml")
@@ -122,6 +123,20 @@ def main():
 
     require(shell_qml, "pageGuideModel", "page visual guidance model")
     require(shell_qml, "guideRail", "page guide rail")
+    require(shell_qml, "property bool memoryRecapEnabled: false",
+            "desktop release memory recap gate defaults off")
+    require(shell_qml,
+            'it.page !== "recap" || root.memoryRecapEnabled',
+            "desktop recap navigation is filtered by the release gate")
+    require(shell_qml,
+            'if (key === "recap" && !memoryRecapEnabled)',
+            "direct desktop recap navigation is rejected")
+    require(shell_qml,
+            'memoryRecapEnabled ? Qt.resolvedUrl("pages/DesktopMonthlyRecapPage.qml")',
+            "disabled recap route falls back without deleting its page")
+    require(mac_menu_qml,
+            "visible: bar.hasShell && bar.hostShell.memoryRecapEnabled",
+            "macOS recap menu entry follows the desktop release gate")
     require(shell_qml, "readonly property bool prefersLightChrome: nightMode", "day chrome uses dark glyphs")
     reject(shell_qml, "nightMode || fullBleedPage", "day full-bleed light chrome")
 

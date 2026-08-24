@@ -60,17 +60,66 @@ interface IAudioMeterInformation {
 #endif  // __IAudioMeterInformation_INTERFACE_DEFINED__
 
 #define TIMEARC_AUDIO_PEAK_THRESHOLD 0.005f
-#define TIMEARC_GSMTC_CACHE_SEC 10
+#define TIMEARC_GSMTC_TITLE_CACHE_SEC 10
+// Browser playback state is activity evidence, so never carry it into a later
+// sampling second. Calls within the same second can still share the result.
+#define TIMEARC_GSMTC_PLAYBACK_CACHE_SEC 0
 #define TIMEARC_BROWSER_MEDIA_CACHE_SEC 30
 #define TIMEARC_BROWSER_MEDIA_CACHE_SIZE 4
 
-static const char* kGsmtcQueryCommand =
+static const char* kGsmtcTitleOnlyQueryCommand =
     "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass "
     "-EncodedCommand "
     "WwBDAG8AbgBzAG8AbABlAF0AOgA6AE8AdQB0AHAAdQB0AEUAbgBjAG8AZABpAG4AZwA9AFsAUwB5AHMAdABlAG0ALgBUAGUAeAB0AC4AVQBUAEYAOABFAG4AYwBvAGQAaQBuAGcAXQA6ADoAbgBlAHcAKAAkAGYAYQBsAHMAZQApAAoAJABuAHUAbABsACAAPQAgAFsAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALgBHAGwAbwBiAGEAbABTAHkAcwB0AGUAbQBNAGUAZABpAGEAVAByAGEAbgBzAHAAbwByAHQAQwBvAG4AdAByAG8AbABzAFMAZQBzAHMAaQBvAG4ATQBhAG4AYQBnAGUAcgAsACAAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALAAgAEMAbwBuAHQAZQBuAHQAVAB5AHAAZQA9AFcAaQBuAGQAbwB3AHMAUgB1AG4AdABpAG0AZQBdAAoAJABuAHUAbABsACAAPQAgAFsAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALgBHAGwAbwBiAGEAbABTAHkAcwB0AGUAbQBNAGUAZABpAGEAVAByAGEAbgBzAHAAbwByAHQAQwBvAG4AdAByAG8AbABzAFMAZQBzAHMAaQBvAG4ATQBlAGQAaQBhAFAAcgBvAHAAZQByAHQAaQBlAHMALAAgAFcAaQBuAGQAbwB3AHMALgBNAGUAZABpAGEALgBDAG8AbgB0AHIAbwBsACwAIABDAG8AbgB0AGUAbgB0AFQAeQBwAGUAPQBXAGkAbgBkAG8AdwBzAFIAdQBuAHQAaQBtAGUAXQAKAEEAZABkAC0AVAB5AHAAZQAgAC0AQQBzAHMAZQBtAGIAbAB5AE4AYQBtAGUAIABTAHkAcwB0AGUAbQAuAFIAdQBuAHQAaQBtAGUALgBXAGkAbgBkAG8AdwBzAFIAdQBuAHQAaQBtAGUACgBmAHUAbgBjAHQAaQBvAG4AIABBAHcAYQBpAHQAKAAkAG8AcAAsACAAWwBUAHkAcABlAF0AJAByAGUAcwB1AGwAdABUAHkAcABlACkAIAB7AAoAIAAgACQAbQBlAHQAaABvAGQAcwAgAD0AIABbAFMAeQBzAHQAZQBtAC4AVwBpAG4AZABvAHcAcwBSAHUAbgB0AGkAbQBlAFMAeQBzAHQAZQBtAEUAeAB0AGUAbgBzAGkAbwBuAHMAXQAuAEcAZQB0AE0AZQB0AGgAbwBkAHMAKAApACAAfAAgAFcAaABlAHIAZQAtAE8AYgBqAGUAYwB0ACAAewAgACQAXwAuAE4AYQBtAGUAIAAtAGUAcQAgACcAQQBzAFQAYQBzAGsAJwAgAC0AYQBuAGQAIAAkAF8ALgBJAHMARwBlAG4AZQByAGkAYwBNAGUAdABoAG8AZABEAGUAZgBpAG4AaQB0AGkAbwBuACAALQBhAG4AZAAgACQAXwAuAEcAZQB0AFAAYQByAGEAbQBlAHQAZQByAHMAKAApAC4AQwBvAHUAbgB0ACAALQBlAHEAIAAxACAAfQAKACAAIAAkAG0AZQB0AGgAbwBkACAAPQAgACQAbQBlAHQAaABvAGQAcwBbADAAXQAuAE0AYQBrAGUARwBlAG4AZQByAGkAYwBNAGUAdABoAG8AZAAoACQAcgBlAHMAdQBsAHQAVAB5AHAAZQApAAoAIAAgACQAdABhAHMAawAgAD0AIAAkAG0AZQB0AGgAbwBkAC4ASQBuAHYAbwBrAGUAKAAkAG4AdQBsAGwALAAgAEAAKAAkAG8AcAApACkACgAgACAAJAB0AGEAcwBrAC4AVwBhAGkAdAAoADEAMgAwADAAKQAgAHwAIABPAHUAdAAtAE4AdQBsAGwACgAgACAAaQBmACAAKAAtAG4AbwB0ACAAJAB0AGEAcwBrAC4ASQBzAEMAbwBtAHAAbABlAHQAZQBkACkAIAB7ACAAcgBlAHQAdQByAG4AIAAkAG4AdQBsAGwAIAB9AAoAIAAgACQAdABhAHMAawAuAFIAZQBzAHUAbAB0AAoAfQAKACQAbQBhAG4AYQBnAGUAcgAgAD0AIABBAHcAYQBpAHQAIAAoAFsAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALgBHAGwAbwBiAGEAbABTAHkAcwB0AGUAbQBNAGUAZABpAGEAVAByAGEAbgBzAHAAbwByAHQAQwBvAG4AdAByAG8AbABzAFMAZQBzAHMAaQBvAG4ATQBhAG4AYQBnAGUAcgBdADoAOgBSAGUAcQB1AGUAcwB0AEEAcwB5AG4AYwAoACkAKQAgACgAWwBXAGkAbgBkAG8AdwBzAC4ATQBlAGQAaQBhAC4AQwBvAG4AdAByAG8AbAAuAEcAbABvAGIAYQBsAFMAeQBzAHQAZQBtAE0AZQBkAGkAYQBUAHIAYQBuAHMAcABvAHIAdABDAG8AbgB0AHIAbwBsAHMAUwBlAHMAcwBpAG8AbgBNAGEAbgBhAGcAZQByAF0AKQAKAGkAZgAgACgAJABuAHUAbABsACAALQBlAHEAIAAkAG0AYQBuAGEAZwBlAHIAKQAgAHsAIABlAHgAaQB0ACAAMAAgAH0ACgBmAG8AcgBlAGEAYwBoACAAKAAkAHMAZQBzAHMAaQBvAG4AIABpAG4AIAAkAG0AYQBuAGEAZwBlAHIALgBHAGUAdABTAGUAcwBzAGkAbwBuAHMAKAApACkAIAB7AAoAIAAgACQAcAByAG8AcABzACAAPQAgAEEAdwBhAGkAdAAgACgAJABzAGUAcwBzAGkAbwBuAC4AVAByAHkARwBlAHQATQBlAGQAaQBhAFAAcgBvAHAAZQByAHQAaQBlAHMAQQBzAHkAbgBjACgAKQApACAAKABbAFcAaQBuAGQAbwB3AHMALgBNAGUAZABpAGEALgBDAG8AbgB0AHIAbwBsAC4ARwBsAG8AYgBhAGwAUwB5AHMAdABlAG0ATQBlAGQAaQBhAFQAcgBhAG4AcwBwAG8AcgB0AEMAbwBuAHQAcgBvAGwAcwBTAGUAcwBzAGkAbwBuAE0AZQBkAGkAYQBQAHIAbwBwAGUAcgB0AGkAZQBzAF0AKQAKACAAIABpAGYAIAAoACQAbgB1AGwAbAAgAC0AZQBxACAAJABwAHIAbwBwAHMAKQAgAHsAIABjAG8AbgB0AGkAbgB1AGUAIAB9AAoAIAAgACQAcwBvAHUAcgBjAGUAIAA9ACAAJABzAGUAcwBzAGkAbwBuAC4AUwBvAHUAcgBjAGUAQQBwAHAAVQBzAGUAcgBNAG8AZABlAGwASQBkAAoAIAAgACQAdABpAHQAbABlACAAPQAgACQAcAByAG8AcABzAC4AVABpAHQAbABlAAoAIAAgACQAYQByAHQAaQBzAHQAIAA9ACAAJABwAHIAbwBwAHMALgBBAHIAdABpAHMAdAAKACAAIABpAGYAIAAoAC0AbgBvAHQAIABbAHMAdAByAGkAbgBnAF0AOgA6AEkAcwBOAHUAbABsAE8AcgBXAGgAaQB0AGUAUwBwAGEAYwBlACgAJAB0AGkAdABsAGUAKQApACAAewAKACAAIAAgACAAIgAkAHMAbwB1AHIAYwBlAGAAdAAkAHQAaQB0AGwAZQBgAHQAJABhAHIAdABpAHMAdAAiAAoAIAAgAH0ACgB9AAoA";
 
+static const char* kGsmtcQueryCommand =
+    "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass "
+    "-EncodedCommand "
+    "WwBDAG8AbgBzAG8AbABlAF0AOgA6AE8AdQB0AHAAdQB0AEUAbgBjAG8AZABpAG4AZwA9AFsAUwB5AHMAdABlAG0ALgBUAGUA"
+    "eAB0AC4AVQBUAEYAOABFAG4AYwBvAGQAaQBuAGcAXQA6ADoAbgBlAHcAKAAkAGYAYQBsAHMAZQApAAoAJABuAHUAbABsAD0A"
+    "WwBXAGkAbgBkAG8AdwBzAC4ATQBlAGQAaQBhAC4AQwBvAG4AdAByAG8AbAAuAEcAbABvAGIAYQBsAFMAeQBzAHQAZQBtAE0A"
+    "ZQBkAGkAYQBUAHIAYQBuAHMAcABvAHIAdABDAG8AbgB0AHIAbwBsAHMAUwBlAHMAcwBpAG8AbgBNAGEAbgBhAGcAZQByACwA"
+    "VwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALABDAG8AbgB0AGUAbgB0AFQAeQBwAGUAPQBXAGkA"
+    "bgBkAG8AdwBzAFIAdQBuAHQAaQBtAGUAXQAKACQAbgB1AGwAbAA9AFsAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMA"
+    "bwBuAHQAcgBvAGwALgBHAGwAbwBiAGEAbABTAHkAcwB0AGUAbQBNAGUAZABpAGEAVAByAGEAbgBzAHAAbwByAHQAQwBvAG4A"
+    "dAByAG8AbABzAFMAZQBzAHMAaQBvAG4ATQBlAGQAaQBhAFAAcgBvAHAAZQByAHQAaQBlAHMALABXAGkAbgBkAG8AdwBzAC4A"
+    "TQBlAGQAaQBhAC4AQwBvAG4AdAByAG8AbAAsAEMAbwBuAHQAZQBuAHQAVAB5AHAAZQA9AFcAaQBuAGQAbwB3AHMAUgB1AG4A"
+    "dABpAG0AZQBdAAoAQQBkAGQALQBUAHkAcABlACAALQBBAHMAcwBlAG0AYgBsAHkATgBhAG0AZQAgAFMAeQBzAHQAZQBtAC4A"
+    "UgB1AG4AdABpAG0AZQAuAFcAaQBuAGQAbwB3AHMAUgB1AG4AdABpAG0AZQAKAGYAdQBuAGMAdABpAG8AbgAgAEEAdwBhAGkA"
+    "dAAoACQAbwBwACwAWwBUAHkAcABlAF0AJAByAGUAcwB1AGwAdABUAHkAcABlACkAewAkAG0AZQB0AGgAbwBkAHMAPQBbAFMA"
+    "eQBzAHQAZQBtAC4AVwBpAG4AZABvAHcAcwBSAHUAbgB0AGkAbQBlAFMAeQBzAHQAZQBtAEUAeAB0AGUAbgBzAGkAbwBuAHMA"
+    "XQAuAEcAZQB0AE0AZQB0AGgAbwBkAHMAKAApAHwAVwBoAGUAcgBlAC0ATwBiAGoAZQBjAHQAewAkAF8ALgBOAGEAbQBlACAA"
+    "LQBlAHEAIAAnAEEAcwBUAGEAcwBrACcAIAAtAGEAbgBkACAAJABfAC4ASQBzAEcAZQBuAGUAcgBpAGMATQBlAHQAaABvAGQA"
+    "RABlAGYAaQBuAGkAdABpAG8AbgAgAC0AYQBuAGQAIAAkAF8ALgBHAGUAdABQAGEAcgBhAG0AZQB0AGUAcgBzACgAKQAuAEMA"
+    "bwB1AG4AdAAgAC0AZQBxACAAMQB9ADsAJABtAGUAdABoAG8AZAA9ACQAbQBlAHQAaABvAGQAcwBbADAAXQAuAE0AYQBrAGUA"
+    "RwBlAG4AZQByAGkAYwBNAGUAdABoAG8AZAAoACQAcgBlAHMAdQBsAHQAVAB5AHAAZQApADsAJAB0AGEAcwBrAD0AJABtAGUA"
+    "dABoAG8AZAAuAEkAbgB2AG8AawBlACgAJABuAHUAbABsACwAQAAoACQAbwBwACkAKQA7ACQAdABhAHMAawAuAFcAYQBpAHQA"
+    "KAAxADIAMAAwACkAfABPAHUAdAAtAE4AdQBsAGwAOwBpAGYAKAAtAG4AbwB0ACAAJAB0AGEAcwBrAC4ASQBzAEMAbwBtAHAA"
+    "bABlAHQAZQBkACkAewByAGUAdAB1AHIAbgAgACQAbgB1AGwAbAB9ADsAJAB0AGEAcwBrAC4AUgBlAHMAdQBsAHQAfQAKACQA"
+    "bQBhAG4AYQBnAGUAcgA9AEEAdwBhAGkAdAAgACgAWwBXAGkAbgBkAG8AdwBzAC4ATQBlAGQAaQBhAC4AQwBvAG4AdAByAG8A"
+    "bAAuAEcAbABvAGIAYQBsAFMAeQBzAHQAZQBtAE0AZQBkAGkAYQBUAHIAYQBuAHMAcABvAHIAdABDAG8AbgB0AHIAbwBsAHMA"
+    "UwBlAHMAcwBpAG8AbgBNAGEAbgBhAGcAZQByAF0AOgA6AFIAZQBxAHUAZQBzAHQAQQBzAHkAbgBjACgAKQApACAAKABbAFcA"
+    "aQBuAGQAbwB3AHMALgBNAGUAZABpAGEALgBDAG8AbgB0AHIAbwBsAC4ARwBsAG8AYgBhAGwAUwB5AHMAdABlAG0ATQBlAGQA"
+    "aQBhAFQAcgBhAG4AcwBwAG8AcgB0AEMAbwBuAHQAcgBvAGwAcwBTAGUAcwBzAGkAbwBuAE0AYQBuAGEAZwBlAHIAXQApAAoA"
+    "aQBmACgAJABuAHUAbABsACAALQBlAHEAIAAkAG0AYQBuAGEAZwBlAHIAKQB7AGUAeABpAHQAIAAwAH0ACgBmAG8AcgBlAGEA"
+    "YwBoACgAJABzAGUAcwBzAGkAbwBuACAAaQBuACAAJABtAGEAbgBhAGcAZQByAC4ARwBlAHQAUwBlAHMAcwBpAG8AbgBzACgA"
+    "KQApAHsAJABwAHIAbwBwAHMAPQBBAHcAYQBpAHQAIAAoACQAcwBlAHMAcwBpAG8AbgAuAFQAcgB5AEcAZQB0AE0AZQBkAGkA"
+    "YQBQAHIAbwBwAGUAcgB0AGkAZQBzAEEAcwB5AG4AYwAoACkAKQAgACgAWwBXAGkAbgBkAG8AdwBzAC4ATQBlAGQAaQBhAC4A"
+    "QwBvAG4AdAByAG8AbAAuAEcAbABvAGIAYQBsAFMAeQBzAHQAZQBtAE0AZQBkAGkAYQBUAHIAYQBuAHMAcABvAHIAdABDAG8A"
+    "bgB0AHIAbwBsAHMAUwBlAHMAcwBpAG8AbgBNAGUAZABpAGEAUAByAG8AcABlAHIAdABpAGUAcwBdACkAOwBpAGYAKAAkAG4A"
+    "dQBsAGwAIAAtAGUAcQAgACQAcAByAG8AcABzACkAewBjAG8AbgB0AGkAbgB1AGUAfQA7ACQAcwBvAHUAcgBjAGUAPQAkAHMA"
+    "ZQBzAHMAaQBvAG4ALgBTAG8AdQByAGMAZQBBAHAAcABVAHMAZQByAE0AbwBkAGUAbABJAGQAOwAkAHQAaQB0AGwAZQA9ACQA"
+    "cAByAG8AcABzAC4AVABpAHQAbABlADsAJABhAHIAdABpAHMAdAA9ACQAcAByAG8AcABzAC4AQQByAHQAaQBzAHQAOwAkAHMA"
+    "dABhAHQAdQBzAD0AJwAnADsAdAByAHkAewAkAHMAdABhAHQAdQBzAD0AJABzAGUAcwBzAGkAbwBuAC4ARwBlAHQAUABsAGEA"
+    "eQBiAGEAYwBrAEkAbgBmAG8AKAApAC4AUABsAGEAeQBiAGEAYwBrAFMAdABhAHQAdQBzAC4AVABvAFMAdAByAGkAbgBnACgA"
+    "KQB9AGMAYQB0AGMAaAB7AH0AOwBpAGYAKAAtAG4AbwB0ACAAWwBzAHQAcgBpAG4AZwBdADoAOgBJAHMATgB1AGwAbABPAHIA"
+    "VwBoAGkAdABlAFMAcABhAGMAZQAoACQAdABpAHQAbABlACkAKQB7ACIAJABzAG8AdQByAGMAZQBgAHQAJAB0AGkAdABsAGUA"
+    "YAB0ACQAYQByAHQAaQBzAHQAYAB0ACQAcwB0AGEAdAB1AHMAIgB9AH0A";
+
 static char g_gsmtc_cache_app[TA_MAX_NAME_BYTES];
 static char g_gsmtc_cache_title[TA_MAX_TITLE_BYTES];
+static TimeArcWinPlaybackState g_gsmtc_cache_playback_state =
+    TIMEARC_WIN_PLAYBACK_UNKNOWN;
 static time_t g_gsmtc_cache_time = 0;
 
 typedef struct BrowserMediaTitleCache {
@@ -259,6 +308,35 @@ static int ascii_equal_case_insensitive(const char* a, const char* b) {
   return *a == '\0' && *b == '\0';
 }
 
+TimeArcWinPlaybackState timearc_win_parse_playback_status(
+    const char* playback_status) {
+  if (playback_status == NULL || playback_status[0] == '\0') {
+    return TIMEARC_WIN_PLAYBACK_UNKNOWN;
+  }
+  if (ascii_equal_case_insensitive(playback_status, "Playing")) {
+    return TIMEARC_WIN_PLAYBACK_PLAYING;
+  }
+  if (ascii_equal_case_insensitive(playback_status, "Paused") ||
+      ascii_equal_case_insensitive(playback_status, "Stopped") ||
+      ascii_equal_case_insensitive(playback_status, "Closed")) {
+    return TIMEARC_WIN_PLAYBACK_NOT_PLAYING;
+  }
+  return TIMEARC_WIN_PLAYBACK_UNKNOWN;
+}
+
+TimeArcWinPlaybackState timearc_win_merge_playback_state(
+    TimeArcWinPlaybackState current, TimeArcWinPlaybackState candidate) {
+  if (current == TIMEARC_WIN_PLAYBACK_PLAYING ||
+      candidate == TIMEARC_WIN_PLAYBACK_PLAYING) {
+    return TIMEARC_WIN_PLAYBACK_PLAYING;
+  }
+  if (current == TIMEARC_WIN_PLAYBACK_NOT_PLAYING ||
+      candidate == TIMEARC_WIN_PLAYBACK_NOT_PLAYING) {
+    return TIMEARC_WIN_PLAYBACK_NOT_PLAYING;
+  }
+  return TIMEARC_WIN_PLAYBACK_UNKNOWN;
+}
+
 static void copy_app_stem(char* dst, size_t dst_size, const char* app_name) {
   if (dst == NULL || dst_size == 0) {
     return;
@@ -303,6 +381,22 @@ static void trim_line_end(char* value) {
   }
 }
 
+static char* next_tsv_field(char** cursor) {
+  if (cursor == NULL || *cursor == NULL) {
+    return NULL;
+  }
+
+  char* field = *cursor;
+  char* separator = strchr(field, '\t');
+  if (separator == NULL) {
+    *cursor = NULL;
+  } else {
+    *separator = '\0';
+    *cursor = separator + 1;
+  }
+  return field;
+}
+
 static void format_gsmtc_title(const char* title,
                                const char* artist,
                                char* out_title,
@@ -326,52 +420,98 @@ static void format_gsmtc_title(const char* title,
   copy_string(out_title, out_title_size, title);
 }
 
-static int query_gsmtc_media_title(const char* app_name,
-                                   char* out_title,
-                                   size_t out_title_size) {
-  if (app_name == NULL || app_name[0] == '\0' || out_title == NULL ||
-      out_title_size == 0) {
-    return -1;
-  }
-
-  out_title[0] = '\0';
-  time_t now = time(NULL);
-  if (g_gsmtc_cache_title[0] != '\0' &&
-      now - g_gsmtc_cache_time <= TIMEARC_GSMTC_CACHE_SEC &&
-      gsmtc_source_matches_app(g_gsmtc_cache_app, app_name)) {
-    copy_string(out_title, out_title_size, g_gsmtc_cache_title);
-    return 0;
-  }
-
-  FILE* pipe = _popen(kGsmtcQueryCommand, "r");
+static int query_gsmtc_command(const char* command,
+                               int includes_playback_status,
+                               const char* app_name,
+                               char* out_title,
+                               size_t out_title_size,
+                               TimeArcWinPlaybackState* out_playback_state) {
+  FILE* pipe = _popen(command, "r");
   if (pipe == NULL) {
     return -1;
   }
 
   char line[1024];
+  char selected_source[TA_MAX_NAME_BYTES] = {0};
   int matched = 0;
   while (fgets(line, sizeof(line), pipe) != NULL) {
     trim_line_end(line);
-    char* source = strtok(line, "\t");
-    char* title = strtok(NULL, "\t");
-    char* artist = strtok(NULL, "\t");
+    char* cursor = line;
+    char* source = next_tsv_field(&cursor);
+    char* title = next_tsv_field(&cursor);
+    char* artist = next_tsv_field(&cursor);
+    char* status = includes_playback_status ? next_tsv_field(&cursor) : NULL;
     if (source == NULL || title == NULL ||
         !gsmtc_source_matches_app(source, app_name)) {
       continue;
     }
 
-    format_gsmtc_title(title, artist, out_title, out_title_size);
-    if (out_title[0] != '\0') {
-      copy_string(g_gsmtc_cache_app, sizeof(g_gsmtc_cache_app), source);
-      copy_string(g_gsmtc_cache_title, sizeof(g_gsmtc_cache_title), out_title);
-      g_gsmtc_cache_time = now;
+    char candidate_title[TA_MAX_TITLE_BYTES];
+    format_gsmtc_title(title, artist, candidate_title, sizeof(candidate_title));
+    if (candidate_title[0] != '\0') {
+      const TimeArcWinPlaybackState candidate_state =
+          timearc_win_parse_playback_status(status);
+      const TimeArcWinPlaybackState merged_state =
+          timearc_win_merge_playback_state(*out_playback_state,
+                                           candidate_state);
+      if (!matched || merged_state != *out_playback_state) {
+        copy_string(selected_source, sizeof(selected_source), source);
+        copy_string(out_title, out_title_size, candidate_title);
+        *out_playback_state = merged_state;
+      }
       matched = 1;
-      break;
+      if (!includes_playback_status ||
+          *out_playback_state == TIMEARC_WIN_PLAYBACK_PLAYING) {
+        break;
+      }
     }
+  }
+
+  if (matched) {
+    copy_string(g_gsmtc_cache_app, sizeof(g_gsmtc_cache_app), selected_source);
+    copy_string(g_gsmtc_cache_title, sizeof(g_gsmtc_cache_title), out_title);
+    g_gsmtc_cache_playback_state = *out_playback_state;
+    g_gsmtc_cache_time = time(NULL);
   }
 
   _pclose(pipe);
   return matched ? 0 : -1;
+}
+
+static int query_gsmtc_media_info(const char* app_name,
+                                  char* out_title,
+                                  size_t out_title_size,
+                                  int require_fresh_playback,
+                                  TimeArcWinPlaybackState* out_playback_state) {
+  if (app_name == NULL || app_name[0] == '\0' || out_title == NULL ||
+      out_title_size == 0 || out_playback_state == NULL) {
+    return -1;
+  }
+
+  out_title[0] = '\0';
+  *out_playback_state = TIMEARC_WIN_PLAYBACK_UNKNOWN;
+  time_t now = time(NULL);
+  const int cache_seconds = require_fresh_playback
+                                ? TIMEARC_GSMTC_PLAYBACK_CACHE_SEC
+                                : TIMEARC_GSMTC_TITLE_CACHE_SEC;
+  if (g_gsmtc_cache_title[0] != '\0' &&
+      now - g_gsmtc_cache_time <= cache_seconds &&
+      gsmtc_source_matches_app(g_gsmtc_cache_app, app_name)) {
+    copy_string(out_title, out_title_size, g_gsmtc_cache_title);
+    *out_playback_state = g_gsmtc_cache_playback_state;
+    return 0;
+  }
+
+  if (query_gsmtc_command(kGsmtcQueryCommand, 1, app_name, out_title,
+                          out_title_size, out_playback_state) == 0) {
+    return 0;
+  }
+
+  // Older Windows builds may expose metadata but not playback status. Keep the
+  // previous title-only query as a compatibility fallback; activity then uses
+  // the WASAPI peak path because the status remains UNKNOWN.
+  return query_gsmtc_command(kGsmtcTitleOnlyQueryCommand, 0, app_name,
+                             out_title, out_title_size, out_playback_state);
 }
 
 static int should_ignore_audio_process(const char* path) {
@@ -379,27 +519,21 @@ static int should_ignore_audio_process(const char* path) {
   return contains_ascii_case_insensitive(path, "\\wallpaper_engine\\");
 }
 
-static int session_has_audio_peak(IAudioSessionControl* control) {
-  // Require a nonzero peak because an active session may be paused or silent.
-  IAudioMeterInformation* meter = NULL;
-  if (FAILED(IAudioSessionControl_QueryInterface(
-          control, &IID_IAudioMeterInformation, (void**)&meter)) ||
-      meter == NULL) {
-    return 0;
-  }
+typedef struct TimeArcWinAudioEvidence {
+  int active;
+  int muted;
+  float volume;
+  float peak;
+} TimeArcWinAudioEvidence;
 
-  float peak = 0.0f;
-  HRESULT hr = IAudioMeterInformation_GetPeakValue(meter, &peak);
-  IAudioMeterInformation_Release(meter);
+static void sample_audio_evidence(IAudioSessionControl* control,
+                                  TimeArcWinAudioEvidence* evidence) {
+  memset(evidence, 0, sizeof(*evidence));
+  evidence->volume = 1.0f;
 
-  return SUCCEEDED(hr) && peak > TIMEARC_AUDIO_PEAK_THRESHOLD;
-}
-
-static int session_is_audible(IAudioSessionControl* control) {
   AudioSessionState state = AudioSessionStateInactive;
-  if (FAILED(IAudioSessionControl_GetState(control, &state)) ||
-      state != AudioSessionStateActive) {
-    return 0;
+  if (SUCCEEDED(IAudioSessionControl_GetState(control, &state))) {
+    evidence->active = state == AudioSessionStateActive;
   }
 
   ISimpleAudioVolume* volume = NULL;
@@ -408,19 +542,24 @@ static int session_is_audible(IAudioSessionControl* control) {
       volume != NULL) {
     BOOL muted = FALSE;
     float level = 1.0f;
-    if (SUCCEEDED(ISimpleAudioVolume_GetMute(volume, &muted)) && muted) {
-      ISimpleAudioVolume_Release(volume);
-      return 0;
+    if (SUCCEEDED(ISimpleAudioVolume_GetMute(volume, &muted))) {
+      evidence->muted = muted ? 1 : 0;
     }
-    if (SUCCEEDED(ISimpleAudioVolume_GetMasterVolume(volume, &level)) &&
-        level <= 0.001f) {
-      ISimpleAudioVolume_Release(volume);
-      return 0;
+    if (SUCCEEDED(ISimpleAudioVolume_GetMasterVolume(volume, &level))) {
+      evidence->volume = level;
     }
     ISimpleAudioVolume_Release(volume);
   }
 
-  return session_has_audio_peak(control);
+  IAudioMeterInformation* meter = NULL;
+  if (FAILED(IAudioSessionControl_QueryInterface(
+          control, &IID_IAudioMeterInformation, (void**)&meter)) ||
+      meter == NULL) {
+    return;
+  }
+
+  IAudioMeterInformation_GetPeakValue(meter, &evidence->peak);
+  IAudioMeterInformation_Release(meter);
 }
 
 static int useful_media_title(const char* title, const char* app_name) {
@@ -449,6 +588,24 @@ static int is_browser_path(const char* path) {
          contains_ascii_case_insensitive(path, "brave.exe") ||
          contains_ascii_case_insensitive(path, "vivaldi.exe") ||
          contains_ascii_case_insensitive(path, "opera.exe");
+}
+
+static int is_discord_path(const char* path) {
+  return contains_ascii_case_insensitive(path, "discord.exe");
+}
+
+int timearc_win_should_record_audio_session(
+    const char* path, int session_active, int muted, float volume, float peak,
+    TimeArcWinPlaybackState playback_state) {
+  if (is_browser_path(path) &&
+      playback_state != TIMEARC_WIN_PLAYBACK_UNKNOWN) {
+    return playback_state == TIMEARC_WIN_PLAYBACK_PLAYING;
+  }
+  if (is_discord_path(path)) {
+    return session_active && !muted && volume > 0.001f;
+  }
+  return session_active && !muted && volume > 0.001f &&
+         peak > TIMEARC_AUDIO_PEAK_THRESHOLD;
 }
 
 static int foreground_title_matches_system_media(const char* foreground_title,
@@ -641,10 +798,14 @@ static const char* choose_media_title(IAudioSessionControl* control,
                                       DWORD pid,
                                       const char* path,
                                       const char* app_name,
+                                      int query_system_media,
                                       char* scratch_title,
-                                      size_t scratch_title_size) {
-  const int has_system_title =
-      query_gsmtc_media_title(app_name, scratch_title, scratch_title_size) == 0;
+                                      size_t scratch_title_size,
+                                      TimeArcWinPlaybackState*
+                                          out_playback_state) {
+  const int has_system_title = query_system_media &&
+      query_gsmtc_media_info(app_name, scratch_title, scratch_title_size,
+                             is_browser_path(path), out_playback_state) == 0;
   const char* foreground_title =
       matching_foreground_title(foreground, pid, path);
   const char* preferred = timearc_win_preferred_observed_media_title(
@@ -751,11 +912,6 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
         continue;
       }
 
-      if (!session_is_audible(control)) {
-        IAudioSessionControl_Release(control);
-        continue;
-      }
-
       if (FAILED(IAudioSessionControl_QueryInterface(
               control, &IID_IAudioSessionControl2, (void**)&control2)) ||
           control2 == NULL) {
@@ -778,11 +934,34 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
       char path[TA_MAX_PATH_BYTES];
       if (query_process_path(pid, path, sizeof(path)) == 0 &&
           !should_ignore_audio_process(path)) {
+        TimeArcWinAudioEvidence evidence;
+        sample_audio_evidence(control, &evidence);
         const char* app_name = basename_from_path(path);
         char media_title[TA_MAX_TITLE_BYTES];
-        const char* title =
-            choose_media_title(control, foreground_ptr, pid, path, app_name,
-                               media_title, sizeof(media_title));
+        TimeArcWinPlaybackState playback_state =
+            TIMEARC_WIN_PLAYBACK_UNKNOWN;
+        const int browser = is_browser_path(path);
+        const int discord = is_discord_path(path);
+        const char* title = NULL;
+        if (browser) {
+          title = choose_media_title(
+              control, foreground_ptr, pid, path, app_name, 1, media_title,
+              sizeof(media_title), &playback_state);
+        }
+        if (!timearc_win_should_record_audio_session(
+                path, evidence.active, evidence.muted, evidence.volume,
+                evidence.peak, playback_state)) {
+          IAudioSessionControl2_Release(control2);
+          IAudioSessionControl_Release(control);
+          continue;
+        }
+        if (!browser) {
+          // Ordinary apps must pass the cheap WASAPI activity policy before
+          // spawning the GSMTC query. Discord needs no media metadata at all.
+          title = choose_media_title(
+              control, foreground_ptr, pid, path, app_name, !discord,
+              media_title, sizeof(media_title), &playback_state);
+        }
         AppInfo candidate;
         fill_audio_app(&candidate, pid, path, title);
         if (find_equal_audio_observation(out_apps, added, &candidate) == NULL) {

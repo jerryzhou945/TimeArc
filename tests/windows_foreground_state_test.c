@@ -295,6 +295,40 @@ static void test_codex_collects_every_backend_in_the_packaged_family(void) {
   assert(roots[2] == 0);
 }
 
+static void test_current_codex_worker_topology_is_aggregated(void) {
+  const TimeArcProcessEntry entries[] = {
+      {10, 1, 10, 100, 1, L"ChatGPT.exe"},
+      {11, 10, 20, 200, 1, L"ChatGPT.exe"},
+      {20, 10, 100, 1000, 1, L"codex.exe"},
+      {21, 20, 200, 2000, 1, L"codex-code-mode-host.exe"},
+      {22, 21, 300, 3000, 1,
+       L"codex-command-runner-0.149.0-alpha.4.1.exe"},
+      {23, 22, 400, 4000, 1, L"pwsh.exe"},
+      {90, 1, 900, 9000, 1, L"unrelated.exe"},
+  };
+  uint32_t roots[2] = {0, 0};
+  const char* packaged_path =
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.818.5229.0_x64__"
+      "2p2nqsd0c76g0\\app\\ChatGPT.exe";
+
+  const size_t root_count = timearc_process_activity_find_codex_roots(
+      entries, 7, 11, packaged_path, roots, 2);
+  assert(root_count == 1);
+  assert(roots[0] == 20);
+
+  TimeArcProcessCounters total;
+  assert(timearc_process_activity_aggregate_roots(
+      entries, 7, roots, root_count, &total));
+  assert(total.cpu_100ns == 1000);
+  assert(total.io_bytes == 10000);
+
+  TimeArcProcessActivityProbe probe;
+  timearc_process_activity_init(&probe);
+  assert(!timearc_process_activity_delta(&probe, roots[0], &total));
+  total.cpu_100ns += TIMEARC_PROCESS_CPU_ACTIVE_100NS;
+  assert(timearc_process_activity_delta(&probe, roots[0], &total));
+}
+
 int main(void) {
   test_idle_tick_wrap();
   test_normalized_identity_includes_pid_and_title();
@@ -311,6 +345,7 @@ int main(void) {
   test_process_tree_aggregates_foreground_and_related_worker_once();
   test_codex_root_requires_same_packaged_process_family();
   test_codex_collects_every_backend_in_the_packaged_family();
+  test_current_codex_worker_topology_is_aggregated();
   puts("Windows foreground state tests passed");
   return 0;
 }

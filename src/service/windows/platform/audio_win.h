@@ -10,6 +10,24 @@
 // Convert audible WASAPI process sessions into AppInfo samples for the tracker.
 #define TIMEARC_AUDIO_MAX_APPS 64
 
+#define TIMEARC_AUDIO_SESSION_POLICY_DECLARED 1
+typedef enum TimeArcWinPlaybackState {
+  TIMEARC_WIN_PLAYBACK_UNKNOWN = 0,
+  TIMEARC_WIN_PLAYBACK_PLAYING = 1,
+  TIMEARC_WIN_PLAYBACK_NOT_PLAYING = 2,
+} TimeArcWinPlaybackState;
+
+// Decide whether one Windows render session represents effective use.
+// Browser playback state is authoritative when known; Discord voice uses its
+// active/unmuted session even at zero peak; other apps retain audible output.
+int timearc_win_should_record_audio_session(
+    const char* path, int session_active, int muted, float volume, float peak,
+    TimeArcWinPlaybackState playback_state);
+TimeArcWinPlaybackState timearc_win_parse_playback_status(
+    const char* playback_status);
+TimeArcWinPlaybackState timearc_win_merge_playback_state(
+    TimeArcWinPlaybackState current, TimeArcWinPlaybackState candidate);
+
 // Enumerates per-process render sessions that Windows currently reports as
 // active audio sessions. Results are deduplicated by executable path.
 int timearc_win_get_audio_apps(AppInfo* out_apps,

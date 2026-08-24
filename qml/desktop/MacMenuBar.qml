@@ -287,7 +287,8 @@ Platform.MenuBar {
             text: bar.tr("记忆湖")
             shortcut: "Ctrl+4"
             checkable: true
-            enabled: bar.canNavigate
+            visible: bar.hasShell && bar.hostShell.memoryRecapEnabled
+            enabled: bar.canNavigate && visible
             onTriggered: bar.hostShell.menuNavigateTo("recap")
         }
         Platform.MenuSeparator {}

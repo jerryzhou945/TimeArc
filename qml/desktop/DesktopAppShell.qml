@@ -24,6 +24,8 @@ Item {
     readonly property bool prefersLightChrome: nightMode
     signal trayShowRequested
     signal trayQuitRequested
+    // 发布版暂时隐藏月度「记忆湖」回顾。页面、数据与手机端均保留，之后可重新开启。
+    property bool memoryRecapEnabled: false
 
     // 记忆湖统一色板（单一事实源，G1）：Shell 的记忆湖/回顾 chrome（蓝黑深度坡背景、
     // 角落辅光对、导航 active 发光点、渐变 logo）全部取自这里，杜绝散落 hex/rgba。
@@ -197,7 +199,7 @@ Item {
         return !it.bottom;
     })
     readonly property var bottomNavItems: navItems.filter(function (it) {
-        return it.bottom;
+        return it.bottom && (it.page !== "recap" || root.memoryRecapEnabled);
     })
 
     // 当前选中项的路由键。
@@ -228,6 +230,8 @@ Item {
     readonly property bool showPageGuide: !showingTimerPage && selectedPage !== "memorylake" && currentPageGuide !== null
 
     function indexOfPage(key) {
+        if (key === "recap" && !memoryRecapEnabled)
+            return -1;
         for (var i = 0; i < navItems.length; i++)
             if (navItems[i].page === key)
                 return i;
@@ -251,7 +255,8 @@ Item {
         case "settings":
             return Qt.resolvedUrl("pages/DesktopProfilePage.qml");
         case "recap":
-            return Qt.resolvedUrl("pages/DesktopMonthlyRecapPage.qml");
+            return memoryRecapEnabled ? Qt.resolvedUrl("pages/DesktopMonthlyRecapPage.qml")
+                                      : Qt.resolvedUrl("pages/DesktopMemoryLakePage.qml");
         }
         return "";
     }
@@ -1045,7 +1050,7 @@ Item {
                         spacing: 12
 
                         Rectangle {
-                            visible: !sidebarCollapsed
+                            visible: !sidebarCollapsed && root.bottomNavItems.length > 0
                             width: parent.width
                             height: 1
                             color: appSidebarBorder
