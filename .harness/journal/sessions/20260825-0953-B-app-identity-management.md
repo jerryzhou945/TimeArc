@@ -33,10 +33,17 @@ valid representative executable path for each effective group.
 
 ## Outcome
 
-Design approved in chat; implementation pending written-spec review.
+Implemented the approved read-side identity and icon stability design.
 
-- Completed: root-cause investigation and written design specification.
-- Incomplete: implementation and runtime verification.
-- Verification: spec placeholder/ambiguity scan and harness audit.
-- Next: user reviews the written spec, then an implementation plan is written.
-- Risks: custom aliases must never mutate the service-owned database.
+- Completed: deterministic representative executable selection; WeChat main
+  executable priority; reversible local `app:<slug>` aliases; historical
+  regrouping; inline Settings editor with collision confirmation and restore.
+- Incomplete: physical-device visual acceptance remains with the user; no
+  service database mutation or schema migration was introduced.
+- Verification: red/green policy tests; `timearc_db_smoke`; desktop UX static
+  checks; stats ViewModel test; wrapped `time-arc` build; CTest 6/6; desktop
+  launch and Qt log scan (only the known clipboard retry warning).
+- Next: user checks the Settings editor and installed WeChat icon in the live
+  desktop app, then the branch can be prepared for release integration.
+- Risks: aliases deliberately merge read-side history; a collision requires a
+  second explicit save and remains reversible through Restore Default.

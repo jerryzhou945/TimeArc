@@ -23,6 +23,7 @@
 #include <iterator>
 
 #include "services/app_repository.h"
+#include "services/app_identity_policy.h"
 #include "services/database_manager.h"
 #include "services/frontmost_session_repository.h"
 #include "services/manual_project_repository.h"
@@ -459,6 +460,49 @@ int main(int argc, char* argv[]) {
   const QString testDataOverride =
       QDir::temp().filePath(QStringLiteral("timearc-db-smoke-appdata"));
   qputenv("TIMEARC_TEST_APPDATA", testDataOverride.toUtf8());
+
+  // App identity aliases are local UI policy: normalize a friendly slug into
+  // the stable app:<slug> namespace, reject unsafe identifiers, and keep the
+  // installed primary executable ahead of helper/updater paths for icons.
+  if (TimeArc::AppIdentityPolicy::normalizeCustomId(
+          QStringLiteral("  My WeChat  ")) != QStringLiteral("app:my-wechat")) {
+    return fail(QStringLiteral("App identity: friendly ID normalization failed."));
+  }
+  if (TimeArc::AppIdentityPolicy::validateCustomId(
+          QStringLiteral("site:wechat"))
+          .ok) {
+    return fail(QStringLiteral("App identity: reserved ID namespace was accepted."));
+  }
+  if (!TimeArc::AppIdentityPolicy::validateCustomId(
+           QStringLiteral("app:wechat-work"))
+           .ok) {
+    return fail(QStringLiteral("App identity: valid custom ID was rejected."));
+  }
+
+  const QString wechatPrimary = QStringLiteral("D:/Weixin/Weixin.exe");
+  const QString wechatHelper =
+      QStringLiteral("D:/Weixin/XPlugin/WeChatAppEx.exe");
+  const QString wechatUpdater = QStringLiteral("D:/Weixin/WeixinUpdate.exe");
+  if (TimeArc::AppIdentityPolicy::representativePathScore(
+          QStringLiteral("app:wechat"), wechatPrimary, true, 1) <=
+          TimeArc::AppIdentityPolicy::representativePathScore(
+              QStringLiteral("app:wechat"), wechatHelper, true, 100) ||
+      TimeArc::AppIdentityPolicy::representativePathScore(
+          QStringLiteral("app:wechat"), wechatPrimary, true, 1) <=
+          TimeArc::AppIdentityPolicy::representativePathScore(
+              QStringLiteral("app:wechat"), wechatUpdater, true, 100)) {
+    return fail(QStringLiteral(
+        "App identity: WeChat helper/updater outranked the primary executable."));
+  }
+  if (TimeArc::AppIdentityPolicy::representativePathScore(
+          QStringLiteral("app:codex"),
+          QStringLiteral("D:/Apps/Codex/current/Codex.exe"), true, 1) <=
+      TimeArc::AppIdentityPolicy::representativePathScore(
+          QStringLiteral("app:codex"),
+          QStringLiteral("D:/Apps/Codex/old/Codex.exe"), false, 100)) {
+    return fail(QStringLiteral(
+        "App identity: an obsolete executable path outranked an installed one."));
+  }
 
   TimeArcAdapters::AdapterInput unknownWebsite;
   unknownWebsite.url =

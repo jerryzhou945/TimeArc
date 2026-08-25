@@ -90,6 +90,11 @@ Item {
     // appList = usageStatManager.allApps() 去重清单（onCompleted 拉一次，供应用管理勾选）。
     property var hiddenApps: []
     property var appList: []
+    property var appIdentityOverrides: ({})
+    property string editingAppKey: ""
+    property string appIdDraft: ""
+    property string appIdError: ""
+    property string pendingMergeKey: ""
     // 应用管理 UI（#1 重设计）：搜索过滤 + 软上限折叠（默认显 appCap 个，可展开全部）。
     property string appSearchQuery: ""
     property bool appsExpanded: false
@@ -280,6 +285,7 @@ Item {
         notifyEnabled    = _getBool("notify_enabled", true)
         memoAutosave     = _getBool("memo_autosave", true)
         hiddenApps       = parseHiddenApps()
+        appIdentityOverrides = parseAppIdentityOverrides()
         pomodoroDuration = _getStr("pomodoro_duration", "25")
         pomodoroTitle    = _getStr("pomodoro_title", "专注一会儿")
         pomodoroCelebrate= _getBool("pomodoro_celebrate", true)
@@ -290,6 +296,8 @@ Item {
     // —— 读层过滤推入（2A 游戏/分类/合并 · 2B 显隐 · 2C 标题）——
     // 把本页开关推进 usageStatManager 读出层；只影响 UI 聚合，不写/不删 usage（G4/I1/I2）。
     function pushReadFilters() {
+        if (usageStatManager && usageStatManager.setAppIdentityOverrides)
+            usageStatManager.setAppIdentityOverrides(appIdentityOverrides)
         if (usageStatManager && usageStatManager.setReadFilters)
             usageStatManager.setReadFilters(autoClassify, gameMode, mergeWindows,
                                             hideTitles, hiddenApps)
@@ -297,6 +305,83 @@ Item {
     function parseHiddenApps() {
         try { var a = JSON.parse(_getStr("hidden_apps", "[]")); return Array.isArray(a) ? a : [] }
         catch (e) { return [] }
+    }
+    function parseAppIdentityOverrides() {
+        try {
+            var o = JSON.parse(_getStr("app_identity_overrides", "{}"))
+            return o && typeof o === "object" && !Array.isArray(o) ? o : ({})
+        } catch (e) { return ({}) }
+    }
+    function copyAppIdentityOverrides() {
+        var copy = ({})
+        for (var key in appIdentityOverrides) copy[key] = appIdentityOverrides[key]
+        return copy
+    }
+    function beginEditAppIdentity(row) {
+        editingAppKey = row.originalGroupKey || row.groupKey || ""
+        appIdDraft = row.customAppId || row.effectiveGroupKey || row.groupKey || ""
+        appIdError = ""
+        pendingMergeKey = ""
+    }
+    function hasIdentityCollision(rawKey, normalized) {
+        for (var key in appIdentityOverrides) {
+            if (key !== rawKey && appIdentityOverrides[key] === normalized) return true
+        }
+        for (var i = 0; i < appList.length; i++) {
+            var other = appList[i]
+            var otherRaw = other.originalGroupKey || other.groupKey || ""
+            if (otherRaw !== rawKey && otherRaw === normalized) return true
+        }
+        return false
+    }
+    function saveAppIdentity(rawKey, draft) {
+        if (!usageStatManager || !usageStatManager.validateCustomAppId) return
+        var validation = usageStatManager.validateCustomAppId(draft)
+        if (!validation.ok) {
+            appIdError = tr("请输入字母、数字、点、横线或下划线。")
+            pendingMergeKey = ""
+            return
+        }
+        var normalized = validation.normalized
+        if (normalized === rawKey) {
+            restoreAppIdentity(rawKey)
+            return
+        }
+        if (hasIdentityCollision(rawKey, normalized) && pendingMergeKey !== rawKey) {
+            pendingMergeKey = rawKey
+            appIdError = tr("这个 ID 已被使用；再次点击保存将合并历史记录。")
+            return
+        }
+        var next = copyAppIdentityOverrides()
+        next[rawKey] = normalized
+        if (!settingsRepository ||
+                !settingsRepository.setValue("app_identity_overrides", JSON.stringify(next))) {
+            appIdError = tr("保存失败，原设置未更改。")
+            return
+        }
+        appIdentityOverrides = next
+        editingAppKey = ""
+        appIdError = ""
+        pendingMergeKey = ""
+        pushReadFilters()
+        refreshAppList()
+        showToast("应用 ID 已保存")
+    }
+    function restoreAppIdentity(rawKey) {
+        var next = copyAppIdentityOverrides()
+        delete next[rawKey]
+        if (!settingsRepository ||
+                !settingsRepository.setValue("app_identity_overrides", JSON.stringify(next))) {
+            appIdError = tr("保存失败，原设置未更改。")
+            return
+        }
+        appIdentityOverrides = next
+        editingAppKey = ""
+        appIdError = ""
+        pendingMergeKey = ""
+        pushReadFilters()
+        refreshAppList()
+        showToast("已恢复默认应用 ID")
     }
     function isAppHidden(key) { return hiddenApps.indexOf(key) >= 0 }
     function setAppHidden(key, hidden) {
@@ -1428,50 +1513,109 @@ Item {
                                             delegate: Rectangle {
                                                 required property var modelData
                                                 readonly property string appIconSource: AppVisual.modelIconSource(modelData)
+                                                readonly property string rawAppKey: modelData.originalGroupKey || modelData.groupKey || ""
+                                                readonly property bool editingIdentity: root.editingAppKey === rawAppKey
                                                 Layout.fillWidth: true
-                                                Layout.preferredHeight: 52
+                                                Layout.preferredHeight: editingIdentity ? 146 : 52
                                                 radius: 8
                                                 color: ml.calSunkBg
                                                 border.width: 1; border.color: ml.cellHair
-                                                RowLayout {
+                                                ColumnLayout {
                                                     anchors.fill: parent
-                                                    anchors.leftMargin: 10; anchors.rightMargin: 10
-                                                    spacing: 10
-                                                    Rectangle {
-                                                        width: 30; height: 30; radius: 9
-                                                        Layout.alignment: Qt.AlignVCenter
-                                                        color: ml.calGhostBg
-                                                        clip: true
-                                                        Image {
-                                                            id: appIconImage
-                                                            anchors.fill: parent
-                                                            anchors.margins: 5
-                                                            visible: appIconSource.length > 0 && status === Image.Ready
-                                                            source: appIconSource
-                                                            fillMode: Image.PreserveAspectFit
-                                                            asynchronous: true
-                                                            cache: true
+                                                    anchors.margins: 10
+                                                    spacing: 8
+                                                    RowLayout {
+                                                        Layout.fillWidth: true
+                                                        spacing: 10
+                                                        Rectangle {
+                                                            width: 30; height: 30; radius: 9
+                                                            Layout.alignment: Qt.AlignVCenter
+                                                            color: ml.calGhostBg
+                                                            clip: true
+                                                            Image {
+                                                                id: appIconImage
+                                                                anchors.fill: parent
+                                                                anchors.margins: 5
+                                                                visible: appIconSource.length > 0 && status === Image.Ready
+                                                                source: appIconSource
+                                                                fillMode: Image.PreserveAspectFit
+                                                                asynchronous: true
+                                                                cache: true
+                                                            }
+                                                            Text {
+                                                                anchors.centerIn: parent
+                                                                visible: appIconSource.length === 0 || appIconImage.status !== Image.Ready
+                                                                text: AppVisual.modelIconLabel(modelData)
+                                                                color: ml.aqua; font.pixelSize: 14; font.weight: Font.DemiBold
+                                                            }
                                                         }
                                                         Text {
-                                                            anchors.centerIn: parent
-                                                            visible: appIconSource.length === 0 || appIconImage.status !== Image.Ready
-                                                            text: AppVisual.modelIconLabel(modelData)
-                                                            color: ml.aqua; font.pixelSize: 14; font.weight: Font.DemiBold
+                                                            Layout.fillWidth: true
+                                                            text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode)
+                                                            color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
+                                                            elide: Text.ElideRight
+                                                        }
+                                                        GhostBtn {
+                                                            label: editingIdentity ? "取消" : "编辑 ID"
+                                                            onTapped: {
+                                                                if (editingIdentity) {
+                                                                    root.editingAppKey = ""
+                                                                    root.appIdError = ""
+                                                                    root.pendingMergeKey = ""
+                                                                } else root.beginEditAppIdentity(modelData)
+                                                            }
+                                                        }
+                                                        GlassSwitch {
+                                                            style: ml
+                                                            Layout.alignment: Qt.AlignVCenter
+                                                            checked: !root.isAppHidden(modelData.groupKey)
+                                                            onToggled: function (c) {
+                                                                root.setAppHidden(modelData.groupKey, !c)
+                                                                root.showToast(c ? "已显示该应用" : "已隐藏该应用")
+                                                            }
                                                         }
                                                     }
-                                                    Text {
+                                                    ColumnLayout {
+                                                        visible: editingIdentity
                                                         Layout.fillWidth: true
-                                                        text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode)
-                                                        color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
-                                                        elide: Text.ElideRight
-                                                    }
-                                                    GlassSwitch {
-                                                        style: ml
-                                                        Layout.alignment: Qt.AlignVCenter
-                                                        checked: !root.isAppHidden(modelData.groupKey)
-                                                        onToggled: function (c) {
-                                                            root.setAppHidden(modelData.groupKey, !c)
-                                                            root.showToast(c ? "已显示该应用" : "已隐藏该应用")
+                                                        spacing: 5
+                                                        Text {
+                                                            Layout.fillWidth: true
+                                                            text: root.tr("原始 ID") + "  " + rawAppKey
+                                                            color: ml.textTertiary; font.pixelSize: 10
+                                                            elide: Text.ElideMiddle
+                                                        }
+                                                        RowLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: 7
+                                                            GlassTextField {
+                                                                Layout.fillWidth: true
+                                                                style: ml
+                                                                placeholderText: root.tr("自定义应用 ID")
+                                                                text: editingIdentity ? root.appIdDraft : ""
+                                                                onTextEdited: function (t) {
+                                                                    root.appIdDraft = t
+                                                                    root.appIdError = ""
+                                                                    root.pendingMergeKey = ""
+                                                                }
+                                                            }
+                                                            GhostBtn {
+                                                                label: root.pendingMergeKey === rawAppKey ? "确认合并" : "保存"
+                                                                primary: true
+                                                                onTapped: root.saveAppIdentity(rawAppKey, root.appIdDraft)
+                                                            }
+                                                            GhostBtn {
+                                                                visible: (modelData.customAppId || "").length > 0
+                                                                label: "恢复默认"
+                                                                onTapped: root.restoreAppIdentity(rawAppKey)
+                                                            }
+                                                        }
+                                                        Text {
+                                                            visible: root.appIdError.length > 0
+                                                            Layout.fillWidth: true
+                                                            text: root.appIdError
+                                                            color: ml.dangerText; font.pixelSize: 10
+                                                            wrapMode: Text.Wrap
                                                         }
                                                     }
                                                 }

@@ -2,6 +2,7 @@
 #define USAGESTATMANAGER_H
 
 #include <QList>
+#include <QHash>
 #include <QObject>
 #include <QSet>
 #include <QString>
@@ -102,6 +103,8 @@ class UsageStatManager : public QObject {
   Q_INVOKABLE void setReadFilters(bool autoClassify, bool gameClassify,
                                   bool mergeSimilar, bool hideTitles,
                                   const QStringList& hiddenKeys);
+  Q_INVOKABLE void setAppIdentityOverrides(const QVariantMap& overrides);
+  Q_INVOKABLE QVariantMap validateCustomAppId(const QString& value) const;
   // 逐项显隐选单（2B / G-HIDEAPP）：去重列出已采集到的 app，供设置页应用清单勾选。
   // 每项 {groupKey, name, appName, path, hidden}。忽略隐藏集做枚举（含被隐藏项，标 hidden），
   // 让用户能取消隐藏。只读自身记录，不开新数据路径。
@@ -135,6 +138,9 @@ signals:
   bool m_mergeSimilar = true;    // 关 → 多进程变体按 exe 细分（站点仍单列）
   bool m_hideTitles = false;     // 类默认不脱敏（保字节一致契约）；UI 默认开由 KV 启动推入
   QSet<QString> m_hiddenKeys;    // 逐项显隐：被排除出聚合的 group key 集
+  QHash<QString, QString> m_identityOverrides;  // 原始 group key -> 本地自定义 app:* ID
+  mutable int m_representativePathsGeneration = -1;
+  mutable QHash<QString, QString> m_representativePaths;
 
   void refreshHistoryFromSqlite();
   // SQLite 高水位 MAX(rowid)（空表→0；连接坏→false）。
@@ -146,6 +152,8 @@ signals:
   // 读层有效 group key：按当前过滤标志返回记录的有效分组键（合并关→exe 细键），
   // 被隐藏的 app 返回空串（调用方据此跳过）。
   QString effectiveGroupKey(const UsageRecord& record) const;
+  QString representativePathForGroup(const QString& groupKey) const;
+  void rebuildRepresentativePaths() const;
   QVariantList aggregateSoftwareForRange(const QString& range,
                                          const QString& sourceFilter) const;
   // 聚合核心：按 inWindow 谓词筛记录、按 activity key 分组、合并重叠区间。
