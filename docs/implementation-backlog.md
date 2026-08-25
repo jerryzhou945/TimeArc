@@ -167,6 +167,11 @@ G2/G3 打磨 ───────────(随手)
   「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。
 
 ### G. 配置 / 打磨 / 杂项
+- [x] **G7 Windows 安装器执行与原生应用图标** — 2026-08-25 修复测试安装器
+  错把 PowerShell 脚本当文本打开的问题，并将七尺寸 TimeArc ICO 通过 RC 编译进
+  `TimeArc.exe`；Explorer、快捷方式和任务栏不再依赖通用图标回退。最终安装包等待
+  其他协作者改动合并后统一生成。见
+  [`windows-installer-native-icon-fixes-2026-08-25.md`](windows-installer-native-icon-fixes-2026-08-25.md)。
 - [x] **G5 桌面统计页每日应用时钟与周期布局重构** — 2026-08-23 已迁移到正式
   `DesktopStatsPage.qml` 并接入真实只读统计数据：每日应用表盘支持 AM/PM、应用图标、
   扇区悬停放大及点击锁定；周/月/年采用左侧周期总览与分类、右侧宽趋势图的紧凑布局。

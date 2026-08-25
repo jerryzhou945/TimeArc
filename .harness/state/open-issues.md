@@ -75,7 +75,8 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 
 - **Qt dynamic link + release packaging — shipped (F1).** Windows has `build-windows.ps1`.
 - **Windows public distribution remains unsigned.** Portable ZIP is suitable for a disclosed
-  small beta; signing, installer/update, clean-machine QA and build/test CI remain open.
+  small beta. The test installer's PowerShell launch chain and the native EXE icon resource are
+  fixed; signing, registered uninstall/update, clean-machine QA and build/test CI remain open.
 - **Service config v1 partially shipped** (`CHARTER` v0.13). UI and macOS full reader
   are implemented; Windows reads tracking enabled + idle, while Windows advanced leaves
   and the Linux reader remain open. `usage_config.json` is retired.

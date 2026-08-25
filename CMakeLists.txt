@@ -45,6 +45,12 @@ if(APPLE)
     set(MACOSX_BUNDLE_ICON_FILE "TimeArc.icns")
 endif()
 
+if(WIN32)
+    list(APPEND TIME_ARC_APP_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/resources/bundle/windows/TimeArc.rc"
+    )
+endif()
+
 qt_add_executable(time-arc ${TIME_ARC_APP_SOURCES})
 
 target_include_directories(time-arc PRIVATE
