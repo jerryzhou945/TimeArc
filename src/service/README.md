@@ -1,50 +1,22 @@
-# TimeArc Native Collector
+# TimeArc Service
 
-`src/service/` 是 TimeArc 的原生后台采集器。它与 Qt GUI 分进程运行，是使用历史的
-**唯一写入者**；GUI 通过 C++ service 只读同一份 SQLite。
+TimeArc uses separate service implementations per platform, but all of them share the same CLI and write the same service-owned database.
 
-```text
-platform APIs -> native collector -> timearc_service.db -> Qt/C++ read services -> QML
-```
+> The service CLI and configuration designs have not been implemented yet.
 
-## 平台实现
+- `shared/`: shared protocol, app snapshots, environment interfaces, SQLite
+  database storage, and path helpers.
+- `windows/`: Windows implementation in C.
+- `macos/`: macOS implementation in Swift.
+- `linux/`: Linux implementation in C.
 
-| 平台 | 目录 | 当前能力 |
-| --- | --- | --- |
-| Windows | `windows/` (C) | 前台、idle、WASAPI/GSMTC 媒体、语音、Agent、游戏、登录自启 |
-| macOS | `macos/` (Swift) | 前台、idle、媒体 assertion、配置、单实例、launchd lifecycle；待 Mac 发布验证 |
-| Linux | `linux/` | 尚未实现 |
-| 共享 | `shared/` | SQLite、路径、协议与无 Qt 的跨平台契约 |
+## Configuration File
 
-硬边界：本目录不得依赖 Qt；平台 SDK 不得泄漏进 `shared/*.h`。
+The service configuration file is a JSON file that contains the service's settings and preferences.
 
-## 计时模型
+### Configuration Format
 
-采集器以短周期采样形成闭区间，应用身份或活动状态变化时关闭上一段。统计层按区间并集
-聚合，因此前台与媒体同时命中不会重复计时。
-
-| 信号 | 使用方式 |
-| --- | --- |
-| frontmost | 普通应用的主信号；超过 idle 阈值停止 |
-| media | 系统状态 `Playing` 优先；无法取得时才回退音量活动 |
-| voice | 仅白名单语音应用，Active 且未静音；退出频道停止 |
-| agent | 前台 Codex + 相关工作进程 CPU/I/O 变化，短租约防止采样抖动 |
-| game | 已识别主进程前台时可跨过键鼠 idle，适配手柄/过场/加载 |
-| process exists | 永远不足以单独计时 |
-
-应用、媒体和站点身份在写入前标准化；自定义显示名称属于 UI/设置层，不修改稳定 `app_id`。
-
-## 配置
-
-默认文件：
-
-| 平台 | 路径 |
-| --- | --- |
-| Windows | `%APPDATA%\TimeArc\config\service_config.json` |
-| macOS | `~/Library/Application Support/TimeArc/config/service_config.json` |
-| Linux 规划 | `${XDG_CONFIG_HOME:-~/.config}/TimeArc/config/service_config.json` |
-
-核心结构：
+The configuration file format and default values.
 
 ```json
 {
@@ -61,73 +33,508 @@ platform APIs -> native collector -> timearc_service.db -> Qt/C++ read services 
       "idle_threshold_sec": 60,
       "video_overrides_idle": true
     },
-    "media": { "enabled": true }
+    "media": {
+      "enabled": true
+    }
   },
-  "database": { "dir": null }
+  "database": {
+    "dir": null
+  }
 }
 ```
 
-Windows 当前发布路径读取总开关与 idle，并实现默认策略；高级 sampling/frontmost/media
-叶子在公开 UI 暴露前仍需完全接线。macOS 已有 v1 reader，但必须在 Mac 实机复核路径与权限。
+### Key Descriptions
 
-## CLI
+| **Key**                                       | **Type**           |     **Range** | **Meaning**                                                                                                          |
+| --------------------------------------------- | ------------------ | ------------: | -------------------------------------------------------------------------------------------------------------------- |
+| **`schema_version`**                          | `int`              |             1 | The configuration schema version.                                                                                    |
+| **`tracking.enabled`**                        | `bool`             |             - | Whether tracking is enabled.                                                                                         |
+| **`tracking.sampling.poll_period_sec`**       | `int`              |          1-60 | Sampling period for tracking information.                                                                            |
+| **`tracking.sampling.min_session_sec`**       | `int`              |          1-60 | Records shorter than this are not written.                                                                           |
+| **`tracking.sampling.max_session_sec`**       | `int`              | 0 or 60-86400 | When an open record reaches this length, it is written and a new one starts. `0` means uncapped.                     |
+| **`tracking.frontmost.enabled`**              | `bool`             |             - | Whether frontmost app tracking is enabled.                                                                           |
+| **`tracking.frontmost.idle_threshold_sec`**   | `int`              |       0-86400 | The idle threshold for frontmost app tracking. `0` disables idle detection.                                          |
+| **`tracking.frontmost.video_overrides_idle`** | `bool`             |             - | Whether video-like foreground playback keeps the session active regardless of input idle.                            |
+| **`tracking.media.enabled`**                  | `bool`             |             - | Whether media tracking is enabled.                                                                                   |
+| **`database.dir`**                            | `string` or `null` | Absolute path | The directory holding the service database. If `null`, the service will use the platform-specific default directory. |
 
-### Windows
+### File Location
+
+| **Platform** | **Path**                                                           |
+| ------------ | ------------------------------------------------------------------ |
+| **Windows**  | `%APPDATA%\TimeArc\config\service_config.json`                     |
+| **macOS**    | `~/Library/Application Support/TimeArc/config/service_config.json` |
+| **Linux**    | `${XDG_CONFIG_HOME:-~/.config}/TimeArc/config/service_config.json` |
+
+## Command-Line Interface
+
+The service CLI is designed to be used by the TimeArc GUI but also supports direct invocation. It controls the service lifecycle, reports its state, and manages autostart registration.
 
 ```text
-time-arc-service.exe --install
-time-arc-service.exe --uninstall
-time-arc-service.exe --start
-time-arc-service.exe --stop
-time-arc-service.exe --status [--json]
-time-arc-service.exe --run-service
+time-arc-service [run]
+time-arc-service enable
+time-arc-service disable
+time-arc-service start
+time-arc-service stop
+time-arc-service restart
+time-arc-service status [--text|--json] [--verbose]
+time-arc-service doctor [--text|--json] [--verbose]
+time-arc-service help|-h|--help
+time-arc-service version|-v|--version
 ```
 
-GUI 正常启动会确保 collector 运行。首次成功启动的当前用户登录自启由 GUI 设置层管理；
-用户关闭后通过持久化 opt-out 保持关闭。
+### Command Descriptions
 
-### macOS
+#### `run`
 
-Swift helper 提供 run、enable/disable、start/stop/restart、status 与 doctor 语义，
-并通过内嵌 LaunchAgent 工作。最终命令和 bundle 布局必须以 Mac 构建产物验证。
+Starts the service in the foreground. This is the default command if no other command is specified. It runs the service in the current process and blocks until the service is stopped. If configuration has tracking disabled, the command exits with code 0. Otherwise, the command returns 0 after a clean shutdown with pending sessions flushed, or code 3/4/5/6 if it fails.
 
-## 数据库契约
+#### `enable`
 
-默认数据库：
+Registers the service for autostart on login.
 
-| 平台 | 路径 |
-| --- | --- |
-| Windows | `%APPDATA%\TimeArc\service\timearc_service.db` |
-| macOS | `~/Library/Application Support/TimeArc/service/timearc_service.db` |
-| Linux 规划 | `${XDG_DATA_HOME:-~/.local/share}/TimeArc/service/timearc_service.db` |
+#### `disable`
 
-主要表：
+Removes every autostart registration backend known to the platform.
 
-- `apps`：稳定应用身份、展示名称、图标/可执行路径。
-- `app_sessions`：前台应用区间。
-- `media_sessions`：媒体/音频区间和归因。
-- schema 版本与迁移由 shared storage 管理。
+#### `start`
 
-`duration_sec` 由 `end_unix_sec - start_unix_sec` 得出。不要由 GUI 直接插入或修改历史，
-也不要恢复已退役的 JSONL 历史作为第二数据源。
+Starts the service in the background. It launches the service in a new process and waits until the tracking process reaches a stable state. If configuration has tracking disabled, the command exits with code 0. Otherwise, the command exits with code 0 if the service starts successfully or is already running, or code 3/4/5 if it fails.
 
-## 开发与验证
+#### `stop`
 
-构建必须从仓库根目录经过 harness：
+Requests a graceful shutdown of the service. The command exits with code 0 if no service process is running, or code 3 if it fails.
 
-```powershell
-python .harness/tools/preflight.py --track C
-python .harness/tools/build.py --track C
-ctest --test-dir build --output-on-failure
-python .harness/tools/harness_check.py
+#### `restart`
+
+Restarts the service. It waits for the service to stop and then start it with a fresh configuration. The command exits with code 0 if the service starts successfully or has been disabled in configuration, or code 3/4/5 if it fails.
+
+#### `status`
+
+Queries the service state and prints it in the requested format. The default format is text, but JSON is also supported with the `--json` flag. The `--verbose` flag adds additional information about the service database, executable and process to JSON output. A successful query exits with code 0 if the service is running and enabled in configuration, or a non-zero code depending on the state of the service. If the state cannot be queried reliably, the command exits with code 10.
+
+Status descriptions:
+
+| **Service State**                | **Type**           | **Meaning**                                                                                                                            |
+| -------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **`platform`**                   | `string`           | The operating system (`windows`, `macos`, or `linux`).                                                                                 |
+| **`tracking.running`**           | `bool`             | Whether the service is actively tracking.                                                                                              |
+| **`tracking.enabled`**           | `bool`             | Whether tracking is enabled in the configuration.                                                                                      |
+| **`tracking.frontmost.enabled`** | `bool`             | Whether frontmost app tracking is enabled.                                                                                             |
+| **`tracking.media.enabled`**     | `bool`             | Whether media tracking is enabled.                                                                                                     |
+| **`autostart.enabled`**          | `bool`             | Whether the service is registered for autostart on login.                                                                              |
+| **`autostart.backend`**          | `string` or `null` | The backend used for autostart registration, which is platform-specific. If the service is not registered for autostart, it is `null`. |
+
+Text output example:
+
+```text
+TimeArc Service 0.1.0 on macOS
+
+Tracking: running
+Frontmost apps: enabled (idle threshold 60s)
+Media sessions: enabled
+Autostart: enabled (bundled launch agent)
 ```
 
-新增或修改计时策略时先补失败测试，至少覆盖“开始、持续、暂停/退出、普通后台不误记、
-多个信号不重复累计”。Windows 相关测试集中在：
+JSON output example:
 
-- `tests/windows_foreground_state_test.c`
-- `tests/windows_audio_title_policy_test.c`
-- `tests/windows_service_config_test.c`
+```json
+{
+  // Default
+  "schema_version": 1,
+  "command": "status",
+  "platform": "macos",
+  "tracking": {
+    "running": true,
+    "enabled": true,
+    "frontmost": {
+      "enabled": true,
+      "idle_threshold_sec": 60
+    },
+    "media": {
+      "enabled": true
+    }
+  },
+  "autostart": {
+    "enabled": true,
+    "backend": "bundled-launch-agent"
+  },
+  // Verbose
+  "database": {
+    "path": "/Users/steve/Library/Application Support/TimeArc/service/timearc_service.db",
+    "size_bytes": 16384
+  },
+  "executable": {
+    "version": "0.1.0",
+    "path": "/Applications/TimeArc.app/Contents/MacOS/time-arc-service"
+  },
+  "process": {
+    "pid": 2026,
+    "start_unix_sec": 1776070400,
+    "uptime_sec": 8086,
+    "command": [
+      "/Applications/TimeArc.app/Contents/MacOS/time-arc-service",
+      "run"
+    ]
+  }
+}
+```
 
-发布/平台状态见 [根 README](../../README.md)，适配文档见
-[docs/adapter-system.md](../../docs/adapter-system.md)。
+#### `doctor`
+
+Examines the service configuration, database, autostart registration, and tracking availability. The default format is text, but JSON is also supported with the `--json` flag. The `--verbose` flag adds detailed information about each check to JSON output. A successful examination exits with code 0 if the overall status is `healthy`, or a non-zero code depending on the status. If the result cannot be queried reliably, the command exits with code 20.
+
+Status descriptions:
+
+| **Capability Status** | **Meaning**                                           |
+| --------------------- | ----------------------------------------------------- |
+| **`pass`**            | The check is reliable and the capability is working.  |
+| **`warn`**            | The check is reliable but the capability is degraded. |
+| **`fail`**            | The check is reliable but the capability is broken.   |
+| **`skip`**            | The check is not applicable.                          |
+
+| **Overall Status** | **Meaning**                |
+| ------------------ | -------------------------- |
+| **`healthy`**      | All checks passed.         |
+| **`degraded`**     | At least one check warned. |
+| **`failed`**       | At least one check failed. |
+
+Text output example:
+
+```text
+TimeArc Service 0.1.0 on macOS
+
+Overall: healthy (8 pass, 0 warn, 0 fail, 0 skip)
+Configuration:
+  [pass] Service configuration file path is valid.
+  [pass] Service configuration file schema is valid.
+Database:
+  [pass] Service database directory is valid.
+  [pass] Service database schema is valid.
+Autostart:
+  [pass] Service autostart registration is valid.
+  [pass] No duplicate autostart registrations found.
+Availability:
+  [pass] Necessary permissions are granted.
+  [pass] Tracking information is accessible.
+```
+
+JSON output example:
+
+```json
+{
+  "schema_version": 1,
+  "command": "doctor",
+  "platform": "macos",
+  "report": {
+    "generated_at_unix_sec": 1776070400,
+    "overall": "healthy",
+    "counts": {
+      "pass": 8,
+      "warn": 0,
+      "fail": 0,
+      "skip": 0
+    }
+  },
+  "sections": [
+    {
+      "id": "configuration",
+      "status": "pass",
+      "checks": [
+        {
+          // Default
+          "id": "configuration.path",
+          "status": "pass",
+          "summary": "Service configuration file path is valid.",
+          // Verbose
+          "details": {
+            "path": "/Users/steve/Library/Application Support/TimeArc/config/service_config.json",
+            "exists": true,
+            "readable": true,
+            "writable": true
+          }
+        },
+        {
+          // Default
+          "id": "configuration.schema",
+          "status": "pass",
+          "summary": "Service configuration file schema is valid.",
+          // Verbose
+          "details": {
+            "schema_version": 1,
+            "unknown_keys": [],
+            "missing_default_keys": [],
+            "invalid_value_keys": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "database",
+      "status": "pass",
+      "checks": [
+        {
+          // Default
+          "id": "database.directory",
+          "status": "pass",
+          "summary": "Service database directory is valid.",
+          // Verbose
+          "details": {
+            "path": "/Users/steve/Library/Application Support/TimeArc/service",
+            "exists": true,
+            "readable": true,
+            "writable": true,
+            "platform_default": true,
+            "size_bytes": 16384,
+            "free_bytes": 1234567890
+          }
+        },
+        {
+          // Default
+          "id": "database.schema",
+          "status": "pass",
+          "summary": "Service database schema is valid.",
+          // Verbose
+          "details": {
+            "user_version": 1,
+            "sqlite_version": "3.51.3",
+            "unexpected_tables": [],
+            "tables": {
+              "apps": {
+                "exists": true,
+                "missing_columns": [],
+                "unexpected_columns": []
+              },
+              "frontmost_sessions": {
+                "exists": true,
+                "missing_columns": [],
+                "unexpected_columns": []
+              },
+              "media_sessions": {
+                "exists": true,
+                "missing_columns": [],
+                "unexpected_columns": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "autostart",
+      "status": "pass",
+      "checks": [
+        {
+          // Default
+          "id": "autostart.registration",
+          "status": "pass",
+          "summary": "Service autostart registration is valid.",
+          // Verbose
+          "details": {
+            "enabled": true,
+            "backend": "bundled-launch-agent",
+            "label": "com.timearc.service",
+            "path": "/Applications/TimeArc.app/Contents/Library/LaunchAgents/com.timearc.service.plist",
+            "command": [
+              "/Applications/TimeArc.app/Contents/MacOS/time-arc-service",
+              "run"
+            ]
+          }
+        },
+        {
+          // Default
+          "id": "autostart.duplicates",
+          "status": "pass",
+          "summary": "No duplicate autostart registrations found.",
+          // Verbose
+          "details": {
+            "duplicate_backends": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "availability",
+      "status": "pass",
+      "checks": [
+        {
+          // Default
+          "id": "availability.permissions",
+          "status": "pass",
+          "summary": "Necessary permissions are granted.",
+          // Verbose
+          "details": {
+            "permissions": [
+              {
+                "name": "Accessibility",
+                "granted": true,
+                "capabilities": [
+                  "frontmost_app",
+                  "window_title",
+                  "idle_state",
+                  "media_session",
+                  "media_title"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          // Default
+          "id": "availability.information",
+          "status": "pass",
+          "summary": "Tracking information is accessible.",
+          // Verbose
+          "details": {
+            "information": {
+              "frontmost_app": {
+                "required": true,
+                "available": true
+              },
+              "window_title": {
+                "required": true,
+                "available": true
+              },
+              "idle_state": {
+                "required": true,
+                "available": true
+              },
+              "media_session": {
+                "required": true,
+                "available": true
+              },
+              "media_title": {
+                "required": true,
+                "available": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### `help`
+
+Prints the command usage and exits with code 0.
+
+#### `version`
+
+Prints the version information and exits with code 0.
+
+### Exit Codes
+
+| **Exit Code** | **Meaning**                                                   |
+| ------------: | ------------------------------------------------------------- |
+|           `0` | Command completed successfully.                               |
+|           `1` | Command failed due to a generic internal error.               |
+|           `2` | Invalid command or arguments.                                 |
+|           `3` | Command failed due to a platform error.                       |
+|           `4` | The service failed to start because of a configuration error. |
+|           `5` | The service failed to start because of a database error.      |
+|           `6` | A second instance of the service is already running.          |
+|          `10` | Service state could not be queried reliably.                  |
+|          `11` | Service is running but not enabled in configuration.          |
+|          `12` | Service is not running but enabled in configuration.          |
+|          `13` | Service is not running and not enabled in configuration.      |
+|          `20` | Doctor results could not be queried reliably.                 |
+|          `21` | Doctor overall status is `degraded`.                          |
+|          `22` | Doctor overall status is `failed`.                            |
+
+### Platform Mapping
+
+#### Windows
+
+Scheduled task with user logon trigger (`scheduled-task`). Falls back to HKCU (`hkcu`).
+
+#### macOS
+
+Bundled launch agent (`bundled-launch-agent`). Falls back to per-user launch agent (`user-launch-agent`).
+
+#### Linux
+
+Systemd user service (`systemd`). Falls back to XDG autostart (`xdg-autostart`).
+
+## Database Structure
+
+The service SQLite database is resolved by `shared/database_path.*`. Its locked filename is `timearc_service.db`. `shared/database_storage.*` owns the SQLite connection, schema, statements, transactions, and table writes. `shared/data_bridge.c` exposes the public table-write bridge around that storage API. The Qt app opens that database read-only for history.
+
+### Table Descriptions
+
+#### `apps`
+
+Map of app identifiers to human-readable app information.
+
+| **Column**            | **C Type**    | **Swift Type** | **Meaning**                                           |
+| --------------------- | ------------- | -------------- | ----------------------------------------------------- |
+| **`app_id`**          | `const char*` | `String`       | Stable app identifier.                                |
+| **`platform`**        | `const char*` | `String`       | The producer platform: `windows`, `macos` or `linux`. |
+| **`display_name`**    | `const char*` | `String`       | Localized app name.                                   |
+| **`icon_path`**       | `const char*` | `String`       | Path to the app icon.                                 |
+| **`executable_path`** | `const char*` | `String`       | Path to the app executable.                           |
+| **`created_at`**      | `int64_t`     | `Int64`        | App record creation time in Unix seconds.             |
+| **`updated_at`**      | `int64_t`     | `Int64`        | App record last update time in Unix seconds.          |
+
+#### `frontmost_sessions`
+
+Records of frontmost app sessions.
+
+| **Column**           | **C Type**    | **Swift Type** | **Meaning**                                         |
+| -------------------- | ------------- | -------------- | --------------------------------------------------- |
+| **`app_id`**         | `const char*` | `String`       | Stable app identifier.                              |
+| **`window_title`**   | `const char*` | `String`       | Active window title captured for the usage session. |
+| **`start_unix_sec`** | `int64_t`     | `Int64`        | Session start time in Unix seconds.                 |
+| **`end_unix_sec`**   | `int64_t`     | `Int64`        | Session end time in Unix seconds.                   |
+| **`duration_sec`**   | `int64_t`     | `Int64`        | Generated column: `end_unix_sec - start_unix_sec`.  |
+| **`active_sec`**     | `int64_t`     | `Int64`        | Active time in seconds.                             |
+| **`idle_sec`**       | `int64_t`     | `Int64`        | Generated column: `duration_sec - active_sec`.      |
+
+#### `media_sessions`
+
+Records of media sessions.
+
+| **Column**           | **C Type**    | **Swift Type** | **Meaning**                                        |
+| -------------------- | ------------- | -------------- | -------------------------------------------------- |
+| **`app_id`**         | `const char*` | `String`       | Stable app identifier.                             |
+| **`media_type`**     | `const char*` | `String`       | Media type: `audio`, `video`, or `unknown`.        |
+| **`media_title`**    | `const char*` | `String`       | Media title.                                       |
+| **`start_unix_sec`** | `int64_t`     | `Int64`        | Session start time in Unix seconds.                |
+| **`end_unix_sec`**   | `int64_t`     | `Int64`        | Session end time in Unix seconds.                  |
+| **`duration_sec`**   | `int64_t`     | `Int64`        | Generated column: `end_unix_sec - start_unix_sec`. |
+
+### Platform Mapping
+
+#### Windows
+
+**Default path**: `%APPDATA%\TimeArc\service\timearc_service.db`
+
+- **`platform`**: `windows`.
+- **`app_id`**: Normalized executable path.
+  - **Note**: Version information is stripped from the path to ensure a stable identifier.
+- **`display_name`**: Package display name (for packaged apps).
+  - **Fallback**: FileDescription/ProductName (executable metadata); Start menu shortcut name; Executable file name.
+- **`icon_path`**: Full executable path.
+- **`executable_path`**: Full executable path.
+
+#### macOS
+
+**Default path**: `~/Library/Application Support/TimeArc/service/timearc_service.db`
+
+- **`platform`**: `macos`.
+- **`app_id`**: Bundle identifier.
+- **`display_name`**: Localized name.
+- **`icon_path`**: Bundle URL.
+- **`executable_path`**: Bundle URL.
+
+#### Linux
+
+**Default path**: `${XDG_DATA_HOME:-~/.local/share}/TimeArc/service/timearc_service.db`
+
+- **`platform`**: `linux`.
+- **`app_id`**: Desktop file ID.
+- **`display_name`**: Localized name from the `.desktop` file.
+- **`icon_path`**: Icon from the `.desktop` file.
+  - **Note**: If the icon is specified as a name, it should be resolved to a full path by the GUI.
+- **`executable_path`**: Full executable path.
