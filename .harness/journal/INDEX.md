@@ -7,6 +7,12 @@ omitted here to preserve the harness line budget.
 
 | Date (UTC) | Lvl | Topic | Report |
 |---|---|---|---|
+| 2026-08-25T04:08:50Z | L2 | release-index-b... | New installer packaging errors pushed harness journal IND... | [report](errors/20260825-040850-B-release-index-budget.md) |
+| 2026-08-25T04:06:50Z | L2 | sfx-size-assertion | The valid SFX output was smaller than the source ZIP beca... | [report](errors/20260825-040650-B-sfx-size-assertion.md) |
+| 2026-08-25T04:05:15Z | L3 | sevenzip-output... | 7zr extraction received a split -o switch for the local t... | [report](errors/20260825-040515-B-sevenzip-output-switch.md) |
+| 2026-08-25T04:04:05Z | L3 | iexpress-help-b... | IExpress help invocation opened an interactive process an... | [report](errors/20260825-040405-B-iexpress-help-blocked.md) |
+| 2026-08-25T04:03:09Z | L2 | iexpress-quoted... | IExpress still failed after quoting target/source paths; ... | [report](errors/20260825-040309-B-iexpress-quoted-path-red.md) |
+| 2026-08-25T04:02:34Z | L1 | iexpress-instal... | Initial IExpress SED exited without producing the Windows... | [report](errors/20260825-040234-B-iexpress-installer-red.md) |
 | 2026-08-25T03:57:02Z | L2 | release-git-ind... | git add could not create .git/index.lock under the manage... | [report](errors/20260825-035702-B-release-git-index-denied.md) |
 | 2026-08-25T03:56:03Z | L3 | release-process... | PowerShell could not stop the running TimeArc UI/service ... | [report](errors/20260825-035603-B-release-process-stop-denied.md) |
 | 2026-08-25T03:54:36Z | L3 | readme-trailing... | README rewrites left an extra blank line at EOF and git d... | [report](errors/20260825-035436-B-readme-trailing-blank.md) |
@@ -89,9 +95,5 @@ omitted here to preserve the harness line budget.
 | 2026-08-24T20:47:14Z | L2 | runtime-smoke-l... | Windows service runtime smoke could not start its isolate... | [report](errors/20260824-204714-C-runtime-smoke-live-instance-conflict.md) |
 | 2026-08-24T20:47:13Z | L3 | python-loop-lab... | PowerShell test-loop label was over-escaped and emitted n... | [report](errors/20260824-204713-C-python-loop-label-quoting.md) |
 | 2026-08-24T20:46:41Z | L3 | python-test-dis... | unittest discovery found zero script-style Python tests; ... | [report](errors/20260824-204641-C-python-test-discovery-pattern.md) |
-| 2026-08-24T20:45:34Z | L3 | windows-service... | Used stop without the documented -- prefix; service print... | [report](errors/20260824-204534-C-windows-service-stop-verb.md) |
-| 2026-08-24T20:45:04Z | L1 | bilibili-site-a... | cmake --build exited 1 | [report](errors/20260824-204504-C-bilibili-site-attribution.md) |
-| 2026-08-24T20:43:46Z | L1 | bilibili-site-h... | cmake --build exited 1 | [report](errors/20260824-204346-C-bilibili-site-hint-red.md) |
-| 2026-08-24T20:42:36Z | L2 | bilibili-browse... | Windows recorded seven minutes of Bilibili playback as Ch... | [report](errors/20260824-204236-C-bilibili-browser-site-attribution.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L3 | omitted | Older L3 rows omitted from INDEX; see `errors.jsonl`. | |

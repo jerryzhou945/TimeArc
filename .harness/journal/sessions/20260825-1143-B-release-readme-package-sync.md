@@ -35,9 +35,13 @@ and operational rather than receiving marketing decoration.
   replaced stale monolithic documentation with product, Android, service,
   docs-map, and harness entry points; made Windows packaging discover the
   actual Qt/MinGW toolchain and emit the detected Qt version in NOTICE.
-- Incomplete: Remote dev reconciliation, final packaging, branch integration,
-  and remote verification.
-- Verification: Wrapped build passed; CTest 6/6, stats JS, desktop UX static,
-  stats layout static, diff check, and seven-pass harness audit passed.
-- Next: Commit the verified local baseline, merge current origin/dev, rerun the
-  complete release gate, package, then synchronize dev/main.
+  `origin/dev` is an ancestor of the reconciled branch. Produced a
+  Qt-linkage-verified portable ZIP and an unsigned per-user SFX installer from
+  the same payload; installer contents were independently listed with 7-Zip.
+- Incomplete: Final release-gate rerun, branch integration, and remote verification.
+- Verification: Fresh wrapped build passed; CTest 6/6, stats JS, desktop UX
+  static, stats layout static, diff check, and seven-pass harness audit passed.
+  Staged GUI passed dynamic Qt/shared-install checks; SFX archive test passed
+  for both embedded files. Installer is intentionally reported `NotSigned`.
+- Next: Commit the installer tooling/docs, rerun the complete release gate,
+  then synchronize dev/main and verify remote hashes.

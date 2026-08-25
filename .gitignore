@@ -84,6 +84,7 @@ CMakeLists.txt.user*
 .uic/
 /build*/
 /.build*/
+/.local-toolchains/
 
 # Release packages
 /dist*/

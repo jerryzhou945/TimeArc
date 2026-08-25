@@ -145,9 +145,13 @@ ctest --test-dir build --output-on-failure
 
 ```powershell
 pwsh tools/package-release.ps1 -Version 0.1-beta-20260825
+pwsh tools/package-installer.ps1 -Version 0.1-beta-20260825
 ```
 
-脚本会动态验证 Qt DLL 链接、收集 GUI/service、RCC、Qt/MinGW 运行库和许可证，并生成便携 ZIP。
+第一条命令会动态验证 Qt DLL 链接、收集 GUI/service、RCC、Qt/MinGW 运行库和许可证，
+并生成便携 ZIP；第二条命令用 7-Zip 官方 LZMA SDK 的 SFX 模块把同一份已验证 ZIP
+包成当前用户安装器。安装器脚本默认从被 Git 忽略的 `.local-toolchains/7zip-26.02/`
+读取官方 `7za.exe` 与 `7zS2.sfx`，也可通过参数传入其他本地路径。
 
 ### macOS
 
