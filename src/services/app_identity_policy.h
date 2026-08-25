@@ -1,45 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 
-#include <QRegularExpression>
 #include <QString>
 #include <QtGlobal>
 
 namespace TimeArc::AppIdentityPolicy {
 
-struct ValidationResult {
-  bool ok = false;
-  QString normalized;
-  QString error;
+struct DisplayIdentity {
+  QString groupKey;
+  QString displayName;
 };
 
-inline QString normalizeCustomId(const QString& value) {
-  QString slug = value.trimmed().toLower();
-  if (slug.startsWith(QStringLiteral("app:"))) slug.remove(0, 4);
-  slug.replace(QRegularExpression(QStringLiteral("[^a-z0-9._-]+")),
-               QStringLiteral("-"));
-  slug.replace(QRegularExpression(QStringLiteral("-+")),
-               QStringLiteral("-"));
-  slug.remove(QRegularExpression(QStringLiteral("^[._-]+|[._-]+$")));
-  return slug.isEmpty() ? QString() : QStringLiteral("app:") + slug;
-}
-
-inline ValidationResult validateCustomId(const QString& value) {
-  ValidationResult result;
-  const QString trimmed = value.trimmed().toLower();
-  if (trimmed.startsWith(QStringLiteral("site:")) ||
-      trimmed.startsWith(QStringLiteral("path:")) ||
-      trimmed.startsWith(QStringLiteral("exe:"))) {
-    result.error = QStringLiteral("reserved_namespace");
-    return result;
-  }
-
-  result.normalized = normalizeCustomId(value);
-  static const QRegularExpression pattern(
-      QStringLiteral("^app:[a-z0-9][a-z0-9._-]*$"));
-  result.ok = pattern.match(result.normalized).hasMatch();
-  if (!result.ok) result.error = QStringLiteral("invalid_custom_id");
-  return result;
+inline DisplayIdentity applyDisplayName(const QString& groupKey,
+                                        const QString& defaultName,
+                                        const QString& customName) {
+  const QString trimmed = customName.trimmed();
+  return {groupKey, trimmed.isEmpty() ? defaultName : trimmed.left(80)};
 }
 
 inline qint64 representativePathScore(const QString& groupKey,

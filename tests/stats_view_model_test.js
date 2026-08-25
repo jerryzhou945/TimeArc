@@ -1,5 +1,21 @@
 const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
 const Stats = require('../qml/desktop/pages/StatsViewModel.js');
+
+const appVisualContext = {};
+const appVisualSource = fs.readFileSync(
+  require.resolve('../qml/desktop/components/AppVisual.js'), 'utf8'
+).replace(/^\.pragma library\s*/m, '');
+vm.runInNewContext(appVisualSource, appVisualContext);
+assert.strictEqual(
+  appVisualContext.modelDisplayNameForLanguage({
+    customDisplayName: '谷歌浏览器',
+    adapterDisplayName: 'Chrome',
+    groupKey: 'app:google-chrome'
+  }, 'en'),
+  '谷歌浏览器'
+);
 
 const dayStart = 1_800_000_000;
 const periodApps = [
@@ -21,6 +37,11 @@ assert.strictEqual(library[0].lifetimeSeconds, 3600);
 assert.strictEqual(library[0].percent, 67);
 assert.strictEqual(library[2].periodSeconds, 0);
 assert.strictEqual(library[2].lifetimeSeconds, 7200);
+
+const renamedLibrary = Stats.buildAppLibrary([
+  { groupKey: 'app:codex', customDisplayName: '开发助手', adapterDisplayName: 'Codex', seconds: 60 }
+], [], { query: '', sort: 'period', showInactive: true });
+assert.strictEqual(renamedLibrary[0].name, '开发助手');
 
 const lifetimeSorted = Stats.buildAppLibrary(periodApps, lifetimeApps, {
   query: '', sort: 'lifetime', showInactive: true

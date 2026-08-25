@@ -461,24 +461,8 @@ int main(int argc, char* argv[]) {
       QDir::temp().filePath(QStringLiteral("timearc-db-smoke-appdata"));
   qputenv("TIMEARC_TEST_APPDATA", testDataOverride.toUtf8());
 
-  // App identity aliases are local UI policy: normalize a friendly slug into
-  // the stable app:<slug> namespace, reject unsafe identifiers, and keep the
-  // installed primary executable ahead of helper/updater paths for icons.
-  if (TimeArc::AppIdentityPolicy::normalizeCustomId(
-          QStringLiteral("  My WeChat  ")) != QStringLiteral("app:my-wechat")) {
-    return fail(QStringLiteral("App identity: friendly ID normalization failed."));
-  }
-  if (TimeArc::AppIdentityPolicy::validateCustomId(
-          QStringLiteral("site:wechat"))
-          .ok) {
-    return fail(QStringLiteral("App identity: reserved ID namespace was accepted."));
-  }
-  if (!TimeArc::AppIdentityPolicy::validateCustomId(
-           QStringLiteral("app:wechat-work"))
-           .ok) {
-    return fail(QStringLiteral("App identity: valid custom ID was rejected."));
-  }
-
+  // Installed primary executables must remain ahead of helper/updater paths
+  // so default system icons stay stable after process or version churn.
   const QString wechatPrimary = QStringLiteral("D:/Weixin/Weixin.exe");
   const QString wechatHelper =
       QStringLiteral("D:/Weixin/XPlugin/WeChatAppEx.exe");
@@ -502,6 +486,22 @@ int main(int argc, char* argv[]) {
           QStringLiteral("D:/Apps/Codex/old/Codex.exe"), false, 100)) {
     return fail(QStringLiteral(
         "App identity: an obsolete executable path outranked an installed one."));
+  }
+
+  const auto renamedChrome = TimeArc::AppIdentityPolicy::applyDisplayName(
+      QStringLiteral("app:google-chrome"), QStringLiteral("Chrome"),
+      QStringLiteral("  谷歌浏览器  "));
+  if (renamedChrome.groupKey != QStringLiteral("app:google-chrome") ||
+      renamedChrome.displayName != QStringLiteral("谷歌浏览器")) {
+    return fail(QStringLiteral(
+        "App display name: Unicode override changed identity or was not trimmed."));
+  }
+  const auto defaultChrome = TimeArc::AppIdentityPolicy::applyDisplayName(
+      QStringLiteral("app:google-chrome"), QStringLiteral("Chrome"), QString());
+  if (defaultChrome.groupKey != QStringLiteral("app:google-chrome") ||
+      defaultChrome.displayName != QStringLiteral("Chrome")) {
+    return fail(QStringLiteral(
+        "App display name: empty override did not restore the default name."));
   }
 
   TimeArcAdapters::AdapterInput unknownWebsite;

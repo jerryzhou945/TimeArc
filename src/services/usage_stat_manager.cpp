@@ -925,8 +925,12 @@ QVariantList UsageStatManager::aggregateSoftware(
         mergedIntervalSeconds(aggregate.foregroundIntervals);
     const quint64 audioSeconds = mergedIntervalSeconds(aggregate.audioIntervals);
 
-    const QString displayName = activityDisplayName(
+    const QString defaultDisplayName = activityDisplayName(
         aggregate.groupKey, aggregate.appId, aggregate.appName, aggregate.path);
+    const auto displayIdentity = TimeArc::AppIdentityPolicy::applyDisplayName(
+        aggregate.groupKey, defaultDisplayName,
+        m_displayNameOverrides.value(aggregate.groupKey));
+    const QString displayName = displayIdentity.displayName;
     const TimeArcAdapters::AdapterInput adapterInput = adapterInputFromActivity(
         aggregate.appId, aggregate.appName, aggregate.path, QString());
     const TimeArcAdapters::AdapterMetadata adapterMetadata =
@@ -934,12 +938,14 @@ QVariantList UsageStatManager::aggregateSoftware(
 
     QVariantMap item;
     item["groupKey"] = aggregate.groupKey;
-    item["appId"] = (aggregate.groupKey.startsWith("site:") ||
-                     m_identityOverrides.values().contains(aggregate.groupKey))
+    item["appId"] = aggregate.groupKey.startsWith("site:")
                         ? aggregate.groupKey
                         : aggregate.appId;
     item["appName"] = aggregate.appName;
     item["name"] = displayName;
+    item["displayName"] = displayName;
+    item["defaultDisplayName"] = defaultDisplayName;
+    item["customDisplayName"] = m_displayNameOverrides.value(aggregate.groupKey);
     item["path"] = aggregate.path;
     QString topCategory = QStringLiteral("其他");
     quint64 topCatSec = 0;
@@ -1158,6 +1164,15 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
     applyAdapterMetadata(
         &item, adapterMetadataForIdentifier(app.groupKey, adapterInput),
         app.path);
+    const QString defaultDisplayName = activityDisplayName(
+        app.groupKey, app.appId, app.appName, app.path);
+    const auto displayIdentity = TimeArc::AppIdentityPolicy::applyDisplayName(
+        app.groupKey, defaultDisplayName,
+        m_displayNameOverrides.value(app.groupKey));
+    item["name"] = displayIdentity.displayName;
+    item["displayName"] = displayIdentity.displayName;
+    item["defaultDisplayName"] = defaultDisplayName;
+    item["customDisplayName"] = m_displayNameOverrides.value(app.groupKey);
     result.append(item);
   }
 
@@ -1475,10 +1490,6 @@ QString UsageStatManager::effectiveGroupKey(const UsageRecord& record) const {
   const QString mergedKey = activityGroupKey(record.appId, record.appName,
                                              record.path, record.windowTitle);
   if (m_hiddenKeys.contains(mergedKey)) return QString();  // 2B 逐项显隐：排除
-  const QString overriddenKey = m_identityOverrides.value(mergedKey);
-  if (!overriddenKey.isEmpty()) {
-    return m_hiddenKeys.contains(overriddenKey) ? QString() : overriddenKey;
-  }
   if (m_mergeSimilar || mergedKey.startsWith(QLatin1String("site:")))
     return mergedKey;
   // 2A 关「合并相似应用」：不并多进程变体，按 exe 名细分；无 exe 时退回合并键。
@@ -1507,7 +1518,6 @@ void UsageStatManager::rebuildRepresentativePaths() const {
     const QString rawKey = activityGroupKey(record.appId, record.appName,
                                             record.path, record.windowTitle);
     consider(rawKey, record);
-    consider(m_identityOverrides.value(rawKey), record);
     consider(effectiveGroupKey(record), record);
   }
   m_representativePathsGeneration = m_recordsGeneration;
@@ -1519,29 +1529,18 @@ QString UsageStatManager::representativePathForGroup(
   return m_representativePaths.value(groupKey);
 }
 
-void UsageStatManager::setAppIdentityOverrides(const QVariantMap& overrides) {
+void UsageStatManager::setAppDisplayNameOverrides(const QVariantMap& overrides) {
   QHash<QString, QString> normalized;
   for (auto it = overrides.constBegin(); it != overrides.constEnd(); ++it) {
     const QString rawKey = it.key().trimmed();
-    const auto validation = TimeArc::AppIdentityPolicy::validateCustomId(
-        it.value().toString());
-    if (!rawKey.isEmpty() && validation.ok && rawKey != validation.normalized) {
-      normalized.insert(rawKey, validation.normalized);
-    }
+    const QString displayName = it.value().toString().trimmed().left(80);
+    if (!rawKey.isEmpty() && !displayName.isEmpty())
+      normalized.insert(rawKey, displayName);
   }
-  if (normalized == m_identityOverrides) return;
-  m_identityOverrides = normalized;
-  m_representativePathsGeneration = -1;
+  if (normalized == m_displayNameOverrides) return;
+  m_displayNameOverrides = normalized;
   ++m_recordsGeneration;
   emit usageStatsChanged();
-}
-
-QVariantMap UsageStatManager::validateCustomAppId(const QString& value) const {
-  const auto validation =
-      TimeArc::AppIdentityPolicy::validateCustomId(value);
-  return {{QStringLiteral("ok"), validation.ok},
-          {QStringLiteral("normalized"), validation.normalized},
-          {QStringLiteral("error"), validation.error}};
 }
 
 void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
@@ -1611,11 +1610,12 @@ QVariantList UsageStatManager::allApps() const {
                 return a.start < b.start;
               });
     const quint64 seconds = mergedIntervalSeconds(entry.intervals);
-    const QString effectiveKey = m_identityOverrides.value(
-        entry.groupKey, entry.groupKey);
-    const QString displayName =
-        activityDisplayName(effectiveKey, entry.appId, entry.appName,
-                            entry.path);
+    const QString defaultDisplayName = activityDisplayName(
+        entry.groupKey, entry.appId, entry.appName, entry.path);
+    const auto displayIdentity = TimeArc::AppIdentityPolicy::applyDisplayName(
+        entry.groupKey, defaultDisplayName,
+        m_displayNameOverrides.value(entry.groupKey));
+    const QString displayName = displayIdentity.displayName;
     QString category =
         classifyActivity(entry.groupKey, entry.appId, entry.appName, entry.path,
                          QString());
@@ -1628,8 +1628,8 @@ QVariantList UsageStatManager::allApps() const {
     QVariantMap item;
     item["groupKey"] = entry.groupKey;
     item["originalGroupKey"] = entry.groupKey;
-    item["effectiveGroupKey"] = effectiveKey;
-    item["customAppId"] = m_identityOverrides.value(entry.groupKey);
+    item["defaultDisplayName"] = defaultDisplayName;
+    item["customDisplayName"] = m_displayNameOverrides.value(entry.groupKey);
     item["appId"] = entry.appId;
     item["appName"] = entry.appName;
     item["name"] = displayName;
@@ -1646,7 +1646,7 @@ QVariantList UsageStatManager::allApps() const {
         adapterInputFromActivity(entry.appId, entry.appName, entry.path,
                                  QString());
     applyAdapterMetadata(
-        &item, adapterMetadataForIdentifier(effectiveKey, adapterInput),
+        &item, adapterMetadataForIdentifier(entry.groupKey, adapterInput),
         entry.path);
     result.append(item);
   }

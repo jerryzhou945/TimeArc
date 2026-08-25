@@ -157,6 +157,8 @@ function modelIdentity(row) {
 function modelDisplayName(row) {
     if (!row)
         return "";
+    if (row.customDisplayName && row.customDisplayName.length > 0)
+        return row.customDisplayName;
     if (row.adapterDisplayName && row.adapterDisplayName.length > 0)
         return row.adapterDisplayName;
     if (row.displayName && row.displayName.length > 0)
@@ -200,6 +202,8 @@ function englishDisplayName(row) {
 }
 
 function modelDisplayNameForLanguage(row, languageMode) {
+    if (row && row.customDisplayName && row.customDisplayName.length > 0)
+        return row.customDisplayName;
     return (languageMode === "en" || languageMode === "ja") ? englishDisplayName(row) : modelDisplayName(row);
 }
 

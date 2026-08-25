@@ -12,7 +12,7 @@ function rowKey(row) {
 
 function displayName(row) {
     if (!row) return "未知应用"
-    return row.adapterDisplayName || row.displayName || row.name || row.appName || "未知应用"
+    return row.customDisplayName || row.adapterDisplayName || row.displayName || row.name || row.appName || "未知应用"
 }
 
 function formatCompactDuration(seconds) {
@@ -30,6 +30,7 @@ function mergeRow(base, periodSeconds, lifetimeSeconds, percent) {
     for (var key in base) row[key] = base[key]
     row.groupKey = rowKey(base)
     row.displayName = displayName(base)
+    row.name = row.displayName
     row.periodSeconds = safeSeconds(periodSeconds)
     row.lifetimeSeconds = safeSeconds(lifetimeSeconds)
     row.percent = percent
@@ -63,6 +64,12 @@ function buildAppLibrary(periodApps, lifetimeApps, options) {
         var source = current || life
         var merged = mergeRow(source, currentSeconds, life.seconds,
                               totalPeriod > 0 ? Math.round(currentSeconds * 100 / totalPeriod) : 0)
+        var customDisplayName = (current && current.customDisplayName) || life.customDisplayName || ""
+        if (customDisplayName) {
+            merged.customDisplayName = customDisplayName
+            merged.displayName = customDisplayName
+            merged.name = customDisplayName
+        }
         merged.lastUsedUnixSec = safeSeconds(life.lastUsedUnixSec || source.lastUsedUnixSec)
         rows.push(merged)
         seen[lifeKey] = true

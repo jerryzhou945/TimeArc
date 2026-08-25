@@ -1,5 +1,10 @@
 # App Identity and Icon Stability Implementation Plan
 
+> **Correction (2026-08-25):** The editable value is a custom **display name**,
+> not an application ID. The ID-alias, validation, collision, and history-merge
+> steps below are superseded and must not be executed. The corrected behavior is
+> specified in `docs/superpowers/specs/2026-08-25-app-identity-icon-stability-design.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Keep statistics icons stable, force WeChat to use its main executable icon, and support reversible custom application IDs that regroup historical statistics.

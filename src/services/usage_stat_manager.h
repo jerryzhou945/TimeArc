@@ -103,8 +103,7 @@ class UsageStatManager : public QObject {
   Q_INVOKABLE void setReadFilters(bool autoClassify, bool gameClassify,
                                   bool mergeSimilar, bool hideTitles,
                                   const QStringList& hiddenKeys);
-  Q_INVOKABLE void setAppIdentityOverrides(const QVariantMap& overrides);
-  Q_INVOKABLE QVariantMap validateCustomAppId(const QString& value) const;
+  Q_INVOKABLE void setAppDisplayNameOverrides(const QVariantMap& overrides);
   // 逐项显隐选单（2B / G-HIDEAPP）：去重列出已采集到的 app，供设置页应用清单勾选。
   // 每项 {groupKey, name, appName, path, hidden}。忽略隐藏集做枚举（含被隐藏项，标 hidden），
   // 让用户能取消隐藏。只读自身记录，不开新数据路径。
@@ -138,7 +137,7 @@ signals:
   bool m_mergeSimilar = true;    // 关 → 多进程变体按 exe 细分（站点仍单列）
   bool m_hideTitles = false;     // 类默认不脱敏（保字节一致契约）；UI 默认开由 KV 启动推入
   QSet<QString> m_hiddenKeys;    // 逐项显隐：被排除出聚合的 group key 集
-  QHash<QString, QString> m_identityOverrides;  // 原始 group key -> 本地自定义 app:* ID
+  QHash<QString, QString> m_displayNameOverrides;  // 原始 group key -> 本地显示名称
   mutable int m_representativePathsGeneration = -1;
   mutable QHash<QString, QString> m_representativePaths;
 

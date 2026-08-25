@@ -90,11 +90,10 @@ Item {
     // appList = usageStatManager.allApps() 去重清单（onCompleted 拉一次，供应用管理勾选）。
     property var hiddenApps: []
     property var appList: []
-    property var appIdentityOverrides: ({})
+    property var appDisplayNameOverrides: ({})
     property string editingAppKey: ""
-    property string appIdDraft: ""
-    property string appIdError: ""
-    property string pendingMergeKey: ""
+    property string appDisplayNameDraft: ""
+    property string appDisplayNameError: ""
     // 应用管理 UI（#1 重设计）：搜索过滤 + 软上限折叠（默认显 appCap 个，可展开全部）。
     property string appSearchQuery: ""
     property bool appsExpanded: false
@@ -285,7 +284,7 @@ Item {
         notifyEnabled    = _getBool("notify_enabled", true)
         memoAutosave     = _getBool("memo_autosave", true)
         hiddenApps       = parseHiddenApps()
-        appIdentityOverrides = parseAppIdentityOverrides()
+        appDisplayNameOverrides = parseAppDisplayNameOverrides()
         pomodoroDuration = _getStr("pomodoro_duration", "25")
         pomodoroTitle    = _getStr("pomodoro_title", "专注一会儿")
         pomodoroCelebrate= _getBool("pomodoro_celebrate", true)
@@ -296,8 +295,8 @@ Item {
     // —— 读层过滤推入（2A 游戏/分类/合并 · 2B 显隐 · 2C 标题）——
     // 把本页开关推进 usageStatManager 读出层；只影响 UI 聚合，不写/不删 usage（G4/I1/I2）。
     function pushReadFilters() {
-        if (usageStatManager && usageStatManager.setAppIdentityOverrides)
-            usageStatManager.setAppIdentityOverrides(appIdentityOverrides)
+        if (usageStatManager && usageStatManager.setAppDisplayNameOverrides)
+            usageStatManager.setAppDisplayNameOverrides(appDisplayNameOverrides)
         if (usageStatManager && usageStatManager.setReadFilters)
             usageStatManager.setReadFilters(autoClassify, gameMode, mergeWindows,
                                             hideTitles, hiddenApps)
@@ -306,82 +305,58 @@ Item {
         try { var a = JSON.parse(_getStr("hidden_apps", "[]")); return Array.isArray(a) ? a : [] }
         catch (e) { return [] }
     }
-    function parseAppIdentityOverrides() {
+    function parseAppDisplayNameOverrides() {
         try {
-            var o = JSON.parse(_getStr("app_identity_overrides", "{}"))
+            var o = JSON.parse(_getStr("app_display_name_overrides", "{}"))
             return o && typeof o === "object" && !Array.isArray(o) ? o : ({})
         } catch (e) { return ({}) }
     }
-    function copyAppIdentityOverrides() {
+    function copyAppDisplayNameOverrides() {
         var copy = ({})
-        for (var key in appIdentityOverrides) copy[key] = appIdentityOverrides[key]
+        for (var key in appDisplayNameOverrides) copy[key] = appDisplayNameOverrides[key]
         return copy
     }
-    function beginEditAppIdentity(row) {
+    function beginEditAppDisplayName(row) {
         editingAppKey = row.originalGroupKey || row.groupKey || ""
-        appIdDraft = row.customAppId || row.effectiveGroupKey || row.groupKey || ""
-        appIdError = ""
-        pendingMergeKey = ""
+        appDisplayNameDraft = row.customDisplayName || row.defaultDisplayName
+                || AppVisual.modelDisplayName(row) || ""
+        appDisplayNameError = ""
     }
-    function hasIdentityCollision(rawKey, normalized) {
-        for (var key in appIdentityOverrides) {
-            if (key !== rawKey && appIdentityOverrides[key] === normalized) return true
-        }
-        for (var i = 0; i < appList.length; i++) {
-            var other = appList[i]
-            var otherRaw = other.originalGroupKey || other.groupKey || ""
-            if (otherRaw !== rawKey && otherRaw === normalized) return true
-        }
-        return false
-    }
-    function saveAppIdentity(rawKey, draft) {
-        if (!usageStatManager || !usageStatManager.validateCustomAppId) return
-        var validation = usageStatManager.validateCustomAppId(draft)
-        if (!validation.ok) {
-            appIdError = tr("请输入字母、数字、点、横线或下划线。")
-            pendingMergeKey = ""
+    function saveAppDisplayName(rawKey, draft) {
+        var displayName = ("" + draft).trim()
+        if (displayName.length === 0) {
+            appDisplayNameError = tr("显示名称不能为空。")
             return
         }
-        var normalized = validation.normalized
-        if (normalized === rawKey) {
-            restoreAppIdentity(rawKey)
-            return
-        }
-        if (hasIdentityCollision(rawKey, normalized) && pendingMergeKey !== rawKey) {
-            pendingMergeKey = rawKey
-            appIdError = tr("这个 ID 已被使用；再次点击保存将合并历史记录。")
-            return
-        }
-        var next = copyAppIdentityOverrides()
-        next[rawKey] = normalized
+        displayName = displayName.substring(0, 80)
+        var next = copyAppDisplayNameOverrides()
+        next[rawKey] = displayName
         if (!settingsRepository ||
-                !settingsRepository.setValue("app_identity_overrides", JSON.stringify(next))) {
-            appIdError = tr("保存失败，原设置未更改。")
+                !settingsRepository.setValue("app_display_name_overrides", JSON.stringify(next))) {
+            appDisplayNameError = tr("保存失败，原设置未更改。")
             return
         }
-        appIdentityOverrides = next
+        appDisplayNameOverrides = next
         editingAppKey = ""
-        appIdError = ""
-        pendingMergeKey = ""
+        appDisplayNameError = ""
         pushReadFilters()
         refreshAppList()
-        showToast("应用 ID 已保存")
+        showToast("应用显示名称已保存")
     }
-    function restoreAppIdentity(rawKey) {
-        var next = copyAppIdentityOverrides()
+    function restoreAppDisplayName(rawKey) {
+        var next = copyAppDisplayNameOverrides()
         delete next[rawKey]
         if (!settingsRepository ||
-                !settingsRepository.setValue("app_identity_overrides", JSON.stringify(next))) {
-            appIdError = tr("保存失败，原设置未更改。")
+                !settingsRepository.setValue("app_display_name_overrides", JSON.stringify(next))) {
+            appDisplayNameError = tr("保存失败，原设置未更改。")
             return
         }
-        appIdentityOverrides = next
+        appDisplayNameOverrides = next
         editingAppKey = ""
-        appIdError = ""
-        pendingMergeKey = ""
+        appDisplayNameError = ""
         pushReadFilters()
         refreshAppList()
-        showToast("已恢复默认应用 ID")
+        showToast("已恢复默认显示名称")
     }
     function isAppHidden(key) { return hiddenApps.indexOf(key) >= 0 }
     function setAppHidden(key, hidden) {
@@ -1556,13 +1531,12 @@ Item {
                                                             elide: Text.ElideRight
                                                         }
                                                         GhostBtn {
-                                                            label: editingIdentity ? "取消" : "编辑 ID"
+                                                            label: editingIdentity ? "取消" : "编辑名称"
                                                             onTapped: {
                                                                 if (editingIdentity) {
                                                                     root.editingAppKey = ""
-                                                                    root.appIdError = ""
-                                                                    root.pendingMergeKey = ""
-                                                                } else root.beginEditAppIdentity(modelData)
+                                                                    root.appDisplayNameError = ""
+                                                                } else root.beginEditAppDisplayName(modelData)
                                                             }
                                                         }
                                                         GlassSwitch {
@@ -1591,29 +1565,28 @@ Item {
                                                             GlassTextField {
                                                                 Layout.fillWidth: true
                                                                 style: ml
-                                                                placeholderText: root.tr("自定义应用 ID")
-                                                                text: editingIdentity ? root.appIdDraft : ""
+                                                                placeholderText: root.tr("自定义显示名称")
+                                                                text: editingIdentity ? root.appDisplayNameDraft : ""
                                                                 onTextEdited: function (t) {
-                                                                    root.appIdDraft = t
-                                                                    root.appIdError = ""
-                                                                    root.pendingMergeKey = ""
+                                                                    root.appDisplayNameDraft = t
+                                                                    root.appDisplayNameError = ""
                                                                 }
                                                             }
                                                             GhostBtn {
-                                                                label: root.pendingMergeKey === rawAppKey ? "确认合并" : "保存"
+                                                                label: "保存"
                                                                 primary: true
-                                                                onTapped: root.saveAppIdentity(rawAppKey, root.appIdDraft)
+                                                                onTapped: root.saveAppDisplayName(rawAppKey, root.appDisplayNameDraft)
                                                             }
                                                             GhostBtn {
-                                                                visible: (modelData.customAppId || "").length > 0
-                                                                label: "恢复默认"
-                                                                onTapped: root.restoreAppIdentity(rawAppKey)
+                                                                visible: (modelData.customDisplayName || "").length > 0
+                                                                label: "恢复默认名称"
+                                                                onTapped: root.restoreAppDisplayName(rawAppKey)
                                                             }
                                                         }
                                                         Text {
-                                                            visible: root.appIdError.length > 0
+                                                            visible: root.appDisplayNameError.length > 0
                                                             Layout.fillWidth: true
-                                                            text: root.appIdError
+                                                            text: root.appDisplayNameError
                                                             color: ml.dangerText; font.pixelSize: 10
                                                             wrapMode: Text.Wrap
                                                         }
