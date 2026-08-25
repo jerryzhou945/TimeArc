@@ -7,6 +7,7 @@ omitted here to preserve the harness line budget.
 
 | Date (UTC) | Lvl | Topic | Report |
 |---|---|---|---|
+| 2026-08-25T04:16:01Z | L2 | main-fetch-head... | Non-escalated git fetch could not write .git/FETCH_HEAD b... | [report](errors/20260825-041601-B-main-fetch-head-denied.md) |
 | 2026-08-25T04:14:47Z | L2 | commit-after-di... | PowerShell command sequencing allowed git commit to run a... | [report](errors/20260825-041447-B-commit-after-diff-check.md) |
 | 2026-08-25T04:13:47Z | L2 | merged-dev-inde... | Merged-dev verification errors pushed the rolling journal... | [report](errors/20260825-041347-B-merged-dev-index-budget.md) |
 | 2026-08-25T04:12:47Z | L3 | release-ui-clos... | TimeArc had no CloseMainWindow handle while locking the r... | [report](errors/20260825-041247-B-release-ui-close-window.md) |
@@ -95,6 +96,5 @@ omitted here to preserve the harness line budget.
 | 2026-08-24T20:54:44Z | L1 | harness-line-bu... | Pre-commit harness audit found INDEX.md at 110 lines and ... | [report](errors/20260824-205444-C-harness-line-budget.md) |
 | 2026-08-24T20:50:40Z | L3 | win32-enumwindo... | A diagnostic EnumWindows PowerShell one-liner had an unma... | [report](errors/20260824-205040-C-win32-enumwindows-powershell-syntax.md) |
 | 2026-08-24T20:50:05Z | L3 | tasklist-access... | tasklist /v could not inspect packaged Codex windows unde... | [report](errors/20260824-205005-C-tasklist-access-denied.md) |
-| 2026-08-24T20:49:46Z | L3 | codex-window-ac... | WScript AppActivate('Codex') returned false because the p... | [report](errors/20260824-204946-C-codex-window-activation-title.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L3 | omitted | Older L3 rows omitted from INDEX; see `errors.jsonl`. | |
