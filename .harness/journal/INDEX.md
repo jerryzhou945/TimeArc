@@ -7,6 +7,7 @@ omitted here to preserve the harness line budget.
 
 | Date (UTC) | Lvl | Topic | Report |
 |---|---|---|---|
+| 2026-08-25T05:43:02Z | L1 | post-merge-icon... | Post-merge native icon verification used a positional EXE... | [report](errors/20260825-054302-C-post-merge-icon-test-cli.md) |
 | 2026-08-25T05:35:37Z | L2 | native-icon-ind... | Windows icon debug reports expanded the rolling journal I... | [report](errors/20260825-053537-C-native-icon-index-budget.md) |
 | 2026-08-25T05:28:22Z | L1 | windows-native-... | cmake --build exited 1 | [report](errors/20260825-052822-C-windows-native-icon-build.md) |
 | 2026-08-25T05:27:41Z | L3 | build-wrapper-d... | The first wrapped build omitted --track C, so build.py au... | [report](errors/20260825-052741-C-build-wrapper-default-track.md) |
