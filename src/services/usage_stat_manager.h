@@ -12,7 +12,10 @@
 
 #include <functional>
 
+#include "services/categorization/matcher.h"
+
 class QSqlDatabase;
+class CategorizationManager;
 
 // 自动使用统计服务。
 //
@@ -33,6 +36,10 @@ class UsageStatManager : public QObject {
   int monthSoftwareMinutes() const;
   int yearSoftwareMinutes() const;
   int allSoftwareMinutes() const;
+
+  // 分类规则表由 CategorizationManager 持有；读层只消费它，规则变更会清缓存并
+  // 让各页重算（类别永远是读出时算的，所以编辑规则对全部历史即时生效）。
+  void setCategorizationManager(CategorizationManager* manager);
 
   Q_INVOKABLE void refresh();
   // 数据代际：m_records 真实变化（全量重读或增量追加）时自增。
@@ -109,6 +116,10 @@ class UsageStatManager : public QObject {
   // 让用户能取消隐藏。只读自身记录，不开新数据路径。
   Q_INVOKABLE QVariantList allApps() const;
 
+  // 采集到的**原始应用身份**（app_id / display_name / path），按 app_id 去重。
+  // 刻意不经过规则表：分类规则的播种要用它，若这里再去问 matcher 就成了环。
+  Q_INVOKABLE QVariantList recordedAppIdentities() const;
+
 signals:
   void usageStatsChanged();
 
@@ -137,7 +148,10 @@ signals:
   bool m_mergeSimilar = true;    // 关 → 多进程变体按 exe 细分（站点仍单列）
   bool m_hideTitles = false;     // 类默认不脱敏（保字节一致契约）；UI 默认开由 KV 启动推入
   QSet<QString> m_hiddenKeys;    // 逐项显隐：被排除出聚合的 group key 集
-  QHash<QString, QString> m_displayNameOverrides;  // 原始 group key -> 本地显示名称
+  QHash<QString, QString> m_displayNameOverrides;
+  CategorizationManager* m_categorization = nullptr;
+  mutable QHash<QString, TimeArc::Categorization::Resolution> m_resolutionCache;
+  mutable int m_resolutionGeneration = -1;  // 原始 group key -> 本地显示名称
   mutable int m_representativePathsGeneration = -1;
   mutable QHash<QString, QString> m_representativePaths;
 
@@ -151,6 +165,26 @@ signals:
   // 读层有效 group key：按当前过滤标志返回记录的有效分组键（合并关→exe 细键），
   // 被隐藏的 app 返回空串（调用方据此跳过）。
   QString effectiveGroupKey(const UsageRecord& record) const;
+
+  const TimeArc::Categorization::Matcher& matcher() const;
+  TimeArc::Categorization::Resolution resolveActivity(
+      const QString& appId, const QString& appName,
+      const QString& windowTitle) const;
+  QString activityGroupKey(const QString& appId, const QString& appName,
+                           const QString& path,
+                           const QString& windowTitle) const;
+  QString activityDisplayName(const QString& groupKey, const QString& appId,
+                              const QString& appName,
+                              const QString& path) const;
+  QString classifyActivity(const QString& groupKey, const QString& appId,
+                           const QString& appName, const QString& path,
+                           const QString& windowTitle) const;
+  void applyRuleMetadata(QVariantMap* item, const QString& ruleId,
+                         const QString& path) const;
+  QStringList ruleIconColors(const QString& ruleId, const QString& path) const;
+  QSet<QString> focusCategories() const;
+  bool isDeprioritizedCategory(const QString& category) const;
+  QString uiLanguage() const;
   QString representativePathForGroup(const QString& groupKey) const;
   void rebuildRepresentativePaths() const;
   QVariantList aggregateSoftwareForRange(const QString& range,

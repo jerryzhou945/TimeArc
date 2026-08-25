@@ -142,6 +142,7 @@ Item {
         else if (capturingHotkey === which) capturingHotkey = ""
     }
 
+
     function tr(source) { return I18n.t(languageMode, source) }
     function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
     onLanguageModeChanged: refreshOverview()
@@ -369,8 +370,291 @@ Item {
         _setStr("hidden_apps", JSON.stringify(a))
         pushReadFilters()
     }
+
+    // 分类规则（docs/categorization-redesign.md）：规则表是唯一来源，UI 只读它 + 改它。
+    // rulesTick 让下面这些只读属性在规则变更时重算（管理器发 rulesChanged）。
+    property int rulesTick: 0
+    property string titleRuleAppKey: ""        // 正在新建标题规则的应用行 key
+    property var titleRuleDraft: ({})
+    property string expandedRuleCategory: ""
+    property bool newCategoryOpen: false
+    property string newCategoryName: ""
+    property bool appPickerOpen: false
+    property string appPickerQuery: ""
+    readonly property var appPickerResults: {
+        var q = ("" + appPickerQuery).toLowerCase()
+        var out = []
+        for (var i = 0; i < appList.length && out.length < 14; i++) {
+            var row = appList[i]
+            var text = (AppVisual.modelDisplayName(row) + " " + (row.appName || "")).toLowerCase()
+            if (q.length === 0 || text.indexOf(q) >= 0) out.push(row)
+        }
+        return out
+    }
+    property string editingRuleId: ""
+    property bool newRuleOpen: false
+    property var ruleDraft: ({})
+    property string ruleDraftError: ""
+    readonly property bool hasCategorization: (typeof categorizationManager !== "undefined") && !!categorizationManager
+    readonly property var categoryList: {
+        rulesTick
+        return hasCategorization ? categorizationManager.categories() : []
+    }
+    readonly property var ruleGroups: {
+        rulesTick
+        return hasCategorization ? categorizationManager.rulesGroupedByCategory() : []
+    }
+    readonly property bool rulesCustomized: {
+        rulesTick
+        return hasCategorization ? categorizationManager.customized : false
+    }
+    readonly property int newDefaultsCount: {
+        rulesTick
+        return hasCategorization ? categorizationManager.newDefaultsCount : 0
+    }
+    readonly property string rulesLoadError: {
+        rulesTick
+        return hasCategorization ? categorizationManager.loadError() : ""
+    }
+
+    function categoryLabelOf(categoryId) {
+        if (!categoryId) return ""
+        return hasCategorization ? categorizationManager.categoryLabel(categoryId) : categoryId
+    }
+    function categoryColorOf(categoryId) {
+        for (var i = 0; i < categoryList.length; i++)
+            if (categoryList[i].id === categoryId && categoryList[i].color)
+                return categoryList[i].color
+        return AppVisual.categoryColor(categoryId, "", root.nightMode)
+    }
+    // 这一行改的是「这个应用」的类别。命中的规则要是还覆盖别的应用（例如共用的
+    // 浏览器规则），就自动收窄成只针对本应用的规则——从应用行出发的编辑不该悄悄
+    // 改动别的应用。
+    function ruleBreadthFor(row) {
+        if (!hasCategorization) return 0
+        var info = categorizationManager.explain(row.appId || "", row.appName || "", "")
+        if (!info.matched) return 0
+        return categorizationManager.matchCount(info.ruleId, root.appList)
+    }
+    function assignAppCategory(row, categoryId) {
+        if (!hasCategorization) return
+        var narrow = ruleBreadthFor(row) > 1
+        var ok = categorizationManager.assignCategory(row.appId || "", row.appName || "",
+                                                     "", categoryId, narrow)
+        if (ok) {
+            root.refreshAppList()
+            root.showToast(root.tr("已归入") + " " + root.categoryLabelOf(categoryId))
+        } else {
+            root.showToast(root.tr("分类未能保存"))
+        }
+    }
+
+    // 这个应用归哪条规则管——用户问过「规则应该出现在 App Management 里」。
+    function appRuleLabel(row) {
+        rulesTick
+        if (!hasCategorization || !row) return root.tr("尚无规则")
+        var r = categorizationManager.appRuleFor(row.appId || "", row.appName || "")
+        return (r && r.label && r.label.length > 0) ? r.label : root.tr("尚无规则")
+    }
+    // 标题规则：绑在一个应用上，所以不需要额外的生效范围选择。
+    function titleRulesFor(row) {
+        rulesTick
+        if (!hasCategorization || !row) return []
+        return categorizationManager.titleRulesForApp(row.appId || "", row.appName || "")
+    }
+    function beginTitleRule(appKey, categoryId) {
+        root.titleRuleDraft = { name: "", titles: "", category: categoryId ? categoryId : "other" }
+        root.titleRuleAppKey = appKey
+    }
+    function saveTitleRule(row) {
+        if (!hasCategorization) return
+        var d = root.titleRuleDraft
+        var titles = []
+        var parts = ("" + (d.titles || "")).split(",")
+        for (var i = 0; i < parts.length; i++) {
+            var t = parts[i].trim()
+            if (t.length > 0) titles.push(t)
+        }
+        if (titles.length === 0) { root.showToast(root.tr("请先填写标题匹配")); return }
+        var id = categorizationManager.addTitleRuleForApp(row.appId || "", row.appName || "",
+                                                          d.name || "", titles, d.category)
+        if (("" + id).length > 0) {
+            root.titleRuleAppKey = ""
+            root.refreshAppList()
+            root.showToast(root.tr("规则已保存"))
+        } else {
+            root.showToast(root.tr("规则未能保存"))
+        }
+    }
+    function deleteRuleById(ruleId) {
+        if (!hasCategorization) return
+        if (categorizationManager.deleteRule(ruleId)) {
+            root.refreshAppList()
+            root.showToast(root.tr("已删除该规则"))
+        }
+    }
+    function restoreDefaultRules() {
+        if (!hasCategorization) return
+        if (categorizationManager.restoreAllDefaults()) {
+            root.editingRuleId = ""
+            root.newRuleOpen = false
+            root.refreshAppList()
+            root.showToast(root.tr("已恢复默认规则"))
+        }
+    }
+    // QML 只在属性**值**变化时发信号。`var d = obj; d.k = v; obj = d` 把同一个
+    // 对象引用赋回去 → 不算变化 → 绑定不重算（表现为点了没反应）。所以每次改草稿
+    // 都返回一个新对象。
+    function withField(obj, key, value) {
+        var out = {}
+        for (var k in obj) out[k] = obj[k]
+        out[key] = value
+        return out
+    }
+    function beginNewCategory() {
+        root.newCategoryName = ""
+        root.newCategoryOpen = true
+    }
+    function saveNewCategory() {
+        if (!hasCategorization) return
+        var id = categorizationManager.addCategory(root.newCategoryName, "")
+        if (("" + id).length > 0) {
+            root.newCategoryOpen = false
+            root.newCategoryName = ""
+            root.showToast(root.tr("已新建类别"))
+        } else {
+            root.showToast(root.tr("类别未能保存"))
+        }
+    }
+    function askDeleteCategory(categoryId, label, ruleCount) {
+        root.askConfirm("删除类别",
+                        root.sentence("confirmDeleteCategory", {name: label, count: ruleCount},
+                                      "删除「" + label + "」后，它的 " + ruleCount + " 条规则会归到「其他」，不会被一起删除。"),
+                        "删除", true,
+                        function () { root.deleteCategoryById(categoryId) })
+    }
+    function askDeleteRule(ruleId, label) {
+        root.askConfirm("删除规则",
+                        root.sentence("confirmDeleteRule", {name: label},
+                                      "删除「" + label + "」后，命中它的活动会重新按其它规则归类。"),
+                        "删除", true,
+                        function () { root.deleteRuleById(ruleId) })
+    }
+    function askRestoreDefaultRules() {
+        root.askConfirm("恢复默认规则",
+                        "这会丢弃你对规则和类别的全部修改，并按当前已采集到的应用重新生成规则表。历史记录不受影响。",
+                        "恢复", true,
+                        function () { root.restoreDefaultRules() })
+    }
+    function deleteCategoryById(categoryId) {
+        if (!hasCategorization) return
+        if (categorizationManager.deleteCategory(categoryId)) {
+            root.refreshAppList()
+            root.showToast(root.tr("已删除该类别"))
+        } else {
+            root.showToast(root.tr("该类别无法删除"))
+        }
+    }
+    // GlassTextField.text 是内部 TextInput 的 alias：用户第一次输入就会摧毁父级
+    // 绑定，之后再改 ruleDraft 也不会回到输入框。所以打开编辑器时**显式写入**。
+    function _syncRuleFields() {
+        if (typeof ruleNameField !== "undefined" && ruleNameField)
+            ruleNameField.text = root.ruleDraft.name || ""
+        if (typeof ruleTitleField !== "undefined" && ruleTitleField)
+            ruleTitleField.text = root.ruleDraft.title || ""
+    }
+    function beginNewRule() {
+        root.ruleDraft = { name: "", category: (categoryList.length > 0 ? categoryList[0].id : "other"),
+                           appNeedle: "", appLabel: "", appIcon: "", title: "" }
+        root.ruleDraftError = ""
+        root.editingRuleId = ""
+        root.appPickerQuery = ""
+        root.newRuleOpen = true
+        root._syncRuleFields()
+        root.appPickerOpen = true
+    }
+    function beginEditRule(rule) {
+        // 出厂规则的 name 是空的（只有用户改名才写），可读名字在 label 里；
+        // 直接回填 label，用户看到的就是他刚点的那一行。
+        var appLabel = ""
+        var appIcon = ""
+        if ((rule.app || []).length > 0) {
+            appLabel = rule.label && rule.label.length > 0
+                       ? rule.label : (rule.app || []).join(", ")
+            appIcon = rule.icon || ""
+        }
+        root.ruleDraft = { name: rule.name && rule.name.length > 0 ? rule.name : (rule.label || ""),
+                           category: rule.category,
+                           appNeedle: "",            // 不重选应用就保留原有匹配
+                           appLabel: appLabel,
+                           appIcon: appIcon,
+                           title: (rule.title || []).join(", ") }
+        root.ruleDraftError = ""
+        root.newRuleOpen = false
+        root.appPickerOpen = false
+        root.appPickerQuery = ""
+        root.editingRuleId = rule.id
+        root._syncRuleFields()
+    }
+    // 选应用而不是敲字符串：规则绑定的是一个具体应用，needle 由 C++ 归一化生成。
+    function pickRuleApp(row) {
+        if (!hasCategorization) return
+        var next = root.withField(root.ruleDraft, "appNeedle",
+                                  categorizationManager.appNeedleFor(row.appId || "", row.appName || ""))
+        next = root.withField(next, "appLabel",
+                              AppVisual.modelDisplayNameForLanguage(row, root.languageMode))
+        next = root.withField(next, "appIcon", AppVisual.modelIconSource(row))
+        root.ruleDraft = next
+        root.appPickerOpen = false
+    }
+    function ruleDraftFields() {
+        var toList = function (text) {
+            var out = []
+            var parts = ("" + text).split(",")
+            for (var i = 0; i < parts.length; i++) {
+                var t = parts[i].trim()
+                if (t.length > 0) out.push(t)
+            }
+            return out
+        }
+        var fields = { name: root.ruleDraft.name, category: root.ruleDraft.category,
+                       title: toList(root.ruleDraft.title) }
+        // 只有重新选过应用才覆盖 app；否则保留原规则自己的匹配（出厂规则带别名列表）。
+        if (("" + (root.ruleDraft.appNeedle || "")).length > 0)
+            fields.app = [root.ruleDraft.appNeedle]
+        return fields
+    }
+    // 一条规则必须绑定一个应用：标题匹配因此天然有范围，不需要额外的范围选择。
+    readonly property bool ruleDraftValid: {
+        rulesTick
+        var f = ruleDraft
+        if (!f || !f.category) return false
+        var boundApp = ("" + (f.appNeedle || "")).length > 0 || ("" + (f.appLabel || "")).length > 0
+        return boundApp
+    }
+    function saveRuleDraft() {
+        if (!hasCategorization) return
+        var fields = ruleDraftFields()
+        var problems = categorizationManager.lintDraft(fields)
+        if (problems.length > 0) { root.ruleDraftError = problems.join("；"); return }
+        var ok = false
+        if (root.editingRuleId.length > 0) ok = categorizationManager.updateRule(root.editingRuleId, fields)
+        else ok = ("" + categorizationManager.addRule(fields)).length > 0
+        if (!ok) { root.ruleDraftError = root.tr("规则未能保存"); return }
+        root.ruleDraftError = ""
+        root.editingRuleId = ""
+        root.newRuleOpen = false
+        root.refreshAppList()
+        root.showToast(root.tr("规则已保存"))
+    }
+
     function refreshAppList() {
         appList = (usageStatManager && usageStatManager.allApps) ? usageStatManager.allApps() : []
+    }
+
+    Connections {
+        target: (typeof categorizationManager !== "undefined") ? categorizationManager : null
+        function onRulesChanged() { root.rulesTick++ }
     }
 
     // 存储概览（G-STORAGE）：只读文件字节 + 记录数。
@@ -878,6 +1162,7 @@ Item {
     Keys.onEscapePressed: {
         // Esc 先收起打开的弹层（许可全文 / 二次确认），都没开才返回首页。
         if (licenseViewer.shown) licenseViewer.shown = false
+        else if (root.appPickerOpen) root.appPickerOpen = false
         else if (confirmCard.shown) confirmCard.shown = false
         else root.requestNavigate("memorylake")
     }
@@ -1322,7 +1607,7 @@ Item {
                             tabKey: "tracking"
 
                             SettingsCard {
-                                badge: "◉"
+                                badge: "◉"; wide: true
                                 cardTitle: "追踪范围"
                                 cardDesc: "决定哪些应用会进入首页、时间图和月度记忆回顾。"
                                 keywords: "追踪 应用 游戏 app 使用时间 空闲"
@@ -1413,30 +1698,6 @@ Item {
                                 }
                             }
 
-                            SettingsCard {
-                                badge: "☷"
-                                cardTitle: "分类规则"
-                                cardDesc: "自动给软件分配游戏、创作、社交和工具等标签。"
-                                keywords: "分类 规则 自动归类 合并"
-
-                                SettingRow {
-                                    rowTitle: "自动分类"
-                                    rowSub: "根据应用名称和使用模式判断类别。"
-                                    GlassSwitch {
-                                        style: ml; checked: root.autoClassify
-                                        onToggled: function (c) { root.autoClassify = c; root._setBool("auto_classify", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
-                                    }
-                                }
-                                SettingRow {
-                                    rowTitle: "合并同类窗口"
-                                    rowSub: "浏览器标签页会合并为 Chrome。"
-                                    GlassSwitch {
-                                        style: ml; checked: root.mergeWindows
-                                        onToggled: function (c) { root.mergeWindows = c; root._setBool("merge_windows", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
-                                    }
-                                }
-                            }
-
                             // 应用管理（#1 重设计）：整宽卡 + 搜索 + 2 列紧凑芯片 + 计数 + 软折叠，
                             // 取代原先单列长清单（解决右栏被几十个应用撑高、栅格失衡）。
                             SettingsCard {
@@ -1487,18 +1748,22 @@ Item {
                                             model: root.shownApps
                                             delegate: Rectangle {
                                                 required property var modelData
+                                                readonly property var appRow: modelData
                                                 readonly property string appIconSource: AppVisual.modelIconSource(modelData)
                                                 readonly property string rawAppKey: modelData.originalGroupKey || modelData.groupKey || ""
-                                                readonly property bool editingIdentity: root.editingAppKey === rawAppKey
+                                                readonly property bool editing: root.editingAppKey === rawAppKey
+                                                readonly property string appCategory: AppVisual.modelCategory(modelData) || "other"
                                                 Layout.fillWidth: true
-                                                Layout.preferredHeight: editingIdentity ? 146 : 52
+                                                Layout.preferredHeight: editing ? (52 + editPanel.implicitHeight + 10) : 52
                                                 radius: 8
                                                 color: ml.calSunkBg
                                                 border.width: 1; border.color: ml.cellHair
+
                                                 ColumnLayout {
                                                     anchors.fill: parent
                                                     anchors.margins: 10
                                                     spacing: 8
+
                                                     RowLayout {
                                                         Layout.fillWidth: true
                                                         spacing: 10
@@ -1530,13 +1795,36 @@ Item {
                                                             color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold
                                                             elide: Text.ElideRight
                                                         }
+                                                        Rectangle {
+                                                            Layout.alignment: Qt.AlignVCenter
+                                                            height: 22; width: rowCatText.implicitWidth + 24; radius: 11
+                                                            color: ml.calGhostBg
+                                                            Row {
+                                                                anchors.centerIn: parent
+                                                                spacing: 6
+                                                                Rectangle {
+                                                                    width: 7; height: 7; radius: 4
+                                                                    anchors.verticalCenter: parent.verticalCenter
+                                                                    color: root.categoryColorOf(appCategory)
+                                                                }
+                                                                Text {
+                                                                    id: rowCatText
+                                                                    anchors.verticalCenter: parent.verticalCenter
+                                                                    text: root.categoryLabelOf(appCategory)
+                                                                    color: ml.textSecondary; font.pixelSize: 11
+                                                                }
+                                                            }
+                                                        }
                                                         GhostBtn {
-                                                            label: editingIdentity ? "取消" : "编辑名称"
+                                                            label: editing ? "完成" : "编辑"
                                                             onTapped: {
-                                                                if (editingIdentity) {
+                                                                if (editing) {
                                                                     root.editingAppKey = ""
                                                                     root.appDisplayNameError = ""
-                                                                } else root.beginEditAppDisplayName(modelData)
+                                                                } else {
+                                                                    root.beginEditAppDisplayName(modelData)
+                                                                    root.titleRuleAppKey = ""
+                                                                }
                                                             }
                                                         }
                                                         GlassSwitch {
@@ -1549,16 +1837,28 @@ Item {
                                                             }
                                                         }
                                                     }
+
+                                                    // 一个编辑面板同时管名称、类别和这个应用的标题规则。
                                                     ColumnLayout {
-                                                        visible: editingIdentity
+                                                        id: editPanel
+                                                        visible: editing
                                                         Layout.fillWidth: true
-                                                        spacing: 5
+                                                        spacing: 8
+
                                                         Text {
                                                             Layout.fillWidth: true
                                                             text: root.tr("原始 ID") + "  " + rawAppKey
                                                             color: ml.textTertiary; font.pixelSize: 10
                                                             elide: Text.ElideMiddle
                                                         }
+                                                        Text {
+                                                            Layout.fillWidth: true
+                                                            text: root.tr("规则") + "  " + root.appRuleLabel(appRow)
+                                                            color: ml.textTertiary; font.pixelSize: 10
+                                                            elide: Text.ElideRight
+                                                        }
+
+                                                        Text { text: root.tr("名称"); color: ml.textTertiary; font.pixelSize: 11 }
                                                         RowLayout {
                                                             Layout.fillWidth: true
                                                             spacing: 7
@@ -1566,7 +1866,7 @@ Item {
                                                                 Layout.fillWidth: true
                                                                 style: ml
                                                                 placeholderText: root.tr("自定义显示名称")
-                                                                text: editingIdentity ? root.appDisplayNameDraft : ""
+                                                                text: editing ? root.appDisplayNameDraft : ""
                                                                 onTextEdited: function (t) {
                                                                     root.appDisplayNameDraft = t
                                                                     root.appDisplayNameError = ""
@@ -1590,6 +1890,170 @@ Item {
                                                             color: ml.dangerText; font.pixelSize: 10
                                                             wrapMode: Text.Wrap
                                                         }
+
+                                                        Text { text: root.tr("类别"); color: ml.textTertiary; font.pixelSize: 11 }
+                                                        Flow {
+                                                            Layout.fillWidth: true
+                                                            spacing: 6
+                                                            Repeater {
+                                                                model: root.categoryList
+                                                                delegate: Rectangle {
+                                                                    required property var modelData
+                                                                    readonly property bool active: modelData.id === appCategory
+                                                                    height: 26
+                                                                    width: catChipText.implicitWidth + 30
+                                                                    radius: 13
+                                                                    color: active ? ml.accentSoft : ml.calGhostBg
+                                                                    border.width: 1
+                                                                    border.color: active ? ml.aqua : ml.cellHair
+                                                                    Row {
+                                                                        anchors.centerIn: parent
+                                                                        spacing: 6
+                                                                        Rectangle {
+                                                                            width: 7; height: 7; radius: 4
+                                                                            anchors.verticalCenter: parent.verticalCenter
+                                                                            color: root.categoryColorOf(modelData.id)
+                                                                        }
+                                                                        Text {
+                                                                            id: catChipText
+                                                                            anchors.verticalCenter: parent.verticalCenter
+                                                                            text: modelData.label
+                                                                            color: ml.textSecondary; font.pixelSize: 11
+                                                                        }
+                                                                    }
+                                                                    MouseArea {
+                                                                        anchors.fill: parent
+                                                                        cursorShape: Cursor.button()
+                                                                        onClicked: root.assignAppCategory(appRow, modelData.id)
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // 标题规则：同一个应用里的不同内容分到不同类别（浏览器里的 YouTube 等）。
+                                                        RowLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: 8
+                                                            Text {
+                                                                Layout.fillWidth: true
+                                                                text: root.tr("窗口标题规则")
+                                                                color: ml.textTertiary; font.pixelSize: 11
+                                                            }
+                                                            GhostBtn {
+                                                                label: "新建标题规则"
+                                                                onTapped: root.beginTitleRule(rawAppKey, appCategory)
+                                                            }
+                                                        }
+                                                        Text {
+                                                            Layout.fillWidth: true
+                                                            visible: root.titleRulesFor(appRow).length === 0 && root.titleRuleAppKey !== rawAppKey
+                                                            text: root.tr("标题规则把同一个应用里的不同内容分到不同类别。")
+                                                            color: ml.textTertiary; font.pixelSize: 10
+                                                            wrapMode: Text.Wrap
+                                                        }
+                                                        Repeater {
+                                                            model: root.titleRulesFor(appRow)
+                                                            delegate: Rectangle {
+                                                                required property var modelData
+                                                                Layout.fillWidth: true
+                                                                Layout.preferredHeight: 40
+                                                                radius: 8
+                                                                color: ml.calGhostBg
+                                                                opacity: modelData.enabled ? 1 : 0.5
+                                                                RowLayout {
+                                                                    anchors.fill: parent
+                                                                    anchors.margins: 9
+                                                                    spacing: 8
+                                                                    Rectangle {
+                                                                        width: 7; height: 7; radius: 4
+                                                                        Layout.alignment: Qt.AlignVCenter
+                                                                        color: root.categoryColorOf(modelData.category)
+                                                                    }
+                                                                    ColumnLayout {
+                                                                        Layout.fillWidth: true
+                                                                        spacing: 0
+                                                                        Text {
+                                                                            Layout.fillWidth: true
+                                                                            text: modelData.label
+                                                                            color: ml.textPrimary; font.pixelSize: 11
+                                                                            elide: Text.ElideRight
+                                                                        }
+                                                                        Text {
+                                                                            Layout.fillWidth: true
+                                                                            text: root.tr("标题包含") + " " + (modelData.title || []).join(", ")
+                                                                            color: ml.textTertiary; font.pixelSize: 10
+                                                                            elide: Text.ElideRight
+                                                                        }
+                                                                    }
+                                                                    Text {
+                                                                        text: root.categoryLabelOf(modelData.category)
+                                                                        color: ml.textSecondary; font.pixelSize: 11
+                                                                    }
+                                                                    IconBtn {
+                                                                        glyph: "\u2715"
+                                                                        hint: "删除规则"
+                                                                        danger: true
+                                                                        Layout.alignment: Qt.AlignVCenter
+                                                                        onTapped: root.askDeleteRule(modelData.id, modelData.label)
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        ColumnLayout {
+                                                            visible: root.titleRuleAppKey === rawAppKey
+                                                            Layout.fillWidth: true
+                                                            spacing: 6
+                                                            GlassTextField {
+                                                                Layout.fillWidth: true; style: ml
+                                                                placeholderText: root.tr("规则名称")
+                                                                // text 是内部 TextInput 的 alias：用户一敲键盘绑定就没了，
+                                                                // 所以打开表单时显式回填，不靠绑定。
+                                                                onVisibleChanged: if (visible) text = (root.titleRuleDraft.name || "")
+                                                                onTextEdited: function (t) { root.titleRuleDraft = root.withField(root.titleRuleDraft, "name", t) }
+                                                            }
+                                                            GlassTextField {
+                                                                Layout.fillWidth: true; style: ml
+                                                                placeholderText: root.tr("标题包含，逗号分隔")
+                                                                onVisibleChanged: if (visible) text = (root.titleRuleDraft.titles || "")
+                                                                onTextEdited: function (t) { root.titleRuleDraft = root.withField(root.titleRuleDraft, "titles", t) }
+                                                            }
+                                                            Flow {
+                                                                Layout.fillWidth: true
+                                                                spacing: 6
+                                                                Repeater {
+                                                                    model: root.categoryList
+                                                                    delegate: Rectangle {
+                                                                        required property var modelData
+                                                                        readonly property bool picked: root.titleRuleDraft.category === modelData.id
+                                                                        height: 24; width: trChip.implicitWidth + 24; radius: 12
+                                                                        color: picked ? ml.accentSoft : ml.calGhostBg
+                                                                        border.width: 1; border.color: picked ? ml.aqua : ml.cellHair
+                                                                        Text {
+                                                                            id: trChip
+                                                                            anchors.centerIn: parent
+                                                                            text: modelData.label
+                                                                            color: ml.textSecondary; font.pixelSize: 11
+                                                                        }
+                                                                        MouseArea {
+                                                                            anchors.fill: parent
+                                                                            cursorShape: Cursor.button()
+                                                                            onClicked: root.titleRuleDraft = root.withField(root.titleRuleDraft, "category", modelData.id)
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            RowLayout {
+                                                                Layout.fillWidth: true
+                                                                spacing: 8
+                                                                Item { Layout.fillWidth: true }
+                                                                GhostBtn { label: "取消"; onTapped: root.titleRuleAppKey = "" }
+                                                                GhostBtn {
+                                                                    label: "保存"; primary: true
+                                                                    onTapped: root.saveTitleRule(appRow)
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1600,6 +2064,353 @@ Item {
                                         visible: root.appSearchQuery.length === 0 && root.filteredApps.length > root.appCap
                                         label: root.appsExpanded ? "收起" : root.sentence("showAllApps", {count: root.filteredApps.length}, "显示全部 " + root.filteredApps.length + " 个应用")
                                         onTapped: root.appsExpanded = !root.appsExpanded
+                                    }
+                                }
+                            }
+
+                            // 规则表：按类别分组，因为用户真正想问的是「我的 Focus 里都算了什么」。
+                            // 一条规则 = 名称 + 一个应用 + 若干标题匹配 + 一个类别。导入/导出不在这里。
+                            SettingsCard {
+                                badge: "▤"; wide: true
+                                cardTitle: "分类规则"
+                                cardDesc: "编辑、停用、新建规则与类别。类别在读出时计算，改动对全部历史即时生效。"
+                                keywords: "规则 分类 类别 category rule 恢复默认"
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 10
+
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        visible: root.rulesLoadError.length > 0
+                                        Layout.preferredHeight: 40
+                                        radius: 8
+                                        color: ml.calSunkBg
+                                        border.width: 1; border.color: ml.cellHair
+                                        RowLayout {
+                                            anchors.fill: parent; anchors.margins: 10; spacing: 8
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: root.tr("规则读取失败，已回退到默认规则。")
+                                                color: ml.textSecondary; font.pixelSize: 11; elide: Text.ElideRight
+                                            }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: root.rulesCustomized
+                                                  ? root.tr("已自定义")
+                                                  : root.tr("按已采集的应用生成")
+                                            color: ml.textTertiary; font.pixelSize: 11
+                                            elide: Text.ElideRight
+                                        }
+                                        GhostBtn { label: "新建类别"; onTapped: root.beginNewCategory() }
+                                        GhostBtn { label: "新建规则"; onTapped: root.beginNewRule() }
+                                        GhostBtn {
+                                            // 永远在：规则表始终是按采集数据推导出来的，
+                                            // 没有「还没自定义所以没得恢复」这种状态。
+                                            label: "恢复默认规则"
+                                            danger: true
+                                            onTapped: root.askRestoreDefaultRules()
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        visible: root.newDefaultsCount > 0
+                                        spacing: 8
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: root.sentence("newDefaultRules", {count: root.newDefaultsCount},
+                                                                "有 " + root.newDefaultsCount + " 条新的默认规则可用。")
+                                            color: ml.textSecondary; font.pixelSize: 11
+                                            elide: Text.ElideRight
+                                        }
+                                        GhostBtn {
+                                            label: "并入"
+                                            onTapped: {
+                                                if (categorizationManager.adoptNewDefaults([])) {
+                                                    root.refreshAppList()
+                                                    root.showToast(root.tr("已并入新规则"))
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // 新建类别
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        visible: root.newCategoryOpen
+                                        spacing: 7
+                                        GlassTextField {
+                                            Layout.fillWidth: true; style: ml
+                                            placeholderText: root.tr("类别名称")
+                                            text: root.newCategoryName
+                                            onTextEdited: function (t) { root.newCategoryName = t }
+                                        }
+                                        GhostBtn { label: "取消"; onTapped: root.newCategoryOpen = false }
+                                        GhostBtn { label: "保存"; primary: true; onTapped: root.saveNewCategory() }
+                                    }
+
+                                    // 规则编辑器：名称 + 一个应用（从已采集清单里选）+ 若干标题匹配 + 类别。
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        visible: root.newRuleOpen || root.editingRuleId.length > 0
+                                        spacing: 6
+
+                                        GlassTextField {
+                                            id: ruleNameField
+                                            Layout.fillWidth: true; style: ml
+                                            placeholderText: root.tr("规则名称")
+                                            onTextEdited: function (t) { root.ruleDraft = root.withField(root.ruleDraft, "name", t) }
+                                        }
+
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 8
+                                            Text {
+                                                text: root.tr("应用")
+                                                color: ml.textTertiary; font.pixelSize: 11
+                                            }
+                                            // 选应用走浮层菜单：设置页是滚动容器，内联展开会被裁切也难点中。
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 34
+                                                radius: 11
+                                                color: appTriggerMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
+                                                border.width: 1
+                                                border.color: (root.ruleDraft.appLabel && root.ruleDraft.appLabel.length > 0)
+                                                              ? ml.cellHair : ml.accentSoftBorder
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 10
+                                                    anchors.rightMargin: 10
+                                                    spacing: 8
+                                                    Rectangle {
+                                                        width: 20; height: 20; radius: 6
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                        visible: !!(root.ruleDraft.appIcon && root.ruleDraft.appIcon.length > 0)
+                                                        color: ml.calSunkBg
+                                                        clip: true
+                                                        Image {
+                                                            anchors.fill: parent
+                                                            anchors.margins: 3
+                                                            source: root.ruleDraft.appIcon ? root.ruleDraft.appIcon : ""
+                                                            fillMode: Image.PreserveAspectFit
+                                                            asynchronous: true
+                                                        }
+                                                    }
+                                                    Text {
+                                                        Layout.fillWidth: true
+                                                        text: (root.ruleDraft.appLabel && root.ruleDraft.appLabel.length > 0)
+                                                              ? root.ruleDraft.appLabel : root.tr("选择应用")
+                                                        color: (root.ruleDraft.appLabel && root.ruleDraft.appLabel.length > 0)
+                                                               ? ml.textPrimary : ml.textTertiary
+                                                        font.pixelSize: 12
+                                                        elide: Text.ElideRight
+                                                    }
+                                                    Text { text: "\u25BE"; color: ml.calGlyph; font.pixelSize: 11 }
+                                                }
+                                                MouseArea {
+                                                    id: appTriggerMa
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    cursorShape: Cursor.button()
+                                                    onClicked: { root.appPickerQuery = ""; root.appPickerOpen = true }
+                                                }
+                                            }
+                                        }
+                                        GlassTextField {
+                                            id: ruleTitleField
+                                            Layout.fillWidth: true; style: ml
+                                            placeholderText: root.tr("标题包含，逗号分隔")
+                                            onTextEdited: function (t) { root.ruleDraft = root.withField(root.ruleDraft, "title", t) }
+                                        }
+
+                                        Flow {
+                                            Layout.fillWidth: true; spacing: 6
+                                            Repeater {
+                                                model: root.categoryList
+                                                delegate: Rectangle {
+                                                    required property var modelData
+                                                    readonly property bool picked: root.ruleDraft.category === modelData.id
+                                                    height: 26; width: draftChip.implicitWidth + 30; radius: 13
+                                                    color: picked ? ml.accentSoft : ml.calGhostBg
+                                                    border.width: 1; border.color: picked ? ml.aqua : ml.cellHair
+                                                    Row {
+                                                        anchors.centerIn: parent
+                                                        spacing: 6
+                                                        Rectangle {
+                                                            width: 7; height: 7; radius: 4
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            color: root.categoryColorOf(modelData.id)
+                                                        }
+                                                        Text {
+                                                            id: draftChip
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            text: modelData.label
+                                                            color: ml.textSecondary; font.pixelSize: 11
+                                                        }
+                                                    }
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        cursorShape: Cursor.button()
+                                                        onClicked: root.ruleDraft = root.withField(root.ruleDraft, "category", modelData.id)
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            visible: root.ruleDraftError.length > 0
+                                            text: root.ruleDraftError
+                                            color: ml.dangerText; font.pixelSize: 10; wrapMode: Text.WordWrap
+                                        }
+                                        RowLayout {
+                                            Layout.fillWidth: true; spacing: 8
+                                            Item { Layout.fillWidth: true }
+                                            GhostBtn {
+                                                label: "取消"
+                                                onTapped: { root.newRuleOpen = false; root.editingRuleId = ""; root.ruleDraftError = ""; root.appPickerOpen = false }
+                                            }
+                                            GhostBtn {
+                                                label: "保存"; primary: true
+                                                enabled: root.ruleDraftValid
+                                                opacity: enabled ? 1 : 0.45
+                                                onTapped: root.saveRuleDraft()
+                                            }
+                                        }
+                                    }
+
+                                    Repeater {
+                                        model: root.ruleGroups
+                                        delegate: ColumnLayout {
+                                            required property var modelData
+                                            readonly property bool open: root.expandedRuleCategory === modelData.id
+                                            Layout.fillWidth: true
+                                            spacing: 6
+
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 40
+                                                radius: 8
+                                                color: ml.calGhostBg
+                                                RowLayout {
+                                                    anchors.fill: parent; anchors.margins: 9; spacing: 8
+                                                    // 专门的展开钮：不再用一块盖住整行的 MouseArea，否则右侧按钮点不动。
+                                                    Rectangle {
+                                                        width: 22; height: 22; radius: 8
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                        color: chevronMa.containsMouse ? ml.calGhostHover : "transparent"
+                                                        Text {
+                                                            anchors.centerIn: parent
+                                                            text: open ? "\u25BE" : "\u25B8"
+                                                            color: ml.calGlyph; font.pixelSize: 11
+                                                        }
+                                                        MouseArea {
+                                                            id: chevronMa
+                                                            anchors.fill: parent
+                                                            hoverEnabled: true
+                                                            cursorShape: Cursor.button()
+                                                            onClicked: root.expandedRuleCategory = open ? "" : modelData.id
+                                                        }
+                                                    }
+                                                    Rectangle {
+                                                        width: 9; height: 9; radius: 5
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                        color: root.categoryColorOf(modelData.id)
+                                                    }
+                                                    Text {
+                                                        text: modelData.label
+                                                        color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold
+                                                    }
+                                                    Text {
+                                                        Layout.fillWidth: true
+                                                        text: root.sentence("ruleCount", {count: modelData.ruleCount},
+                                                                            modelData.ruleCount + " 条规则")
+                                                        color: ml.textTertiary; font.pixelSize: 10
+                                                        elide: Text.ElideRight
+                                                    }
+                                                    IconBtn {
+                                                        glyph: "\u2715"
+                                                        hint: "删除类别"
+                                                        danger: true
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                        visible: modelData.id !== "other"
+                                                        onTapped: root.askDeleteCategory(modelData.id, modelData.label, modelData.ruleCount)
+                                                    }
+                                                    GlassSwitch {
+                                                        style: ml
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                        checked: modelData.enabled
+                                                        onToggled: function (c) {
+                                                            categorizationManager.setCategoryEnabled(modelData.id, c)
+                                                            root.refreshAppList()
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Repeater {
+                                                model: open ? modelData.rules : []
+                                                delegate: Rectangle {
+                                                    required property var modelData
+                                                    Layout.fillWidth: true
+                                                    Layout.leftMargin: 16
+                                                    Layout.preferredHeight: 46
+                                                    radius: 8
+                                                    color: ml.calSunkBg
+                                                    border.width: 1; border.color: ml.cellHair
+                                                    opacity: modelData.enabled ? 1 : 0.45
+                                                    RowLayout {
+                                                        anchors.fill: parent; anchors.margins: 9; spacing: 8
+                                                        ColumnLayout {
+                                                            Layout.fillWidth: true
+                                                            spacing: 1
+                                                            Text {
+                                                                Layout.fillWidth: true
+                                                                text: modelData.label
+                                                                color: ml.textPrimary; font.pixelSize: 12
+                                                                elide: Text.ElideRight
+                                                            }
+                                                            Text {
+                                                                Layout.fillWidth: true
+                                                                text: modelData.summary
+                                                                color: ml.textTertiary; font.pixelSize: 10
+                                                                elide: Text.ElideRight
+                                                            }
+                                                        }
+                                                        IconBtn {
+                                                            glyph: "\u270E"
+                                                            hint: "编辑规则"
+                                                            Layout.alignment: Qt.AlignVCenter
+                                                            onTapped: root.beginEditRule(modelData)
+                                                        }
+                                                        IconBtn {
+                                                            glyph: "\u2715"
+                                                            hint: "删除规则"
+                                                            danger: true
+                                                            Layout.alignment: Qt.AlignVCenter
+                                                            onTapped: root.askDeleteRule(modelData.id, modelData.label)
+                                                        }
+                                                        GlassSwitch {
+                                                            style: ml
+                                                            Layout.alignment: Qt.AlignVCenter
+                                                            checked: modelData.enabled
+                                                            onToggled: function (c) {
+                                                                categorizationManager.setRuleEnabled(modelData.id, c)
+                                                                root.refreshAppList()
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -2070,6 +2881,124 @@ Item {
     // ============================================================
     // 二次确认弹层（A-CLEAR：危险动作前确认；玻璃卡 + 暗遮罩）
     // ============================================================
+    // 应用选择菜单：和确认框同级的浮层，不受设置页滚动/裁剪影响。
+    Rectangle {
+        id: appPickerSheet
+        anchors.fill: parent
+        z: 340
+        color: Qt.rgba(0, 0, 0, 0.42)
+        visible: opacity > 0.01
+        opacity: root.appPickerOpen ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 160 } }
+        MouseArea { anchors.fill: parent; preventStealing: true; onClicked: root.appPickerOpen = false }
+
+        GlassPanel {
+            style: ml
+            radius: 20
+            width: Math.min(420, parent.width - 60)
+            height: Math.min(430, parent.height - 100)
+            anchors.centerIn: parent
+            MouseArea { anchors.fill: parent; preventStealing: true }   // 吞掉点击，别关掉自己
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 16
+                spacing: 10
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Text {
+                        Layout.fillWidth: true
+                        text: root.tr("选择应用")
+                        color: ml.textPrimary; font.pixelSize: 15; font.weight: Font.DemiBold
+                    }
+                    IconBtn {
+                        glyph: "\u2715"; hint: "关闭"
+                        onTapped: root.appPickerOpen = false
+                    }
+                }
+
+                GlassTextField {
+                    Layout.fillWidth: true
+                    style: ml
+                    search: true
+                    placeholderText: root.tr("搜索应用…")
+                    text: root.appPickerQuery
+                    onTextEdited: function (t) { root.appPickerQuery = t }
+                }
+
+                ListView {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    spacing: 4
+                    model: root.appPickerResults
+                    delegate: Rectangle {
+                        required property var modelData
+                        readonly property string entryIcon: AppVisual.modelIconSource(modelData)
+                        width: ListView.view ? ListView.view.width : 0
+                        height: 40
+                        radius: 9
+                        color: entryMa.containsMouse ? ml.calGhostHover : "transparent"
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 9
+                            anchors.rightMargin: 9
+                            spacing: 9
+                            Rectangle {
+                                width: 24; height: 24; radius: 7
+                                Layout.alignment: Qt.AlignVCenter
+                                color: ml.calGhostBg
+                                clip: true
+                                Image {
+                                    id: entryImage
+                                    anchors.fill: parent
+                                    anchors.margins: 4
+                                    visible: entryIcon.length > 0 && status === Image.Ready
+                                    source: entryIcon
+                                    fillMode: Image.PreserveAspectFit
+                                    asynchronous: true
+                                    cache: true
+                                }
+                                Text {
+                                    anchors.centerIn: parent
+                                    visible: entryIcon.length === 0 || entryImage.status !== Image.Ready
+                                    text: AppVisual.modelIconLabel(modelData)
+                                    color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold
+                                }
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode)
+                                color: ml.textPrimary; font.pixelSize: 12
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                text: root.categoryLabelOf(AppVisual.modelCategory(modelData) || "other")
+                                color: ml.textTertiary; font.pixelSize: 10
+                            }
+                        }
+                        MouseArea {
+                            id: entryMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Cursor.button()
+                            onClicked: root.pickRuleApp(modelData)
+                        }
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    visible: root.appPickerResults.length === 0
+                    text: root.tr("没有匹配的应用。")
+                    color: ml.textTertiary; font.pixelSize: 11
+                }
+            }
+        }
+    }
+
     Rectangle {
         id: confirmCard
         property bool shown: false
@@ -2347,6 +3276,62 @@ Item {
     }
 
     // ghost / primary / danger 按钮（复用 stats StatsGhostButton 配方）
+    // 行内图标按钮：命中区比字形大，悬停有底色 + 文字提示，所以「是个能点的东西」
+    // 一眼看得出来，也不会点不中。
+    component IconBtn: Rectangle {
+        id: ibtn
+        property string glyph: ""
+        property string hint: ""
+        property bool danger: false
+        signal tapped()
+        implicitWidth: 30
+        implicitHeight: 30
+        radius: 10
+        color: ibtnMa.containsMouse
+               ? (ibtn.danger ? ml.calDangerWash : ml.calGhostHover)
+               : "transparent"
+        border.width: 1
+        border.color: ibtnMa.containsMouse
+                      ? (ibtn.danger
+                         ? Qt.rgba(ml.calDangerWash.r, ml.calDangerWash.g, ml.calDangerWash.b, 0.7)
+                         : ml.calGhostBorder)
+                      : "transparent"
+        Behavior on color { ColorAnimation { duration: 110 } }
+        Text {
+            anchors.centerIn: parent
+            text: ibtn.glyph
+            color: ibtn.danger ? ml.dangerText : ml.calGlyph
+            font.pixelSize: 14
+        }
+        MouseArea {
+            id: ibtnMa
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Cursor.button()
+            preventStealing: true
+            onClicked: ibtn.tapped()
+        }
+        Rectangle {
+            visible: ibtnMa.containsMouse && ibtn.hint.length > 0
+            anchors.bottom: parent.top
+            anchors.bottomMargin: 4
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: hintText.implicitWidth + 14
+            height: 22
+            radius: 7
+            color: ml.calSunkBg
+            border.width: 1; border.color: ml.cellHair
+            z: 60
+            Text {
+                id: hintText
+                anchors.centerIn: parent
+                text: root.tr(ibtn.hint)
+                color: ml.textSecondary
+                font.pixelSize: 10
+            }
+        }
+    }
+
     component GhostBtn: Rectangle {
         id: gbtn
         property string label: ""

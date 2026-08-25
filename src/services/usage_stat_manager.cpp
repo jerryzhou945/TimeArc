@@ -28,8 +28,7 @@
 #include <initializer_list>
 #include <limits>
 
-#include "services/adapters/activity_adapter_registry.h"
-#include "services/site_catalog.h"
+#include "services/categorization_manager.h"
 
 namespace {
 
@@ -51,133 +50,15 @@ QString normalizedSource(const QString& source) {
   return normalized == "audio" ? "audio" : "foreground";
 }
 
-QString bilibiliDisplayName() {
-  return QStringLiteral("\u54D4\u54E9\u54D4\u54E9");
-}
 
-bool isChromeApp(const QString& appId, const QString& appName,
-                 const QString& path) {
-  const QString text = (appId + " " + appName + " " + path).toLower();
-  return containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome"});
-}
 
-bool isBilibiliWindowTitle(const QString& windowTitle) {
-  // 保守版网站识别：不读取浏览器 URL，只从 Chrome 窗口标题猜测当前站点。
-  // 将来接浏览器扩展后，这里应迁移到 domain/favIconUrl 规则。
-  const QString title = windowTitle.trimmed();
-  if (title.isEmpty()) return false;
 
-  const QString lowerTitle = title.toLower();
-  return title.contains(QStringLiteral("\u54D4\u54E9\u54D4\u54E9")) ||
-         containsAny(lowerTitle, {"bilibili", "b23.tv", "bilibili.com"});
-}
 
-bool isBrowserApp(const QString& appId, const QString& appName,
-                  const QString& path) {
-  const QString text = (appId + " " + appName + " " + path).toLower();
-  return containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome",
-                            "msedge", "edge.exe", "firefox", "opera.exe",
-                            "brave", "vivaldi", "360se", "qqbrowser",
-                            "sogouexplorer", "ucbrowser"});
-}
 
-const TimeArcSiteCatalog::SiteDefinition* siteForGroupKey(
-    const QString& groupKey) {
-  return TimeArcSiteCatalog::findBySiteId(groupKey);
-}
 
-const TimeArcSiteCatalog::SiteDefinition* siteForBrowserTitle(
-    const QString& appId, const QString& appName, const QString& path,
-    const QString& title) {
-  return TimeArcSiteCatalog::matchBrowserHostedActivity(appId, appName, path,
-                                                        title);
-}
 
-TimeArcAdapters::AdapterInput adapterInputFromActivity(
-    const QString& appId, const QString& appName, const QString& path,
-    const QString& windowTitle, const QString& source = QString()) {
-  TimeArcAdapters::AdapterInput input;
-  input.source = source;
-  input.appId = appId;
-  input.appName = appName;
-  input.path = path;
-  input.title = windowTitle;
-  return input;
-}
 
-TimeArcAdapters::AdapterMetadata adapterMetadataForIdentifier(
-    const QString& identifier, const TimeArcAdapters::AdapterInput& input) {
-  for (const TimeArcAdapters::AdapterDefinition& adapter :
-       TimeArcAdapters::registeredWebsiteAdapters()) {
-    if (adapter.identifier == identifier) {
-      return TimeArcAdapters::metadataFromDefinition(adapter, 1.0, input);
-    }
-  }
-  for (const TimeArcAdapters::AdapterDefinition& adapter :
-       TimeArcAdapters::registeredDesktopAppAdapters()) {
-    if (adapter.identifier == identifier) {
-      return TimeArcAdapters::metadataFromDefinition(adapter, 1.0, input);
-    }
-  }
-  return TimeArcAdapters::AdapterMetadata();
-}
 
-TimeArcAdapters::AdapterMetadata resolveActivityMetadata(
-    const QString& appId, const QString& appName, const QString& path,
-    const QString& windowTitle, const QString& source = QString()) {
-  const TimeArcAdapters::AdapterInput input =
-      adapterInputFromActivity(appId, appName, path, windowTitle, source);
-  if (isBrowserApp(appId, appName, path)) {
-    const TimeArcAdapters::AdapterMetadata website =
-        TimeArcAdapters::resolveWebsite(input);
-    if (website.matched && !website.identifier.trimmed().isEmpty()) {
-      return website;
-    }
-  }
-  return TimeArcAdapters::resolveDesktopApp(input);
-}
-
-void applyAdapterMetadata(QVariantMap* item,
-                          const TimeArcAdapters::AdapterMetadata& metadata,
-                          const QString& fallbackIconPath) {
-  if (item == nullptr || metadata.identifier.trimmed().isEmpty()) return;
-
-  item->insert(QStringLiteral("adapterIdentifier"), metadata.identifier);
-  item->insert(QStringLiteral("sourceType"), metadata.sourceType);
-  item->insert(QStringLiteral("adapterDisplayName"), metadata.displayName);
-  item->insert(QStringLiteral("adapterConfidence"), metadata.confidence);
-  item->insert(QStringLiteral("supportsMediaDetection"),
-               metadata.supportsMediaDetection);
-
-  if (!metadata.domain.trimmed().isEmpty()) {
-    item->insert(QStringLiteral("domain"), metadata.domain);
-    item->insert(QStringLiteral("siteDomain"), metadata.domain);
-  }
-  if (!metadata.iconUrl.trimmed().isEmpty()) {
-    item->insert(QStringLiteral("iconUrl"), metadata.iconUrl);
-  }
-
-  QString iconPath = metadata.iconPath;
-  if (iconPath.trimmed().isEmpty() &&
-      metadata.sourceType == QStringLiteral("desktopApp")) {
-    iconPath = fallbackIconPath;
-  }
-  if (!iconPath.trimmed().isEmpty()) {
-    item->insert(QStringLiteral("iconPath"), iconPath);
-    if (iconPath.startsWith(QStringLiteral("qrc:"))) {
-      item->insert(QStringLiteral("iconSource"), iconPath);
-    }
-  }
-  if (!metadata.iconLabel.trimmed().isEmpty()) {
-    item->insert(QStringLiteral("iconLabel"), metadata.iconLabel);
-  }
-  if (!metadata.brandColor.trimmed().isEmpty()) {
-    item->insert(QStringLiteral("brandColor"), metadata.brandColor);
-  }
-  if (!metadata.category.trimmed().isEmpty()) {
-    item->insert(QStringLiteral("adapterCategory"), metadata.category);
-  }
-}
 
 quint64 mergedIntervalSeconds(QVector<UsageInterval> intervals) {
   // foreground 与 audio 可能在同一时间段重叠。active 总时长按区间并集计算，
@@ -217,62 +98,6 @@ quint64 mergedIntervalSeconds(QVector<UsageInterval> intervals) {
   return total;
 }
 
-QString appDisplayName(const QString& appId, const QString& appName,
-                       const QString& path) {
-  // 把 exe/path 归一成更适合 UI 的名称。没有命中特例时回退到 exe 文件名。
-  const QString text = (appId + " " + appName + " " + path).toLower();
-  const QString displayExeName =
-      QFileInfo(!path.trimmed().isEmpty() ? path : appName).fileName().toLower();
-
-  if (containsAny(text, {"uu.exe", "uu\\", "uu/", "uu accelerator",
-                         "uu booster", "netease\\uu", "netease/uu"}))
-    return "UU Accelerator";
-  if (containsAny(text, {"cloudmusic", "cloudmusic.exe",
-                         "netease cloud music", "orpheus"}))
-    return "网易云音乐";
-  if (displayExeName == "r5apex.exe" || displayExeName == "r5apex_dx12.exe" ||
-      containsAny(text, {"apex legends"}))
-    return "Apex Legends";
-  if (displayExeName == "nvcontainer.exe") return "NVIDIA Container";
-  if (displayExeName == "svchost.exe") return "Service Host";
-  if (containsAny(text, {"runtimebroker.exe"})) return "Runtime Broker";
-  if (containsAny(text, {"searchhost.exe", "searchapp.exe"})) return "Windows Search";
-  if (containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome"}))
-    return "Google Chrome";
-  if (containsAny(text, {"codex"}))
-    return "Codex";
-  if (containsAny(text,
-                  {"code.exe", "visual studio code", "microsoft vs code"}))
-    return "VS Code";
-  if (containsAny(text, {"discord"})) return "Discord";
-  if (containsAny(text, {"weixin", "wechat"})) return "微信";
-  if (containsAny(text, {"jianyingpro", "jianying", "capcut"}))
-    return QString::fromUtf8(u8"剪映专业版");
-  if (containsAny(text, {"wallpaperengine", "wallpaper engine", "wallpaperui",
-                         "wallpaper32", "wallpaper64", "webwallpaper"}))
-    return "Wallpaper Engine";
-  if (displayExeName == "qq.exe") return "QQ";
-  if (displayExeName == "tim.exe") return "TIM";
-  if (containsAny(text, {"qqscreenshot", "qqscreentshot", "qqscreen",
-                         "qqscreenclip", "qqcapture"}))
-    return "QQ 截图";
-  if (containsAny(text, {"qqmusic"})) return "QQ Music";
-  if (displayExeName == "steam.exe" || displayExeName == "steamwebhelper.exe")
-    return "Steam";
-  if (containsAny(text, {"msedge", "edge.exe"})) return "Microsoft Edge";
-  if (containsAny(text, {"firefox"})) return "Firefox";
-  if (containsAny(text, {"explorer.exe", "windows\\explorer"}))
-    return "File Explorer";
-  if (containsAny(text, {"powershell", "windowsterminal", "cmd.exe"}))
-    return "Terminal";
-
-  const QString fallback =
-      !appName.trimmed().isEmpty() ? appName : QFileInfo(path).fileName();
-  if (fallback.endsWith(".exe", Qt::CaseInsensitive)) {
-    return fallback.left(fallback.size() - 4);
-  }
-  return fallback;
-}
 
 QString normalizedExeName(const QString& appName, const QString& path) {
   QString name =
@@ -282,84 +107,12 @@ QString normalizedExeName(const QString& appName, const QString& path) {
   return name;
 }
 
-QString appGroupKey(const QString& appId, const QString& appName,
-                    const QString& path) {
-  // group key 是统计聚合的身份。多个实际进程可以归到同一个 app key，
-  // 例如 steam.exe 和 steamwebhelper.exe 都算 Steam。
-  const QString text = (appId + " " + appName + " " + path).toLower();
-  const QString exeName = normalizedExeName(appName, path);
-
-  if (containsAny(text, {"weixin", "wechat", "wechatappex", "wechatbrowser"}))
-    return "app:wechat";
-  if (containsAny(text, {"jianyingpro", "jianying", "capcut"}))
-    return "app:jianying-pro";
-  if (containsAny(text, {"wallpaperengine", "wallpaper engine", "wallpaperui",
-                         "wallpaper32", "wallpaper64", "webwallpaper"}))
-    return "app:wallpaper-engine";
-  if (containsAny(text, {"qqscreenshot", "qqscreentshot", "qqscreen",
-                         "qqscreenclip", "qqcapture"}))
-    return "app:qq-screenshot";
-  if (exeName == "qq")
-    return "app:qq";
-  if (exeName == "tim")
-    return "app:tim";
-  if (containsAny(text, {"uu.exe", "uu\\", "uu/", "uu accelerator",
-                         "uu booster", "netease\\uu", "netease/uu"}))
-    return "app:uu-accelerator";
-  if (containsAny(text, {"cloudmusic", "cloudmusic.exe",
-                         "netease cloud music", "orpheus"}))
-    return "app:netease-cloud-music";
-  if (exeName == "r5apex" || exeName == "r5apex_dx12" ||
-      containsAny(text, {"apex legends"}))
-    return "app:apex-legends";
-  if (exeName == "nvcontainer")
-    return "app:nvidia-container";
-  if (exeName == "svchost")
-    return "app:windows-service-host";
-  if (containsAny(text, {"runtimebroker.exe", "searchhost.exe", "searchapp.exe",
-                         "startmenuexperiencehost.exe", "applicationframehost.exe",
-                         "widgets.exe", "taskhostw.exe", "dllhost.exe",
-                         "conhost.exe", "wmiprvse.exe", "audiodg.exe"}))
-    return "app:windows-system";
-  if (containsAny(text, {"chrome.exe", "google\\chrome", "google/chrome"}))
-    return "app:google-chrome";
-  if (containsAny(text, {"codex"}))
-    return "app:codex";
-  if (containsAny(text,
-                  {"code.exe", "visual studio code", "microsoft vs code"}))
-    return "app:vscode";
-  if (containsAny(text, {"discord"}))
-    return "app:discord";
-  if (containsAny(text, {"qqmusic"}))
-    return "app:qq-music";
-  if (exeName == "steam" || exeName == "steamwebhelper")
-    return "app:steam";
-  if (containsAny(text, {"msedge", "edge.exe"}))
-    return "app:microsoft-edge";
-  if (containsAny(text, {"firefox"}))
-    return "app:firefox";
-  if (containsAny(text, {"explorer.exe", "windows\\explorer"}))
-    return "app:file-explorer";
-  if (containsAny(text, {"powershell", "windowsterminal", "cmd.exe"}))
-    return "app:terminal";
-  if (containsAny(text, {"telegram"}))
-    return "app:telegram";
-  if (containsAny(text, {"spotify"}))
-    return "app:spotify";
-  if (containsAny(text, {"zoom.exe"}))
-    return "app:zoom";
-
-  if (!exeName.isEmpty()) return "exe:" + exeName;
-
-  const QString fallback = !appId.trimmed().isEmpty() ? appId : path;
-  return "path:" + fallback.toLower();
-}
 
 bool isHomeRankVisibleActivity(const QString& groupKey, const QString& appId,
                                const QString& appName, const QString& path,
                                const QString& displayName,
-                               const QString& category) {
-  if (category == QStringLiteral("系统")) return false;
+                               bool deprioritized) {
+  if (deprioritized) return false;
   const QString id =
       (groupKey + " " + appId + " " + appName + " " + path + " " + displayName)
           .toLower();
@@ -378,13 +131,13 @@ bool isSettingsListVisibleActivity(const QString& groupKey,
                                    const QString& appName,
                                    const QString& path,
                                    const QString& displayName,
-                                   const QString& category, quint64 seconds) {
+                                   bool deprioritized, quint64 seconds) {
   if (groupKey.startsWith(QLatin1String("site:"))) return true;
 
   const QString id =
       (groupKey + " " + appId + " " + appName + " " + path + " " + displayName)
           .toLower();
-  if (category == QStringLiteral("系统")) return false;
+  if (deprioritized) return false;
   if (containsAny(id, {"pid:", ".dll", "app:windows-system",
                        "app:windows-service-host", "app:nvidia-container",
                        "app:qq-screenshot", "qqscreenshot", "qqscreentshot",
@@ -427,165 +180,9 @@ bool isSettingsListVisibleActivity(const QString& groupKey,
 
 bool isLowFrequencySettingsActivity(qlonglong seconds) { return seconds < 60; }
 
-QString activityGroupKey(const QString& appId, const QString& appName,
-                         const QString& path, const QString& windowTitle) {
-  // 记忆化：纯函数 + 确定性 + 站点目录编译期静态 → 进程内静态缓存无需失效。同一身份元组
-  // 在 46k 记录里高频重复，缓存把每条的多次 containsAny/站点扫描降为一次 hash 查找。
-  static QHash<QString, QString> cache;
-  const QChar sep(QChar(0x1f));
-  const QString k = appId + sep + appName + sep + path + sep + windowTitle;
-  const auto it = cache.constFind(k);
-  if (it != cache.constEnd()) return it.value();
 
-  QString value;
-  if (const TimeArcSiteCatalog::SiteDefinition* site =
-          siteForBrowserTitle(appId, appName, path, windowTitle)) {
-    value = site->siteId;
-  } else if (const TimeArcAdapters::AdapterMetadata metadata =
-                 resolveActivityMetadata(appId, appName, path, windowTitle);
-             metadata.matched && !metadata.identifier.trimmed().isEmpty()) {
-    value = metadata.identifier;
-  } else {
-    value = appGroupKey(appId, appName, path);
-  }
-  if (cache.size() < 200000) cache.insert(k, value);  // 软上限防极端无界增长
-  return value;
-}
 
-QString activityDisplayName(const QString& groupKey, const QString& appId,
-                            const QString& appName, const QString& path) {
-  const TimeArcAdapters::AdapterInput input =
-      adapterInputFromActivity(appId, appName, path, QString());
-  const TimeArcAdapters::AdapterMetadata metadata =
-      adapterMetadataForIdentifier(groupKey, input);
-  if (!metadata.displayName.trimmed().isEmpty()) {
-    return metadata.displayName;
-  }
 
-  if (const TimeArcSiteCatalog::SiteDefinition* site =
-          siteForGroupKey(groupKey)) {
-    return site->displayName;
-  }
-
-  return appDisplayName(appId, appName, path);
-}
-
-// 活动分类（本地确定性，记忆湖用）。除 exe/显示名外，**还读窗口标题**作为分类信号
-// （仅本地：用于定类别，绝不展示原文、不进 AI、不落库，符合隐私边界=仅本地聚合）。
-// 系统/外壳进程单列为「系统」，便于 UI 降权（不当主角/不当头条类别）。
-// 站点特例（site:bilibili 等）已在 groupKey 体现，这里按 groupKey 直接定。
-QString classifyActivityImpl(const QString& groupKey, const QString& appId,
-                             const QString& appName, const QString& path,
-                             const QString& windowTitle) {
-  const TimeArcAdapters::AdapterInput input =
-      adapterInputFromActivity(appId, appName, path, windowTitle);
-  const TimeArcAdapters::AdapterMetadata metadata =
-      adapterMetadataForIdentifier(groupKey, input);
-  if (!metadata.category.trimmed().isEmpty()) {
-    return metadata.category;
-  }
-
-  if (const TimeArcSiteCatalog::SiteDefinition* site =
-          siteForGroupKey(groupKey)) {
-    return site->category;
-  }
-
-  // 关键：**类别关键词只匹配 exe 身份（id）**，不匹配窗口标题——否则泛词（game/
-  // excel/docker/powershell…）会被任意网页标题误命中（如 Chrome 标题含 "game" 被判
-  // 游戏）。窗口标题只用于"浏览器内站点细分"这一个高置信度场景。
-  const QString id = (appId + " " + appName + " " + path).toLower();
-  const QString title = windowTitle.toLower();
-
-  if (containsAny(id, {"startmenuexperiencehost", "searchhost", "searchapp",
-                        "shellexperiencehost", "lockapp", "applicationframehost",
-                        "textinputhost", "dwm.exe", "sihost", "ctfmon",
-                        "systemsettings", "useroobe", "explorer.exe",
-                        "windows\\explorer", "rundll32", "taskmgr", "winlogon",
-                        "fontdrvhost", "wininit", "csrss", "smartscreen",
-                        "svchost.exe", "runtimebroker.exe", "taskhostw.exe",
-                        "dllhost.exe", "conhost.exe", "wmiprvse.exe",
-                        "audiodg.exe", "widgets.exe", "nvcontainer.exe"}))
-    return QStringLiteral("系统");
-
-  if (containsAny(id, {"uu.exe", "uu\\", "uu/", "uu accelerator",
-                       "uu booster", "netease\\uu", "netease/uu"}))
-    return QStringLiteral("游戏");
-
-  // 浏览器：先按 exe 认定，再**仅用站点专名标题词**细分到 视频/音乐，否则 浏览。
-  if (containsAny(id, {"chrome.exe", "google\\chrome", "msedge", "edge.exe",
-                       "firefox", "opera.exe", "brave", "vivaldi", "360se",
-                       "qqbrowser", "sogouexplorer", "ucbrowser"})) {
-    if (containsAny(title, {"bilibili", "b23.tv", "youtube", "youku", "iqiyi",
-                            "netflix", "twitch", "douyu", "huya", "腾讯视频",
-                            "爱奇艺", "优酷"}))
-      return QStringLiteral("视频");
-    if (containsAny(title, {"music.163", "网易云音乐", "qq音乐", "spotify"}))
-      return QStringLiteral("音乐");
-    return QStringLiteral("浏览");
-  }
-
-  if (containsAny(id, {"codex", "code.exe", "vscode", "devenv", "clion", "pycharm",
-                       "idea64", "goland", "webstorm", "rider", "qtcreator",
-                       "android studio", "sublime_text", "notepad++", "neovim",
-                       "powershell", "windowsterminal", "cmd.exe", "conemu",
-                       "git-bash", "mingw", "docker", "datagrip", "dbeaver",
-                       "postman"}))
-    return QStringLiteral("开发");
-
-  if (containsAny(id, {"bilibili", "potplayer", "vlc.exe", "tencentvideo",
-                       "qqlive", "mpv.exe", "mpc-hc", "iqiyi", "youku"}))
-    return QStringLiteral("视频");
-
-  if (containsAny(id, {"qqmusic", "cloudmusic", "netease cloud music",
-                       "spotify", "kugou",
-                       "kuwo", "foobar"}))
-    return QStringLiteral("音乐");
-
-  if (containsAny(id, {"weixin", "wechat", "discord", "telegram", "slack",
-                       "qq.exe", "tim.exe", "dingtalk", "feishu", "lark",
-                       "teams.exe", "whatsapp", "skype"}))
-    return QStringLiteral("社交");
-
-  if (containsAny(id, {"steam.exe", "steamwebhelper", "epicgames", "riotclient",
-                        "leagueoflegends", "valorant", "genshin", "yuanshen",
-                        "starrail", "streetfighter", "wegame", "battle.net",
-                        "ubisoft", "gog galaxy", "r5apex", "apex legends"}))
-    return QStringLiteral("游戏");
-
-  if (containsAny(id, {"winword", "excel.exe", "powerpnt", "onenote", "outlook",
-                       "wps.exe", "et.exe", "wpp.exe", "acrobat", "acrord32",
-                       "foxit", "sumatrapdf"}))
-    return QStringLiteral("办公");
-
-  if (containsAny(id, {"photoshop", "illustrator", "premiere", "afterfx",
-                       "lightroom", "figma", "blender", "obs64", "obs.exe",
-                       "capcut", "jianying", "davinci", "resolve.exe",
-                       "audition", "coreldraw", "3dsmax", "maya.exe",
-                       "wallpaperengine", "wallpaper engine", "wallpaperui",
-                       "wallpaper32", "wallpaper64", "webwallpaper"}))
-    return QStringLiteral("创作");
-
-  if (containsAny(id, {"notion", "obsidian", "typora", "evernote", "youdao",
-                       "joplin", "logseq", "zotero", "calibre", "kindle"}))
-    return QStringLiteral("笔记");
-
-  return QStringLiteral("其他");
-}
-
-// 记忆化包装（同 activityGroupKey：纯函数确定性，进程内静态缓存无需失效）。
-QString classifyActivity(const QString& groupKey, const QString& appId,
-                         const QString& appName, const QString& path,
-                         const QString& windowTitle) {
-  static QHash<QString, QString> cache;
-  const QChar sep(QChar(0x1f));
-  const QString k = groupKey + sep + appId + sep + appName + sep + path + sep + windowTitle;
-  const auto it = cache.constFind(k);
-  if (it != cache.constEnd()) return it.value();
-  const QString result =
-      classifyActivityImpl(groupKey, appId, appName, path, windowTitle);
-  if (cache.size() < 200000) cache.insert(k, result);
-  return result;
-}
 
 // 从 app 图标位图提取最多 3 个主色调（跳过透明/接近灰/接近黑白），按 path 缓存。
 // 用于背景/封面的多色晕染，贴合该 app 图标真实观感（取代查表/哈希的预设单色）。
@@ -596,12 +193,25 @@ QStringList iconDominantColors(const QString& path) {
   if (hit != cache.constEnd()) return hit.value();
 
   QStringList colors;
-  const QFileInfo fi(path);
-  if (fi.exists()) {
-    static QFileIconProvider provider;
-    const QPixmap pm = provider.icon(fi).pixmap(48, 48);
-    if (!pm.isNull()) {
-      const QImage img = pm.toImage().convertToFormat(QImage::Format_ARGB32);
+  QImage source;
+  if (path.startsWith(QLatin1String("qrc:")) ||
+      path.startsWith(QLatin1Char(':'))) {
+    QString resource = path;
+    if (resource.startsWith(QLatin1String("qrc:"))) resource = resource.mid(3);
+    source = QImage(resource);
+  } else {
+    const QFileInfo fi(path);
+    if (fi.exists()) {
+      static QFileIconProvider provider;
+      const QPixmap pm = provider.icon(fi).pixmap(48, 48);
+      if (!pm.isNull()) source = pm.toImage();
+    }
+  }
+  {
+    {
+      const QImage img = source.isNull()
+                             ? QImage()
+                             : source.convertToFormat(QImage::Format_ARGB32);
       QHash<QRgb, int> hist;
       for (int y = 0; y < img.height(); ++y) {
         for (int x = 0; x < img.width(); ++x) {
@@ -931,11 +541,6 @@ QVariantList UsageStatManager::aggregateSoftware(
         aggregate.groupKey, defaultDisplayName,
         m_displayNameOverrides.value(aggregate.groupKey));
     const QString displayName = displayIdentity.displayName;
-    const TimeArcAdapters::AdapterInput adapterInput = adapterInputFromActivity(
-        aggregate.appId, aggregate.appName, aggregate.path, QString());
-    const TimeArcAdapters::AdapterMetadata adapterMetadata =
-        adapterMetadataForIdentifier(aggregate.groupKey, adapterInput);
-
     QVariantMap item;
     item["groupKey"] = aggregate.groupKey;
     item["appId"] = aggregate.groupKey.startsWith("site:")
@@ -947,7 +552,9 @@ QVariantList UsageStatManager::aggregateSoftware(
     item["defaultDisplayName"] = defaultDisplayName;
     item["customDisplayName"] = m_displayNameOverrides.value(aggregate.groupKey);
     item["path"] = aggregate.path;
-    QString topCategory = QStringLiteral("其他");
+    // 逐记录分类按时长加权，占比最高的类别代表这个 app。规则不再覆盖这个投票：
+    // 规则的特异性已经体现在每条记录的打分里（见 categorization/matcher.h）。
+    QString topCategory = QStringLiteral("other");
     quint64 topCatSec = 0;
     for (auto it = aggregate.categorySeconds.constBegin();
          it != aggregate.categorySeconds.constEnd(); ++it) {
@@ -956,36 +563,20 @@ QVariantList UsageStatManager::aggregateSoftware(
         topCategory = it.key();
       }
     }
-    // dev：适配器元数据可覆盖类别（若提供）。
-    if (!adapterMetadata.category.trimmed().isEmpty()) {
-      topCategory = adapterMetadata.category;
-    }
-    // 2A：用户开关在适配器之后再门控——关「自动分类」→ 类别一律「其他」；
-    // 关「游戏识别」→ 游戏类（含适配器给出的）降级为「其他」。
-    if (!m_autoClassify) {
-      topCategory = QStringLiteral("其他");
-    } else if (!m_gameClassify && topCategory == QStringLiteral("游戏")) {
-      topCategory = QStringLiteral("其他");
+    // 「游戏识别」关 → 游戏类降级；这是 categoryState 的一个特例，保留旧开关语义。
+    if (!m_gameClassify && topCategory == QStringLiteral("game")) {
+      topCategory = QStringLiteral("other");
     }
     item["category"] = topCategory;
     item["homeRankVisible"] =
         isHomeRankVisibleActivity(aggregate.groupKey, aggregate.appId,
                                   aggregate.appName, aggregate.path,
-                                  displayName, topCategory);
-    // 站点组（如 site:bilibili）的 path 是**浏览器 exe**，取图标色会错成浏览器色调
-    // （用户反馈：bilibili 背景显示成 Chrome 的色）。站点组留空 -> QML 退回 appColor
-    // 的站点品牌色（site:bilibili -> 粉色）。避免任何 site:* 组取到宿主浏览器色。
-    item["iconColors"] = aggregate.groupKey.startsWith("site:")
-                             ? QStringList()
-                             : iconDominantColors(aggregate.path);
-    if (const TimeArcSiteCatalog::SiteDefinition* site =
-            siteForGroupKey(aggregate.groupKey)) {
-      item["siteDomain"] = site->domain;
-      item["brandColor"] = site->brandColor;
-      item["iconLabel"] = site->iconLabel;
-      item["iconSource"] = site->iconSource;
-    }
-    applyAdapterMetadata(&item, adapterMetadata, aggregate.path);
+                                  displayName,
+                                  isDeprioritizedCategory(topCategory));
+    // 取色一律从**规则自己的图标**读：站点规则带 qrc 图标，不会再取到宿主浏览器
+    // 的色（旧实现只能整组留空，见 site:bilibili 显示成 Chrome 色的反馈）。
+    item["iconColors"] = ruleIconColors(aggregate.groupKey, aggregate.path);
+    applyRuleMetadata(&item, aggregate.groupKey, aggregate.path);
     item["source"] = sourceFilter.trimmed().isEmpty()
                          ? "active"
                          : normalizedSource(sourceFilter);
@@ -1009,10 +600,15 @@ QVariantList UsageStatManager::aggregateSoftware(
     } else {
       subtitle = "Foreground usage";
     }
-    const QString subtitleName =
-        aggregate.groupKey.startsWith("site:")
-            ? appDisplayName(aggregate.appId, aggregate.appName, aggregate.path)
-            : aggregate.appName;
+    // 站点组的副标题显示**宿主应用**：忽略窗口标题重解一次身份，就拿到
+    // 「Google Chrome」而不是 chrome.exe。
+    QString subtitleName = aggregate.appName;
+    if (aggregate.groupKey.startsWith("site:")) {
+      const QString hostKey =
+          resolveActivity(aggregate.appId, aggregate.appName, QString()).identity;
+      subtitleName = activityDisplayName(hostKey, aggregate.appId,
+                                         aggregate.appName, aggregate.path);
+    }
     item["note"] = subtitle;
     item["subtitle"] = subtitleName == displayName
                            ? subtitle
@@ -1159,11 +755,7 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
     item["sessionCount"] = segments.size();
     item["longestSec"] = static_cast<qlonglong>(longestSec);
     item["segments"] = segments;
-    const TimeArcAdapters::AdapterInput adapterInput =
-        adapterInputFromActivity(app.appId, app.appName, app.path, QString());
-    applyAdapterMetadata(
-        &item, adapterMetadataForIdentifier(app.groupKey, adapterInput),
-        app.path);
+    applyRuleMetadata(&item, app.groupKey, app.path);
     const QString defaultDisplayName = activityDisplayName(
         app.groupKey, app.appId, app.appName, app.path);
     const auto displayIdentity = TimeArc::AppIdentityPolicy::applyDisplayName(
@@ -1367,11 +959,8 @@ QVariantMap UsageStatManager::focusStatsForWindow(qint64 startUnixSec,
   // focusSeconds = 块总秒；focusDays = 含 focus 块的本地自然日数。只读 m_records。
   constexpr qint64 kFocusGapSec = 600;   // 10min
   constexpr qint64 kMinBlockSec = 300;   // 5min
-  static const QSet<QString> kFocusCats = {QStringLiteral("开发"),
-                                           QStringLiteral("办公"),
-                                           QStringLiteral("笔记")};
-  // 2A 关「自动分类」→ 无类别基础，专注归零（与 ranking 类别口径一致，不残留旧分类）。
-  if (!m_autoClassify) {
+  const QSet<QString> kFocusCats = focusCategories();
+  if (kFocusCats.isEmpty()) {
     QVariantMap zero;
     zero["focusSeconds"] = static_cast<qlonglong>(0);
     zero["focusDays"] = 0;
@@ -1556,6 +1145,10 @@ void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
   if (!changed) return;
   m_autoClassify = autoClassify;
   m_gameClassify = gameClassify;
+  // 「自动分类」的口径归规则表所有：用户亲手建/改过的规则不算推断，关掉开关也留着。
+  if (m_categorization != nullptr) {
+    m_categorization->setAutoClassify(autoClassify);
+  }
   m_mergeSimilar = mergeSimilar;
   m_hideTitles = hideTitles;
   m_hiddenKeys = hidden;
@@ -1565,7 +1158,8 @@ void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
 }
 
 QVariantList UsageStatManager::allApps() const {
-  // 始终以合并键身份去重（与隐藏集口径一致），忽略合并开关 → 清单稳定。
+  // 设置页的应用清单**按应用去重**：解析身份时不看窗口标题，所以一个浏览器只出
+  // 现一行，不会被 site:* 规则拆成好几条。窗口标题规则在该应用的编辑面板里列出。
   struct AppListEntry {
     QString groupKey;
     QString appId;
@@ -1578,7 +1172,7 @@ QVariantList UsageStatManager::allApps() const {
   QMap<QString, AppListEntry> seen;
   const auto addApp = [&](const UsageRecord& record) {
     const QString key = activityGroupKey(record.appId, record.appName,
-                                         record.path, record.windowTitle);
+                                         record.path, QString());
     if (key.isEmpty()) return;
     const qint64 endUnixSec =
         record.startUnixSec + static_cast<qint64>(record.durationSec);
@@ -1619,10 +1213,8 @@ QVariantList UsageStatManager::allApps() const {
     QString category =
         classifyActivity(entry.groupKey, entry.appId, entry.appName, entry.path,
                          QString());
-    if (!m_autoClassify) {
-      category = QStringLiteral("其他");
-    } else if (!m_gameClassify && category == QStringLiteral("游戏")) {
-      category = QStringLiteral("其他");
+    if (!m_gameClassify && category == QStringLiteral("game")) {
+      category = QStringLiteral("other");
     }
 
     QVariantMap item;
@@ -1640,14 +1232,9 @@ QVariantList UsageStatManager::allApps() const {
     item["lastUsedUnixSec"] = entry.lastUsedUnixSec;
     item["settingsVisible"] = isSettingsListVisibleActivity(
         entry.groupKey, entry.appId, entry.appName, entry.path, displayName,
-        category, seconds);
+        isDeprioritizedCategory(category), seconds);
     item["hidden"] = m_hiddenKeys.contains(entry.groupKey);  // 含被隐藏项，供取消隐藏
-    const TimeArcAdapters::AdapterInput adapterInput =
-        adapterInputFromActivity(entry.appId, entry.appName, entry.path,
-                                 QString());
-    applyAdapterMetadata(
-        &item, adapterMetadataForIdentifier(entry.groupKey, adapterInput),
-        entry.path);
+    applyRuleMetadata(&item, entry.groupKey, entry.path);
     result.append(item);
   }
   std::sort(result.begin(), result.end(),
@@ -1716,4 +1303,220 @@ QString UsageStatManager::secondsToTimeText(quint64 totalSeconds) const {
   if (hours > 0)
     return QString::number(hours) + "h " + QString::number(minutes) + "m";
   return QString::number(minutes) + "m";
+}
+
+
+// ---------------------------------------------------------------------------
+// 分类：读层通过 CategorizationManager 的规则表解析身份 / 名称 / 类别。
+// 这些是成员函数（不是匿名命名空间的自由函数），因为它们需要规则表。
+// ---------------------------------------------------------------------------
+
+void UsageStatManager::setCategorizationManager(CategorizationManager* manager) {
+  if (m_categorization == manager) return;
+  m_categorization = manager;
+  if (m_categorization != nullptr) {
+    connect(m_categorization, &CategorizationManager::rulesChanged, this,
+            [this]() {
+              m_resolutionCache.clear();
+              m_resolutionGeneration = -1;
+              ++m_recordsGeneration;  // 令统计页的“无新数据则跳过重算”守卫失效
+              emit usageStatsChanged();
+            });
+  }
+  m_resolutionCache.clear();
+  m_resolutionGeneration = -1;
+  ++m_recordsGeneration;
+  emit usageStatsChanged();
+}
+
+const TimeArc::Categorization::Matcher& UsageStatManager::matcher() const {
+  // 没接管理器时（测试、早期启动）用出厂表，保证分类永远是全函数。
+  static const TimeArc::Categorization::Matcher fallback{
+      TimeArc::Categorization::defaultRuleSet()};
+  return m_categorization != nullptr ? m_categorization->matcher() : fallback;
+}
+
+QString UsageStatManager::uiLanguage() const {
+  return m_categorization != nullptr ? m_categorization->options().language
+                                     : QStringLiteral("en");
+}
+
+// 记忆化：规则表代际变化即整表失效（规则是纯函数，同代际内结果确定）。
+TimeArc::Categorization::Resolution UsageStatManager::resolveActivity(
+    const QString& appId, const QString& appName,
+    const QString& windowTitle) const {
+  const int generation =
+      m_categorization != nullptr ? m_categorization->generation() : 0;
+  if (generation != m_resolutionGeneration) {
+    m_resolutionCache.clear();
+    m_resolutionGeneration = generation;
+  }
+
+  const QChar sep(QChar(0x1f));
+  const QString key = appId + sep + appName + sep + windowTitle;
+  const auto hit = m_resolutionCache.constFind(key);
+  if (hit != m_resolutionCache.constEnd()) return hit.value();
+
+  const TimeArc::Categorization::MatchOptions options =
+      m_categorization != nullptr ? m_categorization->options()
+                                  : TimeArc::Categorization::MatchOptions();
+  const TimeArc::Categorization::Resolution resolution =
+      matcher().resolve(appId, appName, windowTitle, options);
+  if (m_resolutionCache.size() < 200000) m_resolutionCache.insert(key, resolution);
+  return resolution;
+}
+
+QString UsageStatManager::activityGroupKey(const QString& appId,
+                                           const QString& appName,
+                                           const QString& path,
+                                           const QString& windowTitle) const {
+  Q_UNUSED(path);
+  return resolveActivity(appId, appName, windowTitle).identity;
+}
+
+QString UsageStatManager::activityDisplayName(const QString& groupKey,
+                                              const QString& appId,
+                                              const QString& appName,
+                                              const QString& path) const {
+  Q_UNUSED(appId);
+  const QString label = matcher().labelFor(groupKey, uiLanguage());
+  if (!label.trimmed().isEmpty()) return label;
+
+  QString fallback =
+      !appName.trimmed().isEmpty() ? appName : QFileInfo(path).fileName();
+  if (fallback.endsWith(QLatin1String(".exe"), Qt::CaseInsensitive)) {
+    fallback.chop(4);
+  }
+  return fallback.trimmed().isEmpty() ? groupKey : fallback.trimmed();
+}
+
+QString UsageStatManager::classifyActivity(const QString& groupKey,
+                                           const QString& appId,
+                                           const QString& appName,
+                                           const QString& path,
+                                           const QString& windowTitle) const {
+  Q_UNUSED(groupKey);
+  Q_UNUSED(path);
+  return resolveActivity(appId, appName, windowTitle).category;
+}
+
+const TimeArc::Categorization::Rule* UsageStatManager_findRule(
+    const TimeArc::Categorization::RuleSet& set, const QString& ruleId) {
+  for (const TimeArc::Categorization::Rule& rule : set.rules) {
+    if (rule.id == ruleId) return &rule;
+  }
+  return nullptr;
+}
+
+void UsageStatManager::applyRuleMetadata(QVariantMap* item,
+                                         const QString& ruleId,
+                                         const QString& path) const {
+  if (item == nullptr || ruleId.trimmed().isEmpty()) return;
+
+  item->insert(QStringLiteral("adapterIdentifier"), ruleId);
+  item->insert(QStringLiteral("sourceType"),
+               ruleId.startsWith(QLatin1String("site:"))
+                   ? QStringLiteral("website")
+                   : QStringLiteral("desktopApp"));
+
+  const TimeArc::Categorization::Rule* rule =
+      UsageStatManager_findRule(matcher().ruleSet(), ruleId);
+  if (rule == nullptr) {
+    if (!path.trimmed().isEmpty())
+      item->insert(QStringLiteral("iconPath"), path);
+    return;
+  }
+
+  const QString label = TimeArc::Categorization::displayLabel(*rule, uiLanguage());
+  if (!label.trimmed().isEmpty()) {
+    item->insert(QStringLiteral("adapterDisplayName"), label);
+    item->insert(QStringLiteral("iconLabel"), label.left(1).toUpper());
+  }
+  item->insert(QStringLiteral("adapterCategory"), rule->category);
+
+  const QString icon = rule->icon.trimmed();
+  if (!icon.isEmpty()) {
+    item->insert(QStringLiteral("iconPath"), icon);
+    item->insert(QStringLiteral("iconSource"), icon);
+  } else if (!path.trimmed().isEmpty()) {
+    item->insert(QStringLiteral("iconPath"), path);
+  }
+}
+
+QStringList UsageStatManager::ruleIconColors(const QString& ruleId,
+                                             const QString& path) const {
+  const TimeArc::Categorization::Rule* rule =
+      UsageStatManager_findRule(matcher().ruleSet(), ruleId);
+  if (rule != nullptr && !rule->icon.trimmed().isEmpty()) {
+    return iconDominantColors(rule->icon);
+  }
+  return iconDominantColors(path);
+}
+
+QSet<QString> UsageStatManager::focusCategories() const {
+  QSet<QString> result;
+  // 关「自动分类」→ 没有类别基础，专注归零（与排行口径一致）。
+  const bool inferenceOn = m_categorization != nullptr
+                               ? m_categorization->autoClassify()
+                               : m_autoClassify;
+  if (!inferenceOn) return result;
+  for (const TimeArc::Categorization::CategoryDef& category :
+       matcher().ruleSet().categories) {
+    if (category.enabled && category.hasTrait(QStringLiteral("focus"))) {
+      result.insert(category.id);
+    }
+  }
+  return result;
+}
+
+// 「降权」是类别的一个特征位，不是写死的「系统」——用户给自建类别打上同样的
+// 特征，首页排行与今日主题也会一并让开。
+bool UsageStatManager::isDeprioritizedCategory(const QString& category) const {
+  const TimeArc::Categorization::CategoryDef* definition =
+      matcher().ruleSet().category(category);
+  return definition != nullptr &&
+         definition->hasTrait(QStringLiteral("deprioritize"));
+}
+
+QVariantList UsageStatManager::recordedAppIdentities() const {
+  struct Identity {
+    QString appId;
+    QString displayName;
+    QString path;
+    qint64 lastUsedUnixSec = 0;
+    quint64 seconds = 0;
+  };
+  QMap<QString, Identity> seen;
+  for (const UsageRecord& record : m_records) {
+    if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
+    const QString key = record.appId.trimmed().isEmpty()
+                            ? record.appName.trimmed().toLower()
+                            : record.appId;
+    if (key.isEmpty()) continue;
+    Identity& identity = seen[key];
+    if (identity.appId.isEmpty() && identity.displayName.isEmpty()) {
+      identity.appId = record.appId;
+      identity.displayName = !record.appName.trimmed().isEmpty()
+                                 ? record.appName
+                                 : QFileInfo(record.path).fileName();
+      identity.path = record.path;
+    }
+    identity.seconds += record.durationSec;
+    identity.lastUsedUnixSec =
+        std::max(identity.lastUsedUnixSec,
+                 record.startUnixSec + static_cast<qint64>(record.durationSec));
+  }
+
+  QVariantList result;
+  for (const Identity& identity : seen) {
+    QVariantMap item;
+    item.insert(QStringLiteral("appId"), identity.appId);
+    item.insert(QStringLiteral("displayName"), identity.displayName);
+    item.insert(QStringLiteral("path"), identity.path);
+    item.insert(QStringLiteral("seconds"),
+                static_cast<qlonglong>(identity.seconds));
+    item.insert(QStringLiteral("lastUsedUnixSec"), identity.lastUsedUnixSec);
+    result.append(item);
+  }
+  return result;
 }

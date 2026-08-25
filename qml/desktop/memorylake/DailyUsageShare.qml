@@ -13,6 +13,15 @@ Rectangle {
 
     property MemoryLakeStyle style
     property string languageMode: "zh"
+
+    // 类别名只由规则表给（含用户自建类别）；英语优先、其它语言回退。
+    function categoryLabel(categoryId) {
+        if (!categoryId)
+            return ""
+        if (typeof categorizationManager !== "undefined" && categorizationManager)
+            return categorizationManager.categoryLabel(categoryId)
+        return categoryId
+    }
     property var share: []          // [{name, appId, path, iconColors, percent, isOther}]
     property string total: ""
     // 标题可改（统计页周/月/年复用本组件，"今日" 文案不再适用）。默认 = 首页文案，向后兼容。
@@ -38,7 +47,7 @@ Rectangle {
             // 上游为「按 app 切片」补的 brandColor/iconColors 取色对分类切片无意义（分类无品牌色），此处不取。
             var col = s.isOther ? (style ? style.shareOther : "#6F7C91")
                                 : sharePalette[Math.min(i, sharePalette.length - 1)];
-            out.push({ name: I18n.category(panel.languageMode, s.name), percent: s.percent, color: col });
+            out.push({ name: panel.categoryLabel(s.name), percent: s.percent, color: col });
         }
         return out;
     }

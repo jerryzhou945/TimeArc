@@ -160,7 +160,7 @@ Item {
     function categorySums(apps) {
         var sums = {}
         for (var i = 0; i < apps.length; i++) {
-            var c = apps[i].category ? apps[i].category : "其他"
+            var c = apps[i].category ? apps[i].category : "other"
             sums[c] = (sums[c] ? sums[c] : 0) + (apps[i].seconds ? apps[i].seconds : 0)
         }
         return sums
@@ -169,26 +169,57 @@ Item {
     function topCategory(cat) {
         var best = "", bestSec = -1
         for (var k in cat) {
-            if (k === "系统" || k === "其他") continue
+            if (k === "system" || k === "other") continue
             if (cat[k] > bestSec) { bestSec = cat[k]; best = k }
         }
         return best
     }
 
-    function categoryHeatBase(category) {
-        switch (category) {
-        case "学习": return "#76B7F2"
-        case "笔记": return "#8BC6F0"
-        case "开发": return "#7ECF9A"
-        case "办公": return "#7DD6D0"
-        case "社交": return "#BBA7F2"
-        case "创作": return "#E7C86E"
-        case "游戏": return "#F2B279"
-        case "视频": return "#EE8F9A"
-        case "音乐": return "#9FDFAE"
-        case "浏览": return "#A9CBEF"
-        default: return "#8BCF9A"
+    // 类别色：从该类别里用得最多的应用的**图标色**推，再去撞色（AppVisual）。
+    // 用户在设置里选过色则直接用那个色。整表随数据刷新重算一次并缓存。
+    property var categoryColorMap: ({})
+
+    function rebuildCategoryColors(apps) {
+        var sums = categorySums(apps)
+        var seedOf = {}, secOf = {}
+        for (var i = 0; i < apps.length; i++) {
+            var c = AppVisual.modelCategory(apps[i]) || "other"
+            var sec = apps[i].seconds ? apps[i].seconds : 0
+            if (secOf[c] === undefined || sec > secOf[c]) {
+                secOf[c] = sec
+                var cols = apps[i].iconColors
+                seedOf[c] = (cols && cols.length > 0) ? cols[0] : AppVisual.modelAppColor(apps[i])
+            }
         }
+        var ids = []
+        for (var k in sums) ids.push(k)
+        ids.sort(function (a, b) { return sums[b] - sums[a] })
+        var userColors = {}
+        if (typeof categorizationManager !== "undefined" && categorizationManager) {
+            var defs = categorizationManager.categories()
+            for (var d = 0; d < defs.length; d++)
+                if (defs[d].color && defs[d].color.length > 0)
+                    userColors[defs[d].id] = defs[d].color
+        }
+        var entries = []
+        for (var j = 0; j < ids.length; j++)
+            entries.push({ id: ids[j], seed: seedOf[ids[j]], color: userColors[ids[j]] })
+        categoryColorMap = AppVisual.buildCategoryColors(entries, root.nightMode)
+        return categoryColorMap
+    }
+
+    function categoryHeatBase(category) {
+        var c = categoryColorMap[category]
+        return c ? c : (root.nightMode ? "#4A5568" : "#8BCF9A")
+    }
+
+    // 类别名：规则表是唯一来源（含用户自建类别），英语优先、其它语言回退。
+    function categoryLabel(categoryId) {
+        if (!categoryId)
+            return ""
+        if (typeof categorizationManager !== "undefined" && categorizationManager)
+            return categorizationManager.categoryLabel(categoryId)
+        return categoryId
     }
 
     function heatColor(category, level) {
@@ -228,8 +259,8 @@ Item {
         return sentence("heatTooltip", {
             date: date,
             time: secondsToDisplay(cell.seconds),
-            category: I18n.category(languageMode, cell.category)
-        }, date + " · " + secondsToDisplay(cell.seconds) + " · " + I18n.category(languageMode, cell.category))
+            category: root.categoryLabel(cell.category)
+        }, date + " · " + secondsToDisplay(cell.seconds) + " · " + root.categoryLabel(cell.category))
     }
 
     function dayCategorySums(segs, apps) {
@@ -243,7 +274,7 @@ Item {
         for (var s = 0; s < segs.length; s++) {
             var row = segs[s]
             var key = row.groupKey ? row.groupKey : row.appId
-            var cat = byGroup[key] || AppVisual.modelCategory(row) || "其他"
+            var cat = byGroup[key] || AppVisual.modelCategory(row) || "other"
             var list = row.segments ? row.segments : []
             for (var j = 0; j < list.length; j++) {
                 var start = list[j].startUnixSec ? Number(list[j].startUnixSec) : 0
@@ -264,16 +295,16 @@ Item {
     }
 
     function dominantDayCategory(daySums) {
-        var best = "其他", bestSec = -1
+        var best = "other", bestSec = -1
         for (var k in daySums) {
-            if (k === "系统" || k === "其他") continue
+            if (k === "system" || k === "other") continue
             if (daySums[k] > bestSec) { bestSec = daySums[k]; best = k }
         }
         if (bestSec >= 0)
             return best
         for (var any in daySums)
             return any
-        return "其他"
+        return "other"
     }
 
     // 期次窗口（任意周/月/年；offset：0=本期、负=过去）。end 取末秒（闭区间，
@@ -401,7 +432,7 @@ Item {
             var firstDate = new Date((daily[0].dayStartUnix ? daily[0].dayStartUnix : 0) * 1000)
             var firstDow = (firstDate.getDay() + 6) % 7
             for (var p = 0; p < firstDow; p++)
-                cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "其他" })
+                cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "other" })
         }
         for (var j = 0; j < daily.length; j++) {
             var sec = daily[j].seconds ? daily[j].seconds : 0
@@ -413,11 +444,11 @@ Item {
             var day = daily[j].day !== undefined ? daily[j].day
                       : new Date((daily[j].dayStartUnix ? daily[j].dayStartUnix : 0) * 1000).getDate()
             var dateKey = daily[j].dayStartUnix ? dateKeyFromUnix(daily[j].dayStartUnix) : ""
-            var cat = dateKey && byDayCategory[dateKey] ? dominantDayCategory(byDayCategory[dateKey]) : "其他"
+            var cat = dateKey && byDayCategory[dateKey] ? dominantDayCategory(byDayCategory[dateKey]) : "other"
             cells.push({ level: lv, day: day, dateKey: dateKey, seconds: sec, empty: false, category: cat, color: heatColor(cat, lv) })
         }
         while (cells.length > 0 && cells.length % 7 !== 0)
-            cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "其他" })
+            cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "other" })
         return cells
     }
 
@@ -558,14 +589,14 @@ Item {
         var label = rangeLabel(r)
         if (total <= 0)
             return sentence("insightNoData", {range: label}, label + "记录较少，暂不下结论。")
-        var topName = (share.length > 0) ? I18n.category(languageMode, share[0].name) : tr("多个应用")
+        var topName = (share.length > 0) ? root.categoryLabel(share[0].name) : tr("多个应用")
         var topPercent = (share.length > 0) ? (share[0].percent + "%") : ""
         var s = sentence("insightMain", {
             range: label,
             app: topName,
             percent: topPercent,
             time: hoursText(total)
-        }, label + "你主要把时间花在" + (share.length > 0 ? ("「" + I18n.category(languageMode, share[0].name) + "」（" + share[0].percent + "%）") : "多个应用上") + "，共计 " + hoursText(total) + "。")
+        }, label + "你主要把时间花在" + (share.length > 0 ? ("「" + root.categoryLabel(share[0].name) + "」（" + share[0].percent + "%）") : "多个应用上") + "，共计 " + hoursText(total) + "。")
         var ent = (cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)
         if (total > 0 && ent / total > 0.4) s += " " + tr("其中娱乐时间占比偏高。")
         return s
@@ -625,6 +656,7 @@ Item {
         vmShare = share
         vmShareTotalText = hoursText(total)
 
+        rebuildCategoryColors(apps)
         var cat = categorySums(apps)
         vmRanking = buildRanking(apps, segs, 5)
 
@@ -1679,7 +1711,7 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 2
                             Text { Layout.fillWidth: true; text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight }
-                            Text { Layout.fillWidth: true; text: root.tr(AppVisual.modelCategory(modelData) || "其他") + (modelData.periodSeconds > 0 ? " · " + root.tr("本期有记录") : " · " + root.tr("本期未使用")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
+                            Text { Layout.fillWidth: true; text: root.categoryLabel(AppVisual.modelCategory(modelData) || "other") + (modelData.periodSeconds > 0 ? " · " + root.tr("本期有记录") : " · " + root.tr("本期未使用")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
                         }
                         ColumnLayout {
                             Layout.preferredWidth: 170; spacing: 4
@@ -1801,7 +1833,7 @@ Item {
                             Rectangle { Layout.preferredWidth: 8; Layout.preferredHeight: 8; radius: 3; color: root.categoryHeatBase(modelData.name) }
                             ColumnLayout {
                                 Layout.fillWidth: true; spacing: 1
-                                Text { Layout.fillWidth: true; text: I18n.category(root.languageMode, modelData.name); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                                Text { Layout.fillWidth: true; text: root.categoryLabel(modelData.name); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold; elide: Text.ElideRight }
                                 Text { Layout.fillWidth: true; text: modelData.appsText; color: ml.textTertiary; font.pixelSize: 9; elide: Text.ElideRight }
                             }
                             ColumnLayout {

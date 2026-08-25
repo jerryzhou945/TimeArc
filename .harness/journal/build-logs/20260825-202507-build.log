@@ -1,0 +1,8 @@
+[1/8] Copying time-arc qml sources into build dir
+[2/8] Running qmlimportscanner for time-arc
+[3/8] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.aotstats
+[4/8] Running rcc for resource time-arc_raw_qml_0
+[5/8] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[6/8] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.o
+[7/8] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopProfilePage_qml.cpp.o
+[8/8] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

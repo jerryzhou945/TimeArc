@@ -20,6 +20,8 @@ set(TIME_ARC_DATABASE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/services/settings_repository.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/stats_service.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/stats_service.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/categorization_manager.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/services/categorization_manager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/calendar_manager.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/services/calendar_manager.h
     ${CMAKE_CURRENT_SOURCE_DIR}/services/project_manager.cpp

@@ -279,3 +279,62 @@ function modelIconLabel(row) {
         return row.iconLabel;
     return appIconLabel(modelIdentity(row), modelDisplayName(row));
 }
+
+// ---------------------------------------------------------------------------
+// 类别配色：默认从**图标**推，不再查表。
+// 图标色忠实但不保证可分辨，而图例最起码要能一眼区分；所以先按代表应用的图标
+// 取色相，再吸附到 12 等分色环的最近空槽，保证任意两个类别至少差 30°。
+// 用户显式选过色（category.color）永远优先，由调用方直接覆盖。
+// ---------------------------------------------------------------------------
+
+function _hueOf(seed, fallbackKey) {
+    if (seed && seed.toString().length > 0) {
+        var c = Qt.lighter(seed, 1.0)
+        var h = c.hslHue
+        if (h >= 0 && !isNaN(h))
+            return h
+    }
+    var hash = 0
+    var text = (fallbackKey || "").toString()
+    for (var i = 0; i < text.length; i++)
+        hash = ((hash * 31) + text.charCodeAt(i)) & 0x7fffffff
+    return (hash % 12) / 12
+}
+
+// entries: [{ id, seed, color }]，按重要性（时长）降序传入——重要的类别先占槽。
+// 返回 { id: colorString }。
+function buildCategoryColors(entries, night) {
+    var slots = 12
+    var taken = {}
+    var out = {}
+    for (var i = 0; i < entries.length; i++) {
+        var e = entries[i]
+        if (!e || !e.id)
+            continue
+        if (e.color && e.color.toString().length > 0) {   // 用户选过色
+            out[e.id] = e.color
+            continue
+        }
+        if (e.id === "system" || e.id === "other") {      // 中性，不占彩色槽
+            out[e.id] = night ? Qt.hsla(0, 0, 0.42, 1.0) : Qt.hsla(0, 0, 0.78, 1.0)
+            continue
+        }
+        var slot = Math.round(_hueOf(e.seed, e.id) * slots) % slots
+        var tries = 0
+        while (taken[slot] && tries < slots) {
+            slot = (slot + 1) % slots
+            tries++
+        }
+        taken[slot] = true
+        out[e.id] = Qt.hsla(slot / slots,
+                            night ? 0.46 : 0.52,
+                            night ? 0.58 : 0.62, 1.0)
+    }
+    return out
+}
+
+// 单个类别的取色（没有全局去撞需求时用，例如详情页的一个色点）。
+function categoryColor(categoryId, seed, night) {
+    var map = buildCategoryColors([{ id: categoryId, seed: seed }], night)
+    return map[categoryId]
+}
