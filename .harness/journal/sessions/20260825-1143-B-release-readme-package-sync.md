@@ -43,5 +43,9 @@ and operational rather than receiving marketing decoration.
   static, stats layout static, diff check, and seven-pass harness audit passed.
   Staged GUI passed dynamic Qt/shared-install checks; SFX archive test passed
   for both embedded files. Installer is intentionally reported `NotSigned`.
-- Next: Commit the installer tooling/docs, rerun the complete release gate,
-  then synchronize dev/main and verify remote hashes.
+- Verification after fast-forwarding `dev`: the first two wrapped builds were
+  correctly blocked by live UI/service executable locks; after graceful service
+  stop and targeted UI close, the fresh build passed, followed by CTest 6/6 and
+  all three JS/static suites.
+- Next: Commit this integration evidence, push dev, align and verify main, then
+  verify remote hashes and clean the temporary feature branch.

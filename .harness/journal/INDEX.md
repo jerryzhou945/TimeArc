@@ -7,6 +7,11 @@ omitted here to preserve the harness line budget.
 
 | Date (UTC) | Lvl | Topic | Report |
 |---|---|---|---|
+| 2026-08-25T04:14:47Z | L2 | commit-after-di... | PowerShell command sequencing allowed git commit to run a... | [report](errors/20260825-041447-B-commit-after-diff-check.md) |
+| 2026-08-25T04:13:47Z | L2 | merged-dev-inde... | Merged-dev verification errors pushed the rolling journal... | [report](errors/20260825-041347-B-merged-dev-index-budget.md) |
+| 2026-08-25T04:12:47Z | L3 | release-ui-clos... | TimeArc had no CloseMainWindow handle while locking the r... | [report](errors/20260825-041247-B-release-ui-close-window.md) |
+| 2026-08-25T04:12:20Z | L1 | merged-dev-rele... | cmake --build exited 1 | [report](errors/20260825-041220-B-merged-dev-release-gate-green.md) |
+| 2026-08-25T04:11:18Z | L1 | merged-dev-rele... | cmake --build exited 1 | [report](errors/20260825-041118-B-merged-dev-release-gate.md) |
 | 2026-08-25T04:08:50Z | L2 | release-index-b... | New installer packaging errors pushed harness journal IND... | [report](errors/20260825-040850-B-release-index-budget.md) |
 | 2026-08-25T04:06:50Z | L2 | sfx-size-assertion | The valid SFX output was smaller than the source ZIP beca... | [report](errors/20260825-040650-B-sfx-size-assertion.md) |
 | 2026-08-25T04:05:15Z | L3 | sevenzip-output... | 7zr extraction received a split -o switch for the local t... | [report](errors/20260825-040515-B-sevenzip-output-switch.md) |
@@ -91,9 +96,5 @@ omitted here to preserve the harness line budget.
 | 2026-08-24T20:50:40Z | L3 | win32-enumwindo... | A diagnostic EnumWindows PowerShell one-liner had an unma... | [report](errors/20260824-205040-C-win32-enumwindows-powershell-syntax.md) |
 | 2026-08-24T20:50:05Z | L3 | tasklist-access... | tasklist /v could not inspect packaged Codex windows unde... | [report](errors/20260824-205005-C-tasklist-access-denied.md) |
 | 2026-08-24T20:49:46Z | L3 | codex-window-ac... | WScript AppActivate('Codex') returned false because the p... | [report](errors/20260824-204946-C-codex-window-activation-title.md) |
-| 2026-08-24T20:47:43Z | L2 | runtime-smoke-l... | Runtime smoke still failed after stopping the live servic... | [report](errors/20260824-204743-C-runtime-smoke-live-ui-conflict.md) |
-| 2026-08-24T20:47:14Z | L2 | runtime-smoke-l... | Windows service runtime smoke could not start its isolate... | [report](errors/20260824-204714-C-runtime-smoke-live-instance-conflict.md) |
-| 2026-08-24T20:47:13Z | L3 | python-loop-lab... | PowerShell test-loop label was over-escaped and emitted n... | [report](errors/20260824-204713-C-python-loop-label-quoting.md) |
-| 2026-08-24T20:46:41Z | L3 | python-test-dis... | unittest discovery found zero script-style Python tests; ... | [report](errors/20260824-204641-C-python-test-discovery-pattern.md) |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
 | ... | L3 | omitted | Older L3 rows omitted from INDEX; see `errors.jsonl`. | |
