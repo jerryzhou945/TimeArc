@@ -10,10 +10,12 @@
 #include "services/manual_project_repository.h"
 
 namespace {
-// 固定标签顺序和 QML 中的标签筛选保持一致。当前文件里的中文显示受历史编码
-// 影响看起来像乱码，但值需要保持不变以兼容已有 QSettings 数据。
-const QStringList kFixedTags = {"学习", "工作", "运动", "娱乐",
-                                "阅读", "社交", "生活", "其他"};
+// 固定标签顺序和 QML 中的标签筛选保持一致。这些值随 English-first 改为英文，
+// 数据库侧由 DatabaseManager::renameLegacyChineseTags() 就地改名（tag_id 不变）。
+// 下面的 QSettings 分支只在 m_repository 为空时走到（仅测试/独立预览），
+// 生产路径始终注入 ManualProjectRepository，因此不存在遗留中文标签名。
+const QStringList kFixedTags = {"Study", "Work", "Exercise", "Entertainment",
+                                "Reading", "Social", "Life", "Other"};
 }  // namespace
 
 ProjectManager::ProjectManager(ManualProjectRepository* repository,
@@ -31,11 +33,11 @@ int ProjectManager::tagMinutes(const QString& tagName) const {
   return tagMinutesForRange(tagName, "all");
 }
 
-int ProjectManager::studyMinutes() const { return tagMinutes("学习"); }
+int ProjectManager::studyMinutes() const { return tagMinutes("Study"); }
 
-int ProjectManager::sportMinutes() const { return tagMinutes("运动"); }
+int ProjectManager::sportMinutes() const { return tagMinutes("Exercise"); }
 
-int ProjectManager::gameMinutes() const { return tagMinutes("游戏"); }
+int ProjectManager::gameMinutes() const { return tagMinutes("Games"); }
 
 int ProjectManager::totalProjectMinutes() const { return allProjectMinutes(); }
 

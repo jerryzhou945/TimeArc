@@ -61,7 +61,7 @@ def main():
     assert "RowLayout {" in summary
     assert "Item { Layout.fillHeight: true }" not in summary
     library = section("component StatsAppLibrary", "component StatsAggregateSummary")
-    assert 'text: root.tr("最近记录")' in library
+    assert 'text: root.tr("Recent records")' in library
     assert "root.recentRecordText(modelData.lastUsedUnixSec)" in library
     print("stats period layout static checks passed")
 

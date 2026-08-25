@@ -1,5 +1,5 @@
 import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 今日结论 / Today Conclusion（设计稿 .today-briefing）：中栏顶部宽卡。
 // v88 复刻：玻璃底 + 左上 aqua / 右上 violet 双角径向辉光 + 28px 方格底纹 + 顶沿内高光；
@@ -15,44 +15,22 @@ Rectangle {
     property string languageMode: "zh"
 
     readonly property var modelChips: (model && model.chips) ? model.chips : []
-    readonly property string kicker: translateText((model && model.kicker) ? model.kicker : "Today Conclusion")
-    readonly property string title: translateText((model && model.title) ? model.title : "今天还很安静")
-    readonly property string desc: translateText((model && model.desc) ? model.desc : "")
+    readonly property string kicker: I18n.t(languageMode, (model && model.kicker) ? model.kicker : "Today Conclusion")
+    readonly property string title: (model && model.titleKey)
+        ? I18n.fromModel(languageMode, model.titleKey, model.titleParams)
+        : I18n.t(languageMode, "Today is still quiet")
+    readonly property string desc: (model && model.descKey)
+        ? I18n.fromModel(languageMode, model.descKey, model.descParams) : ""
     readonly property string total: (model && model.total) ? model.total : ""
 
-    function translateText(source) {
-        if (!source || source.length === 0)
+    // Chip labels are plain source strings; their values are pre-formatted
+    // numbers and times from the service, translated only when they are words.
+    function translateChipValue(chipItem) {
+        if (!chipItem)
             return ""
-        if (I18n.langKey(languageMode) === "en") {
-            if (source.indexOf("为主") >= 0 && source.indexOf("今天的主要主题是：") < 0) {
-                var directTheme = source.replace("为主", "").trim()
-                return I18n.category(languageMode, directTheme) + " Focus"
-            }
-            if (source.indexOf("今天的主要主题是：") === 0) {
-                var theme = source.substring("今天的主要主题是：".length)
-                if (theme.indexOf("为主") >= 0)
-                    theme = theme.replace("为主", "").trim()
-                return "Today's main theme: " + I18n.category(languageMode, theme)
-            }
-        }
-        return I18n.smartText(languageMode, source)
-    }
-
-    function translateChipValue(value) {
-        if (!value)
-            return ""
-        if (I18n.langKey(languageMode) === "en") {
-            var item = value.match(/^(\d+)\s*项$/)
-            if (item)
-                return item[1] + (Number(item[1]) === 1 ? " item" : " items")
-            var pct = value.match(/^(.+)\s+(\d+%)$/)
-            if (pct)
-                return I18n.category(languageMode, pct[1]) + " " + pct[2]
-            var time = value.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/)
-            if (time)
-                return value
-        }
-        return I18n.smartText(languageMode, value)
+        if (chipItem.valueKey)
+            return I18n.fromModel(languageMode, chipItem.valueKey, chipItem.valueParams)
+        return chipItem.value ? I18n.t(languageMode, chipItem.value) : ""
     }
 
     // 后端 chips（最高占比/高峰时段/建议）+ 待办剩余（QML 叠加，插在第一项之后，贴合 v88 顺序）。
@@ -62,12 +40,12 @@ Rectangle {
         for (var i = 0; i < modelChips.length; i++) {
             arr.push(modelChips[i]);
             if (i === 0 && todoRemaining >= 0) {
-                arr.push({ label: "待办剩余", value: todoRemaining + " 项" });
+                arr.push({ label: "Todos Left", value: I18n.sentence(languageMode, "itemCount", {count: todoRemaining}) });
                 inserted = true;
             }
         }
         if (!inserted && todoRemaining >= 0)
-            arr.push({ label: "待办剩余", value: todoRemaining + " 项" });
+            arr.push({ label: "Todos Left", value: I18n.sentence(languageMode, "itemCount", {count: todoRemaining}) });
         return arr;
     }
 
@@ -207,7 +185,7 @@ Rectangle {
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: I18n.t(card.languageMode, "今日总计")
+                        text: I18n.t(card.languageMode, "Today Total")
                         color: card.style ? card.style.textTertiary : "#888"
                         font.pixelSize: 9
                         font.weight: 700
@@ -239,13 +217,13 @@ Rectangle {
                         anchors.centerIn: parent
                         spacing: 6
                         Text {
-                            text: card.translateText(modelData.label)
+                            text: I18n.t(card.languageMode, modelData.label)
                             color: card.style ? card.style.textSecondary : "#bbb"
                             font.pixelSize: 11
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
-                            text: card.translateChipValue(modelData.value)
+                            text: card.translateChipValue(modelData)
                             color: card.style ? card.style.textPrimary : "#fff"
                             font.pixelSize: 11
                             font.weight: 800

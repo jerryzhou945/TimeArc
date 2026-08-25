@@ -1,8 +1,14 @@
 import QtQuick
 import ".."
+import "../../../shared/I18n.js" as I18n
 
 Item {
     id: root
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     property var theme
     property var report: ({})
     property var profile: ({})
@@ -20,7 +26,7 @@ Item {
         spacing: 18
 
         Text {
-            text: "总有一些应用，并肩出现"
+            text: "Some apps always show up side by side"
             color: "#E8FFFFFF"
             font.family: theme.fontFamily
             font.pixelSize: 15
@@ -32,6 +38,8 @@ Item {
             spacing: 13
 
             MobileAppIcon {
+
+                languageMode: root.languageMode
                 theme: root.theme
                 app: firstApp
                 iconSize: 72
@@ -47,6 +55,8 @@ Item {
             }
 
             MobileAppIcon {
+
+                languageMode: root.languageMode
                 theme: root.theme
                 app: secondApp
                 iconSize: 72
@@ -57,8 +67,8 @@ Item {
         Text {
             width: parent.width
             text: companion.daysTogether
-                  ? "共同出现 " + companion.daysTogether + " 天"
-                  : "等待更多共同出现的日子"
+                  ? I18n.sentence(root.languageMode, "daysTogether", {days: companion.daysTogether})
+                  : "Waiting for more days they appear together"
             color: "white"
             font.family: theme.numberFontFamily
             font.pixelSize: 32
@@ -68,8 +78,8 @@ Item {
 
         Text {
             width: parent.width
-            text: companion.body || "当两个应用在同一天反复相遇，"
-                  + "它们也许正共同完成一件对你重要的事。"
+            text: companion.body || "When two apps keep meeting on the same day,"
+                  + "they may be working together on something that matters to you."
             color: "#DFFFFFFF"
             font.family: theme.fontFamily
             font.pixelSize: 15

@@ -1,6 +1,6 @@
 import QtQuick
 import "../components/AppVisual.js" as AppVisual
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 左栏「APP 使用排行」面板内容：标题 + 排行列表（丝滑滚动）。
 // 选择/悬停通过信号上抛，由页面统一调度。
@@ -29,7 +29,7 @@ Item {
             Text {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
-            text: I18n.t(rankRoot.languageMode, "APP 使用排行")
+            text: I18n.t(rankRoot.languageMode, "App Usage Ranking")
                 color: rankRoot.style ? rankRoot.style.textPrimary : "#fff"
                 font.pixelSize: 15
                 font.bold: true
@@ -37,7 +37,7 @@ Item {
             Text {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-            text: I18n.t(rankRoot.languageMode, "给排行榜更多空间")
+            text: I18n.t(rankRoot.languageMode, "More room for rankings")
                 color: rankRoot.style ? rankRoot.style.textTertiary : "#888"
                 font.pixelSize: 11
             }
@@ -193,7 +193,7 @@ Item {
                     Text {
                         anchors.centerIn: parent
                         visible: rankRoot.ranking.length === 0
-            text: I18n.t(rankRoot.languageMode, "今天还没有自动记录")
+            text: I18n.t(rankRoot.languageMode, "No automatic records yet today")
                         color: rankRoot.style ? rankRoot.style.textTertiary : "#888"
                         font.pixelSize: 13
                     }

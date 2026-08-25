@@ -1,8 +1,14 @@
 import QtQuick
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property var app: ({})
     property int iconSize: 48
@@ -44,6 +50,8 @@ Item {
         }
 
         MobileSymbolIcon {
+
+            languageMode: root.languageMode
             anchors.centerIn: parent
             visible: iconImage.status !== Image.Ready && root.launcherFallback
             name: "home"
@@ -53,7 +61,7 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            text: (root.app && root.app.initial) ? root.app.initial : "时"
+            text: (root.app && root.app.initial) ? root.app.initial : "h"
             visible: iconImage.status !== Image.Ready && !root.launcherFallback
             color: root.theme.accentBright
             font.family: root.theme.fontFamily

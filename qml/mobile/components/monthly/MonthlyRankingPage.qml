@@ -1,8 +1,14 @@
 import QtQuick
 import ".."
+import "../../../shared/I18n.js" as I18n
 
 Item {
     id: root
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     property var theme
     property var report: ({})
     property var profile: ({})
@@ -17,7 +23,7 @@ Item {
         spacing: 16
 
         Text {
-            text: "这个月，时间去了这里"
+            text: "This month, time went here"
             color: "white"
             font.family: theme.fontFamily
             font.pixelSize: 26
@@ -27,8 +33,8 @@ Item {
         Text {
             width: parent.width
             text: apps.length > 0
-                  ? "不是输赢，只是你真实生活的一份去向。"
-                  : "同步后，应用与时间会在这里形成排行。"
+                  ? "Not a scoreboard, just where your life actually went."
+                  : "After syncing, apps and time will form a ranking here."
             color: "#CFFFFFFF"
             font.family: theme.fontFamily
             font.pixelSize: 13
@@ -60,6 +66,8 @@ Item {
                     }
 
                     MobileAppIcon {
+
+                        languageMode: root.languageMode
                         anchors.verticalCenter: parent.verticalCenter
                         theme: root.theme
                         app: modelData
@@ -76,7 +84,7 @@ Item {
                             width: parent.width
                             Text {
                                 width: parent.width - 82
-                                text: modelData.displayName || "未知应用"
+                                text: modelData.displayName || "Unknown app"
                                 color: "white"
                                 font.family: theme.fontFamily
                                 font.pixelSize: 14
@@ -85,7 +93,7 @@ Item {
                             }
                             Text {
                                 width: 82
-                                text: modelData.durationText || "0 分钟"
+                                text: modelData.durationText || "0 minutes"
                                 color: "#E2FFFFFF"
                                 font.family: theme.numberFontFamily
                                 font.pixelSize: 12

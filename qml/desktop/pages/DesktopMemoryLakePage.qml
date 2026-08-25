@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 记忆湖页面：1:1 复刻 MemoryLakeDesign/memory_lake_v25_win11_style.html 的窗口内部三栏。
 // 阶段 A：三栏静态排版 + 灯光底子 + 主题。后续阶段补卡牌交互 / 丝滑滚动 / 月度回顾。
@@ -22,18 +22,6 @@ Item {
     property string languageMode: "zh"
 
     function tr(source) { return I18n.t(languageMode, source) }
-    function translateThemeText(source) {
-        if (!source || source.length === 0)
-            return ""
-        if (I18n.langKey(languageMode) === "en") {
-            if (source.indexOf("为主") >= 0) {
-                var theme = source.replace("为主", "").trim()
-                return I18n.category(languageMode, theme) + " Focus"
-            }
-        }
-        return I18n.smartText(languageMode, source)
-    }
-
     // —— 当前选中的记忆 ——
     property int selectedIndex: 0
     property int flippedIndex: -1
@@ -61,11 +49,11 @@ Item {
     readonly property bool locked: flippedIndex >= 0
 
     readonly property var overview: (dayModel && dayModel.overview)
-        ? dayModel.overview : ({ total: "0m", sub: "暂无记录" })
+        ? dayModel.overview : ({ total: "0m", sub: "No records" })
     readonly property var todayTheme: (dayModel && dayModel.todayTheme)
         ? dayModel.todayTheme
-        : ({ kicker: "今日主题", title: "今天还很安静",
-             desc: "还没有自动记录，开始使用后这里会生成今日主题。", ratio: 0 })
+        : ({ kicker: "Today's Theme", title: "Today is still quiet",
+             desc: "No automatic records yet. Once you start using the computer, today's theme appears here.", ratio: 0 })
 
     // 今日结论 / 今日占比：后端在 memoryLakeDay 里组装好，QML 只渲染。
     readonly property var todayConclusion: (dayModel && dayModel.todayConclusion)
@@ -258,7 +246,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 3
                             Text { text: root.tr("Memory Lake"); color: ml.textPrimary; font.pixelSize: 18; font.bold: true }
-                            Text { text: root.tr("电脑使用时间记录"); color: ml.textTertiary; font.pixelSize: 11 }
+                            Text { text: root.tr("Computer usage record"); color: ml.textTertiary; font.pixelSize: 11 }
                         }
                     }
                 }
@@ -279,10 +267,10 @@ Item {
                             text: root.tr(root.todayTheme.kicker); color: ml.aqua; font.pixelSize: 11; opacity: 0.9
                             font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
                         }
-                        Text { text: root.translateThemeText(root.todayTheme.title); color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
+                        Text { text: I18n.fromModel(root.languageMode, root.todayTheme.titleKey, root.todayTheme.titleParams); color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
                         Text {
                             width: parent.width
-                            text: root.translateThemeText(root.todayTheme.desc)
+                            text: I18n.fromModel(root.languageMode, root.todayTheme.descKey, root.todayTheme.descParams)
                             color: ml.textSecondary
                             font.pixelSize: 12
                             wrapMode: Text.WordWrap
@@ -434,14 +422,14 @@ Item {
                     visible: !root.hasData
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.tr("今天还没有自动记录")
+                        text: root.tr("No automatic records yet today")
                         color: ml.textPrimary
                         font.pixelSize: 18
                         font.bold: true
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.tr("开始使用电脑后，这里会浮现今天的记忆卡片。")
+                        text: root.tr("Once you start using the computer, today's memory cards will appear here.")
                         color: ml.textSecondary
                         font.pixelSize: 13
                     }

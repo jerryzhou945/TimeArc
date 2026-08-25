@@ -107,13 +107,15 @@ assert.strictEqual(Stats.formatCompactDuration(59), '<1m');
 assert.strictEqual(Stats.formatCompactDuration(3660), '1h 1m');
 
 const categories = Stats.buildCategoryDistribution([
-  { groupKey: 'app:codex', appName: 'Codex', category: '开发', seconds: 120 },
-  { groupKey: 'app:vscode', appName: 'Visual Studio Code', category: '开发', seconds: 60 },
-  { groupKey: 'app:chrome', appName: 'Chrome', category: '浏览', seconds: 60 }
+  { groupKey: 'app:codex', appName: 'Codex', category: 'Development', seconds: 120 },
+  { groupKey: 'app:vscode', appName: 'Visual Studio Code', category: 'Development', seconds: 60 },
+  { groupKey: 'app:chrome', appName: 'Chrome', category: 'Browsing', seconds: 60 }
 ], 6);
+// apps is handed over unjoined: the separator is language-dependent ("、" for
+// CJK, ", " for English) and this module deliberately knows nothing about I18n.
 assert.deepStrictEqual(categories, [
-  { name: '开发', seconds: 180, time: '3m', percent: 75, appsText: 'Codex、Visual Studio Code' },
-  { name: '浏览', seconds: 60, time: '1m', percent: 25, appsText: 'Chrome' }
+  { name: 'Development', seconds: 180, time: '3m', percent: 75, apps: ['Codex', 'Visual Studio Code'] },
+  { name: 'Browsing', seconds: 60, time: '1m', percent: 25, apps: ['Chrome'] }
 ]);
 
 const monthTrend = Stats.normalizeTrendRows('month', [
@@ -121,24 +123,46 @@ const monthTrend = Stats.normalizeTrendRows('month', [
   { seconds: 7200 },
   { seconds: 0 }
 ]);
+// A generated label travels as a key plus its index; only a row that arrived
+// with its own label keeps one, so that nothing here has to pick a language.
 assert.deepStrictEqual(monthTrend, [
-  { label: '第1周', seconds: 3600, ratio: 0.5, valueText: '1h' },
-  { label: '第2周', seconds: 7200, ratio: 1, valueText: '2h' },
-  { label: '第3周', seconds: 0, ratio: 0, valueText: '0m' }
+  { label: '', labelKey: 'weekOfMonth', labelIndex: 0, seconds: 3600, ratio: 0.5, valueText: '1h' },
+  { label: '', labelKey: 'weekOfMonth', labelIndex: 1, seconds: 7200, ratio: 1, valueText: '2h' },
+  { label: '', labelKey: 'weekOfMonth', labelIndex: 2, seconds: 0, ratio: 0, valueText: '0m' }
 ]);
 
+const yearTrend = Stats.normalizeTrendRows('year', [{ seconds: 7200 }]);
+assert.strictEqual(yearTrend[0].labelKey, 'monthOfYear');
+assert.strictEqual(yearTrend[0].labelIndex, 0);
+
 const weekTrend = Stats.normalizeTrendRows('week', [
-  { label: '一', seconds: 120 },
-  { label: '三', seconds: 300 }
+  { seconds: 120 },
+  { seconds: 300 }
 ]);
-assert.deepStrictEqual(weekTrend.map((row) => row.label), ['一', '三']);
-assert.strictEqual(Stats.buildAggregateFact('week', categories, weekTrend),
-  '开发是本周记录时长最长的分类，三的记录最集中。');
-assert.strictEqual(Stats.buildAggregateFact('month', categories, monthTrend),
-  '开发是本月记录时长最长的分类，第2周的记录最集中。');
-assert.strictEqual(Stats.buildAggregateFact('year', categories, [
-  { label: '8月', seconds: 7200, ratio: 1, valueText: '2h' }
-]), '开发是本年记录时长最长的分类，8月的记录最集中。');
-assert.strictEqual(Stats.buildAggregateFact('week', [], weekTrend), '');
+assert.deepStrictEqual(weekTrend.map((row) => row.labelKey),
+  ['weekdayNarrow', 'weekdayNarrow']);
+
+// A supplied label is preserved verbatim rather than replaced by a key.
+const labelled = Stats.normalizeTrendRows('week', [{ label: 'Mon', seconds: 120 }]);
+assert.strictEqual(labelled[0].label, 'Mon');
+assert.strictEqual(labelled[0].labelKey, '');
+
+// buildAggregateFact returns the template name and its fields, never a
+// sentence: the clause order differs by language.
+assert.deepStrictEqual(Stats.buildAggregateFact('week', categories, weekTrend), {
+  key: 'aggregateFact',
+  params: {
+    category: 'Development',
+    range: 'This Week',
+    peakLabel: '',
+    peakLabelKey: 'weekdayNarrow',
+    peakLabelIndex: 1
+  }
+});
+assert.strictEqual(
+  Stats.buildAggregateFact('month', categories, monthTrend).params.peakLabelIndex, 1);
+assert.strictEqual(
+  Stats.buildAggregateFact('year', categories, yearTrend).params.range, 'This Year');
+assert.strictEqual(Stats.buildAggregateFact('week', [], weekTrend), null);
 
 console.log('stats_view_model_test: pass');

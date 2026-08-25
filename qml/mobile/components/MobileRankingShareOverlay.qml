@@ -1,9 +1,15 @@
 import QtQuick
 import QtQuick.Window
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property var dashboard: ({})
     property url wallpaperSource: ""
@@ -25,31 +31,31 @@ Item {
     function shareCopy() {
         var apps = dashboard.topApps || []
         if (apps.length === 0)
-            return "时间还在等待第一段真实记录。"
-        return (apps[0].displayName || "一个应用")
-                + " 留下了最多时间；其余片段，也共同组成了这段生活的去向。"
+            return "Time is still waiting for its first real record."
+        return I18n.sentence(root.languageMode, "rankingShareLead",
+                             {app: apps[0].displayName || root.tr("one app")})
     }
 
     function exportAndShare(channel) {
-        message = "正在生成排行卡片…"
+        message = "Building the ranking card…"
         poster.grabToImage(function(result) {
             if (typeof mobileUiService === "undefined" || !mobileUiService) {
-                message = "当前环境无法保存图片。"
+                message = "Images cannot be saved in this environment."
                 return
             }
             var path = mobileUiService.createShareImagePath(
                         (dashboard.rangeLabel || "ranking") + "-ranking")
             if (!path || !result.saveToFile(path)) {
-                message = "排行图片保存失败，请重试。"
+                message = "Could not save the ranking image. Try again."
                 return
             }
             if (!mobileUiService.shareImageToChannel(
-                        path, channel || "system", "分享时间使用排行")) {
+                        path, channel || "system", "Share usage ranking")) {
                 message = mobileUiService.lastError
                 return
             }
             message = Qt.platform.os === "android"
-                    ? "已打开系统分享面板" : "排行图片已保存"
+                    ? "System share sheet opened" : "Ranking image saved"
         }, Qt.size(1080, 1920))
     }
 
@@ -85,7 +91,7 @@ Item {
                 height: 42
                 Text {
                     width: parent.width - 50
-                    text: "排行分享预览"
+                    text: "Ranking share preview"
                     color: root.theme.textPrimary
                     font.family: root.theme.fontFamily
                     font.pixelSize: 20
@@ -98,6 +104,7 @@ Item {
                     radius: 21
                     color: root.theme.surfaceRaised
                     MobileSymbolIcon {
+                        languageMode: root.languageMode
                         anchors.centerIn: parent
                         name: "close"
                         color: root.theme.textPrimary
@@ -152,14 +159,14 @@ Item {
 
                         Text {
                             text: "TIMEARC · "
-                                  + (root.dashboard.rangeLabel || "时间排行")
+                                  + (root.dashboard.rangeLabel || "Time ranking")
                             color: "#AFFFFFFF"
                             font.family: root.theme.fontFamily
                             font.pixelSize: 10
                             font.letterSpacing: 1
                         }
                         Text {
-                            text: root.dashboard.totalText || "0 分钟"
+                            text: root.dashboard.totalText || "0 minutes"
                             color: "white"
                             font.family: root.theme.numberFontFamily
                             font.pixelSize: 35
@@ -200,6 +207,7 @@ Item {
                                     font.weight: Font.Bold
                                 }
                                 MobileAppIcon {
+                                    languageMode: root.languageMode
                                     anchors.verticalCenter: parent.verticalCenter
                                     theme: root.theme
                                     app: modelData
@@ -214,7 +222,7 @@ Item {
                                         width: parent.width
                                         Text {
                                             width: parent.width - 70
-                                            text: modelData.displayName || "未知应用"
+                                            text: modelData.displayName ? root.tr(modelData.displayName) : root.tr("Unknown app")
                                             color: "white"
                                             font.family: root.theme.fontFamily
                                             font.pixelSize: 11
@@ -223,7 +231,7 @@ Item {
                                         }
                                         Text {
                                             width: 70
-                                            text: modelData.durationText || "0 分钟"
+                                            text: modelData.durationText || "0 minutes"
                                             color: "#DFFFFFFF"
                                             font.family: root.theme.numberFontFamily
                                             font.pixelSize: 10
@@ -250,8 +258,8 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: (root.dashboard.rangeText || "")
-                                  + " · 仅呈现聚合时长"
+                            text: I18n.sentence(root.languageMode, "aggregatedOnly",
+                                                {app: I18n.reportRange(root.languageMode, root.dashboard)})
                             color: "#9FFFFFFF"
                             font.family: root.theme.fontFamily
                             font.pixelSize: 9
@@ -261,6 +269,8 @@ Item {
             }
 
             MobileShareActionBar {
+
+                languageMode: root.languageMode
                 width: parent.width
                 theme: root.theme
                 compact: true

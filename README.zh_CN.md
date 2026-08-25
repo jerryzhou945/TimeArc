@@ -109,6 +109,8 @@ TimeArc 计算的是**有效活动区间的并集**，同一时段同时满足�
 | Windows    | `%APPDATA%\TimeArc\service\timearc_service.db`                        |
 | macOS      | `~/Library/Application Support/TimeArc/service/timearc_service.db`    |
 | Linux 规划 | `${XDG_DATA_HOME:-~/.local/share}/TimeArc/service/timearc_service.db` |
+- 头像为本地头像：仅复制到应用自有存储中，不会上传。
+- 月报在次月 1 日 08:00 发布，整月结束后才生成回顾。
 
 ## 架构
 

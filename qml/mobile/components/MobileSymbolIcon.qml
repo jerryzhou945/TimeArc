@@ -1,9 +1,15 @@
 import QtQuick
 import QtQuick.Effects
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     property string name: ""
     property color color: "white"
     property int iconSize: 20

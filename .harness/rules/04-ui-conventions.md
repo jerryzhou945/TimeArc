@@ -23,8 +23,7 @@ optional properties:
 - `themeTextPrimary: color`, `themeTextSecondary: color`
 - `themePanelColor: color`, `themeBorderColor: color`, `themeAccentColor: color`
 
-`applyThemeToLoadedPage()` pushes values through if the Loader's item declares
-them. New pages should:
+`applyThemeToLoadedPage()` pushes values through if the Loader's item declares them. New pages should:
 
 1. Declare the above properties with sensible day-mode defaults.
 2. Derive any additional colors locally from `nightMode`.
@@ -35,12 +34,13 @@ desktop theme plumbing into mobile pages.
 
 ## 3. Language
 
-- QML comments, UI-string property names, and source/fallback visible text are
-  Chinese; runtime translation helpers may present English/Japanese (or later)
-  from user settings when Chinese remains fallback and layouts stay stable.
-- C++ identifiers (symbols, method names) are English.
-- Inline comments in C++/C/Swift may be mixed (the current codebase is
-  predominantly Chinese with English section banners). Continue that style.
+- Visible text is **English at the call site**; never add a Chinese literal to
+  QML or C++ UI code. `qml/shared/I18n.js` holds the zh/ja tables keyed by that
+  English source; `t()` is identity for English, so a missing key shows
+  untranslated text rather than the wrong one.
+- Runtime-composed text uses `sentence()` with a template key, never string
+  concatenation; C++ hands QML a template name plus fields, never a sentence.
+- C++ identifiers are English. Mixed-language comments stay as they are.
 
 ## 4. QML anti-patterns
 

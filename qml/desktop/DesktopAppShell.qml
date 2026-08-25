@@ -7,7 +7,7 @@ import time_arc
 import "memorylake"
 import "components/AppVisual.js" as AppVisual
 import "components/Hotkeys.js" as Hotkeys
-import "components/I18n.js" as I18n
+import "../shared/I18n.js" as I18n
 import "components/PlatformCursor.js" as Cursor
 
 Item {
@@ -61,8 +61,8 @@ Item {
     function tr(source) {
         return I18n.t(languageMode, source);
     }
-    function sentence(key, params, fallback) {
-        return I18n.sentence(languageMode, key, params, fallback);
+    function sentence(key, params) {
+        return I18n.sentence(languageMode, key, params);
     }
 
     // =========================
@@ -149,28 +149,28 @@ Item {
     // onMemoryLake / 信号连接使用）；bottom = true 的项固定在菜单最底部（月度回顾）。
     property var navItems: [
         {
-            title: "首页",
+            title: "Home",
             subtitle: "Dashboard",
             page: "memorylake",
             icon: Qt.resolvedUrl("../../resources/app/icons/navigation/home.svg"),
             nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/home_white.svg")
         },
         {
-            title: "日历",
+            title: "Calendar",
             subtitle: "Calendar",
             page: "calendar",
             icon: Qt.resolvedUrl("../../resources/app/icons/navigation/calendar.svg"),
             nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/calendar_white.svg")
         },
         {
-            title: "统计",
+            title: "Stats",
             subtitle: "Stats",
             page: "stats",
             icon: Qt.resolvedUrl("../../resources/app/icons/navigation/stats.svg"),
             nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/stats_white.svg")
         },
         {
-            title: "设置",
+            title: "Settings",
             subtitle: "Settings",
             page: "settings",
             icon: Qt.resolvedUrl("../../resources/app/icons/navigation/settings.svg"),
@@ -179,14 +179,14 @@ Item {
         // 「备忘」= 动作（打开黑板模态覆盖层），不是页面路由：无 page 键，点击触发
         // memoOverlay.open，不切 selectedIndex（功能文 §2.1 / C0）。
         {
-            title: "备忘",
+            title: "Memo",
             subtitle: "Notes",
             action: "memo",
             icon: Qt.resolvedUrl("../../resources/app/icons/navigation/note.svg"),
             nightIcon: Qt.resolvedUrl("../../resources/app/icons/navigation/note_white.svg")
         },
         {
-            title: "记忆湖",
+            title: "Memory Lake",
             subtitle: "Memory Recap",
             page: "recap",
             bottom: true,
@@ -206,24 +206,24 @@ Item {
     readonly property string selectedPage: (selectedIndex >= 0 && selectedIndex < navItems.length) ? navItems[selectedIndex].page : "memorylake"
     readonly property var pageGuideModel: ({
             "calendar": {
-                eyebrow: "视觉路径",
-                title: "先看今日安排，再处理待办",
-                next: "下一步：从上到下扫过议程，先处理带时间的事项。"
+                eyebrow: "Visual path",
+                title: "Check today's schedule first, then work through the todos",
+                next: "Next: scan the agenda top to bottom and handle the timed items first."
             },
             "stats": {
-                eyebrow: "视觉路径",
-                title: "先看趋势，再看应用明细",
-                next: "下一步：确认时间分布，再下钻到具体应用。"
+                eyebrow: "Visual path",
+                title: "Look at the trend first, then the per-app detail",
+                next: "Next: confirm how time is distributed, then drill into individual apps."
             },
             "settings": {
-                eyebrow: "视觉路径",
-                title: "先选左侧分区，再改右侧卡片",
-                next: "下一步：常用启动、托盘、自启在通用和追踪分区。"
+                eyebrow: "Visual path",
+                title: "Pick a section on the left, then edit the cards on the right",
+                next: "Next: launch, tray and start-at-login live under General and Tracking."
             },
             "recap": {
-                eyebrow: "视觉路径",
-                title: "先看月度结论，再翻具体卡片",
-                next: "下一步：按时间线查看高峰、分类和代表应用。"
+                eyebrow: "Visual path",
+                title: "Read the monthly conclusion first, then flip through the cards",
+                next: "Next: follow the timeline for peaks, categories and standout apps."
             }
         })
     readonly property var currentPageGuide: pageGuideModel[selectedPage] || null
@@ -288,7 +288,7 @@ Item {
 
     function notifyClosedToTray() {
         if (notifierLoader.item)
-            notifierLoader.item.notify(root.tr("TimeArc 已隐藏到托盘"), root.tr("后台采集会继续运行；从托盘菜单可重新打开或退出。"));
+            notifierLoader.item.notify(root.tr("TimeArc is now in the tray"), root.tr("Background tracking keeps running. Reopen or quit from the tray menu."));
     }
 
     // 关窗/退出前把备忘黑板的待存盘落地（窗口只认识 Shell，不该伸手进覆盖层内部）。
@@ -823,7 +823,7 @@ Item {
 
                             // 翻面锁定时的禁用提示（对齐 v88：title「当前卡牌翻面时不可打开备忘录」）。
                             ToolTip.visible: navMouse.containsMouse && memoDisabled
-                            ToolTip.text: root.tr("当前卡牌翻面时不可打开备忘录")
+                            ToolTip.text: root.tr("Memo is locked while the current card is flipped")
 
                             Behavior on color {
                                 ColorAnimation {
@@ -1015,7 +1015,7 @@ Item {
 
                                 Text {
                                     visible: !sidebarCollapsed
-                                    text: sidebarCollapsed ? root.tr("展开侧栏") : root.tr("收起侧栏")
+                                    text: sidebarCollapsed ? root.tr("Expand sidebar") : root.tr("Collapse sidebar")
                                     color: appTextPrimary
                                     font.pixelSize: 14
                                     font.bold: true
@@ -1090,7 +1090,7 @@ Item {
                                 spacing: 8
 
                                 Text {
-                                    text: root.tr("记忆湖陪伴")
+                                    text: root.tr("Memory Lake")
                                     color: appTextPrimary
                                     font.pixelSize: 15
                                     font.bold: true
@@ -1099,7 +1099,7 @@ Item {
                                 }
 
                                 Text {
-                                    text: nightMode ? root.tr("夜晚模式中") : root.tr("白天模式中")
+                                    text: nightMode ? root.tr("Night mode") : root.tr("Day mode")
                                     color: nightMode ? appNightAccentText : "#2F7A5B"
                                     font.pixelSize: 22
                                     font.bold: true
@@ -1108,7 +1108,7 @@ Item {
                                 }
 
                                 Text {
-                                    text: nightMode ? root.tr("今晚也慢慢积累。") : root.tr("慢慢积累，也很好。")
+                                    text: nightMode ? root.tr("Keep a gentle pace tonight.") : root.tr("Small steady progress is enough.")
                                     color: appTextSecondary
                                     font.pixelSize: 13
                                     wrapMode: Text.Wrap
@@ -1374,7 +1374,7 @@ Item {
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: root.tr("时间的弧线 · 慢慢积累，很好")
+                text: root.tr("Your arc of time, collected gently")
                 color: appTextSecondary
                 font.pixelSize: 14
                 elide: Text.ElideRight
@@ -1483,7 +1483,7 @@ Item {
             if (!root.notifyEnabled || (root.Window.window && root.Window.window.active))
                 return;
             if (notifierLoader.item)
-                notifierLoader.item.notify(root.tr("番茄钟完成"), (title && title.length > 0 ? title : root.tr("专注")) + " · " + root.tr("这一程结束了"));
+                notifierLoader.item.notify(root.tr("Pomodoro Complete"), (title && title.length > 0 ? title : root.tr("Focus")) + " · " + root.tr("This session is done"));
         }
     }
 

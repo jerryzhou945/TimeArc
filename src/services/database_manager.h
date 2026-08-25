@@ -73,6 +73,7 @@ class DatabaseManager : public QObject {
   bool openServiceDatabaseReadOnly();
   bool configureGuiDatabase();
   bool createTables();
+  bool renameLegacyChineseTags();
   bool insertDefaultTags();
   bool insertDefaultSettings();
   bool createIndexes();

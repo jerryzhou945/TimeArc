@@ -891,16 +891,24 @@ int main(int argc, char* argv[]) {
           QStringLiteral("year"), QDate(2026, 7, 19)) != QDate(2026, 1, 1)) {
     return fail(QStringLiteral("Mobile calendar range semantics failed."));
   }
+  // The fallback table holds the ENGLISH name, because that is the source
+  // language; I18n translates it at the render site, so a Chinese reader still
+  // sees 小红书. The table used to hold the Chinese name directly, which was
+  // not language-aware in either direction: an English reader saw 小红书 and,
+  // after the names were romanised, a Chinese reader would have seen "RED".
+  //
+  // A label the device itself supplied still wins over the table and is
+  // returned untouched — that is what the com.tencent.mm case pins.
   if (MobileUsageService::friendlyDisplayName(
           QStringLiteral("com.xingin.xhs"), QString()) !=
-          QStringLiteral("小红书") ||
+          QStringLiteral("RED") ||
       MobileUsageService::friendlyDisplayName(
           QStringLiteral("com.tencent.mm"), QStringLiteral("微信")) !=
           QStringLiteral("微信") ||
       MobileUsageService::friendlyDisplayName(
           QStringLiteral("com.huawei.android.launcher.LauncherApplication"),
           QStringLiteral("com.huawei.android.launcher.LauncherApplication")) !=
-          QStringLiteral("华为桌面")) {
+          QStringLiteral("Huawei Home")) {
     return fail(QStringLiteral("Mobile friendly app naming failed."));
   }
   if (secondDashboardApp.value(QStringLiteral("firstDateLocal")).toString() !=

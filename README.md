@@ -105,6 +105,8 @@ For the full collection boundaries, configuration and database contract, see the
 - The GUI never writes collection history directly; the native service is the only writer, and the two sides cooperate through a SQLite contract.
 - Share cards strip sensitive information such as raw titles, contacts, URLs and package names by default.
 - Do not upload `timearc_service.db` with your test feedback — it can contain app and window titles.
+- Your profile picture is a local avatar: it is copied into the app's own storage on the device and never uploaded.
+- The monthly report is released at 08:00 on the 1st of the following month, so a month is only summarised once it is complete.
 
 Common data directories:
 

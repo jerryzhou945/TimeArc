@@ -4,7 +4,7 @@ import QtQuick.Dialogs
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
 import "../components/Hotkeys.js" as Hotkeys
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 // v88「设置」页（暗玻璃全幅复刻 / 原地重皮 A-NAME）。规范：
@@ -120,7 +120,7 @@ Item {
 
     // 番茄钟（#2 接备忘番茄引擎 PomodoroWidget；写 KV，引擎在 _load/reset 时读默认时长/标题）。
     property string pomodoroDuration: "25"
-    property string pomodoroTitle: "专注一会儿"
+    property string pomodoroTitle: "Focus for a while"
     property bool pomodoroCelebrate: true
     // 快捷键自定义（#3）：备忘 / 番茄全局键（Shell 响应式读，hotkeysChanged 通知）。
     // 存的是 Qt 可移植序列文本：单字母 "N" 与组合键 "Ctrl+Shift+K" 都是合法 QKeySequence，
@@ -144,7 +144,7 @@ Item {
 
 
     function tr(source) { return I18n.t(languageMode, source) }
-    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
+    function sentence(key, params) { return I18n.sentence(languageMode, key, params) }
     onLanguageModeChanged: refreshOverview()
 
     // F2「关于与开源许可」：应用版本（MVP 常量，对齐顶层 CMakeLists project(time-arc VERSION 0.1)；
@@ -156,26 +156,26 @@ Item {
     // 版本真相源：Qt 6.11.1（C:/Qt/6.11.1）/ SQLite 3.51.3（sqlite3.h:149）/ Parson 1.5.3（parson.h:37-39）。
     readonly property var licenseComponents: [
         { name: "TimeArc", badge: "©", version: root.appVersion,
-          license: "GPL-3.0-or-later（本项目自身，= 仓库根 LICENSE）",
+          license: "GPL-3.0-or-later, this project itself; see repository root LICENSE",
           linkage: "—",
-          texts: [ { btn: "查看许可全文", file: "timearc-gpl-3.0.txt" } ] },
+          texts: [ { btn: "View License Text", file: "timearc-gpl-3.0.txt" } ] },
         { name: "Qt 6", badge: "Q", version: "6.11.1",
-          license: "GNU LGPL-3.0（含例外条款）；部分工具与附加模块为 GPL-3.0",
-          linkage: "动态 / dynamic",
-          texts: [ { btn: "LGPL-3.0 全文", file: "qt-lgpl-3.0.txt" },
-                   { btn: "GPL-3.0 全文", file: "qt-gpl-3.0.txt" } ] },
+          license: "GNU LGPL-3.0 with exceptions; some tools and add-on modules are GPL-3.0",
+          linkage: "Dynamic",
+          texts: [ { btn: "LGPL-3.0 Full Text", file: "qt-lgpl-3.0.txt" },
+                   { btn: "GPL-3.0 Full Text", file: "qt-gpl-3.0.txt" } ] },
         { name: "SQLite", badge: "S", version: "3.51.3",
-          license: "Public domain（公有领域，无许可正文）",
-          linkage: "静态 / static",
-          texts: [ { btn: "查看声明", file: "sqlite-public-domain.txt" } ] },
+          license: "Public domain, no license text",
+          linkage: "Static",
+          texts: [ { btn: "View Statement", file: "sqlite-public-domain.txt" } ] },
         { name: "Parson", badge: "P", version: "1.5.3",
           license: "MIT",
-          linkage: "静态 / static",
-          texts: [ { btn: "查看许可全文", file: "parson-mit.txt" } ] },
+          linkage: "Static",
+          texts: [ { btn: "View License Text", file: "parson-mit.txt" } ] },
         { name: "Material Symbols", badge: "M", version: "2026-08 snapshot",
           license: "Apache-2.0",
-          linkage: "SVG 资源 / qrc assets",
-          texts: [ { btn: "查看许可全文", file: "material-symbols-apache-2.0.txt" } ] }
+          linkage: "SVG resources / qrc assets",
+          texts: [ { btn: "View License Text", file: "material-symbols-apache-2.0.txt" } ] }
     ]
 
     // 许可全文的 Qt 资源路径。坑链（实测）：
@@ -196,9 +196,7 @@ Item {
         var resPath = root._licenseResPath(file)
         var t = settingsRepository ? settingsRepository.readTextFile(resPath) : ""
         licenseViewer.bodyText = (t && t.length > 0) ? t
-            : root.sentence("localLicenseEmpty", {file: file, path: resPath},
-                  "（许可文本载入为空：" + file + "）\n查无资源 " + resPath
-                  + "；请确认已编入 resources/CMakeLists.txt 的 TIME_ARC_RESOURCE_FILES。")
+            : root.sentence("localLicenseEmpty", {file: file, path: resPath})
         licenseViewer.shown = true
     }
 
@@ -248,20 +246,20 @@ Item {
     // 追踪关闭＝服务**真停**采集（非仅 UI 软暂停）：此时只停、不重启。
     function applyAndRestartCollection() {
         if (!_writeServiceConfig()) {
-            showToast("服务配置写入失败（service_config.json 不可写或已损坏），未重启采集"); return
+            showToast("Could not write the service config (service_config.json is unwritable or corrupt); tracking was not restarted"); return
         }
         if (!settingsRepository || !settingsRepository.stopBackgroundCollection) {
-            showToast("已写入配置；下次启动采集时生效"); return
+            showToast("Config written; it takes effect the next time tracking starts"); return
         }
         Qt.callLater(function () {
             settingsRepository.stopBackgroundCollection()
             if (root.trackRunning) {
                 var ok = settingsRepository.startBackgroundCollection
                          ? settingsRepository.startBackgroundCollection() : false
-                showToast(ok ? "已重启后台采集，新设置已生效"
-                             : "采集未能启动，请检查后台服务")
+                showToast(ok ? "Background tracking restarted with the new settings"
+                             : "Tracking could not start. Check the background service.")
             } else {
-                showToast("已停止后台采集（追踪已关闭，不再记录新数据）")
+                showToast("Background tracking stopped (tracking is off; no new data is recorded)")
             }
         })
     }
@@ -287,7 +285,7 @@ Item {
         hiddenApps       = parseHiddenApps()
         appDisplayNameOverrides = parseAppDisplayNameOverrides()
         pomodoroDuration = _getStr("pomodoro_duration", "25")
-        pomodoroTitle    = _getStr("pomodoro_title", "专注一会儿")
+        pomodoroTitle    = _getStr("pomodoro_title", "Focus for a while")
         pomodoroCelebrate= _getBool("pomodoro_celebrate", true)
         memoHotkeyKey    = _getStr("memo_hotkey_key", Hotkeys.memoDefault())
         pomodoroHotkeyKey= _getStr("pomodoro_hotkey_key", Hotkeys.pomodoroDefault())
@@ -326,7 +324,7 @@ Item {
     function saveAppDisplayName(rawKey, draft) {
         var displayName = ("" + draft).trim()
         if (displayName.length === 0) {
-            appDisplayNameError = tr("显示名称不能为空。")
+            appDisplayNameError = tr("Display name cannot be empty.")
             return
         }
         displayName = displayName.substring(0, 80)
@@ -334,7 +332,7 @@ Item {
         next[rawKey] = displayName
         if (!settingsRepository ||
                 !settingsRepository.setValue("app_display_name_overrides", JSON.stringify(next))) {
-            appDisplayNameError = tr("保存失败，原设置未更改。")
+            appDisplayNameError = tr("Save failed. The previous setting is unchanged.")
             return
         }
         appDisplayNameOverrides = next
@@ -342,14 +340,14 @@ Item {
         appDisplayNameError = ""
         pushReadFilters()
         refreshAppList()
-        showToast("应用显示名称已保存")
+        showToast("App display name saved")
     }
     function restoreAppDisplayName(rawKey) {
         var next = copyAppDisplayNameOverrides()
         delete next[rawKey]
         if (!settingsRepository ||
                 !settingsRepository.setValue("app_display_name_overrides", JSON.stringify(next))) {
-            appDisplayNameError = tr("保存失败，原设置未更改。")
+            appDisplayNameError = tr("Save failed. The previous setting is unchanged.")
             return
         }
         appDisplayNameOverrides = next
@@ -357,7 +355,7 @@ Item {
         appDisplayNameError = ""
         pushReadFilters()
         refreshAppList()
-        showToast("已恢复默认显示名称")
+        showToast("Default display name restored")
     }
     function isAppHidden(key) { return hiddenApps.indexOf(key) >= 0 }
     function setAppHidden(key, hidden) {
@@ -443,18 +441,18 @@ Item {
                                                      "", categoryId, narrow)
         if (ok) {
             root.refreshAppList()
-            root.showToast(root.tr("已归入") + " " + root.categoryLabelOf(categoryId))
+            root.showToast(root.tr("Moved to") + " " + root.categoryLabelOf(categoryId))
         } else {
-            root.showToast(root.tr("分类未能保存"))
+            root.showToast(root.tr("Could not save the category"))
         }
     }
 
     // 这个应用归哪条规则管——用户问过「规则应该出现在 App Management 里」。
     function appRuleLabel(row) {
         rulesTick
-        if (!hasCategorization || !row) return root.tr("尚无规则")
+        if (!hasCategorization || !row) return root.tr("No rule yet")
         var r = categorizationManager.appRuleFor(row.appId || "", row.appName || "")
-        return (r && r.label && r.label.length > 0) ? r.label : root.tr("尚无规则")
+        return (r && r.label && r.label.length > 0) ? r.label : root.tr("No rule yet")
     }
     // 标题规则：绑在一个应用上，所以不需要额外的生效范围选择。
     function titleRulesFor(row) {
@@ -475,22 +473,22 @@ Item {
             var t = parts[i].trim()
             if (t.length > 0) titles.push(t)
         }
-        if (titles.length === 0) { root.showToast(root.tr("请先填写标题匹配")); return }
+        if (titles.length === 0) { root.showToast(root.tr("Add at least one title match first")); return }
         var id = categorizationManager.addTitleRuleForApp(row.appId || "", row.appName || "",
                                                           d.name || "", titles, d.category)
         if (("" + id).length > 0) {
             root.titleRuleAppKey = ""
             root.refreshAppList()
-            root.showToast(root.tr("规则已保存"))
+            root.showToast(root.tr("Rule saved"))
         } else {
-            root.showToast(root.tr("规则未能保存"))
+            root.showToast(root.tr("Could not save the rule"))
         }
     }
     function deleteRuleById(ruleId) {
         if (!hasCategorization) return
         if (categorizationManager.deleteRule(ruleId)) {
             root.refreshAppList()
-            root.showToast(root.tr("已删除该规则"))
+            root.showToast(root.tr("Rule deleted"))
         }
     }
     function restoreDefaultRules() {
@@ -499,7 +497,7 @@ Item {
             root.editingRuleId = ""
             root.newRuleOpen = false
             root.refreshAppList()
-            root.showToast(root.tr("已恢复默认规则"))
+            root.showToast(root.tr("Default rules restored"))
         }
     }
     // QML 只在属性**值**变化时发信号。`var d = obj; d.k = v; obj = d` 把同一个
@@ -521,38 +519,36 @@ Item {
         if (("" + id).length > 0) {
             root.newCategoryOpen = false
             root.newCategoryName = ""
-            root.showToast(root.tr("已新建类别"))
+            root.showToast(root.tr("Category created"))
         } else {
-            root.showToast(root.tr("类别未能保存"))
+            root.showToast(root.tr("Could not save the category"))
         }
     }
     function askDeleteCategory(categoryId, label, ruleCount) {
-        root.askConfirm("删除类别",
-                        root.sentence("confirmDeleteCategory", {name: label, count: ruleCount},
-                                      "删除「" + label + "」后，它的 " + ruleCount + " 条规则会归到「其他」，不会被一起删除。"),
-                        "删除", true,
+        root.askConfirm("Delete category",
+                        root.sentence("confirmDeleteCategory", {name: label, count: ruleCount}),
+                        "Delete", true,
                         function () { root.deleteCategoryById(categoryId) })
     }
     function askDeleteRule(ruleId, label) {
-        root.askConfirm("删除规则",
-                        root.sentence("confirmDeleteRule", {name: label},
-                                      "删除「" + label + "」后，命中它的活动会重新按其它规则归类。"),
-                        "删除", true,
+        root.askConfirm("Delete rule",
+                        root.sentence("confirmDeleteRule", {name: label}),
+                        "Delete", true,
                         function () { root.deleteRuleById(ruleId) })
     }
     function askRestoreDefaultRules() {
-        root.askConfirm("恢复默认规则",
-                        "这会丢弃你对规则和类别的全部修改，并按当前已采集到的应用重新生成规则表。历史记录不受影响。",
-                        "恢复", true,
+        root.askConfirm("Reset to defaults",
+                        "This discards every change you made and rebuilds the rules from the apps tracking has recorded so far. Your history is not affected.",
+                        "Restore", true,
                         function () { root.restoreDefaultRules() })
     }
     function deleteCategoryById(categoryId) {
         if (!hasCategorization) return
         if (categorizationManager.deleteCategory(categoryId)) {
             root.refreshAppList()
-            root.showToast(root.tr("已删除该类别"))
+            root.showToast(root.tr("Category deleted"))
         } else {
-            root.showToast(root.tr("该类别无法删除"))
+            root.showToast(root.tr("This category cannot be deleted"))
         }
     }
     // GlassTextField.text 是内部 TextInput 的 alias：用户第一次输入就会摧毁父级
@@ -640,12 +636,12 @@ Item {
         var ok = false
         if (root.editingRuleId.length > 0) ok = categorizationManager.updateRule(root.editingRuleId, fields)
         else ok = ("" + categorizationManager.addRule(fields)).length > 0
-        if (!ok) { root.ruleDraftError = root.tr("规则未能保存"); return }
+        if (!ok) { root.ruleDraftError = root.tr("Could not save the rule"); return }
         root.ruleDraftError = ""
         root.editingRuleId = ""
         root.newRuleOpen = false
         root.refreshAppList()
-        root.showToast(root.tr("规则已保存"))
+        root.showToast(root.tr("Rule saved"))
     }
 
     function refreshAppList() {
@@ -673,7 +669,7 @@ Item {
             var segs = usageStatManager.foregroundSegmentsForRange("day")
             var switches = (segs && segs.length > 0) ? computeSwitchCount(segs) : 0
             todaySwitchesText = (segs && segs.length > 0)
-                                ? sentence("switchCount", {count: switches}, switches + " 次")
+                                ? sentence("switchCount", {count: switches})
                                 : "—"
         }
         var doc = _getStr("memoryLakeMemoDoc", "")
@@ -681,7 +677,7 @@ Item {
             try {
                 var o = JSON.parse(doc)
                 if (o && o.pages && o.pages.length !== undefined)
-                    memoPagesText = sentence("memoPagePlain", {count: o.pages.length}, o.pages.length + " 页")
+                    memoPagesText = sentence("memoPagePlain", {count: o.pages.length})
             } catch (e) { /* 解析失败 → 维持「—」，不造假 */ }
         }
         // 今日番茄完成数（PomodoroWidget._recordCompletion 写 date-stamped pomodoro_today）。
@@ -691,8 +687,8 @@ Item {
             try {
                 var p = JSON.parse(praw)
                 pomodoroTodayText = (p && p.d === todayKey && p.n > 0)
-                                    ? sentence("itemCount", {count: p.n}, p.n + " 个")
-                                    : sentence("itemCount", {count: 0}, "0 个")
+                                    ? sentence("itemCount", {count: p.n})
+                                    : sentence("itemCount", {count: 0})
             } catch (e) { /* 维持「—」 */ }
         }
     }
@@ -777,7 +773,7 @@ Item {
         if (key === "export") refreshOverview()   // 进数据概览前刷新（番茄今日完成数等无变更信号，主动重读）
     }
     function showToast(msg) { settingsToast.message = tr(msg); settingsToast.shown = true; toastTimer.restart() }
-    function onOff(v) { return v ? tr("功能已开启") : tr("功能已关闭") }
+    function onOff(v) { return v ? tr("Enabled") : tr("Disabled") }
 
     // —— 快捷键序列文本（#3）——
     // 修饰名一律用 Qt 的可移植写法。macOS 上 Qt 交换 Ctrl/Meta（未设
@@ -817,7 +813,7 @@ Item {
 
     // 键帽上的文字：停用（空串）时给个占位，否则空键帽看着像渲染坏了。
     function hotkeyLabel(seq) {
-        return (seq && seq.length > 0) ? hotkeyDisplay(seq) : tr("未设置")
+        return (seq && seq.length > 0) ? hotkeyDisplay(seq) : tr("Not set")
     }
 
     // 内置键占用表。全平台一份（Windows/Linux 没有菜单栏，这些组合其实空闲，但仍照样保留：
@@ -830,23 +826,23 @@ Item {
     // cmd 是「这条内置键本来就是干这件事的」：⇧⌘N 的菜单命令正是开备忘黑板，所以把备忘
     // 设成 ⇧⌘N 不算抢键（macOS 出厂默认就是它，见 Hotkeys.js），但把「番茄」设成 ⇧⌘N 要拦。
     readonly property var reservedHotkeys: [
-        { seq: "Ctrl+Q",       owner: "退出 TimeArc",  cmd: "" },
-        { seq: "Ctrl+W",       owner: "关闭窗口",      cmd: "" },
-        { seq: "Ctrl+M",       owner: "最小化",        cmd: "" },
-        { seq: "Ctrl+H",       owner: "隐藏 TimeArc",  cmd: "" },
-        { seq: "Ctrl+Alt+H",   owner: "隐藏其他",      cmd: "" },
-        { seq: "Ctrl+Shift+E", owner: "导出统计报告…", cmd: "" },
-        { seq: "Ctrl+Shift+D", owner: "夜间模式",      cmd: "" },
-        { seq: "Ctrl+Meta+F",  owner: "进入全屏幕",    cmd: "" },
-        { seq: "Ctrl+Shift+N", owner: "备忘黑板",      cmd: "memo" },
-        { seq: "Ctrl+Shift+P", owner: "番茄钟",        cmd: "pomo" },
-        { seq: "Ctrl+Z",       owner: "撤销",          cmd: "" },
-        { seq: "Ctrl+Shift+Z", owner: "重做",          cmd: "" },
-        { seq: "Ctrl+Y",       owner: "重做",          cmd: "" },
-        { seq: "Ctrl+X",       owner: "剪切",          cmd: "" },
-        { seq: "Ctrl+C",       owner: "复制",          cmd: "" },
-        { seq: "Ctrl+V",       owner: "粘贴",          cmd: "" },
-        { seq: "Ctrl+A",       owner: "全选",          cmd: "" }
+        { seq: "Ctrl+Q",       owner: "Quit TimeArc",  cmd: "" },
+        { seq: "Ctrl+W",       owner: "Close Window",      cmd: "" },
+        { seq: "Ctrl+M",       owner: "Minimize",        cmd: "" },
+        { seq: "Ctrl+H",       owner: "Hide TimeArc",  cmd: "" },
+        { seq: "Ctrl+Alt+H",   owner: "Hide Others",      cmd: "" },
+        { seq: "Ctrl+Shift+E", owner: "Export Stats Report…", cmd: "" },
+        { seq: "Ctrl+Shift+D", owner: "Night Mode",      cmd: "" },
+        { seq: "Ctrl+Meta+F",  owner: "Enter Full Screen",    cmd: "" },
+        { seq: "Ctrl+Shift+N", owner: "Memo Board",      cmd: "memo" },
+        { seq: "Ctrl+Shift+P", owner: "Pomodoro",        cmd: "pomo" },
+        { seq: "Ctrl+Z",       owner: "Undo",          cmd: "" },
+        { seq: "Ctrl+Shift+Z", owner: "Redo",          cmd: "" },
+        { seq: "Ctrl+Y",       owner: "Redo",          cmd: "" },
+        { seq: "Ctrl+X",       owner: "Cut",          cmd: "" },
+        { seq: "Ctrl+C",       owner: "Copy",          cmd: "" },
+        { seq: "Ctrl+V",       owner: "Paste",          cmd: "" },
+        { seq: "Ctrl+A",       owner: "Select All",          cmd: "" }
     ]
     // which 是正在设置的那一条（"memo" / "pomo"）：命中自己那条内置键时放行。
     function _reservedOwner(seq, which) {
@@ -880,13 +876,12 @@ Item {
         if (seq.length > 0) {
             var owner = _reservedOwner(seq, which)
             if (owner.length > 0) {
-                showToast(sentence("hotkeyReserved", { owner: I18n.menu(languageMode, owner) },
-                                   "「" + owner + "」已在用这个组合"))
+                showToast(sentence("hotkeyReserved", { owner: I18n.menu(languageMode, owner) }))
                 return false
             }
             var other = which === "memo" ? pomodoroHotkeyKey : memoHotkeyKey
             if (seq === _canonSeq(other)) {
-                showToast(which === "memo" ? "与番茄钟快捷键冲突" : "与备忘录快捷键冲突")
+                showToast(which === "memo" ? "Conflicts with the Pomodoro hotkey" : "Conflicts with the Memo hotkey")
                 return false
             }
         }
@@ -895,34 +890,32 @@ Item {
         else                  { pomodoroHotkeyKey = seq; _setStr("pomodoro_hotkey_key", seq) }
         hotkeysChanged()
         if (restored)
-            showToast(sentence("hotkeyRestoredDefault", { key: hotkeyDisplay(seq) },
-                               "已恢复默认 " + hotkeyDisplay(seq)))
+            showToast(sentence("hotkeyRestoredDefault", { key: hotkeyDisplay(seq) }))
         else if (seq.length === 0)
-            showToast("快捷键已停用")
+            showToast("Hotkey disabled")
         else
-            showToast(sentence("hotkeyUpdated", { key: hotkeyDisplay(seq) },
-                               "快捷键已更新为 " + hotkeyDisplay(seq)))
+            showToast(sentence("hotkeyUpdated", { key: hotkeyDisplay(seq) }))
         return true
     }
 
     // 顶栏标题/描述（settingsCopy 逐字，v88 17835–17841）
     readonly property var topCopy: ({
-        "general":  { t: "通用设置",   d: "控制界面外观、启动行为和基础体验。" },
-        "tracking": { t: "追踪与应用", d: "管理使用时间记录、应用分类和显示范围。" },
-        "privacy":  { t: "隐私与数据", d: "控制本地保存、敏感信息隐藏和缓存清理。" },
-        "memo":     { t: "备忘与番茄钟", d: "调整备忘录、便签、页面和番茄钟的默认行为。" },
-        "export":   { t: "导入导出",   d: "备份设置、复制配置或恢复默认状态。" },
-        "about":    { t: "关于与开源许可", d: "TimeArc 及其依赖的第三方组件版本与许可证。全文随包内嵌，离线可读。" }
+        "general":  { t: "General Settings",   d: "Control appearance, startup behavior, and the basic experience." },
+        "tracking": { t: "Tracking & Apps", d: "Manage usage records, app categories, and visible scope." },
+        "privacy":  { t: "Privacy & Data", d: "Control local storage, sensitive title hiding, and cache cleanup." },
+        "memo":     { t: "Memo & Pomodoro", d: "Adjust default behavior for memo, notes, pages, and Pomodoro." },
+        "export":   { t: "Import & Export",   d: "Back up settings, copy summaries, or restore defaults." },
+        "about":    { t: "About & Licenses", d: "Versions and licenses for TimeArc and its third-party components. Full texts are bundled and available offline." }
     })
 
     // 标签模型
     readonly property var tabModel: [
-        { key: "general",  glyph: "✦", label: "通用" },
-        { key: "tracking", glyph: "◉", label: "追踪与应用" },
-        { key: "privacy",  glyph: "◆", label: "隐私与数据" },
-        { key: "memo",     glyph: "◇", label: "备忘与番茄钟" },
-        { key: "export",   glyph: "⇅", label: "导入导出" },
-        { key: "about",    glyph: "©", label: "关于与开源许可" }
+        { key: "general",  glyph: "✦", label: "General" },
+        { key: "tracking", glyph: "◉", label: "Tracking & Apps" },
+        { key: "privacy",  glyph: "◆", label: "Privacy & Data" },
+        { key: "memo",     glyph: "◇", label: "Memo & Pomodoro" },
+        { key: "export",   glyph: "⇅", label: "Import & Export" },
+        { key: "about",    glyph: "©", label: "About & Licenses" }
     ]
 
     // 强调色 4 色（picker 数据；设计稿 §7.5 渐变对）
@@ -935,10 +928,10 @@ Item {
 
     // 工作流脚注（设计稿 .workflow-map）
     readonly property var workflowMap: [
-        { t: "首页", d: "看今天的结论和关键事项。" },
-        { t: "日历", d: "管理未来安排和某天详情。" },
-        { t: "统计", d: "观察周、月、年的长期规律。" },
-        { t: "回顾", d: "把数据转成故事化总结。" }
+        { t: "Home", d: "See today's conclusion and key items." },
+        { t: "Calendar", d: "Manage future plans and day details." },
+        { t: "Stats", d: "Review long-term patterns by week, month, and year." },
+        { t: "Recap", d: "Turn data into a story-like recap." }
     ]
 
     // 今日使用（真实只读，usageStatManager.todaySoftwareMinutes 可用）
@@ -962,27 +955,30 @@ Item {
         } catch (e) { return "" }
     }
     function doExport() {
-        if (!usageStatManager || !usageStatManager.exportReport) { showToast("导出暂不可用"); return }
+        if (!usageStatManager || !usageStatManager.exportReport) { showToast("Export is unavailable right now"); return }
         var json = buildSettingsJson()
-        if (!json || json.length === 0) { showToast("导出失败：序列化错误"); return }
+        if (!json || json.length === 0) { showToast("Export failed: serialization error"); return }
         var p = usageStatManager.exportReport("timearc-settings", json)
-        if (p && p.length > 0) root.showSavedAt("设置 JSON 已导出", p)
-        else showToast("导出失败")
+        if (p && p.length > 0) root.showSavedAt("Settings JSON Exported", p)
+        else showToast("Export failed")
     }
     function copySummary() {
-        clipHelper.text = "TimeArc 设置摘要：" + (root.nightMode ? "暗玻璃主题" : "白天浅瓷主题")
-                + " / 本地保存 / " + (memoHotkeyKey.length > 0 ? hotkeyDisplay(memoHotkeyKey) + " 打开备忘录"
-                                                              : "备忘快捷键已停用")
-                + " / 强调色 " + accentColor
+        clipHelper.text = sentence("settingsSummary", {
+            theme: tr(root.nightMode ? "Dark glass theme" : "Light porcelain theme"),
+            hotkey: memoHotkeyKey.length > 0
+                    ? sentence("memoHotkeyOpens", {key: hotkeyDisplay(memoHotkeyKey)})
+                    : tr("memo hotkey off"),
+            accent: accentColor
+        })
         clipHelper.selectAll(); clipHelper.copy(); clipHelper.deselect()
-        showToast("配置摘要已复制")
+        showToast("Settings summary copied")
     }
     function restoreVisualDefaults() {
         accentColor = "#9FE7EE"; _setStr("accent_color", accentColor)
         accentChanged(accentColor)
         blurStrength = 24;       _setStr("blur_strength", "24")
         showWelcome = true;      _setBool("show_welcome", true)
-        showToast("视觉设置已恢复默认")
+        showToast("Visual settings restored to defaults")
     }
 
     // 二次确认（A-CLEAR）：危险动作前确认；动作存于 _confirmAction，确认时执行。不写死假成功（G6）。
@@ -1004,27 +1000,27 @@ Item {
     function clearUiCache() {
         _setStr("window_x", ""); _setStr("window_y", "")
         _setStr("window_width", ""); _setStr("window_height", "")
-        showToast("已清空本地缓存（窗口位置等派生数据）")
+        showToast("Local cache cleared (window position and other derived data)")
     }
 
     // 导入设置（G-IMPORT）：FileDialog 选 JSON → C++ readTextFile 读 → 解析 → 逐键 setValue →
     // 重读本页属性。只读所选文件、只写 settings KV，不动 usage/契约。
     function doImport(fileUrl) {
-        if (!settingsRepository) { showToast("导入暂不可用"); return }
+        if (!settingsRepository) { showToast("Import is unavailable right now"); return }
         var txt = settingsRepository.readTextFile("" + fileUrl)
-        if (!txt || txt.length === 0) { showToast("JSON 文件格式不正确"); return }
+        if (!txt || txt.length === 0) { showToast("That JSON file is not formatted correctly"); return }
         try {
             var o = JSON.parse(txt)
             var s = (o && o.settings) ? o.settings : o
-            if (!s || typeof s !== "object") { showToast("JSON 文件格式不正确"); return }
+            if (!s || typeof s !== "object") { showToast("That JSON file is not formatted correctly"); return }
             var n = 0
             for (var k in s) { if (s.hasOwnProperty(k)) { settingsRepository.setValue("" + k, "" + s[k]); n++ } }
             reloadFromKV()
             // reloadFromKV 只把值读回本页；导入的快捷键要让 Shell 重绑 Shortcut，否则得等重启
             // 才生效——键位现在可能是组合键，「按了没反应」比以前更难自己想明白。
             hotkeysChanged()
-            showToast(n > 0 ? "设置文件已读取" : "JSON 文件格式不正确")
-        } catch (e) { showToast("JSON 文件格式不正确") }
+            showToast(n > 0 ? "Settings file loaded" : "That JSON file is not formatted correctly")
+        } catch (e) { showToast("That JSON file is not formatted correctly") }
     }
 
     // 成功保存反馈：在持久确认卡里显示完整路径（toast 单行 + 1.5s 装不下长路径，用户找不到文件），
@@ -1042,43 +1038,39 @@ Item {
         return (dir.charAt(0) === "/" ? "file://" : "file:///") + encodeURI(dir)
     }
     function showSavedAt(title, p) {
-        root.askConfirm(title, root.sentence("savedToPath", { path: p }, "已保存到：\n" + p), "打开文件夹", false,
+        root.askConfirm(title, root.sentence("savedToPath", { path: p }), "Open Folder", false,
             function () {
                 // 返回值必须看：失败时桌面环境不会有任何反馈，正是本次静默失效的原因。
                 if (!Qt.openUrlExternally(root._folderUrlOf(p)))
-                    root.showToast("无法打开文件夹")
+                    root.showToast("Could not open the folder")
             })
     }
     // GUI 数据库备份：C++ backupDatabase 用 VACUUM INTO 备份 timearc.db。
     function doBackupDatabase() {
-        if (!databaseManager || !databaseManager.backupDatabase) { showToast("备份暂不可用"); return }
+        if (!databaseManager || !databaseManager.backupDatabase) { showToast("Backup is unavailable right now"); return }
         var p = databaseManager.backupDatabase()
-        if (p && p.length > 0) root.showSavedAt("数据库已备份", p)
-        else showToast("备份失败")
+        if (p && p.length > 0) root.showSavedAt("Database Backed Up", p)
+        else showToast("Backup failed")
     }
     // D1 恢复（整库）：选备份 → 只读校验预览（坏文件直接拒）→ 危险二次确认 → 替换库。
     function _unixDate(s) { return (s && s > 0) ? Qt.formatDate(new Date(s * 1000), "yyyy-MM-dd") : "—" }
     function onRestoreFileChosen(fileUrl) {
-        if (!databaseManager || !databaseManager.inspectBackup) { showToast("恢复暂不可用"); return }
+        if (!databaseManager || !databaseManager.inspectBackup) { showToast("Restore is unavailable right now"); return }
         var info = databaseManager.inspectBackup("" + fileUrl)
         if (!info || !info.ok) {
-            showToast(info && info.error ? ("无效备份：" + info.error) : "无效的备份文件")
+            showToast(info && info.error ? ("Invalid backup: " + info.error) : "Invalid backup file")
             return
         }
         var msg = root.sentence("backupPreview", {
                     integrity: info.integrity, settings: info.settingsRows,
                     projects: info.manualProjectRows, sessions: info.manualSessionRows, apps: info.appRows
-                },
-                "完整性 " + info.integrity
-                + "\n设置 " + info.settingsRows + " 条 · 项目 " + info.manualProjectRows
-                + " 个 · 手动记录 " + info.manualSessionRows + " 条 · 应用 " + info.appRows + " 个"
-                + "\n\n将用所选备份覆盖当前 GUI 数据库（timearc.db）。")
-        root.askConfirm("恢复数据库", msg, "恢复", true, function () { root.doRestoreConfirmed("" + fileUrl) })
+                })
+        root.askConfirm("Restore Database", msg, "Restore", true, function () { root.doRestoreConfirmed("" + fileUrl) })
     }
     function doRestoreConfirmed(fileUrl) {
-        if (!databaseManager || !databaseManager.restoreDatabase) { showToast("恢复暂不可用"); return }
+        if (!databaseManager || !databaseManager.restoreDatabase) { showToast("Restore is unavailable right now"); return }
         var ok = databaseManager.restoreDatabase("" + fileUrl)
-        if (!ok) showToast("恢复失败：备份无效或 GUI 数据库不可替换")
+        if (!ok) showToast("Restore failed: the backup is invalid or the GUI database cannot be replaced")
         // 成功路径由 databaseManager.databaseRestored 信号触发重启提示
     }
 
@@ -1097,28 +1089,26 @@ Item {
         })
     }
     function onDbFolderChosen(folderUrl) {
-        if (!databaseManager || !databaseManager.relocateDatabaseTo) { showToast("迁移暂不可用"); return }
+        if (!databaseManager || !databaseManager.relocateDatabaseTo) { showToast("Migration is unavailable right now"); return }
         // 按钮文案用「设置此目录」而不是「设置」：词表以中文原文为键，"设置" 已被
         // 导航项占用（→ Settings），复用会把确认按钮翻成 "Settings"。
-        root.askConfirm("设置服务数据库目录",
-            "将把后台服务数据库目录切换到所选位置。GUI 不移动现有数据库文件；后台服务会在重启后写入该目录。",
-            "设置此目录", true, function () { root._stopThenMigrate(function () { return databaseManager.relocateDatabaseTo("" + folderUrl) }) })
+        root.askConfirm("Set Service Database Folder",
+            "The background service database folder will be switched to the selected location. TimeArc does not move the existing database file; the background service writes to that folder after it restarts.",
+            "Set This Folder", true, function () { root._stopThenMigrate(function () { return databaseManager.relocateDatabaseTo("" + folderUrl) }) })
     }
     function doRestoreDefaultLocation() {
-        if (!databaseManager || !databaseManager.restoreDefaultDatabaseLocation) { showToast("迁移暂不可用"); return }
-        root.askConfirm("还原默认数据库位置",
-            "将清除服务数据库目录指针，后台服务下次启动会回到默认位置。",
-            "还原", true, function () { root._stopThenMigrate(function () { return databaseManager.restoreDefaultDatabaseLocation() }) })
+        if (!databaseManager || !databaseManager.restoreDefaultDatabaseLocation) { showToast("Migration is unavailable right now"); return }
+        root.askConfirm("Restore Default Database Location",
+            "The service database folder pointer will be cleared. The background service returns to its default location the next time it starts.",
+            "Restore Default", true, function () { root._stopThenMigrate(function () { return databaseManager.restoreDefaultDatabaseLocation() }) })
     }
     function _afterRelocate(res) {
         if (res && res.ok) {
-            root.askConfirm("迁移成功",
-                root.sentence("relocateSuccess", { path: res.newPath },
-                    "服务数据库位置已设置为：\n" + res.newPath
-                        + "\n\n需要重启应用（并重启后台采集）以让两进程加载新位置，是否立即退出？"),
-                "立即退出", false, function () { Qt.quit() })
+            root.askConfirm("Location Updated",
+                root.sentence("relocateSuccess", { path: res.newPath }),
+                "Quit Now", false, function () { Qt.quit() })
         } else {
-            showToast(res && res.error ? ("迁移失败：" + res.error) : "迁移失败")
+            showToast(res && res.error ? ("Migration failed: " + res.error) : "Migration failed")
         }
     }
 
@@ -1130,21 +1120,21 @@ Item {
 
     FileDialog {
         id: importDialog
-        title: root.tr("导入设置 JSON")
-        nameFilters: [root.tr("JSON 文件 (*.json)"), root.tr("所有文件 (*)")]
+        title: root.tr("Import Settings JSON")
+        nameFilters: [root.tr("JSON files (*.json)"), root.tr("All files (*)")]
         onAccepted: root.doImport(selectedFile)
     }
 
     FileDialog {
         id: restoreDialog
-        title: root.tr("选择数据库备份")
-        nameFilters: [root.tr("数据库备份 (*.db)"), root.tr("所有文件 (*)")]
+        title: root.tr("Choose Database Backup")
+        nameFilters: [root.tr("Database backups (*.db)"), root.tr("All files (*)")]
         onAccepted: root.onRestoreFileChosen(selectedFile)
     }
 
     FolderDialog {
         id: dbFolderDialog
-        title: root.tr("选择数据库存放目录")
+        title: root.tr("Choose Database Folder")
         onAccepted: root.onDbFolderChosen(selectedFolder)
     }
 
@@ -1153,9 +1143,9 @@ Item {
         target: databaseManager
         ignoreUnknownSignals: true
         function onDatabaseRestored() {
-            root.askConfirm("恢复成功",
-                "数据库已恢复。需要重启应用以加载新数据，是否立即退出？",
-                "立即退出", false, function () { Qt.quit() })
+            root.askConfirm("Restore Complete",
+                "The database has been restored. TimeArc must restart to load the new data. Quit now?",
+                "Quit Now", false, function () { Qt.quit() })
         }
     }
 
@@ -1211,15 +1201,15 @@ Item {
                     Layout.fillWidth: true
                     spacing: 4
                     Text {
-                        text: "CONTROL CENTER"
+                        text: root.tr("CONTROL CENTER")
                         color: ml.aqua
                         font.pixelSize: 11; font.weight: 800; font.letterSpacing: 0.7
                         font.capitalization: Font.AllUppercase
                     }
-                    Text { text: root.tr("设置"); color: ml.textPrimary; font.pixelSize: 22; font.weight: 800; font.letterSpacing: 0 }
+                    Text { text: root.tr("Settings"); color: ml.textPrimary; font.pixelSize: 22; font.weight: 800; font.letterSpacing: 0 }
                     Text {
                         Layout.fillWidth: true
-                        text: root.tr("管理 TimeArc 的追踪、隐私、备忘录与视觉体验。")
+                        text: root.tr("Manage TimeArc tracking, privacy, memo, and visual experience.")
                         color: ml.textSecondary; font.pixelSize: 12; wrapMode: Text.WordWrap; lineHeight: 1.35
                     }
                 }
@@ -1234,7 +1224,7 @@ Item {
                     Text {
                         id: protoText
                         anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
-                        text: root.tr("数据来源说明：设置项保存在本机 SQLite；使用数据来自系统采集的本地记录，全部离线、不上传。")
+                        text: root.tr("Data note: settings are stored in local SQLite; usage data comes from local system records and stays offline.")
                         color: ml.protoAmberText; font.pixelSize: 11; wrapMode: Text.WordWrap; lineHeight: 1.35
                     }
                 }
@@ -1331,8 +1321,8 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: 0
-                            Text { text: root.tr("本地数据已保护"); color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
-                            Text { text: root.tr("离线 · 无需登录"); color: ml.textTertiary; font.pixelSize: 10 }
+                            Text { text: root.tr("Local data protected"); color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                            Text { text: root.tr("Offline · No sign-in"); color: ml.textTertiary; font.pixelSize: 10 }
                         }
                     }
                 }
@@ -1408,11 +1398,11 @@ Item {
                         Layout.preferredWidth: root.sideCollapsed ? 160 : 240
                         style: ml
                         search: true
-                        placeholderText: root.tr("搜索设置项...")
+                        placeholderText: root.tr("Search settings...")
                         onTextEdited: function (t) { root.searchQuery = t }
                     }
 
-                    GhostBtn { Layout.alignment: Qt.AlignVCenter; label: "返回首页"; primary: true; onTapped: root.requestNavigate("memorylake") }
+                    GhostBtn { Layout.alignment: Qt.AlignVCenter; label: "Back Home"; primary: true; onTapped: root.requestNavigate("memorylake") }
                 }
             }
 
@@ -1451,15 +1441,15 @@ Item {
 
                             SettingsCard {
                                 badge: "✦"; wide: true
-                                cardTitle: "视觉外观"
-                                cardDesc: "保持深色磨砂风格，也可以调整强调色和模糊强度。"
-                                keywords: "外观 主题 透明 模糊 accent color 强调色"
+                                cardTitle: "Appearance"
+                                cardDesc: "Keep the dark frosted style and adjust accent color or blur."
+                                keywords: "appearance theme transparency blur accent color"
 
                                 // 强调色
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 8
-                                    Text { text: root.tr("强调色"); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                    Text { text: root.tr("Accent Color"); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
                                     Row {
                                         spacing: 12
                                         Repeater {
@@ -1485,14 +1475,14 @@ Item {
                                                         root.accentColor = modelData.value
                                                         root._setStr("accent_color", modelData.value)
                                                         root.accentChanged(modelData.value)
-                                                        root.showToast(root.tr("强调色已更新"))
+                                                        root.showToast(root.tr("Accent color updated"))
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                     Text {
-                                        text: root.tr("强调色已应用到全局高亮、导航、热力与卡片光效。")
+                                        text: root.tr("The accent color now applies to highlights, navigation, heatmaps and card glows.")
                                         color: ml.textTertiary; font.pixelSize: 10
                                     }
                                 }
@@ -1506,10 +1496,10 @@ Item {
                                     ColumnLayout {
                                         Layout.fillWidth: true
                                         spacing: 1
-                                        Text { text: root.tr("白天模式色调"); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
+                                        Text { text: root.tr("Day Mode Palette"); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
                                         Text {
                                             Layout.fillWidth: true
-                                            text: root.tr("切换成日间雾面玻璃色调：亮背景、深色文字、低饱和蓝紫光效。")
+                                            text: root.tr("Switch to a daytime frosted palette: bright background, dark text, and low-saturation blue-violet glow.")
                                             color: ml.textTertiary; font.pixelSize: 11; wrapMode: Text.WordWrap
                                         }
                                     }
@@ -1519,8 +1509,8 @@ Item {
                                 ThinRule {}
 
                                 SettingRow {
-                                    rowTitle: "启动时恢复上次位置"
-                                    rowSub: "打开应用时记住窗口与侧栏状态。"
+                                    rowTitle: "Restore last window position"
+                                    rowSub: "Remember the window and sidebar state when opening the app."
                                     GlassSwitch {
                                         style: ml; checked: root.restoreWindow
                                         onToggled: function (c) { root.restoreWindow = c; root._setBool("restore_window", c); root.showToast(root.onOff(c)) }
@@ -1528,36 +1518,36 @@ Item {
                                 }
 
                                 SettingRow {
-                                    rowTitle: "背景磨砂强度"
-                                    rowSub: "保存为视觉强度偏好（实时背景模糊为占位）。"
+                                    rowTitle: "Background blur strength"
+                                    rowSub: "Save as a visual intensity preference."
                                     GlassSlider {
                                         style: ml; from: 8; to: 36; value: root.blurStrength; stepSize: 1
                                         implicitWidth: 160
-                                        onMoved: function (v) { root.blurStrength = v; root._setStr("blur_strength", "" + Math.round(v)); root.showToast("磨砂强度已保存") }
+                                        onMoved: function (v) { root.blurStrength = v; root._setStr("blur_strength", "" + Math.round(v)); root.showToast("Blur strength saved") }
                                     }
                                 }
                             }
 
                             SettingsCard {
                                 badge: "⌂"
-                                cardTitle: "首页行为"
-                                cardDesc: "选择进入应用后的默认落点。"
-                                keywords: "首页 dashboard 默认页面 欢迎"
+                                cardTitle: "Home Behavior"
+                                cardDesc: "Choose the default page after launch."
+                                keywords: "home dashboard default page welcome"
 
                                 SettingRow {
-                                    rowTitle: "默认页面"
-                                    rowSub: "启动后显示哪个页面。"
+                                    rowTitle: "Default Page"
+                                    rowSub: "Choose which page appears after launch."
                                     GlassComboBox {
                                         style: ml
-                                        model: [root.tr("首页 Dashboard"), root.tr("备忘录"), root.tr("记忆回顾")]
+                                        model: [root.tr("Home Dashboard"), root.tr("Memo"), root.tr("Memory Recap")]
                                         property var _vals: ["memorylake", "memo", "recap"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.landingPage))
-                                        onActivated: function (i) { root.landingPage = _vals[i]; root._setStr("landing_page", _vals[i]); root.showToast(root.tr("默认页面已保存")) }
+                                        onActivated: function (i) { root.landingPage = _vals[i]; root._setStr("landing_page", _vals[i]); root.showToast(root.tr("Default page saved")) }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "显示欢迎动画"
-                                    rowSub: "短暂显示 TimeArc 启动动效。"
+                                    rowTitle: "Show welcome animation"
+                                    rowSub: "Briefly show the TimeArc startup animation."
                                     GlassSwitch {
                                         style: ml; checked: root.showWelcome
                                         onToggled: function (c) { root.showWelcome = c; root._setBool("show_welcome", c); root.showToast(root.onOff(c)) }
@@ -1567,35 +1557,37 @@ Item {
 
                             SettingsCard {
                                 badge: "Aa"
-                                cardTitle: "语言与时间"
-                                cardDesc: "控制界面的基础文本和时间显示方式。"
-                                keywords: "语言 时间格式 单位 language time"
+                                cardTitle: "Language & Time"
+                                cardDesc: "Control interface language and time display."
+                                keywords: "language time format units"
 
                                 SettingRow {
-                                    rowTitle: "界面语言"
-                                    rowSub: "切换后会立即更新全局界面文案、软件名和主要提示。"
+                                    rowTitle: "Interface Language"
+                                    rowSub: "Updates global UI copy, app names, and main tips immediately."
                                     GlassComboBox {
                                         style: ml
-                                        model: [root.tr("简体中文"), root.tr("English"), root.tr("日本語")]
+                                        // Language names stay in their own script: someone who cannot read the
+                                        // current UI language still has to be able to find theirs.
+                                        model: ["简体中文", "English", "日本語"]
                                         property var _vals: ["zh", "en", "ja"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.languageMode))
                                         onActivated: function (i) {
                                             root.languageMode = _vals[i];
                                             root._setStr("language_mode", _vals[i]);
                                             root.languageChanged(_vals[i]);
-                                            root.showToast(root.tr("界面语言已保存"));
+                                            root.showToast(root.tr("Interface language saved"));
                                         }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "时间格式"
-                                    rowSub: "影响时间图和统计记录。"
+                                    rowTitle: "Time Format"
+                                    rowSub: "Affects time charts and statistics."
                                     GlassComboBox {
                                         style: ml
-                                        model: [root.tr("24 小时制"), root.tr("12 小时制")]
+                                        model: [root.tr("24-hour"), root.tr("12-hour")]
                                         property var _vals: ["24", "12"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.timeFormat))
-                                        onActivated: function (i) { root.timeFormat = _vals[i]; root._setStr("time_format", _vals[i]); root.showToast(root.tr("时间格式已保存")) }
+                                        onActivated: function (i) { root.timeFormat = _vals[i]; root._setStr("time_format", _vals[i]); root.showToast(root.tr("Time format saved")) }
                                     }
                                 }
                             }
@@ -1608,26 +1600,26 @@ Item {
 
                             SettingsCard {
                                 badge: "◉"; wide: true
-                                cardTitle: "追踪范围"
-                                cardDesc: "决定哪些应用会进入首页、时间图和月度记忆回顾。"
-                                keywords: "追踪 应用 游戏 app 使用时间 空闲"
+                                cardTitle: "Tracking Scope"
+                                cardDesc: "Choose which apps appear on Home, charts, and monthly recaps."
+                                keywords: "tracking apps games usage time idle"
 
                                 SettingRow {
-                                    rowTitle: "追踪正在运行的应用"
-                                    rowSub: "记录窗口名称、应用名称和持续时间。关闭后，后台服务会真正停止采集（点下方「应用并重启采集」即时生效，不删除既有历史）。"
+                                    rowTitle: "Track running apps"
+                                    rowSub: "Records window names, app names, and duration. Turning this off stops background collection without deleting history."
                                     GlassSwitch {
                                         style: ml; checked: root.trackRunning
                                         onToggled: function (c) {
                                             root.trackRunning = c; root._setBool("track_running", c); root.pushReadFilters()
                                             root.showToast(!root._writeServiceConfig()
-                                                ? "已保存到本机，但服务配置写入失败（service_config.json 不可写或已损坏）"
-                                                : (c ? "已开启追踪（应用并重启采集后生效）" : "已关闭追踪（应用并重启采集后服务停止记录）"))
+                                                ? "Saved on this device, but the service config could not be written (service_config.json is unwritable or corrupt)"
+                                                : (c ? "Tracking on (takes effect once tracking is applied and restarted)" : "Tracking off (the service stops recording once applied and restarted)"))
                                         }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "随系统登录启动 TimeArc"
-                                    rowSub: "开机进入桌面后自动启动到托盘，并继续后台采集；关闭仅停自启，不删除历史记录。"
+                                    rowTitle: "Start TimeArc at login"
+                                    rowSub: "Starts into the tray after you reach the desktop and keeps tracking. Turning this off only stops auto-start; it deletes no history."
                                     GlassSwitch {
                                         style: ml; checked: root.autostartEnabled
                                         onToggled: function (c) {
@@ -1635,23 +1627,23 @@ Item {
                                             var ok = settingsRepository.setAutostartEnabled(c)
                                             root.autostartEnabled = settingsRepository.autostartEnabled()
                                             if (!ok || root.autostartEnabled !== c)
-                                                root.showToast("开机自启设置失败：请检查当前用户启动项权限")
+                                                root.showToast("Could not set start-at-login. Check this user's startup-item permissions.")
                                             else
-                                                root.showToast(root.autostartEnabled ? "已设为开机自启（启动到托盘并后台采集）" : "已关闭开机自启")
+                                                root.showToast(root.autostartEnabled ? "Start-at-login is on (launches to the tray and tracks in the background)" : "Start-at-login is off")
                                         }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "游戏模式识别"
-                                    rowSub: "将 Steam / Epic / 独立游戏归入游戏类别。"
+                                    rowTitle: "Game Mode Detection"
+                                    rowSub: "Classify Steam, Epic, and standalone games as games."
                                     GlassSwitch {
                                         style: ml; checked: root.gameMode
                                         onToggled: function (c) { root.gameMode = c; root._setBool("game_mode", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "空闲超过"
-                                    rowSub: "无键鼠输入超过该秒数即暂停当前前台计时；可填 0–86400 的整数，0 表示不判空闲（应用并重启采集后生效）。"
+                                    rowTitle: "Idle After"
+                                    rowSub: "Pause the current foreground timer after this many seconds without keyboard or mouse input. Any integer from 0 to 86400; 0 never treats you as idle. Takes effect after restarting collection."
                                     RowLayout {
                                         spacing: 8
                                         GlassTextField {
@@ -1666,8 +1658,8 @@ Item {
                                             function commit() {
                                                 var ok = root._commitIdleTimeout(text)
                                                 text = String(root.idleTimeoutSec)
-                                                root.showToast(ok ? "空闲超时已保存（应用并重启采集后生效）"
-                                                                  : "已保存到本机，但服务配置写入失败（service_config.json 不可写或已损坏）")
+                                                root.showToast(ok ? "Idle timeout saved (takes effect once tracking is applied and restarted)"
+                                                                  : "Saved on this device, but the service config could not be written (service_config.json is unwritable or corrupt)")
                                             }
                                             onEditingFinished: commit()
                                             onAccepted: commit()
@@ -1675,17 +1667,17 @@ Item {
                                         Text {
                                             Layout.alignment: Qt.AlignVCenter
                                             text: root.idleTimeoutSec === 0
-                                                  ? root.tr("秒（已关闭空闲判定）")
-                                                  : root.tr("秒")
+                                                  ? root.tr("sec (idle detection off)")
+                                                  : root.tr("sec")
                                             color: ml.textTertiary; font.pixelSize: 11
                                         }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "立即生效"
-                                    rowSub: "把上面的空闲超时与追踪开关写入后台服务并重启采集，立即生效；否则下次启动采集时才生效。"
+                                    rowTitle: "Apply Now"
+                                    rowSub: "Write idle timeout and tracking switch to the service and restart collection now."
                                     GhostBtn {
-                                        label: "应用并重启采集"; primary: true
+                                        label: "Apply & Restart"; primary: true
                                         // macOS 需先开「开机自启」，让 launchd 监督重启；
                                         // Windows 可随时幂等拉起当前用户会话的 collector，
                                         // 登录自启是另一项选择，不应阻止设置立即生效。
@@ -1702,9 +1694,9 @@ Item {
                             // 取代原先单列长清单（解决右栏被几十个应用撑高、栅格失衡）。
                             SettingsCard {
                                 badge: "▥"; wide: true
-                                cardTitle: "应用管理"
-                                cardDesc: "单独控制应用是否进入首页、统计和回顾（隐藏不删历史，仅读出端排除）。"
-                                keywords: "应用清单 排除 合并 显隐 隐藏 hidden 搜索"
+                                cardTitle: "App Management"
+                                cardDesc: "Control whether each app appears in Home, Stats, and Recap. Hiding does not delete history."
+                                keywords: "app list exclude merge show hide hidden search"
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
@@ -1718,25 +1710,25 @@ Item {
                                             Layout.fillWidth: true
                                             style: ml
                                             search: true
-                                            placeholderText: root.tr("搜索应用…")
+                                            placeholderText: root.tr("Search apps...")
                                             onTextEdited: function (t) { root.appSearchQuery = t }
                                         }
                                         Text {
                                             Layout.alignment: Qt.AlignVCenter
                                             text: root.appSearchQuery.length > 0
-                                                  ? root.sentence("searchAppsCount", {shown: root.filteredApps.length, total: root.appList.length}, "搜索 " + root.filteredApps.length + " / 共 " + root.appList.length)
-                                                  : root.sentence("showAppsCount", {shown: root.filteredApps.length, total: root.appList.length}, "展示 " + root.filteredApps.length + " / 共 " + root.appList.length)
+                                                  ? root.sentence("searchAppsCount", {shown: root.filteredApps.length, total: root.appList.length})
+                                                  : root.sentence("showAppsCount", {shown: root.filteredApps.length, total: root.appList.length})
                                             color: ml.textTertiary; font.pixelSize: 11
                                         }
                                     }
 
                                     PlaceholderNote {
                                         visible: root.appList.length === 0
-                                        text: root.tr("暂无采集到的应用记录（采集后将在此逐项显隐）。")
+                                        text: root.tr("No collected app records yet.")
                                     }
                                     PlaceholderNote {
                                         visible: root.appList.length > 0 && root.shownApps.length === 0
-                                        text: root.sentence("noMatchingApps", {query: root.appSearchQuery}, "没有匹配「" + root.appSearchQuery + "」的应用。")
+                                        text: root.sentence("noMatchingApps", {query: root.appSearchQuery})
                                     }
 
                                     GridLayout {
@@ -1816,7 +1808,7 @@ Item {
                                                             }
                                                         }
                                                         GhostBtn {
-                                                            label: editing ? "完成" : "编辑"
+                                                            label: editing ? "Done" : "Edit"
                                                             onTapped: {
                                                                 if (editing) {
                                                                     root.editingAppKey = ""
@@ -1833,7 +1825,7 @@ Item {
                                                             checked: !root.isAppHidden(modelData.groupKey)
                                                             onToggled: function (c) {
                                                                 root.setAppHidden(modelData.groupKey, !c)
-                                                                root.showToast(c ? "已显示该应用" : "已隐藏该应用")
+                                                                root.showToast(c ? "App shown" : "App hidden")
                                                             }
                                                         }
                                                     }
@@ -1847,25 +1839,25 @@ Item {
 
                                                         Text {
                                                             Layout.fillWidth: true
-                                                            text: root.tr("原始 ID") + "  " + rawAppKey
+                                                            text: root.tr("Original ID") + "  " + rawAppKey
                                                             color: ml.textTertiary; font.pixelSize: 10
                                                             elide: Text.ElideMiddle
                                                         }
                                                         Text {
                                                             Layout.fillWidth: true
-                                                            text: root.tr("规则") + "  " + root.appRuleLabel(appRow)
+                                                            text: root.tr("Rule") + "  " + root.appRuleLabel(appRow)
                                                             color: ml.textTertiary; font.pixelSize: 10
                                                             elide: Text.ElideRight
                                                         }
 
-                                                        Text { text: root.tr("名称"); color: ml.textTertiary; font.pixelSize: 11 }
+                                                        Text { text: root.tr("Name"); color: ml.textTertiary; font.pixelSize: 11 }
                                                         RowLayout {
                                                             Layout.fillWidth: true
                                                             spacing: 7
                                                             GlassTextField {
                                                                 Layout.fillWidth: true
                                                                 style: ml
-                                                                placeholderText: root.tr("自定义显示名称")
+                                                                placeholderText: root.tr("Custom display name")
                                                                 text: editing ? root.appDisplayNameDraft : ""
                                                                 onTextEdited: function (t) {
                                                                     root.appDisplayNameDraft = t
@@ -1873,13 +1865,13 @@ Item {
                                                                 }
                                                             }
                                                             GhostBtn {
-                                                                label: "保存"
+                                                                label: "Save"
                                                                 primary: true
                                                                 onTapped: root.saveAppDisplayName(rawAppKey, root.appDisplayNameDraft)
                                                             }
                                                             GhostBtn {
                                                                 visible: (modelData.customDisplayName || "").length > 0
-                                                                label: "恢复默认名称"
+                                                                label: "Reset name"
                                                                 onTapped: root.restoreAppDisplayName(rawAppKey)
                                                             }
                                                         }
@@ -1891,7 +1883,7 @@ Item {
                                                             wrapMode: Text.Wrap
                                                         }
 
-                                                        Text { text: root.tr("类别"); color: ml.textTertiary; font.pixelSize: 11 }
+                                                        Text { text: root.tr("Category"); color: ml.textTertiary; font.pixelSize: 11 }
                                                         Flow {
                                                             Layout.fillWidth: true
                                                             spacing: 6
@@ -1936,18 +1928,18 @@ Item {
                                                             spacing: 8
                                                             Text {
                                                                 Layout.fillWidth: true
-                                                                text: root.tr("窗口标题规则")
+                                                                text: root.tr("Window title rules")
                                                                 color: ml.textTertiary; font.pixelSize: 11
                                                             }
                                                             GhostBtn {
-                                                                label: "新建标题规则"
+                                                                label: "New title rule"
                                                                 onTapped: root.beginTitleRule(rawAppKey, appCategory)
                                                             }
                                                         }
                                                         Text {
                                                             Layout.fillWidth: true
                                                             visible: root.titleRulesFor(appRow).length === 0 && root.titleRuleAppKey !== rawAppKey
-                                                            text: root.tr("标题规则把同一个应用里的不同内容分到不同类别。")
+                                                            text: root.tr("Title rules split one app into different categories by what is on screen.")
                                                             color: ml.textTertiary; font.pixelSize: 10
                                                             wrapMode: Text.Wrap
                                                         }
@@ -1980,7 +1972,7 @@ Item {
                                                                         }
                                                                         Text {
                                                                             Layout.fillWidth: true
-                                                                            text: root.tr("标题包含") + " " + (modelData.title || []).join(", ")
+                                                                            text: root.tr("Title contains") + " " + (modelData.title || []).join(", ")
                                                                             color: ml.textTertiary; font.pixelSize: 10
                                                                             elide: Text.ElideRight
                                                                         }
@@ -1991,7 +1983,7 @@ Item {
                                                                     }
                                                                     IconBtn {
                                                                         glyph: "\u2715"
-                                                                        hint: "删除规则"
+                                                                        hint: "Delete rule"
                                                                         danger: true
                                                                         Layout.alignment: Qt.AlignVCenter
                                                                         onTapped: root.askDeleteRule(modelData.id, modelData.label)
@@ -2006,7 +1998,7 @@ Item {
                                                             spacing: 6
                                                             GlassTextField {
                                                                 Layout.fillWidth: true; style: ml
-                                                                placeholderText: root.tr("规则名称")
+                                                                placeholderText: root.tr("Rule name")
                                                                 // text 是内部 TextInput 的 alias：用户一敲键盘绑定就没了，
                                                                 // 所以打开表单时显式回填，不靠绑定。
                                                                 onVisibleChanged: if (visible) text = (root.titleRuleDraft.name || "")
@@ -2014,7 +2006,7 @@ Item {
                                                             }
                                                             GlassTextField {
                                                                 Layout.fillWidth: true; style: ml
-                                                                placeholderText: root.tr("标题包含，逗号分隔")
+                                                                placeholderText: root.tr("Title contains, comma separated")
                                                                 onVisibleChanged: if (visible) text = (root.titleRuleDraft.titles || "")
                                                                 onTextEdited: function (t) { root.titleRuleDraft = root.withField(root.titleRuleDraft, "titles", t) }
                                                             }
@@ -2047,9 +2039,9 @@ Item {
                                                                 Layout.fillWidth: true
                                                                 spacing: 8
                                                                 Item { Layout.fillWidth: true }
-                                                                GhostBtn { label: "取消"; onTapped: root.titleRuleAppKey = "" }
+                                                                GhostBtn { label: "Cancel"; onTapped: root.titleRuleAppKey = "" }
                                                                 GhostBtn {
-                                                                    label: "保存"; primary: true
+                                                                    label: "Save"; primary: true
                                                                     onTapped: root.saveTitleRule(appRow)
                                                                 }
                                                             }
@@ -2062,7 +2054,7 @@ Item {
 
                                     GhostBtn {
                                         visible: root.appSearchQuery.length === 0 && root.filteredApps.length > root.appCap
-                                        label: root.appsExpanded ? "收起" : root.sentence("showAllApps", {count: root.filteredApps.length}, "显示全部 " + root.filteredApps.length + " 个应用")
+                                        label: root.appsExpanded ? "Collapse" : root.sentence("showAllApps", {count: root.filteredApps.length})
                                         onTapped: root.appsExpanded = !root.appsExpanded
                                     }
                                 }
@@ -2072,9 +2064,9 @@ Item {
                             // 一条规则 = 名称 + 一个应用 + 若干标题匹配 + 一个类别。导入/导出不在这里。
                             SettingsCard {
                                 badge: "▤"; wide: true
-                                cardTitle: "分类规则"
-                                cardDesc: "编辑、停用、新建规则与类别。类别在读出时计算，改动对全部历史即时生效。"
-                                keywords: "规则 分类 类别 category rule 恢复默认"
+                                cardTitle: "Category Rules"
+                                cardDesc: "Edit, disable or create rules and categories. Categories are computed on read, so changes apply to all history at once."
+                                keywords: "rules classification category rule reset defaults"
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
@@ -2091,7 +2083,7 @@ Item {
                                             anchors.fill: parent; anchors.margins: 10; spacing: 8
                                             Text {
                                                 Layout.fillWidth: true
-                                                text: root.tr("规则读取失败，已回退到默认规则。")
+                                                text: root.tr("Could not read your rules; the default rules are in use.")
                                                 color: ml.textSecondary; font.pixelSize: 11; elide: Text.ElideRight
                                             }
                                         }
@@ -2103,17 +2095,17 @@ Item {
                                         Text {
                                             Layout.fillWidth: true
                                             text: root.rulesCustomized
-                                                  ? root.tr("已自定义")
-                                                  : root.tr("按已采集的应用生成")
+                                                  ? root.tr("Customized")
+                                                  : root.tr("Built from your recorded apps")
                                             color: ml.textTertiary; font.pixelSize: 11
                                             elide: Text.ElideRight
                                         }
-                                        GhostBtn { label: "新建类别"; onTapped: root.beginNewCategory() }
-                                        GhostBtn { label: "新建规则"; onTapped: root.beginNewRule() }
+                                        GhostBtn { label: "New category"; onTapped: root.beginNewCategory() }
+                                        GhostBtn { label: "New rule"; onTapped: root.beginNewRule() }
                                         GhostBtn {
                                             // 永远在：规则表始终是按采集数据推导出来的，
                                             // 没有「还没自定义所以没得恢复」这种状态。
-                                            label: "恢复默认规则"
+                                            label: "Reset to defaults"
                                             danger: true
                                             onTapped: root.askRestoreDefaultRules()
                                         }
@@ -2125,17 +2117,16 @@ Item {
                                         spacing: 8
                                         Text {
                                             Layout.fillWidth: true
-                                            text: root.sentence("newDefaultRules", {count: root.newDefaultsCount},
-                                                                "有 " + root.newDefaultsCount + " 条新的默认规则可用。")
+                                            text: root.sentence("newDefaultRules", {count: root.newDefaultsCount})
                                             color: ml.textSecondary; font.pixelSize: 11
                                             elide: Text.ElideRight
                                         }
                                         GhostBtn {
-                                            label: "并入"
+                                            label: "Merge in"
                                             onTapped: {
                                                 if (categorizationManager.adoptNewDefaults([])) {
                                                     root.refreshAppList()
-                                                    root.showToast(root.tr("已并入新规则"))
+                                                    root.showToast(root.tr("New default rules merged in"))
                                                 }
                                             }
                                         }
@@ -2148,12 +2139,12 @@ Item {
                                         spacing: 7
                                         GlassTextField {
                                             Layout.fillWidth: true; style: ml
-                                            placeholderText: root.tr("类别名称")
+                                            placeholderText: root.tr("Category name")
                                             text: root.newCategoryName
                                             onTextEdited: function (t) { root.newCategoryName = t }
                                         }
-                                        GhostBtn { label: "取消"; onTapped: root.newCategoryOpen = false }
-                                        GhostBtn { label: "保存"; primary: true; onTapped: root.saveNewCategory() }
+                                        GhostBtn { label: "Cancel"; onTapped: root.newCategoryOpen = false }
+                                        GhostBtn { label: "Save"; primary: true; onTapped: root.saveNewCategory() }
                                     }
 
                                     // 规则编辑器：名称 + 一个应用（从已采集清单里选）+ 若干标题匹配 + 类别。
@@ -2165,7 +2156,7 @@ Item {
                                         GlassTextField {
                                             id: ruleNameField
                                             Layout.fillWidth: true; style: ml
-                                            placeholderText: root.tr("规则名称")
+                                            placeholderText: root.tr("Rule name")
                                             onTextEdited: function (t) { root.ruleDraft = root.withField(root.ruleDraft, "name", t) }
                                         }
 
@@ -2173,7 +2164,7 @@ Item {
                                             Layout.fillWidth: true
                                             spacing: 8
                                             Text {
-                                                text: root.tr("应用")
+                                                text: root.tr("App")
                                                 color: ml.textTertiary; font.pixelSize: 11
                                             }
                                             // 选应用走浮层菜单：设置页是滚动容器，内联展开会被裁切也难点中。
@@ -2207,7 +2198,7 @@ Item {
                                                     Text {
                                                         Layout.fillWidth: true
                                                         text: (root.ruleDraft.appLabel && root.ruleDraft.appLabel.length > 0)
-                                                              ? root.ruleDraft.appLabel : root.tr("选择应用")
+                                                              ? root.ruleDraft.appLabel : root.tr("Choose app")
                                                         color: (root.ruleDraft.appLabel && root.ruleDraft.appLabel.length > 0)
                                                                ? ml.textPrimary : ml.textTertiary
                                                         font.pixelSize: 12
@@ -2227,7 +2218,7 @@ Item {
                                         GlassTextField {
                                             id: ruleTitleField
                                             Layout.fillWidth: true; style: ml
-                                            placeholderText: root.tr("标题包含，逗号分隔")
+                                            placeholderText: root.tr("Title contains, comma separated")
                                             onTextEdited: function (t) { root.ruleDraft = root.withField(root.ruleDraft, "title", t) }
                                         }
 
@@ -2275,11 +2266,11 @@ Item {
                                             Layout.fillWidth: true; spacing: 8
                                             Item { Layout.fillWidth: true }
                                             GhostBtn {
-                                                label: "取消"
+                                                label: "Cancel"
                                                 onTapped: { root.newRuleOpen = false; root.editingRuleId = ""; root.ruleDraftError = ""; root.appPickerOpen = false }
                                             }
                                             GhostBtn {
-                                                label: "保存"; primary: true
+                                                label: "Save"; primary: true
                                                 enabled: root.ruleDraftValid
                                                 opacity: enabled ? 1 : 0.45
                                                 onTapped: root.saveRuleDraft()
@@ -2331,14 +2322,13 @@ Item {
                                                     }
                                                     Text {
                                                         Layout.fillWidth: true
-                                                        text: root.sentence("ruleCount", {count: modelData.ruleCount},
-                                                                            modelData.ruleCount + " 条规则")
+                                                        text: root.sentence("ruleCount", {count: modelData.ruleCount})
                                                         color: ml.textTertiary; font.pixelSize: 10
                                                         elide: Text.ElideRight
                                                     }
                                                     IconBtn {
                                                         glyph: "\u2715"
-                                                        hint: "删除类别"
+                                                        hint: "Delete category"
                                                         danger: true
                                                         Layout.alignment: Qt.AlignVCenter
                                                         visible: modelData.id !== "other"
@@ -2387,13 +2377,13 @@ Item {
                                                         }
                                                         IconBtn {
                                                             glyph: "\u270E"
-                                                            hint: "编辑规则"
+                                                            hint: "Edit rule"
                                                             Layout.alignment: Qt.AlignVCenter
                                                             onTapped: root.beginEditRule(modelData)
                                                         }
                                                         IconBtn {
                                                             glyph: "\u2715"
-                                                            hint: "删除规则"
+                                                            hint: "Delete rule"
                                                             danger: true
                                                             Layout.alignment: Qt.AlignVCenter
                                                             onTapped: root.askDeleteRule(modelData.id, modelData.label)
@@ -2423,29 +2413,29 @@ Item {
 
                             SettingsCard {
                                 badge: "◆"; wide: true
-                                cardTitle: "隐私保护"
-                                cardDesc: "TimeArc 的记录默认保存在本机。你可以隐藏敏感应用和窗口标题。"
-                                keywords: "隐私 本地 数据 加密 匿名"
+                                cardTitle: "Privacy Protection"
+                                cardDesc: "TimeArc records stay local by default. You can hide sensitive apps and window titles."
+                                keywords: "privacy local data encryption anonymous"
 
                                 SettingRow {
-                                    rowTitle: "仅本地保存"
-                                    rowSub: "不上传使用记录，只在本机保存。"
+                                    rowTitle: "Local only"
+                                    rowSub: "Do not upload usage records; keep them on this device."
                                     GlassSwitch {
                                         style: ml; checked: root.privacyLocalOnly
                                         onToggled: function (c) { root.privacyLocalOnly = c; root._setBool("privacy_local_only", c); root.showToast(root.onOff(c)) }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "隐藏敏感窗口标题"
-                                    rowSub: "把文档名、聊天名和网页标题替换为类别（输出端脱敏，采集仍保留）。"
+                                    rowTitle: "Hide sensitive window titles"
+                                    rowSub: "Replace document names, chat names, and page titles with categories at output time."
                                     GlassSwitch {
                                         style: ml; checked: root.hideTitles
                                         onToggled: function (c) { root.hideTitles = c; root._setBool("hide_titles", c); root.pushReadFilters(); root.showToast(root.onOff(c)) }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "匿名化分享图"
-                                    rowSub: "偏好已保存；分享图渲染端匿名（用类别替代应用名）将随回顾分享管线接入。"
+                                    rowTitle: "Anonymize share images"
+                                    rowSub: "Preference saved. Anonymous share rendering will use categories instead of app names."
                                     GlassSwitch {
                                         style: ml; checked: root.anonymizeExport
                                         onToggled: function (c) { root.anonymizeExport = c; root._setBool("anonymize_export", c); root.showToast(root.onOff(c)) }
@@ -2455,9 +2445,9 @@ Item {
 
                             SettingsCard {
                                 badge: "▣"
-                                cardTitle: "存储空间"
-                                cardDesc: "当前缓存和历史记录占用（本机只读统计）。"
-                                keywords: "存储 清理 保留周期 缓存 记录"
+                                cardTitle: "Storage"
+                                cardDesc: "Current cache and history usage, measured locally."
+                                keywords: "storage cleanup retention cache records"
 
                                 // 存储条（本地占用相对 100MB 软参考；标签显示真实大小，非硬配额）
                                 Rectangle {
@@ -2477,7 +2467,7 @@ Item {
                                     }
                                 }
                                 Text {
-                                    text: root.sentence("localUsageSize", {size: root.bytesText(root.historyBytes + root.cacheBytes)}, "本地占用 " + root.bytesText(root.historyBytes + root.cacheBytes) + "（相对 100MB 参考）")
+                                    text: root.sentence("localUsageSize", {size: root.bytesText(root.historyBytes + root.cacheBytes)})
                                     color: ml.textTertiary; font.pixelSize: 10
                                 }
 
@@ -2486,48 +2476,48 @@ Item {
                                     columns: 2
                                     columnSpacing: 10
                                     rowSpacing: 10
-                                    MetricTile { tileLabel: "缓存"; tileValue: root.bytesText(root.cacheBytes) }
-                                    MetricTile { tileLabel: "历史库"; tileValue: root.bytesText(root.historyBytes) }
-                                    MetricTile { tileLabel: "记录"; tileValue: root.usageRecordCount > 0 ? ("" + root.usageRecordCount) : "0" }
+                                    MetricTile { tileLabel: "Cache"; tileValue: root.bytesText(root.cacheBytes) }
+                                    MetricTile { tileLabel: "History store"; tileValue: root.bytesText(root.historyBytes) }
+                                    MetricTile { tileLabel: "Records"; tileValue: root.usageRecordCount > 0 ? ("" + root.usageRecordCount) : "0" }
                                 }
 
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
                                     GhostBtn {
-                                        label: "清理缓存"
-                                        onTapped: root.askConfirm("清理缓存",
-                                            "将清除 UI 私有的派生缓存（窗口位置等）。不影响使用历史、设置偏好与备忘内容。",
-                                            "清理", false, function () { root.clearUiCache() })
+                                        label: "Clear Cache"
+                                        onTapped: root.askConfirm("Clear Cache",
+                                            "Clears the UI's own derived cache (window position and similar). Usage history, preferences, and memo content are not affected.",
+                                            "Clear", false, function () { root.clearUiCache() })
                                     }
                                     GhostBtn {
-                                        label: "删除历史"; danger: true
-                                        onTapped: root.askConfirm("删除使用历史",
-                                            "使用历史为追加-only（磁盘契约 D1），应用内不提供删除；如需清空请停止后台服务后用迁移工具处理。",
-                                            "知道了", false, null)
+                                        label: "Delete History"; danger: true
+                                        onTapped: root.askConfirm("Delete Usage History",
+                                            "Usage history is append-only (disk contract D1), so TimeArc does not delete it in-app. To clear it, stop the background service and use the migration tool.",
+                                            "Got It", false, null)
                                     }
                                 }
                             }
 
                             SettingsCard {
                                 badge: "✓"
-                                cardTitle: "权限状态"
-                                cardDesc: "用于提醒真实应用需要的系统权限。"
-                                keywords: "权限 开机启动 通知"
+                                cardTitle: "Permission Status"
+                                cardDesc: "Shows the system permissions a real app may need."
+                                keywords: "permissions start-at-login notifications"
 
                                 SettingRow {
-                                    rowTitle: "应用使用权限"
-                                    rowSub: "Windows 前台采集无需额外授权。"
+                                    rowTitle: "App Usage Permission"
+                                    rowSub: "Windows foreground collection needs no extra permission."
                                     Rectangle {
                                         radius: 11
                                         implicitWidth: permT.implicitWidth + 22; implicitHeight: 26
                                         color: ml.accentSoft; border.width: 1; border.color: ml.accentSoftBorder
-                                        Text { id: permT; anchors.centerIn: parent; text: root.tr("就绪"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                        Text { id: permT; anchors.centerIn: parent; text: root.tr("Ready"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "系统通知"
-                                    rowSub: "番茄钟在后台完成时发送系统通知（开启后显示系统托盘图标）。"
+                                    rowTitle: "System Notifications"
+                                    rowSub: "Send system notifications when Pomodoro completes in the background."
                                     GlassSwitch {
                                         style: ml; checked: root.notifyEnabled
                                         onToggled: function (c) { root.notifyEnabled = c; root._setBool("notify_enabled", c); root.hotkeysChanged(); root.showToast(root.onOff(c)) }
@@ -2543,17 +2533,17 @@ Item {
 
                             SettingsCard {
                                 badge: "◇"; wide: true
-                                cardTitle: "备忘录默认行为"
-                                cardDesc: "控制便签、画笔、页数和快捷键体验。"
-                                keywords: "备忘录 便签 画笔 页面 作者"
+                                cardTitle: "Memo Defaults"
+                                cardDesc: "Control notes, ink, pages, and shortcuts."
+                                keywords: "memo sticky note brush page author"
 
                                 // 「按 N 打开备忘录」开关（memo_hotkey_n）已移除：它原本是裸字母抢打字的
                                 // 逃生口，而键位如今可带修饰键、macOS 出厂即 ⇧⌘N，已无需要逃的东西。
                                 // 何况 macOS 的菜单行 显示 › 备忘黑板 同样绑 ⇧⌘N 且不受该偏好管，关掉开关
                                 // 快捷键照样生效——一个说了不算的开关比没有更糟。键位本身仍可在下面改。
                                 SettingRow {
-                                    rowTitle: "自动保存笔迹和便签"
-                                    rowSub: "每个页面独立保存，不互相影响。"
+                                    rowTitle: "Auto-save ink and notes"
+                                    rowSub: "Each page saves independently."
                                     GlassSwitch {
                                         style: ml; checked: root.memoAutosave
                                         onToggled: function (c) { root.memoAutosave = c; root._setBool("memo_autosave", c); root.showToast(root.onOff(c)) }
@@ -2566,35 +2556,35 @@ Item {
                             // 番茄钟（#2 接备忘黑板真引擎 PomodoroWidget；写 KV，引擎在 _load/reset 读默认）。
                             SettingsCard {
                                 badge: "●"
-                                cardTitle: "番茄钟"
-                                cardDesc: "设置备忘黑板里番茄钟的默认专注时长、标题与结束庆祝。"
-                                keywords: "番茄钟 pomodoro 专注 时间 倒计时"
+                                cardTitle: "Pomodoro"
+                                cardDesc: "Set default Pomodoro duration, title, and completion celebration."
+                                keywords: "pomodoro focus time countdown"
 
                                 SettingRow {
-                                    rowTitle: "默认专注时长"
-                                    rowSub: "新开 / 重置番茄钟的初始分钟数（备忘内仍可临时调整）。"
+                                    rowTitle: "Default focus length"
+                                    rowSub: "Initial minutes for new or reset Pomodoro timers."
                                     GlassComboBox {
                                         style: ml
-                                        model: [root.tr("15 分钟"), root.tr("25 分钟"), root.tr("30 分钟"), root.tr("45 分钟"), root.tr("60 分钟")]
+                                        model: [root.tr("15 minutes"), root.tr("25 minutes"), root.tr("30 minutes"), root.tr("45 minutes"), root.tr("60 minutes")]
                                         property var _vals: ["15", "25", "30", "45", "60"]
                                         currentIndex: Math.max(0, _vals.indexOf(root.pomodoroDuration))
-                                        onActivated: function (i) { root.pomodoroDuration = _vals[i]; root._setStr("pomodoro_duration", _vals[i]); root.showToast(root.tr("默认专注时长已保存")) }
+                                        onActivated: function (i) { root.pomodoroDuration = _vals[i]; root._setStr("pomodoro_duration", _vals[i]); root.showToast(root.tr("Default focus length saved")) }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "默认专注标题"
-                                    rowSub: "番茄钟浮窗顶部显示的文字。"
+                                    rowTitle: "Default focus title"
+                                    rowSub: "Text shown at the top of the Pomodoro widget."
                                     GlassTextField {
                                         style: ml
                                         implicitWidth: 160
                                         text: root.pomodoroTitle
-                                        placeholderText: root.tr("专注一会儿")
-                                        onEditingFinished: { root.pomodoroTitle = text; root._setStr("pomodoro_title", text); root.showToast(root.tr("默认标题已保存")) }
+                                        placeholderText: root.tr("Focus for a while")
+                                        onEditingFinished: { root.pomodoroTitle = text; root._setStr("pomodoro_title", text); root.showToast(root.tr("Default title saved")) }
                                     }
                                 }
                                 SettingRow {
-                                    rowTitle: "结束庆祝动画"
-                                    rowSub: "番茄钟完成时显示全屏庆祝。"
+                                    rowTitle: "Completion celebration"
+                                    rowSub: "Show a full-screen celebration when Pomodoro completes."
                                     GlassSwitch {
                                         style: ml; checked: root.pomodoroCelebrate
                                         onToggled: function (c) { root.pomodoroCelebrate = c; root._setBool("pomodoro_celebrate", c); root.showToast(root.onOff(c)) }
@@ -2605,16 +2595,16 @@ Item {
                             // 快捷键（#3 自定义）：备忘 / 番茄全局键可点按重设（字母，可带修饰键）；其余为内置只读。
                             SettingsCard {
                                 badge: "⌘"
-                                cardTitle: "快捷键"
-                                cardDesc: "自定义备忘录与番茄钟的全局快捷键（点按键位后按下组合键，可加 Ctrl / Shift / Alt；按 Delete 停用；其余为内置键）。"
-                                keywords: "快捷键 keyboard shortcut 自定义 备忘 番茄 N P 修饰键 组合键 停用 禁用 delete"
+                                cardTitle: "Hotkeys"
+                                cardDesc: "Customize the Memo and Pomodoro global hotkeys: click a key cap, then press your combination. Ctrl / Shift / Alt are allowed, and Delete turns the hotkey off. The rest are built in."
+                                keywords: "hotkey keyboard shortcut custom memo pomodoro N P modifier combination disable delete"
                                 Column {
                                     Layout.fillWidth: true
                                     spacing: 8
                                     Repeater {
                                         model: [
-                                            { which: "memo", d: root.tr("打开 / 关闭备忘录") },
-                                            { which: "pomo", d: root.tr("打开 / 关闭番茄钟") }
+                                            { which: "memo", d: root.tr("Open / close Memo") },
+                                            { which: "pomo", d: root.tr("Open / close Pomodoro") }
                                         ]
                                         delegate: Rectangle {
                                             required property var modelData
@@ -2656,9 +2646,9 @@ Item {
                                     }
                                     Repeater {
                                         model: [
-                                            { k: "Del", d: root.tr("删除选中便签 / 对象") },
-                                            { k: "Esc", d: root.tr("关闭回顾 / 设置 / 清空选区") },
-                                            { k: "Wheel", d: root.tr("切换卡牌 / 滚动列表") }
+                                            { k: "Del", d: root.tr("Delete selected note / object") },
+                                            { k: "Esc", d: root.tr("Close recap / settings / clear selection") },
+                                            { k: "Wheel", d: root.tr("Switch cards / scroll list") }
                                         ]
                                         delegate: Rectangle {
                                             required property var modelData
@@ -2691,38 +2681,38 @@ Item {
 
                             SettingsCard {
                                 badge: "⇅"; wide: true
-                                cardTitle: "设置迁移"
-                                cardDesc: "从设置文件恢复偏好，或复制一份便于排查的配置摘要。"
-                                keywords: "导入 json 备份 复制 摘要"
+                                cardTitle: "Settings Migration"
+                                cardDesc: "Restore preferences from a settings file, or copy a troubleshooting summary."
+                                keywords: "import json backup copy summary"
 
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
-                                    GhostBtn { label: "导入设置"; primary: true; onTapped: importDialog.open() }
-                                    GhostBtn { label: "复制配置摘要"; onTapped: root.copySummary() }
+                                    GhostBtn { label: "Import Settings"; primary: true; onTapped: importDialog.open() }
+                                    GhostBtn { label: "Copy Config Summary"; onTapped: root.copySummary() }
                                 }
                             }
 
                             SettingsCard {
                                 badge: "⇩"; wide: true
-                                cardTitle: "数据库备份与恢复"
-                                cardDesc: "把整个使用数据库导出为单文件备份，或从备份恢复（恢复前请先停止后台采集）。"
-                                keywords: "备份 恢复 数据库 sqlite db 整库 vacuum"
+                                cardTitle: "Database Backup & Restore"
+                                cardDesc: "Export the usage database as a backup file, or restore from one. Stop collection before restoring."
+                                keywords: "backup restore database sqlite db full vacuum"
 
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
-                                    GhostBtn { label: "备份数据库"; primary: true; onTapped: root.doBackupDatabase() }
-                                    GhostBtn { label: "恢复数据库"; danger: true; onTapped: restoreDialog.open() }
+                                    GhostBtn { label: "Back Up Database"; primary: true; onTapped: root.doBackupDatabase() }
+                                    GhostBtn { label: "Restore Database"; danger: true; onTapped: restoreDialog.open() }
                                 }
                             }
 
                             // D2：服务数据库目录（用户可选目录 + 还原默认）
                             SettingsCard {
                                 badge: "⇧"; wide: true
-                                cardTitle: "服务数据库目录"
-                                cardDesc: "选择后台服务写入 timearc_service.db 的目录；GUI 只更新位置指针，不移动数据库文件。完成后请重启采集。"
-                                keywords: "数据库 位置 目录 路径 磁盘 db_dir 重定向 service"
+                                cardTitle: "Service Database Folder"
+                                cardDesc: "Choose the folder where the background service writes timearc_service.db. TimeArc only updates the location pointer and never moves the database file. Restart collection when you are done."
+                                keywords: "database location folder path disk db_dir redirect service"
 
                                 Rectangle {
                                     Layout.fillWidth: true
@@ -2734,7 +2724,7 @@ Item {
                                         id: dbLocCol
                                         anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 12 }
                                         spacing: 3
-                                        Text { text: root.tr("当前位置"); color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
+                                        Text { text: root.tr("Current Location"); color: ml.textTertiary; font.pixelSize: 10; font.capitalization: Font.AllUppercase; font.letterSpacing: 0.3 }
                                         Text {
                                             text: root.dbLocationText()
                                             color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold
@@ -2745,9 +2735,9 @@ Item {
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
-                                    GhostBtn { label: "设置目录…"; primary: true; onTapped: dbFolderDialog.open() }
+                                    GhostBtn { label: "Set Folder…"; primary: true; onTapped: dbFolderDialog.open() }
                                     GhostBtn {
-                                        label: "还原默认位置"
+                                        label: "Restore Default Location"
                                         opacity: enabled ? 1 : 0.45
                                         enabled: !!(databaseManager && databaseManager.isUsingCustomDatabaseLocation
                                                     && databaseManager.isUsingCustomDatabaseLocation())
@@ -2758,37 +2748,37 @@ Item {
 
                             SettingsCard {
                                 badge: "≈"
-                                cardTitle: "当前数据概览"
-                                cardDesc: "今天的使用情况和本地记录规模。"
-                                keywords: "状态 数据概览"
+                                cardTitle: "Current Data Overview"
+                                cardDesc: "Today's usage and local record size."
+                                keywords: "status data overview"
 
                                 GridLayout {
                                     Layout.fillWidth: true
                                     columns: 2
                                     columnSpacing: 10
                                     rowSpacing: 10
-                                    MetricTile { tileLabel: "今日使用"; tileValue: root.todayUsageText() }
-                                    MetricTile { tileLabel: "切换次数"; tileValue: root.todaySwitchesText }
-                                    MetricTile { tileLabel: "备忘页数"; tileValue: root.memoPagesText }
-                                    MetricTile { tileLabel: "番茄钟"; tileValue: root.pomodoroTodayText }   // 今日完成数（已接真引擎）
+                                    MetricTile { tileLabel: "Today Usage"; tileValue: root.todayUsageText() }
+                                    MetricTile { tileLabel: "Switches"; tileValue: root.todaySwitchesText }
+                                    MetricTile { tileLabel: "Memo Pages"; tileValue: root.memoPagesText }
+                                    MetricTile { tileLabel: "Pomodoro"; tileValue: root.pomodoroTodayText }   // 今日完成数（已接真引擎）
                                 }
                             }
 
                             SettingsCard {
                                 badge: "↺"
-                                cardTitle: "恢复与重置"
-                                cardDesc: "用于快速恢复视觉默认状态。"
-                                keywords: "重置 恢复 默认 清空"
+                                cardTitle: "Restore & Reset"
+                                cardDesc: "Quickly restore visual defaults."
+                                keywords: "reset restore defaults clear"
 
                                 Flow {
                                     Layout.fillWidth: true
                                     spacing: 10
-                                    GhostBtn { label: "恢复视觉默认"; onTapped: root.restoreVisualDefaults() }
+                                    GhostBtn { label: "Restore Visual Defaults"; onTapped: root.restoreVisualDefaults() }
                                     GhostBtn {
-                                        label: "清空本地缓存"; danger: true
-                                        onTapped: root.askConfirm("清空本地缓存",
-                                            "将清除 UI 私有的派生缓存（窗口位置等）。不影响使用历史、设置偏好与备忘内容。",
-                                            "清空", true, function () { root.clearUiCache() })
+                                        label: "Clear Local Cache"; danger: true
+                                        onTapped: root.askConfirm("Clear Local Cache",
+                                            "Clears the UI's own derived cache (window position and similar). Usage history, preferences, and memo content are not affected.",
+                                            "Clear", true, function () { root.clearUiCache() })
                                     }
                                 }
                             }
@@ -2814,10 +2804,9 @@ Item {
                                     wide: true
                                     cardTitle: comp.name
                                     cardDesc: comp.name === "TimeArc"
-                                              ? root.sentence("localVersion", {version: root.appVersion},
-                                                              "TimeArc · 本地版本 " + root.appVersion)
+                                              ? root.sentence("localVersion", {version: root.appVersion})
                                               : "v" + comp.version + " · " + root.tr(comp.linkage)
-                                    keywords: "关于 about 许可 license 开源 第三方 版权 copyright "
+                                    keywords: "about license open source third party copyright "
                                               + comp.name + " " + comp.license
 
                                     Text {
@@ -2910,11 +2899,11 @@ Item {
                     spacing: 8
                     Text {
                         Layout.fillWidth: true
-                        text: root.tr("选择应用")
+                        text: root.tr("Choose app")
                         color: ml.textPrimary; font.pixelSize: 15; font.weight: Font.DemiBold
                     }
                     IconBtn {
-                        glyph: "\u2715"; hint: "关闭"
+                        glyph: "\u2715"; hint: "Close"
                         onTapped: root.appPickerOpen = false
                     }
                 }
@@ -2923,7 +2912,7 @@ Item {
                     Layout.fillWidth: true
                     style: ml
                     search: true
-                    placeholderText: root.tr("搜索应用…")
+                    placeholderText: root.tr("Search apps...")
                     text: root.appPickerQuery
                     onTextEdited: function (t) { root.appPickerQuery = t }
                 }
@@ -2992,7 +2981,7 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     visible: root.appPickerResults.length === 0
-                    text: root.tr("没有匹配的应用。")
+                    text: root.tr("No matching apps.")
                     color: ml.textTertiary; font.pixelSize: 11
                 }
             }
@@ -3004,7 +2993,7 @@ Item {
         property bool shown: false
         property string titleText: ""
         property string msgText: ""
-        property string confirmLabel: "确认"
+        property string confirmLabel: "Confirm"
         property bool danger: false
         anchors.fill: parent
         z: 350
@@ -3042,7 +3031,7 @@ Item {
                     Layout.fillWidth: true
                     spacing: 10
                     Item { Layout.fillWidth: true }
-                    GhostBtn { label: "取消"; onTapped: confirmCard.shown = false }
+                    GhostBtn { label: "Cancel"; onTapped: confirmCard.shown = false }
                     GhostBtn {
                         label: confirmCard.confirmLabel
                         danger: confirmCard.danger
@@ -3102,7 +3091,7 @@ Item {
                             font.pixelSize: 11; wrapMode: Text.WrapAnywhere
                         }
                     }
-                    GhostBtn { label: "关闭"; onTapped: licenseViewer.shown = false }
+                    GhostBtn { label: "Close"; onTapped: licenseViewer.shown = false }
                 }
                 ThinRule {}
                 Rectangle {
@@ -3395,7 +3384,7 @@ Item {
         Text {
             id: kcLabel
             anchors.centerIn: parent
-            text: kc.capturing ? root.tr("按键…") : kc.keyText
+            text: kc.capturing ? root.tr("Press…") : kc.keyText
             color: kc.capturing ? ml.aqua : ml.textPrimary
             font.pixelSize: 12; font.weight: 900
         }
@@ -3455,7 +3444,7 @@ Item {
                 // Shell 同步把 nightModeToggled→nightMode 回写本页，故 toast 必须读「目标值」而非回写后的 root.nightMode。
                 var goingNight = !root.nightMode
                 root.nightModeToggled(goingNight)
-                root.showToast(goingNight ? "已切换到黑夜模式" : "已切换到白天模式")
+                root.showToast(goingNight ? "Switched to dark mode" : "Switched to light mode")
             }
         }
     }

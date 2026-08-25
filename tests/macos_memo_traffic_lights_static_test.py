@@ -101,7 +101,7 @@ def main():
     # Keyboard and mouse must agree: the red button works, so must Cmd+W.
     require(
         menu_qml,
-        'text: bar.tr("关闭窗口")',
+        'text: bar.tr("Close Window")',
         "close window menu item",
     )
     forbid(

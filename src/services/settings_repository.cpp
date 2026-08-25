@@ -45,7 +45,7 @@ const QString kCalendarSelectedDateKey =
     QStringLiteral("calendar_selected_date");
 const QString kMemoMessagesKey = QStringLiteral("local_memo_chat_messages");
 const QString kNightModeKey = QStringLiteral("night_mode");
-const QString kDefaultTagName = QStringLiteral("其他");
+const QString kDefaultTagName = QStringLiteral("Other");
 const QString kAutostartDecisionKey =
     QStringLiteral("windows_autostart_user_decided_v2");
 

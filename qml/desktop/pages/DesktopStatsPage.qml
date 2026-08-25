@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 import "StatsViewModel.js" as StatsViewModel
 
@@ -28,7 +28,7 @@ Item {
     property string languageMode: "zh"
 
     function tr(source) { return I18n.t(languageMode, source) }
-    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
+    function sentence(key, params) { return I18n.sentence(languageMode, key, params) }
 
     // 顶栏「返回首页」/ ESC 切页：Shell 在 onLoaded 连接（已含 stats）。
     signal requestNavigate(string pageKey)
@@ -67,7 +67,7 @@ Item {
     property var vmRanking: []
     property var vmCategories: []
     property var vmTrendBars: []
-    property string vmAggregateFact: ""
+    property var vmAggregateFact: null
     property var vmClockSegments: []
     property var vmLifetimeApps: []
     property var vmLibraryRows: []
@@ -98,26 +98,26 @@ Item {
     // ============================================================
     // 工具：时间格式 / 范围文案
     // ============================================================
-    function rangeWord(r) { return r === "day" ? tr("日") : r === "week" ? tr("周") : r === "month" ? tr("月") : tr("年") }
-    function rangeLabel(r) { return r === "day" ? tr("今天") : r === "week" ? tr("本周") : r === "month" ? tr("本月") : tr("本年") }
+    function rangeWord(r) { return r === "day" ? tr("Day") : r === "week" ? tr("Week") : r === "month" ? tr("Month") : tr("Year") }
+    function rangeLabel(r) { return r === "day" ? tr("Today") : r === "week" ? tr("This Week") : r === "month" ? tr("This Month") : tr("This Year") }
     function isEnglish() { return I18n.langKey(languageMode) === "en" }
-    function weekdayShortLabels() { return isEnglish() ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["周一", "周二", "周三", "周四", "周五", "周六", "周日"] }
-    function heatWeekLabels() { return isEnglish() ? ["Mon", "", "Wed", "", "Fri", "", ""] : ["一", "", "三", "", "五", "", ""] }
-    function monthShortLabels() { return isEnglish() ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"] }
+    function weekdayShortLabels() { return I18n.weekdaysNarrow(languageMode) }
+    function heatWeekLabels() { return I18n.weekdaysHeat(languageMode) }
+    function monthShortLabels() { return isEnglish() ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] }
 
     function aggregateContextText() {
-        if (range === "week") return tr("本周记录")
-        return vmPeriodLabel + tr("记录")
+        if (range === "week") return tr("Recorded this week")
+        return vmPeriodLabel + tr("Records")
     }
 
     function aggregateUnitLabel() {
-        return range === "year" ? tr("活跃月") : tr("记录日")
+        return range === "year" ? tr("Active months") : tr("Recorded days")
     }
 
     function aggregateTrendSubtitle() {
-        if (range === "month") return tr("每周记录时长")
-        if (range === "year") return tr("每月记录时长")
-        return tr("每日记录时长")
+        if (range === "month") return tr("Weekly recorded time")
+        if (range === "year") return tr("Monthly recorded time")
+        return tr("Daily recorded time")
     }
 
     function recentRecordText(unixSec) {
@@ -128,9 +128,9 @@ Item {
         var startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
         var startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
         var timeText = Qt.formatTime(date, "HH:mm")
-        if (startDate === startToday) return tr("今天") + " " + timeText
-        if (startDate === startToday - 86400000) return tr("昨天") + " " + timeText
-        return isEnglish() ? Qt.formatDate(date, "MMM d") : ((date.getMonth() + 1) + "月" + date.getDate() + "日")
+        if (startDate === startToday) return tr("Today") + " " + timeText
+        if (startDate === startToday - 86400000) return tr("Yesterday") + " " + timeText
+        return I18n.monthDay(languageMode, date)
     }
 
     function secondsToDisplay(seconds) {
@@ -249,18 +249,18 @@ Item {
             return "" + (cell.day ? cell.day : "")
         var m = Math.max(1, Math.min(12, parseInt(p[1]) || 1))
         var d = parseInt(p[2]) || cell.day
-        return isEnglish() ? (monthShortLabels()[m - 1] + " " + d) : (m + "月" + d + "日")
+        return I18n.monthDayNum(languageMode, m, d)
     }
 
     function heatTooltipText(cell) {
         var date = heatDateLabel(cell)
         if (!cell || cell.empty)
-            return date.length > 0 ? sentence("heatTooltipEmpty", {date: date}, date + " · 暂无使用") : ""
+            return date.length > 0 ? sentence("heatTooltipEmpty", {date: date}) : ""
         return sentence("heatTooltip", {
             date: date,
             time: secondsToDisplay(cell.seconds),
             category: root.categoryLabel(cell.category)
-        }, date + " · " + secondsToDisplay(cell.seconds) + " · " + root.categoryLabel(cell.category))
+        })
     }
 
     function dayCategorySums(segs, apps) {
@@ -330,15 +330,15 @@ Item {
             var d1 = new Date(now.getFullYear(), now.getMonth() + off + 1, 1, 0, 0, 0, 0)
             return { start: Math.floor(d0.getTime() / 1000), end: Math.floor(d1.getTime() / 1000) - 1,
                      y: d0.getFullYear(), m: d0.getMonth() + 1,
-                     label: isEnglish() ? (monthShortLabels()[d0.getMonth()] + " " + d0.getFullYear()) : (d0.getFullYear() + "年" + (d0.getMonth() + 1) + "月"), kind: "month" }
+                     label: isEnglish() ? (monthShortLabels()[d0.getMonth()] + " " + d0.getFullYear()) : (d0.getFullYear() + "Year" + (d0.getMonth() + 1) + "Month"), kind: "month" }
         } else {
             var y = now.getFullYear() + off
             var y0 = new Date(y, 0, 1, 0, 0, 0, 0), y1 = new Date(y + 1, 0, 1, 0, 0, 0, 0)
             return { start: Math.floor(y0.getTime() / 1000), end: Math.floor(y1.getTime() / 1000) - 1,
-                     y: y, label: isEnglish() ? String(y) : (y + "年"), kind: "year" }
+                     y: y, label: isEnglish() ? String(y) : (y + "Year"), kind: "year" }
         }
     }
-    function fmtMD(d) { return isEnglish() ? (monthShortLabels()[d.getMonth()] + " " + d.getDate()) : ((d.getMonth() + 1) + "月" + d.getDate() + "日") }
+    function fmtMD(d) { return I18n.monthDay(languageMode, d) }
     // 已过天数（本期到今天为止；过去期 = 整窗），供日均。
     function periodElapsedDays(win) {
         var nowSec = Math.floor(Date.now() / 1000)
@@ -495,7 +495,7 @@ Item {
         for (var j = 0; j < sorted.length && j < n; j++) {
             var a = sorted[j]
             var key = a.groupKey ? a.groupKey : a.appId
-            out.push({ name: AppVisual.modelDisplayName(a) || "未知应用",
+            out.push({ name: AppVisual.modelDisplayName(a) || "Unknown app",
                        groupKey: key, path: a.path ? a.path : "",
                        appId: a.appId ? a.appId : "",
                        appName: a.appName ? a.appName : "",
@@ -534,10 +534,10 @@ Item {
     function dayMetrics(total, apps, lifetimeApps, lifetimeTotal) {
         var longest = lifetimeApps && lifetimeApps.length > 0 ? lifetimeApps[0] : null
         return [
-            { title: "本期总时长", sub: "今天的有效记录", badge: "日", value: secondsToDisplay(total), change: "", changeDown: false },
-            { title: "全部软件累计", sub: "所有保留记录", badge: "总", value: hoursText(lifetimeTotal), change: "", changeDown: false },
-            { title: "本期活跃软件", sub: "今天 / 全部", badge: "日", value: apps.length + " / " + lifetimeApps.length, change: "", changeDown: false },
-            { title: "累计最长", sub: longest ? AppVisual.modelDisplayName(longest) : "—", badge: "总", value: longest ? StatsViewModel.formatCompactDuration(longest.seconds) : "—", change: "", changeDown: false }
+            { title: "Total this period", sub: "Today's effective records", badge: "Day", value: secondsToDisplay(total), change: "", changeDown: false },
+            { title: "All apps combined", sub: "All retained records", badge: "Total", value: hoursText(lifetimeTotal), change: "", changeDown: false },
+            { title: "Active apps this period", sub: "Today / All", badge: "Day", value: apps.length + " / " + lifetimeApps.length, change: "", changeDown: false },
+            { title: "Longest overall", sub: longest ? AppVisual.modelDisplayName(longest) : "—", badge: "Total", value: longest ? StatsViewModel.formatCompactDuration(longest.seconds) : "—", change: "", changeDown: false }
         ]
     }
 
@@ -548,25 +548,25 @@ Item {
         var sw = computeSwitchCount(segs)
         var chg = changeStr(total, prevSec, hasPrev)
         return [
-            { title: "本周总使用", sub: "较上周", badge: "周", value: hoursText(total),
-              change: chg.change ? (chg.change + " " + tr("较上周")) : "", changeDown: chg.down },
-            { title: "日均使用", sub: "按已过天数", badge: "周", value: hoursText(total / elapsed), change: "", changeDown: false },
-            { title: "最长连续使用", sub: lu ? (lu.appName ? lu.appName : "—") : "—", badge: "周",
+            { title: "This Week Total", sub: "vs last week", badge: "Week", value: hoursText(total),
+              change: chg.change ? (chg.change + " " + tr("vs last week")) : "", changeDown: chg.down },
+            { title: "Daily Average", sub: "By elapsed days", badge: "Week", value: hoursText(total / elapsed), change: "", changeDown: false },
+            { title: "Longest Continuous Use", sub: lu ? (lu.appName ? lu.appName : "—") : "—", badge: "Week",
               value: lu ? hoursText(lu.longestSec) : "—", change: "", changeDown: false },
-            { title: "切换次数", sub: "前台应用切换", badge: "周", value: total > 0 ? sentence("switchCount", {count: sw}, sw + " 次") : "—", change: "", changeDown: false }
+            { title: "Switches", sub: "Foreground app switches", badge: "Week", value: total > 0 ? sentence("switchCount", {count: sw}) : "—", change: "", changeDown: false }
         ]
     }
 
     function monthMetrics(total, apps, cat, focusDays, prevSec, hasPrev) {
         var chg = changeStr(total, prevSec, hasPrev)
-        var ent = total > 0 ? Math.round(100 * ((cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)) / total) : 0
-        var crt = total > 0 ? Math.round(100 * ((cat["创作"] ? cat["创作"] : 0) + (cat["笔记"] ? cat["笔记"] : 0)) / total) : 0
+        var ent = total > 0 ? Math.round(100 * ((cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)) / total) : 0
+        var crt = total > 0 ? Math.round(100 * ((cat["Creation"] ? cat["Creation"] : 0) + (cat["Notes"] ? cat["Notes"] : 0)) / total) : 0
         return [
-            { title: "本月总使用", sub: "较上月", badge: "月", value: hoursText(total),
-              change: chg.change ? (chg.change + " " + tr("较上月")) : "", changeDown: chg.down },
-            { title: "专注天数", sub: "开发/办公/笔记", badge: "月", value: sentence("dayCount", {count: focusDays}, focusDays + " 天"), change: "", changeDown: false },
-            { title: "娱乐占比", sub: "游戏 + 视频", badge: "月", value: total > 0 ? (ent + "%") : "—", change: "", changeDown: false },
-            { title: "创作占比", sub: "创作 + 笔记", badge: "月", value: total > 0 ? (crt + "%") : "—", change: "", changeDown: false }
+            { title: "This Month Total", sub: "vs last month", badge: "Month", value: hoursText(total),
+              change: chg.change ? (chg.change + " " + tr("vs last month")) : "", changeDown: chg.down },
+            { title: "Focus Days", sub: "Dev/Office/Notes", badge: "Month", value: sentence("dayCount", {count: focusDays}), change: "", changeDown: false },
+            { title: "Entertainment Share", sub: "Games + Video", badge: "Month", value: total > 0 ? (ent + "%") : "—", change: "", changeDown: false },
+            { title: "Creation Share", sub: "Creation + Notes", badge: "Month", value: total > 0 ? (crt + "%") : "—", change: "", changeDown: false }
         ]
     }
 
@@ -576,11 +576,11 @@ Item {
             if ((bars[i].seconds ? bars[i].seconds : 0) > peak) { peak = bars[i].seconds; peakIdx = i }
         var chg = changeStr(total, prevSec, hasPrev)
         return [
-            { title: "年度总使用", sub: "较上年", badge: "年", value: hoursText(total),
-              change: chg.change ? (chg.change + " " + tr("较上年")) : "", changeDown: chg.down },
-            { title: "最活跃月份", sub: "按月度时长", badge: "年", value: (peakIdx >= 0 && peak > 0) ? bars[peakIdx].label : "—", change: "", changeDown: false },
-            { title: "年度专注", sub: "开发/办公/笔记", badge: "年", value: focusSeconds > 0 ? hoursText(focusSeconds) : "—", change: "", changeDown: false },
-            { title: "打开应用", sub: "使用过的应用", badge: "年", value: apps.length > 0 ? sentence("appCount", {count: apps.length}, apps.length + " 个") : "—", change: "", changeDown: false }
+            { title: "Year Total", sub: "vs last year", badge: "Year", value: hoursText(total),
+              change: chg.change ? (chg.change + " " + tr("vs last year")) : "", changeDown: chg.down },
+            { title: "Most Active Month", sub: "By monthly time", badge: "Year", value: (peakIdx >= 0 && peak > 0) ? I18n.trendLabel(languageMode, bars[peakIdx]) : "—", change: "", changeDown: false },
+            { title: "Year Focus", sub: "Dev/Office/Notes", badge: "Year", value: focusSeconds > 0 ? hoursText(focusSeconds) : "—", change: "", changeDown: false },
+            { title: "Opened Apps", sub: "Apps used", badge: "Year", value: apps.length > 0 ? sentence("appCount", {count: apps.length}) : "—", change: "", changeDown: false }
         ]
     }
 
@@ -588,34 +588,34 @@ Item {
     function buildInsight(r, share, total, cat) {
         var label = rangeLabel(r)
         if (total <= 0)
-            return sentence("insightNoData", {range: label}, label + "记录较少，暂不下结论。")
-        var topName = (share.length > 0) ? root.categoryLabel(share[0].name) : tr("多个应用")
+            return sentence("insightNoData", {range: label})
+        var topName = (share.length > 0) ? root.categoryLabel(share[0].name) : tr("multiple apps")
         var topPercent = (share.length > 0) ? (share[0].percent + "%") : ""
         var s = sentence("insightMain", {
             range: label,
             app: topName,
             percent: topPercent,
             time: hoursText(total)
-        }, label + "你主要把时间花在" + (share.length > 0 ? ("「" + root.categoryLabel(share[0].name) + "」（" + share[0].percent + "%）") : "多个应用上") + "，共计 " + hoursText(total) + "。")
-        var ent = (cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)
-        if (total > 0 && ent / total > 0.4) s += " " + tr("其中娱乐时间占比偏高。")
+        })
+        var ent = (cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)
+        if (total > 0 && ent / total > 0.4) s += " " + tr("Entertainment time is relatively high.")
         return s
     }
 
     function buildRecs(r, share, total, cat) {
         var recs = []
-        if (total <= 0) { recs.push(sentence("rangeNoAdvice", {range: rangeWord(r)}, "本" + rangeWord(r) + "暂无足够数据生成建议。")); return recs }
+        if (total <= 0) { recs.push(sentence("rangeNoAdvice", {range: rangeWord(r)})); return recs }
         var topCat = topCategory(cat)
-        var sug = tr("继续保持当前节奏。")
-        if (topCat === "游戏") sug = tr("进入娱乐时段前，先完成一项关键任务。")
-        else if (topCat === "开发" || topCat === "创作" || topCat === "办公") sug = tr("保持专注节奏，建议每 50 分钟起身休息。")
-        else if (topCat === "笔记" || topCat === "浏览") sug = tr("把零散浏览沉淀成笔记，形成输出。")
-        else if (topCat === "视频" || topCat === "音乐") sug = tr("放松之余，预留固定的深度工作时段。")
-        else if (topCat === "社交") sug = tr("留意社交占用，集中处理消息更高效。")
+        var sug = tr("Keep the current rhythm.")
+        if (topCat === "Games") sug = tr("Before entertainment time, finish one key task.")
+        else if (topCat === "Development" || topCat === "Creation" || topCat === "Office") sug = tr("Keep the focus rhythm and stand up every 50 minutes.")
+        else if (topCat === "Notes" || topCat === "Browsing") sug = tr("Turn scattered browsing into notes and output.")
+        else if (topCat === "Video" || topCat === "Music") sug = tr("Reserve fixed deep-work blocks alongside relaxation.")
+        else if (topCat === "Social") sug = tr("Watch social time; batch messages for better efficiency.")
         recs.push(sug)
-        var ent = (cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)
-        if (ent / total > 0.4) recs.push(sentence("entertainmentRatioAdvice", {percent: Math.round(100 * ent / total)}, "娱乐占比约 " + Math.round(100 * ent / total) + "%，可考虑设定每日上限。"))
-        else recs.push(tr("时间结构较均衡，继续保持。"))
+        var ent = (cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)
+        if (ent / total > 0.4) recs.push(sentence("entertainmentRatioAdvice", {percent: Math.round(100 * ent / total)}))
+        else recs.push(tr("Your time structure is balanced. Keep it up."))
         return recs
     }
 
@@ -695,7 +695,7 @@ Item {
 
         vmTrendBars = r === "day" ? [] : StatsViewModel.normalizeTrendRows(r, r === "month" ? vmLine : vmBars)
         vmCategories = r === "day" ? [] : StatsViewModel.buildCategoryDistribution(apps, 6)
-        vmAggregateFact = r === "day" ? "" : StatsViewModel.buildAggregateFact(r, vmCategories, vmTrendBars)
+        vmAggregateFact = r === "day" ? null : StatsViewModel.buildAggregateFact(r, vmCategories, vmTrendBars)
 
         vmInsight = buildInsight(r, share, total, cat)
         vmRecs = buildRecs(r, share, total, cat)
@@ -722,11 +722,11 @@ Item {
         }
     }
     function doExport() {
-        if (!usageStatManager || !usageStatManager.exportReport) { showToast("导出暂不可用"); return }
+        if (!usageStatManager || !usageStatManager.exportReport) { showToast("Export is unavailable right now"); return }
         var json = buildExportJson()
-        if (!json || json.length === 0) { showToast("导出失败：数据序列化错误"); return }
+        if (!json || json.length === 0) { showToast("Export failed: data serialization error"); return }
         var path = usageStatManager.exportReport("timearc-" + range + "-stats", json)
-        showToast(path && path.length > 0 ? sentence("exportedPath", {path: path}, "已导出：" + path) : "导出失败")
+        showToast(path && path.length > 0 ? sentence("exportedPath", {path: path}) : "Export failed")
     }
 
     Connections {
@@ -778,10 +778,10 @@ Item {
     // 范围 Tab 数据
     // ============================================================
     readonly property var rangeModel: [
-        { key: "day", label: "日", glyph: "日", glyphEn: "D", en: "Day" },
-        { key: "week", label: "周", glyph: "周", glyphEn: "W", en: "Week" },
-        { key: "month", label: "月", glyph: "月", glyphEn: "M", en: "Month" },
-        { key: "year", label: "年", glyph: "年", glyphEn: "Y", en: "Year" }
+        { key: "day", label: "Day", glyph: "Day", glyphEn: "D", en: "Day" },
+        { key: "week", label: "Week", glyph: "Week", glyphEn: "W", en: "Week" },
+        { key: "month", label: "Month", glyph: "Month", glyphEn: "M", en: "Month" },
+        { key: "year", label: "Year", glyph: "Year", glyphEn: "Y", en: "Year" }
     ]
 
     // ============================================================
@@ -828,7 +828,7 @@ Item {
                             font.capitalization: Font.AllUppercase
                         }
                         Text {
-                            text: root.tr("时间统计")
+                            text: root.tr("Time Stats")
                             color: ml.textPrimary
                             font.pixelSize: 22
                             font.weight: 800
@@ -836,7 +836,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: root.tr("软件使用 · 主题 · 趋势")
+                            text: root.tr("App Usage · Themes · Trends")
                             color: ml.textSecondary
                             font.pixelSize: 12
                             elide: Text.ElideRight
@@ -869,7 +869,7 @@ Item {
                                     color: ml.calGhostBg
                                     Text {
                                         anchors.centerIn: parent
-                                        text: root.isEnglish() ? modelData.glyphEn : modelData.glyph
+                                        text: root.isEnglish() ? modelData.glyphEn : root.tr(modelData.glyph)
                                         color: root.range === modelData.key ? ml.aqua : ml.calGlyph
                                         font.pixelSize: 14; font.weight: Font.DemiBold
                                     }
@@ -878,7 +878,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 1
                                     Text {
-                                        text: root.sentence("rangeView", {range: root.tr(modelData.label)}, modelData.label + "视图")
+                                        text: root.sentence("rangeView", {range: root.tr(modelData.label)})
                                         color: root.range === modelData.key ? ml.textPrimary : ml.textSecondary
                                         font.pixelSize: 14
                                         font.weight: root.range === modelData.key ? Font.DemiBold : Font.Normal
@@ -896,7 +896,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Cursor.button()
-                                onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label + "视图")) }
+                                onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)})) }
                             }
                         }
                     }
@@ -913,7 +913,7 @@ Item {
                         anchors.margins: 14
                         spacing: 8
                         Text {
-                            text: root.sentence("rangeInsight", {range: root.rangeWord(root.range)}, "本" + root.rangeWord(root.range) + "洞察")
+                            text: root.sentence("rangeInsight", {range: root.rangeWord(root.range)})
                             color: ml.glowCyan
                             font.pixelSize: 11
                             font.weight: 800
@@ -931,7 +931,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: root.tr("本地生成 · 非 AI")
+                            text: root.tr("Local template · Not AI")
                             color: ml.textTertiary
                             font.pixelSize: 10
                         }
@@ -963,15 +963,15 @@ Item {
                         Layout.fillWidth: true
                         spacing: 2
                         Text {
-                            text: root.sentence("rangeStats", {range: root.rangeLabel(root.range)}, root.rangeLabel(root.range) + "统计")
+                            text: root.sentence("rangeStats", {range: root.rangeLabel(root.range)})
                             color: ml.textPrimary
                             font.pixelSize: 22
                             font.weight: 800
                             font.letterSpacing: 0
                         }
                         Text {
-                            text: root.hasData ? root.sentence("statsTotalApps", {time: root.hoursText(root.vmTotalSec), count: root.vmApps.length}, "共 " + root.hoursText(root.vmTotalSec) + " · " + root.vmApps.length + " 个应用")
-                                               : root.tr("暂无使用记录")
+                            text: root.hasData ? root.sentence("statsTotalApps", {time: root.hoursText(root.vmTotalSec), count: root.vmApps.length})
+                                               : root.tr("No usage records yet")
                             color: ml.textSecondary
                             font.pixelSize: 13
                         }
@@ -999,7 +999,7 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Cursor.button()
-                                    onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label + "视图")) }
+                                    onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)})) }
                                 }
                             }
                         }
@@ -1018,21 +1018,21 @@ Item {
                             Text {
                                 id: periodText
                                 anchors.centerIn: parent
-                                text: root.vmPeriodLabel + (root.periodOffset === 0 ? " · " + root.tr("本期") : "")
+                                text: root.vmPeriodLabel + (root.periodOffset === 0 ? " · " + root.tr("Current") : "")
                                 color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold
                             }
                         }
                         StatsGhostButton {
                             glyph: "›"
                             dim: root.atCurrentPeriod
-                            onTapped: { if (!root.atCurrentPeriod) root.periodOffset += 1; else root.showToast(root.tr("已是最新一期")) }
+                            onTapped: { if (!root.atCurrentPeriod) root.periodOffset += 1; else root.showToast(root.tr("Already at the latest period")) }
                         }
                     }
 
                     // 导出（真实 G-10：序列化视图模型→JSON 写文件）
-                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "导出"; onTapped: root.doExport() }
+                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "Export"; onTapped: root.doExport() }
                     // 返回首页
-                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "返回首页"; primary: true; onTapped: root.requestNavigate("memorylake") }
+                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "Back Home"; primary: true; onTapped: root.requestNavigate("memorylake") }
                 }
             }
 
@@ -1065,8 +1065,8 @@ Item {
                         Column {
                             anchors.centerIn: parent
                             spacing: 8
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.sentence("rangeNoRecords", {range: root.rangeLabel(root.range)}, root.rangeLabel(root.range) + "还没有使用记录"); color: ml.textSecondary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.tr("后台服务采集到数据后，这里会自动出现统计"); color: ml.textTertiary; font.pixelSize: 13 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.sentence("rangeNoRecords", {range: root.rangeLabel(root.range)}); color: ml.textSecondary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.tr("Stats will appear here after background collection records data."); color: ml.textTertiary; font.pixelSize: 13 }
                         }
                     }
 
@@ -1096,7 +1096,7 @@ Item {
                             glassStrength: 0.45
                             showInsight: false
                             titleKicker: "Today"
-                            titleText: root.tr("今天的组成")
+                            titleText: root.tr("What made up today")
                             share: root.vmShare
                             total: root.vmShareTotalText
                         }
@@ -1125,7 +1125,7 @@ Item {
                                 totalText: root.hoursText(root.vmTotalSec)
                                 unitValue: root.activePeriodUnitCount()
                                 unitLabel: root.aggregateUnitLabel()
-                                factText: root.vmAggregateFact
+                                factText: I18n.aggregateFact(root.languageMode, root.vmAggregateFact)
                             }
                             StatsCategoryDistribution {
                                 Layout.fillWidth: true
@@ -1137,7 +1137,7 @@ Item {
                             Layout.columnSpan: root.statsLayoutStacked ? 12 : 8
                             Layout.fillWidth: true
                             Layout.preferredHeight: root.statsLayoutStacked ? 360 : 440
-                            title: "时间趋势"
+                            title: "Time trend"
                             sub: root.aggregateTrendSubtitle()
                             bars: root.vmTrendBars
                             barCount: root.vmTrendBars.length
@@ -1312,8 +1312,8 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 2
-                    Text { text: root.tr("应用时钟"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
-                    Text { text: root.tr("每个扇区是一段真实的前台应用记录"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("App clock"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
+                    Text { text: root.tr("Each sector is one real stretch of foreground app use"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
                 Row {
                     spacing: 4
@@ -1468,7 +1468,7 @@ Item {
                         spacing: 5
                         Text {
                             width: parent.width
-                            text: dialCard.focusedSegment ? AppVisual.modelDisplayNameForLanguage(dialCard.focusedSegment, root.languageMode) : root.tr("今日已记录")
+                            text: dialCard.focusedSegment ? AppVisual.modelDisplayNameForLanguage(dialCard.focusedSegment, root.languageMode) : root.tr("Recorded today")
                             color: dialCard.focusedSegment ? ml.aqua : ml.textTertiary
                             font.pixelSize: 11; font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
@@ -1481,7 +1481,7 @@ Item {
                         }
                         Text {
                             width: parent.width
-                            text: dialCard.focusedSegment ? root.tr(AppVisual.modelCategory(dialCard.focusedSegment)) : root.sentence("appCount", {count: root.vmApps.length}, root.vmApps.length + " 个应用")
+                            text: dialCard.focusedSegment ? root.tr(AppVisual.modelCategory(dialCard.focusedSegment)) : root.sentence("appCount", {count: root.vmApps.length})
                             color: ml.textTertiary; font.pixelSize: 10
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
                         }
@@ -1523,7 +1523,7 @@ Item {
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: root.tr("悬停预览，点击扇区锁定应用详情")
+                text: root.tr("Hover to preview, click a sector to pin the app detail")
                 color: ml.textTertiary; font.pixelSize: 11
             }
         }
@@ -1543,10 +1543,10 @@ Item {
                 Layout.fillWidth: true
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 2
-                    Text { text: root.tr("24 小时时间流"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                    Text { text: root.tr("按实际顺序展开今天的前台记录"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("24-hour time flow"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                    Text { text: root.tr("Today's foreground records laid out in the order they happened"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
-                Text { text: root.tr("完整记录"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
+                Text { text: root.tr("Full record"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
             }
             Item {
                 Layout.fillWidth: true
@@ -1606,14 +1606,14 @@ Item {
                 Layout.fillWidth: true
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 2
-                    Text { text: root.tr("所有应用"); color: ml.textPrimary; font.pixelSize: 18; font.weight: Font.DemiBold }
-                    Text { text: root.tr("查看每个软件的本期记录与累计总时长，不受 Top 排行限制"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("All apps"); color: ml.textPrimary; font.pixelSize: 18; font.weight: Font.DemiBold }
+                    Text { text: root.tr("See each app's records for this period and its running total, beyond the Top ranking"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
                 ColumnLayout {
                     spacing: 1
-                    Text { Layout.alignment: Qt.AlignRight; text: root.tr("全部应用累计记录"); color: ml.textTertiary; font.pixelSize: 10 }
+                    Text { Layout.alignment: Qt.AlignRight; text: root.tr("All apps, combined records"); color: ml.textTertiary; font.pixelSize: 10 }
                     Text { Layout.alignment: Qt.AlignRight; text: libraryCard.lifetimeTotalText; color: ml.textPrimary; font.pixelSize: 26; font.weight: 900 }
-                    Text { Layout.alignment: Qt.AlignRight; text: libraryCard.rows.length + " " + root.tr("个应用"); color: ml.textTertiary; font.pixelSize: 10 }
+                    Text { Layout.alignment: Qt.AlignRight; text: libraryCard.rows.length + " " + root.tr("apps"); color: ml.textTertiary; font.pixelSize: 10 }
                 }
             }
 
@@ -1634,13 +1634,13 @@ Item {
                         font.pixelSize: 12; clip: true
                         onTextChanged: root.libraryQuery = text
                     }
-                    Text { anchors.left: librarySearch.left; anchors.verticalCenter: parent.verticalCenter; visible: librarySearch.text.length === 0 && !librarySearch.activeFocus; text: root.tr("搜索应用或类别"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { anchors.left: librarySearch.left; anchors.verticalCenter: parent.verticalCenter; visible: librarySearch.text.length === 0 && !librarySearch.activeFocus; text: root.tr("Search apps or categories"); color: ml.textTertiary; font.pixelSize: 12 }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.IBeamCursor; onClicked: librarySearch.forceActiveFocus(); z: -1 }
                 }
                 Row {
                     spacing: 4
                     Repeater {
-                        model: [{ key: "period", label: "本期时长" }, { key: "lifetime", label: "累计总时长" }, { key: "name", label: "名称" }]
+                        model: [{ key: "period", label: "This period" }, { key: "lifetime", label: "Running total" }, { key: "name", label: "Name" }]
                         delegate: Rectangle {
                             required property var modelData
                             width: sortText.implicitWidth + 20; height: 40; radius: 11
@@ -1665,16 +1665,16 @@ Item {
                         }
                         MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: root.showInactiveApps = !root.showInactiveApps }
                     }
-                    Text { text: root.tr("显示本期未使用"); color: ml.textSecondary; font.pixelSize: 11 }
+                    Text { text: root.tr("Show apps unused this period"); color: ml.textSecondary; font.pixelSize: 11 }
                 }
             }
 
             RowLayout {
                 Layout.fillWidth: true; Layout.preferredHeight: 24
-                Text { Layout.fillWidth: true; text: root.tr("应用"); color: ml.textTertiary; font.pixelSize: 10 }
-                Text { Layout.preferredWidth: 170; text: root.tr("本期时长"); color: ml.textTertiary; font.pixelSize: 10 }
-                Text { Layout.preferredWidth: 130; text: root.tr("累计总时长"); color: ml.textTertiary; font.pixelSize: 10 }
-                Text { Layout.preferredWidth: 140; text: root.tr("最近记录"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.fillWidth: true; text: root.tr("App"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 170; text: root.tr("This period"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 130; text: root.tr("Running total"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 140; text: root.tr("Recent records"); color: ml.textTertiary; font.pixelSize: 10 }
             }
 
             ListView {
@@ -1711,7 +1711,7 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 2
                             Text { Layout.fillWidth: true; text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight }
-                            Text { Layout.fillWidth: true; text: root.categoryLabel(AppVisual.modelCategory(modelData) || "other") + (modelData.periodSeconds > 0 ? " · " + root.tr("本期有记录") : " · " + root.tr("本期未使用")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
+                            Text { Layout.fillWidth: true; text: root.categoryLabel(AppVisual.modelCategory(modelData) || "other") + (modelData.periodSeconds > 0 ? " · " + root.tr("Recorded this period") : " · " + root.tr("Unused this period")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
                         }
                         ColumnLayout {
                             Layout.preferredWidth: 170; spacing: 4
@@ -1724,16 +1724,16 @@ Item {
                         ColumnLayout {
                             Layout.preferredWidth: 130; spacing: 2
                             Text { text: modelData.lifetimeTime; color: ml.textPrimary; font.pixelSize: 14; font.weight: 800 }
-                            Text { text: root.tr("累计总时长"); color: ml.textTertiary; font.pixelSize: 9 }
+                            Text { text: root.tr("Running total"); color: ml.textTertiary; font.pixelSize: 9 }
                         }
                         ColumnLayout {
                             Layout.preferredWidth: 140; spacing: 2
                             Text { text: root.recentRecordText(modelData.lastUsedUnixSec); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold }
-                            Text { text: modelData.periodSeconds > 0 ? root.tr("本期有记录") : root.tr("历史记录"); color: ml.textTertiary; font.pixelSize: 9 }
+                            Text { text: modelData.periodSeconds > 0 ? root.tr("Recorded this period") : root.tr("History"); color: ml.textTertiary; font.pixelSize: 9 }
                         }
                     }
                 }
-                Text { anchors.centerIn: parent; visible: libraryList.count === 0; text: root.tr("没有符合条件的应用"); color: ml.textTertiary; font.pixelSize: 12 }
+                Text { anchors.centerIn: parent; visible: libraryList.count === 0; text: root.tr("No apps match"); color: ml.textTertiary; font.pixelSize: 12 }
             }
         }
     }
@@ -1813,8 +1813,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 3
-                Text { text: root.tr("分类分布"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { text: root.tr("只保留这一周期最重要的结构"); color: ml.textTertiary; font.pixelSize: 12 }
+                Text { text: root.tr("Category split"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { text: root.tr("Keeps only the structure that matters most for this period"); color: ml.textTertiary; font.pixelSize: 12 }
             }
             Column {
                 Layout.fillWidth: true
@@ -1834,7 +1834,7 @@ Item {
                             ColumnLayout {
                                 Layout.fillWidth: true; spacing: 1
                                 Text { Layout.fillWidth: true; text: root.categoryLabel(modelData.name); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold; elide: Text.ElideRight }
-                                Text { Layout.fillWidth: true; text: modelData.appsText; color: ml.textTertiary; font.pixelSize: 9; elide: Text.ElideRight }
+                                Text { Layout.fillWidth: true; text: I18n.appsText(root.languageMode, modelData.apps); color: ml.textTertiary; font.pixelSize: 9; elide: Text.ElideRight }
                             }
                             ColumnLayout {
                                 Layout.preferredWidth: 96; spacing: 1
@@ -1861,8 +1861,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 3
-                Text { text: root.tr("12 个月的节奏"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { text: root.tr("每格是一个月，长度表示该月有效记录时长"); color: ml.textTertiary; font.pixelSize: 12 }
+                Text { text: root.tr("Twelve months of rhythm"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { text: root.tr("Each cell is a month; its length is that month's effective recorded time"); color: ml.textTertiary; font.pixelSize: 12 }
             }
             GridLayout {
                 Layout.fillWidth: true
@@ -1885,7 +1885,7 @@ Item {
                             spacing: 6
                             RowLayout {
                                 Layout.fillWidth: true
-                                Text { Layout.fillWidth: true; text: monthCell.bar ? monthCell.bar.label : root.monthShortLabels()[monthCell.index]; color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                Text { Layout.fillWidth: true; text: monthCell.bar ? I18n.trendLabel(root.languageMode, monthCell.bar) : root.monthShortLabels()[monthCell.index]; color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
                                 Text { text: monthCell.bar ? monthCell.bar.valueText : "0m"; color: ml.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold; font.features: { "tnum": 1 } }
                             }
                             Item { Layout.fillHeight: true }
@@ -1933,7 +1933,7 @@ Item {
                 Row {
                     spacing: 7; Layout.alignment: Qt.AlignTop
                     Rectangle { width: 8; height: 8; radius: 2; color: ml.aqua }
-                    Text { text: root.tr("记录时长"); color: ml.textTertiary; font.pixelSize: 10 }
+                    Text { text: root.tr("Recorded time"); color: ml.textTertiary; font.pixelSize: 10 }
                 }
             }
             Item {
@@ -1976,7 +1976,7 @@ Item {
                             Text {
                                 anchors.bottom: parent.bottom
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: barItem.bar ? barItem.bar.label : ""
+                                text: barItem.bar ? I18n.trendLabel(root.languageMode, barItem.bar) : ""
                                 color: ml.textTertiary
                                 font.pixelSize: chart.barCount > 7 ? 9.5 : 11
                             }
@@ -2050,7 +2050,7 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     visible: !lc.points || lc.points.length < 2
-                    text: root.tr("本月数据不足以绘制趋势")
+                    text: root.tr("Not enough monthly data to draw a trend")
                     color: ml.textTertiary
                     font.pixelSize: 12
                 }
@@ -2272,7 +2272,7 @@ Item {
                                     }
                                     Text {
                                         Layout.fillWidth: true
-                                        text: root.tr(AppVisual.modelCategory(modelData) !== "" ? AppVisual.modelCategory(modelData) : "应用") + " · " + root.sentence("openCount", {count: modelData.sessions}, modelData.sessions + " 次打开")
+                                        text: root.tr(AppVisual.modelCategory(modelData) !== "" ? AppVisual.modelCategory(modelData) : "App") + " · " + root.sentence("openCount", {count: modelData.sessions})
                                         color: ml.textTertiary
                                         font.pixelSize: 11
                                         elide: Text.ElideRight
@@ -2299,7 +2299,7 @@ Item {
                     }
                     Text {
                         visible: !rl.rows || rl.rows.length === 0
-                        text: root.tr("当前范围还没有应用记录")
+                        text: root.tr("No app records in this range")
                         color: ml.textTertiary
                         font.pixelSize: 12
                     }
@@ -2323,12 +2323,12 @@ Item {
             spacing: 10
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: root.tr("洞察 & 建议"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                Text { text: root.tr("Insights & Suggestions"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
                 Rectangle {
                     width: expLabel.implicitWidth + 24; height: 32; radius: 11
                     color: expMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                     border.width: 1; border.color: ml.calGhostBorder
-                    Text { id: expLabel; anchors.centerIn: parent; text: root.tr("导出报告"); color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold }
+                    Text { id: expLabel; anchors.centerIn: parent; text: root.tr("Export Report"); color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold }
                     MouseArea { id: expMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button(); preventStealing: true; onClicked: ic.exportRequested() }
                 }
             }
@@ -2352,7 +2352,7 @@ Item {
                     id: insightText
                     anchors.fill: parent
                     anchors.margins: 12
-                    text: I18n.smartText(root.languageMode, ic.insight)
+                    text: I18n.t(root.languageMode, ic.insight)
                     color: ml.textSecondary
                     font.pixelSize: 13
                     lineHeight: 1.45
@@ -2374,7 +2374,7 @@ Item {
                         radius: 9
                         color: ml.accentSoft
                         border.width: 1; border.color: ml.accentSoftBorder
-                        Text { id: kwT; anchors.centerIn: parent; text: I18n.smartText(root.languageMode, modelData); color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                        Text { id: kwT; anchors.centerIn: parent; text: I18n.t(root.languageMode, modelData); color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
                     }
                 }
             }
@@ -2400,7 +2400,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: I18n.smartText(root.languageMode, modelData)
+                            text: I18n.t(root.languageMode, modelData)
                             color: ml.textSecondary
                             font.pixelSize: 13
                             wrapMode: Text.WordWrap
@@ -2410,7 +2410,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: root.tr("以上为本地确定性模板生成（aiGenerated:false），非 AI、不读原始日志。")
+                text: root.tr("Generated by local deterministic templates (aiGenerated:false), not AI, without reading raw logs.")
                 color: ml.textTertiary
                 font.pixelSize: 10
                 wrapMode: Text.WordWrap

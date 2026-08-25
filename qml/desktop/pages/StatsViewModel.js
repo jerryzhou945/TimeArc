@@ -16,8 +16,8 @@ function rowKey(row) {
 }
 
 function displayName(row) {
-    if (!row) return "未知应用"
-    return row.customDisplayName || row.adapterDisplayName || row.displayName || row.name || row.appName || "未知应用"
+    if (!row) return "Unknown app"
+    return row.customDisplayName || row.adapterDisplayName || row.displayName || row.name || row.appName || "Unknown app"
 }
 
 function formatCompactDuration(seconds) {
@@ -120,7 +120,7 @@ function buildCategoryDistribution(apps, limit) {
     for (var i = 0; i < source.length; i++) {
         var seconds = safeSeconds(source[i].seconds)
         if (seconds <= 0) continue
-        var category = source[i].category || "其他"
+        var category = source[i].category || "Other"
         if (!grouped[category]) grouped[category] = { name: category, seconds: 0, apps: [] }
         grouped[category].seconds += seconds
         total += seconds
@@ -142,7 +142,9 @@ function buildCategoryDistribution(apps, limit) {
             seconds: row.seconds,
             time: formatCompactDuration(row.seconds),
             percent: total > 0 ? Math.round(row.seconds * 100 / total) : 0,
-            appsText: row.apps.join("、")
+            // The app list is handed over unjoined: "、" is the CJK enumeration
+            // comma and English wants ", ". I18n.appsText() joins per language.
+            apps: row.apps
         }
     })
 }
@@ -154,18 +156,24 @@ function normalizeTrendRows(range, rows) {
     for (i = 0; i < source.length; i++)
         maxSeconds = Math.max(maxSeconds, safeSeconds(source[i].seconds))
 
-    var weekLabels = ["一", "二", "三", "四", "五", "六", "日"]
     var output = []
     for (i = 0; i < source.length; i++) {
         var seconds = safeSeconds(source[i].seconds)
         var label = source[i].label || ""
+        // This module stays free of I18n so the Node regression tests can run
+        // it, so a generated label travels as a key plus its index and the page
+        // renders it. A row that arrived with its own label keeps it.
+        var labelKey = ""
+        var labelIndex = i
         if (!label) {
-            if (range === "month") label = "第" + (i + 1) + "周"
-            else if (range === "year") label = (i + 1) + "月"
-            else label = weekLabels[i] || String(i + 1)
+            if (range === "month") labelKey = "weekOfMonth"
+            else if (range === "year") labelKey = "monthOfYear"
+            else labelKey = "weekdayNarrow"
         }
         output.push({
             label: label,
+            labelKey: labelKey,
+            labelIndex: labelIndex,
             seconds: seconds,
             ratio: seconds / maxSeconds,
             valueText: formatCompactDuration(seconds)
@@ -178,14 +186,25 @@ function buildAggregateFact(range, categories, trendRows) {
     var categoryRows = categories || []
     var bars = trendRows || []
     if (categoryRows.length === 0 || safeSeconds(categoryRows[0].seconds) === 0)
-        return ""
+        return null
     var peak = null
     for (var i = 0; i < bars.length; i++) {
         if (!peak || safeSeconds(bars[i].seconds) > safeSeconds(peak.seconds)) peak = bars[i]
     }
-    if (!peak || safeSeconds(peak.seconds) === 0) return ""
-    var period = range === "month" ? "本月" : (range === "year" ? "本年" : "本周")
-    return categoryRows[0].name + "是" + period + "记录时长最长的分类，" + peak.label + "的记录最集中。"
+    if (!peak || safeSeconds(peak.seconds) === 0) return null
+    // Returns the template name and its fields, not a sentence: the clause
+    // order differs by language and this module cannot translate.
+    return {
+        key: "aggregateFact",
+        params: {
+            category: categoryRows[0].name,
+            range: range === "month" ? "This Month"
+                 : (range === "year" ? "This Year" : "This Week"),
+            peakLabel: peak.label,
+            peakLabelKey: peak.labelKey || "",
+            peakLabelIndex: peak.labelIndex === undefined ? -1 : peak.labelIndex
+        }
+    }
 }
 
 function buildClockSegments(segmentGroups, periodApps, dayStartUnix, half) {

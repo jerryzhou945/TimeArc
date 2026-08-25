@@ -1,0 +1,14 @@
+[1/15] Automatic MOC and UIC for target timearc_db_smoke
+[2/14] Copying time-arc qml sources into build dir
+[3/14] Running qmlimportscanner for time-arc
+[4/14] Generating .rcc/qmlcache/time-arc_qml/shared/I18n_js.cpp
+[5/14] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileUsageRankRow_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileUsageRankRow_qml.cpp.aotstats
+[6/14] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.aotstats
+[7/14] Running rcc for resource time-arc_raw_qml_0
+[8/14] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[9/14] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/shared/I18n_js.cpp.o
+[10/14] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileUsageRankRow_qml.cpp.o
+[11/14] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.o
+[12/14] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc
+[13/14] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.o
+[14/14] Linking CXX executable timearc_db_smoke

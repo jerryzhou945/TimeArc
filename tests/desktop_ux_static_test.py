@@ -42,7 +42,7 @@ def main():
     mobile_settings_qml = read("qml/mobile/pages/MobileSettingsPage.qml")
     calendar_qml = read("qml/desktop/pages/DesktopCalenderPage.qml")
     settings_qml = read("qml/desktop/pages/DesktopProfilePage.qml")
-    i18n_js = read("qml/desktop/components/I18n.js")
+    i18n_js = read("qml/shared/I18n.js")
     app_visual_js = read("qml/desktop/components/AppVisual.js")
     settings_cpp = read("src/services/settings_repository.cpp")
     settings_h = read("src/services/settings_repository.h")
@@ -178,7 +178,7 @@ def main():
     require(settings_qml, "restoreAppDisplayName", "application display-name restore action")
     reject(settings_qml, "pendingMergeKey", "retired identity collision confirmation")
     require(settings_qml, "originalGroupKey", "read-only original application identity")
-    require(i18n_js, "自定义显示名称", "application display-name editor translation")
+    require(i18n_js, "Custom display name", "application display-name editor translation")
     require(main_cpp, "ensureAutostartDefaultEnabled", "Windows first-run autostart default")
     require(settings_h, "ensureAutostartDefaultEnabled", "durable autostart default API")
     require(settings_cpp, "RegSetValueExW", "native Windows autostart registry write")
@@ -195,7 +195,7 @@ def main():
     require(stats_qml, "component StatsCategoryDistribution", "shared category distribution")
     require(stats_qml, "// ====== 周/月/年共用聚合视图 ======", "shared period layout")
     require(stats_qml, 'barCount: root.vmTrendBars.length', "period-specific trend density")
-    require(stats_qml, 'text: root.tr("最近记录")', "application library recent record column")
+    require(stats_qml, 'text: root.tr("Recent records")', "application library recent record column")
     reject(stats_qml, 'title: "月度日历"', "retired standalone monthly calendar")
     reject(stats_qml, "StatsYearRhythm {", "retired standalone yearly rhythm")
 
@@ -206,7 +206,7 @@ def main():
     require(icon_provider_cpp, "r5apex.exe", "Apex icon candidate")
     # "Reset to defaults" must never be conditionally hidden: the rule table is
     # always derived, so there is no state without something to reset to.
-    reset_block = re.search(r'GhostBtn \{[^}]*"\u6062\u590d\u9ed8\u8ba4\u89c4\u5219"[^}]*\}',
+    reset_block = re.search(r'GhostBtn \{[^}]*"Reset to defaults"[^}]*\}',
                             settings_qml, re.S)
     if reset_block is None:
         raise AssertionError("missing reset-to-defaults button")
