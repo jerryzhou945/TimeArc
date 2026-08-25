@@ -24,10 +24,11 @@ function Fail($m) { Write-Error "verify-linkage: FAIL - $m"; exit 1 }
 
 if (-not (Test-Path $Exe)) { Fail "exe not found: $Exe (build Release first via .harness/tools/build.py)" }
 
-# Resolve objdump: PATH, else the bundled MinGW toolchain.
+# Resolve objdump: explicit path/PATH, then common project toolchain locations.
 $od = Get-Command $Objdump -ErrorAction SilentlyContinue
+if (-not $od) { $od = Get-Command "D:/TimeArc/QT/Tools/mingw1310_64/bin/objdump.exe" -ErrorAction SilentlyContinue }
 if (-not $od) { $od = Get-Command "C:/Qt/Tools/mingw1310_64/bin/objdump.exe" -ErrorAction SilentlyContinue }
-if (-not $od) { Fail "objdump not found (PATH or C:/Qt/Tools/mingw1310_64/bin)" }
+if (-not $od) { Fail "objdump not found; pass -Objdump with the MinGW toolchain path" }
 
 # PE import table -> Qt6*.dll names. Dynamic linkage = these imports exist.
 $dump = & $od.Source -p $Exe

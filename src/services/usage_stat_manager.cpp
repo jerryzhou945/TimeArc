@@ -661,8 +661,8 @@ WHERE fs.rowid > :sinceId
 ORDER BY fs.rowid ASC;
 )SQL");
 
-// media_sessions is the audio side of the D5 union (the whole table is audio:
-// the service only ever writes media_type='audio').
+// media_sessions is the background-evidence side of the D5 union. Most rows
+// are audio; contract-safe unknown rows may represent verified agent work.
 const QString kSqlMediaSince = QStringLiteral(R"SQL(
 SELECT ms.app_id,
        COALESCE(NULLIF(a.display_name, ''), ms.app_id),

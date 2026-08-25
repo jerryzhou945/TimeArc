@@ -66,6 +66,7 @@ interface IAudioMeterInformation {
 #define TIMEARC_GSMTC_PLAYBACK_CACHE_SEC 0
 #define TIMEARC_BROWSER_MEDIA_CACHE_SEC 30
 #define TIMEARC_BROWSER_MEDIA_CACHE_SIZE 4
+#define TIMEARC_BROWSER_SITE_HINT_SEC 600
 
 static const char* kGsmtcTitleOnlyQueryCommand =
     "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass "
@@ -132,6 +133,15 @@ typedef struct BrowserMediaTitleCache {
 
 static BrowserMediaTitleCache
     g_browser_media_title_cache[TIMEARC_BROWSER_MEDIA_CACHE_SIZE];
+
+typedef struct BrowserSiteHintCache {
+  char path[TA_MAX_PATH_BYTES];
+  char marker[32];
+  time_t last_seen_time;
+} BrowserSiteHintCache;
+
+static BrowserSiteHintCache
+    g_browser_site_hint_cache[TIMEARC_BROWSER_MEDIA_CACHE_SIZE];
 
 // Initialize thread-local COM lazily and track whether this file owns cleanup.
 static int g_com_initialized = 0;
@@ -590,8 +600,95 @@ static int is_browser_path(const char* path) {
          contains_ascii_case_insensitive(path, "opera.exe");
 }
 
-static int is_discord_path(const char* path) {
-  return contains_ascii_case_insensitive(path, "discord.exe");
+static const char* known_browser_site_marker(const char* title) {
+  if (contains_ascii_case_insensitive(title, "bilibili") ||
+      contains_ascii_case_insensitive(title, "b23.tv")) {
+    return "bilibili";
+  }
+  if (contains_ascii_case_insensitive(title, "youtube") ||
+      contains_ascii_case_insensitive(title, "youtu.be")) {
+    return "YouTube";
+  }
+  if (contains_ascii_case_insensitive(title, "iqiyi")) return "iqiyi";
+  if (contains_ascii_case_insensitive(title, "youku")) return "youku";
+  if (contains_ascii_case_insensitive(title, "v.qq.com")) return "v.qq.com";
+  return NULL;
+}
+
+void timearc_win_observe_browser_site_hint_at(const char* path,
+                                              const char* window_title,
+                                              int64_t now_sec) {
+  if (!is_browser_path(path)) return;
+  const char* marker = known_browser_site_marker(window_title);
+  if (marker == NULL) return;
+
+  const time_t now = (time_t)now_sec;
+  BrowserSiteHintCache* available = NULL;
+  BrowserSiteHintCache* oldest = &g_browser_site_hint_cache[0];
+  for (size_t i = 0; i < TIMEARC_BROWSER_MEDIA_CACHE_SIZE; ++i) {
+    BrowserSiteHintCache* entry = &g_browser_site_hint_cache[i];
+    if (entry->path[0] == '\0' ||
+        now - entry->last_seen_time > TIMEARC_BROWSER_SITE_HINT_SEC) {
+      if (available == NULL) available = entry;
+    } else if (strcmp(entry->path, path) == 0) {
+      copy_string(entry->marker, sizeof(entry->marker), marker);
+      entry->last_seen_time = now;
+      return;
+    }
+    if (entry->last_seen_time < oldest->last_seen_time) oldest = entry;
+  }
+
+  BrowserSiteHintCache* entry = available != NULL ? available : oldest;
+  memset(entry, 0, sizeof(*entry));
+  copy_string(entry->path, sizeof(entry->path), path);
+  copy_string(entry->marker, sizeof(entry->marker), marker);
+  entry->last_seen_time = now;
+}
+
+void timearc_win_observe_browser_site_hint(const char* path,
+                                           const char* window_title) {
+  timearc_win_observe_browser_site_hint_at(path, window_title,
+                                           (int64_t)time(NULL));
+}
+
+static const char* recent_browser_site_hint(const char* path,
+                                            time_t now) {
+  for (size_t i = 0; i < TIMEARC_BROWSER_MEDIA_CACHE_SIZE; ++i) {
+    BrowserSiteHintCache* entry = &g_browser_site_hint_cache[i];
+    if (entry->path[0] != '\0' && strcmp(entry->path, path) == 0 &&
+        now - entry->last_seen_time <= TIMEARC_BROWSER_SITE_HINT_SEC) {
+      return entry->marker;
+    }
+  }
+  return NULL;
+}
+
+static void copy_title_with_recent_site_hint(char* dst, size_t dst_size,
+                                             const char* path,
+                                             const char* title, time_t now) {
+  copy_string(dst, dst_size, title);
+  const char* marker = recent_browser_site_hint(path, now);
+  if (marker == NULL || known_browser_site_marker(dst) != NULL) return;
+  const size_t used = strlen(dst);
+  if (used + 3 < dst_size) {
+    snprintf(dst + used, dst_size - used, " - %s", marker);
+  }
+}
+
+static int executable_basename_equals(const char* path, const char* name) {
+  if (path == NULL || name == NULL) return 0;
+  const char* basename = path;
+  for (const char* cursor = path; *cursor != '\0'; ++cursor) {
+    if (*cursor == '\\' || *cursor == '/') basename = cursor + 1;
+  }
+  return _stricmp(basename, name) == 0;
+}
+
+static int is_voice_chat_path(const char* path) {
+  return executable_basename_equals(path, "Discord.exe") ||
+         executable_basename_equals(path, "Oopz.exe") ||
+         executable_basename_equals(path, "KOOK.exe") ||
+         executable_basename_equals(path, "KaiHeiLa.exe");
 }
 
 int timearc_win_should_record_audio_session(
@@ -601,7 +698,7 @@ int timearc_win_should_record_audio_session(
       playback_state != TIMEARC_WIN_PLAYBACK_UNKNOWN) {
     return playback_state == TIMEARC_WIN_PLAYBACK_PLAYING;
   }
-  if (is_discord_path(path)) {
+  if (is_voice_chat_path(path)) {
     return session_active && !muted && volume > 0.001f;
   }
   return session_active && !muted && volume > 0.001f &&
@@ -632,12 +729,12 @@ static int foreground_title_matches_system_media(const char* foreground_title,
 
 void timearc_win_reset_observed_media_title_cache(void) {
   memset(g_browser_media_title_cache, 0, sizeof(g_browser_media_title_cache));
+  memset(g_browser_site_hint_cache, 0, sizeof(g_browser_site_hint_cache));
 }
 
 static const char* stable_browser_media_title(
     const char* path, uint32_t process_id, const char* system_media_title,
-    const char* matching_foreground_title) {
-  const time_t now = time(NULL);
+    const char* matching_foreground_title, time_t now) {
   BrowserMediaTitleCache* available = NULL;
   BrowserMediaTitleCache* oldest = &g_browser_media_title_cache[0];
   for (size_t i = 0; i < TIMEARC_BROWSER_MEDIA_CACHE_SIZE; ++i) {
@@ -652,8 +749,14 @@ static const char* stable_browser_media_title(
       if (foreground_title_matches_system_media(matching_foreground_title,
                                                 system_media_title) &&
           strcmp(entry->observed_title, matching_foreground_title) != 0) {
-        copy_string(entry->observed_title, sizeof(entry->observed_title),
-                    matching_foreground_title);
+        const char* old_marker =
+            known_browser_site_marker(entry->observed_title);
+        const char* new_marker =
+            known_browser_site_marker(matching_foreground_title);
+        if (old_marker == NULL || new_marker != NULL) {
+          copy_string(entry->observed_title, sizeof(entry->observed_title),
+                      matching_foreground_title);
+        }
       }
       entry->last_seen_time = now;
       return entry->observed_title;
@@ -672,19 +775,21 @@ static const char* stable_browser_media_title(
                                             system_media_title)
           ? matching_foreground_title
           : system_media_title;
-  copy_string(entry->observed_title, sizeof(entry->observed_title),
-              initial_title);
+  copy_title_with_recent_site_hint(entry->observed_title,
+                                   sizeof(entry->observed_title), path,
+                                   initial_title, now);
   entry->last_seen_time = now;
   return entry->observed_title;
 }
 
-const char* timearc_win_preferred_observed_media_title(
+const char* timearc_win_preferred_observed_media_title_at(
     const char* path, uint32_t process_id, const char* system_media_title,
-    const char* matching_foreground_title) {
+    const char* matching_foreground_title, int64_t now_sec) {
   if (system_media_title != NULL && system_media_title[0] != '\0') {
     if (is_browser_path(path)) {
       return stable_browser_media_title(path, process_id, system_media_title,
-                                        matching_foreground_title);
+                                        matching_foreground_title,
+                                        (time_t)now_sec);
     }
     return system_media_title;
   }
@@ -693,6 +798,14 @@ const char* timearc_win_preferred_observed_media_title(
     return matching_foreground_title;
   }
   return matching_foreground_title;
+}
+
+const char* timearc_win_preferred_observed_media_title(
+    const char* path, uint32_t process_id, const char* system_media_title,
+    const char* matching_foreground_title) {
+  return timearc_win_preferred_observed_media_title_at(
+      path, process_id, system_media_title, matching_foreground_title,
+      (int64_t)time(NULL));
 }
 
 static const char* matching_foreground_title(const AppInfo* foreground,
@@ -861,6 +974,10 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
   AppInfo foreground_app;
   AppInfo* foreground_ptr =
       timearc_win_get_active_app(&foreground_app) == 0 ? &foreground_app : NULL;
+  if (foreground_ptr != NULL) {
+    timearc_win_observe_browser_site_hint(foreground_ptr->exec_path,
+                                          foreground_ptr->window_title);
+  }
 
   IMMDeviceEnumerator* device_enumerator = NULL;
 
@@ -941,7 +1058,7 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
         TimeArcWinPlaybackState playback_state =
             TIMEARC_WIN_PLAYBACK_UNKNOWN;
         const int browser = is_browser_path(path);
-        const int discord = is_discord_path(path);
+        const int voice_chat = is_voice_chat_path(path);
         const char* title = NULL;
         if (browser) {
           title = choose_media_title(
@@ -957,9 +1074,9 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
         }
         if (!browser) {
           // Ordinary apps must pass the cheap WASAPI activity policy before
-          // spawning the GSMTC query. Discord needs no media metadata at all.
+          // spawning the GSMTC query. Voice-chat apps need no media metadata.
           title = choose_media_title(
-              control, foreground_ptr, pid, path, app_name, !discord,
+              control, foreground_ptr, pid, path, app_name, !voice_chat,
               media_title, sizeof(media_title), &playback_state);
         }
         AppInfo candidate;

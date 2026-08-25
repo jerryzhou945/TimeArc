@@ -44,6 +44,8 @@ def main():
     i18n_js = read("qml/desktop/components/I18n.js")
     app_visual_js = read("qml/desktop/components/AppVisual.js")
     settings_cpp = read("src/services/settings_repository.cpp")
+    settings_h = read("src/services/settings_repository.h")
+    usage_tracker_c = read("src/service/windows/tracker/usage_tracker.c")
     usage_cpp = read("src/services/usage_stat_manager.cpp")
     usage_h = read("src/services/usage_stat_manager.h")
     all_apps_cpp = usage_cpp.split("QVariantList UsageStatManager::allApps() const", 1)[1]
@@ -173,6 +175,16 @@ def main():
     reject(settings_qml, "pendingMergeKey", "retired identity collision confirmation")
     require(settings_qml, "originalGroupKey", "read-only original application identity")
     require(i18n_js, "自定义显示名称", "application display-name editor translation")
+    require(main_cpp, "ensureAutostartDefaultEnabled", "Windows first-run autostart default")
+    require(settings_h, "ensureAutostartDefaultEnabled", "durable autostart default API")
+    require(settings_cpp, "RegSetValueExW", "native Windows autostart registry write")
+    require(settings_cpp, "readUiAutostartCommand() == command",
+            "autostart write-after-read verification")
+    require(settings_cpp, "if (!setBool(kAutostartDecisionKey, true))",
+            "autostart decision persistence is checked")
+    require(settings_cpp, "enabled ? removeUiAutostartCommand()",
+            "autostart registry rollback on marker failure")
+    require(usage_tracker_c, "timearc_win_is_foreground_game", "foreground game idle override")
 
     require(stats_qml, "component StatsAggregateSummary", "shared aggregate summary")
     require(stats_qml, "radius: aggregateSummary.radius", "aggregate summary overlay has a concrete radius")

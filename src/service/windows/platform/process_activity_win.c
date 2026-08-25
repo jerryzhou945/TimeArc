@@ -21,6 +21,16 @@ static int ascii_contains_ignore_case(const char* text, const char* needle) {
   return 0;
 }
 
+static int ascii_basename_equals_ignore_case(const char* path,
+                                             const char* expected) {
+  if (path == NULL || expected == NULL) return 0;
+  const char* basename = path;
+  for (const char* cursor = path; *cursor != '\0'; ++cursor) {
+    if (*cursor == '\\' || *cursor == '/') basename = cursor + 1;
+  }
+  return _stricmp(basename, expected) == 0;
+}
+
 static uint64_t filetime_value(FILETIME value) {
   ULARGE_INTEGER ticks;
   ticks.LowPart = value.dwLowDateTime;
@@ -61,6 +71,21 @@ static int belongs_to_root(const TimeArcProcessEntry* entries, size_t count,
   return 0;
 }
 
+static int has_ancestor_image(const TimeArcProcessEntry* entries,
+                              size_t count, size_t index,
+                              const wchar_t* image_name) {
+  uint32_t pid = entries[index].parent_pid;
+  for (size_t depth = 0; depth <= count && pid != 0; ++depth) {
+    size_t parent_index = 0;
+    if (!find_entry(entries, count, pid, &parent_index)) return 0;
+    if (_wcsicmp(entries[parent_index].image_name, image_name) == 0) return 1;
+    const uint32_t parent_pid = entries[parent_index].parent_pid;
+    if (parent_pid == pid) return 0;
+    pid = parent_pid;
+  }
+  return 0;
+}
+
 static void query_entry(TimeArcProcessEntry* entry) {
   HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
                                (DWORD)entry->pid);
@@ -92,6 +117,78 @@ void timearc_process_activity_init(TimeArcProcessActivityProbe* probe) {
   if (probe != NULL) {
     memset(probe, 0, sizeof(*probe));
   }
+}
+
+static void export_agent_activity(
+    const TimeArcAgentActivityState* state,
+    TimeArcAgentActivityClosedSession* out_closed) {
+  if (out_closed == NULL) return;
+  memset(out_closed, 0, sizeof(*out_closed));
+  out_closed->app = state->app;
+  out_closed->start_wall_sec = state->start_wall_sec;
+  out_closed->end_wall_sec = state->last_wall_sec;
+}
+
+static void start_agent_activity(TimeArcAgentActivityState* state,
+                                 const AppInfo* codex_app,
+                                 int64_t wall_sec,
+                                 uint64_t monotonic_ms) {
+  state->app = *codex_app;
+  state->active = 1;
+  state->start_wall_sec = wall_sec;
+  state->last_wall_sec = wall_sec;
+  state->lease_until_ms = monotonic_ms + state->lease_duration_ms;
+}
+
+void timearc_agent_activity_init(TimeArcAgentActivityState* state,
+                                 uint64_t lease_duration_ms) {
+  if (state == NULL) return;
+  memset(state, 0, sizeof(*state));
+  state->lease_duration_ms = lease_duration_ms;
+}
+
+int timearc_agent_activity_step(
+    TimeArcAgentActivityState* state, const AppInfo* codex_app,
+    int work_active, int64_t wall_sec, uint64_t monotonic_ms,
+    TimeArcAgentActivityClosedSession* out_closed) {
+  if (state == NULL) return 0;
+  if (!state->active) {
+    if (work_active && codex_app != NULL) {
+      start_agent_activity(state, codex_app, wall_sec, monotonic_ms);
+    }
+    return 0;
+  }
+
+  state->last_wall_sec = wall_sec;
+  if (work_active && codex_app != NULL &&
+      (state->app.process_id != codex_app->process_id ||
+       strcmp(state->app.exec_path, codex_app->exec_path) != 0)) {
+    export_agent_activity(state, out_closed);
+    start_agent_activity(state, codex_app, wall_sec, monotonic_ms);
+    return 1;
+  }
+  if (work_active) {
+    state->lease_until_ms = monotonic_ms + state->lease_duration_ms;
+  }
+  if (monotonic_ms <= state->lease_until_ms) return 0;
+
+  export_agent_activity(state, out_closed);
+  const uint64_t lease_duration_ms = state->lease_duration_ms;
+  memset(state, 0, sizeof(*state));
+  state->lease_duration_ms = lease_duration_ms;
+  return 1;
+}
+
+int timearc_agent_activity_checkpoint(
+    TimeArcAgentActivityState* state, int64_t wall_sec,
+    TimeArcAgentActivityClosedSession* out_closed) {
+  if (state == NULL || !state->active || wall_sec <= state->start_wall_sec) {
+    return 0;
+  }
+  state->last_wall_sec = wall_sec;
+  export_agent_activity(state, out_closed);
+  state->start_wall_sec = wall_sec;
+  return 1;
 }
 
 int timearc_process_activity_aggregate(const TimeArcProcessEntry* entries,
@@ -150,27 +247,26 @@ size_t timearc_process_activity_find_codex_roots(
     return 0;
   }
 
-  uint32_t family_root = foreground_pid;
-  size_t family_index = foreground_index;
-  while (entries[family_index].parent_pid != 0) {
-    size_t parent_index = 0;
-    if (!find_entry(entries, count, entries[family_index].parent_pid,
-                    &parent_index) ||
-        _wcsicmp(entries[parent_index].image_name, L"ChatGPT.exe") != 0) {
-      break;
-    }
-    family_root = entries[parent_index].pid;
-    family_index = parent_index;
-  }
-
   size_t found = 0;
   for (size_t i = 0; i < count && found < root_capacity; ++i) {
     if (_wcsicmp(entries[i].image_name, L"codex.exe") == 0 &&
-        belongs_to_root(entries, count, i, family_root)) {
+        has_ancestor_image(entries, count, i, L"ChatGPT.exe")) {
       out_root_pids[found++] = entries[i].pid;
     }
   }
   return found;
+}
+
+size_t timearc_process_activity_find_autonomous_roots(
+    const TimeArcProcessEntry* entries, size_t count,
+    uint32_t foreground_pid, const char* foreground_exec_path,
+    uint32_t* out_root_pids, size_t root_capacity) {
+  // Process activity is a work signal only for official packaged Codex workers.
+  // Generic foreground apps often perform background CPU/I/O while untouched;
+  // treating that churn as activity would defeat keyboard/mouse idle detection.
+  return timearc_process_activity_find_codex_roots(
+      entries, count, foreground_pid, foreground_exec_path, out_root_pids,
+      root_capacity);
 }
 
 uint32_t timearc_process_activity_find_codex_root(
@@ -210,6 +306,21 @@ int timearc_process_activity_delta(TimeArcProcessActivityProbe* probe,
   probe->previous = *counters;
   return cpu_delta >= TIMEARC_PROCESS_CPU_ACTIVE_100NS ||
          io_delta >= TIMEARC_PROCESS_IO_ACTIVE_BYTES;
+}
+
+int timearc_win_is_foreground_game(const char* exec_path) {
+  if (exec_path == NULL || exec_path[0] == '\0') return 0;
+  if (ascii_basename_equals_ignore_case(exec_path, "YuanShen.exe") ||
+      ascii_basename_equals_ignore_case(exec_path, "GenshinImpact.exe") ||
+      ascii_basename_equals_ignore_case(exec_path, "StarRail.exe") ||
+      ascii_basename_equals_ignore_case(exec_path, "ZenlessZoneZero.exe")) {
+    return 1;
+  }
+  const int wuthering_path =
+      ascii_contains_ignore_case(exec_path, "Wuthering Waves") ||
+      ascii_contains_ignore_case(exec_path, "WutheringWaves");
+  return wuthering_path && ascii_basename_equals_ignore_case(
+                                exec_path, "Client-Win64-Shipping.exe");
 }
 
 int timearc_win_process_activity_sample(uint32_t root_pid,
@@ -264,16 +375,18 @@ int timearc_win_process_activity_sample(uint32_t root_pid,
   }
   CloseHandle(snapshot);
 
-  uint32_t* roots =
-      (uint32_t*)calloc(count + 1, sizeof(*roots));
+  uint32_t* roots = (uint32_t*)calloc(count, sizeof(*roots));
   if (roots == NULL) {
     free(entries);
     return 0;
   }
-  roots[0] = root_pid;
-  size_t root_count = 1;
-  root_count += timearc_process_activity_find_codex_roots(
-      entries, count, root_pid, foreground_exec_path, roots + 1, count);
+  const size_t root_count = timearc_process_activity_find_autonomous_roots(
+      entries, count, root_pid, foreground_exec_path, roots, count);
+  if (root_count == 0) {
+    free(roots);
+    free(entries);
+    return 0;
+  }
 
   for (size_t i = 0; i < count; ++i) {
     int included = 0;

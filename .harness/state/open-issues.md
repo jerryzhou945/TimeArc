@@ -14,6 +14,7 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 - **Windows background startup restored (2026-08-20).** UI start, v1 enabled/idle and JSON
   status work. Codex counts changing related-worker CPU/I/O, never mere process presence;
   advanced leaves and SCM Session-0 remain deferred.
+- **Bilibili marker-free video attribution fixed (2026-08-25).** Recent explicit browser-site identity now survives title-only navigation; direct deep links without any marker remain limited.
 
 ## Storage
 
@@ -26,8 +27,6 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   and `docs/cross-device-sync-progress.md`.
 
 ## UI
-
-- **Desktop statistics redesign is prototype-only.** Daily icon clock and full app/lifetime-time library: `docs/prototypes/timearc-stats-rework-v1.html`; production QML/data wiring is pending.
 
 - ~~**Memory Lake is a placeholder page.**~~ **Replaced** by a 1:1 port of the
   `MemoryLakeDesign/` prototype (`qml/desktop/memorylake/`). Renders **demo data**.

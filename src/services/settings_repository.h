@@ -40,9 +40,8 @@ class SettingsRepository : public QObject {
   // path 接受本地路径或 file:// URL；失败返回空串。只读取所选文件，不写 usage/契约文件。
   Q_INVOKABLE QString readTextFile(const QString& path);
 
-  // 开机自启（B1 Route A · Windows）：经 QProcess 调 time-arc-service.exe 的
-  // --install/--uninstall/--status 动词。纯 UI→子进程生命周期命令，不经磁盘契约、
-  // 不加 IPC/socket/shm（守 I1）。非 Windows 平台恒返回未支持/未启用。
+  // 开机自启：Windows 注册当前用户的 TimeArc UI 登录项；macOS 由后台服务
+  // 管理 launchd。纯 UI→系统登录项/子进程生命周期命令，不改 usage 磁盘契约。
   Q_INVOKABLE bool autostartSupported() const;
 
   // 查询是否已注册登录自启（解析 --status 输出的 autostart=on）。
@@ -50,6 +49,10 @@ class SettingsRepository : public QObject {
 
   // 注册（true）/反注册（false）开机自启，返回是否成功。
   Q_INVOKABLE bool setAutostartEnabled(bool enabled);
+
+  // Windows 首次成功启动默认注册登录自启。只执行一次；用户此后从设置关闭时
+  // 会留下决定标记，后续启动绝不擅自重新开启。其他平台恒 false。
+  Q_INVOKABLE bool ensureAutostartDefaultEnabled();
 
   // 当前是否有后台采集进程在跑（解析 --status 输出的 running=yes）。与「开机自启」
   // 注册态不同：自启只决定登录时是否拉起，这里是「此刻是否在采集」。

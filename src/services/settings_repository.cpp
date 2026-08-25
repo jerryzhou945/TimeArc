@@ -24,7 +24,15 @@
 #include <QProcess>
 #include <QThread>
 
+#if defined(Q_OS_WIN)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+
+#include <vector>
+#endif
+
 #include "services/manual_project_repository.h"
+#include "services/autostart_default_policy.h"
 
 namespace {
 
@@ -38,6 +46,8 @@ const QString kCalendarSelectedDateKey =
 const QString kMemoMessagesKey = QStringLiteral("local_memo_chat_messages");
 const QString kNightModeKey = QStringLiteral("night_mode");
 const QString kDefaultTagName = QStringLiteral("其他");
+const QString kAutostartDecisionKey =
+    QStringLiteral("windows_autostart_user_decided_v2");
 
 QSqlDatabase database() {
   QSqlDatabase db = QSqlDatabase::database(kConnectionName);
@@ -426,11 +436,6 @@ QString serviceExePath() {
       .filePath(QStringLiteral("time-arc-service.exe"));
 }
 
-QString uiAutostartRunKey() {
-  return QStringLiteral(
-      "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run");
-}
-
 QString uiAutostartValueName() { return QStringLiteral("TimeArc"); }
 
 QString quotedNativePath(const QString& path) {
@@ -445,22 +450,70 @@ QString uiAutostartCommand() {
 }
 
 QString readUiAutostartCommand() {
-  QSettings runKey(uiAutostartRunKey(), QSettings::NativeFormat);
-  return runKey.value(uiAutostartValueName()).toString().trimmed();
+  HKEY key = nullptr;
+  constexpr wchar_t kRunKey[] =
+      L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+  if (RegOpenKeyExW(HKEY_CURRENT_USER, kRunKey, 0, KEY_QUERY_VALUE, &key) !=
+      ERROR_SUCCESS) {
+    return {};
+  }
+
+  const std::wstring valueName = uiAutostartValueName().toStdWString();
+  DWORD type = 0;
+  DWORD byteCount = 0;
+  LONG result = RegQueryValueExW(key, valueName.c_str(), nullptr, &type,
+                                 nullptr, &byteCount);
+  if (result != ERROR_SUCCESS ||
+      (type != REG_SZ && type != REG_EXPAND_SZ) || byteCount == 0) {
+    RegCloseKey(key);
+    return {};
+  }
+
+  std::vector<wchar_t> buffer(byteCount / sizeof(wchar_t) + 1, L'\0');
+  result = RegQueryValueExW(key, valueName.c_str(), nullptr, &type,
+                            reinterpret_cast<LPBYTE>(buffer.data()),
+                            &byteCount);
+  RegCloseKey(key);
+  return result == ERROR_SUCCESS
+             ? QString::fromWCharArray(buffer.data()).trimmed()
+             : QString();
 }
 
 bool writeUiAutostartCommand() {
-  QSettings runKey(uiAutostartRunKey(), QSettings::NativeFormat);
-  runKey.setValue(uiAutostartValueName(), uiAutostartCommand());
-  runKey.sync();
-  return runKey.status() == QSettings::NoError;
+  HKEY key = nullptr;
+  constexpr wchar_t kRunKey[] =
+      L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+  if (RegCreateKeyExW(HKEY_CURRENT_USER, kRunKey, 0, nullptr, 0,
+                      KEY_SET_VALUE | KEY_QUERY_VALUE, nullptr, &key,
+                      nullptr) != ERROR_SUCCESS) {
+    return false;
+  }
+
+  const QString command = uiAutostartCommand();
+  const std::wstring valueName = uiAutostartValueName().toStdWString();
+  const std::wstring value = command.toStdWString();
+  const LONG result = RegSetValueExW(
+      key, valueName.c_str(), 0, REG_SZ,
+      reinterpret_cast<const BYTE*>(value.c_str()),
+      static_cast<DWORD>((value.size() + 1) * sizeof(wchar_t)));
+  RegCloseKey(key);
+  return result == ERROR_SUCCESS && readUiAutostartCommand() == command;
 }
 
 bool removeUiAutostartCommand() {
-  QSettings runKey(uiAutostartRunKey(), QSettings::NativeFormat);
-  runKey.remove(uiAutostartValueName());
-  runKey.sync();
-  return runKey.status() == QSettings::NoError;
+  HKEY key = nullptr;
+  constexpr wchar_t kRunKey[] =
+      L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
+  const LONG openResult = RegOpenKeyExW(
+      HKEY_CURRENT_USER, kRunKey, 0, KEY_SET_VALUE | KEY_QUERY_VALUE, &key);
+  if (openResult == ERROR_FILE_NOT_FOUND) return true;
+  if (openResult != ERROR_SUCCESS) return false;
+
+  const std::wstring valueName = uiAutostartValueName().toStdWString();
+  const LONG result = RegDeleteValueW(key, valueName.c_str());
+  RegCloseKey(key);
+  return (result == ERROR_SUCCESS || result == ERROR_FILE_NOT_FOUND) &&
+         readUiAutostartCommand().isEmpty();
 }
 
 // 同步运行一个 service 动词，捕获 stdout；返回退出码（启动失败 -1）。纯 UI→子进程
@@ -619,7 +672,22 @@ bool SettingsRepository::setAutostartEnabled(bool enabled) {
   // tray at logon and then launches the collector through main.cpp, matching
   // user expectation that TimeArc itself is available after reboot.
   runServiceVerb(QStringLiteral("--uninstall"));
-  return enabled ? writeUiAutostartCommand() : removeUiAutostartCommand();
+  const bool ok =
+      enabled ? writeUiAutostartCommand() : removeUiAutostartCommand();
+  if (!ok) return false;
+  if (!setBool(kAutostartDecisionKey, true)) {
+    // Keep the OS state and durable preference atomic. In particular, a
+    // failed opt-out marker must never leave autostart removed only to be
+    // silently re-enabled on the next launch.
+    const bool rolledBack = enabled ? removeUiAutostartCommand()
+                                    : writeUiAutostartCommand();
+    if (!rolledBack) {
+      qWarning() << "TimeArc: failed to roll back partial autostart change";
+    }
+    return false;
+  }
+  emit serviceStateChanged();
+  return true;
 #elif defined(Q_OS_MACOS)
   // The verb is the write. There is nothing to record afterwards: the next read
   // asks the service again. Announce it either way -- a failed write can still
@@ -632,6 +700,21 @@ bool SettingsRepository::setAutostartEnabled(bool enabled) {
   return ok;
 #else
   Q_UNUSED(enabled);
+  return false;
+#endif
+}
+
+bool SettingsRepository::ensureAutostartDefaultEnabled() {
+#if defined(Q_OS_WIN)
+  using TimeArc::AutostartDefaultPolicy::Action;
+  const Action action = TimeArc::AutostartDefaultPolicy::decide(
+      getBool(kAutostartDecisionKey, false), autostartEnabled());
+  if (action == Action::NoChange) return true;
+  if (action == Action::RememberExisting) {
+    return setBool(kAutostartDecisionKey, true);
+  }
+  return setAutostartEnabled(true);
+#else
   return false;
 #endif
 }

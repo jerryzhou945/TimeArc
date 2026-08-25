@@ -263,6 +263,7 @@ int main(int argc, char* argv[]) {
   // Go through the service CLI wrapper so the named mutex keeps this
   // idempotent and the collector remains a separate process (CHARTER I1).
   QTimer::singleShot(0, &settingsRepository, [&settingsRepository]() {
+    settingsRepository.ensureAutostartDefaultEnabled();
     // A false result is also the expected state when tracking.enabled=false.
     settingsRepository.startBackgroundCollection();
   });

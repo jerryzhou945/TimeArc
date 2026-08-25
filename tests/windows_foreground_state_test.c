@@ -11,6 +11,33 @@
 #include "idle_win.h"
 #include "process_activity_win.h"
 
+#ifndef TIMEARC_AGENT_ACTIVITY_STATE_DECLARED
+typedef struct TimeArcAgentActivityClosedSession {
+  AppInfo app;
+  int64_t start_wall_sec;
+  int64_t end_wall_sec;
+} TimeArcAgentActivityClosedSession;
+
+typedef struct TimeArcAgentActivityState {
+  AppInfo app;
+  int active;
+  int64_t start_wall_sec;
+  int64_t last_wall_sec;
+  uint64_t lease_duration_ms;
+  uint64_t lease_until_ms;
+} TimeArcAgentActivityState;
+
+void timearc_agent_activity_init(TimeArcAgentActivityState* state,
+                                 uint64_t lease_duration_ms);
+int timearc_agent_activity_step(
+    TimeArcAgentActivityState* state, const AppInfo* codex_app,
+    int work_active, int64_t wall_sec, uint64_t monotonic_ms,
+    TimeArcAgentActivityClosedSession* out_closed);
+int timearc_agent_activity_checkpoint(
+    TimeArcAgentActivityState* state, int64_t wall_sec,
+    TimeArcAgentActivityClosedSession* out_closed);
+#endif
+
 static AppInfo app(const char* path, uint32_t pid, const char* title) {
   AppInfo value;
   memset(&value, 0, sizeof(value));
@@ -295,6 +322,77 @@ static void test_codex_collects_every_backend_in_the_packaged_family(void) {
   assert(roots[2] == 0);
 }
 
+static void test_codex_collects_worker_from_sibling_chatgpt_branch(void) {
+  const TimeArcProcessEntry entries[] = {
+      {10, 1, 0, 0, 1, L"ChatGPT.exe"},
+      {11, 10, 0, 0, 1, L"ChatGPT.exe"},
+      {20, 1, 0, 0, 1, L"ChatGPT.exe"},
+      {21, 20, 0, 0, 1, L"codex.exe"},
+      {22, 21, 0, 0, 1, L"pwsh.exe"},
+      {90, 1, 0, 0, 1, L"other.exe"},
+      {91, 90, 0, 0, 1, L"codex.exe"},
+  };
+  uint32_t roots[3] = {0, 0, 0};
+  const char* packaged_path =
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.818.8289.0_x64__"
+      "2p2nqsd0c76g0\\app\\ChatGPT.exe";
+
+  assert(timearc_process_activity_find_codex_roots(
+             entries, 7, 11, packaged_path, roots, 3) == 1);
+  assert(roots[0] == 21);
+  assert(roots[1] == 0);
+}
+
+static void test_autonomous_roots_exclude_generic_foreground_apps(void) {
+  const TimeArcProcessEntry entries[] = {
+      {10, 1, 100, 1000, 1, L"Weixin.exe"},
+      {11, 10, 200, 2000, 1, L"WeChatAppEx.exe"},
+  };
+  uint32_t roots[2] = {0, 0};
+
+  assert(timearc_process_activity_find_autonomous_roots(
+             entries, 2, 10, "C:\\Program Files\\Tencent\\Weixin.exe",
+             roots, 2) == 0);
+  assert(roots[0] == 0);
+}
+
+static void test_foreground_game_identity_is_specific_to_main_game(void) {
+  assert(timearc_win_is_foreground_game(
+      "D:\\Games\\Genshin Impact Game\\YuanShen.exe"));
+  assert(timearc_win_is_foreground_game(
+      "D:\\Games\\Star Rail Games\\StarRail.exe"));
+  assert(timearc_win_is_foreground_game(
+      "D:\\Games\\ZenlessZoneZero Game\\ZenlessZoneZero.exe"));
+  assert(timearc_win_is_foreground_game(
+      "D:\\Games\\Wuthering Waves\\Wuthering Waves Game\\Client\\"
+      "Binaries\\Win64\\Client-Win64-Shipping.exe"));
+  assert(!timearc_win_is_foreground_game(
+      "D:\\Unrelated\\Client-Win64-Shipping.exe"));
+  assert(!timearc_win_is_foreground_game(
+      "D:\\Games\\Genshin Impact\\launcher.exe"));
+  assert(!timearc_win_is_foreground_game(
+      "D:\\Unrelated\\FakeYuanShen.exe"));
+  assert(!timearc_win_is_foreground_game("C:\\Apps\\Discord.exe"));
+}
+
+static void test_autonomous_roots_include_only_codex_workers(void) {
+  const TimeArcProcessEntry entries[] = {
+      {10, 1, 100, 1000, 1, L"ChatGPT.exe"},
+      {11, 10, 200, 2000, 1, L"ChatGPT.exe"},
+      {20, 10, 300, 3000, 1, L"codex.exe"},
+      {21, 20, 400, 4000, 1, L"pwsh.exe"},
+  };
+  uint32_t roots[2] = {0, 0};
+  const char* packaged_path =
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.818.8289.0_x64__"
+      "2p2nqsd0c76g0\\app\\ChatGPT.exe";
+
+  assert(timearc_process_activity_find_autonomous_roots(
+             entries, 4, 11, packaged_path, roots, 2) == 1);
+  assert(roots[0] == 20);
+  assert(roots[1] == 0);
+}
+
 static void test_current_codex_worker_topology_is_aggregated(void) {
   const TimeArcProcessEntry entries[] = {
       {10, 1, 10, 100, 1, L"ChatGPT.exe"},
@@ -302,13 +400,13 @@ static void test_current_codex_worker_topology_is_aggregated(void) {
       {20, 10, 100, 1000, 1, L"codex.exe"},
       {21, 20, 200, 2000, 1, L"codex-code-mode-host.exe"},
       {22, 21, 300, 3000, 1,
-       L"codex-command-runner-0.149.0-alpha.4.1.exe"},
+       L"codex-command-runner-0.149.0-alpha.4.3.exe"},
       {23, 22, 400, 4000, 1, L"pwsh.exe"},
       {90, 1, 900, 9000, 1, L"unrelated.exe"},
   };
   uint32_t roots[2] = {0, 0};
   const char* packaged_path =
-      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.818.5229.0_x64__"
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.818.8289.0_x64__"
       "2p2nqsd0c76g0\\app\\ChatGPT.exe";
 
   const size_t root_count = timearc_process_activity_find_codex_roots(
@@ -329,6 +427,53 @@ static void test_current_codex_worker_topology_is_aggregated(void) {
   assert(timearc_process_activity_delta(&probe, roots[0], &total));
 }
 
+static void test_codex_agent_activity_survives_foreground_loss(void) {
+  TimeArcAgentActivityState state;
+  TimeArcAgentActivityClosedSession closed;
+  AppInfo codex = app(
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.818.8289.0_x64__"
+      "2p2nqsd0c76g0\\app\\ChatGPT.exe",
+      11, "Codex");
+
+  timearc_agent_activity_init(&state, 90000);
+  assert(!timearc_agent_activity_step(&state, &codex, 1, 1000, 0,
+                                      &closed));
+  assert(state.active);
+
+  // Another app may now be foreground; cached official Codex worker evidence
+  // keeps this independent agent session alive.
+  assert(!timearc_agent_activity_step(&state, &codex, 0, 1030, 30000,
+                                      &closed));
+  assert(state.active);
+  assert(!timearc_agent_activity_step(&state, &codex, 1, 1031, 31000,
+                                      &closed));
+  assert(!timearc_agent_activity_step(&state, &codex, 0, 1121, 121000,
+                                      &closed));
+  assert(state.active);
+
+  assert(timearc_agent_activity_step(&state, &codex, 0, 1122, 122000,
+                                     &closed));
+  assert(!state.active);
+  assert(closed.start_wall_sec == 1000);
+  assert(closed.end_wall_sec == 1122);
+  assert(strcmp(closed.app.exec_path, codex.exec_path) == 0);
+}
+
+static void test_codex_agent_activity_checkpoints_without_closing(void) {
+  TimeArcAgentActivityState state;
+  TimeArcAgentActivityClosedSession closed;
+  AppInfo codex = app("ChatGPT.exe", 11, "Codex");
+
+  timearc_agent_activity_init(&state, 90000);
+  assert(!timearc_agent_activity_step(&state, &codex, 1, 2000, 0,
+                                      &closed));
+  assert(timearc_agent_activity_checkpoint(&state, 2060, &closed));
+  assert(closed.start_wall_sec == 2000);
+  assert(closed.end_wall_sec == 2060);
+  assert(state.active);
+  assert(state.start_wall_sec == 2060);
+}
+
 int main(void) {
   test_idle_tick_wrap();
   test_normalized_identity_includes_pid_and_title();
@@ -345,7 +490,13 @@ int main(void) {
   test_process_tree_aggregates_foreground_and_related_worker_once();
   test_codex_root_requires_same_packaged_process_family();
   test_codex_collects_every_backend_in_the_packaged_family();
+  test_codex_collects_worker_from_sibling_chatgpt_branch();
+  test_autonomous_roots_exclude_generic_foreground_apps();
+  test_foreground_game_identity_is_specific_to_main_game();
+  test_autonomous_roots_include_only_codex_workers();
   test_current_codex_worker_topology_is_aggregated();
+  test_codex_agent_activity_survives_foreground_loss();
+  test_codex_agent_activity_checkpoints_without_closing();
   puts("Windows foreground state tests passed");
   return 0;
 }

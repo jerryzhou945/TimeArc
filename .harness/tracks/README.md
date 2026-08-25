@@ -1,51 +1,41 @@
-# Tracks — Three Workflows
+# Tracks
 
-Every session belongs to exactly one of three tracks. Pick it **before**
-writing code, name it in the session log's `Track:` field, and use it as a
-commit-message prefix convention.
+TimeArc 每次开发会话只选择一个 track，让行为变化、问题修复和纯质量工作可以独立审查。
 
-| Track            | Goal                             | Typical file    |
-|------------------|----------------------------------|-----------------|
-| **A. Stabilize** | Quality up, behavior unchanged   | [`A-stabilize.md`](A-stabilize.md) |
-| **B. Feature**   | Add or enable a new capability   | [`B-feature.md`](B-feature.md)     |
-| **C. Debug**     | Fix a known or observed error    | [`C-debug.md`](C-debug.md)         |
+| Track | 判断问题 | 常见工作 | 入口 |
+| --- | --- | --- | --- |
+| **A Stabilize** | 对外行为是否保持不变？ | 重构、性能、可维护性 | [A-stabilize.md](A-stabilize.md) |
+| **B Feature** | 是否增加以前没有的能力？ | 页面、策略、平台能力 | [B-feature.md](B-feature.md) |
+| **C Debug** | 是否修复今天已知的错误？ | 漏记、误记、崩溃、回归 | [C-debug.md](C-debug.md) |
 
-## How to pick
+## 选择规则
 
-- Are you fixing something that is **wrong today**? → **C (Debug)**.
-- Are you adding something that **didn't exist**? → **B (Feature)**.
-- Is the result observationally identical but the code is cleaner, simpler,
-  safer? → **A (Stabilize)**.
-- Anything else? You're straddling. **Split the session.** One commit, one
-  track.
+- “现在就是错的” → C。
+- “以前没有，现在要新增” → B。
+- “结果完全一样，只改善内部质量” → A。
+- 同时命中多个 → 拆成独立 session 和 commit。
 
-## Why the split matters
+## 所有 track 的共同要求
 
-The three tracks have different risk profiles, different review lenses, and
-different journal conventions. Mixing them makes diffs un-reviewable:
+1. 开始前运行 `preflight.py --track <A|B|C>`。
+2. 按需阅读 CHARTER、对应 track 和触及的 rules。
+3. 每个错误通过 `record_error.py` 记录。
+4. 任何构建只使用 `build.py`。
+5. Qt/QML 运行后扫描日志。
+6. commit 前运行完整 `harness_check.py`。
 
-- A **Debug** diff that quietly refactors an unrelated module hides both the
-  fix and the refactor from review.
-- A **Feature** diff that also fixes a bug makes the bug un-bisectable.
-- A **Stabilize** diff that changes behavior is the single most common source
-  of regressions in this repo's history — treat it as a ward.
+## 命名
 
-## Cross-cutting rules (all three tracks)
+Session：
 
-- Record every error via `tools/record_error.py` (stub: hand-write the
-  report + append to `errors.jsonl`).
-- Obey `CHARTER.md` and the relevant `rules/*.md`.
-- One session, one `journal/sessions/YYYYMMDD-HHMM-<track>-<slug>.md`.
-- Commit message first word is the track's preferred verb (see each track
-  file).
+```text
+journal/sessions/YYYYMMDD-HHMM-<A|B|C>-kebab-slug.md
+```
 
-## Journal slug convention
+Error：
 
-Prefix the slug with the track letter:
+```text
+journal/errors/YYYYMMDD-HHMMSS-<A|B|C>-kebab-slug.md
+```
 
-- `journal/sessions/20260424-0900-A-utf8-escape-cleanup.md`
-- `journal/sessions/20260424-1100-B-linux-service-bootstrap.md`
-- `journal/errors/20260424-0912-C-qml-warning-memorylake.md`
-
-This is a convention, not a hard check. `harness_check.py` will warn if the
-slug is missing a track letter once that feature lands.
+Commit 的首个动词遵循对应 track 文档。一个 commit 不跨 track。

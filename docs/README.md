@@ -1,82 +1,85 @@
-# TimeArc 文档索引
+# TimeArc 文档地图
 
-`docs/` 目前平铺：每篇 `*-functional-replication` = 功能复刻规格，
-`*-render-pipeline-replication` = 渲染/视觉管线规格，`*-issues` / `*-gaps` /
-`*-data-gaps` = 该页的"问题文档"（后端缺口 / 待决策 / 诚实天花板）。
+这里保存实现规格、审计报告、发布清单和历史决策。新读者先看根目录
+[README](../README.md)，开发者再按当前任务进入下面的文档。
 
-本文件只做**导航索引**，不搬动文件——文件平铺、互链与源码注释里的 `docs/xxx.md`
-路径保持不变（避免动到 ~80 处引用，含源码注释与合作方工件）。新增 doc 时在此补一行。
+> 文档仍保持平铺，避免破坏源码与历史工件中的既有链接。状态以代码、测试和
+> [implementation-backlog.md](implementation-backlog.md) 为准；旧报告只代表生成当日。
 
-## 全局 / 工程
+## 当前入口
 
-- [implementation-backlog.md](implementation-backlog.md) — 全局未完成项 backlog（被 `README` /
-  `.harness/state/open-issues.md` 引用）。
-- [a1-sqlite-storage-migration-kickoff.md](a1-sqlite-storage-migration-kickoff.md) — A1（keystone）
-  SQLite 历史迁移的多 session 实施计划（backlog §A1 的展开）。**✅ S1–S5 已完成；`timearc_service.db` 为唯一历史存储。**
-- [jsonl-history-retirement-report.md](jsonl-history-retirement-report.md) — 使用记录 JSON 文件退役报告：服务/UI/契约改动、验证、遗留文件策略与回滚说明。
-- [b1-windows-service-scm-kickoff.md](b1-windows-service-scm-kickoff.md) — B1 Windows 服务化（SCM / 登录自启）
-  实施计划（backlog §B1 的展开）：Session 0 隔离陷阱 + 产品路线决策门（**已选并实装 Route A，PR #37**）+ S0/S1/S2 与 Route B 范围卡。
-- [agent-harness-vs-superpowers.md](agent-harness-vs-superpowers.md) — 本仓 `.harness` 与
-  Superpowers 插件的对照学习：为何不引入插件、可借鉴项、给大范围工作的流程提醒。
+| 主题 | 首选文档 |
+| --- | --- |
+| 当前 backlog | [implementation-backlog.md](implementation-backlog.md) |
+| 测试发布/视频 | [beta-tester-release-kit.md](beta-tester-release-kit.md) |
+| Windows/macOS 差异 | [platform-parity-packaging-gap.md](platform-parity-packaging-gap.md) |
+| Windows 测试审计 | [windows-test-release-audit-2026-08-20.md](windows-test-release-audit-2026-08-20.md) |
+| 统计页本轮结果 | [stats-period-layout-report-2026-08-23.md](stats-period-layout-report-2026-08-23.md) |
+| B 站归因修复 | [windows-bilibili-site-attribution-fix-2026-08-25.md](windows-bilibili-site-attribution-fix-2026-08-25.md) |
+| 登录自启/游戏/时钟 | [windows-release-defaults-game-clock-2026-08-25.md](windows-release-defaults-game-clock-2026-08-25.md) |
+| SQLite 迁移 | [jsonl-history-retirement-report.md](jsonl-history-retirement-report.md) |
+| 采集服务契约 | [../src/service/README.md](../src/service/README.md) |
+| Android/HarmonyOS | [../android/README.md](../android/README.md) |
 
-## 产品方向
+## 产品与设计
 
-- [life-timeline-product-direction.md](life-timeline-product-direction.md) — 生命时间线产品方向。
-- [card-ai-development-spec.md](card-ai-development-spec.md) — 卡片 / AI 开发规格。
-- [future-coding-harness.md](future-coding-harness.md) — 未来编码 harness 设想。
-- [desktop-mobile-next-plan.md](desktop-mobile-next-plan.md) — 桌面端剩余缺陷/修补清单 + 手机端制作流程与测试计划。
-- [mobile/android-usage-time-collection-plan.md](mobile/android-usage-time-collection-plan.md) — 安卓软件使用时长获取方案：UsageStats 主方案、实时记录备用方案、优先级执行与测试计划。
-- [mobile/android-usage-backend-implementation-report.md](mobile/android-usage-backend-implementation-report.md) — Android 使用时长后端采集 P0-P5 实施报告。
+- [life-timeline-product-direction.md](life-timeline-product-direction.md) — 私有生命时间线方向。
+- [card-ai-development-spec.md](card-ai-development-spec.md) — 时间卡与 AI 文案边界。
+- [desktop-mobile-next-plan.md](desktop-mobile-next-plan.md) — 桌面/移动后续计划。
+- [DESIGN.md](../DESIGN.md) — 移动端设计系统。
+- [PRODUCT.md](../PRODUCT.md) — 产品语气、用户和反例。
 
-## 记忆湖（首页 / 回顾 / 备忘黑板）
+## 统计与回顾
 
-- [memory-lake-implementation-plan.md](memory-lake-implementation-plan.md) — 总实现计划。
-- [memory-lake-backend-integration-plan.md](memory-lake-backend-integration-plan.md) — 后端接入计划。
-- [memory-lake-integration-issues.md](memory-lake-integration-issues.md) — 接入期 issue 记录。
-- [memory-lake-home-art-implementation-spec.md](memory-lake-home-art-implementation-spec.md) — 首页美术规范。
-- [memory-lake-home-render-pipeline-replication.md](memory-lake-home-render-pipeline-replication.md) — 首页渲染管线。
-- [memory-lake-art-lighting-qml-cookbook.md](memory-lake-art-lighting-qml-cookbook.md) — 打光 / QML 技法字典。
-- [memory-lake-fidelity-gaps.md](memory-lake-fidelity-gaps.md) — 诚实天花板 / 漏边超采样验证法。
-- [memory-lake-memo-functional-replication.md](memory-lake-memo-functional-replication.md) — 备忘黑板功能复刻。
-- [memory-lake-memo-render-pipeline-replication.md](memory-lake-memo-render-pipeline-replication.md) — 备忘黑板渲染管线。
+- [stats-functional-replication.md](stats-functional-replication.md) — 统计功能规格。
+- [stats-render-pipeline-replication.md](stats-render-pipeline-replication.md) — 统计视觉管线。
+- [stats-backend-data-gaps.md](stats-backend-data-gaps.md) — 数据能力与缺口。
+- [stats-backend-performance.md](stats-backend-performance.md) — 聚合性能约束。
+- [memory-lake-implementation-plan.md](memory-lake-implementation-plan.md) — 记忆湖总计划。
+- [memory-lake-backend-integration-plan.md](memory-lake-backend-integration-plan.md) — 真数据接入。
+- [monthly-report-social-share-plan.md](monthly-report-social-share-plan.md) — 月报与分享。
 
-## 日历页（v88 暗玻璃）
+桌面测试发布暂时隐藏记忆湖入口；代码和历史数据保留。相关文档不是当前公开功能承诺。
 
-- [calendar-refactor-functional-replication.md](calendar-refactor-functional-replication.md)
-- [calendar-refactor-render-pipeline-replication.md](calendar-refactor-render-pipeline-replication.md)
+## 采集、身份与图标
 
-## 设置页（v88 暗玻璃 + 5 tab）
+- [adapter-system.md](adapter-system.md) — 应用/站点适配系统。
+- [adding-app-support.md](adding-app-support.md) — 新增桌面应用支持。
+- [adding-website-support.md](adding-website-support.md) — 新增网站支持。
+- [mainland-site-tracking.md](mainland-site-tracking.md) — 国内站点拆分。
+- [media-real-title-capture-status.md](media-real-title-capture-status.md) — 媒体标题状态。
+- [site-icon-assets.md](site-icon-assets.md) — 图标来源登记。
+- [windows-foreground-tracking-fix.md](windows-foreground-tracking-fix.md) — Windows 前台计时基线。
+- [windows-bilibili-site-attribution-fix-2026-08-25.md](windows-bilibili-site-attribution-fix-2026-08-25.md) — 浏览器媒体归因。
+
+## 桌面 UI
 
 - [settings-functional-replication.md](settings-functional-replication.md)
 - [settings-render-pipeline-replication.md](settings-render-pipeline-replication.md)
-- [settings-implementation-issues.md](settings-implementation-issues.md) — 决策 A-* / 缺口 G-* / 三阶段。
-- [settings-remaining-work.md](settings-remaining-work.md) — 未实装项审计 + 服务侧配置提案指针。
+- [settings-remaining-work.md](settings-remaining-work.md)
+- [calendar-refactor-functional-replication.md](calendar-refactor-functional-replication.md)
+- [calendar-refactor-render-pipeline-replication.md](calendar-refactor-render-pipeline-replication.md)
 
-## 统计页（v88 暗玻璃 + 周/月/年）
+## 移动端
 
-- [stats-functional-replication.md](stats-functional-replication.md)
-- [stats-render-pipeline-replication.md](stats-render-pipeline-replication.md)
-- [stats-implementation-kickoff.md](stats-implementation-kickoff.md)
-- [stats-backend-data-gaps.md](stats-backend-data-gaps.md) — 后端缺口 / 接入。
-- [stats-backend-performance.md](stats-backend-performance.md) — 增量解析 / 记忆化 / 重算守卫。
+- [mobile/android-usage-time-collection-plan.md](mobile/android-usage-time-collection-plan.md)
+- [mobile/android-usage-backend-implementation-report.md](mobile/android-usage-backend-implementation-report.md)
+- [mobile-share-privacy-implementation-report.md](mobile-share-privacy-implementation-report.md)
+- [mobile-global-background-implementation-report.md](mobile-global-background-implementation-report.md)
 
-## 适配（应用 / 网站 / 图标）
+## 工程与发布
 
-- [adapter-system.md](adapter-system.md) — 适配系统总览。
-- [adding-website-support.md](adding-website-support.md) — 新增网站适配。
-- [adding-app-support.md](adding-app-support.md) — 新增桌面应用适配。
-- [adapter-support-implementation-report.md](adapter-support-implementation-report.md) — 实现报告。
-- [mainland-site-tracking.md](mainland-site-tracking.md) — 国内站点拆分追踪。
-- [media-real-title-capture-status.md](media-real-title-capture-status.md) — 媒体真实标题抓取现状。
-- [site-icon-assets.md](site-icon-assets.md) — 站点图标资产来源登记。
+- [a1-sqlite-storage-migration-kickoff.md](a1-sqlite-storage-migration-kickoff.md)
+- [b1-windows-service-scm-kickoff.md](b1-windows-service-scm-kickoff.md)
+- [windows-release-packaging-kickoff.md](windows-release-packaging-kickoff.md)
+- [macos-app-bundle-packaging.md](macos-app-bundle-packaging.md)
+- [third-party-license-page.md](third-party-license-page.md)
+- [future-coding-harness.md](future-coding-harness.md)
+- [agent-harness-vs-superpowers.md](agent-harness-vs-superpowers.md)
 
-## superpowers/（合作方 Superpowers 工件）
+## 文档维护规则
 
-`superpowers/plans/` 与 `superpowers/specs/` 是合作方使用 Superpowers 插件时产出的
-plans/specs 工件，不是插件本体，独立保留、不纳入本索引维护。
-
----
-
-> 后续若确实要按主题分子目录，需一并更新约 80 处 `docs/xxx.md` 引用（含 ~21 处
-> QML/C++/JS 源码注释、4 处 `superpowers/` 工件、文档互链、`open-issues.md`）。
-> 本轮按"只加索引"处理，未做搬动。
+- 新增文档必须在本页或直接上游文档中可发现。
+- 报告标题写明日期；过期结论在顶部标记，不悄悄改写历史。
+- 可执行状态只放在 backlog/open issues，不在多个 README 复制。
+- `superpowers/plans/` 与 `superpowers/specs/` 是合作工件，保留但不作为当前事实入口。

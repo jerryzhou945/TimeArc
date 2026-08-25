@@ -18,6 +18,10 @@ assert.strictEqual(
 );
 
 const dayStart = 1_800_000_000;
+assert.deepStrictEqual(
+  [0, 1, 2].map((lane) => Stats.clockLaneRadiusScale(lane)),
+  [0.54, 0.63, 0.72]
+);
 const periodApps = [
   { groupKey: 'app:codex', appId: 'codex.exe', appName: 'Codex', category: '开发', seconds: 120, path: 'C:/Codex.exe' },
   { groupKey: 'app:chrome', appId: 'chrome.exe', appName: 'Chrome', category: '浏览', seconds: 60, path: 'C:/Chrome.exe' }

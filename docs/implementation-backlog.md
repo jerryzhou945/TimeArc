@@ -114,6 +114,10 @@ G2/G3 打磨 ───────────(随手)
   命令子树的 CPU/I/O 变化续租，进程仅存在或计数器不变仍会 idle；同时恢复
   Release 构建下 Windows C 测试断言。详见
   [`windows-test-release-audit-2026-08-20.md`](windows-test-release-audit-2026-08-20.md)。
+- [x] **B5 B 站无后缀视频标题归属** — 2026-08-25 Windows 采样器在从明确的
+  B 站页面进入无站点后缀视频页时保留短期站点身份，使媒体时长继续归入 B 站；
+  Discord 策略和磁盘契约不变。见
+  [`windows-bilibili-site-attribution-fix-2026-08-25.md`](windows-bilibili-site-attribution-fix-2026-08-25.md)。
 
 ### C. 跨平台服务（**非 Windows**）
 - [~] **C1 macOS tracker 主循环接线**
@@ -163,12 +167,15 @@ G2/G3 打磨 ───────────(随手)
   「查看全文」读 `resources/licenses/` qrc 内嵌文本、离线可达。详见 `docs/f2-in-app-licenses-page-kickoff.md`。
 
 ### G. 配置 / 打磨 / 杂项
-- [~] **G5 桌面统计页每日应用时钟重构** — 2026-08-21 已完成独立桌面 HTML/CSS/JS
-  交互原型：默认每日应用表盘、AM/PM、带应用图标的扇区悬停/聚焦放大、时间流、排行；
-  另有不受 Top 限制的全量应用库，展示本期时长、累计总时长、占比和最近记录，支持搜索、排序及
-  本期零使用项。周/月/年收敛为单一主趋势 + 类别构成 + 应用排行。正式 `DesktopStatsPage.qml` 尚未迁移，真实
-  `UsageStatManager` 数据接线和桌面真机 QA 待后续 Track B。见
-  [`stats-daily-prototype-report-2026-08-21.md`](stats-daily-prototype-report-2026-08-21.md)。
+- [x] **G5 桌面统计页每日应用时钟与周期布局重构** — 2026-08-23 已迁移到正式
+  `DesktopStatsPage.qml` 并接入真实只读统计数据：每日应用表盘支持 AM/PM、应用图标、
+  扇区悬停放大及点击锁定；周/月/年采用左侧周期总览与分类、右侧宽趋势图的紧凑布局。
+  重复的 24H 时间线与 Top 排行已移除，全量应用库统一展示每个软件的本期时长、累计总时长、
+  占比和最近记录，并支持搜索、排序及本期零使用项。见
+  [`stats-period-layout-report-2026-08-23.md`](stats-period-layout-report-2026-08-23.md)。
+  2026-08-25 收紧每日应用时钟三轨间距，并完成 Windows 首次登录自启默认项和
+  原神/星铁/绝区零/鸣潮主进程前台游戏计时；见
+  [`windows-release-defaults-game-clock-2026-08-25.md`](windows-release-defaults-game-clock-2026-08-25.md)。
 - [x] **G6 Android Edge-to-Edge 与分享视觉打磨** — 2026-08-02 完成：保留鸿蒙可启动默认 QtActivity Theme；运行时透明系统栏、安全区导航、Material Symbols SVG、全局应用图标圆角、华为桌面元数据，以及单应用/排行/月报分享预览重构。Pura 90 Pro 最终视觉 QA 待安装包验收。
 - [x] **G0 Windows QSettings smoke 测试隔离** — 命名 legacy 设置显式采用 `defaultFormat()` + `UserScope`，生产仍读 NativeFormat，测试可靠落入 IniFormat 隔离目录；见 [`qsettings-smoke-test-isolation-fix.md`](qsettings-smoke-test-isolation-fix.md)。
 - [x] **G1 用户偏好外置为可编辑配置 + 接 Parson（alpha 口径收束）** — 2026-06-14 决策：alpha 不引入第二套人类可编辑 JSON 偏好文件；约 30 项用户偏好继续以 SQLite `settings` 表（`SettingsRepository`）为唯一 UI 偏好源，避免与 H5/D2 的 `usage_config.json` 控制文件形成双写。设置页移除可见「导出设置 JSON」入口，仅保留导入设置与复制配置摘要；`doExport()` 功能函数暂保留为内部/诊断能力。后续若要真正 Parson 外置配置，应另开提案并定义与 SQLite KV 的同步边界。

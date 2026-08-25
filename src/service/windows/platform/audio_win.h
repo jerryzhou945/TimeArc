@@ -18,8 +18,9 @@ typedef enum TimeArcWinPlaybackState {
 } TimeArcWinPlaybackState;
 
 // Decide whether one Windows render session represents effective use.
-// Browser playback state is authoritative when known; Discord voice uses its
-// active/unmuted session even at zero peak; other apps retain audible output.
+// Browser playback state is authoritative when known; supported voice-chat
+// apps use their active/unmuted session even at zero peak; other apps retain
+// audible-output gating.
 int timearc_win_should_record_audio_session(
     const char* path, int session_active, int muted, float volume, float peak,
     TimeArcWinPlaybackState playback_state);
@@ -40,6 +41,16 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
 const char* timearc_win_preferred_observed_media_title(
     const char* path, uint32_t process_id, const char* system_media_title,
     const char* matching_foreground_title);
+const char* timearc_win_preferred_observed_media_title_at(
+    const char* path, uint32_t process_id, const char* system_media_title,
+    const char* matching_foreground_title, int64_t now_sec);
+// Remember a short-lived explicit browser-site marker before navigation changes
+// the window title to a marker-free media title (observed on Bilibili/Chrome).
+void timearc_win_observe_browser_site_hint(const char* path,
+                                           const char* window_title);
+void timearc_win_observe_browser_site_hint_at(const char* path,
+                                              const char* window_title,
+                                              int64_t now_sec);
 void timearc_win_reset_observed_media_title_cache(void);
 
 void timearc_win_audio_shutdown(void);

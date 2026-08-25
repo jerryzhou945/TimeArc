@@ -24,6 +24,7 @@
 
 #include "services/app_repository.h"
 #include "services/app_identity_policy.h"
+#include "services/autostart_default_policy.h"
 #include "services/database_manager.h"
 #include "services/frontmost_session_repository.h"
 #include "services/manual_project_repository.h"
@@ -504,6 +505,17 @@ int main(int argc, char* argv[]) {
         "App display name: empty override did not restore the default name."));
   }
 
+  using TimeArc::AutostartDefaultPolicy::Action;
+  if (TimeArc::AutostartDefaultPolicy::decide(false, false) !=
+          Action::EnableAndRemember ||
+      TimeArc::AutostartDefaultPolicy::decide(false, true) !=
+          Action::RememberExisting ||
+      TimeArc::AutostartDefaultPolicy::decide(true, false) !=
+          Action::NoChange) {
+    return fail(QStringLiteral(
+        "Autostart default: first-run enable or durable opt-out policy failed."));
+  }
+
   TimeArcAdapters::AdapterInput unknownWebsite;
   unknownWebsite.url =
       QStringLiteral("https://example.com/private?token=do-not-store");
@@ -726,6 +738,22 @@ int main(int argc, char* argv[]) {
        QStringLiteral("QQ"),
        QStringLiteral("社交"),
        false},
+      {QString(), QStringLiteral("YuanShen.exe"),
+       QStringLiteral("D:/Games/Genshin Impact Game/YuanShen.exe"),
+       QStringLiteral("app:genshin-impact"), QString::fromUtf8(u8"原神"),
+       QStringLiteral("游戏"), false},
+      {QString(), QStringLiteral("StarRail.exe"),
+       QStringLiteral("D:/Games/Star Rail Games/StarRail.exe"),
+       QStringLiteral("app:honkai-star-rail"), QString::fromUtf8(u8"崩坏：星穹铁道"),
+       QStringLiteral("游戏"), false},
+      {QString(), QStringLiteral("ZenlessZoneZero.exe"),
+       QStringLiteral("D:/Games/ZenlessZoneZero Game/ZenlessZoneZero.exe"),
+       QStringLiteral("app:zenless-zone-zero"), QString::fromUtf8(u8"绝区零"),
+       QStringLiteral("游戏"), false},
+      {QString(), QStringLiteral("Client-Win64-Shipping.exe"),
+       QStringLiteral("D:/Games/Wuthering Waves/Wuthering Waves Game/Client/Binaries/Win64/Client-Win64-Shipping.exe"),
+       QStringLiteral("app:wuthering-waves"), QString::fromUtf8(u8"鸣潮"),
+       QStringLiteral("游戏"), false},
   };
   for (const DesktopAdapterCase& appCase : desktopAdapterCases) {
     TimeArcAdapters::AdapterInput input;

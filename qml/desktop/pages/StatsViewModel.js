@@ -5,6 +5,11 @@ function safeSeconds(value) {
     return isFinite(number) && number > 0 ? Math.floor(number) : 0
 }
 
+function clockLaneRadiusScale(lane) {
+    var normalized = Math.max(0, Math.min(2, Math.floor(Number(lane) || 0)))
+    return Math.round((0.54 + normalized * 0.09) * 100) / 100
+}
+
 function rowKey(row) {
     if (!row) return ""
     return row.groupKey || row.appId || row.path || row.appName || row.name || ""
@@ -268,6 +273,7 @@ function buildClockSegments(segmentGroups, periodApps, dayStartUnix, half) {
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
+        clockLaneRadiusScale: clockLaneRadiusScale,
         buildAppLibrary: buildAppLibrary,
         buildCategoryDistribution: buildCategoryDistribution,
         normalizeTrendRows: normalizeTrendRows,

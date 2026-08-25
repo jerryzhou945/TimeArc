@@ -83,6 +83,7 @@ Item {
 
     readonly property bool hasData: vmTotalSec > 0 || (vmApps && vmApps.length > 0)
     readonly property bool sideCollapsed: root.width < 1200   // ≤1200 左栏折叠（C10）
+    readonly property bool statsLayoutStacked: root.width < 900 // 桌面统计在常见 1100px 内容区保持左右布局
     readonly property bool atCurrentPeriod: periodOffset >= 0 // 已是本期/无更新一期（禁「下一期」）
 
     // 切范围回到本期；offset 非 0 时复位会触发 onPeriodOffsetChanged→rebuild（单次）。
@@ -1037,7 +1038,7 @@ Item {
                         }
                     }
 
-                    // ====== 日视图：应用时钟 + 组成 + 时间流 + Top ======
+                    // ====== 日视图：应用时钟 + 今日组成（明细统一下沉到应用库）======
                     GridLayout {
                         width: parent.width
                         columns: 12
@@ -1046,7 +1047,7 @@ Item {
                         visible: root.range === "day" && root.hasData
 
                         StatsApplicationClock {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 8
+                            Layout.columnSpan: root.statsLayoutStacked ? 12 : 8
                             Layout.fillWidth: true
                             Layout.preferredHeight: 486
                             segments: root.vmClockSegments
@@ -1055,7 +1056,7 @@ Item {
                             onHalfRequested: function (value) { root.clockHalf = value }
                         }
                         DailyUsageShare {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 4
+                            Layout.columnSpan: root.statsLayoutStacked ? 12 : 4
                             Layout.fillWidth: true
                             Layout.preferredHeight: 486
                             style: ml
@@ -1066,19 +1067,6 @@ Item {
                             titleText: root.tr("今天的组成")
                             share: root.vmShare
                             total: root.vmShareTotalText
-                        }
-                        StatsDayTimeline {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 8
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 248
-                            groups: root.vmSegments
-                        }
-                        StatsRankingList {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 4
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 248
-                            title: "应用排行"; sub: "只展示今天靠前的应用"
-                            rows: root.vmRanking
                         }
                     }
 
@@ -1091,38 +1079,36 @@ Item {
                         rowSpacing: 14
                         visible: root.range !== "day" && root.hasData
 
-                        StatsAggregateSummary {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 4
+                        ColumnLayout {
+                            id: aggregateOverviewColumn
+                            Layout.columnSpan: root.statsLayoutStacked ? 12 : 4
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 320
-                            contextText: root.aggregateContextText()
-                            totalText: root.hoursText(root.vmTotalSec)
-                            unitValue: root.activePeriodUnitCount()
-                            unitLabel: root.aggregateUnitLabel()
-                            factText: root.vmAggregateFact
+                            Layout.preferredHeight: 440
+                            spacing: 14
+
+                            StatsAggregateSummary {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 132
+                                contextText: root.aggregateContextText()
+                                totalText: root.hoursText(root.vmTotalSec)
+                                unitValue: root.activePeriodUnitCount()
+                                unitLabel: root.aggregateUnitLabel()
+                                factText: root.vmAggregateFact
+                            }
+                            StatsCategoryDistribution {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                rows: root.vmCategories
+                            }
                         }
                         StatsBarChart {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 8
+                            Layout.columnSpan: root.statsLayoutStacked ? 12 : 8
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 320
+                            Layout.preferredHeight: root.statsLayoutStacked ? 360 : 440
                             title: "时间趋势"
                             sub: root.aggregateTrendSubtitle()
                             bars: root.vmTrendBars
                             barCount: root.vmTrendBars.length
-                        }
-                        StatsCategoryDistribution {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 6
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 300
-                            rows: root.vmCategories
-                        }
-                        StatsRankingList {
-                            Layout.columnSpan: root.sideCollapsed ? 12 : 6
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 300
-                            title: "应用排行"
-                            sub: "点击应用查看该周期的记录"
-                            rows: root.vmRanking
                         }
                     }
 
@@ -1267,16 +1253,22 @@ Item {
         property string half: "am"
         property string totalText: "0m"
         property string hoveredId: ""
+        property string lockedId: ""
+        readonly property string activeId: lockedId !== "" ? lockedId : hoveredId
         signal halfRequested(string value)
         readonly property var focusedSegment: {
             for (var i = 0; i < segments.length; i++)
-                if (segments[i].segmentId === hoveredId) return segments[i]
+                if (segments[i].segmentId === activeId) return segments[i]
             return null
         }
         style: ml
         radius: 18
-        onSegmentsChanged: dialCanvas.requestPaint()
-        onHoveredIdChanged: dialCanvas.requestPaint()
+        onSegmentsChanged: {
+            lockedId = ""
+            hoveredId = ""
+            dialCanvas.requestPaint()
+        }
+        onActiveIdChanged: dialCanvas.requestPaint()
 
         ColumnLayout {
             anchors.fill: parent
@@ -1327,7 +1319,7 @@ Item {
                         ctx.reset()
                         var cx = width / 2, cy = height / 2
                         var base = Math.min(width, height) / 2
-                        var trackWidth = base * 0.082
+                        var trackWidth = base * 0.078
 
                         // Three quiet concentric tracks preserve simultaneous
                         // foreground/media observations without visual overlap.
@@ -1335,18 +1327,18 @@ Item {
                         ctx.strokeStyle = ml.calSunkBg
                         for (var lane = 0; lane < 3; lane++) {
                             ctx.beginPath()
-                            ctx.arc(cx, cy, base * (0.50 + lane * 0.12), 0, Math.PI * 2)
+                            ctx.arc(cx, cy, base * StatsViewModel.clockLaneRadiusScale(lane), 0, Math.PI * 2)
                             ctx.stroke()
                         }
 
                         for (var i = 0; i < dialCard.segments.length; i++) {
                             var segment = dialCard.segments[i]
-                            var active = dialCard.hoveredId === "" || dialCard.hoveredId === segment.segmentId
-                            var emphasized = dialCard.hoveredId === segment.segmentId
+                            var active = dialCard.activeId === "" || dialCard.activeId === segment.segmentId
+                            var emphasized = dialCard.activeId === segment.segmentId
                             var start = (segment.startAngle - 89.2) * Math.PI / 180
                             var end = (segment.endAngle - 90.8) * Math.PI / 180
                             if (end <= start) end = start + 0.01
-                            var segmentRadius = base * (0.50 + Number(segment.lane || 0) * 0.12)
+                            var segmentRadius = base * StatsViewModel.clockLaneRadiusScale(segment.lane)
                             ctx.globalAlpha = active ? 1.0 : 0.22
                             ctx.lineWidth = trackWidth * (emphasized ? 1.38 : 0.92)
                             ctx.lineCap = "round"
@@ -1400,16 +1392,16 @@ Item {
                         id: dialIcon
                         required property var modelData
                         readonly property real midpoint: (modelData.startAngle + modelData.endAngle) / 2 - 90
-                        readonly property real markRadius: dialCanvas.width * (0.25 + Number(modelData.lane || 0) * 0.06)
-                        width: dialCard.hoveredId === modelData.segmentId ? 38 : 30
+                        readonly property real markRadius: dialCanvas.width * StatsViewModel.clockLaneRadiusScale(modelData.lane) / 2
+                        width: dialCard.activeId === modelData.segmentId ? 38 : 30
                         height: width; radius: 10
                         x: dialCanvas.x + dialCanvas.width / 2 + Math.cos(midpoint * Math.PI / 180) * markRadius - width / 2
                         y: dialCanvas.y + dialCanvas.height / 2 + Math.sin(midpoint * Math.PI / 180) * markRadius - height / 2
                         z: 4
-                        visible: modelData.showIcon || dialCard.hoveredId === modelData.segmentId
+                        visible: modelData.showIcon || dialCard.activeId === modelData.segmentId
                         color: AppVisual.modelAppColor(modelData)
                         border.width: 2; border.color: ml.panelBg
-                        opacity: dialCard.hoveredId === "" || dialCard.hoveredId === modelData.segmentId ? 1 : 0.3
+                        opacity: dialCard.activeId === "" || dialCard.activeId === modelData.segmentId ? 1 : 0.3
                         Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
                         Behavior on opacity { NumberAnimation { duration: 120 } }
                         Image {
@@ -1468,33 +1460,38 @@ Item {
                     anchors.fill: dialCanvas
                     z: 8
                     hoverEnabled: true
-                    acceptedButtons: Qt.NoButton
-                    function updateFocus(x, y) {
+                    acceptedButtons: Qt.LeftButton
+                    cursorShape: dialCard.hoveredId !== "" ? Cursor.button() : Qt.ArrowCursor
+                    function segmentAt(x, y) {
                         var dx = x - width / 2, dy = y - height / 2
                         var radius = Math.sqrt(dx * dx + dy * dy)
                         var base = Math.min(width, height) / 2
-                        if (radius < base * 0.43 || radius > base * 0.82) { dialCard.hoveredId = ""; return }
+                        if (radius < base * 0.43 || radius > base * 0.82) return ""
                         var angle = (Math.atan2(dy, dx) * 180 / Math.PI + 450) % 360
                         var found = ""
                         for (var i = dialCard.segments.length - 1; i >= 0; i--) {
                             var segment = dialCard.segments[i]
-                            var laneRadius = base * (0.50 + Number(segment.lane || 0) * 0.12)
+                            var laneRadius = base * StatsViewModel.clockLaneRadiusScale(segment.lane)
                             if (Math.abs(radius - laneRadius) <= base * 0.06
                                     && angle >= segment.startAngle && angle <= segment.endAngle) {
                                 found = segment.segmentId
                                 break
                             }
                         }
-                        dialCard.hoveredId = found
+                        return found
                     }
-                    onPositionChanged: function (mouse) { updateFocus(mouse.x, mouse.y) }
+                    onPositionChanged: function (mouse) { dialCard.hoveredId = segmentAt(mouse.x, mouse.y) }
                     onExited: dialCard.hoveredId = ""
+                    onClicked: function (mouse) {
+                        var hitId = segmentAt(mouse.x, mouse.y)
+                        dialCard.lockedId = hitId === dialCard.lockedId ? "" : hitId
+                    }
                 }
             }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: root.tr("悬停应用扇区，查看这一段时间")
+                text: root.tr("悬停预览，点击扇区锁定应用详情")
                 color: ml.textTertiary; font.pixelSize: 11
             }
         }
@@ -1724,35 +1721,49 @@ Item {
             radius: aggregateSummary.radius
             color: root.nightMode ? Qt.rgba(0.16, 0.50, 0.45, 0.10) : Qt.rgba(0.20, 0.58, 0.50, 0.08)
         }
-        ColumnLayout {
+        RowLayout {
             anchors.fill: parent
-            anchors.margins: 26
-            spacing: 7
+            anchors.margins: 18
+            spacing: 16
+
+            ColumnLayout {
+                Layout.preferredWidth: 126
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 3
+                Text {
+                    text: aggregateSummary.contextText
+                    color: ml.textTertiary
+                    font.pixelSize: 11; font.weight: Font.DemiBold
+                }
+                Text {
+                    text: aggregateSummary.totalText
+                    color: ml.textPrimary
+                    font.pixelSize: 30; font.weight: 900; font.letterSpacing: -0.8
+                    font.features: { "tnum": 1 }
+                }
+                Row {
+                    spacing: 5
+                    Text { text: aggregateSummary.unitValue; color: ml.accentText; font.pixelSize: 12; font.weight: Font.DemiBold }
+                    Text { text: aggregateSummary.unitLabel; color: ml.textTertiary; font.pixelSize: 11 }
+                }
+            }
+
+            Rectangle {
+                Layout.preferredWidth: 1
+                Layout.fillHeight: true
+                color: ml.cardBorder
+            }
 
             Text {
-                text: aggregateSummary.contextText
-                color: ml.textTertiary
-                font.pixelSize: 12; font.weight: Font.DemiBold
-            }
-            Text {
-                text: aggregateSummary.totalText
-                color: ml.textPrimary
-                font.pixelSize: 38; font.weight: 900; font.letterSpacing: -1.2
-                font.features: { "tnum": 1 }
-            }
-            Row {
-                spacing: 6
-                Text { text: aggregateSummary.unitValue; color: ml.accentText; font.pixelSize: 13; font.weight: Font.DemiBold }
-                Text { text: aggregateSummary.unitLabel; color: ml.textTertiary; font.pixelSize: 12 }
-            }
-            Item { Layout.fillHeight: true }
-            Text {
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
                 text: aggregateSummary.factText
                 color: ml.textSecondary
-                font.pixelSize: 13
-                lineHeight: 1.55
+                font.pixelSize: 12
+                lineHeight: 1.45
                 wrapMode: Text.WordWrap
+                maximumLineCount: 3
+                elide: Text.ElideRight
             }
         }
     }

@@ -1,96 +1,84 @@
-# Harness Tools — Machine Interface for Codex
+# Harness Tools
 
-Contract between Codex and the harness. Each tool has a documented CLI and
-exit code. Codex **MUST** treat a non-zero exit as a blocking signal.
+这些脚本是 TimeArc 工程门禁的机器接口。非零退出码都是阻塞信号；全部只使用 Python
+标准库。Windows Store 的 `python.exe` alias 不可用时，请显式使用真实 Python 路径。
 
-Convention: use a real Python 3 interpreter. Windows Store aliases can look
-like `python.exe` while failing to launch; in that case set `TIMEARC_PYTHON`
-and invoke tools with it, e.g. PowerShell:
+## 命令速查
 
-    $env:TIMEARC_PYTHON="C:\path\to\python.exe"
-    & $env:TIMEARC_PYTHON .harness/tools/preflight.py --track B
-
-Tool-to-tool calls use `sys.executable`; CMake hooks honor `TIMEARC_PYTHON`
-before probing Python3. All tools are pure stdlib, no pip install. Stderr
-carries human prose; stdout is machine-readable when anything useful is
-emitted.
+| 工具 | 何时运行 | 成功结果 |
+| --- | --- | --- |
+| `preflight.py` | 每次会话开始 | 快速审计、track 与 session 提示 |
+| `build.py` | 任何构建 | 构建完成并写 build log |
+| `record_error.py` | 任何错误 | Markdown + JSONL + INDEX 原子记录 |
+| `scan_qt_log.py` | Qt/QML 运行后 | 消费日志并记录新 warning |
+| `harness_check.py` | commit 前 | 7 项审计通过 |
 
 ## preflight.py
 
-Session bootstrap. Run at the start of every session.
+```powershell
+python .harness/tools/preflight.py --track B
+```
 
-    python .harness/tools/preflight.py [--track A|B|C]
-
-Runs `harness_check.py --fast`, prints open-issues hint, emits session-log
-path. Exit: `0` clean / `1` drift / `2` internal.
+退出码：`0` clean、`1` drift、`2` internal。退出 1 时先修复 drift。
 
 ## build.py
 
-Wrap `cmake --build` so any non-zero exit is auto-logged as L1.
+禁止直接用 `cmake --build` 替代。
 
-    python .harness/tools/build.py [--build-dir build] \
-        [--track A|B|C] [--topic <slug>] [--session <file>] \
-        [-- <extra cmake args>]
+```powershell
+python .harness/tools/build.py --track B
+python .harness/tools/build.py --build-dir build --track C -- --target all
+```
 
-Success: exit 0 + log at `journal/build-logs/<ts>-build.log`.
-Failure: same log + auto `record_error.py --level L1`. Exit mirrors build.
+构建日志写入 `journal/build-logs/<timestamp>-build.log`；失败会自动创建 L1。
 
 ## record_error.py
 
-Log one error into the journal.
+```powershell
+python .harness/tools/record_error.py `
+  --level L2 --track C --topic media-state `
+  --summary "Windows media state did not close"
+```
 
-    python .harness/tools/record_error.py \
-        --level L1|L2|L3 --track A|B|C \
-        --topic <kebab-slug>  # [a-z0-9-], <= 40 chars
-        --summary "one line" \
-        [--file path/to/log] [--platform windows|macos|linux|n-a] \
-        [--session sessions/<file>.md]
-
-Atomic per call: creates `journal/errors/<ts>-<track>-<topic>.md`, appends
-one JSON row to `journal/errors.jsonl`, inserts one row in `INDEX.md`.
-Prints the report path to stdout on success. Exit: `0` / `1` usage /
-`2` filesystem.
+`topic` 只能是小写 kebab-case，最长 40 字符。可选 `--file`、`--platform`、
+`--session`。退出码：`0` success、`1` usage、`2` filesystem。
 
 ## scan_qt_log.py
 
-Drain the Qt message log written by `installHarnessLogger()` into L2
-reports. One report per unique `(severity, file:line, message)` tuple.
+```powershell
+python .harness/tools/scan_qt_log.py --track C
+python .harness/tools/scan_qt_log.py --dry-run
+```
 
-    python .harness/tools/scan_qt_log.py [--log PATH] [--track C] [--dry-run]
-
-Default log path mirrors `QStandardPaths::GenericDataLocation`
-`/TimeArc/logs/harness-qt.log`. Rotates to `.consumed.<ts>` after.
+默认读取 `QStandardPaths::GenericDataLocation/TimeArc/logs/harness-qt.log`，
+按 `(severity, location, message)` 去重并轮转已消费日志。
 
 ## harness_check.py
 
-Full audit. Run before commit.
+```powershell
+python .harness/tools/harness_check.py
+python .harness/tools/harness_check.py --fast
+```
 
-    python .harness/tools/harness_check.py [--fast | --bootstrap]
+七项检查：
 
-Passes:
-1. **line-budget** — `*.md` under `.harness/` ≤ 100 lines.
-2. **frozen-file hashes** — `state/frozen-files.json` matches.
-3. **CMake structure** — required variables present in each `CMakeLists.txt`.
-4. **platform isolation** — no Qt under `src/service/`; no platform SDK in
-   `src/service/shared/*.h`.
-5. **journal hygiene** — `errors/*.md` ↔ `errors.jsonl` (empty md = tombstone).
-6. **slug shape** — errors match `YYYYMMDD-HHMMSS-[ABC]-kebab.md`; sessions
-   match `YYYYMMDD-HHMM-[ABC]-kebab.md`.
-7. **track discipline** — `state/current-track` vs `git status`:
-   A forbids new source, B requires rules/ or README update, C requires an
-   errors/ link in the latest C-track session log.
+1. harness Markdown 行数；
+2. frozen-file hash；
+3. CMake 结构；
+4. service 平台隔离；
+5. journal 一致性；
+6. session/error slug；
+7. track discipline。
 
-`--bootstrap`: one-shot; writes current sha256 into `state/frozen-files.json`.
-Use only after a charter amendment.
+`--bootstrap` 只用于已批准的 CHARTER/frozen-file 变更，不能作为绕过失败的手段。
 
-`--fast`: skip passes 3-7.
+## Python 解释器
 
-Exit: `0` clean / `1` drift / `2` internal.
+工具间调用使用 `sys.executable`。需要固定解释器时：
 
-## How Codex MUST treat failures
+```powershell
+$env:TIMEARC_PYTHON = "C:\path\to\python.exe"
+& $env:TIMEARC_PYTHON .harness/tools/preflight.py --track B
+```
 
-- `preflight.py` exit 1 → **stop** and fix drift before any code change.
-- `record_error.py` exit 2 → journal broken; hand-write the report and file
-  an L3 in the next session.
-- `harness_check.py` exit 1 → **do not commit** until exit 0 or mark the
-  drift as intentional in a change proposal.
+更多流程见 [../README.md](../README.md) 与 [../AGENTS.md](../AGENTS.md)。
