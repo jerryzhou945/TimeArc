@@ -310,4 +310,117 @@ assert.strictEqual(
   Stats.buildAggregateFact('year', categories, yearTrend).params.range, 'This Year');
 assert.strictEqual(Stats.buildAggregateFact('week', [], weekTrend), null);
 
+// --- Category ring: pinned end-to-end behaviour -----------------------------
+// The ring pipeline (flatten -> resolve overlap -> denoise) was rewritten for
+// speed: the overlap sweep now uses a heap instead of rescanning every row per
+// tick, and the smoothing loop coalesces in place instead of deep-copying every
+// run on every iteration. Both are meant to be output-identical, so this pins
+// the observable result rather than the implementation.
+//
+// It deliberately covers the paths carrying the subtle rules:
+//   * overlap where the SHORTER row wins the contested instant (Chat inside IDE)
+//   * a 59s hole bridged because both sides share a category (bridge = 60)
+//   * a short block absorbed into a neighbour (absorbedCount)
+//   * two isolated short blocks with gaps on both sides, which are dropped
+// Expected values were captured from the PRE-rewrite implementation and verified
+// identical against the rewrite, so this is a regression test, not a snapshot of
+// whatever the current code happens to do.
+const ringDay = 1800000000;
+const ringGroups = [
+  { groupKey: 'app:ide', appId: 'ide', appName: 'IDE', path: '/ide', segments: [
+    { startUnixSec: ringDay + 0, endUnixSec: ringDay + 1200 },
+    { startUnixSec: ringDay + 1259, endUnixSec: ringDay + 2000 },
+    { startUnixSec: ringDay + 5000, endUnixSec: ringDay + 5030 }
+  ] },
+  { groupKey: 'app:chat', appId: 'chat', appName: 'Chat', path: '/chat', segments: [
+    { startUnixSec: ringDay + 600, endUnixSec: ringDay + 640 },
+    { startUnixSec: ringDay + 2400, endUnixSec: ringDay + 3000 }
+  ] },
+  { groupKey: 'app:web', appId: 'web', appName: 'Web', path: '/web', segments: [
+    { startUnixSec: ringDay + 3061, endUnixSec: ringDay + 4000 },
+    { startUnixSec: ringDay + 9000, endUnixSec: ringDay + 9010 }
+  ] }
+];
+const ringApps = [
+  { groupKey: 'app:ide', appId: 'ide', appName: 'IDE', displayName: 'IDE', category: 'dev', seconds: 1971 },
+  { groupKey: 'app:chat', appId: 'chat', appName: 'Chat', displayName: 'Chat', category: 'social', seconds: 640 },
+  { groupKey: 'app:web', appId: 'web', appName: 'Web', displayName: 'Web', category: 'dev', seconds: 949 }
+];
+
+const ringBuilt = Stats.buildCategoryRingRuns(ringGroups, ringApps);
+assert.deepStrictEqual(ringBuilt.runs, [
+  {
+    "category": "dev",
+    "start": 1800000000,
+    "end": 1800002000,
+    "seconds": 2000,
+    "apps": [
+      {
+        "groupKey": "app:ide",
+        "displayName": "IDE",
+        "seconds": 1901
+      },
+      {
+        "groupKey": "app:chat",
+        "displayName": "Chat",
+        "seconds": 40
+      }
+    ],
+    "absorbedCount": 1,
+    "mergedFrom": 3,
+    "pinned": false
+  },
+  {
+    "category": "social",
+    "start": 1800002400,
+    "end": 1800003000,
+    "seconds": 600,
+    "apps": [
+      {
+        "groupKey": "app:chat",
+        "displayName": "Chat",
+        "seconds": 600
+      }
+    ],
+    "absorbedCount": 0,
+    "mergedFrom": 1,
+    "pinned": false
+  },
+  {
+    "category": "dev",
+    "start": 1800003061,
+    "end": 1800004000,
+    "seconds": 939,
+    "apps": [
+      {
+        "groupKey": "app:web",
+        "displayName": "Web",
+        "seconds": 939
+      }
+    ],
+    "absorbedCount": 0,
+    "mergedFrom": 1,
+    "pinned": false
+  }
+]);
+assert.deepStrictEqual(ringBuilt.stats, {
+  "droppedCount": 2,
+  "droppedSeconds": 40,
+  "absorbedCount": 1,
+  "absorbedSeconds": 40,
+  "mergedFrom": 7,
+  "coveredSeconds": 3539,
+  "runCount": 3
+});
+assert.deepStrictEqual(Stats.ringCategories(ringBuilt.runs), ["dev", "social"]);
+
+const ringArcs = Stats.projectCategoryRing(ringBuilt.runs, ringDay, 'am');
+assert.strictEqual(ringArcs.length, 3);
+assert.strictEqual(ringArcs[0].arcId, 'dev:1800000000:1800002000');
+assert.strictEqual(ringArcs[0].startAngle, 0);
+// Projection clips to the requested half; this fixture has nothing in the pm half.
+assert.deepStrictEqual(Stats.projectCategoryRing(ringBuilt.runs, ringDay, 'pm'), []);
+// An empty ring stays empty rather than throwing.
+assert.deepStrictEqual(Stats.buildCategoryRingRuns([], []).runs, []);
+
 console.log('stats_view_model_test: pass');

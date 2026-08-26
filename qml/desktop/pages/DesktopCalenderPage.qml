@@ -213,31 +213,53 @@ Item {
     }
 
     function manualPhotoMap() {
-        if (!calendarManager || !calendarManager.dayPhotos || calendarManager.dayPhotos === "")
+        var raw = (calendarManager && calendarManager.dayPhotos) ? calendarManager.dayPhotos : ""
+        if (raw === "")
             return {}
+        if (raw === root._photoRaw)
+            return root._photoParsed
+        var parsed = {}
         try {
-            return JSON.parse(calendarManager.dayPhotos)
+            parsed = JSON.parse(raw)
         } catch (e) {
-            return {}
+            parsed = {}
         }
+        root._photoRaw = raw
+        root._photoParsed = parsed
+        return parsed
+    }
+
+    // 聊天图片按日索引，整段 JSON 只解析一次。原先每问一天就把**整个聊天记录**读一次 KV
+    // 再整块解析一遍，只为挑出那一天的图。
+    function chatImageIndex() {
+        var raw = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
+        if (!raw || raw === "")
+            return {}
+        if (raw === root._chatRaw)
+            return root._chatByDate
+        var index = {}
+        try {
+            var chats = JSON.parse(raw)
+            for (var i = 0; i < chats.length; i++) {
+                var item = chats[i]
+                if (item.imagePath && item.imagePath !== "" && item.timeText) {
+                    var k = item.timeText.substring(0, 10)
+                    if (!index[k])
+                        index[k] = []
+                    index[k].push(item.imagePath)
+                }
+            }
+        } catch (e) {
+            index = {}
+        }
+        root._chatRaw = raw
+        root._chatByDate = index
+        return index
     }
 
     function chatImagesForDate(key) {
-        var savedChats = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
-        if (!savedChats || savedChats === "")
-            return []
-        try {
-            var chats = JSON.parse(savedChats)
-            var result = []
-            for (var i = 0; i < chats.length; i++) {
-                var item = chats[i]
-                if (item.imagePath && item.imagePath !== "" && item.timeText && item.timeText.indexOf(key) === 0)
-                    result.push(item.imagePath)
-            }
-            return result
-        } catch (e) {
-            return []
-        }
+        var hit = chatImageIndex()[key]
+        return hit ? hit : []
     }
 
     function normalizedImageSource(path) {
@@ -274,19 +296,51 @@ Item {
         showCalToast("Photo updated")
     }
 
+    // —— JSON 解析记忆化 ——
+    // 下面几个存储都是「一大块 JSON 字符串」，而助手函数是按天调用的：一次选中日变化就会
+    // 经 weekViewTaskCount → weekDays、model: weekDays(...)、model: dayAgenda(...) 至少把
+    // 待办整块解析 3 遍，纪念日整块 1 遍。缓存键取**原始字符串本身**——存储没变就不重解析，
+    // 变了（字符串不等）自动失效，无需任何手动作废。
+    property var _todosRaw: null
+    property var _todosParsed: ({})
+    property var _annRaw: null
+    property var _annParsed: []
+    property var _photoRaw: null
+    property var _photoParsed: ({})
+    property var _chatRaw: null
+    property var _chatByDate: ({})
+
     function allTodosMap() {
-        if (!calendarManager || !calendarManager.savedTodos || calendarManager.savedTodos === "")
+        var raw = (calendarManager && calendarManager.savedTodos) ? calendarManager.savedTodos : ""
+        if (raw === "")
             return {}
+        if (raw === root._todosRaw)
+            return root._todosParsed
+        var parsed = {}
         try {
-            return JSON.parse(calendarManager.savedTodos)
+            parsed = JSON.parse(raw)
         } catch (e) {
-            return {}
+            parsed = {}
         }
+        root._todosRaw = raw
+        root._todosParsed = parsed
+        return parsed
     }
 
     function todosForDate(key) {
         var map = allTodosMap()
         return map[key] ? map[key] : []
+    }
+
+    // 写路径专用：拿一份**可改**的浅拷贝。allTodosMap() 现在返回的是缓存里那一个对象，
+    // 就地改它会污染缓存——旧实现每次都重新解析，所以改了无所谓；加了缓存就有所谓了。
+    // 浅拷贝够用：写路径只整天替换 map[key]，不会就地改某天的数组。
+    function todosMapForEdit() {
+        var src = allTodosMap()
+        var copy = {}
+        for (var k in src)
+            copy[k] = src[k]
+        return copy
     }
 
     function todoCountForDate(key) {
@@ -304,14 +358,21 @@ Item {
     }
 
     function allAnniversaries() {
-        if (!anniversarySettings.savedAnniversaries || anniversarySettings.savedAnniversaries === "")
+        var raw = anniversarySettings.savedAnniversaries ? anniversarySettings.savedAnniversaries : ""
+        if (raw === "")
             return []
+        if (raw === root._annRaw)
+            return root._annParsed
+        var arr = []
         try {
-            var arr = JSON.parse(anniversarySettings.savedAnniversaries)
-            return arr ? arr : []
+            var parsed = JSON.parse(raw)
+            arr = parsed ? parsed : []
         } catch (e) {
-            return []
+            arr = []
         }
+        root._annRaw = raw
+        root._annParsed = arr
+        return arr
     }
 
     function saveAnniversaries(list) {
@@ -423,20 +484,11 @@ Item {
     // 取代 buildCalendarCells 内每格重新解析整段 chat JSON（42× 解析 → 1×）。
     function buildPhotoLookup() {
         var result = {}
-        var savedChats = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
-        if (savedChats && savedChats !== "") {
-            try {
-                var chats = JSON.parse(savedChats)
-                for (var i = 0; i < chats.length; i++) {
-                    var item = chats[i]
-                    if (item.imagePath && item.imagePath !== "" && item.timeText) {
-                        var k = item.timeText.substring(0, 10)
-                        if (!result[k])
-                            result[k] = item.imagePath
-                    }
-                }
-            } catch (e) {}
-        }
+        // 复用按日索引（同一份缓存），不再在这里单独解析一遍整段 chat JSON。
+        var index = chatImageIndex()
+        for (var k in index)
+            if (index[k].length > 0)
+                result[k] = index[k][0]   // 同旧行为：取当天第一张
         var manual = manualPhotoMap()
         for (var key in manual)
             if (manual[key] && manual[key] !== "")
@@ -519,7 +571,7 @@ Item {
     }
 
     function saveTodosForSelectedDate() {
-        var map = allTodosMap()
+        var map = todosMapForEdit()   // 要改它，所以取可写副本（见 todosMapForEdit）
         var arr = []
         for (var i = 0; i < todoModel.count; i++) {
             var item = todoModel.get(i)
@@ -604,7 +656,7 @@ Item {
         var title = createTitleInput.text.trim()
         if (title.length === 0)
             return
-        var list = allAnniversaries()
+        var list = allAnniversaries().slice()   // 要 push，先脱离缓存数组
         list.push({
             id: selectedDateKey + "-" + Date.now() + "-" + Math.floor(Math.random() * 10000),
             title: title,

@@ -283,6 +283,58 @@ function ringOverlapBeats(candidate, current) {
 // Sweep line over every segment boundary. Each elementary interval between two
 // consecutive boundaries is either fully covered by a row or not touched by it,
 // so one winner per interval yields a non-overlapping timeline.
+// Lazy-deletion binary heap ordered by ringOverlapBeats, with the row's index
+// as a final tiebreak so equal rows keep the original array order (the old
+// linear scan kept the first such row).
+function ringHeapBeats(a, b) {
+    if (ringOverlapBeats(a.row, b.row)) return true
+    if (ringOverlapBeats(b.row, a.row)) return false
+    return a.index < b.index
+}
+
+function ringHeapPush(heap, entry) {
+    heap.push(entry)
+    var i = heap.length - 1
+    while (i > 0) {
+        var parent = (i - 1) >> 1
+        if (!ringHeapBeats(heap[i], heap[parent])) break
+        var swap = heap[i]; heap[i] = heap[parent]; heap[parent] = swap
+        i = parent
+    }
+}
+
+function ringHeapPop(heap) {
+    var top = heap[0]
+    var last = heap.pop()
+    if (heap.length > 0) {
+        heap[0] = last
+        var i = 0
+        for (;;) {
+            var l = 2 * i + 1, r = l + 1, best = i
+            if (l < heap.length && ringHeapBeats(heap[l], heap[best])) best = l
+            if (r < heap.length && ringHeapBeats(heap[r], heap[best])) best = r
+            if (best === i) break
+            var swap = heap[i]; heap[i] = heap[best]; heap[best] = swap
+            i = best
+        }
+    }
+    return top
+}
+
+// Sweep line over every segment boundary. Each elementary interval between two
+// consecutive boundaries is either fully covered by a row or not touched by it,
+// so one winner per interval yields a non-overlapping timeline.
+//
+// The winner is tracked in a heap instead of rescanning every row per tick.
+// That scan made this O(N²): a month window flattens to ~3.2k rows and ~6.5k
+// ticks, i.e. ~21M comparisons (~560ms measured). Rows enter the heap at their
+// start tick and are discarded from the top once expired; because the heap top
+// is the global minimum, an active top is also the best active row, so buried
+// expired entries can never win.
+//
+// Coverage test is unchanged: `row.start <= from && row.end >= to`. Since `to`
+// is the next tick after `from` and every row end is itself a tick,
+// `row.end >= to` is exactly `row.end > from`, which is the expiry check.
 function ringResolveOverlap(rows) {
     if (rows.length === 0) return []
     var bounds = []
@@ -293,17 +345,26 @@ function ringResolveOverlap(rows) {
     for (i = 0; i < bounds.length; i++)
         if (i === 0 || bounds[i] !== bounds[i - 1]) ticks.push(bounds[i])
 
+    var order = []
+    for (i = 0; i < rows.length; i++) order.push({ row: rows[i], index: i })
+    order.sort(function (a, b) {
+        if (a.row.start !== b.row.start) return a.row.start - b.row.start
+        return a.index - b.index
+    })
+
+    var heap = []
+    var pending = 0
     var out = []
     for (var t = 0; t + 1 < ticks.length; t++) {
         var from = ticks[t]
         var to = ticks[t + 1]
-        var winner = null
-        for (i = 0; i < rows.length; i++) {
-            var row = rows[i]
-            if (row.start > from || row.end < to) continue
-            if (winner === null || ringOverlapBeats(row, winner)) winner = row
+        while (pending < order.length && order[pending].row.start <= from) {
+            ringHeapPush(heap, order[pending])
+            pending++
         }
-        if (winner === null) continue
+        while (heap.length > 0 && heap[0].row.end <= from) ringHeapPop(heap)
+        if (heap.length === 0) continue
+        var winner = heap[0].row
         out.push({
             category: winner.category,
             start: from, end: to, seconds: to - from,
@@ -355,6 +416,35 @@ function ringCoalesce(runs, bridgeSeconds) {
     return out
 }
 
+// Same fold as ringCoalesce, but compacting `runs` in place instead of building
+// a copied array. Only for arrays ringSmooth already owns: the copying variant
+// stays the entry point, so nothing a caller handed us is ever mutated.
+//
+// This is where the Month/Year cost actually lived. ringSmooth ran up to 2n+8
+// iterations and each one re-coalesced the whole array through ringCopyRun —
+// for a month that is ~4.5k iterations over ~4.8k runs, i.e. ~21M fresh objects
+// (~2.3s measured). The fold itself is unchanged, so the values it produces are
+// identical; only the allocation disappears.
+function ringCoalesceInPlace(runs, bridgeSeconds) {
+    var write = 0
+    for (var i = 0; i < runs.length; i++) {
+        var run = runs[i]
+        var last = write > 0 ? runs[write - 1] : null
+        if (last && last.category === run.category
+                && run.start >= last.end && run.start - last.end <= bridgeSeconds) {
+            last.end = Math.max(last.end, run.end)
+            last.seconds = last.end - last.start
+            last.absorbedCount += run.absorbedCount
+            last.mergedFrom += run.mergedFrom
+            ringMergeApps(last.apps, run.apps)
+            continue
+        }
+        runs[write++] = run
+    }
+    runs.length = write
+    return runs
+}
+
 // Shortest first, tiebreak earlier start: left-to-right would let an early
 // absorption change a later outcome by scan order.
 function ringShortestIndex(runs, minSeconds) {
@@ -370,20 +460,21 @@ function ringShortestIndex(runs, minSeconds) {
 // Remove one short run, giving its span to a neighbour where there is one.
 // Isolated runs — gaps on both sides — are the only case where measured time
 // leaves the ring entirely, so they are counted apart from absorptions.
+// Splices `runs` in place and returns it. It already mutated prev/next/target
+// in place before this change; the array rebuild it also did was pure waste,
+// because ringSmooth immediately replaced its `current` with the result.
 function ringAbsorbAt(runs, index, stats) {
     var run = runs[index]
     var prev = index > 0 ? runs[index - 1] : null
     var next = index + 1 < runs.length ? runs[index + 1] : null
     var prevTouches = prev !== null && prev.end >= run.start
     var nextTouches = next !== null && next.start <= run.end
-    var out = []
-    var i
 
     if (!prevTouches && !nextTouches) {
         stats.droppedCount += 1
         stats.droppedSeconds += run.seconds
-        for (i = 0; i < runs.length; i++) if (i !== index) out.push(runs[i])
-        return out
+        runs.splice(index, 1)
+        return runs
     }
 
     stats.absorbedCount += 1
@@ -397,9 +488,8 @@ function ringAbsorbAt(runs, index, stats) {
         prev.mergedFrom += next.mergedFrom
         ringMergeApps(prev.apps, run.apps)
         ringMergeApps(prev.apps, next.apps)
-        for (i = 0; i < runs.length; i++)
-            if (i !== index && i !== index + 1) out.push(runs[i])
-        return out
+        runs.splice(index, 2)
+        return runs
     }
 
     var target
@@ -411,8 +501,8 @@ function ringAbsorbAt(runs, index, stats) {
     target.seconds = target.end - target.start
     target.absorbedCount += 1
     ringMergeApps(target.apps, run.apps)
-    for (i = 0; i < runs.length; i++) if (i !== index) out.push(runs[i])
-    return out
+    runs.splice(index, 1)
+    return runs
 }
 
 // One smoothing pass. Absorbing only ever grows runs, so it cannot create a new
@@ -437,7 +527,10 @@ function ringSmooth(runs, minSeconds, bridgeSeconds, stats, dropIsolated) {
         var isolated = !(prev !== null && prev.end >= run.start)
                     && !(next !== null && next.start <= run.end)
         if (isolated && !dropIsolated) { run.pinned = true; continue }
-        current = ringCoalesce(ringAbsorbAt(current, index, stats), bridgeSeconds)
+        // `current` is ours (the first ringCoalesce above already copied), so
+        // absorb + re-coalesce in place. Same fold, same order, no allocation.
+        current = ringCoalesceInPlace(ringAbsorbAt(current, index, stats),
+                                      bridgeSeconds)
     }
     for (var i = 0; i < current.length; i++) current[i].pinned = false
     return current

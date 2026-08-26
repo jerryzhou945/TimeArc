@@ -49,23 +49,31 @@ Item {
     property string selectedTag: fixedTags[0]
     property int projectRefreshKey: 0
     property var todaySoftwareStats: []
+    // 数据代际守卫（同统计页 DesktopStatsPage.rebuild）：无新数据的 5s tick 不再重聚合。
+    // 重点不只是省一次聚合——重新赋值 todaySoftwareStats 会让所有函数式 model 绑定
+    // （summaryPills / topThreeTodayTagStats / topTodaySoftwareStats / allTodayDistributionStats）
+    // 返回新数组，从而销毁重建全部 delegate。空闲时那是纯浪费。
+    property int _builtGen: -1
 
     onNightModeChanged: Qt.callLater(function() { ringCanvas.requestPaint() })
+    // 显示名按 UI 语言解析（activityDisplayName → matcher().labelFor(..., uiLanguage())），
+    // 而 recordsGeneration() 不会因语言切换自增 → 必须显式让守卫失效，否则换语言后排行
+    // 停留在旧语言。统计页同样处理（DesktopStatsPage.qml:95）。
+    onLanguageModeChanged: { root._builtGen = -1; root.refreshTodaySoftwareStats() }
 
     Timer {
         interval: 5000
         running: true
         repeat: true
-        onTriggered: refreshTodaySoftwareStats()
+        // 只 refresh()（增量、便宜）；其 usageStatsChanged 同步触发一次 guarded 重算。
+        // 原先这里还额外直接重算一次，故每 tick 聚合两遍、delegate 重建两轮。
+        onTriggered: if (usageStatManager) usageStatManager.refresh()
     }
 
     Connections {
         target: usageStatManager
 
-        function onUsageStatsChanged() {
-            todaySoftwareStats = usageStatManager ? usageStatManager.activeSoftwareForRange("day") : []
-            ringCanvas.requestPaint()
-        }
+        function onUsageStatsChanged() { root.refreshTodaySoftwareStats() }
     }
 
     Connections {
@@ -157,13 +165,22 @@ Item {
         return AppVisual.modelDisplayNameForLanguage(row, languageMode)
     }
 
+    // 重算今日软件排行。守卫：数据代际未变则直接返回（5s 空闲 tick 零成本）。
+    // 不在这里调 refresh()——调用方负责取数，否则 refresh() 的同步 usageStatsChanged
+    // 会把本函数重入一次，等于每次都算两遍。
     function refreshTodaySoftwareStats() {
         if (!usageStatManager) {
             todaySoftwareStats = []
+            root._builtGen = -1
             return
         }
 
-        usageStatManager.refresh()
+        // 拿不到代际（旧后端）→ 退回「每次都算」的老行为，绝不因守卫把页面卡在空态。
+        if (usageStatManager.recordsGeneration) {
+            var gen = usageStatManager.recordsGeneration()
+            if (gen === root._builtGen) return
+            root._builtGen = gen
+        }
         todaySoftwareStats = usageStatManager.activeSoftwareForRange("day")
         ringCanvas.requestPaint()
     }
@@ -1517,6 +1534,11 @@ Item {
 
     Component.onCompleted: {
         ringCanvas.requestPaint()
-        refreshTodaySoftwareStats()
+        // refresh() 增量装载后同步发 usageStatsChanged → 触发一次 guarded 重算。
+        // 无 manager 时 refreshTodaySoftwareStats 负责落到空态。
+        if (usageStatManager)
+            usageStatManager.refresh()
+        else
+            refreshTodaySoftwareStats()
     }
 }

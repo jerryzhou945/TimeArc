@@ -1143,6 +1143,10 @@ Item {
         target: databaseManager
         ignoreUnknownSignals: true
         function onDatabaseRestored() {
+            // 整库被换掉 → 设置读缓存指向的是旧库的值，先作废（管理器之间不直连，
+            // 由 QML 转接，见 rules/04 §6）。用户若不立刻重启，读到的仍是新库。
+            if (settingsRepository && settingsRepository.invalidateCache)
+                settingsRepository.invalidateCache()
             root.askConfirm("Restore Complete",
                 "The database has been restored. TimeArc must restart to load the new data. Quit now?",
                 "Quit Now", false, function () { Qt.quit() })

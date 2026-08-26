@@ -22,6 +22,10 @@ Item {
     property string languageMode: "zh"
 
     function tr(source) { return I18n.t(languageMode, source) }
+    // dayModel 里的 app 名按 UI 语言解析（activityDisplayName → labelFor(..., uiLanguage())），
+    // 而 recordsGeneration() 不因语言切换自增 → 显式让守卫失效，否则换语言后卡牌名停在旧语言。
+    // 统计页同样处理（DesktopStatsPage.qml:95）。
+    onLanguageModeChanged: { root._builtGen = -1; root.recomputeDayModel() }
     // —— 当前选中的记忆 ——
     property int selectedIndex: 0
     property int flippedIndex: -1
@@ -42,6 +46,8 @@ Item {
     // 记忆湖·日视图模型：dailyCardService.memoryLakeDay 产出（后端组装，QML 只渲染）。
     // 取数走首页同款只读路径（usageStatManager），无数据走空态，绝不用 Mock 假数据冒充。
     property var dayModel: ({})
+    // recomputeDayModel 的数据代际守卫，见该函数注释。
+    property int _builtGen: -1
     readonly property var apps: (dayModel && dayModel.apps) ? dayModel.apps : []
     readonly property bool hasData: apps.length > 0
     readonly property var current: apps.length > 0
@@ -153,8 +159,22 @@ Item {
         return out
     }
 
+    // 数据代际守卫（同统计页 DesktopStatsPage.rebuild）：无新数据的 5s tick 直接返回。
+    // 这条路径是全 app 最贵的一处——recomputeDayModel 一次要做 6 遍全量聚合：
+    // day 的 active + segments，再加 enrichDurations 的 day/month/year/**all**，
+    // 其中 "all" 聚合有史以来每一条记录且随使用无界增长。空闲时重做纯属浪费。
     function recomputeDayModel() {
-        if (!usageStatManager || !dailyCardService) { root.dayModel = ({}); return; }
+        if (!usageStatManager || !dailyCardService) {
+            root.dayModel = ({});
+            root._builtGen = -1;
+            return;
+        }
+        // 拿不到代际（旧后端）→ 退回「每次都算」的老行为，不因守卫把页面卡在空态。
+        if (usageStatManager.recordsGeneration) {
+            var gen = usageStatManager.recordsGeneration();
+            if (gen === root._builtGen) return;
+            root._builtGen = gen;
+        }
         var model = dailyCardService.memoryLakeDay(
             usageStatManager.activeSoftwareForRange("day"),
             usageStatManager.foregroundSegmentsForRange("day"));

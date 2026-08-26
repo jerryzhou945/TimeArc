@@ -12,8 +12,44 @@ function containsAny(text, words) {
     return false;
 }
 
+// —— 纯函数记忆化 ——
+// 下面这些（siteVisual / appColor / englishDisplayName / ambientTone / coverTone）都是
+// 确定性纯函数，却被**委托内的绑定**逐条命中：appColor 一次调用要做一次 toLowerCase()、
+// 一次字符串拼接和约 20 次 containsAny 子串扫描。同 docs/stats-backend-performance.md
+// §2.3 给 classifyActivity 加缓存的理由（§4 不变量 3）。
+// 本文件是 .pragma library，故这份表被所有 importer 共享，一个 app 全程只算一次。
+// 缓存值统一包一层 {v: …}，这样「算出来就是 null」和「还没算过」不会混淆。
+var _memo = {};
+var _memoCount = 0;
+
+function _cached(bucket, key, compute) {
+    var b = _memo[bucket];
+    if (b === undefined) {
+        b = {};
+        _memo[bucket] = b;
+    }
+    var hit = b[key];
+    if (hit !== undefined)
+        return hit.v;
+    var value = compute();
+    // 键空间受「见过多少个 app」约束（很小），软上限只为防极端情况无界增长。
+    if (_memoCount > 20000) {
+        _memo = {};
+        _memoCount = 0;
+        b = {};
+        _memo[bucket] = b;
+    }
+    b[key] = { v: value };
+    _memoCount++;
+    return value;
+}
+
 function siteVisual(appId) {
     var identity = appId ? appId.toString() : "";
+    return _cached("site", identity, function () { return siteVisualUncached(identity); });
+}
+
+function siteVisualUncached(identity) {
     switch (identity) {
     case "site:bilibili": return { color: "#FABECF", label: "B", icon: Qt.resolvedUrl("../../../resources/app/icons/sites/bilibili.png") };
     case "site:douyin": return { color: "#E8E2F1", label: "\u6296", icon: Qt.resolvedUrl("../../../resources/app/icons/sites/douyin.ico") };
@@ -58,6 +94,13 @@ function hashedColor(text) {
 // 由 APP 身份推出的柔和底色：已知品牌固定色，未知哈希取色。
 function appColor(appId, appName, path) {
     var identity = appId ? appId.toString() : "";
+    var key = identity + "" + (appName || "") + "" + (path || "");
+    return _cached("color", key, function () {
+        return appColorUncached(identity, appName, path);
+    });
+}
+
+function appColorUncached(identity, appName, path) {
     var text = (identity + " " + (appName || "") + " " + (path || "")).toLowerCase();
     var site = siteVisual(identity);
     if (site)
@@ -90,6 +133,11 @@ function appColor(appId, appName, path) {
 // 背景色调：把图标主色**强力降饱和 + 提亮**到清新淡雅的范围，避免 vivid 红/多色
 // 背景哗众取宠（如 bilibili 粉、chrome 多色）。保留一点色相做区分，但整体淡、统一、高端。
 function ambientTone(c, night) {
+    return _cached("ambient", String(c) + "\u001f" + night,
+                   function () { return ambientToneUncached(c, night); });
+}
+
+function ambientToneUncached(c, night) {
     var col = Qt.lighter(c, 1.0);   // 兼容字符串/颜色入参，coerce 成 color
     var h = col.hslHue;
     var s = col.hslSaturation;
@@ -105,6 +153,11 @@ function ambientTone(c, night) {
 // 封面色调：比 ambientTone **略保留鲜明度**（封面是焦点"专辑封面"），但仍明显压低
 // 饱和，去掉刺眼红/多色。淡化幅度约为背景的 80–90%（不与背景一样淡）。
 function coverTone(c, night) {
+    return _cached("cover", String(c) + "\u001f" + night,
+                   function () { return coverToneUncached(c, night); });
+}
+
+function coverToneUncached(c, night) {
     var col = Qt.lighter(c, 1.0);
     var h = col.hslHue;
     var s = col.hslSaturation;
@@ -173,8 +226,12 @@ function modelDisplayName(row) {
 function englishDisplayName(row) {
     var name = modelDisplayName(row);
     var identity = modelIdentity(row);
+    // 键就是函数原本要扫的那段文本，顺手复用（不再多拼一次）。
     var text = (identity + " " + name + " " + (row && row.appName ? row.appName : "") + " " + (row && row.path ? row.path : "")).toLowerCase();
+    return _cached("english", text, function () { return englishDisplayNameUncached(name, text); });
+}
 
+function englishDisplayNameUncached(name, text) {
     if (containsAny(text, ["app:wechat", "weixin", "wechat", "微信"]))
         return "WeChat";
     if (containsAny(text, ["app:jianying-pro", "jianyingpro", "jianying", "capcut", "剪映"]))

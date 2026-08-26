@@ -1,6 +1,7 @@
 #ifndef USAGESTATMANAGER_H
 #define USAGESTATMANAGER_H
 
+#include <QDate>
 #include <QList>
 #include <QHash>
 #include <QObject>
@@ -133,7 +134,29 @@ signals:
     QString path;
     qint64 startUnixSec = 0;
     quint64 durationSec = 0;
+    // startUnixSec 的本地自然日，装载时算一次。此前每次 range 判定都要对每条记录做
+    // QDateTime::fromSecsSinceEpoch().toLocalTime().date()（含时区换算），而一次开页
+    // 要跑好几遍聚合。记录一经追加即不可变，故可安全预存；系统时区变了要整表重载
+    // （见 m_recordsTimeZoneId）。
+    QDate localDate;
   };
+
+  // 一个 range 对应的本地日期闭区间。每次聚合解析一次，而不是每条记录解析一次
+  // （原先 QDate::currentDate() 也在逐记录的判定里）。
+  struct DateWindow {
+    bool matchesAll = false;  // range == "all"：不看日期
+    bool valid = false;       // 无法识别的 range：一条都不匹配（同旧行为）
+    QDate from;
+    QDate to;
+
+    bool contains(const QDate& date) const {
+      if (matchesAll) return true;
+      if (!valid || !date.isValid()) return false;
+      return date >= from && date <= to;
+    }
+  };
+
+  DateWindow rangeWindow(const QString& range) const;
 
   QList<UsageRecord> m_records;
   int m_recordsGeneration = 0;
@@ -141,6 +164,17 @@ signals:
   // SQLite 增量高水位：仅装载 rowid 大于上次的新行。
   qint64 m_sqliteFrontmostMaxId = 0;
   qint64 m_sqliteMediaMaxId = 0;
+  // 预存 localDate 用的系统时区。用户在会话中途改时区会让已存的本地日失效，
+  // 故 refresh 时比对一次；变了就整表重载（重算全部 localDate）。DST 不受影响——
+  // 时区规则是按时刻历史应用的，过去某一刻的本地日不会因为进入夏令时而改变。
+  QByteArray m_recordsTimeZoneId;
+
+  // allApps() 记忆化。结果只取决于 m_records + 读层过滤 + 规则表 + UI 语言，而这四者
+  // 的任何变化都会自增 m_recordsGeneration（语言经 CategorizationManager::setLanguage
+  // → rulesChanged → 本类的 lambda），故单个整数就是完整的缓存键。
+  // 统计页 rebuild() 每次切换周/月/年或期次都会调它，但它是全历史的、与窗口无关。
+  mutable QVariantList m_allAppsCache;
+  mutable int m_allAppsGeneration = -1;
 
   // 设置页读层过滤（UI 私有；启动 + 开关变更时经 setReadFilters 推入）。默认 = 现状。
   bool m_autoClassify = true;    // 关 → 类别一律「其他」（停用自动归类）

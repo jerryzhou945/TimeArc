@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPair>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -1476,6 +1477,51 @@ int main(int argc, char* argv[]) {
   if (projectManager.projectsForRange("day").isEmpty()) {
     return fail(QStringLiteral("Archived project history disappeared from stats."));
   }
+  // timeEntriesForDate: same name/tag/source on one day must merge into a single
+  // row with summed seconds, and the per-day cache must not outlive a write.
+  // The function had no coverage when its grouping was switched to in-place
+  // accumulation and a cache was added, so pin both here.
+  {
+    const QString entryDate =
+        QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"));
+    const QString entryTitle = QStringLiteral("smoke-entry-merge");
+    projectManager.recordTimeEntryOnDate(entryTitle, QStringLiteral("Work"), 90,
+                                         entryDate,
+                                         QStringLiteral("calendar_todo"),
+                                         QString());
+    projectManager.recordTimeEntryOnDate(entryTitle, QStringLiteral("Work"), 30,
+                                         entryDate,
+                                         QStringLiteral("calendar_todo"),
+                                         QString());
+    const auto secondsForTitle = [&](const QString& title) {
+      int total = 0;
+      int rows = 0;
+      for (const QVariant& item : projectManager.timeEntriesForDate(entryDate)) {
+        const QVariantMap entry = item.toMap();
+        if (entry.value(QStringLiteral("name")).toString() != title) continue;
+        total += entry.value(QStringLiteral("seconds")).toInt();
+        ++rows;
+      }
+      return QPair<int, int>(total, rows);
+    };
+    const QPair<int, int> merged = secondsForTitle(entryTitle);
+    if (merged.second != 1) {
+      return fail(QStringLiteral("Same-day entries did not merge into one row."));
+    }
+    if (merged.first != 120) {
+      return fail(QStringLiteral("Merged entry seconds are wrong."));
+    }
+    // A third write must be visible: a stale per-day cache would still say 120.
+    projectManager.recordTimeEntryOnDate(entryTitle, QStringLiteral("Work"), 45,
+                                         entryDate,
+                                         QStringLiteral("calendar_todo"),
+                                         QString());
+    if (secondsForTitle(entryTitle).first != 165) {
+      return fail(
+          QStringLiteral("timeEntriesForDate served a stale cached day."));
+    }
+  }
+
   ProjectManager restartedProjectManager(&manualProjectRepository);
   for (const QVariant& item : restartedProjectManager.projects()) {
     if (item.toMap().value(QStringLiteral("name")).toString() == projectName) {

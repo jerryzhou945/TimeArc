@@ -522,7 +522,19 @@ Item {
 
     // 分类环（日视图）：整天降噪一次 → 按当前半天投影。降噪与 AM/PM 无关，
     // 缓存后切半天只走 reprojectCategoryRing()，不重跑扫描线（性能文档口径）。
+    // 分类环只在**日视图**渲染（StatsCategoryClock 的 visible: range === "day"），而且
+    // reprojectCategoryRing 永远只投影某一天的半个 12 小时盘。此前不论哪个范围都照算，
+    // 于是周/月/年把整段窗口的会话段喂进一条二次复杂度的管线，算完再整个丢掉：
+    // 实测月/年 ~2.9s（3253 行 → 12 条弧，且那张卡根本不可见）。这里直接不算。
+    // 环所依赖的三个视图态（runs/stats/legend）一起清空，免得留着上一个范围的残值。
     function rebuildCategoryRing() {
+        if (range !== "day") {
+            _ringRuns = null
+            vmRingStats = null
+            vmRingLegend = []
+            vmRingArcs = []
+            return
+        }
         var built = StatsViewModel.buildCategoryRingRuns(
                     vmSegments ? vmSegments : [], vmApps ? vmApps : [])
         _ringRuns = built.runs

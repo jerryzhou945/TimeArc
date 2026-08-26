@@ -87,6 +87,21 @@ def main():
     library = section("component StatsAppLibrary", "component StatsAggregateSummary")
     assert 'text: root.tr("Recent records")' in library
     assert "root.recentRecordText(modelData.lastUsedUnixSec)" in library
+    # The category ring is day-only. It is rendered inside a card gated on
+    # `range === "day"`, and reprojectCategoryRing only ever projects one 12h
+    # half of one day -- so building it for week/month/year was ~2.9s of work
+    # whose result was discarded. rebuildCategoryRing must bail out early, and
+    # must clear the ring view state so no stale arcs/legend survive a range
+    # switch. See journal/errors/20260826-095248-C-stats-ring-quadratic-offscreen.
+    ring = section("function rebuildCategoryRing()", "function reprojectCategoryRing()")
+    assert 'if (range !== "day") {' in ring
+    assert "_ringRuns = null" in ring
+    assert "vmRingStats = null" in ring
+    assert "vmRingLegend = []" in ring
+    assert "vmRingArcs = []" in ring
+    assert "return" in ring.split('if (range !== "day") {', 1)[1].split("}", 1)[0]
+    assert 'visible: root.range === "day" && root.hasData' in QML
+
     print("stats period layout static checks passed")
 
 

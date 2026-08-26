@@ -21,6 +21,7 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QStringList>
+#include <QTimeZone>
 #include <QUrl>
 #include <QVariantMap>
 #include <QVector>
@@ -369,6 +370,10 @@ int UsageStatManager::appendSqliteSessionsSince(QList<UsageRecord>* out,
     if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
     if (record.appId.trimmed().isEmpty() && record.appName.trimmed().isEmpty())
       continue;
+    // 本地自然日算一次、随记录存下来（range/年月判定全部读它，不再逐次换算时区）。
+    // 放在所有 continue 之后：被丢弃的行不必付这次换算。
+    record.localDate =
+        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
     out->append(record);
     ++added;
   }
@@ -406,10 +411,17 @@ void UsageStatManager::refreshHistoryFromSqlite() {
     return;
   }
 
+  // 预存的 localDate 是按某个系统时区算出来的；用户中途改时区就得全部重算。
+  // 只是一次字符串比较，比原先「每条记录每次判定都做一次时区换算」便宜得多。
+  const QByteArray timeZoneId = QTimeZone::systemTimeZoneId();
+  const bool timeZoneChanged =
+      m_historyInitialized && timeZoneId != m_recordsTimeZoneId;
+  m_recordsTimeZoneId = timeZoneId;
+
   bool full = !m_historyInitialized;
   const bool shrank =
       (maxFront < m_sqliteFrontmostMaxId) || (maxMedia < m_sqliteMediaMaxId);
-  if (full || shrank) {  // 首次读取 / 库被替换（水位回退）→ 全量重载
+  if (full || shrank || timeZoneChanged) {  // 首次 / 库被替换 / 改时区 → 全量重载
     m_records.clear();
     m_sqliteFrontmostMaxId = 0;
     m_sqliteMediaMaxId = 0;
@@ -450,8 +462,12 @@ QVariantList UsageStatManager::audioForRange(const QString& range) const {
 
 QVariantList UsageStatManager::aggregateSoftwareForRange(
     const QString& range, const QString& sourceFilter) const {
+  // 窗口解析一次，而不是每条记录一次（原先谓词里既造 QDateTime 又调 currentDate()）。
+  const DateWindow window = rangeWindow(range);
   return aggregateSoftware(
-      [&](const UsageRecord& record) { return matchesRange(record, range); },
+      [&](const UsageRecord& record) {
+        return window.contains(record.localDate);
+      },
       sourceFilter);
 }
 
@@ -773,8 +789,10 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
 
 QVariantList UsageStatManager::foregroundSegmentsForRange(
     const QString& range) const {
-  return foregroundSegmentsImpl(
-      [&](const UsageRecord& record) { return matchesRange(record, range); });
+  const DateWindow window = rangeWindow(range);  // 同上：每次聚合解析一次
+  return foregroundSegmentsImpl([&](const UsageRecord& record) {
+    return window.contains(record.localDate);
+  });
 }
 
 // 任意窗口版（统计页期次 prev/next）：按记录起始 unix 落在 [start,end] 闭区间筛选，
@@ -1158,6 +1176,11 @@ void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
 }
 
 QVariantList UsageStatManager::allApps() const {
+  // 记忆化：结果是全历史的、与任何时间窗口无关，只随 m_records / 读层过滤 / 规则表 /
+  // UI 语言变化，而这些全都自增 m_recordsGeneration。统计页 rebuild() 每次切周/月/年
+  // 或换期次都会调它，此前每次都全量重扫 + 逐组排序 + 每个 app 造一个 QVariantMap。
+  if (m_allAppsGeneration == m_recordsGeneration) return m_allAppsCache;
+
   // 设置页的应用清单**按应用去重**：解析身份时不看窗口标题，所以一个浏览器只出
   // 现一行，不会被 site:* 规则拆成好几条。窗口标题规则在该应用的编辑面板里列出。
   struct AppListEntry {
@@ -1252,39 +1275,52 @@ QVariantList UsageStatManager::allApps() const {
               if (as != bs) return as > bs;
               return an.localeAwareCompare(bn) < 0;
             });
+  m_allAppsCache = result;
+  m_allAppsGeneration = m_recordsGeneration;
   return result;
+}
+
+UsageStatManager::DateWindow UsageStatManager::rangeWindow(
+    const QString& range) const {
+  DateWindow window;
+  if (range == "all") {
+    window.matchesAll = true;
+    return window;
+  }
+
+  const QDate today = QDate::currentDate();
+  if (range == "day") {
+    window.valid = true;
+    window.from = today;
+    window.to = today;
+  } else if (range == "month") {
+    window.valid = true;
+    window.from = QDate(today.year(), today.month(), 1);
+    window.to = window.from.addDays(window.from.daysInMonth() - 1);
+  } else if (range == "year") {
+    window.valid = true;
+    window.from = QDate(today.year(), 1, 1);
+    window.to = QDate(today.year(), 12, 31);
+  } else if (range == "week") {
+    // 当周（周一为首，含两端），对齐 v88/日历 ISO 周口径。dayOfWeek(): 周一=1..周日=7。
+    window.valid = true;
+    window.from = today.addDays(-(today.dayOfWeek() - 1));
+    window.to = window.from.addDays(6);
+  }
+  // 无法识别的 range → valid 保持 false → contains() 恒 false（同旧行为的 return false）。
+  return window;
 }
 
 bool UsageStatManager::matchesRange(const UsageRecord& record,
                                     const QString& range) const {
-  if (range == "all") return true;
-
-  const QDate recordDate =
-      QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
-  if (!recordDate.isValid()) return false;
-
-  const QDate today = QDate::currentDate();
-  if (range == "day") return recordDate == today;
-  if (range == "month")
-    return recordDate.year() == today.year() &&
-           recordDate.month() == today.month();
-  if (range == "year") return recordDate.year() == today.year();
-  if (range == "week") {
-    // 当周（周一为首，含两端），对齐 v88/日历 ISO 周口径。dayOfWeek(): 周一=1..周日=7。
-    const QDate weekStart = today.addDays(-(today.dayOfWeek() - 1));
-    const QDate weekEnd = weekStart.addDays(6);
-    return recordDate >= weekStart && recordDate <= weekEnd;
-  }
-
-  return false;
+  return rangeWindow(range).contains(record.localDate);
 }
 
 bool UsageStatManager::matchesYearMonth(const UsageRecord& record, int year,
                                         int month) const {
-  const QDate recordDate =
-      QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
-  if (!recordDate.isValid()) return false;
-  return recordDate.year() == year && recordDate.month() == month;
+  // 同 matchesRange：用装载时预存的本地日，不再逐记录造 QDateTime + 时区换算。
+  if (!record.localDate.isValid()) return false;
+  return record.localDate.year() == year && record.localDate.month() == month;
 }
 
 bool UsageStatManager::matchesSource(const UsageRecord& record,

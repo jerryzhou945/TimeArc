@@ -7,6 +7,8 @@ omitted here to preserve the harness line budget.
 
 | Date (UTC) | Lvl | Topic | Report |
 |---|---|---|---|
+| 2026-08-26T09:52:48Z | L2 | stats-ring-quad... | Stats page Month/Year rebuild takes ~2.9s: rebuildCategor... | [report](errors/20260826-095248-C-stats-ring-quadratic-offscreen.md) |
+| 2026-08-26T08:45:00Z | L2 | home-memorylake... | Home and Memory Lake pages recompute full usage aggregati... | [report](errors/20260826-084500-C-home-memorylake-unguarded-rebuild.md) |
 | 2026-08-25T17:39:58Z | L3 | incomplete-test... | Reported '33/33 tests pass' from a tests/*_test.py glob, ... | [report](errors/20260825-173958-B-incomplete-test-surface.md) |
 | ... | L2 | qt-warning (bulk) | 24 Qt message-handler warnings folded from this index; each has its own report under `errors/` and a row in `errors.jsonl`. | |
 | ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
