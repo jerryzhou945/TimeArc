@@ -11,26 +11,50 @@ def section(start, end):
 
 def main():
     day = section("// ====== 日视图", "// ====== 周视图")
-    dial = section("component StatsApplicationClock", "component StatsDayTimeline")
+    dial = section("component StatsCategoryClock", "component StatsDayTimeline")
     summary = section("component StatsAggregateSummary", "component StatsCategoryDistribution")
 
     assert 'readonly property bool statsLayoutStacked: root.width < 900' in QML
 
-    assert "StatsApplicationClock" in day
+    assert "StatsCategoryClock" in day
     assert "DailyUsageShare" in day
     assert "StatsDayTimeline" not in day
     assert "StatsRankingList" not in day
     assert "root.statsLayoutStacked" in day
     assert "root.sideCollapsed" not in day
+    # The clock stays a clock: 60 ticks and the 12 hour numbers survive the
+    # redesign, and so does hover-preview / click-to-pin.
     assert "for (var tick = 0; tick < 60; tick++)" in dial
     assert "model: 12" in dial
-    assert "modelData.showIcon" in dial
-    assert "modelData.lane" in dial
     assert 'property string lockedId: ""' in dial
     assert "readonly property string activeId:" in dial
     assert "acceptedButtons: Qt.LeftButton" in dial
     assert "onClicked: function (mouse)" in dial
-    assert "dialCard.lockedId = hitId === dialCard.lockedId ? \"\" : hitId" in dial
+    assert "ringCard.lockedId = hitId === ringCard.lockedId ? \"\" : hitId" in dial
+
+    # One ring, not three lanes: no lane radius, no per-app icon heuristic.
+    for retired in ("modelData.lane", "modelData.showIcon", "clockLaneRadiusScale",
+                    "StatsApplicationClock", "buildClockSegments"):
+        assert retired not in QML, retired
+
+    # Arcs tile, so round caps would bulge into each other.
+    assert 'ctx.lineCap = "butt"' in dial
+    assert "ringRadiusScale" in dial and "ringWidthScale" in dial
+
+    # Icons left the ring, so the legend/detail row and the honest footnote
+    # about folded-away short records are what replaces them.
+    assert "ringCard.legend" in dial
+    assert "ringCard.footnote" in dial
+    assert "root.ringFootnote()" in QML
+
+    # Geometry is denoised; the numbers are not. The hub total and the legend
+    # seconds must keep coming from the unfiltered aggregate.
+    assert "totalText: root.secondsToDisplay(root.vmTotalSec)" in day
+    assert "categorySums(vmApps ? vmApps : [])" in QML
+
+    # The whole day is denoised once; an AM/PM toggle only re-projects.
+    assert "onClockHalfChanged: reprojectCategoryRing()" in QML
+    assert "buildCategoryRingRuns" in QML and "projectCategoryRing" in QML
 
     assert "// ====== 周/月/年共用聚合视图 ======" in QML
     aggregate = section("// ====== 周/月/年共用聚合视图 ======", "StatsAppLibrary {")

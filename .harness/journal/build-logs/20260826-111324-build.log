@@ -1,0 +1,12 @@
+[1/202] Automatic MOC and UIC for target timearc_resource_bundle_smoke
+[2/200] Automatic MOC and UIC for target timearc_db_smoke
+[3/198] Automatic MOC and UIC for target timearc_pomodoro_test
+[4/196] Copying time-arc qml sources into build dir
+[5/196] Running qmlimportscanner for time-arc
+[6/196] Automatic MOC and UIC for target time-arc
+[7/195] Running AUTOMOC file extraction for target time-arc
+[8/12] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp
+[9/12] Running rcc for resource time-arc_raw_qml_0
+[10/12] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[11/12] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp.o
+[12/12] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

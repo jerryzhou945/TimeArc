@@ -68,7 +68,10 @@ Item {
     property var vmCategories: []
     property var vmTrendBars: []
     property var vmAggregateFact: null
-    property var vmClockSegments: []
+    property var vmRingArcs: []           // 日视图分类环：当前半天的弧
+    property var vmRingStats: null        // 降噪账目（丢弃/吸收计数），用于卡片脚注
+    property var vmRingLegend: []         // 环内类别 + **未过滤**真实秒数
+    property var _ringRuns: null          // 全天降噪结果：AM/PM 切换只重投影，不重算
     property var vmLifetimeApps: []
     property var vmLibraryRows: []
     property int vmLifetimeTotalSec: 0
@@ -90,7 +93,7 @@ Item {
     onRangeChanged: { if (periodOffset !== 0) periodOffset = 0; else rebuild() }
     onPeriodOffsetChanged: rebuild()
     onLanguageModeChanged: { _builtGen = -1; rebuild() }
-    onClockHalfChanged: rebuildClockSegments()
+    onClockHalfChanged: reprojectCategoryRing()
     onLibraryQueryChanged: rebuildLibrary()
     onLibrarySortChanged: rebuildLibrary()
     onShowInactiveAppsChanged: rebuildLibrary()
@@ -517,11 +520,48 @@ Item {
         return out
     }
 
-    function rebuildClockSegments() {
+    // 分类环（日视图）：整天降噪一次 → 按当前半天投影。降噪与 AM/PM 无关，
+    // 缓存后切半天只走 reprojectCategoryRing()，不重跑扫描线（性能文档口径）。
+    function rebuildCategoryRing() {
+        var built = StatsViewModel.buildCategoryRingRuns(
+                    vmSegments ? vmSegments : [], vmApps ? vmApps : [])
+        _ringRuns = built.runs
+        vmRingStats = built.stats
+        rebuildRingLegend()
+        reprojectCategoryRing()
+    }
+
+    function reprojectCategoryRing() {
+        if (!_ringRuns) { vmRingArcs = []; return }
         var win = periodWindow("day", range === "day" ? periodOffset : 0)
-        vmClockSegments = StatsViewModel.buildClockSegments(
-                    vmSegments ? vmSegments : [], vmApps ? vmApps : [],
-                    win.start, clockHalf)
+        vmRingArcs = StatsViewModel.projectCategoryRing(_ringRuns, win.start, clockHalf)
+    }
+
+    // 环的形状被降噪过，脚注把折叠掉的量说清楚（C6：不静悄悄吃掉记录）。
+    // 「折叠」= 短记录并进相邻块（时间还在环上）；「丢弃」= 前后都是空档、
+    // 无处可并，是唯一真正离开环的时间，所以分开计。
+    function ringFootnote() {
+        if (!vmRingStats) return ""
+        var folded = vmRingStats.absorbedCount ? vmRingStats.absorbedCount : 0
+        var dropped = vmRingStats.droppedCount ? vmRingStats.droppedCount : 0
+        if (folded > 0 && dropped > 0)
+            return sentence("ringFoldedAndDropped", { folded: folded, dropped: dropped })
+        if (folded > 0) return sentence("ringFoldedOnly", { folded: folded })
+        if (dropped > 0) return sentence("ringDroppedOnly", { dropped: dropped })
+        return ""
+    }
+
+    // 图例：类别取自环（全天，不随 AM/PM 抖动），秒数取自**未过滤**的 vmApps。
+    // 环只负责形状；数字始终来自原始聚合，避免与右侧占比饼自相矛盾。
+    function rebuildRingLegend() {
+        var ids = StatsViewModel.ringCategories(_ringRuns ? _ringRuns : [])
+        var sums = categorySums(vmApps ? vmApps : [])
+        var rows = []
+        for (var i = 0; i < ids.length; i++) {
+            var seconds = sums[ids[i]] ? sums[ids[i]] : 0
+            rows.push({ id: ids[i], seconds: seconds, time: secondsToDisplay(seconds) })
+        }
+        vmRingLegend = rows
     }
 
     function rebuildLibrary() {
@@ -645,7 +685,7 @@ Item {
             if (!lifetimeApps[li].hidden) lifetimeTotal += lifetimeApps[li].seconds ? lifetimeApps[li].seconds : 0
         vmApps = apps; vmSegments = segs; vmTotalSec = total
         vmLifetimeApps = lifetimeApps; vmLifetimeTotalSec = lifetimeTotal
-        rebuildClockSegments()
+        rebuildCategoryRing()
         rebuildLibrary()
 
         var share = []
@@ -1078,13 +1118,15 @@ Item {
                         rowSpacing: 14
                         visible: root.range === "day" && root.hasData
 
-                        StatsApplicationClock {
+                        StatsCategoryClock {
                             Layout.columnSpan: root.statsLayoutStacked ? 12 : 8
                             Layout.fillWidth: true
                             Layout.preferredHeight: 486
-                            segments: root.vmClockSegments
+                            arcs: root.vmRingArcs
+                            legend: root.vmRingLegend
                             half: root.clockHalf
                             totalText: root.secondsToDisplay(root.vmTotalSec)
+                            footnote: root.ringFootnote()
                             onHalfRequested: function (value) { root.clockHalf = value }
                         }
                         DailyUsageShare {
@@ -1279,28 +1321,44 @@ Item {
         }
     }
 
-    component StatsApplicationClock: FrostCard {
-        id: dialCard
-        property var segments: []
+    // 分类环（日视图）：单环 = 一天的时间地图，一段弧 = 一段同类别的连续时间。
+    // 旧的三条同心轨道只是为了躲开 60s 合并造成的区间重叠（见 StatsViewModel
+    // §3.1 扫描线），半径不承载任何含义；单环把重叠**解掉**而不是藏起来。
+    // 环只负责形状：中心总时长与图例秒数仍取未过滤聚合，绝不显示降噪后的数字。
+    component StatsCategoryClock: FrostCard {
+        id: ringCard
+        property var arcs: []
+        property var legend: []
         property string half: "am"
         property string totalText: "0m"
+        property string footnote: ""
         property string hoveredId: ""
         property string lockedId: ""
         readonly property string activeId: lockedId !== "" ? lockedId : hoveredId
         signal halfRequested(string value)
-        readonly property var focusedSegment: {
-            for (var i = 0; i < segments.length; i++)
-                if (segments[i].segmentId === activeId) return segments[i]
+
+        // 单环几何：中心 0.64·base、宽 0.17·base（原三轨的径向包络内），
+        // 内缘 0.555·base 仍与 0.39·base 的中心盘留有净空。
+        readonly property real ringRadiusScale: 0.64
+        readonly property real ringWidthScale: 0.17
+
+        readonly property var focusedArc: {
+            for (var i = 0; i < arcs.length; i++)
+                if (arcs[i].arcId === activeId) return arcs[i]
             return null
         }
+        function clockTime(unixSec) {
+            return Qt.formatTime(new Date(unixSec * 1000), "HH:mm")
+        }
+
         style: ml
         radius: 18
-        onSegmentsChanged: {
+        onArcsChanged: {
             lockedId = ""
             hoveredId = ""
-            dialCanvas.requestPaint()
+            ringCanvas.requestPaint()
         }
-        onActiveIdChanged: dialCanvas.requestPaint()
+        onActiveIdChanged: ringCanvas.requestPaint()
 
         ColumnLayout {
             anchors.fill: parent
@@ -1312,8 +1370,9 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 2
-                    Text { text: root.tr("App clock"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
-                    Text { text: root.tr("Each sector is one real stretch of foreground app use"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("Category clock"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
+                    // 口径写在脸上：环只画前台记录，中心总时长含音频，两者本就不等。
+                    Text { text: root.tr("Foreground records, merged into blocks by category"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
                 Row {
                     spacing: 4
@@ -1322,23 +1381,23 @@ Item {
                         delegate: Rectangle {
                             required property var modelData
                             width: 44; height: 32; radius: 10
-                            color: dialCard.half === modelData.key ? ml.accentSoft : ml.calGhostBg
+                            color: ringCard.half === modelData.key ? ml.accentSoft : ml.calGhostBg
                             border.width: 1
-                            border.color: dialCard.half === modelData.key ? ml.accentSoftBorder : ml.calGhostBorder
-                            Text { anchors.centerIn: parent; text: modelData.label; color: dialCard.half === modelData.key ? ml.aqua : ml.calGlyph; font.pixelSize: 11; font.weight: Font.DemiBold }
-                            MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: dialCard.halfRequested(modelData.key) }
+                            border.color: ringCard.half === modelData.key ? ml.accentSoftBorder : ml.calGhostBorder
+                            Text { anchors.centerIn: parent; text: modelData.label; color: ringCard.half === modelData.key ? ml.aqua : ml.calGlyph; font.pixelSize: 11; font.weight: Font.DemiBold }
+                            MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: ringCard.halfRequested(modelData.key) }
                         }
                     }
                 }
             }
 
             Item {
-                id: dialWrap
+                id: ringWrap
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
                 Canvas {
-                    id: dialCanvas
+                    id: ringCanvas
                     anchors.centerIn: parent
                     width: Math.min(parent.width, parent.height)
                     height: width
@@ -1351,32 +1410,33 @@ Item {
                         ctx.reset()
                         var cx = width / 2, cy = height / 2
                         var base = Math.min(width, height) / 2
-                        var trackWidth = base * 0.078
+                        var ringRadius = base * ringCard.ringRadiusScale
+                        var trackWidth = base * ringCard.ringWidthScale
 
-                        // Three quiet concentric tracks preserve simultaneous
-                        // foreground/media observations without visual overlap.
+                        // 一条底轨：没有记录的时段留白，环不会假装铺满一天。
                         ctx.lineWidth = trackWidth
                         ctx.strokeStyle = ml.calSunkBg
-                        for (var lane = 0; lane < 3; lane++) {
-                            ctx.beginPath()
-                            ctx.arc(cx, cy, base * StatsViewModel.clockLaneRadiusScale(lane), 0, Math.PI * 2)
-                            ctx.stroke()
-                        }
+                        ctx.beginPath()
+                        ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2)
+                        ctx.stroke()
 
-                        for (var i = 0; i < dialCard.segments.length; i++) {
-                            var segment = dialCard.segments[i]
-                            var active = dialCard.activeId === "" || dialCard.activeId === segment.segmentId
-                            var emphasized = dialCard.activeId === segment.segmentId
-                            var start = (segment.startAngle - 89.2) * Math.PI / 180
-                            var end = (segment.endAngle - 90.8) * Math.PI / 180
-                            if (end <= start) end = start + 0.01
-                            var segmentRadius = base * StatsViewModel.clockLaneRadiusScale(segment.lane)
-                            ctx.globalAlpha = active ? 1.0 : 0.22
-                            ctx.lineWidth = trackWidth * (emphasized ? 1.38 : 0.92)
-                            ctx.lineCap = "round"
+                        // 平铺的类别弧用 butt 端点：round 会让相邻弧鼓起来互相压盖。
+                        // 类别之间留 0.15° 发丝缝，保证边界看得见。
+                        ctx.lineCap = "butt"
+                        for (var i = 0; i < ringCard.arcs.length; i++) {
+                            var arc = ringCard.arcs[i]
+                            var dimmed = ringCard.activeId !== "" && ringCard.activeId !== arc.arcId
+                            var emphasized = ringCard.activeId === arc.arcId
+                            var startDeg = arc.startAngle + 0.15
+                            var endDeg = arc.endAngle - 0.15
+                            if (endDeg <= startDeg) { startDeg = arc.startAngle; endDeg = arc.endAngle }
+                            var start = (startDeg - 90) * Math.PI / 180
+                            var end = (endDeg - 90) * Math.PI / 180
+                            ctx.globalAlpha = dimmed ? 0.22 : 1.0
+                            ctx.lineWidth = trackWidth * (emphasized ? 1.16 : 1.0)
                             ctx.beginPath()
-                            ctx.arc(cx, cy, segmentRadius, start, end, false)
-                            ctx.strokeStyle = root.categoryHeatBase(AppVisual.modelCategory(segment))
+                            ctx.arc(cx, cy, ringRadius, start, end, false)
+                            ctx.strokeStyle = root.categoryHeatBase(arc.category)
                             ctx.stroke()
                         }
                         ctx.globalAlpha = 1.0
@@ -1404,10 +1464,10 @@ Item {
                         id: hourNumber
                         required property int index
                         readonly property real hourAngle: ((index + 1) * 30 - 90) * Math.PI / 180
-                        readonly property real hourRadius: dialCanvas.width * 0.418
+                        readonly property real hourRadius: ringCanvas.width * 0.418
                         width: 22; height: 22
-                        x: dialCanvas.x + dialCanvas.width / 2 + Math.cos(hourAngle) * hourRadius - width / 2
-                        y: dialCanvas.y + dialCanvas.height / 2 + Math.sin(hourAngle) * hourRadius - height / 2
+                        x: ringCanvas.x + ringCanvas.width / 2 + Math.cos(hourAngle) * hourRadius - width / 2
+                        y: ringCanvas.y + ringCanvas.height / 2 + Math.sin(hourAngle) * hourRadius - height / 2
                         z: 3
                         text: index + 1
                         color: ml.textTertiary
@@ -1418,47 +1478,9 @@ Item {
                     }
                 }
 
-                Repeater {
-                    model: dialCard.segments
-                    delegate: Rectangle {
-                        id: dialIcon
-                        required property var modelData
-                        readonly property real midpoint: (modelData.startAngle + modelData.endAngle) / 2 - 90
-                        readonly property real markRadius: dialCanvas.width * StatsViewModel.clockLaneRadiusScale(modelData.lane) / 2
-                        width: dialCard.activeId === modelData.segmentId ? 38 : 30
-                        height: width; radius: 10
-                        x: dialCanvas.x + dialCanvas.width / 2 + Math.cos(midpoint * Math.PI / 180) * markRadius - width / 2
-                        y: dialCanvas.y + dialCanvas.height / 2 + Math.sin(midpoint * Math.PI / 180) * markRadius - height / 2
-                        z: 4
-                        visible: modelData.showIcon || dialCard.activeId === modelData.segmentId
-                        color: AppVisual.modelAppColor(modelData)
-                        border.width: 2; border.color: ml.panelBg
-                        opacity: dialCard.activeId === "" || dialCard.activeId === modelData.segmentId ? 1 : 0.3
-                        Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                        Behavior on opacity { NumberAnimation { duration: 120 } }
-                        Image {
-                            id: dialAppImage
-                            anchors.centerIn: parent
-                            width: parent.width - 10; height: width
-                            source: AppVisual.modelIconSource(modelData)
-                            sourceSize.width: 64; sourceSize.height: 64
-                            fillMode: Image.PreserveAspectFit
-                            asynchronous: true; smooth: true; mipmap: true
-                            visible: source != "" && status === Image.Ready
-                        }
-                        Text {
-                            anchors.centerIn: parent
-                            visible: AppVisual.modelIconSource(modelData) === "" || dialAppImage.status !== Image.Ready
-                            text: AppVisual.modelIconLabel(modelData)
-                            color: root.nightMode ? "#FFFFFF" : "#2D2724"
-                            font.pixelSize: 11; font.weight: 900
-                        }
-                    }
-                }
-
                 Rectangle {
-                    anchors.centerIn: dialCanvas
-                    width: dialCanvas.width * 0.39; height: width; radius: width / 2
+                    anchors.centerIn: ringCanvas
+                    width: ringCanvas.width * 0.39; height: width; radius: width / 2
                     z: 5
                     color: ml.panelBg
                     border.width: 1; border.color: ml.panelBorder
@@ -1468,20 +1490,24 @@ Item {
                         spacing: 5
                         Text {
                             width: parent.width
-                            text: dialCard.focusedSegment ? AppVisual.modelDisplayNameForLanguage(dialCard.focusedSegment, root.languageMode) : root.tr("Recorded today")
-                            color: dialCard.focusedSegment ? ml.aqua : ml.textTertiary
+                            text: ringCard.focusedArc ? root.categoryLabel(ringCard.focusedArc.category) : root.tr("Recorded today")
+                            color: ringCard.focusedArc ? ml.aqua : ml.textTertiary
                             font.pixelSize: 11; font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
                         }
                         Text {
                             width: parent.width
-                            text: dialCard.focusedSegment ? StatsViewModel.formatCompactDuration(dialCard.focusedSegment.seconds) : dialCard.totalText
+                            // 未聚焦时是**未过滤**的当日总时长，与右侧占比饼同源。
+                            text: ringCard.focusedArc ? StatsViewModel.formatCompactDuration(ringCard.focusedArc.seconds) : ringCard.totalText
                             color: ml.textPrimary; font.pixelSize: 29; font.weight: 900
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Text {
                             width: parent.width
-                            text: dialCard.focusedSegment ? root.tr(AppVisual.modelCategory(dialCard.focusedSegment)) : root.sentence("appCount", {count: root.vmApps.length})
+                            text: ringCard.focusedArc
+                                  ? root.sentence("dateRange", { from: ringCard.clockTime(ringCard.focusedArc.startUnixSec),
+                                                                 to: ringCard.clockTime(ringCard.focusedArc.endUnixSec) })
+                                  : root.sentence("appCount", { count: root.vmApps.length })
                             color: ml.textTertiary; font.pixelSize: 10
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
                         }
@@ -1489,42 +1515,83 @@ Item {
                 }
 
                 MouseArea {
-                    anchors.fill: dialCanvas
+                    anchors.fill: ringCanvas
                     z: 8
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton
-                    cursorShape: dialCard.hoveredId !== "" ? Cursor.button() : Qt.ArrowCursor
+                    cursorShape: ringCard.hoveredId !== "" ? Cursor.button() : Qt.ArrowCursor
                     function segmentAt(x, y) {
                         var dx = x - width / 2, dy = y - height / 2
                         var radius = Math.sqrt(dx * dx + dy * dy)
                         var base = Math.min(width, height) / 2
-                        if (radius < base * 0.43 || radius > base * 0.82) return ""
+                        var ringRadius = base * ringCard.ringRadiusScale
+                        // 命中带比可视环略宽，细弧也点得中。
+                        if (Math.abs(radius - ringRadius) > base * ringCard.ringWidthScale / 2 + base * 0.02)
+                            return ""
                         var angle = (Math.atan2(dy, dx) * 180 / Math.PI + 450) % 360
-                        var found = ""
-                        for (var i = dialCard.segments.length - 1; i >= 0; i--) {
-                            var segment = dialCard.segments[i]
-                            var laneRadius = base * StatsViewModel.clockLaneRadiusScale(segment.lane)
-                            if (Math.abs(radius - laneRadius) <= base * 0.06
-                                    && angle >= segment.startAngle && angle <= segment.endAngle) {
-                                found = segment.segmentId
-                                break
-                            }
+                        // 弧互不重叠；补宽后的细弧可能与邻弧贴边，取中点最近者。
+                        var found = "", bestDelta = 0
+                        for (var i = 0; i < ringCard.arcs.length; i++) {
+                            var arc = ringCard.arcs[i]
+                            if (angle < arc.startAngle || angle > arc.endAngle) continue
+                            var delta = Math.abs(angle - (arc.startAngle + arc.endAngle) / 2)
+                            if (found === "" || delta < bestDelta) { found = arc.arcId; bestDelta = delta }
                         }
                         return found
                     }
-                    onPositionChanged: function (mouse) { dialCard.hoveredId = segmentAt(mouse.x, mouse.y) }
-                    onExited: dialCard.hoveredId = ""
+                    onPositionChanged: function (mouse) { ringCard.hoveredId = segmentAt(mouse.x, mouse.y) }
+                    onExited: ringCard.hoveredId = ""
                     onClicked: function (mouse) {
                         var hitId = segmentAt(mouse.x, mouse.y)
-                        dialCard.lockedId = hitId === dialCard.lockedId ? "" : hitId
+                        ringCard.lockedId = hitId === ringCard.lockedId ? "" : hitId
                     }
                 }
             }
 
+            // 图例 / 明细：图标从环上撤掉后，这一行承担「里面是什么」。
+            // 未聚焦 = 全天类别（秒数取未过滤聚合）；聚焦 = 该块里的应用。
+            Flow {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 22
+                spacing: 14
+                Repeater {
+                    model: ringCard.focusedArc ? ringCard.focusedArc.apps : ringCard.legend
+                    delegate: Row {
+                        required property var modelData
+                        spacing: 6
+                        Rectangle {
+                            width: 9; height: 9; radius: 2
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: ringCard.focusedArc ? AppVisual.modelAppColor(modelData)
+                                                       : root.categoryHeatBase(modelData.id)
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ringCard.focusedArc
+                                  ? AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode)
+                                  : root.categoryLabel(modelData.id)
+                            color: ml.textSecondary; font.pixelSize: 11
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ringCard.focusedArc ? StatsViewModel.formatCompactDuration(modelData.seconds)
+                                                      : modelData.time
+                            color: ml.textTertiary; font.pixelSize: 11
+                            font.weight: Font.DemiBold
+                        }
+                    }
+                }
+            }
+
+            // 诚实脚注：环的形状被降噪过，这里说明折叠掉了多少条短记录。
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: root.tr("Hover to preview, click a sector to pin the app detail")
+                text: ringCard.footnote !== "" ? ringCard.footnote
+                                               : root.tr("Hover to preview, click a block to pin its detail")
                 color: ml.textTertiary; font.pixelSize: 11
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }

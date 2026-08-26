@@ -1094,10 +1094,10 @@ var zh = {
     "Already at the latest period": "已是最新一期",
     "What made up today": "今天的组成",
     "Time trend": "时间趋势",
-    "App clock": "应用时钟",
-    "Each sector is one real stretch of foreground app use": "每个扇区是一段真实的前台应用记录",
+    "Category clock": "分类时钟",
+    "Foreground records, merged into blocks by category": "前台记录，按类别合并成时间块",
     "Recorded today": "今日已记录",
-    "Hover to preview, click a sector to pin the app detail": "悬停预览，点击扇区锁定应用详情",
+    "Hover to preview, click a block to pin its detail": "悬停预览，点击时间块锁定详情",
     "24-hour time flow": "24 小时时间流",
     "Today's foreground records laid out in the order they happened": "按实际顺序展开今天的前台记录",
     "Full record": "完整记录",
@@ -1970,10 +1970,10 @@ var ja = {
     "Already at the latest period": "すでに最新の期間です",
     "What made up today": "今日の内訳",
     "Time trend": "時間の傾向",
-    "App clock": "アプリの時計",
-    "Each sector is one real stretch of foreground app use": "各扇形は、前面アプリの実際の使用時間ひとまとまりです",
+    "Category clock": "カテゴリ時計",
+    "Foreground records, merged into blocks by category": "前面アプリの記録を、カテゴリごとのまとまりに統合しています",
     "Recorded today": "今日の記録",
-    "Hover to preview, click a sector to pin the app detail": "ホバーでプレビュー、扇形をクリックするとアプリの詳細を固定します",
+    "Hover to preview, click a block to pin its detail": "ホバーでプレビュー、ブロックをクリックすると詳細を固定します",
     "24-hour time flow": "24 時間のタイムフロー",
     "Today's foreground records laid out in the order they happened": "今日の前面記録を、実際に起きた順に並べています",
     "Full record": "完全な記録",
@@ -2278,6 +2278,9 @@ var ja = {
 
 // Source templates, keyed by name. {placeholders} are substituted by sentence().
 var sentencesEn = {
+    "ringFoldedOnly": "{folded} brief stretches merged into the blocks around them.",
+    "ringDroppedOnly": "{dropped} isolated sub-minute records dropped.",
+    "ringFoldedAndDropped": "{folded} brief stretches merged in, {dropped} isolated sub-minute records dropped.",
     "aggregateFact": "{category} is the longest-recorded category {range}, and records cluster most around {peak}.",
     "weekOfMonth": "Week {n}",
     "dateRange": "{from} to {to}",
@@ -2388,6 +2391,9 @@ var sentencesEn = {
 }
 
 var sentencesZh = {
+    "ringFoldedOnly": "{folded} 段短暂使用已并入相邻时间块。",
+    "ringDroppedOnly": "{dropped} 条孤立的分钟内记录已丢弃。",
+    "ringFoldedAndDropped": "{folded} 段短暂使用已并入相邻时间块，{dropped} 条孤立的分钟内记录已丢弃。",
     "aggregateFact": "{category}是{range}记录时长最长的分类，{peak}的记录最集中。",
     "weekOfMonth": "第{n}周",
     "dateRange": "{from} 至 {to}",
@@ -2498,6 +2504,9 @@ var sentencesZh = {
 }
 
 var sentencesJa = {
+    "ringFoldedOnly": "短い利用 {folded} 件を前後のブロックにまとめました。",
+    "ringDroppedOnly": "孤立した 1 分未満の記録 {dropped} 件を除外しました。",
+    "ringFoldedAndDropped": "短い利用 {folded} 件を前後のブロックにまとめ、孤立した 1 分未満の記録 {dropped} 件を除外しました。",
     "aggregateFact": "{category}は{range}で最も記録時間が長いカテゴリで、{peak}に記録が集中しています。",
     "weekOfMonth": "第{n}週",
     "dateRange": "{from} 〜 {to}",
