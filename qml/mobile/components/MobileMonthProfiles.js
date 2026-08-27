@@ -6,96 +6,96 @@ var profiles = [
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-01.jpg",
         accent: "#BFD9E6", accentInk: "#102A38",
         particleKind: "snow", particleCount: 24, layoutVariant: "quiet",
-        eyebrow: "JANUARY · 冬日留白", title: "一月\n时间结冰",
-        opening: "新年的第一段时间，在安静里慢慢有了形状。"
+        eyebrow: "JANUARY · Winter Margins", title: "January\nTime freezes over",
+        opening: "The year's first stretch of time slowly takes shape in the quiet."
     },
     {
         month: 2, season: "winter",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-02.jpg",
         accent: "#E7C9D2", accentInk: "#482A34",
         particleKind: "melt", particleCount: 18, layoutVariant: "letter",
-        eyebrow: "FEBRUARY · 微光解冻", title: "二月\n风开始软",
-        opening: "一些习惯没有声张，却在早春之前悄悄返场。"
+        eyebrow: "FEBRUARY · A Faint Thaw", title: "February\nThe wind softens",
+        opening: "Some habits returned quietly, without announcement, just before early spring."
     },
     {
         month: 3, season: "spring",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-03.jpg",
         accent: "#BFD7B4", accentInk: "#1D3824",
         particleKind: "rain", particleCount: 28, layoutVariant: "window",
-        eyebrow: "MARCH · 春雨初醒", title: "三月\n时间温室",
-        opening: "第一段时间从雨后亮起，像一扇刚被推开的窗。"
+        eyebrow: "MARCH · First Spring Rain", title: "March\nA greenhouse of time",
+        opening: "The first stretch brightens after the rain, like a window just pushed open."
     },
     {
         month: 4, season: "spring",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-04.jpg",
         accent: "#F0C2CC", accentInk: "#542A35",
         particleKind: "petal", particleCount: 22, layoutVariant: "bloom",
-        eyebrow: "APRIL · 花影经过", title: "四月\n被风翻页",
-        opening: "屏幕亮起又熄灭，日子像花影一样从手边经过。"
+        eyebrow: "APRIL · Blossom Shadows", title: "April\nTurned by the wind",
+        opening: "Screens lit and dimmed, and the days passed like blossom shadows through your hands."
     },
     {
         month: 5, season: "spring",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-05.jpg",
         accent: "#F1D59C", accentInk: "#4B3513",
         particleKind: "dust", particleCount: 20, layoutVariant: "reading",
-        eyebrow: "MAY · 日光长页", title: "五月\n光落在桌上",
-        opening: "你把时间铺在许多小事上，也把五月读得很长。"
+        eyebrow: "MAY · Long Pages of Light", title: "May\nLight on the desk",
+        opening: "You spread your time across many small things, and read May long."
     },
     {
         month: 6, season: "summer",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-06.jpg",
         accent: "#B4E0C0", accentInk: "#153B2A",
         particleKind: "storm", particleCount: 30, layoutVariant: "rain",
-        eyebrow: "JUNE · 雨季回声", title: "六月\n听见时间",
-        opening: "最长的一场雨落在记录里，也落在你专注的深处。"
+        eyebrow: "JUNE · Echoes of the Rains", title: "June\nHearing time",
+        opening: "The longest rain fell into the record, and deep into your focus."
     },
     {
         month: 7, season: "summer",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-07.jpg",
         accent: "#D8E89B", accentInk: "#304110",
         particleKind: "firefly", particleCount: 26, layoutVariant: "night",
-        eyebrow: "JULY · 萤火长夜", title: "七月\n晚风有光",
-        opening: "深夜的使用留下微小亮点，连起来就是你的夏夜。"
+        eyebrow: "JULY · Fireflies, Long Nights", title: "July\nLight in the evening air",
+        opening: "Late-night use left small points of light; joined up, they are your summer nights."
     },
     {
         month: 8, season: "summer",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-08.jpg",
         accent: "#B6D9E2", accentInk: "#173A45",
         particleKind: "lateRain", particleCount: 30, layoutVariant: "lane",
-        eyebrow: "AUGUST · 暮雨回程", title: "八月\n雨走得很慢",
-        opening: "忙碌在傍晚降温，时间沿着湿润的街道回到身边。"
+        eyebrow: "AUGUST · The Way Home in Rain", title: "August\nThe rain moves slowly",
+        opening: "The rush cools by evening, and time comes back along wet streets."
     },
     {
         month: 9, season: "autumn",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-09.jpg",
         accent: "#E8C876", accentInk: "#493512",
         particleKind: "grain", particleCount: 22, layoutVariant: "field",
-        eyebrow: "SEPTEMBER · 风吹麦浪", title: "九月\n收下金色",
-        opening: "规律开始变得清晰，许多短暂的投入有了收获。"
+        eyebrow: "SEPTEMBER · Wind Through the Wheat", title: "September\nTaking in the gold",
+        opening: "The pattern grew clear, and many brief efforts came to something."
     },
     {
         month: 10, season: "autumn",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-10.jpg",
         accent: "#E8A66F", accentInk: "#4B2914",
         particleKind: "leaf", particleCount: 24, layoutVariant: "forest",
-        eyebrow: "OCTOBER · 林间来信", title: "十月\n风写了信",
-        opening: "常用的应用再次相遇，像秋日小径上重叠的脚步。"
+        eyebrow: "OCTOBER · A Letter from the Woods", title: "October\nThe wind wrote",
+        opening: "Familiar apps met again, like overlapping footsteps on an autumn path."
     },
     {
         month: 11, season: "autumn",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-11.jpg",
         accent: "#D8CFA8", accentInk: "#3D3825",
         particleKind: "ginkgo", particleCount: 18, layoutVariant: "passage",
-        eyebrow: "NOVEMBER · 初霜之后", title: "十一月\n光变得薄",
-        opening: "日子安静下来，你仍在一些熟悉的地方留下时间。"
+        eyebrow: "NOVEMBER · After the First Frost", title: "November\nThe light thins",
+        opening: "The days quietened, and you still left time in a few familiar places."
     },
     {
         month: 12, season: "winter",
         sceneSource: "qrc:/qt/qml/time_arc/resources/features/monthly-recap/month-12.jpg",
         accent: "#D9E5EF", accentInk: "#243545",
         particleKind: "snow", particleCount: 30, layoutVariant: "home",
-        eyebrow: "DECEMBER · 年末灯火", title: "十二月\n回到灯下",
-        opening: "这一年的最后一段时间，被熟悉的光温柔接住。"
+        eyebrow: "DECEMBER · Year-End Lights", title: "December\nBack under the lamp",
+        opening: "The year's last stretch of time, caught gently by a familiar light."
     }
 ]
 

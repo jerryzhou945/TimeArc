@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import "../components/TagPalette.js" as TagPalette
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 // 便签（v88 .sticky-note）。扁平暖黄纸 #FFE6A3 + 接触软阴影；隐藏拖拽 header（hover/选中升起）；
@@ -48,7 +48,7 @@ Item {
         var fmt = settingsRepository ? settingsRepository.getValue("time_format", "24") : "24";
         if (I18n.langKey(languageMode) === "en")
             return Qt.formatDateTime(value, fmt === "12" ? "MMM d  h:mm AP" : "MMM d  HH:mm");
-        return Qt.formatDateTime(value, fmt === "12" ? "M月d日  h:mm AP" : "M月d日  HH:mm");
+        return Qt.formatDateTime(value, I18n.monthDayTimeFormat(languageMode, fmt === "12"));
     }
 
     z: 124
@@ -115,7 +115,7 @@ Item {
                 leftPadding: 16; rightPadding: 16; topPadding: 6
                 background: null
                 text: note.title
-                placeholderText: I18n.t(note.languageMode, "标题")
+                placeholderText: I18n.t(note.languageMode, "Title")
                 color: note.style ? note.style.stickyInk : "#1E1E1E"
                 placeholderTextColor: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.4)
                 font.pixelSize: note.compact ? 19 : 24
@@ -140,7 +140,7 @@ Item {
                     textFormat: TextEdit.PlainText
                     color: note.done ? Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.45)
                                      : (note.style ? note.style.stickyInk : "#1E1E1E")
-                    placeholderText: I18n.t(note.languageMode, "写点什么…")
+                    placeholderText: I18n.t(note.languageMode, "Write something...")
                     placeholderTextColor: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.4)
                     font.pixelSize: note.compact ? 15 : 18
                     onActiveFocusChanged: { note.editing = activeFocus; if (activeFocus) note.selectRequested(false) }
@@ -182,7 +182,7 @@ Item {
                         Text {
                             id: addTagText
                             anchors.centerIn: parent
-                            text: "＋ " + I18n.t(note.languageMode, "标签")
+                            text: "＋ " + I18n.t(note.languageMode, "Tag")
                             color: Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.5)
                             font.pixelSize: 11
                         }
@@ -223,7 +223,7 @@ Item {
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: I18n.t(note.languageMode, "待办")
+                            text: I18n.t(note.languageMode, "Todos")
                             color: note.isTodo ? (note.style ? note.style.violet : "#6A5AE0")
                                                : Qt.rgba(30 / 255, 30 / 255, 30 / 255, 0.55)
                             font.pixelSize: 12
@@ -301,7 +301,7 @@ Item {
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: dateRow.hasDue ? note.dueTimeText(new Date(note.due))
-                                                     : I18n.t(note.languageMode, "设置截止时间")
+                                                     : I18n.t(note.languageMode, "Set due time")
                                 color: Qt.rgba(dateRow.inkBase.r, dateRow.inkBase.g, dateRow.inkBase.b,
                                                dateRow.hasDue ? 0.84 : 0.52)
                                 font.pixelSize: dateRow.hasDue ? 13 : 12

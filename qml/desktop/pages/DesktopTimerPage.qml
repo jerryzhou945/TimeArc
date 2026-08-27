@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import "../components"
 import "../components/TagPalette.js" as TagPalette
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
@@ -19,7 +19,7 @@ Item {
     property string languageMode: "zh"
 
     function tr(source) { return I18n.t(languageMode, source) }
-    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
+    function sentence(key, params) { return I18n.sentence(languageMode, key, params) }
 
     property color textPrimary: themeTextPrimary
     property color textSecondary: themeTextSecondary
@@ -131,22 +131,22 @@ Item {
                         spacing: 4
 
                         Text {
-                text: root.tr("手动计时")
+                text: root.tr("Manual Timer")
                             color: textPrimary
                             font.pixelSize: 30
                             font.bold: true
                         }
 
                         Text {
-                text: root.tr("结束后会自动回到首页，并把本次时长累计到项目中。")
+                text: root.tr("After finishing, TimeArc returns home and adds this duration to the project.")
                             color: textSecondary
                             font.pixelSize: 14
                         }
                     }
 
                     SoftPill {
-                        title: "状态"
-                        value: timerManager ? (timerManager.running ? "进行中" : "已暂停") : "未连接"
+                        title: "Status"
+                        value: timerManager ? (timerManager.running ? "Running" : "Paused") : "Not connected"
                         iconText: timerManager && timerManager.running ? "●" : "Ⅱ"
                         fillColor: timerManager && timerManager.running ? lightMint : cream
                         strokeColor: softBorder
@@ -180,7 +180,7 @@ Item {
                                 Layout.alignment: Qt.AlignHCenter
                                 compact: true
                                 title: ""
-                                value: timerManager ? (timerManager.currentProject && timerManager.currentProject.length > 0 ? timerManager.currentProject : "未选择项目") : "计时器未连接"
+                                value: timerManager ? (timerManager.currentProject && timerManager.currentProject.length > 0 ? timerManager.currentProject : "No project selected") : "Timer not connected"
                                 iconText: "T"
                                 fillColor: nightMode ? "#535B7B" : "#FFFDF9"
                                 strokeColor: softBorder
@@ -201,8 +201,8 @@ Item {
                             Text {
                                 Layout.fillWidth: true
                                 text: timerManager
-                                      ? (timerManager.running ? "保持现在的节奏，慢慢推进。" : "已经暂停，可以随时继续。")
-                                      : "计时器未连接"
+                                      ? (timerManager.running ? "Keep this pace and move along steadily." : "Paused — you can resume whenever you like.")
+                                      : "Timer not connected"
                                 color: textSecondary
                                 font.pixelSize: 15
                                 horizontalAlignment: Text.AlignHCenter
@@ -213,7 +213,7 @@ Item {
                                 spacing: 14
 
                                 SoftButton {
-                    text: timerManager && timerManager.running ? root.tr("暂停") : root.tr("继续")
+                    text: timerManager && timerManager.running ? root.tr("Pause") : root.tr("Resume")
                                     iconText: timerManager && timerManager.running ? "Ⅱ" : "▶"
                                     implicitWidth: 132
                                     implicitHeight: 52
@@ -236,7 +236,7 @@ Item {
                                 }
 
                                 SoftButton {
-                    text: root.tr("结束")
+                    text: root.tr("Finish")
                                     iconText: "✓"
                                     implicitWidth: 132
                                     implicitHeight: 52
@@ -277,14 +277,14 @@ Item {
 
                     Text {
                         Layout.fillWidth: true
-                text: root.tr("最近项目")
+                text: root.tr("Recent Projects")
                         color: textPrimary
                         font.pixelSize: 22
                         font.bold: true
                     }
 
                     Text {
-                text: root.sentence("projectCountPlain", {count: recentProjects(4).length}, recentProjects(4).length + " 个")
+                text: root.sentence("projectCountPlain", {count: recentProjects(4).length})
                         color: textSecondary
                         font.pixelSize: 13
                     }
@@ -359,7 +359,7 @@ Item {
                         Text {
                             anchors.centerIn: parent
                             visible: recentProjects(8).length === 0
-                    text: root.tr("还没有最近项目")
+                    text: root.tr("No recent projects yet")
                             color: textSecondary
                             font.pixelSize: 14
                         }

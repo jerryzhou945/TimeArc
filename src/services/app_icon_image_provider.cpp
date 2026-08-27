@@ -88,7 +88,31 @@ QStringList knownExecutableCandidates(const QString& rawIdentity) {
   return {id + QStringLiteral(".exe")};
 }
 
+// 解析结果记忆化：这条路径在 Windows 上要开最多 3 个注册表键（App Paths）、跑一次
+// QStandardPaths::findExecutable、外加若干 QFileInfo::exists——同一个 identity 反复问
+// 只会得到同一个答案。像素图缓存被清空时也不必重付这笔 I/O。
+QString resolveIconFileUncached(const QString& identity);
+
 QString resolveIconFile(const QString& identity) {
+  static QHash<QString, QString> resolvedPathCache;
+  static QMutex resolvedPathCacheMutex;
+  {
+    QMutexLocker locker(&resolvedPathCacheMutex);
+    const auto it = resolvedPathCache.constFind(identity);
+    if (it != resolvedPathCache.constEnd()) return *it;
+  }
+
+  const QString resolved = resolveIconFileUncached(identity);
+
+  {
+    QMutexLocker locker(&resolvedPathCacheMutex);
+    if (resolvedPathCache.size() > 2048) resolvedPathCache.clear();
+    resolvedPathCache.insert(identity, resolved);
+  }
+  return resolved;
+}
+
+QString resolveIconFileUncached(const QString& identity) {
   const QString raw = QUrl::fromPercentEncoding(identity.toUtf8()).trimmed();
   const QString direct = existingPathOrEmpty(raw);
   if (!direct.isEmpty()) return direct;
@@ -161,8 +185,9 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
   const int requestedSide =
       qMax(requestedSize.width(), requestedSize.height());
   const int side = qBound(16, requestedSide > 0 ? requestedSide : 64, 256);
-  const QString path = resolveIconFile(id);
-  const QString cacheKey = path + QChar(0x1f) + QString::number(side);
+  // 缓存键用**原始 id**，不是解析后的路径：id → path 是确定性的，用 path 做键就得先
+  // 解析，于是每一次缓存命中也照样付一遍注册表/文件系统探测。解析改到未命中之后。
+  const QString cacheKey = id + QChar(0x1f) + QString::number(side);
 
   static QHash<QString, QPixmap> iconPixmapCache;
   static QMutex iconPixmapCacheMutex;
@@ -180,6 +205,7 @@ QPixmap AppIconImageProvider::requestPixmap(const QString& id, QSize* size,
     }
   }
 
+  const QString path = resolveIconFile(id);  // 未命中才解析（自身也有记忆化）
   QPixmap pixmap;
   if (!path.isEmpty()) {
     const QFileInfo fileInfo(path);

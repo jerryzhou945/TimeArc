@@ -1,14 +1,17 @@
 """Guards against duplicate keys reappearing in the I18n.js translation tables.
 
-The bug this pins down: `en` had grown to 608 entries of which 84 keys were
+The bug this pins down: a table had grown to 608 entries of which 84 keys were
 declared twice — a whole block of settings-page strings pasted a second time,
 plus a second copy of the stats-card labels. A JS object literal keeps the
 *last* value, so every earlier copy was dead code, and 15 of those pairs had
 drifted apart: someone edited the first copy and the string on screen never
-changed. `ja` had two such pairs as well.
+changed.
 
-Duplicates are invisible in review (the file is one long alphabet-free list),
+Duplicates are invisible in review (each table is one long alphabet-free list),
 so this test counts keys per table and fails on any repeat.
+
+Since the English-first inversion the tables are keyed by the English source
+string and named for their *target* language (zh, ja), not the source.
 """
 
 import collections
@@ -20,6 +23,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 TABLE = re.compile(r"^var (\w+) = \{$")
 ENTRY = re.compile(r'^\s*"((?:[^"\\]|\\.)*)":\s*"((?:[^"\\]|\\.)*)",?$')
+
+# Every table keyed by an English source string, plus the language it targets.
+SOURCE_KEYED = ("zh", "ja", "menuZh", "menuJa")
+# Templates keyed by name rather than by source text.
+TEMPLATE_KEYED = ("sentencesEn", "sentencesZh", "sentencesJa")
 
 
 def tables(js):
@@ -54,10 +62,10 @@ def tables(js):
 
 
 def main():
-    js = (ROOT / "qml/desktop/components/I18n.js").read_text(encoding="utf-8")
+    js = (ROOT / "qml/shared/I18n.js").read_text(encoding="utf-8")
     parsed = tables(js)
 
-    for expected in ("en", "ja", "sentencesEn", "sentencesJa", "menuEn", "menuJa"):
+    for expected in SOURCE_KEYED + TEMPLATE_KEYED:
         if expected not in parsed:
             raise AssertionError(f"missing table: {expected}")
 
@@ -74,20 +82,21 @@ def main():
                 f"value silently wins and the earlier one is dead: {detail}"
             )
 
-    # Every source key in the smaller tables should also exist in `en`, which is
-    # the full source-string inventory. A key only in `ja` means English falls
-    # back to raw Chinese.
-    en_keys = {key for key, _ in parsed["en"]}
-    missing = sorted({key for key, _ in parsed["ja"]} - en_keys)
-    if missing:
-        raise AssertionError(
-            f"{len(missing)} key(s) translated in ja but absent from en: "
-            f"{missing[:5]}"
-        )
+    # Every Japanese template must correspond to a real English one, or it is
+    # keyed to a name sentence() will never ask for.
+    en_keys = {key for key, _ in parsed["sentencesEn"]}
+    for name in ("sentencesZh", "sentencesJa"):
+        orphans = sorted({key for key, _ in parsed[name]} - en_keys)
+        if orphans:
+            raise AssertionError(
+                f"{name} has {len(orphans)} template(s) with no sentencesEn "
+                f"counterpart, so they are unreachable: {orphans[:5]}"
+            )
 
-    print("i18n duplicate key static test: OK")
-    for name, entries in parsed.items():
-        print(f"  {name}: {len(entries)} keys")
+    print(
+        "i18n tables OK — "
+        + ", ".join(f"{n} {len(parsed[n])}" for n in SOURCE_KEYED + TEMPLATE_KEYED)
+    )
 
 
 if __name__ == "__main__":

@@ -62,10 +62,11 @@ def main():
     # it is what let this bug sit unnoticed.
     require(profile, "if (!Qt.openUrlExternally(root._folderUrlOf(p)))",
             "return value checked at the Open Folder call site")
-    for lang_table, entry in (("en", "Could not open the folder"),
+    # English is the source string; the tables translate away from it.
+    for lang_table, entry in (("zh", "无法打开文件夹"),
                               ("ja", "フォルダを開けませんでした")):
-        js = read("qml/desktop/components/I18n.js")
-        if f'"无法打开文件夹": "{entry}"' not in js:
+        js = read("qml/shared/I18n.js")
+        if f'"Could not open the folder": "{entry}"' not in js:
             raise AssertionError(f"missing {lang_table} entry for the failure toast")
 
     # The two sites that were already correct.

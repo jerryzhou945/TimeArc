@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 记忆湖页面：1:1 复刻 MemoryLakeDesign/memory_lake_v25_win11_style.html 的窗口内部三栏。
 // 阶段 A：三栏静态排版 + 灯光底子 + 主题。后续阶段补卡牌交互 / 丝滑滚动 / 月度回顾。
@@ -22,18 +22,10 @@ Item {
     property string languageMode: "zh"
 
     function tr(source) { return I18n.t(languageMode, source) }
-    function translateThemeText(source) {
-        if (!source || source.length === 0)
-            return ""
-        if (I18n.langKey(languageMode) === "en") {
-            if (source.indexOf("为主") >= 0) {
-                var theme = source.replace("为主", "").trim()
-                return I18n.category(languageMode, theme) + " Focus"
-            }
-        }
-        return I18n.smartText(languageMode, source)
-    }
-
+    // dayModel 里的 app 名按 UI 语言解析（activityDisplayName → labelFor(..., uiLanguage())），
+    // 而 recordsGeneration() 不因语言切换自增 → 显式让守卫失效，否则换语言后卡牌名停在旧语言。
+    // 统计页同样处理（DesktopStatsPage.qml:95）。
+    onLanguageModeChanged: { root._builtGen = -1; root.recomputeDayModel() }
     // —— 当前选中的记忆 ——
     property int selectedIndex: 0
     property int flippedIndex: -1
@@ -54,6 +46,8 @@ Item {
     // 记忆湖·日视图模型：dailyCardService.memoryLakeDay 产出（后端组装，QML 只渲染）。
     // 取数走首页同款只读路径（usageStatManager），无数据走空态，绝不用 Mock 假数据冒充。
     property var dayModel: ({})
+    // recomputeDayModel 的数据代际守卫，见该函数注释。
+    property int _builtGen: -1
     readonly property var apps: (dayModel && dayModel.apps) ? dayModel.apps : []
     readonly property bool hasData: apps.length > 0
     readonly property var current: apps.length > 0
@@ -61,11 +55,11 @@ Item {
     readonly property bool locked: flippedIndex >= 0
 
     readonly property var overview: (dayModel && dayModel.overview)
-        ? dayModel.overview : ({ total: "0m", sub: "暂无记录" })
+        ? dayModel.overview : ({ total: "0m", sub: "No records" })
     readonly property var todayTheme: (dayModel && dayModel.todayTheme)
         ? dayModel.todayTheme
-        : ({ kicker: "今日主题", title: "今天还很安静",
-             desc: "还没有自动记录，开始使用后这里会生成今日主题。", ratio: 0 })
+        : ({ kicker: "Today's Theme", title: "Today is still quiet",
+             desc: "No automatic records yet. Once you start using the computer, today's theme appears here.", ratio: 0 })
 
     // 今日结论 / 今日占比：后端在 memoryLakeDay 里组装好，QML 只渲染。
     readonly property var todayConclusion: (dayModel && dayModel.todayConclusion)
@@ -165,8 +159,22 @@ Item {
         return out
     }
 
+    // 数据代际守卫（同统计页 DesktopStatsPage.rebuild）：无新数据的 5s tick 直接返回。
+    // 这条路径是全 app 最贵的一处——recomputeDayModel 一次要做 6 遍全量聚合：
+    // day 的 active + segments，再加 enrichDurations 的 day/month/year/**all**，
+    // 其中 "all" 聚合有史以来每一条记录且随使用无界增长。空闲时重做纯属浪费。
     function recomputeDayModel() {
-        if (!usageStatManager || !dailyCardService) { root.dayModel = ({}); return; }
+        if (!usageStatManager || !dailyCardService) {
+            root.dayModel = ({});
+            root._builtGen = -1;
+            return;
+        }
+        // 拿不到代际（旧后端）→ 退回「每次都算」的老行为，不因守卫把页面卡在空态。
+        if (usageStatManager.recordsGeneration) {
+            var gen = usageStatManager.recordsGeneration();
+            if (gen === root._builtGen) return;
+            root._builtGen = gen;
+        }
         var model = dailyCardService.memoryLakeDay(
             usageStatManager.activeSoftwareForRange("day"),
             usageStatManager.foregroundSegmentsForRange("day"));
@@ -258,7 +266,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 3
                             Text { text: root.tr("Memory Lake"); color: ml.textPrimary; font.pixelSize: 18; font.bold: true }
-                            Text { text: root.tr("电脑使用时间记录"); color: ml.textTertiary; font.pixelSize: 11 }
+                            Text { text: root.tr("Computer usage record"); color: ml.textTertiary; font.pixelSize: 11 }
                         }
                     }
                 }
@@ -279,10 +287,10 @@ Item {
                             text: root.tr(root.todayTheme.kicker); color: ml.aqua; font.pixelSize: 11; opacity: 0.9
                             font.capitalization: Font.AllUppercase; font.letterSpacing: 1.0
                         }
-                        Text { text: root.translateThemeText(root.todayTheme.title); color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
+                        Text { text: I18n.fromModel(root.languageMode, root.todayTheme.titleKey, root.todayTheme.titleParams); color: ml.textPrimary; font.pixelSize: 19; font.bold: true }
                         Text {
                             width: parent.width
-                            text: root.translateThemeText(root.todayTheme.desc)
+                            text: I18n.fromModel(root.languageMode, root.todayTheme.descKey, root.todayTheme.descParams)
                             color: ml.textSecondary
                             font.pixelSize: 12
                             wrapMode: Text.WordWrap
@@ -434,14 +442,14 @@ Item {
                     visible: !root.hasData
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.tr("今天还没有自动记录")
+                        text: root.tr("No automatic records yet today")
                         color: ml.textPrimary
                         font.pixelSize: 18
                         font.bold: true
                     }
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: root.tr("开始使用电脑后，这里会浮现今天的记忆卡片。")
+                        text: root.tr("Once you start using the computer, today's memory cards will appear here.")
                         color: ml.textSecondary
                         font.pixelSize: 13
                     }

@@ -3,6 +3,7 @@
 
 #include <QDate>
 #include <QDateTime>
+#include <QHash>
 #include <QObject>
 #include <QSettings>
 #include <QVariantList>
@@ -93,6 +94,13 @@ class ProjectManager : public QObject {
   QVariantList m_projects;  // 项目主表：name/tag/seconds/time。
   QVariantList m_sessions;  // 时间流水：date/source/displayName/seconds 等。
   ManualProjectRepository* m_repository;
+
+  // timeEntriesForDate 的按日缓存。每次调用都是一条 getSessionsByRange 的 SQL，而日历
+  // 的「专注记录」一次 refreshWeekFocus 就要问 7 天，dayAgenda / dayTagSummary / dayProjects
+  // 还会再问选中日若干次。所有写入路径都 emit projectsChanged（addProject / removeProject /
+  // 每个 appendSession 调用点都验证过），故构造时连自己这条信号清空即可——注意这是连**自身**
+  // 信号，不是管理器之间直连（rules/04 §6 禁止的是后者）。
+  mutable QHash<QString, QVariantList> m_timeEntriesByDate;
 
   void loadProjects();
   void saveProjects();

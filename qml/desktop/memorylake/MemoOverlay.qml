@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Effects
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 // 备忘黑板·模态覆盖层（v88 #memoOverlay）。
@@ -99,7 +99,7 @@ Item {
         for (var i = 0; i < a.length; i++) {
             var o = a[i];
             objectModel.append({ otype: o.t, ox: o.x, oy: o.y, ow: o.w, oh: o.h,
-                                 otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "输入文字",
+                                 otitle: o.ti || "", ocontent: o.co || "", otext: o.tx || "Enter text",
                                  osign: o.sg || "",
                                  ots: o.ts || 0, odone: o.done === true, odue: o.due || 0,
                                  otag: o.tg || "", oisTodo: o.td === true,
@@ -185,7 +185,7 @@ Item {
         store.setValue(memo.docKey, JSON.stringify({ v: 2, pages: pagesData, current: currentPage,
                                                      pen: { pw: toolbar.penWidth, ew: toolbar.eraserWidth,
                                                             color: "" + toolbar.inkColor } }));
-        saveStatus.flash("笔迹已保存");
+        saveStatus.flash("Ink saved");
     }
     function loadDoc() {
         if (!store) return;
@@ -281,7 +281,7 @@ Item {
     }
     function createText(px, py) {
         objectModel.append({ otype: "text", ox: px, oy: py, ow: 240, oh: 0,
-                             otitle: "", ocontent: "", otext: I18n.t(memo.languageMode, "输入文字"), osign: "",
+                             otitle: "", ocontent: "", otext: I18n.t(memo.languageMode, "Enter text"), osign: "",
                              ots: 0, odone: false, odue: 0,
                              otag: "", oisTodo: false, onid: "" });
         memo.selectedObject = objectModel.count - 1;
@@ -330,9 +330,9 @@ Item {
         return _pad2(d.getHours()) + ":" + _pad2(d.getMinutes());
     }
     function _noteToTodoRow(title, content, tag, done, due, nid) {
-        return { text: (title && title !== "") ? title : "(无标题便签)",
+        return { text: (title && title !== "") ? title : "(Untitled note)",
                  done: done === true,
-                 tag: (tag && tag !== "") ? tag : "学习",
+                 tag: (tag && tag !== "") ? tag : "Study",
                  linkedProject: "",
                  time: _dueTimeFor(due),
                  type: "todo",
@@ -465,7 +465,7 @@ Item {
         var hasInk = selRect.width > 1 && selRect.height > 1;
         memo._clip = { objs: objs, inkUrl: hasInk ? inkCanvas.exportDataURL() : "",
                        sx: selRect.x, sy: selRect.y, sw: selRect.width, sh: selRect.height };
-        if (store) saveStatus.flash("已复制 " + objs.length + " 项");
+        if (store) saveStatus.flash(I18n.sentence(languageMode, "copiedItems", {count: objs.length}));
     }
 
     // 选一个不出界的落点：右→下→左→上 依次试，都放不下再钳进画布。
@@ -585,12 +585,12 @@ Item {
 
     // 工具提示文案（逐字对齐 v88 setMemoTool 16301-16307）。
     readonly property var toolHints: ({
-        "none": "已取消当前工具。点击上方工具图标重新选择。",
-        "select": "选择模式：框选笔迹/便签/文字；拖选框移动、拖右下角缩放；复制键就地复制，Ctrl+C 复制 / Ctrl+V 粘贴(可跨页)，Del 删除。",
-        "note": "便签模式：点击画布创建白色便签，便签可拖动、可编辑、可左右上下拉伸。",
-        "text": "文字模式：点击画布添加文本，输入后可继续编辑。",
-        "pen": "画笔模式：按住鼠标在灰色蒙版上自由绘图。",
-        "eraser": "橡皮擦模式：按住鼠标擦除画笔痕迹。"
+        "none": "Tool cleared. Choose another tool from the toolbar.",
+        "select": "Select mode: drag to select ink, notes, or text; move the box, resize from the lower-right, duplicate in place, Ctrl+C/Ctrl+V across pages, Del to delete.",
+        "note": "Note mode: click the canvas to create a note. Notes can be moved, edited, and resized.",
+        "text": "Text mode: click the canvas to add editable text.",
+        "pen": "Pen mode: hold the mouse to draw freely.",
+        "eraser": "Eraser mode: hold the mouse to erase strokes."
     })
 
     anchors.fill: parent
@@ -1003,7 +1003,7 @@ Item {
                     color: copyMa.containsMouse ? Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20)
                                                 : Qt.rgba(0, 0, 0, 0.45)
                     border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.22)
-                    Text { id: copyT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "复制")
+                    Text { id: copyT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "Copy")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.92); font.pixelSize: 13 }
                     MouseArea { id: copyMa; anchors.fill: parent; hoverEnabled: true
                                 cursorShape: Cursor.button(); onClicked: memo._copySelection() }
@@ -1013,7 +1013,7 @@ Item {
                     color: delMa.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.75)
                                                : Qt.rgba(0, 0, 0, 0.45)
                     border.width: 1; border.color: Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.40)
-                    Text { id: delT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "删除")
+                    Text { id: delT; anchors.centerIn: parent; text: I18n.t(memo.languageMode, "Delete")
                            color: Qt.rgba(255 / 255, 235 / 255, 235 / 255, 0.95); font.pixelSize: 13 }
                     MouseArea { id: delMa; anchors.fill: parent; hoverEnabled: true
                                 cursorShape: Cursor.button(); onClicked: memo._deleteSelection() }
@@ -1116,13 +1116,13 @@ Item {
                 spacing: 14
                 Text {
                     width: parent.width; horizontalAlignment: Text.AlignHCenter
-                    text: I18n.t(memo.languageMode, "清空本页墨迹？")
+                    text: I18n.t(memo.languageMode, "Clear ink on this page?")
                     color: Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.94)
                     font.pixelSize: 16; font.weight: Font.DemiBold
                 }
                 Text {
                     width: parent.width; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
-                    text: memo.shortcutDisplayText("仅清当前页手绘，便签 / 文字保留。可 Ctrl+Z 撤销。")
+                    text: memo.shortcutDisplayText("Only clears ink on this page. Notes and text remain. Ctrl+Z can undo.")
                     color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12
                 }
                 Row {
@@ -1132,14 +1132,14 @@ Item {
                         width: 96; height: 34; radius: 10
                         color: cancelH.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                         border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
-                        Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "取消"); color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
+                        Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "Cancel"); color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
                         MouseArea { id: cancelH; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button()
                             onClicked: clearConfirm.open = false }
                     }
                     Rectangle {
                         width: 96; height: 34; radius: 10
                         color: clearGoH.containsMouse ? Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.85) : Qt.rgba(255 / 255, 95 / 255, 95 / 255, 0.55)
-                        Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "清空"); color: "#FFFFFF"; font.pixelSize: 14; font.weight: Font.DemiBold }
+                        Text { anchors.centerIn: parent; text: I18n.t(memo.languageMode, "Clear"); color: "#FFFFFF"; font.pixelSize: 14; font.weight: Font.DemiBold }
                         MouseArea { id: clearGoH; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button()
                             onClicked: { memo.clearCurrentCanvas(); clearConfirm.open = false } }
                     }
@@ -1213,14 +1213,14 @@ Item {
         Text {
             id: saveStatusText
             anchors.centerIn: parent
-            text: I18n.t(memo.languageMode, "笔迹会自动保存")
+            text: I18n.t(memo.languageMode, "Ink is saved automatically")
             color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.80)
             font.pixelSize: 12
         }
         Timer {
             id: fadeTimer
             interval: 1100
-            onTriggered: { saveStatus.flashOn = false; saveStatusText.text = I18n.t(memo.languageMode, "笔迹会自动保存"); }
+            onTriggered: { saveStatus.flashOn = false; saveStatusText.text = I18n.t(memo.languageMode, "Ink is saved automatically"); }
         }
     }
 }

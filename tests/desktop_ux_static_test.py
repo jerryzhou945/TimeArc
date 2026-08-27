@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -41,7 +42,7 @@ def main():
     mobile_settings_qml = read("qml/mobile/pages/MobileSettingsPage.qml")
     calendar_qml = read("qml/desktop/pages/DesktopCalenderPage.qml")
     settings_qml = read("qml/desktop/pages/DesktopProfilePage.qml")
-    i18n_js = read("qml/desktop/components/I18n.js")
+    i18n_js = read("qml/shared/I18n.js")
     app_visual_js = read("qml/desktop/components/AppVisual.js")
     settings_cpp = read("src/services/settings_repository.cpp")
     settings_h = read("src/services/settings_repository.h")
@@ -50,9 +51,9 @@ def main():
     usage_h = read("src/services/usage_stat_manager.h")
     all_apps_cpp = usage_cpp.split("QVariantList UsageStatManager::allApps() const", 1)[1]
     icon_provider_cpp = read("src/services/app_icon_image_provider.cpp")
-    adapter_registry_h = read("src/services/adapters/desktop_app_adapter_registry.h")
-    activity_registry_h = read("src/services/adapters/activity_adapter_registry.h")
-    codex_adapter_h = read("src/services/adapters/apps/codex_adapter.h")
+    default_rules_h = read("src/services/categorization/default_rules.h")
+    matcher_h = read("src/services/categorization/matcher.h")
+    rule_set_json_h = read("src/services/categorization/rule_set_json.h")
 
     require(main_cpp, "TimeArcUiSingleInstance", "UI single-instance mutex")
     require(main_cpp, "activateExistingTimeArcWindow", "existing-window activation")
@@ -161,7 +162,10 @@ def main():
     reject(usage_cpp, 'containsAny(text, {"cloudmusic", "netease"})',
            "generic NetEase app matching")
     require(usage_cpp, 'item["lastUsedUnixSec"]', "application aggregate recent record time")
-    require(all_apps_cpp, "if (!m_autoClassify)", "all-app library auto-classify gating")
+    # Auto-classify gating moved into the rule engine: inference stops, but a
+    # rule the user created or edited is not inference and stays in force.
+    require(matcher_h, "options.autoClassify", "auto-classify gating in the matcher")
+    require(matcher_h, "rule.userTouched", "user-touched rules survive auto-classify off")
     require(all_apps_cpp, "!m_gameClassify", "all-app library game-classify gating")
     require(usage_h, "setAppDisplayNameOverrides", "application display name override API")
     reject(usage_h, "validateCustomAppId", "retired application ID validation API")
@@ -174,7 +178,7 @@ def main():
     require(settings_qml, "restoreAppDisplayName", "application display-name restore action")
     reject(settings_qml, "pendingMergeKey", "retired identity collision confirmation")
     require(settings_qml, "originalGroupKey", "read-only original application identity")
-    require(i18n_js, "自定义显示名称", "application display-name editor translation")
+    require(i18n_js, "Custom display name", "application display-name editor translation")
     require(main_cpp, "ensureAutostartDefaultEnabled", "Windows first-run autostart default")
     require(settings_h, "ensureAutostartDefaultEnabled", "durable autostart default API")
     require(settings_cpp, "RegSetValueExW", "native Windows autostart registry write")
@@ -191,7 +195,7 @@ def main():
     require(stats_qml, "component StatsCategoryDistribution", "shared category distribution")
     require(stats_qml, "// ====== 周/月/年共用聚合视图 ======", "shared period layout")
     require(stats_qml, 'barCount: root.vmTrendBars.length', "period-specific trend density")
-    require(stats_qml, 'text: root.tr("最近记录")', "application library recent record column")
+    require(stats_qml, 'text: root.tr("Recent records")', "application library recent record column")
     reject(stats_qml, 'title: "月度日历"', "retired standalone monthly calendar")
     reject(stats_qml, "StatsYearRhythm {", "retired standalone yearly rhythm")
 
@@ -200,9 +204,24 @@ def main():
     require(icon_provider_cpp, "normalizedIconPixmap", "app icon transparent-padding trim")
     require(icon_provider_cpp, "Stardew Valley.exe", "Stardew icon candidate")
     require(icon_provider_cpp, "r5apex.exe", "Apex icon candidate")
-    require(codex_adapter_h, "codexAppAdapter", "Codex adapter definition")
-    require(adapter_registry_h, "codexAppAdapter(), vscodeAppAdapter()", "Codex adapter before VSCode")
-    require(activity_registry_h, "containsAnyLower(input.title, adapter.titleHints)", "desktop title hint matching")
+    # "Reset to defaults" must never be conditionally hidden: the rule table is
+    # always derived, so there is no state without something to reset to.
+    reset_block = re.search(r'GhostBtn \{[^}]*"Reset to defaults"[^}]*\}',
+                            settings_qml, re.S)
+    if reset_block is None:
+        raise AssertionError("missing reset-to-defaults button")
+    if "visible:" in reset_block.group(0):
+        raise AssertionError("reset-to-defaults button is conditionally hidden")
+
+    require(default_rules_h, '"app:codex"', "Codex rule in the default table")
+    require(default_rules_h, '"app:vscode"', "VS Code rule in the default table")
+    # Specificity, not table order, decides between overlapping rules.
+    require(matcher_h, "100 * conditions", "condition-count scoring")
+    require(matcher_h, "exact ? 50 : 0", "exactness bonus")
+    # A title needle must always be bound to an app; nothing matches on titles
+    # alone, and no rule targets an abstract group like "all browsers".
+    require(rule_set_json_h, "title match with no app", "app-bound title guard")
+    reject(matcher_h, "hasScope", "retired scope mechanism")
     require(app_visual_js, "app:codex", "Codex visual identity")
 
     require(calendar_qml, "normalizedImageSource", "calendar normalizes local image paths")

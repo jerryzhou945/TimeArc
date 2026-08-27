@@ -1,7 +1,10 @@
 import QtQuick
+import "../../../shared/I18n.js" as I18n
 
 Item {
     property var theme
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     property var report: ({})
     property var profile: ({})
 
@@ -14,7 +17,7 @@ Item {
         spacing: 18
 
         Text {
-            text: "这个月，时间有了刻度"
+            text: "This month, time gained a scale"
             color: "#E8FFFFFF"
             font.family: theme.fontFamily
             font.pixelSize: 15
@@ -22,7 +25,7 @@ Item {
         }
 
         Text {
-            text: report.totalText || "0 分钟"
+            text: report.totalText || "0 minutes"
             color: "white"
             font.family: theme.numberFontFamily
             font.pixelSize: 48
@@ -31,9 +34,9 @@ Item {
 
         Text {
             width: parent.width
-            text: (report.activeDays || 0) + " 个被记录的日子，"
-                  + (report.longestStreakDays || 0)
-                  + " 天连续留下时间。"
+            text: I18n.sentence(root.languageMode, "overviewActiveStreak",
+                                {days: report.activeDays || 0,
+                                 streak: report.longestStreakDays || 0})
             color: "#E5FFFFFF"
             font.family: theme.fontFamily
             font.pixelSize: 17
@@ -48,8 +51,8 @@ Item {
 
             Repeater {
                 model: [
-                    { label: "活跃日", value: (report.activeDays || 0) + " 天" },
-                    { label: "较上月", value: report.deltaPct === undefined
+                    { label: "Active days", value: I18n.sentence(root.languageMode, "dayCount", {count: report.activeDays || 0}) },
+                    { label: "vs last month", value: report.deltaPct === undefined
                               ? "—" : ((report.deltaPct >= 0 ? "+" : "")
                                       + report.deltaPct + "%") }
                 ]

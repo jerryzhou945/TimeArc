@@ -1,5 +1,5 @@
 import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 右栏「使用时间图 · 时间河流」：纵向时间轴 + 节点条 + 涟漪，跟随当前 APP。
 // 纵轴固定 0–24 时（自上而下），节点 y 与轴共用同一时间窗（§3.6 反错配修复）；
@@ -93,7 +93,7 @@ Item {
             return "";
         var text = displayTime(first.start) + "–" + displayTime(last.end);
         var count = end - start + 1;
-        return count > 1 ? (text + " · " + I18n.sentence(languageMode, "timesCount", {count: count}, count + "次")) : text;
+        return count > 1 ? (text + " · " + I18n.sentence(languageMode, "timesCount", {count: count})) : text;
     }
 
     function clusterLabelY(index) {
@@ -122,7 +122,7 @@ Item {
             height: 18
             Text {
                 anchors.left: parent.left
-                text: I18n.t(river.languageMode, "使用时间图 · 时间河流")
+                text: I18n.t(river.languageMode, "Usage Timeline · Time River")
                 color: river.style ? river.style.textPrimary : "#fff"
                 font.pixelSize: 16
                 font.bold: true
@@ -130,7 +130,7 @@ Item {
             Text {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                text: I18n.t(river.languageMode, "纵轴 0–24 时")
+                text: I18n.t(river.languageMode, "Y-axis 0-24h")
                 color: river.style ? river.style.textTertiary : "#888"
                 font.pixelSize: 11
             }
@@ -266,7 +266,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 visible: river.nodes.length === 0
-                text: I18n.t(river.languageMode, "今天没有该应用的使用时段")
+                text: I18n.t(river.languageMode, "No usage periods for this app today")
                 color: river.style ? river.style.textTertiary : "#888"
                 font.pixelSize: 12
             }

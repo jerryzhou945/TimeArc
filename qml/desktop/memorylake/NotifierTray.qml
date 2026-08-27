@@ -1,6 +1,6 @@
 import QtQuick
 import Qt.labs.platform as Platform
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 系统托盘与通知载体。Loader 加载失败时由调用方容错；本组件不引入新的 C++/CMake 依赖。
 Item {
@@ -45,34 +45,34 @@ Item {
     Platform.Menu {
         id: trayMenu
         Platform.MenuItem {
-            text: notifier.menuText("打开 TimeArc")
+            text: notifier.menuText("Open TimeArc")
             onTriggered: notifier.showRequested()
         }
         Platform.MenuSeparator {}
         Platform.MenuItem {
-            text: notifier.menuText("番茄钟") + " " + notifier.pomodoroTimeText
+            text: notifier.menuText("Pomodoro") + " " + notifier.pomodoroTimeText
             onTriggered: notifier.pomodoroShowRequested()
         }
         Platform.MenuItem {
             text: notifier.menuText(notifier.pomodoroRunning
-                                    ? "暂停计时"
+                                    ? "Pause Timer"
                                     : (notifier.pomodoroPaused
-                                       ? "继续计时" : "开始计时"))
+                                       ? "Resume Timer" : "Start Timer"))
             enabled: notifier.pomodoroRunning || notifier.pomodoroCanStart
             onTriggered: notifier.pomodoroPrimaryRequested()
         }
         Platform.MenuItem {
-            text: notifier.menuText("重置计时")
+            text: notifier.menuText("Reset Timer")
             onTriggered: notifier.pomodoroResetRequested()
         }
         Platform.MenuSeparator {}
         Platform.MenuItem {
-            text: notifier.menuText("后台采集继续运行")
+            text: notifier.menuText("Background tracking continues")
             enabled: false
         }
         Platform.MenuSeparator {}
         Platform.MenuItem {
-            text: notifier.menuText("退出 TimeArc")
+            text: notifier.menuText("Quit TimeArc")
             onTriggered: notifier.quitRequested()
         }
     }

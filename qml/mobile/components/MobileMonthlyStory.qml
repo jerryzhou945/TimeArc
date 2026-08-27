@@ -2,10 +2,16 @@ import QtQuick
 import QtQuick.Window
 import "monthly"
 import "MobileMonthProfiles.js" as MonthProfiles
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property var model: ({})
     property bool opened: false
@@ -53,29 +59,29 @@ Item {
 
     function exportReport(channel, previewItem) {
         errorText = ""
-        feedbackText = "正在生成月报卡片…"
+        feedbackText = "Building the monthly card…"
         var captureItem = previewItem || reportSurface
         captureItem.grabToImage(function(result) {
             if (typeof mobileUiService === "undefined" || !mobileUiService) {
-                errorText = "当前环境无法保存图片。"
+                errorText = "Images cannot be saved in this environment."
                 feedbackText = ""
                 return
             }
             var path = mobileUiService.createShareImagePath(
-                        report.monthLabel || "monthly-report")
+                        I18n.reportMonthLabel(root.languageMode, report) || "monthly-report")
             if (!path || !result.saveToFile(path)) {
-                errorText = "月报图片保存失败，请重试。"
+                errorText = "Could not save the monthly image. Try again."
                 feedbackText = ""
                 return
             }
             if (!mobileUiService.shareImageToChannel(
-                        path, channel || "system", "分享月度时间报告")) {
+                        path, channel || "system", "Share monthly time report")) {
                 errorText = mobileUiService.lastError
                 feedbackText = ""
                 return
             }
             feedbackText = Qt.platform.os === "android"
-                    ? "已打开系统分享面板" : "月报图片已保存"
+                    ? "System share sheet opened" : "Monthly image saved"
         }, Qt.size(1080, 1920))
     }
 
@@ -86,6 +92,8 @@ Item {
         clip: true
 
         MobileSeasonScene {
+
+            languageMode: root.languageMode
             anchors.fill: parent
             profile: root.profile
             pageIndex: root.currentPage
@@ -100,6 +108,7 @@ Item {
                 theme: root.theme
                 report: root.report
                 profile: root.profile
+                languageMode: root.languageMode
                 visible: root.currentPage === 0
                 opacity: visible ? 1 : 0
                 transform: Translate {
@@ -112,6 +121,7 @@ Item {
                 theme: root.theme
                 report: root.report
                 profile: root.profile
+                languageMode: root.languageMode
                 visible: root.currentPage === 1
             }
 
@@ -120,6 +130,7 @@ Item {
                 theme: root.theme
                 report: root.report
                 profile: root.profile
+                languageMode: root.languageMode
                 visible: root.currentPage === 2
             }
 
@@ -128,6 +139,7 @@ Item {
                 theme: root.theme
                 report: root.report
                 profile: root.profile
+                languageMode: root.languageMode
                 visible: root.currentPage === 3
             }
 
@@ -136,6 +148,7 @@ Item {
                 theme: root.theme
                 report: root.report
                 profile: root.profile
+                languageMode: root.languageMode
                 visible: root.currentPage === 4
             }
 
@@ -144,6 +157,7 @@ Item {
                 theme: root.theme
                 report: root.report
                 profile: root.profile
+                languageMode: root.languageMode
                 visible: root.currentPage === 5
                 onShareRequested: function(channel, previewItem) {
                     root.exportReport(channel, previewItem)
@@ -188,6 +202,8 @@ Item {
             border.color: "#35FFFFFF"
 
             MobileSymbolIcon {
+
+                languageMode: root.languageMode
                 anchors.centerIn: parent
                 name: "close"
                 color: "white"
@@ -206,8 +222,8 @@ Item {
             anchors.leftMargin: 24
             anchors.bottomMargin: SafeArea.margins.bottom + 18
             text: root.currentPage === root.pageCount - 1
-                  ? "轻触按钮，带走这段时间"
-                  : "轻触两侧或左右滑动"
+                  ? "Tap the button to take this stretch of time with you"
+                  : "Tap the sides or swipe left and right"
             color: "#BFFFFFFF"
             font.family: root.theme.fontFamily
             font.pixelSize: 10

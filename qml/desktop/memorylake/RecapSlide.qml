@@ -1,5 +1,5 @@
 ﻿import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 月度回顾单屏：kicker + 类型化布局 + 入场转场（zoom/wipe/rise/rotate/ticket）+ 内滚动。
 // 1:1 对应设计稿 .summary-slide / 各 data-transition。
@@ -47,6 +47,29 @@ Item {
     }
 
     function tr(source) { return I18n.t(languageMode, source) }
+
+    // Slides carry either a finished source string or a template name plus its
+    // fields, depending on whether the text is fixed copy or composed from the
+    // month's numbers. Prefer the template when present.
+    function slideText(plain, key, params) {
+        return key ? I18n.fromModel(languageMode, key, params) : tr(plain)
+    }
+    function slideTitle() {
+        var d = slide.slideData
+        return d ? slideText(d.title, d.titleKey, d.titleParams) : ""
+    }
+    function slideSubtitle() {
+        var d = slide.slideData
+        return d ? slideText(d.subtitle, d.subtitleKey, d.subtitleParams) : ""
+    }
+    function slideArticleTitle() {
+        var d = slide.slideData
+        return d ? slideText(d.articleTitle, d.articleTitleKey, d.articleTitleParams) : ""
+    }
+    function slideArticleBody() {
+        var d = slide.slideData
+        return d ? slideText(d.articleBody, d.articleBodyKey, d.articleBodyParams) : ""
+    }
 
     ParallelAnimation {
         id: enterAnim
@@ -179,8 +202,8 @@ Item {
         id: coverBody
         Column {
             spacing: 20
-            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 54 }
-            SubText { text: slide.tr(slide.slideData.subtitle) }
+            BigTitle { text: slide.slideTitle(); font.pixelSize: 54 }
+            SubText { text: slide.slideSubtitle() }
             Row {
                 spacing: 18
                 Repeater {
@@ -206,8 +229,8 @@ Item {
         id: monthMapBody
         Column {
             spacing: 20
-            BigTitle { text: slide.tr(slide.slideData.title) }
-            SubText { text: slide.tr(slide.slideData.subtitle) }
+            BigTitle { text: slide.slideTitle() }
+            SubText { text: slide.slideSubtitle() }
             Row {
                 spacing: 10
                 Repeater {
@@ -268,8 +291,8 @@ Item {
             }
             Column {
                 width: 420; spacing: 18
-                BigTitle { width: 420; text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
-                SubText { width: 420; text: slide.tr(slide.slideData.subtitle) }
+                BigTitle { width: 420; text: slide.slideTitle(); font.pixelSize: 40 }
+                SubText { width: 420; text: slide.slideSubtitle() }
                 Flow {
                     width: 420; spacing: 12
                     Repeater { model: slide.slideData.stats; delegate: StatChip { required property var modelData; k: modelData.label; v: modelData.value } }
@@ -285,8 +308,8 @@ Item {
             spacing: 24
             Column {
                 width: 430; spacing: 18
-                BigTitle { width: 430; text: slide.tr(slide.slideData.title); font.pixelSize: 44 }
-                SubText { width: 430; text: slide.tr(slide.slideData.subtitle) }
+                BigTitle { width: 430; text: slide.slideTitle(); font.pixelSize: 44 }
+                SubText { width: 430; text: slide.slideSubtitle() }
                 RoundedFrame {
                     width: 430; height: 250; radius: 28
                     border.width: 1; border.color: slide.style ? slide.style.faceBorder : "#ffffff20"
@@ -318,8 +341,8 @@ Item {
         id: orbitBody
         Column {
             spacing: 18
-            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
-            SubText { text: slide.tr(slide.slideData.subtitle) }
+            BigTitle { text: slide.slideTitle(); font.pixelSize: 40 }
+            SubText { text: slide.slideSubtitle() }
             Item {
                 width: parent.width; height: 360
                 RoundedFrame {
@@ -352,7 +375,7 @@ Item {
         id: articleBody
         Column {
             spacing: 18
-            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
+            BigTitle { text: slide.slideTitle(); font.pixelSize: 40 }
             Row {
                 spacing: 24
                 Rectangle {
@@ -360,8 +383,8 @@ Item {
                     color: slide.style ? slide.style.cardBg : "#ffffff12"
                     border.width: 1; border.color: slide.style ? slide.style.cardBorder : "#ffffff16"
                     Column { anchors.fill: parent; anchors.margins: 24; spacing: 12
-                        Text { width: parent.width; text: slide.tr(slide.slideData.articleTitle); color: slide.tPrimary; font.pixelSize: 26; font.bold: true; wrapMode: Text.WordWrap }
-                        Text { width: parent.width; text: slide.tr(slide.slideData.articleBody); color: slide.tSecondary; font.pixelSize: 15; lineHeight: 1.6; wrapMode: Text.WordWrap }
+                        Text { width: parent.width; text: slide.slideArticleTitle(); color: slide.tPrimary; font.pixelSize: 26; font.bold: true; wrapMode: Text.WordWrap }
+                        Text { width: parent.width; text: slide.slideArticleBody(); color: slide.tSecondary; font.pixelSize: 15; lineHeight: 1.6; wrapMode: Text.WordWrap }
                     }
                 }
                 RoundedFrame {
@@ -378,8 +401,8 @@ Item {
         id: timelineBody
         Column {
             spacing: 18
-            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
-            SubText { text: slide.tr(slide.slideData.subtitle) }
+            BigTitle { text: slide.slideTitle(); font.pixelSize: 40 }
+            SubText { text: slide.slideSubtitle() }
             Column {
                 width: parent.width; spacing: 15
                 Repeater {
@@ -423,8 +446,8 @@ Item {
         id: trendBody
         Column {
             spacing: 18
-            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
-            SubText { text: slide.tr(slide.slideData.subtitle) }
+            BigTitle { text: slide.slideTitle(); font.pixelSize: 40 }
+            SubText { text: slide.slideSubtitle() }
             Rectangle {
                 width: parent.width; height: 230; radius: 28
                 color: slide.style ? slide.style.recapStage : Qt.rgba(1, 1, 1, 0.3)
@@ -469,7 +492,7 @@ Item {
         id: keywordsBody
         Column {
             spacing: 20
-            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
+            BigTitle { text: slide.slideTitle(); font.pixelSize: 40 }
             Flow {
                 width: parent.width; spacing: 14
                 Repeater {
@@ -488,7 +511,7 @@ Item {
                     }
                 }
             }
-            SubText { text: slide.tr(slide.slideData.subtitle) }
+            SubText { text: slide.slideSubtitle() }
         }
     }
 
@@ -497,7 +520,7 @@ Item {
         id: comparisonBody
         Column {
             spacing: 20
-            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 40 }
+            BigTitle { text: slide.slideTitle(); font.pixelSize: 40 }
             Flow {
                 width: parent.width; spacing: 16
                 Repeater {
@@ -524,8 +547,8 @@ Item {
         id: ticketBody
         Column {
             spacing: 20
-            BigTitle { text: slide.tr(slide.slideData.title); font.pixelSize: 44 }
-            SubText { text: slide.tr(slide.slideData.subtitle) }
+            BigTitle { text: slide.slideTitle(); font.pixelSize: 44 }
+            SubText { text: slide.slideSubtitle() }
             Rectangle {
                 width: 300; height: 360; radius: 22
                 rotation: -2

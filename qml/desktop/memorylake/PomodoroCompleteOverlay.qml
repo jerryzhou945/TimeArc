@@ -1,5 +1,5 @@
 import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 // 番茄完成全屏庆祝弹层（v88 .pomodoro-complete-overlay）。盖在一切之上：随机文案变体、
@@ -86,7 +86,7 @@ Item {
         }
         Text {
             anchors { horizontalCenter: parent.horizontalCenter; bottom: closeBtn.top; bottomMargin: 14 }
-                text: I18n.t(comp.languageMode, "一段专注完成了")
+                text: I18n.t(comp.languageMode, "Focus session complete")
             color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.6)
             font.pixelSize: 14
         }
@@ -120,7 +120,7 @@ Item {
             border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.20)
         // 中性文案：番茄钟与备忘黑板解耦后，这层可能盖在任意页面之上，关掉它回到的是用户
         // 原来那一页，不一定是黑板，旧文案里的「回到…」承诺已不成立。（zh/en/ja 三语齐备。）
-        Text { anchors.centerIn: parent; text: I18n.t(comp.languageMode, "知道了")
+        Text { anchors.centerIn: parent; text: I18n.t(comp.languageMode, "Got It")
                    color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.9); font.pixelSize: 14 }
             MouseArea {
                 id: closeH; anchors.fill: parent; hoverEnabled: true

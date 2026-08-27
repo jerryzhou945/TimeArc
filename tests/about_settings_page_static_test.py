@@ -20,7 +20,7 @@ def main():
 
     require(
         profile,
-        '{ key: "about",    glyph: "©", label: "关于与开源许可" }',
+        '{ key: "about",    glyph: "©", label: "About & Licenses" }',
         "dedicated About & Licenses settings tab",
     )
     require(
@@ -38,7 +38,7 @@ def main():
     about_start = profile.index("id: aboutSec")
     if not export_start < about_start:
         raise AssertionError("About & Licenses section must follow Import & Export")
-    if 'cardTitle: "关于与开源许可"' in profile[export_start:about_start]:
+    if 'cardTitle: "About & Licenses"' in profile[export_start:about_start]:
         raise AssertionError("About & Licenses card remains inside Import & Export")
 
     about_section = profile[about_start:profile.index("id: settingsToast")]
@@ -59,7 +59,7 @@ def main():
     if component_positions != sorted(component_positions):
         raise AssertionError("license cards are not ordered TimeArc, Qt 6, SQLite, Parson")
 
-    reject(about_section, 'cardTitle: "关于与开源许可"',
+    reject(about_section, 'cardTitle: "About & Licenses"',
            "single wrapper card duplicating the page title")
     reject(profile, "全文文件位于 resources/licenses/",
            "bundled-license location statement")

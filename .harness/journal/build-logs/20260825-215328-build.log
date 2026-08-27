@@ -1,0 +1,35 @@
+[1/219] Automatic MOC and UIC for target timearc_pomodoro_test
+[2/219] Automatic MOC and UIC for target timearc_db_smoke
+[3/219] Automatic MOC and UIC for target time-arc
+[4/219] Running AUTOMOC file extraction for target time-arc
+[5/219] Running moc --collect-json for target time-arc
+[6/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/pomodoro_manager.cpp.o
+[7/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/tests/pomodoro_manager_test.cpp.o
+[8/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/manual_project_repository.cpp.o
+[9/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/settings_repository.cpp.o
+[10/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/timearc_pomodoro_test_autogen/mocs_compilation.cpp.o
+[11/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/database_manager.cpp.o
+[12/35] Building CXX object CMakeFiles/time-arc.dir/time-arc_autogen/mocs_compilation.cpp.o
+[13/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/project_manager.cpp.o
+[14/35] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[15/35] Building CXX object CMakeFiles/time-arc.dir/src/services/manual_project_repository.cpp.o
+[16/35] Building CXX object CMakeFiles/time-arc.dir/src/services/settings_repository.cpp.o
+[17/35] Building CXX object CMakeFiles/time-arc.dir/src/services/database_manager.cpp.o
+[18/35] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_ui_service.cpp.o
+[19/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/mobile/mobile_usage_service.cpp.o
+[20/35] Building CXX object CMakeFiles/time-arc.dir/src/services/pomodoro_manager.cpp.o
+[21/35] Building CXX object CMakeFiles/time-arc.dir/src/services/project_manager.cpp.o
+[22/35] Building CXX object CMakeFiles/timearc_db_smoke.dir/timearc_db_smoke_autogen/mocs_compilation.cpp.o
+[23/35] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/manual_project_repository.cpp.o
+[24/35] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/database_manager.cpp.o
+[25/35] Building CXX object CMakeFiles/time-arc.dir/src/services/mobile/mobile_usage_service.cpp.o
+[26/35] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/settings_repository.cpp.o
+[27/35] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/project_manager.cpp.o
+[28/35] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/mobile/mobile_usage_service.cpp.o
+[29/35] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/daily_card_service.cpp.o
+[30/35] Linking CXX executable timearc_pomodoro_test
+[31/35] Building CXX object CMakeFiles/time-arc.dir/src/services/daily_card_service.cpp.o
+[32/35] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc
+[33/35] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/daily_card_service.cpp.o
+[34/35] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.o
+[35/35] Linking CXX executable timearc_db_smoke

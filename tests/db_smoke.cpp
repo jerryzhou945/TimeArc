@@ -8,6 +8,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QPair>
 #include <QSqlDatabase>
 #include <QSqlError>
 #include <QSqlQuery>
@@ -36,8 +37,10 @@
 #include "services/stats_service.h"
 #include "services/calendar_manager.h"
 #include "services/project_manager.h"
-#include "services/adapters/activity_adapter_registry.h"
-#include "services/site_catalog.h"
+#include "services/categorization/default_rules.h"
+#include "services/categorization/matcher.h"
+#include "services/categorization/rule_set_json.h"
+#include "services/categorization_manager.h"
 
 namespace {
 
@@ -516,264 +519,6 @@ int main(int argc, char* argv[]) {
         "Autostart default: first-run enable or durable opt-out policy failed."));
   }
 
-  TimeArcAdapters::AdapterInput unknownWebsite;
-  unknownWebsite.url =
-      QStringLiteral("https://example.com/private?token=do-not-store");
-  unknownWebsite.title = QStringLiteral("Private dashboard");
-  TimeArcAdapters::AdapterMetadata unknownWebsiteMeta =
-      TimeArcAdapters::resolveActivity(unknownWebsite);
-  if (unknownWebsiteMeta.sourceType != QStringLiteral("website") ||
-      unknownWebsiteMeta.identifier != QStringLiteral("site:example.com") ||
-      unknownWebsiteMeta.displayName != QStringLiteral("example.com") ||
-      unknownWebsiteMeta.domain != QStringLiteral("example.com") ||
-      unknownWebsiteMeta.confidence < 0.70 ||
-      unknownWebsiteMeta.toVariantMap().contains(QStringLiteral("url"))) {
-    return fail(QStringLiteral("Generic website adapter fallback failed."));
-  }
-
-  TimeArcAdapters::AdapterInput unknownApp;
-  unknownApp.appName = QStringLiteral("SmokeApp.exe");
-  unknownApp.path = QStringLiteral("C:/TimeArcSmoke/SmokeApp.exe");
-  TimeArcAdapters::AdapterMetadata unknownAppMeta =
-      TimeArcAdapters::resolveActivity(unknownApp);
-  if (unknownAppMeta.sourceType != QStringLiteral("desktopApp") ||
-      unknownAppMeta.identifier.trimmed().isEmpty() ||
-      unknownAppMeta.displayName != QStringLiteral("SmokeApp") ||
-      unknownAppMeta.iconPath != unknownApp.path) {
-    return fail(QStringLiteral("Generic desktop adapter fallback failed."));
-  }
-
-  struct WebsiteAdapterCase {
-    QString url;
-    QString title;
-    QString expectedIdentifier;
-    QString expectedName;
-    QString expectedCategory;
-    bool expectsIcon;
-  };
-  const WebsiteAdapterCase websiteAdapterCases[] = {
-      {QStringLiteral("https://www.youtube.com/watch?v=secret-token"),
-       QStringLiteral("lofi stream - YouTube"),
-       QStringLiteral("site:youtube"),
-       QStringLiteral("YouTube"),
-       QStringLiteral("视频"),
-       true},
-      {QStringLiteral("https://space.bilibili.com/12345"),
-       QStringLiteral("UP 主空间 - 哔哩哔哩"),
-       QStringLiteral("site:bilibili"),
-       QStringLiteral("哔哩哔哩"),
-       QStringLiteral("视频"),
-       true},
-      {QStringLiteral("https://open.spotify.com/playlist/private-id"),
-       QStringLiteral("Daily Mix - Spotify"),
-       QStringLiteral("site:spotify-web"),
-       QStringLiteral("Spotify Web"),
-       QStringLiteral("音乐"),
-       false},
-      {QStringLiteral("https://y.qq.com/n/ryqq/songDetail/private-id"),
-       QStringLiteral("QQ音乐 - song"),
-       QStringLiteral("site:qq-music-web"),
-       QStringLiteral("QQ Music Web"),
-       QStringLiteral("音乐"),
-       false},
-  };
-  for (const WebsiteAdapterCase& siteCase : websiteAdapterCases) {
-    TimeArcAdapters::AdapterInput input;
-    input.url = siteCase.url;
-    input.title = siteCase.title;
-    const TimeArcAdapters::AdapterMetadata metadata =
-        TimeArcAdapters::resolveActivity(input);
-    const QVariantMap map = metadata.toVariantMap();
-    if (metadata.sourceType != QStringLiteral("website") ||
-        metadata.identifier != siteCase.expectedIdentifier ||
-        metadata.displayName != siteCase.expectedName ||
-        metadata.category != siteCase.expectedCategory ||
-        metadata.confidence < 0.89 ||
-        metadata.iconLabel.trimmed().isEmpty() ||
-        (siteCase.expectsIcon && metadata.iconPath.trimmed().isEmpty() &&
-         metadata.iconUrl.trimmed().isEmpty()) ||
-        map.contains(QStringLiteral("url")) ||
-        map.values().contains(siteCase.url)) {
-      return fail(QStringLiteral("Website adapter match failed: %1")
-                      .arg(siteCase.expectedIdentifier));
-    }
-  }
-
-  TimeArcAdapters::AdapterInput titleOnlyBilibili;
-  titleOnlyBilibili.title =
-      QStringLiteral("更了300多期视频以后 - 哔哩哔哩 bilibili - Google Chrome");
-  const TimeArcAdapters::AdapterMetadata titleOnlySite =
-      TimeArcAdapters::resolveWebsite(titleOnlyBilibili);
-  if (titleOnlySite.identifier != QStringLiteral("site:bilibili") ||
-      titleOnlySite.confidence >= 0.90) {
-    return fail(QStringLiteral("Website title fallback confidence failed."));
-  }
-
-  struct CatalogTitleCase {
-    QString title;
-    QString expectedSiteId;
-    QString expectedIconSuffix;
-  };
-  const CatalogTitleCase catalogTitleCases[] = {
-      {QStringLiteral("douyin.com/user/self - Google Chrome"),
-       QStringLiteral("site:douyin"), QStringLiteral("/douyin.ico")},
-      {QStringLiteral("小红书 - 你的生活兴趣社区 - Google Chrome"),
-       QStringLiteral("site:xiaohongshu"), QStringLiteral("/xiaohongshu.png")},
-      {QStringLiteral("粥粥鱼F1shZzz的抖音 - 抖音"),
-       QStringLiteral("site:douyin"), QStringLiteral("/douyin.ico")},
-      {QStringLiteral("知乎 - 有问题，就会有答案 - Google Chrome"),
-       QStringLiteral("site:zhihu"), QStringLiteral("/zhihu.png")},
-      {QStringLiteral("优酷 - 这世界很酷 - Google Chrome"),
-       QStringLiteral("site:youku"), QStringLiteral("/youku.png")},
-      {QStringLiteral("爱奇艺 - Google Chrome"),
-       QStringLiteral("site:iqiyi"), QStringLiteral("/iqiyi.png")},
-      {QStringLiteral("AcFun - Google Chrome"),
-       QStringLiteral("site:acfun"), QStringLiteral("/acfun.png")},
-      {QStringLiteral("支付宝 - Google Chrome"),
-       QStringLiteral("site:alipay"), QStringLiteral("/alipay.png")},
-  };
-  for (const CatalogTitleCase& catalogCase : catalogTitleCases) {
-    const TimeArcSiteCatalog::SiteDefinition* site =
-        TimeArcSiteCatalog::matchByWindowTitle(catalogCase.title);
-    if (site == nullptr || site->siteId != catalogCase.expectedSiteId ||
-        !site->iconSource.endsWith(catalogCase.expectedIconSuffix)) {
-      return fail(QStringLiteral(
-                      "Site catalog title/icon match failed for %1")
-                      .arg(catalogCase.expectedSiteId));
-    }
-  }
-
-  struct BrowserHostedSiteCase {
-    QString appId;
-    QString appName;
-    QString path;
-    QString title;
-    QString expectedSiteId;
-  };
-  const BrowserHostedSiteCase browserHostedSiteCases[] = {
-      {QStringLiteral("C:/Program Files/Google/Chrome/Application/chrome.exe"),
-       QStringLiteral("chrome.exe"),
-       QStringLiteral("C:/Program Files/Google/Chrome/Application/chrome.exe"),
-       QStringLiteral("douyin.com/user/self - Google Chrome"),
-       QStringLiteral("site:douyin")},
-      {QString(),
-       QStringLiteral("unknown.exe"),
-       QString(),
-       QStringLiteral("xiaohongshu.com/explore - Google Chrome"),
-       QStringLiteral("site:xiaohongshu")},
-  };
-  for (const BrowserHostedSiteCase& browserCase : browserHostedSiteCases) {
-    const TimeArcSiteCatalog::SiteDefinition* site =
-        TimeArcSiteCatalog::matchBrowserHostedActivity(
-            browserCase.appId, browserCase.appName, browserCase.path,
-            browserCase.title);
-    if (site == nullptr || site->siteId != browserCase.expectedSiteId) {
-      return fail(QStringLiteral("Browser-hosted site split failed for %1")
-                      .arg(browserCase.expectedSiteId));
-    }
-  }
-  if (TimeArcSiteCatalog::matchBrowserHostedActivity(
-          QStringLiteral("C:/Windows/System32/notepad.exe"),
-          QStringLiteral("notepad.exe"), QString(),
-          QStringLiteral("xiaohongshu notes.txt - Notepad")) != nullptr) {
-    return fail(QStringLiteral("Native app title falsely matched as a site."));
-  }
-
-  struct DesktopAdapterCase {
-    QString appId;
-    QString appName;
-    QString path;
-    QString expectedIdentifier;
-    QString expectedName;
-    QString expectedCategory;
-    bool supportsMedia;
-  };
-  const DesktopAdapterCase desktopAdapterCases[] = {
-      {QStringLiteral("com.google.Chrome"),
-       QStringLiteral("chrome.exe"),
-       QStringLiteral("C:/Program Files/Google/Chrome/Application/chrome.exe"),
-       QStringLiteral("app:google-chrome"),
-       QStringLiteral("Chrome"),
-       QStringLiteral("浏览"),
-       false},
-      {QStringLiteral("Microsoft.MicrosoftEdge.Stable"),
-       QStringLiteral("msedge.exe"),
-       QStringLiteral("C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe"),
-       QStringLiteral("app:microsoft-edge"),
-       QStringLiteral("Edge"),
-       QStringLiteral("浏览"),
-       false},
-      {QStringLiteral("com.microsoft.VSCode"),
-       QStringLiteral("Code.exe"),
-       QStringLiteral("C:/Users/me/AppData/Local/Programs/Microsoft VS Code/Code.exe"),
-       QStringLiteral("app:vscode"),
-       QStringLiteral("VSCode"),
-       QStringLiteral("开发"),
-       false},
-      {QStringLiteral("com.spotify.client"),
-       QStringLiteral("Spotify.exe"),
-       QStringLiteral("C:/Users/me/AppData/Roaming/Spotify/Spotify.exe"),
-       QStringLiteral("app:spotify"),
-       QStringLiteral("Spotify"),
-       QStringLiteral("音乐"),
-       true},
-      {QStringLiteral("com.tencent.xinWeChat"),
-       QStringLiteral("WeChat.exe"),
-       QStringLiteral("C:/Program Files/Tencent/WeChat/WeChat.exe"),
-       QStringLiteral("app:wechat"),
-       QString::fromUtf8(u8"微信"),
-       QStringLiteral("社交"),
-       false},
-      {QStringLiteral("com.lemon.lvpro"),
-       QStringLiteral("JianyingPro.exe"),
-       QStringLiteral("C:/Program Files/JianyingPro/JianyingPro.exe"),
-       QStringLiteral("app:jianying-pro"),
-       QString::fromUtf8(u8"剪映专业版"),
-       QStringLiteral("创作"),
-       false},
-      {QStringLiteral("com.tencent.qq"),
-       QStringLiteral("QQ.exe"),
-       QStringLiteral("C:/Program Files/Tencent/QQ/QQ.exe"),
-       QStringLiteral("app:qq"),
-       QStringLiteral("QQ"),
-       QStringLiteral("社交"),
-       false},
-      {QString(), QStringLiteral("YuanShen.exe"),
-       QStringLiteral("D:/Games/Genshin Impact Game/YuanShen.exe"),
-       QStringLiteral("app:genshin-impact"), QString::fromUtf8(u8"原神"),
-       QStringLiteral("游戏"), false},
-      {QString(), QStringLiteral("StarRail.exe"),
-       QStringLiteral("D:/Games/Star Rail Games/StarRail.exe"),
-       QStringLiteral("app:honkai-star-rail"), QString::fromUtf8(u8"崩坏：星穹铁道"),
-       QStringLiteral("游戏"), false},
-      {QString(), QStringLiteral("ZenlessZoneZero.exe"),
-       QStringLiteral("D:/Games/ZenlessZoneZero Game/ZenlessZoneZero.exe"),
-       QStringLiteral("app:zenless-zone-zero"), QString::fromUtf8(u8"绝区零"),
-       QStringLiteral("游戏"), false},
-      {QString(), QStringLiteral("Client-Win64-Shipping.exe"),
-       QStringLiteral("D:/Games/Wuthering Waves/Wuthering Waves Game/Client/Binaries/Win64/Client-Win64-Shipping.exe"),
-       QStringLiteral("app:wuthering-waves"), QString::fromUtf8(u8"鸣潮"),
-       QStringLiteral("游戏"), false},
-  };
-  for (const DesktopAdapterCase& appCase : desktopAdapterCases) {
-    TimeArcAdapters::AdapterInput input;
-    input.appId = appCase.appId;
-    input.appName = appCase.appName;
-    input.path = appCase.path;
-    const TimeArcAdapters::AdapterMetadata metadata =
-        TimeArcAdapters::resolveActivity(input);
-    if (metadata.sourceType != QStringLiteral("desktopApp") ||
-        metadata.identifier != appCase.expectedIdentifier ||
-        metadata.displayName != appCase.expectedName ||
-        metadata.category != appCase.expectedCategory ||
-        metadata.iconLabel.trimmed().isEmpty() ||
-        metadata.supportsMediaDetection != appCase.supportsMedia ||
-        metadata.confidence < 0.90) {
-      return fail(QStringLiteral("Desktop app adapter match failed: %1")
-                      .arg(appCase.expectedIdentifier));
-    }
-  }
-
   const QString testDataPath = testDataOverride;
   if (testDataPath.isEmpty()) {
     return fail(QStringLiteral("Qt test AppDataLocation is empty."));
@@ -1147,16 +892,24 @@ int main(int argc, char* argv[]) {
           QStringLiteral("year"), QDate(2026, 7, 19)) != QDate(2026, 1, 1)) {
     return fail(QStringLiteral("Mobile calendar range semantics failed."));
   }
+  // The fallback table holds the ENGLISH name, because that is the source
+  // language; I18n translates it at the render site, so a Chinese reader still
+  // sees 小红书. The table used to hold the Chinese name directly, which was
+  // not language-aware in either direction: an English reader saw 小红书 and,
+  // after the names were romanised, a Chinese reader would have seen "RED".
+  //
+  // A label the device itself supplied still wins over the table and is
+  // returned untouched — that is what the com.tencent.mm case pins.
   if (MobileUsageService::friendlyDisplayName(
           QStringLiteral("com.xingin.xhs"), QString()) !=
-          QStringLiteral("小红书") ||
+          QStringLiteral("RED") ||
       MobileUsageService::friendlyDisplayName(
           QStringLiteral("com.tencent.mm"), QStringLiteral("微信")) !=
           QStringLiteral("微信") ||
       MobileUsageService::friendlyDisplayName(
           QStringLiteral("com.huawei.android.launcher.LauncherApplication"),
           QStringLiteral("com.huawei.android.launcher.LauncherApplication")) !=
-          QStringLiteral("华为桌面")) {
+          QStringLiteral("Huawei Home")) {
     return fail(QStringLiteral("Mobile friendly app naming failed."));
   }
   if (secondDashboardApp.value(QStringLiteral("firstDateLocal")).toString() !=
@@ -1724,6 +1477,51 @@ int main(int argc, char* argv[]) {
   if (projectManager.projectsForRange("day").isEmpty()) {
     return fail(QStringLiteral("Archived project history disappeared from stats."));
   }
+  // timeEntriesForDate: same name/tag/source on one day must merge into a single
+  // row with summed seconds, and the per-day cache must not outlive a write.
+  // The function had no coverage when its grouping was switched to in-place
+  // accumulation and a cache was added, so pin both here.
+  {
+    const QString entryDate =
+        QDate::currentDate().toString(QStringLiteral("yyyy-MM-dd"));
+    const QString entryTitle = QStringLiteral("smoke-entry-merge");
+    projectManager.recordTimeEntryOnDate(entryTitle, QStringLiteral("Work"), 90,
+                                         entryDate,
+                                         QStringLiteral("calendar_todo"),
+                                         QString());
+    projectManager.recordTimeEntryOnDate(entryTitle, QStringLiteral("Work"), 30,
+                                         entryDate,
+                                         QStringLiteral("calendar_todo"),
+                                         QString());
+    const auto secondsForTitle = [&](const QString& title) {
+      int total = 0;
+      int rows = 0;
+      for (const QVariant& item : projectManager.timeEntriesForDate(entryDate)) {
+        const QVariantMap entry = item.toMap();
+        if (entry.value(QStringLiteral("name")).toString() != title) continue;
+        total += entry.value(QStringLiteral("seconds")).toInt();
+        ++rows;
+      }
+      return QPair<int, int>(total, rows);
+    };
+    const QPair<int, int> merged = secondsForTitle(entryTitle);
+    if (merged.second != 1) {
+      return fail(QStringLiteral("Same-day entries did not merge into one row."));
+    }
+    if (merged.first != 120) {
+      return fail(QStringLiteral("Merged entry seconds are wrong."));
+    }
+    // A third write must be visible: a stale per-day cache would still say 120.
+    projectManager.recordTimeEntryOnDate(entryTitle, QStringLiteral("Work"), 45,
+                                         entryDate,
+                                         QStringLiteral("calendar_todo"),
+                                         QString());
+    if (secondsForTitle(entryTitle).first != 165) {
+      return fail(
+          QStringLiteral("timeEntriesForDate served a stale cached day."));
+    }
+  }
+
   ProjectManager restartedProjectManager(&manualProjectRepository);
   for (const QVariant& item : restartedProjectManager.projects()) {
     if (item.toMap().value(QStringLiteral("name")).toString() == projectName) {
@@ -2317,6 +2115,666 @@ int main(int argc, char* argv[]) {
     }
     qInfo().noquote()
         << QStringLiteral("service-config write + key-preservation ok.");
+  }
+
+
+  // ------------------------------------------------------------------
+  // Categorization rule engine (docs/categorization-redesign.md step 1).
+  // The table is data; these cases are the spec.
+  // ------------------------------------------------------------------
+  {
+    using namespace TimeArc::Categorization;
+
+    // --- normalization -------------------------------------------------
+    struct NormalizeCase {
+      QString raw;
+      QString expected;
+    };
+    const QVector<NormalizeCase> normalizeCases = {
+        {QStringLiteral("Chrome.exe"), QStringLiteral("chrome")},
+        {QStringLiteral("Google Chrome.app"), QStringLiteral("google chrome")},
+        {QStringLiteral("com.google.Chrome"), QStringLiteral("com.google.chrome")},
+        {QStringLiteral("Caf\u00E9"), QStringLiteral("cafe")},
+        {QStringLiteral("STRASSE"), QStringLiteral("strasse")},
+        {QStringLiteral("\uFF59\uFF4F\uFF55\uFF54\uFF55\uFF42\uFF45"),
+         QStringLiteral("youtube")},
+        {QStringLiteral("  spaced   out  "), QStringLiteral("spaced out")},
+        {QStringLiteral("a \u2014 b"), QStringLiteral("a - b")},
+    };
+    for (const NormalizeCase& item : normalizeCases) {
+      if (normalize(item.raw) != item.expected) {
+        return fail(QStringLiteral("normalize(%1) = '%2', expected '%3'")
+                        .arg(item.raw, normalize(item.raw), item.expected));
+      }
+    }
+
+    // --- shipped table is clean ----------------------------------------
+    const RuleSet defaults = defaultRuleSet();
+    const QStringList defaultProblems = lint(defaults);
+    if (!defaultProblems.isEmpty()) {
+      return fail(QStringLiteral("default rule table failed lint: %1")
+                      .arg(defaultProblems.join(QStringLiteral("; "))));
+    }
+    // Every shipped rule names an app. Nothing is bound to an abstract group
+    // like "all browsers", so a rule's binding is always something the user has.
+    for (const Rule& shipped : defaults.rules) {
+      if (shipped.app.isEmpty()) {
+        return fail(QStringLiteral("shipped rule %1 is not bound to an app")
+                        .arg(shipped.id));
+      }
+    }
+    if (defaults.rules.size() < 100) {
+      return fail(QStringLiteral("default rule table looks truncated: %1 rules")
+                      .arg(defaults.rules.size()));
+    }
+
+    const Matcher matcher(defaults);
+
+    // --- golden fixture -------------------------------------------------
+    struct ClassifyCase {
+      QString appId;
+      QString displayName;
+      QString windowTitle;
+      QString expectedRule;
+      QString expectedCategory;
+    };
+    const QVector<ClassifyCase> classifyCases = {
+        // Windows identities: display_name is the executable basename.
+        {QStringLiteral("C:/Program Files/Microsoft VS Code/Code.exe"),
+         QStringLiteral("Code.exe"), QStringLiteral("db_smoke.cpp - TimeArc"),
+         QStringLiteral("app:vscode"), QStringLiteral("dev")},
+        {QStringLiteral("C:/Program Files/Google/Chrome/chrome.exe"),
+         QStringLiteral("chrome.exe"), QStringLiteral("Inbox - Gmail"),
+         QStringLiteral("app:chrome"), QStringLiteral("browse")},
+        {QStringLiteral("C:/Windows/System32/svchost.exe"),
+         QStringLiteral("svchost.exe"), QString(),
+         QStringLiteral("app:windows-service-host"), QStringLiteral("system")},
+        {QStringLiteral("D:/Games/Genshin Impact Game/YuanShen.exe"),
+         QStringLiteral("YuanShen.exe"), QString(),
+         QStringLiteral("app:genshin-impact"), QStringLiteral("game")},
+        // The generic Unreal executable: only the install path disambiguates,
+        // and on Windows app_id IS the path.
+        {QStringLiteral("D:/Games/Wuthering Waves/Client/Binaries/Win64/"
+                        "Client-Win64-Shipping.exe"),
+         QStringLiteral("Client-Win64-Shipping.exe"), QString(),
+         QStringLiteral("app:wuthering-waves"), QStringLiteral("game")},
+
+        // macOS identities: bundle id plus a localized display name. Both of
+        // these are misclassified by the system this replaces.
+        {QStringLiteral("com.google.Chrome"), QStringLiteral("Google Chrome"),
+         QStringLiteral("Inbox"), QStringLiteral("app:chrome"),
+         QStringLiteral("browse")},
+        {QStringLiteral("com.apple.finder"), QStringLiteral("\u8BBF\u8FBE"),
+         QString(), QStringLiteral("app:finder"), QStringLiteral("system")},
+        {QStringLiteral("com.microsoft.VSCode"),
+         QStringLiteral("Visual Studio Code"), QString(),
+         QStringLiteral("app:vscode"), QStringLiteral("dev")},
+        {QStringLiteral("com.apple.dt.Xcode"), QStringLiteral("Xcode"),
+         QString(), QStringLiteral("app:xcode"), QStringLiteral("dev")},
+
+        // Title refinement inside a browser must outrank the browser itself.
+        {QStringLiteral("com.google.Chrome"), QStringLiteral("Google Chrome"),
+         QStringLiteral("lofi hip hop radio - YouTube"),
+         QStringLiteral("site:youtube.chrome"), QStringLiteral("video")},
+        {QStringLiteral("C:/Program Files/Google/Chrome/chrome.exe"),
+         QStringLiteral("chrome.exe"),
+         QStringLiteral("\u54D4\u54E9\u54D4\u54E9 (\u309C-\u309C)\u3064\u30ED"),
+         QStringLiteral("site:bilibili.chrome"), QStringLiteral("video")},
+        {QStringLiteral("com.apple.Safari"), QStringLiteral("Safari"),
+         QStringLiteral("arXiv.org e-Print archive"),
+         QStringLiteral("site:arxiv.safari"), QStringLiteral("read")},
+
+        // The false-positive class the old ladder was rewritten to avoid: a
+        // generic word in a page title must not reclassify the browser.
+        {QStringLiteral("C:/Program Files/Google/Chrome/chrome.exe"),
+         QStringLiteral("chrome.exe"),
+         QStringLiteral("How to make a game in 5 minutes"),
+         QStringLiteral("app:chrome"), QStringLiteral("browse")},
+        // ... and a title needle must not fire outside its scope.
+        {QStringLiteral("C:/Program Files/Microsoft VS Code/Code.exe"),
+         QStringLiteral("Code.exe"), QStringLiteral("youtube_dl.py - TimeArc"),
+         QStringLiteral("app:vscode"), QStringLiteral("dev")},
+
+        // Longest-needle specificity, no ordering discipline required.
+        {QStringLiteral("C:/Apps/QQMusic/QQMusic.exe"),
+         QStringLiteral("QQMusic.exe"), QString(),
+         QStringLiteral("app:qq-music"), QStringLiteral("music")},
+        {QStringLiteral("C:/Program Files/Tencent/QQ/QQ.exe"),
+         QStringLiteral("QQ.exe"), QString(), QStringLiteral("app:qq"),
+         QStringLiteral("social")},
+
+        // Audio rows carry the media title in the window_title column.
+        {QStringLiteral("com.spotify.client"), QStringLiteral("Spotify"),
+         QStringLiteral("Weightless - Marconi Union"),
+         QStringLiteral("app:spotify"), QStringLiteral("music")},
+
+        // Nothing matched.
+        {QStringLiteral("C:/Tools/veryobscuretool.exe"),
+         QStringLiteral("veryobscuretool.exe"), QString(), QString(),
+         QStringLiteral("other")},
+    };
+
+    for (const ClassifyCase& item : classifyCases) {
+      const Resolution resolution =
+          matcher.resolve(item.appId, item.displayName, item.windowTitle);
+      if (resolution.ruleId != item.expectedRule ||
+          resolution.category != item.expectedCategory) {
+        return fail(
+            QStringLiteral("classify('%1', '%2') = %3/%4, expected %5/%6")
+                .arg(item.displayName, item.windowTitle,
+                     resolution.ruleId.isEmpty() ? QStringLiteral("<none>")
+                                                 : resolution.ruleId,
+                     resolution.category,
+                     item.expectedRule.isEmpty() ? QStringLiteral("<none>")
+                                                 : item.expectedRule,
+                     item.expectedCategory));
+      }
+    }
+
+    // An unmatched activity still gets a stable identity to group by.
+    const Resolution unmatched =
+        matcher.resolve(QStringLiteral("C:/Tools/veryobscuretool.exe"),
+                        QStringLiteral("veryobscuretool.exe"), QString());
+    if (unmatched.matched ||
+        unmatched.identity != QStringLiteral("exe:veryobscuretool")) {
+      return fail(QStringLiteral("unmatched fallback identity was '%1'")
+                      .arg(unmatched.identity));
+    }
+
+    // --- scoring shape ---------------------------------------------------
+    {
+      const Resolution browsing = matcher.resolve(
+          QStringLiteral("com.google.Chrome"), QStringLiteral("Google Chrome"),
+          QStringLiteral("Inbox"));
+      const Resolution refined = matcher.resolve(
+          QStringLiteral("com.google.Chrome"), QStringLiteral("Google Chrome"),
+          QStringLiteral("lofi - YouTube"));
+      if (browsing.conditions != 1 || refined.conditions != 2 ||
+          refined.score <= browsing.score) {
+        return fail(QStringLiteral("title refinement did not outrank the app "
+                                   "match: %1 vs %2")
+                        .arg(refined.score)
+                        .arg(browsing.score));
+      }
+    }
+
+    // --- English-first labels with locale fallback ------------------------
+    if (matcher.labelFor(QStringLiteral("app:wechat"), QStringLiteral("en")) !=
+            QStringLiteral("WeChat") ||
+        matcher.labelFor(QStringLiteral("app:wechat"), QStringLiteral("zh")) !=
+            QStringLiteral("\u5FAE\u4FE1") ||
+        matcher.labelFor(QStringLiteral("app:wechat"), QStringLiteral("ja")) !=
+            QStringLiteral("WeChat")) {
+      return fail(QStringLiteral("English-first label fallback failed."));
+    }
+
+    // --- store and reload -------------------------------------------------
+    // A stored set is the shipped table with every entry carrying a `ref`;
+    // built here rather than in production code, because seeding derives its
+    // sets from tracking data and no longer copies the table wholesale.
+    RuleSet owned = defaults;
+    for (Rule& rule : owned.rules) rule.ref = rule.id;
+    for (CategoryDef& category : owned.categories) category.ref = category.id;
+
+    const QJsonObject stored = ruleSetToJson(owned);
+    // The stored form must be simpler than the built-in one.
+    for (const QJsonValue& value :
+         stored.value(QStringLiteral("rules")).toArray()) {
+      const QJsonObject entry = value.toObject();
+      if (entry.contains(QStringLiteral("label")) ||
+          entry.contains(QStringLiteral("icon")) ||
+          entry.contains(QStringLiteral("name"))) {
+        return fail(QStringLiteral("stored rule %1 carried presentation data")
+                        .arg(entry.value(QStringLiteral("id")).toString()));
+      }
+    }
+
+    QStringList reloadProblems;
+    const RuleSet reloaded = ruleSetFromJson(stored, defaults, &reloadProblems);
+    if (!reloadProblems.isEmpty()) {
+      return fail(QStringLiteral("reload reported problems: %1")
+                      .arg(reloadProblems.join(QStringLiteral("; "))));
+    }
+    if (reloaded.rules.size() != owned.rules.size() ||
+        reloaded.categories.size() != owned.categories.size()) {
+      return fail(QStringLiteral("round-trip lost entries."));
+    }
+
+    // Round-trip must resolve identically over the whole fixture, and labels
+    // must come back through `ref` even though they were never stored.
+    const Matcher reloadedMatcher(reloaded);
+    for (const ClassifyCase& item : classifyCases) {
+      const Resolution before =
+          matcher.resolve(item.appId, item.displayName, item.windowTitle);
+      const Resolution after = reloadedMatcher.resolve(
+          item.appId, item.displayName, item.windowTitle);
+      if (before.ruleId != after.ruleId || before.category != after.category) {
+        return fail(QStringLiteral("round-trip changed '%1' from %2 to %3")
+                        .arg(item.displayName, before.category, after.category));
+      }
+    }
+    if (reloadedMatcher.labelFor(QStringLiteral("app:wechat"),
+                                 QStringLiteral("zh")) !=
+        QStringLiteral("\u5FAE\u4FE1")) {
+      return fail(QStringLiteral("rehydration by ref lost the localized name."));
+    }
+
+    // --- user edits -------------------------------------------------------
+    {
+      RuleSet edited = owned;
+      for (Rule& rule : edited.rules) {
+        if (rule.id != QStringLiteral("site:youtube.chrome")) continue;
+        rule.name = QStringLiteral("Study videos");
+        rule.category = QStringLiteral("dev");
+        rule.userTouched = true;
+      }
+      const Matcher editedMatcher(edited);
+      const Resolution resolution = editedMatcher.resolve(
+          QStringLiteral("com.google.Chrome"), QStringLiteral("Google Chrome"),
+          QStringLiteral("lecture - YouTube"));
+      if (resolution.category != QStringLiteral("dev")) {
+        return fail(QStringLiteral("user category edit was not applied."));
+      }
+      // A renamed rule stops localizing; the user's word wins in every UI
+      // language.
+      if (editedMatcher.labelFor(QStringLiteral("site:youtube.chrome"),
+                                 QStringLiteral("zh")) !=
+          QStringLiteral("Study videos")) {
+        return fail(QStringLiteral("user rename did not override the label."));
+      }
+
+      // auto_classify: off stops inference but keeps user-touched rules.
+      MatchOptions inferenceOff;
+      inferenceOff.autoClassify = false;
+      const Resolution touched = editedMatcher.resolve(
+          QStringLiteral("com.google.Chrome"), QStringLiteral("Google Chrome"),
+          QStringLiteral("lecture - YouTube"), inferenceOff);
+      const Resolution inferred = editedMatcher.resolve(
+          QStringLiteral("com.microsoft.VSCode"),
+          QStringLiteral("Visual Studio Code"), QString(), inferenceOff);
+      if (touched.category != QStringLiteral("dev") ||
+          inferred.category != QStringLiteral("other")) {
+        return fail(QStringLiteral("auto_classify gating is wrong: %1 / %2")
+                        .arg(touched.category, inferred.category));
+      }
+    }
+
+    // A disabled category collapses to "other" - this is game_mode: off,
+    // generalized.
+    {
+      RuleSet edited = owned;
+      for (CategoryDef& category : edited.categories) {
+        if (category.id == QStringLiteral("game")) category.enabled = false;
+      }
+      const Matcher editedMatcher(edited);
+      const Resolution resolution = editedMatcher.resolve(
+          QStringLiteral("D:/Games/Genshin Impact Game/YuanShen.exe"),
+          QStringLiteral("YuanShen.exe"), QString());
+      if (resolution.ruleId != QStringLiteral("app:genshin-impact") ||
+          resolution.category != QStringLiteral("other")) {
+        return fail(QStringLiteral("disabled category did not collapse."));
+      }
+    }
+
+    // A deleted rule falls through to whatever else matches.
+    {
+      RuleSet edited = owned;
+      for (Rule& rule : edited.rules) {
+        if (rule.id == QStringLiteral("site:youtube.chrome")) rule.enabled = false;
+      }
+      const Matcher editedMatcher(edited);
+      const Resolution resolution = editedMatcher.resolve(
+          QStringLiteral("com.google.Chrome"), QStringLiteral("Google Chrome"),
+          QStringLiteral("lofi - YouTube"));
+      if (resolution.ruleId != QStringLiteral("app:chrome") ||
+          resolution.category != QStringLiteral("browse")) {
+        return fail(QStringLiteral("disabling a rule did not fall through."));
+      }
+    }
+
+    // --- lint rejects the dangerous shapes --------------------------------
+    {
+      RuleSet broken = defaults;
+      Rule unscoped;
+      unscoped.id = QStringLiteral("user.bad");
+      unscoped.category = QStringLiteral("game");
+      unscoped.title = {QStringLiteral("game")};
+      broken.rules.append(unscoped);
+      const QStringList problems = lint(broken);
+      bool sawScopeProblem = false;
+      for (const QString& problem : problems) {
+        if (problem.contains(QStringLiteral("title match with no app")))
+          sawScopeProblem = true;
+      }
+      if (!sawScopeProblem) {
+        return fail(QStringLiteral("lint accepted an app-less title rule."));
+      }
+    }
+    {
+      RuleSet broken = defaults;
+      Rule unknown;
+      unknown.id = QStringLiteral("user.unknown-category");
+      unknown.category = QStringLiteral("nope");
+      unknown.app = {QStringLiteral("something")};
+      broken.rules.append(unknown);
+      if (lint(broken).isEmpty()) {
+        return fail(QStringLiteral("lint accepted an unknown category."));
+      }
+    }
+    {
+      RuleSet broken = defaults;
+      Rule shortNeedle;
+      shortNeedle.id = QStringLiteral("user.short");
+      shortNeedle.category = QStringLiteral("other");
+      shortNeedle.app = {QStringLiteral("qq")};
+      broken.rules.append(shortNeedle);
+      if (lint(broken).isEmpty()) {
+        return fail(QStringLiteral("lint accepted a two-character substring."));
+      }
+    }
+
+    qInfo().noquote()
+        << QStringLiteral("categorization ok: %1 rules, %2 categories, "
+                          "%3 fixture cases.")
+               .arg(defaults.rules.size())
+               .arg(defaults.categories.size())
+               .arg(classifyCases.size());
+  }
+
+
+  // ------------------------------------------------------------------
+  // CategorizationManager: the stored set is derived from the apps the
+  // service actually recorded, and bound to the names it recorded them under
+  // (docs/categorization-redesign.md).
+  // ------------------------------------------------------------------
+  {
+    using namespace TimeArc::Categorization;
+
+    const auto clearStore = [&settingsRepository]() {
+      settingsRepository.setValue(QStringLiteral("categorization"),
+                                  QStringLiteral(""));
+    };
+    const auto recorded = [](const QString& appId, const QString& displayName) {
+      QVariantMap app;
+      app.insert(QStringLiteral("appId"), appId);
+      app.insert(QStringLiteral("displayName"), displayName);
+      return QVariant(app);
+    };
+
+    // A brand-new install has recorded nothing, so it gets no rules at all -
+    // only the category palette.
+    clearStore();
+    {
+      CategorizationManager fresh;
+      fresh.setRecordedAppsProvider([]() { return QVariantList(); });
+      fresh.setSettingsRepository(&settingsRepository);
+      if (!fresh.matcher().ruleSet().rules.isEmpty()) {
+        return fail(QStringLiteral("a new install seeded %1 rules; expected 0.")
+                        .arg(fresh.matcher().ruleSet().rules.size()));
+      }
+      if (fresh.matcher().ruleSet().categories.isEmpty()) {
+        return fail(QStringLiteral("seeding dropped the category palette."));
+      }
+      // ...and the row must exist, because seeding is eager, not lazy.
+      if (settingsRepository.getValue(QStringLiteral("categorization"))
+              .trimmed()
+              .isEmpty()) {
+        return fail(QStringLiteral("eager seeding wrote nothing."));
+      }
+    }
+
+    // Now with tracking data. Only the recorded apps get rules, and each rule
+    // binds to the name the service reported.
+    QVariantList records;
+    records << recorded(QStringLiteral("com.google.Chrome"),
+                        QStringLiteral("Google Chrome.app"))
+            << recorded(QStringLiteral("com.microsoft.VSCode"),
+                        QStringLiteral("Visual Studio Code"))
+            << recorded(QStringLiteral("C:/Tools/nothing-known.exe"),
+                        QStringLiteral("nothing-known.exe"));
+
+    clearStore();
+    CategorizationManager manager;
+    manager.setRecordedAppsProvider([&records]() { return records; });
+    manager.setSettingsRepository(&settingsRepository);
+
+    const RuleSet& seeded = manager.matcher().ruleSet();
+    if (seeded.rules.isEmpty()) {
+      return fail(QStringLiteral("seeding from records produced no rules."));
+    }
+
+    bool sawChrome = false;
+    bool sawYouTubeForChrome = false;
+    for (const Rule& rule : seeded.rules) {
+      // Nothing for a browser this machine does not have.
+      if (rule.id.endsWith(QStringLiteral(".firefox")) ||
+          rule.id.endsWith(QStringLiteral(".safari")) ||
+          rule.id.endsWith(QStringLiteral(".edge"))) {
+        return fail(QStringLiteral("seeded %1 for a browser with no records.")
+                        .arg(rule.id));
+      }
+      if (rule.id == QStringLiteral("app:chrome")) {
+        sawChrome = true;
+        if (rule.app != QStringList{QStringLiteral("=Google Chrome.app")}) {
+          return fail(QStringLiteral("chrome rule bound to %1, not the "
+                                     "recorded name.")
+                          .arg(rule.app.join(QStringLiteral(","))));
+        }
+      }
+      if (rule.id == QStringLiteral("site:youtube.chrome")) {
+        sawYouTubeForChrome = true;
+      }
+    }
+    if (!sawChrome || !sawYouTubeForChrome) {
+      return fail(QStringLiteral("seeding missed a recorded app's rules."));
+    }
+    // Genshin is in the shipped table but not in these records.
+    for (const Rule& rule : seeded.rules) {
+      if (rule.id == QStringLiteral("app:genshin-impact")) {
+        return fail(QStringLiteral("seeded a rule for an unrecorded app."));
+      }
+    }
+
+    // Every recorded app gets exactly one app-level rule bound to it - the
+    // same shape the UI produces when you pick an app - and an app the shipped
+    // table has never heard of is written too, so nothing is missing from the
+    // list. One rule never speaks for several apps.
+    for (const QVariant& value : records) {
+      const QVariantMap app = value.toMap();
+      const QString needle =
+          QStringLiteral("=") + app.value(QStringLiteral("displayName")).toString();
+      int owners = 0;
+      for (const Rule& rule : seeded.rules) {
+        if (!rule.title.isEmpty()) continue;
+        if (rule.app == QStringList{needle}) ++owners;
+      }
+      if (owners != 1) {
+        return fail(QStringLiteral("%1 has %2 app-level rules; expected 1.")
+                        .arg(needle)
+                        .arg(owners));
+      }
+    }
+    for (const Rule& rule : seeded.rules) {
+      if (rule.app.size() != 1) {
+        return fail(QStringLiteral("rule %1 binds %2 apps; expected exactly 1.")
+                        .arg(rule.id)
+                        .arg(rule.app.size()));
+      }
+    }
+
+    // Classification still works through the recorded binding.
+    const Resolution chrome = manager.matcher().resolve(
+        QStringLiteral("com.google.Chrome"),
+        QStringLiteral("Google Chrome.app"), QStringLiteral("Inbox"),
+        manager.options());
+    const Resolution youtube = manager.matcher().resolve(
+        QStringLiteral("com.google.Chrome"),
+        QStringLiteral("Google Chrome.app"),
+        QStringLiteral("lofi - YouTube"), manager.options());
+    const Resolution unknown = manager.matcher().resolve(
+        QStringLiteral("C:/Tools/nothing-known.exe"),
+        QStringLiteral("nothing-known.exe"), QString(), manager.options());
+    if (chrome.category != QStringLiteral("browse") ||
+        youtube.category != QStringLiteral("video") ||
+        unknown.category != QStringLiteral("other")) {
+      return fail(QStringLiteral("seeded set classified wrongly: %1/%2/%3")
+                      .arg(chrome.category, youtube.category,
+                           unknown.category));
+    }
+
+    // Editing works and survives a reload.
+    if (!manager.setRuleCategory(QStringLiteral("site:youtube.chrome"),
+                                 QStringLiteral("dev"))) {
+      return fail(QStringLiteral("setRuleCategory failed."));
+    }
+    {
+      CategorizationManager reloaded;
+      reloaded.setRecordedAppsProvider([&records]() { return records; });
+      reloaded.setSettingsRepository(&settingsRepository);
+      if (!reloaded.loadError().isEmpty()) {
+        return fail(QStringLiteral("reload failed: %1").arg(reloaded.loadError()));
+      }
+      const Resolution after = reloaded.matcher().resolve(
+          QStringLiteral("com.google.Chrome"),
+          QStringLiteral("Google Chrome.app"),
+          QStringLiteral("lecture - YouTube"), reloaded.options());
+      if (after.category != QStringLiteral("dev")) {
+        return fail(QStringLiteral("an edit did not survive reload."));
+      }
+      // A user-edited set must not be silently re-seeded.
+      if (reloaded.matcher()
+              .ruleSet()
+              .rules.size() != manager.matcher().ruleSet().rules.size()) {
+        return fail(QStringLiteral("reload re-seeded over a user edit."));
+      }
+    }
+
+    // Reset re-derives from *current* tracking data rather than restoring a
+    // fixed table: teach it about a new app and the reset picks it up.
+    records << recorded(QStringLiteral("D:/Games/Genshin Impact Game/YuanShen.exe"),
+                        QStringLiteral("YuanShen.exe"));
+    if (!manager.restoreAllDefaults()) {
+      return fail(QStringLiteral("restoreAllDefaults failed."));
+    }
+    bool sawGenshin = false;
+    for (const Rule& rule : manager.matcher().ruleSet().rules) {
+      if (rule.id == QStringLiteral("app:genshin-impact")) sawGenshin = true;
+    }
+    if (!sawGenshin) {
+      return fail(QStringLiteral("reset did not re-evaluate tracking data."));
+    }
+    // ...and it discarded the edit.
+    if (manager.matcher()
+            .resolve(QStringLiteral("com.google.Chrome"),
+                     QStringLiteral("Google Chrome.app"),
+                     QStringLiteral("lecture - YouTube"), manager.options())
+            .category != QStringLiteral("video")) {
+      return fail(QStringLiteral("reset kept a user edit."));
+    }
+
+    // Per-app browsing: one rule owns the app, title rules list under it.
+    {
+      const QVariantMap chromeRule =
+          manager.appRuleFor(QStringLiteral("com.google.Chrome"),
+                             QStringLiteral("Google Chrome.app"));
+      if (chromeRule.value(QStringLiteral("id")).toString() !=
+          QStringLiteral("app:chrome")) {
+        return fail(QStringLiteral("appRuleFor did not ignore window titles."));
+      }
+      bool listed = false;
+      for (const QVariant& value :
+           manager.titleRulesForApp(QStringLiteral("com.google.Chrome"),
+                                    QStringLiteral("Google Chrome.app"))) {
+        if (value.toMap().value(QStringLiteral("id")).toString() ==
+            QStringLiteral("site:youtube.chrome")) {
+          listed = true;
+        }
+      }
+      if (!listed) {
+        return fail(QStringLiteral("title rules were not listed under the app."));
+      }
+      for (const QVariant& value :
+           manager.titleRulesForApp(QStringLiteral("com.microsoft.VSCode"),
+                                    QStringLiteral("Visual Studio Code"))) {
+        if (value.toMap().value(QStringLiteral("id")).toString() ==
+            QStringLiteral("site:youtube.chrome")) {
+          return fail(QStringLiteral("a browser rule leaked to an editor."));
+        }
+      }
+    }
+
+    // A title rule is bound to one app, which is why no scope control exists.
+    {
+      const QString created = manager.addTitleRuleForApp(
+          QStringLiteral("com.microsoft.VSCode"),
+          QStringLiteral("Visual Studio Code"), QStringLiteral("Docs"),
+          QStringList{QStringLiteral("readme")}, QStringLiteral("notes"));
+      if (created.isEmpty()) {
+        return fail(QStringLiteral("addTitleRuleForApp failed."));
+      }
+      const Resolution docs = manager.matcher().resolve(
+          QStringLiteral("com.microsoft.VSCode"),
+          QStringLiteral("Visual Studio Code"), QStringLiteral("README.md"),
+          manager.options());
+      const Resolution elsewhere = manager.matcher().resolve(
+          QStringLiteral("com.google.Chrome"),
+          QStringLiteral("Google Chrome.app"), QStringLiteral("README.md"),
+          manager.options());
+      if (docs.category != QStringLiteral("notes") ||
+          elsewhere.ruleId == created) {
+        return fail(QStringLiteral("app-bound title rule misfired."));
+      }
+      if (!manager.deleteRule(created)) {
+        return fail(QStringLiteral("could not delete the created rule."));
+      }
+    }
+
+    // Deleting a category re-homes its rules; "other" is not deletable.
+    {
+      const QString custom =
+          manager.addCategory(QStringLiteral("Study"), QStringLiteral(""));
+      if (custom.isEmpty()) return fail(QStringLiteral("addCategory failed."));
+      if (!manager.setRuleCategory(QStringLiteral("app:vscode"), custom)) {
+        return fail(QStringLiteral("could not move a rule to a new category."));
+      }
+      if (manager.deleteCategory(QStringLiteral("other"))) {
+        return fail(QStringLiteral("'other' must not be deletable."));
+      }
+      if (!manager.deleteCategory(custom)) {
+        return fail(QStringLiteral("deleteCategory failed."));
+      }
+      if (manager.matcher()
+              .resolve(QStringLiteral("com.microsoft.VSCode"),
+                       QStringLiteral("Visual Studio Code"), QString(),
+                       manager.options())
+              .category != QStringLiteral("other")) {
+        return fail(QStringLiteral("deleted category did not re-home rules."));
+      }
+    }
+
+    // The needle the editor binds keeps the recorded spelling.
+    if (manager.appNeedleFor(QStringLiteral("com.google.Chrome"),
+                             QStringLiteral("Google Chrome.app")) !=
+        QStringLiteral("=Google Chrome.app")) {
+      return fail(QStringLiteral("appNeedleFor lost the recorded spelling."));
+    }
+
+    // A corrupt document falls back loudly, never silently.
+    settingsRepository.setValue(QStringLiteral("categorization"),
+                                QStringLiteral("{ not json"));
+    {
+      CategorizationManager broken;
+      broken.setRecordedAppsProvider([&records]() { return records; });
+      broken.setSettingsRepository(&settingsRepository);
+      if (broken.loadError().isEmpty()) {
+        return fail(QStringLiteral("corrupt config did not report an error."));
+      }
+    }
+    clearStore();
+
+    qInfo().noquote()
+        << QStringLiteral("categorization manager ok: eager seed from records, "
+                          "recorded bindings, reload, reset re-derives.");
   }
 
   qInfo().noquote() << QStringLiteral("database smoke ok: %1").arg(databasePath);

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: frame

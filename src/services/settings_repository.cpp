@@ -4,9 +4,11 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QFile>
+#include <QHash>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMetaType>
+#include <QMutex>
 #include <QSettings>
 #include <QSqlDatabase>
 #include <QSqlError>
@@ -45,7 +47,7 @@ const QString kCalendarSelectedDateKey =
     QStringLiteral("calendar_selected_date");
 const QString kMemoMessagesKey = QStringLiteral("local_memo_chat_messages");
 const QString kNightModeKey = QStringLiteral("night_mode");
-const QString kDefaultTagName = QStringLiteral("其他");
+const QString kDefaultTagName = QStringLiteral("Other");
 const QString kAutostartDecisionKey =
     QStringLiteral("windows_autostart_user_decided_v2");
 
@@ -55,6 +57,23 @@ QSqlDatabase database() {
     qWarning() << "Database is not open.";
   }
   return db;
+}
+
+// settings 表的进程级读缓存。作用域跟着**具名连接**（一个进程一张 GUI 库 settings 表），
+// 而不是跟着 SettingsRepository 实例——实例可以有好几个（见头文件注释与 db_smoke）。
+QHash<QString, QString>& settingsCache() {
+  static QHash<QString, QString> cache;
+  return cache;
+}
+
+bool& settingsCacheLoaded() {
+  static bool loaded = false;
+  return loaded;
+}
+
+QMutex& settingsCacheMutex() {
+  static QMutex mutex;
+  return mutex;
 }
 
 QDate legacySessionDate(const QVariantMap& session) {
@@ -187,6 +206,34 @@ QString systemLanguageMode() {
 
 SettingsRepository::SettingsRepository(QObject* parent) : QObject(parent) {}
 
+void SettingsRepository::ensureCacheLoaded() {
+  QMutexLocker locker(&settingsCacheMutex());
+  if (settingsCacheLoaded()) return;
+
+  // 整表一次装载。settings 是几十行的 KV 表，一条 SELECT 比「每个键一条」便宜得多，
+  // 而且顺带把「键不存在」也缓存了（不在 map 里即不存在），免得未命中的键每次重查。
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) return;  // 不置 loaded：库开了之后再装
+
+  QSqlQuery query(db);
+  if (!query.exec(QStringLiteral("SELECT key, value FROM settings;"))) {
+    qWarning() << "Failed to prime settings cache:" << query.lastError().text();
+    return;
+  }
+
+  QHash<QString, QString>& cache = settingsCache();
+  cache.clear();
+  while (query.next())
+    cache.insert(query.value(0).toString(), query.value(1).toString());
+  settingsCacheLoaded() = true;
+}
+
+void SettingsRepository::invalidateCache() {
+  QMutexLocker locker(&settingsCacheMutex());
+  settingsCache().clear();
+  settingsCacheLoaded() = false;
+}
+
 QString SettingsRepository::getValue(const QString& key,
                                      const QString& defaultValue) {
   const QString normalizedKey = key.trimmed();
@@ -195,29 +242,15 @@ QString SettingsRepository::getValue(const QString& key,
     return defaultValue;
   }
 
-  QSqlDatabase db = database();
-  if (!db.isValid() || !db.isOpen()) return defaultValue;
+  ensureCacheLoaded();
 
-  QSqlQuery query(db);
-  if (!query.prepare(QStringLiteral(R"SQL(
-SELECT value
-FROM settings
-WHERE key = :key
-LIMIT 1;
-)SQL"))) {
-    qWarning() << "Failed to prepare getValue:" << query.lastError().text();
-    return defaultValue;
-  }
+  QMutexLocker locker(&settingsCacheMutex());
+  if (!settingsCacheLoaded()) return defaultValue;  // 库不可用 → 同旧行为
 
-  query.bindValue(QStringLiteral(":key"), normalizedKey);
-
-  if (!query.exec()) {
-    qWarning() << "Failed to query setting:" << query.lastError().text();
-    return defaultValue;
-  }
-
-  if (!query.next()) return defaultValue;
-  return query.value(0).toString();
+  const QHash<QString, QString>& cache = settingsCache();
+  const auto hit = cache.constFind(normalizedKey);
+  if (hit == cache.constEnd()) return defaultValue;  // 无此键 → 同旧行为
+  return hit.value();
 }
 
 bool SettingsRepository::setValue(const QString& key, const QString& value) {
@@ -259,6 +292,12 @@ ON CONFLICT(key) DO UPDATE SET
     return false;
   }
 
+  // 写通缓存（进程级，故另一个实例随后读也拿得到）。缓存尚未装载时这条也无害：
+  // 之后的整表装载会从库里读到同一个值。
+  {
+    QMutexLocker locker(&settingsCacheMutex());
+    settingsCache().insert(normalizedKey, value);
+  }
   return true;
 }
 

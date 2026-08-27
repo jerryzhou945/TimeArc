@@ -172,7 +172,7 @@ def main():
             raise AssertionError(
                 f"{page_name} must not instantiate or load its own wallpaper"
             )
-    for label in ("社交平台授权", "微信 AppID", "QQ AppID", "等待平台授权"):
+    for label in ("Social platform access", "WeChat AppID", "QQ AppID", "Waiting for platform approval"):
         require(settings, label, f"social authorization UI: {label}")
     require(theme, "readonly property color contentClear",
             "near-clear wallpaper surface token")
@@ -205,7 +205,7 @@ def main():
             "Home wallpaper prompt")
     require(home, "visible: !root.wallpaperActive",
             "wallpaper prompt visibility guard")
-    require(home, 'text: "添加自定义壁纸"',
+    require(home, 'text: "Add a custom wallpaper"',
             "wallpaper prompt copy")
     require(shell, "settingsPage.openWallpaperDialog()",
             "Home prompt uses existing wallpaper picker")
@@ -215,7 +215,7 @@ def main():
             "strong light wallpaper glass")
     require(glass, "theme.contentClear",
             "glass panels pass the wallpaper through")
-    require(home, "记录使用天数", "Home recorded-day semantic marker")
+    require(home, "Days recorded", "Home recorded-day semantic marker")
     require(home, "ListView.SnapOneItem", "single centered Home card paging")
     require(stats, '["week", "month", "year", "all"]',
             "four statistics ranges")
@@ -232,7 +232,7 @@ def main():
     require(history, "coverProfile.sceneSource",
             "seasonal monthly entry scene")
     report_cover = history.split("id: reportCover", 1)[1].split(
-        "最近被记住", 1
+        "Recently remembered", 1
     )[0]
     if "Canvas {" in report_cover:
         raise AssertionError("monthly entry must not use the old Canvas cover")
@@ -268,10 +268,10 @@ def main():
     require(share, "text: root.storyForShare()",
             "share poster uses privacy-filtered story")
     for channel, label in (
-        ("gallery", "保存到图库"),
-        ("moments", "朋友圈"),
-        ("qzone", "QQ动态"),
-        ("system", "更多"),
+        ("gallery", "Save to gallery"),
+        ("moments", "Moments"),
+        ("qzone", "QQ Qzone"),
+        ("system", "More"),
     ):
         require(share_bar, f'channel: "{channel}"',
                 f"share action channel {channel}")
@@ -372,7 +372,7 @@ def main():
             "Profile avatar selection feedback")
     require(settings, "MobileRoundedFrame",
             "circular Profile avatar")
-    for label in ("开始记录", "已陪伴", "实际记录"):
+    for label in ("Start recording", "Together for", "Actually recorded"):
         require(settings, label, f"Profile archive fact {label}")
     require(usage_header, "Q_INVOKABLE QVariantMap getReportReleaseStatus",
             "report release status API")
@@ -415,13 +415,20 @@ def main():
     require(shell, "badgeVisible:",
             "History tab badge binding")
     readme = read("README.md")
-    require(readme, "本地头像",
+    # README.md is English since 0adb8a6; the Chinese README carries the same
+    # two facts. Both behaviours are real: avatars are copied into app storage
+    # (mobile_ui_service.cpp) and latestReleasedMonthKey() gates on 08:00 of the
+    # following month.
+    require(readme, "local avatar",
             "README local avatar behavior")
-    require(readme, "次月 1 日 08:00",
+    require(readme, "08:00 on the 1st of the following month",
             "README monthly report release schedule")
+    readme_zh = read("README.zh_CN.md")
+    require(readme_zh, "本地头像", "zh README local avatar behavior")
+    require(readme_zh, "次月 1 日 08:00", "zh README monthly report release schedule")
     require(monthly_story, '(root.currentPage + 1) + " / " + root.pageCount',
             "neutral monthly story progress marker")
-    if '? "完成"' in monthly_story:
+    if '? "Done"' in monthly_story:
         raise AssertionError("monthly story must not show abrupt completion copy")
     ranking_share_path = (
         ROOT / "qml/mobile/components/MobileRankingShareOverlay.qml"

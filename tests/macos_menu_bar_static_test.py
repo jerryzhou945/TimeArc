@@ -24,7 +24,7 @@ def main():
         ROOT / "qml/desktop/pages/DesktopProfilePage.qml"
     ).read_text(encoding="utf-8")
     i18n_js = (
-        ROOT / "qml/desktop/components/I18n.js"
+        ROOT / "qml/shared/I18n.js"
     ).read_text(encoding="utf-8")
     main_cpp = (ROOT / "src/main.cpp").read_text(encoding="utf-8")
     localizer = (
@@ -59,7 +59,7 @@ def main():
 
     # Six menus: the app menu is populated by role merging (see below), the
     # other five are declared here.
-    for title in ("文件", "编辑", "显示", "窗口", "帮助"):
+    for title in ("File", "Edit", "View", "Window", "Help"):
         require(bar, f'title: bar.tr("{title}")', f"{title} menu")
 
     # About, Settings and Quit carry roles so macOS merges them into the app menu.
@@ -143,17 +143,24 @@ def main():
     require(profile, 'tabKey: "about"', "dedicated About settings tab")
 
     # All three UI languages, from the same file the window UI uses.
-    require(bar, 'import "components/I18n.js" as I18n', "shared i18n source")
+    require(bar, 'import "../shared/I18n.js" as I18n', "shared i18n source")
     require(bar, "return I18n.menu(lang, source);", "menu strings localized")
-    require(i18n_js, "var menuEn = {", "English menu table")
+    # English is the source language, so there is no English menu table to
+    # look up: menu() returns the source string itself for English.
+    require(i18n_js, "var menuZh = {", "Chinese menu table")
     require(i18n_js, "var menuJa = {", "Japanese menu table")
     require(i18n_js, "function menu(lang, source)", "menu lookup")
-    for label in ("文件", "编辑", "显示", "窗口", "帮助", "关于 TimeArc",
-                  "备忘黑板", "记忆湖", "夜间模式", "在 Finder 中显示数据文件夹"):
+    for label in ("File", "Edit", "View", "Window", "Help", "About TimeArc",
+                  "Memo Board", "Memory Lake", "Night Mode", "Show Data Folder in Finder"):
         require(i18n_js, f'"{label}": "', f"{label} translated")
-    # Language names stay in their own language, macOS-style — never translated.
-    for literal in ('text: "中文"', 'text: "English"', 'text: "日本語"'):
-        require(bar, literal, "language row")
+    # Language names are endonyms — each written in its own language, macOS-style
+    # — and never routed through tr(). Someone who cannot read the current UI
+    # language still has to be able to pick out their own. These previously read
+    # "Chinese" / "Japanese", which the rule above says they should not.
+    for literal in ('text: "简体中文"', 'text: "English"', 'text: "日本語"'):
+        require(bar, literal, "language row endonym")
+    for translated in ('bar.tr("简体中文")', 'bar.tr("English")', 'bar.tr("日本語")'):
+        forbid(bar, translated, "language name must not be translated")
 
     # Merged Preferences/Quit rows are relabelled by QCocoa from Qt's
     # MAC_APPLICATION_MENU catalog, not from their QML text. The translator
@@ -199,8 +206,8 @@ def main():
             'if (mode == QLatin1String("zh") || mode == QLatin1String("ja")) return mode;',
             "English fallback in the native normalizer")
     forbid(localizer, 'return QStringLiteral("zh");', "Chinese fallback")
-    require(i18n_js, 'if (lang === "zh")', "explicit Chinese branch in menu lookup")
-    require(i18n_js, "return menuEn[source] || source\n}",
+    require(i18n_js, 'if (l === "zh")', "explicit Chinese branch in menu lookup")
+    require(i18n_js, "    return source\n}",
             "English fallback for unrecognized menu languages")
     # Same rule for the window UI: explicit zh/ja are untouched, anything
     # unrecognized resolves to English rather than resurrecting Chinese.

@@ -1,4 +1,5 @@
 import QtQuick
+import "../shared/I18n.js" as I18n
 
 QtObject {
     id: theme
