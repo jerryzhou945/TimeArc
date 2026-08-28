@@ -71,28 +71,39 @@ class UsageStatManager : public QObject {
   // （无记录的天补 0），口径与 softwareSecondsForRange("month") 一致。
   // 返回 [{day:int(1..N), seconds:qlonglong}]，用于趋势曲线 / 月历柱。
   Q_INVOKABLE QVariantList dailySecondsForMonth(int year, int month) const;
-  // 统计页周视图（G-1）：任意窗口逐日 active 秒数序列，口径同 dailySecondsForMonth，
-  // 但按 [startUnixSec, endUnixSec] 的本地自然日分桶。返回 [{dayStartUnix, seconds}]
-  // （窗口内每天一项，无记录补 0），供周 7 柱 / 任意期次序列。range "week" 已在
-  // matchesRange 支持（周一为首），周窗口起止由 QML 计算后传入，二者口径一致。
-  Q_INVOKABLE QVariantList dailySecondsForRange(qint64 startUnixSec,
-                                                qint64 endUnixSec) const;
-  // 统计页期次任意窗口（G-9）+ 环比 WoW/MoM/YoY（G-8/G-2）：按记录起始 unix 落在
-  // [startUnixSec, endUnixSec] 闭区间聚合，口径与 matchesRange 当前周期一致；
-  // QML 传入本地周期边界（末秒为 end）即可取任意周/月/年窗口与其上一周期。
-  Q_INVOKABLE QVariantList activeSoftwareForWindow(qint64 startUnixSec,
-                                                   qint64 endUnixSec) const;
-  Q_INVOKABLE int activeSoftwareSecondsForWindow(qint64 startUnixSec,
-                                                 qint64 endUnixSec) const;
+  // ===== 统计页专用读路径：**只看 frontmost_sessions**（source == "foreground"）=====
+  // 统计页的口径是「你人在哪个窗口前面」，不是「机器上还有什么在响」。media_sessions
+  // 与前台并发（放视频的同时你在读 PDF），两条记录同时为真；把它们并进同一份 app 列表
+  // 后按 app 求并集再相加，同一秒会被不同 app 各算一次，一天于是能超过 24h
+  // （2026-08-04/05 各多出 227s / 209s）。统计页因此整条链路都走 foreground-only：
+  // 名字里的 foreground 就是口径声明，别在这一页调用 active* 系列。
+  // 首页 / 记忆湖 / 月度回顾要的是「设备被使用的覆盖面」，继续用 active*（前台∪音频）。
+  //
+  // 周 7 柱 / 任意期次逐日序列（G-1）：按 [startUnixSec, endUnixSec] 的本地自然日分桶，
+  // 返回 [{dayStartUnix, seconds}]（每天一项，无记录补 0）。跨午夜的会话按天切片，
+  // 每天只计入落在当天的那一段，故各柱之和与期次总时长同口径。
+  Q_INVOKABLE QVariantList foregroundDailySecondsForRange(
+      qint64 startUnixSec, qint64 endUnixSec) const;
+  // 期次任意窗口（G-9）+ 环比 WoW/MoM/YoY（G-8/G-2）：与 [startUnixSec, endUnixSec]
+  // 闭区间**相交**的记录入选，区间截断到窗口内（见 ClipWindow）。前台记录彼此不重叠，
+  // 加上截断，一个自然日的总时长恒 <= 24h。QML 传入本地周期边界（末秒为 end）。
+  Q_INVOKABLE QVariantList foregroundSoftwareForWindow(qint64 startUnixSec,
+                                                       qint64 endUnixSec) const;
+  Q_INVOKABLE int foregroundSoftwareSecondsForWindow(qint64 startUnixSec,
+                                                     qint64 endUnixSec) const;
   Q_INVOKABLE QVariantList foregroundSegmentsForWindow(qint64 startUnixSec,
                                                        qint64 endUnixSec) const;
   // 年视图 12 月序列（G-7）：单遍扫描，替代 12 次 activeSoftwareForMonth。
   // 返回 [{month:1..12, seconds}]（当年到当前月、过去年整 12、未来年全 0）。
-  Q_INVOKABLE QVariantList monthlySecondsForYear(int year) const;
+  Q_INVOKABLE QVariantList foregroundMonthlySecondsForYear(int year) const;
   // 专注聚合（G-6 / A-5）：开发/办公/笔记 类目跨 app 连续块（间隙<=10min、最短>=5min）。
   // 返回 {focusSeconds:qlonglong, focusDays:int}，供月·专注天数 / 年·专注小时。只读。
-  Q_INVOKABLE QVariantMap focusStatsForWindow(qint64 startUnixSec,
-                                              qint64 endUnixSec) const;
+  Q_INVOKABLE QVariantMap foregroundFocusStatsForWindow(qint64 startUnixSec,
+                                                        qint64 endUnixSec) const;
+  // 统计页的全历史清单（「累计总时长」/「历史最长」/「本期活跃 x / y」的分母）。
+  // 与 allApps() 同形，但只统计前台记录；allApps() 保持全来源，设置页的应用清单
+  // 要靠它列出**服务见过的每一个 app**（含只出过声的），那是另一件事。
+  Q_INVOKABLE QVariantList foregroundApps() const;
   // 导出报告（G-10）：把 UI 组装的统计 JSON 写到下载/文档目录（报告文件，非 usage 数据，
   // 不动磁盘契约/不写 usage/SQLite）。返回完整路径，失败空串。
   Q_INVOKABLE QString exportReport(const QString& fileBaseName,
@@ -156,7 +167,27 @@ signals:
     }
   };
 
+  // 读层时间窗口（unix 秒，半开区间 [start, end)）。窗口读路径统一走它：记录按
+  // **区间相交**入选，入选后区间再**截断**到窗口内。此前所有窗口读路径只判定
+  // record.startUnixSec 落在窗口里，然后整段计入——一条 18:43 开始、次日 12:19
+  // 结束的会话会把 17.6h 全部记到起始那天，于是「今日」可以超过 24h；同时昨晚
+  // 跨过午夜的那一段又整个从今天消失。截断同时修掉这两个方向的偏差。
+  struct ClipWindow {
+    qint64 start = 0;
+    qint64 end = 0;          // 开区间右端（不含）
+    bool unbounded = false;  // range == "all"：不看时间，记录区间原样返回
+    bool valid = true;       // 无法识别的 range：一条都不匹配（同旧行为）
+
+    // 记录区间 ∩ 窗口。无交集（或记录本身非法）返回 false。
+    bool clip(qint64 recStartUnixSec, quint64 durationSec, qint64* outStart,
+              qint64* outEnd) const;
+  };
+
   DateWindow rangeWindow(const QString& range) const;
+  // DateWindow（本地自然日闭区间）→ ClipWindow（unix 半开区间）。
+  static ClipWindow clipWindowForDates(const DateWindow& window);
+  // QML 传入的 [start, end] 闭区间（end 为期次末秒）→ 半开 [start, end + 1)。
+  static ClipWindow clipWindowForBounds(qint64 startUnixSec, qint64 endUnixSec);
 
   QList<UsageRecord> m_records;
   int m_recordsGeneration = 0;
@@ -175,6 +206,9 @@ signals:
   // 统计页 rebuild() 每次切换周/月/年或期次都会调它，但它是全历史的、与窗口无关。
   mutable QVariantList m_allAppsCache;
   mutable int m_allAppsGeneration = -1;
+  // foregroundApps() 的同款记忆化（两种来源口径各缓存一份，键同为 generation）。
+  mutable QVariantList m_foregroundAppsCache;
+  mutable int m_foregroundAppsGeneration = -1;
 
   // 设置页读层过滤（UI 私有；启动 + 开关变更时经 setReadFilters 推入）。默认 = 现状。
   bool m_autoClassify = true;    // 关 → 类别一律「其他」（停用自动归类）
@@ -223,18 +257,17 @@ signals:
   void rebuildRepresentativePaths() const;
   QVariantList aggregateSoftwareForRange(const QString& range,
                                          const QString& sourceFilter) const;
-  // 聚合核心：按 inWindow 谓词筛记录、按 activity key 分组、合并重叠区间。
+  // 聚合核心：按 window 截取记录区间、按 activity key 分组、合并重叠区间。
   // range 字符串版与显式自然月版共用同一核心，避免逻辑漂移。
-  QVariantList aggregateSoftware(
-      const std::function<bool(const UsageRecord&)>& inWindow,
-      const QString& sourceFilter) const;
-  // 前台会话段聚合核心（range 版与任意窗口版共用，谓词决定纳入哪些记录）。
-  QVariantList foregroundSegmentsImpl(
-      const std::function<bool(const UsageRecord&)>& inWindow) const;
+  QVariantList aggregateSoftware(const ClipWindow& window,
+                                 const QString& sourceFilter) const;
+  // allApps() / foregroundApps() 的共同实现；sourceFilter 为空表示全来源。
+  QVariantList allAppsImpl(const QString& sourceFilter,
+                           QVariantList* cache, int* cacheGeneration) const;
+  // 前台会话段聚合核心（range 版与任意窗口版共用，window 决定纳入哪些记录）。
+  QVariantList foregroundSegmentsImpl(const ClipWindow& window) const;
   int aggregateSoftwareSecondsForRange(const QString& range,
                                        const QString& sourceFilter) const;
-  bool matchesRange(const UsageRecord& record, const QString& range) const;
-  bool matchesYearMonth(const UsageRecord& record, int year, int month) const;
   bool matchesSource(const UsageRecord& record,
                      const QString& sourceFilter) const;
   QString secondsToTimeText(quint64 totalSeconds) const;

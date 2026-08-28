@@ -394,10 +394,10 @@ Item {
         return best
     }
 
-    // 周 7 柱：dailySecondsForRange(窗口) 真实逐日 active（周一→周日；任意周）。
+    // 周 7 柱：foregroundDailySecondsForRange(窗口) 真实逐日前台（周一→周日；任意周）。
     function computeWindowDailyBars(win) {
-        if (!usageStatManager || !usageStatManager.dailySecondsForRange) return []
-        var series = usageStatManager.dailySecondsForRange(win.start, win.end)
+        if (!usageStatManager || !usageStatManager.foregroundDailySecondsForRange) return []
+        var series = usageStatManager.foregroundDailySecondsForRange(win.start, win.end)
         if (!series) series = []
         var labels = weekdayShortLabels()
         var maxSec = 1
@@ -411,10 +411,10 @@ Item {
         return bars
     }
 
-    // 年 12 柱（G-7）：monthlySecondsForYear 单遍聚合（替代 12 次 activeSoftwareForMonth）。
+    // 年 12 柱（G-7）：foregroundMonthlySecondsForYear 单遍聚合（替代 12 次逐月聚合）。
     function computeYearBars(year) {
-        if (!usageStatManager || !usageStatManager.monthlySecondsForYear) return []
-        var series = usageStatManager.monthlySecondsForYear(year)
+        if (!usageStatManager || !usageStatManager.foregroundMonthlySecondsForYear) return []
+        var series = usageStatManager.foregroundMonthlySecondsForYear(year)
         if (!series) series = []
         var labels = monthShortLabels()
         var maxSec = 1
@@ -429,7 +429,7 @@ Item {
     }
 
     // 月热力（A-2：按当月最大单日秒数分 5 级 0/≤25/≤50/≤75/>75）。
-    // daily 来自 dailySecondsForRange（dayStartUnix）；兼容旧 .day 字段。
+    // daily 来自 foregroundDailySecondsForRange（dayStartUnix）；兼容旧 .day 字段。
     function computeHeat(daily, segs, apps) {
         var maxSec = 0
         for (var i = 0; i < daily.length; i++)
@@ -728,16 +728,19 @@ Item {
         var r = range
         var win = periodWindow(r, periodOffset)
         vmPeriodLabel = win.label
-        var apps = usageStatManager.activeSoftwareForWindow(win.start, win.end)
+        // 本页只读 frontmost_sessions：media_sessions 与前台并发（放视频的同时你在读
+        // PDF），两条记录同时为真，混进同一份 app 列表后同一秒会被两个 app 各算一次，
+        // 一天于是能超过 24h。整页统一走 foreground* 读路径，别改回 active*。
+        var apps = usageStatManager.foregroundSoftwareForWindow(win.start, win.end)
         var segs = usageStatManager.foregroundSegmentsForWindow(win.start, win.end)
-        var lifetimeApps = usageStatManager.allApps ? usageStatManager.allApps() : []
+        var lifetimeApps = usageStatManager.foregroundApps ? usageStatManager.foregroundApps() : []
         if (!apps) apps = []
         if (!segs) segs = []
         if (!lifetimeApps) lifetimeApps = []
-        // 总秒由已取 apps 求和（口径同 activeSoftwareSecondsForWindow，省一次全量重聚合 / 5s）。
+        // 总秒由已取 apps 求和（口径同 foregroundSoftwareSecondsForWindow，省一次全量重聚合 / 5s）。
         var total = 0
         for (var ti = 0; ti < apps.length; ti++) total += apps[ti].seconds ? apps[ti].seconds : 0
-        // allApps() 特意保留被隐藏的 app（设置页要靠它取消隐藏），而其它每条读路径
+        // foregroundApps() 特意保留被隐藏的 app（设置页要靠 allApps() 取消隐藏），而其它每条读路径
         // 都过滤 m_hiddenKeys。本页在计数/取最长之前必须自己滤掉，否则「历史最长」
         // 会点名一个用户明确隐藏的 app，「本期活跃应用」的分母也和下方应用库对不上。
         var visibleLifetime = []
@@ -766,12 +769,13 @@ Item {
 
         // 上一周期环比（WoW/MoM/YoY）+ 专注聚合（焦点类目连续块）。
         var prevWin = periodWindow(r, periodOffset - 1)
-        var prevApps = usageStatManager.activeSoftwareForWindow(prevWin.start, prevWin.end)
+        var prevApps = usageStatManager.foregroundSoftwareForWindow(prevWin.start, prevWin.end)
         if (!prevApps) prevApps = []
         var prevSec = 0
         for (var pi = 0; pi < prevApps.length; pi++) prevSec += prevApps[pi].seconds ? prevApps[pi].seconds : 0
         var hasPrev = prevApps.length > 0 && prevSec > 0
-        var focus = usageStatManager.focusStatsForWindow ? usageStatManager.focusStatsForWindow(win.start, win.end) : {}
+        var focus = usageStatManager.foregroundFocusStatsForWindow
+                    ? usageStatManager.foregroundFocusStatsForWindow(win.start, win.end) : {}
         if (!focus) focus = {}
         var focusSeconds = focus.focusSeconds ? focus.focusSeconds : 0
         var focusDays = focus.focusDays ? focus.focusDays : 0
@@ -788,7 +792,7 @@ Item {
             vmHeat = []; vmLine = []; vmKeywords = []
             vmMetrics = yearMetrics(total, apps, vmBars, focusSeconds, prevSec, hasPrev)
         } else {
-            var daily = usageStatManager.dailySecondsForRange(win.start, win.end)
+            var daily = usageStatManager.foregroundDailySecondsForRange(win.start, win.end)
             if (!daily) daily = []
             vmBars = []
             vmHeat = computeHeat(daily, segs, apps)

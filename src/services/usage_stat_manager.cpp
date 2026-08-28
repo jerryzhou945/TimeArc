@@ -39,6 +39,24 @@ struct UsageInterval {
   qint64 end = 0;
 };
 
+// 把 [start, end) 按本地自然日切片，对每个被跨越的日子回调一次（区间已截到当天）。
+// 逐日/逐月分桶的读路径都要用它：此前它们按 record 的**起始日**整段入桶，一条
+// 跨午夜的会话会把全部时长记给起始那天，于是趋势柱与「今日」总时长同时失真。
+template <typename Fn>
+void forEachLocalDaySlice(qint64 start, qint64 end, Fn&& fn) {
+  if (end <= start) return;
+  QDate day = QDateTime::fromSecsSinceEpoch(start).toLocalTime().date();
+  qint64 cursor = start;
+  while (cursor < end && day.isValid()) {
+    const qint64 dayEnd = day.addDays(1).startOfDay().toSecsSinceEpoch();
+    if (dayEnd <= cursor) break;  // 时区异常兜底，绝不空转
+    const qint64 sliceEnd = std::min(end, dayEnd);
+    fn(day, cursor, sliceEnd);
+    cursor = sliceEnd;
+    day = day.addDays(1);
+  }
+}
+
 bool containsAny(const QString& text, std::initializer_list<QString> words) {
   for (const QString& word : words) {
     if (text.contains(word)) return true;
@@ -258,6 +276,10 @@ QStringList iconDominantColors(const QString& path) {
 // connection; the service process is the only writer.
 const QString kTimearcConnection = QStringLiteral("timearc_service");
 
+// UsageRecord::source for rows loaded from frontmost_sessions. The stats page
+// reads this source exclusively; see the header for why.
+const QString kForegroundSource = QStringLiteral("foreground");
+
 // The service writes app_id as the stable identity, display_name as the short
 // app name, and executable_path as path. Keep the seven-column normalized read
 // shape consumed below while using SQLite rowid as the incremental watermark.
@@ -463,17 +485,12 @@ QVariantList UsageStatManager::audioForRange(const QString& range) const {
 QVariantList UsageStatManager::aggregateSoftwareForRange(
     const QString& range, const QString& sourceFilter) const {
   // 窗口解析一次，而不是每条记录一次（原先谓词里既造 QDateTime 又调 currentDate()）。
-  const DateWindow window = rangeWindow(range);
-  return aggregateSoftware(
-      [&](const UsageRecord& record) {
-        return window.contains(record.localDate);
-      },
-      sourceFilter);
+  const ClipWindow window = clipWindowForDates(rangeWindow(range));
+  return aggregateSoftware(window, sourceFilter);
 }
 
 QVariantList UsageStatManager::aggregateSoftware(
-    const std::function<bool(const UsageRecord&)>& inWindow,
-    const QString& sourceFilter) const {
+    const ClipWindow& window, const QString& sourceFilter) const {
   // 聚合先按 activity key 收集所有时间区间，再在输出时合并重叠区间。
   // sourceFilter 为空表示 active 合并视图；否则只看 foreground 或 audio。
   struct Aggregate {
@@ -492,15 +509,18 @@ QVariantList UsageStatManager::aggregateSoftware(
 
   QMap<QString, Aggregate> grouped;
   const auto addRecord = [&](const UsageRecord& record) {
-    if (!inWindow(record)) return;
     if (!matchesSource(record, sourceFilter)) return;
-    if (record.durationSec == 0) return;
+
+    // 区间相交入选 + 截断到窗口内（见 ClipWindow）。窗口边界上的会话只贡献
+    // 落在窗口里的那一段，跨午夜的会话两天各拿自己的一半。
+    qint64 startUnixSec = 0;
+    qint64 endUnixSec = 0;
+    if (!window.clip(record.startUnixSec, record.durationSec, &startUnixSec,
+                     &endUnixSec))
+      return;
 
     const QString key = effectiveGroupKey(record);
     if (key.isEmpty()) return;  // 逐项显隐：被排除的 app 不计入聚合（2B）
-    const qint64 endUnixSec =
-        record.startUnixSec + static_cast<qint64>(record.durationSec);
-    if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
 
     // 引用就地累加（原先 value()拷出 + [key]=拷回 会把不断增长的 intervals 每条记录
     // 深拷两次 → O(N²)，重度前台 app 一周数千条时是 activeSoftware 的主要耗时）。
@@ -521,7 +541,7 @@ QVariantList UsageStatManager::aggregateSoftware(
       const QString representative = representativePathForGroup(key);
       aggregate.path = representative.isEmpty() ? record.path : representative;
     }
-    const UsageInterval interval{record.startUnixSec, endUnixSec};
+    const UsageInterval interval{startUnixSec, endUnixSec};
     aggregate.intervals.append(interval);
     aggregate.lastUsedUnixSec =
         std::max(aggregate.lastUsedUnixSec, endUnixSec);
@@ -536,7 +556,7 @@ QVariantList UsageStatManager::aggregateSoftware(
     // 逐记录按窗口标题分类、按时长累加，输出时取占比最高的类别。
     aggregate.categorySeconds[classifyActivity(
         key, record.appId, record.appName, record.path, record.windowTitle)] +=
-        record.durationSec;
+        static_cast<quint64>(endUnixSec - startUnixSec);
   };
 
   for (const UsageRecord& record : m_records) {
@@ -674,7 +694,7 @@ int UsageStatManager::aggregateSoftwareSecondsForRange(
 }
 
 QVariantList UsageStatManager::foregroundSegmentsImpl(
-    const std::function<bool(const UsageRecord&)>& inWindow) const {
+    const ClipWindow& window) const {
   // 只看前台记录（service 已按"同 exe+同窗口标题连续"切会话；浏览器换标签标题
   // 会滚动新记录），按 activity key 分组，相邻间隙 <= 60s 合并成一次"会话段"，
   // 既消除标题抖动，又保留真实再次访问（中间隔了别的 app -> 有真实间隙，不合并）。
@@ -689,12 +709,12 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
   QMap<QString, AppSessions> grouped;
   const auto addRecord = [&](const UsageRecord& record) {
     if (record.source == "audio") return;  // 仅前台
-    if (!inWindow(record)) return;
-    if (record.durationSec == 0) return;
-
-    const qint64 endUnixSec =
-        record.startUnixSec + static_cast<qint64>(record.durationSec);
-    if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
+    // 同 aggregateSoftware：相交入选 + 截断，环上的会话段不会伸出当天之外。
+    qint64 startUnixSec = 0;
+    qint64 endUnixSec = 0;
+    if (!window.clip(record.startUnixSec, record.durationSec, &startUnixSec,
+                     &endUnixSec))
+      return;
 
     const QString key = effectiveGroupKey(record);
     if (key.isEmpty()) return;  // 逐项显隐：被排除的 app 不计入会话段（2B）
@@ -713,7 +733,7 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
     if (app.path.trimmed().isEmpty() && !record.path.trimmed().isEmpty()) {
       app.path = record.path;
     }
-    app.intervals.append({record.startUnixSec, endUnixSec});
+    app.intervals.append({startUnixSec, endUnixSec});
   };
 
   for (const UsageRecord& record : m_records) addRecord(record);
@@ -789,36 +809,28 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
 
 QVariantList UsageStatManager::foregroundSegmentsForRange(
     const QString& range) const {
-  const DateWindow window = rangeWindow(range);  // 同上：每次聚合解析一次
-  return foregroundSegmentsImpl([&](const UsageRecord& record) {
-    return window.contains(record.localDate);
-  });
+  // 同上：每次聚合解析一次
+  return foregroundSegmentsImpl(clipWindowForDates(rangeWindow(range)));
 }
 
-// 任意窗口版（统计页期次 prev/next）：按记录起始 unix 落在 [start,end] 闭区间筛选，
-// 与 matchesRange 当前周/月/年的按起始日口径一致（QML 传入本地周期边界，末秒为 end）。
+// 任意窗口版（统计页期次 prev/next）：与窗口**相交**的记录入选，区间截断到
+// [start, end]（QML 传入本地周期边界，末秒为 end）。口径与 range 版一致。
 QVariantList UsageStatManager::foregroundSegmentsForWindow(
     qint64 startUnixSec, qint64 endUnixSec) const {
-  return foregroundSegmentsImpl([&](const UsageRecord& record) {
-    return record.startUnixSec >= startUnixSec &&
-           record.startUnixSec <= endUnixSec;
-  });
+  return foregroundSegmentsImpl(clipWindowForBounds(startUnixSec, endUnixSec));
 }
 
-QVariantList UsageStatManager::activeSoftwareForWindow(qint64 startUnixSec,
-                                                       qint64 endUnixSec) const {
-  return aggregateSoftware(
-      [&](const UsageRecord& record) {
-        return record.startUnixSec >= startUnixSec &&
-               record.startUnixSec <= endUnixSec;
-      },
-      QString());
+QVariantList UsageStatManager::foregroundSoftwareForWindow(
+    qint64 startUnixSec, qint64 endUnixSec) const {
+  return aggregateSoftware(clipWindowForBounds(startUnixSec, endUnixSec),
+                           kForegroundSource);
 }
 
-int UsageStatManager::activeSoftwareSecondsForWindow(qint64 startUnixSec,
-                                                     qint64 endUnixSec) const {
+int UsageStatManager::foregroundSoftwareSecondsForWindow(
+    qint64 startUnixSec, qint64 endUnixSec) const {
   quint64 total = 0;
-  const QVariantList items = activeSoftwareForWindow(startUnixSec, endUnixSec);
+  const QVariantList items =
+      foregroundSoftwareForWindow(startUnixSec, endUnixSec);
   for (const QVariant& item : items) {
     total += static_cast<quint64>(
         item.toMap().value("seconds", 0).toLongLong());
@@ -830,11 +842,11 @@ int UsageStatManager::activeSoftwareSecondsForWindow(qint64 startUnixSec,
 
 QVariantList UsageStatManager::activeSoftwareForMonth(int year,
                                                       int month) const {
-  return aggregateSoftware(
-      [&](const UsageRecord& record) {
-        return matchesYearMonth(record, year, month);
-      },
-      QString());
+  DateWindow month_window;
+  month_window.valid = QDate(year, month, 1).isValid();
+  month_window.from = QDate(year, month, 1);
+  month_window.to = month_window.from.addDays(month_window.from.daysInMonth() - 1);
+  return aggregateSoftware(clipWindowForDates(month_window), QString());
 }
 
 QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
@@ -842,17 +854,19 @@ QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
   // 再相加，与 softwareSecondsForRange("month") 同口径（避免与月总值自相矛盾）。
   QMap<int, QMap<QString, QVector<UsageInterval>>> byDay;
   const auto add = [&](const UsageRecord& record) {
-    if (record.durationSec == 0) return;
-    const QDate d =
-        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
-    if (!d.isValid() || d.year() != year || d.month() != month) return;
+    if (record.durationSec == 0 || record.startUnixSec <= 0) return;
     const qint64 end =
         record.startUnixSec + static_cast<qint64>(record.durationSec);
-    if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
+    if (end <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
     if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
-    byDay[d.day()][key].append({record.startUnixSec, end});
+    // 跨午夜的会话按天切开，每天只拿自己的那一段。
+    forEachLocalDaySlice(record.startUnixSec, end,
+                         [&](const QDate& d, qint64 from, qint64 to) {
+                           if (d.year() != year || d.month() != month) return;
+                           byDay[d.day()][key].append({from, to});
+                         });
   };
   for (const UsageRecord& record : m_records) add(record);
 
@@ -878,9 +892,9 @@ QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
   return result;
 }
 
-QVariantList UsageStatManager::dailySecondsForRange(qint64 startUnixSec,
-                                                    qint64 endUnixSec) const {
-  // 任意窗口逐日 active(前台+音频并集) 秒数，口径与 dailySecondsForMonth 完全一致
+QVariantList UsageStatManager::foregroundDailySecondsForRange(
+    qint64 startUnixSec, qint64 endUnixSec) const {
+  // 任意窗口逐日**前台**秒数，分桶方式与 dailySecondsForMonth 一致
   // （每天对各 app 自身区间求并集再相加，按记录起始日分桶）。返回窗口内每个本地
   // 自然日一项 [{dayStartUnix:qlonglong, seconds:qlonglong}]（无记录补 0），供
   // 周 7 柱 / 任意期次序列用。只组合自身 m_records，不开新数据路径，安全面同月版。
@@ -896,17 +910,22 @@ QVariantList UsageStatManager::dailySecondsForRange(qint64 startUnixSec,
   // 按本地自然日分桶：ISO 日期串 -> (groupKey -> intervals)。
   QMap<QString, QMap<QString, QVector<UsageInterval>>> byDay;
   const auto add = [&](const UsageRecord& record) {
-    if (record.durationSec == 0) return;
+    // 统计页只看前台：media_sessions 与前台并发，混进来同一秒会被两个 app 各算一次。
+    if (!matchesSource(record, kForegroundSource)) return;
+    if (record.durationSec == 0 || record.startUnixSec <= 0) return;
     const qint64 recEnd =
         record.startUnixSec + static_cast<qint64>(record.durationSec);
-    if (record.startUnixSec <= 0 || recEnd <= record.startUnixSec) return;
-    const QDate d =
-        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
-    if (!d.isValid() || d < startDate || d > endDate) return;
+    if (recEnd <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
     if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
-    byDay[d.toString(Qt::ISODate)][key].append({record.startUnixSec, recEnd});
+    // 跨午夜的会话按天切开，每天只拿自己的那一段。
+    forEachLocalDaySlice(record.startUnixSec, recEnd,
+                         [&](const QDate& d, qint64 from, qint64 to) {
+                           if (d < startDate || d > endDate) return;
+                           byDay[d.toString(Qt::ISODate)][key].append(
+                               {from, to});
+                         });
   };
   for (const UsageRecord& record : m_records) add(record);
 
@@ -927,23 +946,27 @@ QVariantList UsageStatManager::dailySecondsForRange(qint64 startUnixSec,
   return result;
 }
 
-QVariantList UsageStatManager::monthlySecondsForYear(int year) const {
-  // 指定年的 12 个月 active(前台∪音频并集) 秒序列，口径同 dailySecondsForMonth。
+QVariantList UsageStatManager::foregroundMonthlySecondsForYear(int year) const {
+  // 指定年的 12 个月**前台**秒序列，分桶方式同 dailySecondsForMonth。
   // 单遍扫描 m_records 按月分桶（替代统计页年视图 12 次 activeSoftwareForMonth）。
   // 当年只到当前月、过去年整 12 月、未来年全 0（不造假未来）。
   QMap<int, QMap<QString, QVector<UsageInterval>>> byMonth;
   const auto add = [&](const UsageRecord& record) {
-    if (record.durationSec == 0) return;
-    const QDate d =
-        QDateTime::fromSecsSinceEpoch(record.startUnixSec).toLocalTime().date();
-    if (!d.isValid() || d.year() != year) return;
+    // 统计页只看前台：media_sessions 与前台并发，混进来同一秒会被两个 app 各算一次。
+    if (!matchesSource(record, kForegroundSource)) return;
+    if (record.durationSec == 0 || record.startUnixSec <= 0) return;
     const qint64 end =
         record.startUnixSec + static_cast<qint64>(record.durationSec);
-    if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
+    if (end <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
     if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
-    byMonth[d.month()][key].append({record.startUnixSec, end});
+    // 按天切片再入月桶：跨年末/月末的会话不会整段落到起始月。
+    forEachLocalDaySlice(record.startUnixSec, end,
+                         [&](const QDate& d, qint64 from, qint64 to) {
+                           if (d.year() != year) return;
+                           byMonth[d.month()][key].append({from, to});
+                         });
   };
   for (const UsageRecord& record : m_records) add(record);
 
@@ -970,8 +993,8 @@ QVariantList UsageStatManager::monthlySecondsForYear(int year) const {
   return result;
 }
 
-QVariantMap UsageStatManager::focusStatsForWindow(qint64 startUnixSec,
-                                                  qint64 endUnixSec) const {
+QVariantMap UsageStatManager::foregroundFocusStatsForWindow(
+    qint64 startUnixSec, qint64 endUnixSec) const {
   // 专注（A-5）= 开发/办公/笔记 类目的活动派生连续块：把窗口内 focus 类目记录跨 app
   // 汇成时间轴，相邻间隙 <= 10min 合并成块，块时长 >= 5min 才计入。
   // focusSeconds = 块总秒；focusDays = 含 focus 块的本地自然日数。只读 m_records。
@@ -985,20 +1008,22 @@ QVariantMap UsageStatManager::focusStatsForWindow(qint64 startUnixSec,
     return zero;
   }
   QVector<UsageInterval> intervals;
+  const ClipWindow window = clipWindowForBounds(startUnixSec, endUnixSec);
   const auto add = [&](const UsageRecord& record) {
-    if (record.durationSec == 0) return;
-    if (record.startUnixSec < startUnixSec || record.startUnixSec > endUnixSec)
+    // 统计页只看前台：media_sessions 与前台并发，混进来同一秒会被两个 app 各算一次。
+    if (!matchesSource(record, kForegroundSource)) return;
+    // 同聚合路径：相交入选 + 截断，专注块不会伸出期次之外。
+    qint64 from = 0;
+    qint64 to = 0;
+    if (!window.clip(record.startUnixSec, record.durationSec, &from, &to))
       return;
-    const qint64 end =
-        record.startUnixSec + static_cast<qint64>(record.durationSec);
-    if (record.startUnixSec <= 0 || end <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
     if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入专注
     const QString cat = classifyActivity(key, record.appId, record.appName,
                                          record.path, record.windowTitle);
     if (!kFocusCats.contains(cat)) return;
-    intervals.append({record.startUnixSec, end});
+    intervals.append({from, to});
   };
   for (const UsageRecord& record : m_records) add(record);
 
@@ -1176,10 +1201,23 @@ void UsageStatManager::setReadFilters(bool autoClassify, bool gameClassify,
 }
 
 QVariantList UsageStatManager::allApps() const {
+  // 全来源清单：设置页的应用管理要列出服务见过的每一个 app（含只出过声的）。
+  return allAppsImpl(QString(), &m_allAppsCache, &m_allAppsGeneration);
+}
+
+QVariantList UsageStatManager::foregroundApps() const {
+  // 统计页清单：只看前台记录，与该页其余读路径同口径（见头文件）。
+  return allAppsImpl(kForegroundSource, &m_foregroundAppsCache,
+                     &m_foregroundAppsGeneration);
+}
+
+QVariantList UsageStatManager::allAppsImpl(const QString& sourceFilter,
+                                           QVariantList* cache,
+                                           int* cacheGeneration) const {
   // 记忆化：结果是全历史的、与任何时间窗口无关，只随 m_records / 读层过滤 / 规则表 /
   // UI 语言变化，而这些全都自增 m_recordsGeneration。统计页 rebuild() 每次切周/月/年
   // 或换期次都会调它，此前每次都全量重扫 + 逐组排序 + 每个 app 造一个 QVariantMap。
-  if (m_allAppsGeneration == m_recordsGeneration) return m_allAppsCache;
+  if (*cacheGeneration == m_recordsGeneration) return *cache;
 
   // 设置页的应用清单**按应用去重**：解析身份时不看窗口标题，所以一个浏览器只出
   // 现一行，不会被 site:* 规则拆成好几条。窗口标题规则在该应用的编辑面板里列出。
@@ -1194,6 +1232,7 @@ QVariantList UsageStatManager::allApps() const {
 
   QMap<QString, AppListEntry> seen;
   const auto addApp = [&](const UsageRecord& record) {
+    if (!matchesSource(record, sourceFilter)) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, QString());
     if (key.isEmpty()) return;
@@ -1275,9 +1314,58 @@ QVariantList UsageStatManager::allApps() const {
               if (as != bs) return as > bs;
               return an.localeAwareCompare(bn) < 0;
             });
-  m_allAppsCache = result;
-  m_allAppsGeneration = m_recordsGeneration;
+  *cache = result;
+  *cacheGeneration = m_recordsGeneration;
   return result;
+}
+
+bool UsageStatManager::ClipWindow::clip(qint64 recStartUnixSec,
+                                        quint64 durationSec, qint64* outStart,
+                                        qint64* outEnd) const {
+  if (!valid) return false;
+  if (recStartUnixSec <= 0 || durationSec == 0) return false;
+  const qint64 recEnd = recStartUnixSec + static_cast<qint64>(durationSec);
+  if (recEnd <= recStartUnixSec) return false;
+
+  qint64 from = recStartUnixSec;
+  qint64 to = recEnd;
+  if (!unbounded) {
+    from = std::max(from, start);
+    to = std::min(to, end);
+  }
+  if (to <= from) return false;  // 与窗口无交集
+
+  *outStart = from;
+  *outEnd = to;
+  return true;
+}
+
+UsageStatManager::ClipWindow UsageStatManager::clipWindowForDates(
+    const DateWindow& window) {
+  ClipWindow clipped;
+  if (window.matchesAll) {
+    clipped.unbounded = true;
+    return clipped;
+  }
+  if (!window.valid || !window.from.isValid() || !window.to.isValid()) {
+    clipped.valid = false;
+    return clipped;
+  }
+  // 本地自然日闭区间 [from, to] → 半开 [from 00:00, to+1 00:00)。用 startOfDay()
+  // 而不是 +86400，DST 当天的 23h/25h 才落得准。
+  clipped.start = window.from.startOfDay().toSecsSinceEpoch();
+  clipped.end = window.to.addDays(1).startOfDay().toSecsSinceEpoch();
+  if (clipped.end <= clipped.start) clipped.valid = false;
+  return clipped;
+}
+
+UsageStatManager::ClipWindow UsageStatManager::clipWindowForBounds(
+    qint64 startUnixSec, qint64 endUnixSec) {
+  ClipWindow clipped;
+  clipped.start = startUnixSec;
+  clipped.end = endUnixSec + 1;  // QML 传的是期次末秒（闭区间右端）
+  if (clipped.end <= clipped.start) clipped.valid = false;
+  return clipped;
 }
 
 UsageStatManager::DateWindow UsageStatManager::rangeWindow(
@@ -1309,18 +1397,6 @@ UsageStatManager::DateWindow UsageStatManager::rangeWindow(
   }
   // 无法识别的 range → valid 保持 false → contains() 恒 false（同旧行为的 return false）。
   return window;
-}
-
-bool UsageStatManager::matchesRange(const UsageRecord& record,
-                                    const QString& range) const {
-  return rangeWindow(range).contains(record.localDate);
-}
-
-bool UsageStatManager::matchesYearMonth(const UsageRecord& record, int year,
-                                        int month) const {
-  // 同 matchesRange：用装载时预存的本地日，不再逐记录造 QDateTime + 时区换算。
-  if (!record.localDate.isValid()) return false;
-  return record.localDate.year() == year && record.localDate.month() == month;
 }
 
 bool UsageStatManager::matchesSource(const UsageRecord& record,

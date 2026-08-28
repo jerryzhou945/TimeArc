@@ -72,3 +72,9 @@
 
 <!-- record_error.py: error table not found -->
 | 2026-08-28T07:48:41Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260828-074841-C-build-failure.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T09:47:18Z | L2 | stats-day-windo... | Stats page day totals can exceed 24h: activeSoftwareForWi... | [report](errors/20260828-094718-C-stats-day-window-no-clip.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T10:19:17Z | L2 | stats-media-sou... | Stats page mixed media_sessions into its app aggregation.... | [report](errors/20260828-101917-C-stats-media-source-mixing.md) |
