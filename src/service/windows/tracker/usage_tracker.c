@@ -114,7 +114,8 @@ int timearc_usage_tracker_run(const TimeArcUsageTrackerConfig* config) {
   TimeArcProcessActivityProbe codex_probe;
   timearc_process_activity_init(&codex_probe);
   TimeArcAgentActivityState agent_state;
-  timearc_agent_activity_init(&agent_state, TIMEARC_USAGE_WORK_LEASE_MS);
+  timearc_agent_activity_init(&agent_state,
+                              TIMEARC_USAGE_AGENT_WORK_LEASE_MS);
   AppInfo cached_codex_app;
   memset(&cached_codex_app, 0, sizeof(cached_codex_app));
   int has_cached_codex_app = 0;

@@ -125,8 +125,9 @@ def main():
     require(settings_cpp, "uiAutostartCommand", "autostart uses UI launch command")
     require(settings_cpp, "--start-in-tray", "autostart starts UI in tray")
 
-    require(shell_qml, "pageGuideModel", "page visual guidance model")
-    require(shell_qml, "guideRail", "page guide rail")
+    reject(shell_qml, "pageGuideModel", "removed page visual guidance model")
+    reject(shell_qml, "guideRail", "removed page guide rail")
+    reject(shell_qml, "showPageGuide", "removed page guide spacing gate")
     require(shell_qml, "property bool memoryRecapEnabled: false",
             "desktop release memory recap gate defaults off")
     require(shell_qml,

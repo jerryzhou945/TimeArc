@@ -17,11 +17,33 @@ assert.strictEqual(
   '谷歌浏览器'
 );
 
+const i18nContext = {};
+const i18nSource = fs.readFileSync(
+  require.resolve('../qml/desktop/components/I18n.js'), 'utf8'
+).replace(/^\.pragma library\s*/m, '');
+vm.runInNewContext(i18nSource, i18nContext);
+assert.strictEqual(i18nContext.t('en', '应用时钟'), 'Application Clock');
+assert.strictEqual(
+  i18nContext.t('en', '按 10 分钟聚合分类，真实时长保持不变'),
+  '10-minute category blocks reveal the day\'s rhythm; exact totals stay unchanged'
+);
+assert.strictEqual(
+  i18nContext.sentence('en', 'clockSummary', { categories: 4, apps: 15 }, ''),
+  '4 categories · 15 apps'
+);
+assert.strictEqual(
+  i18nContext.sentence('en', 'clockCategoryApps', { count: 3, apps: 'Codex, Chrome, Figma' }, ''),
+  '3 apps · Codex, Chrome, Figma'
+);
+
 const dayStart = 1_800_000_000;
 assert.deepStrictEqual(
   [0, 1, 2].map((lane) => Stats.clockLaneRadiusScale(lane)),
   [0.54, 0.63, 0.72]
 );
+assert.deepStrictEqual(Stats.categoryClockSectorBand(0, false), { inner: 0.51, outer: 0.80 });
+assert.deepStrictEqual(Stats.categoryClockSectorBand(1, false), { inner: 0.64, outer: 0.82 });
+assert.deepStrictEqual(Stats.categoryClockSectorBand(0, true), { inner: 0.49, outer: 0.86 });
 const periodApps = [
   { groupKey: 'app:codex', appId: 'codex.exe', appName: 'Codex', category: '开发', seconds: 120, path: 'C:/Codex.exe' },
   { groupKey: 'app:chrome', appId: 'chrome.exe', appName: 'Chrome', category: '浏览', seconds: 60, path: 'C:/Chrome.exe' }
@@ -101,6 +123,88 @@ assert.deepStrictEqual(crowded.map((row) => row.lane), [0, 1, 0]);
 assert.strictEqual(crowded[0].showIcon, true);
 assert.strictEqual(crowded[1].showIcon, false);
 assert.strictEqual(crowded[2].showIcon, false);
+
+// Break caught: the daily clock must not regress to one scattered arc per app.
+// Same-category intervals form chronological category arcs, while concurrent
+// categories remain independently selectable and retain exact category totals.
+const categoryClockGroups = [
+  {
+    groupKey: 'app:codex', appName: 'Codex',
+    segments: [
+      { startUnixSec: dayStart + 8 * 3600, endUnixSec: dayStart + 8 * 3600 + 20 * 60 },
+      { startUnixSec: dayStart + 8 * 3600 + 50 * 60, endUnixSec: dayStart + 9 * 3600 }
+    ]
+  },
+  {
+    groupKey: 'app:vscode', appName: 'Visual Studio Code',
+    segments: [{ startUnixSec: dayStart + 8 * 3600 + 18 * 60, endUnixSec: dayStart + 9 * 3600 }]
+  },
+  {
+    groupKey: 'app:chrome', appName: 'Chrome',
+    segments: [
+      { startUnixSec: dayStart + 8 * 3600 + 10 * 60, endUnixSec: dayStart + 8 * 3600 + 30 * 60 },
+      { startUnixSec: dayStart + 10 * 3600, endUnixSec: dayStart + 10 * 3600 + 10 * 60 }
+    ]
+  }
+];
+const categoryClockApps = [
+  { groupKey: 'app:codex', appName: 'Codex', category: '开发' },
+  { groupKey: 'app:vscode', appName: 'Visual Studio Code', category: '开发' },
+  { groupKey: 'app:chrome', appName: 'Chrome', category: '浏览' }
+];
+const categoryClock = Stats.buildCategoryClockSegments(
+  categoryClockGroups, categoryClockApps, dayStart, 'am'
+);
+assert.deepStrictEqual(
+  categoryClock.map((row) => [
+    row.categoryKey, row.startAngle, row.endAngle, row.lane,
+    row.categoryTotalSeconds, row.appCount, row.appsText
+  ]),
+  [
+    ['开发', 240, 270, 0, 3600, 2, 'Visual Studio Code、Codex'],
+    ['浏览', 245, 255, 1, 1800, 1, 'Chrome'],
+    ['浏览', 300, 305, 0, 1800, 1, 'Chrome']
+  ]
+);
+assert.strictEqual(categoryClock[0].categoryArcCount, 1);
+assert.strictEqual(categoryClock[1].categoryArcCount, 2);
+assert.strictEqual(categoryClock[0].segmentId, '开发:240:270');
+assert.deepStrictEqual(
+  categoryClock[0].apps.map((app) => [app.appName, app.seconds]),
+  [['Visual Studio Code', 2520], ['Codex', 1800]]
+);
+
+const smoothedClock = Stats.buildSmoothedCategoryClockSegments([
+  {
+    groupKey: 'app:codex', appName: 'Codex',
+    segments: [
+      { startUnixSec: dayStart + 8 * 3600, endUnixSec: dayStart + 8 * 3600 + 10 * 60 },
+      { startUnixSec: dayStart + 8 * 3600 + 20 * 60, endUnixSec: dayStart + 8 * 3600 + 30 * 60 }
+    ]
+  },
+  {
+    groupKey: 'app:discord', appName: 'Discord',
+    segments: [{ startUnixSec: dayStart + 8 * 3600 + 10 * 60, endUnixSec: dayStart + 8 * 3600 + 20 * 60 }]
+  },
+  {
+    groupKey: 'app:bilibili', appName: '哔哩哔哩',
+    segments: [{ startUnixSec: dayStart + 8 * 3600 + 40 * 60, endUnixSec: dayStart + 8 * 3600 + 42 * 60 }]
+  }
+], [
+  { groupKey: 'app:codex', appName: 'Codex', category: '开发' },
+  { groupKey: 'app:discord', appName: 'Discord', category: '社交' },
+  { groupKey: 'app:bilibili', appName: '哔哩哔哩', category: '视频' }
+], dayStart, 'am');
+assert.deepStrictEqual(
+  smoothedClock.map((row) => [
+    row.categoryKey, row.startAngle, row.endAngle,
+    row.categoryTotalSeconds, row.appCount
+  ]),
+  [
+    ['开发', 240, 255, 1200, 1],
+    ['视频', 260, 265, 120, 1]
+  ]
+);
 
 assert.strictEqual(Stats.formatCompactDuration(0), '0m');
 assert.strictEqual(Stats.formatCompactDuration(59), '<1m');

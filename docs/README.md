@@ -10,6 +10,7 @@
 
 | 主题 | 首选文档 |
 | --- | --- |
+| 从零学习架构与面试准备 | [learning/00-README.md](learning/00-README.md) |
 | 当前 backlog | [implementation-backlog.md](implementation-backlog.md) |
 | 测试发布/视频 | [beta-tester-release-kit.md](beta-tester-release-kit.md) |
 | Windows/macOS 差异 | [platform-parity-packaging-gap.md](platform-parity-packaging-gap.md) |

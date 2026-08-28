@@ -101,6 +101,13 @@ Item {
     function rangeWord(r) { return r === "day" ? tr("日") : r === "week" ? tr("周") : r === "month" ? tr("月") : tr("年") }
     function rangeLabel(r) { return r === "day" ? tr("今天") : r === "week" ? tr("本周") : r === "month" ? tr("本月") : tr("本年") }
     function isEnglish() { return I18n.langKey(languageMode) === "en" }
+    function clockAppsText(apps) {
+        var names = []
+        var rows = apps ? apps : []
+        for (var i = 0; i < rows.length; i++)
+            names.push(AppVisual.modelDisplayNameForLanguage(rows[i], languageMode))
+        return names.join(isEnglish() ? ", " : "、")
+    }
     function weekdayShortLabels() { return isEnglish() ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["周一", "周二", "周三", "周四", "周五", "周六", "周日"] }
     function heatWeekLabels() { return isEnglish() ? ["Mon", "", "Wed", "", "Fri", "", ""] : ["一", "", "三", "", "五", "", ""] }
     function monthShortLabels() { return isEnglish() ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"] }
@@ -488,7 +495,7 @@ Item {
 
     function rebuildClockSegments() {
         var win = periodWindow("day", range === "day" ? periodOffset : 0)
-        vmClockSegments = StatsViewModel.buildClockSegments(
+        vmClockSegments = StatsViewModel.buildSmoothedCategoryClockSegments(
                     vmSegments ? vmSegments : [], vmApps ? vmApps : [],
                     win.start, clockHalf)
     }
@@ -1252,23 +1259,33 @@ Item {
         property var segments: []
         property string half: "am"
         property string totalText: "0m"
-        property string hoveredId: ""
-        property string lockedId: ""
-        readonly property string activeId: lockedId !== "" ? lockedId : hoveredId
+        property string hoveredCategory: ""
+        property string lockedCategory: ""
+        readonly property string activeCategory: lockedCategory !== "" ? lockedCategory : hoveredCategory
         signal halfRequested(string value)
-        readonly property var focusedSegment: {
+        readonly property var focusedCategory: {
             for (var i = 0; i < segments.length; i++)
-                if (segments[i].segmentId === activeId) return segments[i]
+                if (segments[i].categoryKey === activeCategory) return segments[i]
             return null
+        }
+        readonly property int categoryCount: {
+            var seen = {}
+            var count = 0
+            for (var i = 0; i < segments.length; i++) {
+                var key = segments[i].categoryKey
+                if (!seen[key]) { seen[key] = true; count++ }
+            }
+            return count
         }
         style: ml
         radius: 18
         onSegmentsChanged: {
-            lockedId = ""
-            hoveredId = ""
+            lockedCategory = ""
+            hoveredCategory = ""
             dialCanvas.requestPaint()
         }
-        onActiveIdChanged: dialCanvas.requestPaint()
+        onActiveCategoryChanged: dialCanvas.requestPaint()
+        Keys.onEscapePressed: lockedCategory = ""
 
         ColumnLayout {
             anchors.fill: parent
@@ -1281,7 +1298,7 @@ Item {
                     Layout.fillWidth: true
                     spacing: 2
                     Text { text: root.tr("应用时钟"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
-                    Text { text: root.tr("每个扇区是一段真实的前台应用记录"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("按 10 分钟聚合分类，真实时长保持不变"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
                 Row {
                     spacing: 4
@@ -1319,32 +1336,39 @@ Item {
                         ctx.reset()
                         var cx = width / 2, cy = height / 2
                         var base = Math.min(width, height) / 2
-                        var trackWidth = base * 0.078
 
-                        // Three quiet concentric tracks preserve simultaneous
-                        // foreground/media observations without visual overlap.
-                        ctx.lineWidth = trackWidth
-                        ctx.strokeStyle = ml.calSunkBg
-                        for (var lane = 0; lane < 3; lane++) {
-                            ctx.beginPath()
-                            ctx.arc(cx, cy, base * StatsViewModel.clockLaneRadiusScale(lane), 0, Math.PI * 2)
-                            ctx.stroke()
-                        }
+                        // The empty clock is one continuous annular face. Actual
+                        // records are filled sectors cut from this face, not
+                        // rounded strokes that collapse short records into dots.
+                        ctx.beginPath()
+                        ctx.arc(cx, cy, base * 0.82, 0, Math.PI * 2, false)
+                        ctx.arc(cx, cy, base * 0.51, Math.PI * 2, 0, true)
+                        ctx.closePath()
+                        ctx.fillStyle = ml.calSunkBg
+                        ctx.fill()
 
                         for (var i = 0; i < dialCard.segments.length; i++) {
                             var segment = dialCard.segments[i]
-                            var active = dialCard.activeId === "" || dialCard.activeId === segment.segmentId
-                            var emphasized = dialCard.activeId === segment.segmentId
-                            var start = (segment.startAngle - 89.2) * Math.PI / 180
-                            var end = (segment.endAngle - 90.8) * Math.PI / 180
-                            if (end <= start) end = start + 0.01
-                            var segmentRadius = base * StatsViewModel.clockLaneRadiusScale(segment.lane)
-                            ctx.globalAlpha = active ? 1.0 : 0.22
-                            ctx.lineWidth = trackWidth * (emphasized ? 1.38 : 0.92)
-                            ctx.lineCap = "round"
+                            var hasFocus = dialCard.activeCategory !== ""
+                            var emphasized = segment.categoryKey === dialCard.activeCategory
+                            var spanDegrees = segment.endAngle - segment.startAngle
+                            var gapDegrees = spanDegrees < 0.4 ? 0 : Math.min(0.7, spanDegrees * 0.045)
+                            var start = (segment.startAngle + gapDegrees - 90) * Math.PI / 180
+                            var end = (segment.endAngle - gapDegrees - 90) * Math.PI / 180
+                            if (end <= start) continue
+                            var band = StatsViewModel.categoryClockSectorBand(segment.lane, emphasized)
+                            var innerRadius = base * band.inner
+                            var outerRadius = base * band.outer
+                            ctx.globalAlpha = !hasFocus || emphasized ? 1.0 : 0.20
                             ctx.beginPath()
-                            ctx.arc(cx, cy, segmentRadius, start, end, false)
-                            ctx.strokeStyle = root.categoryHeatBase(AppVisual.modelCategory(segment))
+                            ctx.arc(cx, cy, outerRadius, start, end, false)
+                            ctx.arc(cx, cy, innerRadius, end, start, true)
+                            ctx.closePath()
+                            ctx.fillStyle = root.categoryHeatBase(segment.categoryKey)
+                            ctx.fill()
+                            ctx.globalAlpha = !hasFocus || emphasized ? 0.72 : 0.12
+                            ctx.lineWidth = 1
+                            ctx.strokeStyle = ml.panelBg
                             ctx.stroke()
                         }
                         ctx.globalAlpha = 1.0
@@ -1386,47 +1410,9 @@ Item {
                     }
                 }
 
-                Repeater {
-                    model: dialCard.segments
-                    delegate: Rectangle {
-                        id: dialIcon
-                        required property var modelData
-                        readonly property real midpoint: (modelData.startAngle + modelData.endAngle) / 2 - 90
-                        readonly property real markRadius: dialCanvas.width * StatsViewModel.clockLaneRadiusScale(modelData.lane) / 2
-                        width: dialCard.activeId === modelData.segmentId ? 38 : 30
-                        height: width; radius: 10
-                        x: dialCanvas.x + dialCanvas.width / 2 + Math.cos(midpoint * Math.PI / 180) * markRadius - width / 2
-                        y: dialCanvas.y + dialCanvas.height / 2 + Math.sin(midpoint * Math.PI / 180) * markRadius - height / 2
-                        z: 4
-                        visible: modelData.showIcon || dialCard.activeId === modelData.segmentId
-                        color: AppVisual.modelAppColor(modelData)
-                        border.width: 2; border.color: ml.panelBg
-                        opacity: dialCard.activeId === "" || dialCard.activeId === modelData.segmentId ? 1 : 0.3
-                        Behavior on width { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                        Behavior on opacity { NumberAnimation { duration: 120 } }
-                        Image {
-                            id: dialAppImage
-                            anchors.centerIn: parent
-                            width: parent.width - 10; height: width
-                            source: AppVisual.modelIconSource(modelData)
-                            sourceSize.width: 64; sourceSize.height: 64
-                            fillMode: Image.PreserveAspectFit
-                            asynchronous: true; smooth: true; mipmap: true
-                            visible: source != "" && status === Image.Ready
-                        }
-                        Text {
-                            anchors.centerIn: parent
-                            visible: AppVisual.modelIconSource(modelData) === "" || dialAppImage.status !== Image.Ready
-                            text: AppVisual.modelIconLabel(modelData)
-                            color: root.nightMode ? "#FFFFFF" : "#2D2724"
-                            font.pixelSize: 11; font.weight: 900
-                        }
-                    }
-                }
-
                 Rectangle {
                     anchors.centerIn: dialCanvas
-                    width: dialCanvas.width * 0.39; height: width; radius: width / 2
+                    width: dialCanvas.width * 0.41; height: width; radius: width / 2
                     z: 5
                     color: ml.panelBg
                     border.width: 1; border.color: ml.panelBorder
@@ -1436,22 +1422,69 @@ Item {
                         spacing: 5
                         Text {
                             width: parent.width
-                            text: dialCard.focusedSegment ? AppVisual.modelDisplayNameForLanguage(dialCard.focusedSegment, root.languageMode) : root.tr("今日已记录")
-                            color: dialCard.focusedSegment ? ml.aqua : ml.textTertiary
+                            text: dialCard.focusedCategory ? I18n.category(root.languageMode, dialCard.focusedCategory.categoryKey) : root.tr("今日已记录")
+                            color: dialCard.focusedCategory ? ml.aqua : ml.textTertiary
                             font.pixelSize: 11; font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
                         }
                         Text {
                             width: parent.width
-                            text: dialCard.focusedSegment ? StatsViewModel.formatCompactDuration(dialCard.focusedSegment.seconds) : dialCard.totalText
+                            text: dialCard.focusedCategory ? StatsViewModel.formatCompactDuration(dialCard.focusedCategory.categoryTotalSeconds) : dialCard.totalText
                             color: ml.textPrimary; font.pixelSize: 29; font.weight: 900
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Text {
                             width: parent.width
-                            text: dialCard.focusedSegment ? root.tr(AppVisual.modelCategory(dialCard.focusedSegment)) : root.sentence("appCount", {count: root.vmApps.length}, root.vmApps.length + " 个应用")
+                            text: dialCard.focusedCategory
+                                  ? root.sentence("clockCategoryApps", {
+                                                      count: dialCard.focusedCategory.appCount,
+                                                      apps: root.clockAppsText(dialCard.focusedCategory.apps)
+                                                  }, dialCard.focusedCategory.appCount + " 个应用 · " + root.clockAppsText(dialCard.focusedCategory.apps))
+                                  : root.sentence("clockSummary", {
+                                                      categories: dialCard.categoryCount,
+                                                      apps: root.vmApps.length
+                                                  }, dialCard.categoryCount + " 个分类 · " + root.vmApps.length + " 个应用")
                             color: ml.textTertiary; font.pixelSize: 10
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
+                        }
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: 5
+                            visible: dialCard.focusedCategory !== null
+                            Repeater {
+                                model: dialCard.focusedCategory ? dialCard.focusedCategory.apps.slice(0, 3) : []
+                                delegate: Rectangle {
+                                    id: categoryAppIcon
+                                    required property var modelData
+                                    width: 25; height: 25; radius: 8
+                                    color: AppVisual.modelAppColor(modelData)
+                                    border.width: 1; border.color: ml.panelBorder
+                                    Image {
+                                        id: categoryAppImage
+                                        anchors.centerIn: parent
+                                        width: 19; height: 19
+                                        source: AppVisual.modelIconSource(categoryAppIcon.modelData)
+                                        sourceSize.width: 48; sourceSize.height: 48
+                                        fillMode: Image.PreserveAspectFit
+                                        asynchronous: true; smooth: true; mipmap: true
+                                        visible: source !== "" && status === Image.Ready
+                                    }
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: AppVisual.modelIconSource(categoryAppIcon.modelData) === ""
+                                                 || categoryAppImage.status !== Image.Ready
+                                        text: AppVisual.modelIconLabel(categoryAppIcon.modelData)
+                                        color: ml.textPrimary
+                                        font.pixelSize: 10; font.weight: Font.Bold
+                                    }
+                                }
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: dialCard.focusedCategory && dialCard.focusedCategory.appCount > 3
+                                text: "+" + (dialCard.focusedCategory ? dialCard.focusedCategory.appCount - 3 : 0)
+                                color: ml.textTertiary; font.pixelSize: 10; font.weight: Font.DemiBold
+                            }
                         }
                     }
                 }
@@ -1461,37 +1494,39 @@ Item {
                     z: 8
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton
-                    cursorShape: dialCard.hoveredId !== "" ? Cursor.button() : Qt.ArrowCursor
-                    function segmentAt(x, y) {
+                    cursorShape: dialCard.hoveredCategory !== "" ? Cursor.button() : Qt.ArrowCursor
+                    function categoryAt(x, y) {
                         var dx = x - width / 2, dy = y - height / 2
                         var radius = Math.sqrt(dx * dx + dy * dy)
                         var base = Math.min(width, height) / 2
-                        if (radius < base * 0.43 || radius > base * 0.82) return ""
+                        if (radius < base * 0.47 || radius > base * 0.89) return ""
                         var angle = (Math.atan2(dy, dx) * 180 / Math.PI + 450) % 360
                         var found = ""
                         for (var i = dialCard.segments.length - 1; i >= 0; i--) {
                             var segment = dialCard.segments[i]
-                            var laneRadius = base * StatsViewModel.clockLaneRadiusScale(segment.lane)
-                            if (Math.abs(radius - laneRadius) <= base * 0.06
+                            var emphasized = segment.categoryKey === dialCard.activeCategory
+                            var band = StatsViewModel.categoryClockSectorBand(segment.lane, emphasized)
+                            if (radius >= base * band.inner && radius <= base * band.outer
                                     && angle >= segment.startAngle && angle <= segment.endAngle) {
-                                found = segment.segmentId
+                                found = segment.categoryKey
                                 break
                             }
                         }
                         return found
                     }
-                    onPositionChanged: function (mouse) { dialCard.hoveredId = segmentAt(mouse.x, mouse.y) }
-                    onExited: dialCard.hoveredId = ""
+                    onPositionChanged: function (mouse) { dialCard.hoveredCategory = categoryAt(mouse.x, mouse.y) }
+                    onExited: dialCard.hoveredCategory = ""
                     onClicked: function (mouse) {
-                        var hitId = segmentAt(mouse.x, mouse.y)
-                        dialCard.lockedId = hitId === dialCard.lockedId ? "" : hitId
+                        dialCard.forceActiveFocus()
+                        var hitCategory = categoryAt(mouse.x, mouse.y)
+                        dialCard.lockedCategory = hitCategory === dialCard.lockedCategory ? "" : hitCategory
                     }
                 }
             }
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: root.tr("悬停预览，点击扇区锁定应用详情")
+                text: root.tr("悬停查看分类，点击扇区放大并锁定")
                 color: ml.textTertiary; font.pixelSize: 11
             }
         }

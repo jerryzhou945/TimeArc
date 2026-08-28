@@ -534,7 +534,11 @@ var en = {
     "使用历史为追加-only（磁盘契约 D1），应用内不提供删除；如需清空请停止后台服务后用迁移工具处理。": "Usage history is append-only (disk contract D1), so TimeArc does not delete it in-app. To clear it, stop the background service and use the migration tool.",
     "JSON 文件 (*.json)": "JSON files (*.json)",
     "数据库备份 (*.db)": "Database backups (*.db)",
-    "所有文件 (*)": "All files (*)"
+    "所有文件 (*)": "All files (*)",
+    "应用时钟": "Application Clock",
+    "按 10 分钟聚合分类，真实时长保持不变": "10-minute category blocks reveal the day's rhythm; exact totals stay unchanged",
+    "今日已记录": "Recorded Today",
+    "悬停查看分类，点击扇区放大并锁定": "Hover a category; click a sector to expand and pin"
 }
 
 var ja = {
@@ -734,7 +738,11 @@ var ja = {
     "选择数据库存放目录": "データベースの保存先フォルダを選択",
     "JSON 文件 (*.json)": "JSON ファイル (*.json)",
     "数据库备份 (*.db)": "データベースのバックアップ (*.db)",
-    "所有文件 (*)": "すべてのファイル (*)"
+    "所有文件 (*)": "すべてのファイル (*)",
+    "应用时钟": "アプリ時計",
+    "按 10 分钟聚合分类，真实时长保持不变": "10分単位でカテゴリをまとめ、正確な合計時間は維持します",
+    "今日已记录": "今日の記録",
+    "悬停查看分类，点击扇区放大并锁定": "カテゴリにカーソルを合わせ、扇形をクリックして拡大・固定"
 }
 
 var sentencesEn = {
@@ -792,7 +800,9 @@ var sentencesEn = {
     "relocateSuccess": "Service database location set to:\n{path}\n\nTimeArc must restart (together with background collection) so both processes load the new location. Quit now?",
     "hotkeyReserved": "“{owner}” already uses that combination",
     "hotkeyUpdated": "Hotkey set to {key}",
-    "hotkeyRestoredDefault": "Restored the default {key}"
+    "hotkeyRestoredDefault": "Restored the default {key}",
+    "clockSummary": "{categories} categories · {apps} apps",
+    "clockCategoryApps": "{count} apps · {apps}"
 }
 
 var sentencesJa = {
@@ -834,7 +844,9 @@ var sentencesJa = {
     "relocateSuccess": "サービスデータベースの場所を次に設定しました:\n{path}\n\n両方のプロセスが新しい場所を読み込むには、アプリ（およびバックグラウンド収集）の再起動が必要です。今すぐ終了しますか？",
     "hotkeyReserved": "この組み合わせは「{owner}」が使用中です",
     "hotkeyUpdated": "ショートカットを {key} に変更しました",
-    "hotkeyRestoredDefault": "既定の {key} に戻しました"
+    "hotkeyRestoredDefault": "既定の {key} に戻しました",
+    "clockSummary": "{categories} カテゴリ · {apps} アプリ",
+    "clockCategoryApps": "{count} アプリ · {apps}"
 }
 
 // macOS 应用菜单栏（qml/desktop/MacMenuBar.qml）专用文案，单列一张表而不是并进

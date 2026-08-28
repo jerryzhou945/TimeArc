@@ -10,10 +10,11 @@ REM  Any arguments are forwarded to TimeArc.exe.
 REM ============================================================
 setlocal
 
-set "QT=D:\TimeArc\QT\6.11.0\mingw_64"
-set "MINGW=D:\TimeArc\QT\Tools\mingw1310_64\bin"
-set "NINJA=D:\TimeArc\QT\Tools\Ninja"
-set "CMAKE=D:\TimeArc\QT\Tools\CMake_64\bin"
+set "ENV_ROOT=C:\code_env\Qt-6.11.0-MinGW64"
+set "QT=%ENV_ROOT%\6.11.0\mingw_64"
+set "MINGW=%ENV_ROOT%\Tools\mingw1310_64\bin"
+set "NINJA=%ENV_ROOT%\Tools\Ninja"
+set "CMAKE=%ENV_ROOT%\Tools\CMake_64\bin"
 set "PATH=%QT%\bin;%MINGW%;%NINJA%;%CMAKE%;%PATH%"
 
 REM Project root = folder this script lives in (no trailing backslash)

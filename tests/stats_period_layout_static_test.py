@@ -18,19 +18,27 @@ def main():
 
     assert "StatsApplicationClock" in day
     assert "DailyUsageShare" in day
+    assert "StatsViewModel.buildSmoothedCategoryClockSegments" in QML
+    assert 'root.tr("按 10 分钟聚合分类，真实时长保持不变")' in dial
+    assert 'root.sentence("clockSummary"' in dial
+    assert 'root.sentence("clockCategoryApps"' in dial
     assert "StatsDayTimeline" not in day
     assert "StatsRankingList" not in day
     assert "root.statsLayoutStacked" in day
     assert "root.sideCollapsed" not in day
     assert "for (var tick = 0; tick < 60; tick++)" in dial
     assert "model: 12" in dial
-    assert "modelData.showIcon" in dial
-    assert "modelData.lane" in dial
-    assert 'property string lockedId: ""' in dial
-    assert "readonly property string activeId:" in dial
+    assert "segment.lane" in dial
+    assert "ctx.fill()" in dial
+    assert "StatsViewModel.categoryClockSectorBand" in dial
+    assert "modelData.showIcon" not in dial
+    assert 'property string lockedCategory: ""' in dial
+    assert "readonly property string activeCategory:" in dial
+    assert "segment.categoryKey === dialCard.activeCategory" in dial
+    assert "dialCard.focusedCategory.apps.slice(0, 3)" in dial
     assert "acceptedButtons: Qt.LeftButton" in dial
     assert "onClicked: function (mouse)" in dial
-    assert "dialCard.lockedId = hitId === dialCard.lockedId ? \"\" : hitId" in dial
+    assert "dialCard.lockedCategory = hitCategory === dialCard.lockedCategory ? \"\" : hitCategory" in dial
 
     assert "// ====== 周/月/年共用聚合视图 ======" in QML
     aggregate = section("// ====== 周/月/年共用聚合视图 ======", "StatsAppLibrary {")

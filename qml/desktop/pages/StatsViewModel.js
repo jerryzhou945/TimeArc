@@ -10,6 +10,15 @@ function clockLaneRadiusScale(lane) {
     return Math.round((0.54 + normalized * 0.09) * 100) / 100
 }
 
+function categoryClockSectorBand(lane, emphasized) {
+    var collisionLane = Math.max(0, Math.min(1, Math.floor(Number(lane) || 0)))
+    if (emphasized)
+        return collisionLane === 0 ? { inner: 0.49, outer: 0.86 }
+                                   : { inner: 0.60, outer: 0.87 }
+    return collisionLane === 0 ? { inner: 0.51, outer: 0.80 }
+                               : { inner: 0.64, outer: 0.82 }
+}
+
 function rowKey(row) {
     if (!row) return ""
     return row.groupKey || row.appId || row.path || row.appName || row.name || ""
@@ -271,14 +280,271 @@ function buildClockSegments(segmentGroups, periodApps, dayStartUnix, half) {
     return out
 }
 
+function buildCategoryClockSegments(segmentGroups, periodApps, dayStartUnix, half) {
+    var raw = buildClockSegments(segmentGroups, periodApps, dayStartUnix, half)
+    var halfOffset = half === "pm" ? 12 * 3600 : 0
+    var halfStart = Number(dayStartUnix) + halfOffset
+    var mergeGapSeconds = 3 * 60
+    var buckets = {}
+    var categoryOrder = []
+    var i
+
+    for (i = 0; i < raw.length; i++) {
+        var source = raw[i]
+        var category = source.category || "其他"
+        if (!buckets[category]) {
+            buckets[category] = {
+                intervals: [], appKeys: [], appByKey: {}, appIntervals: {}
+            }
+            categoryOrder.push(category)
+        }
+        var bucket = buckets[category]
+        bucket.intervals.push({
+            startUnixSec: source.startUnixSec,
+            endUnixSec: source.endUnixSec
+        })
+        var appKey = "|" + rowKey(source)
+        if (!bucket.appByKey[appKey]) {
+            var appSummary = {}
+            for (var sourceKey in source) appSummary[sourceKey] = source[sourceKey]
+            bucket.appKeys.push(appKey)
+            bucket.appByKey[appKey] = appSummary
+            bucket.appIntervals[appKey] = []
+        }
+        bucket.appIntervals[appKey].push({
+            startUnixSec: source.startUnixSec,
+            endUnixSec: source.endUnixSec
+        })
+    }
+
+    var out = []
+    for (var categoryIndex = 0; categoryIndex < categoryOrder.length; categoryIndex++) {
+        var categoryKey = categoryOrder[categoryIndex]
+        var categoryBucket = buckets[categoryKey]
+        categoryBucket.intervals.sort(function (a, b) {
+            if (a.startUnixSec !== b.startUnixSec) return a.startUnixSec - b.startUnixSec
+            return a.endUnixSec - b.endUnixSec
+        })
+
+        // First take the exact interval union so foreground/media overlap within
+        // a category never inflates its total. Then bridge only tiny visual gaps;
+        // bridged gaps make the dial calmer but are not added to recorded time.
+        var exact = []
+        for (i = 0; i < categoryBucket.intervals.length; i++) {
+            var interval = categoryBucket.intervals[i]
+            var previous = exact.length > 0 ? exact[exact.length - 1] : null
+            if (previous && interval.startUnixSec <= previous.endUnixSec) {
+                previous.endUnixSec = Math.max(previous.endUnixSec, interval.endUnixSec)
+                previous.seconds = previous.endUnixSec - previous.startUnixSec
+            } else {
+                exact.push({
+                    startUnixSec: interval.startUnixSec,
+                    endUnixSec: interval.endUnixSec,
+                    seconds: interval.endUnixSec - interval.startUnixSec
+                })
+            }
+        }
+        var categoryTotalSeconds = 0
+        for (i = 0; i < exact.length; i++) categoryTotalSeconds += exact[i].seconds
+
+        var visual = []
+        for (i = 0; i < exact.length; i++) {
+            var exactInterval = exact[i]
+            var visualPrevious = visual.length > 0 ? visual[visual.length - 1] : null
+            if (visualPrevious
+                    && exactInterval.startUnixSec - visualPrevious.endUnixSec <= mergeGapSeconds) {
+                visualPrevious.endUnixSec = exactInterval.endUnixSec
+                visualPrevious.seconds += exactInterval.seconds
+            } else {
+                visual.push({
+                    startUnixSec: exactInterval.startUnixSec,
+                    endUnixSec: exactInterval.endUnixSec,
+                    seconds: exactInterval.seconds
+                })
+            }
+        }
+
+        var apps = []
+        for (var appIndex = 0; appIndex < categoryBucket.appKeys.length; appIndex++) {
+            var summaryKey = categoryBucket.appKeys[appIndex]
+            var appIntervals = categoryBucket.appIntervals[summaryKey]
+            appIntervals.sort(function (a, b) {
+                if (a.startUnixSec !== b.startUnixSec) return a.startUnixSec - b.startUnixSec
+                return a.endUnixSec - b.endUnixSec
+            })
+            var appSeconds = 0
+            var unionStart = 0
+            var unionEnd = 0
+            for (var appIntervalIndex = 0; appIntervalIndex < appIntervals.length; appIntervalIndex++) {
+                var appInterval = appIntervals[appIntervalIndex]
+                if (appIntervalIndex === 0) {
+                    unionStart = appInterval.startUnixSec
+                    unionEnd = appInterval.endUnixSec
+                } else if (appInterval.startUnixSec <= unionEnd) {
+                    unionEnd = Math.max(unionEnd, appInterval.endUnixSec)
+                } else {
+                    appSeconds += unionEnd - unionStart
+                    unionStart = appInterval.startUnixSec
+                    unionEnd = appInterval.endUnixSec
+                }
+            }
+            if (appIntervals.length > 0) appSeconds += unionEnd - unionStart
+            var summary = categoryBucket.appByKey[summaryKey]
+            summary.seconds = appSeconds
+            apps.push(summary)
+        }
+        apps.sort(function (a, b) {
+            if (b.seconds !== a.seconds) return b.seconds - a.seconds
+            return displayName(a).localeCompare(displayName(b))
+        })
+        var appNames = apps.map(function (app) { return displayName(app) })
+        for (i = 0; i < visual.length; i++) {
+            var part = visual[i]
+            var startAngle = (part.startUnixSec - halfStart) * 360 / (12 * 3600)
+            var endAngle = (part.endUnixSec - halfStart) * 360 / (12 * 3600)
+            out.push({
+                categoryKey: categoryKey,
+                category: categoryKey,
+                groupKey: "category:" + categoryKey,
+                appName: categoryKey,
+                startUnixSec: part.startUnixSec,
+                endUnixSec: part.endUnixSec,
+                seconds: part.seconds,
+                startAngle: startAngle,
+                endAngle: endAngle,
+                segmentId: categoryKey + ":" + startAngle + ":" + endAngle,
+                categoryTotalSeconds: categoryTotalSeconds,
+                categoryArcCount: visual.length,
+                appCount: apps.length,
+                apps: apps,
+                appsText: appNames.join("、"),
+                lane: 0,
+                showIcon: false
+            })
+        }
+    }
+
+    out.sort(function (a, b) {
+        if (a.startUnixSec !== b.startUnixSec) return a.startUnixSec - b.startUnixSec
+        return a.categoryKey.localeCompare(b.categoryKey)
+    })
+    var laneEnds = [-Infinity, -Infinity]
+    for (i = 0; i < out.length; i++) {
+        var row = out[i]
+        var lane = row.startUnixSec >= laneEnds[0] ? 0
+                 : (row.startUnixSec >= laneEnds[1] ? 1
+                 : (laneEnds[0] <= laneEnds[1] ? 0 : 1))
+        row.lane = lane
+        laneEnds[lane] = Math.max(laneEnds[lane], row.endUnixSec)
+    }
+    return out
+}
+
+function buildSmoothedCategoryClockSegments(segmentGroups, periodApps, dayStartUnix, half) {
+    var source = buildCategoryClockSegments(segmentGroups, periodApps, dayStartUnix, half)
+    if (source.length === 0) return []
+
+    var bucketSeconds = 10 * 60
+    var bucketCount = 12 * 60 / 10
+    var halfOffset = half === "pm" ? 12 * 3600 : 0
+    var halfStart = Number(dayStartUnix) + halfOffset
+    var categoryMeta = {}
+    var bins = []
+    var i
+    for (i = 0; i < bucketCount; i++) bins.push({ scores: {}, order: [] })
+
+    for (i = 0; i < source.length; i++) {
+        var segment = source[i]
+        var categoryKey = segment.categoryKey || "其他"
+        if (!categoryMeta[categoryKey]) categoryMeta[categoryKey] = segment
+        var firstBucket = Math.max(0, Math.floor((segment.startUnixSec - halfStart) / bucketSeconds))
+        var lastBucket = Math.min(bucketCount - 1,
+                                  Math.floor((segment.endUnixSec - 1 - halfStart) / bucketSeconds))
+        for (var bucketIndex = firstBucket; bucketIndex <= lastBucket; bucketIndex++) {
+            var bucketStart = halfStart + bucketIndex * bucketSeconds
+            var bucketEnd = bucketStart + bucketSeconds
+            var overlap = Math.max(0, Math.min(segment.endUnixSec, bucketEnd)
+                                      - Math.max(segment.startUnixSec, bucketStart))
+            if (overlap <= 0) continue
+            var bin = bins[bucketIndex]
+            if (bin.scores[categoryKey] === undefined) {
+                bin.scores[categoryKey] = 0
+                bin.order.push(categoryKey)
+            }
+            bin.scores[categoryKey] += overlap
+        }
+    }
+
+    var categories = []
+    for (i = 0; i < bins.length; i++) {
+        var bestCategory = ""
+        var bestSeconds = 59
+        for (var orderIndex = 0; orderIndex < bins[i].order.length; orderIndex++) {
+            var candidate = bins[i].order[orderIndex]
+            var candidateSeconds = bins[i].scores[candidate]
+            if (candidateSeconds > bestSeconds) {
+                bestCategory = candidate
+                bestSeconds = candidateSeconds
+            }
+        }
+        categories.push(bestCategory)
+    }
+
+    // A single ten-minute island between the same category is visual noise.
+    // Absorb it for the dial only; category totals and stored intervals stay exact.
+    var smoothed = categories.slice()
+    for (i = 1; i < categories.length - 1; i++) {
+        if (categories[i - 1]
+                && categories[i - 1] === categories[i + 1]
+                && categories[i] !== categories[i - 1]) {
+            smoothed[i] = categories[i - 1]
+        }
+    }
+
+    var out = []
+    var runStart = 0
+    while (runStart < smoothed.length) {
+        var runCategory = smoothed[runStart]
+        var runEnd = runStart + 1
+        while (runEnd < smoothed.length && smoothed[runEnd] === runCategory) runEnd++
+        if (runCategory) {
+            var meta = categoryMeta[runCategory]
+            var startUnixSec = halfStart + runStart * bucketSeconds
+            var endUnixSec = halfStart + runEnd * bucketSeconds
+            var row = {}
+            for (var key in meta) row[key] = meta[key]
+            row.startUnixSec = startUnixSec
+            row.endUnixSec = endUnixSec
+            row.seconds = endUnixSec - startUnixSec
+            row.startAngle = runStart * 360 / bucketCount
+            row.endAngle = runEnd * 360 / bucketCount
+            row.segmentId = runCategory + ":bucket:" + runStart + ":" + runEnd
+            row.lane = 0
+            row.showIcon = false
+            out.push(row)
+        }
+        runStart = runEnd
+    }
+
+    var arcCounts = {}
+    for (i = 0; i < out.length; i++) {
+        arcCounts[out[i].categoryKey] = (arcCounts[out[i].categoryKey] || 0) + 1
+    }
+    for (i = 0; i < out.length; i++) out[i].categoryArcCount = arcCounts[out[i].categoryKey]
+    return out
+}
+
 if (typeof module !== "undefined" && module.exports) {
     module.exports = {
         clockLaneRadiusScale: clockLaneRadiusScale,
+        categoryClockSectorBand: categoryClockSectorBand,
         buildAppLibrary: buildAppLibrary,
         buildCategoryDistribution: buildCategoryDistribution,
         normalizeTrendRows: normalizeTrendRows,
         buildAggregateFact: buildAggregateFact,
         buildClockSegments: buildClockSegments,
+        buildCategoryClockSegments: buildCategoryClockSegments,
+        buildSmoothedCategoryClockSegments: buildSmoothedCategoryClockSegments,
         formatCompactDuration: formatCompactDuration
     }
 }
