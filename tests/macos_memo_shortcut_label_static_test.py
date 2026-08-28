@@ -20,7 +20,7 @@ def main():
             "macOS Command shortcut labels")
     require(memo, "memo.shortcutDisplayText(memo.toolHints",
             "tool hint platform shortcut labels")
-    require(memo, 'memo.shortcutDisplayText("仅清当前页手绘',
+    require(memo, 'memo.shortcutDisplayText("Only clears ink on this page',
             "clear confirmation platform shortcut labels")
 
     print("macOS memo shortcut label static checks passed")

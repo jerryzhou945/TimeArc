@@ -1,5 +1,5 @@
 import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/AppVisual.js" as AppVisual
 
 // 右栏详情卡：标题 + 封面 + 类别/时长 + 心情 + 分析，跟随当前 APP。
@@ -24,7 +24,7 @@ Rectangle {
             x: 15
             topPadding: 14
             width: parent.width - 30
-            text: (detail.app ? AppVisual.modelDisplayNameForLanguage(detail.app, detail.languageMode) : "") + " · " + I18n.t(detail.languageMode, "使用时间分布")
+            text: (detail.app ? AppVisual.modelDisplayNameForLanguage(detail.app, detail.languageMode) : "") + " · " + I18n.t(detail.languageMode, "usage distribution")
             color: detail.style ? detail.style.textPrimary : "#fff"
             font.pixelSize: 16
             font.bold: true
@@ -62,14 +62,14 @@ Rectangle {
                 font.pixelSize: 12
             }
             Text {
-                text: detail.app ? I18n.smartText(detail.languageMode, detail.app.mood) : ""
+                text: detail.app ? I18n.t(detail.languageMode, detail.app.mood) : ""
                 color: detail.style ? detail.style.textPrimary : "#fff"
                 font.pixelSize: 21
                 font.bold: true
             }
             Text {
                 width: parent.width
-                text: detail.app ? I18n.smartText(detail.languageMode, detail.app.analysis) : ""
+                text: detail.app ? I18n.fromModel(detail.languageMode, detail.app.analysisKey, detail.app.analysisParams) : ""
                 color: detail.style ? detail.style.textSecondary : "#bbb"
                 font.pixelSize: 13
                 lineHeight: 1.6

@@ -28,7 +28,7 @@ def main():
     menu_bar = (ROOT / "qml/desktop/MacMenuBar.qml").read_text(encoding="utf-8")
     qml_cmake = (ROOT / "qml/CMakeLists.txt").read_text(encoding="utf-8")
     i18n_js = (
-        ROOT / "qml/desktop/components/I18n.js"
+        ROOT / "qml/shared/I18n.js"
     ).read_text(encoding="utf-8")
 
     # The layer owns the widget, the celebration overlay, and the toggle API.
@@ -180,10 +180,10 @@ def main():
     complete = (
         ROOT / "qml/desktop/memorylake/PomodoroCompleteOverlay.qml"
     ).read_text(encoding="utf-8")
-    forbid(complete, "回到备忘录", "memo-specific label on the close button")
-    require(complete, 'I18n.t(comp.languageMode, "知道了")',
+    forbid(complete, "Back to Memo", "memo-specific label on the close button")
+    require(complete, 'I18n.t(comp.languageMode, "Got It")',
             "neutral close label")
-    if i18n_js.count('"知道了"') < 2:
+    if i18n_js.count('"Got It"') < 2:
         raise AssertionError("知道了 must be translated for en and ja")
 
     print("pomodoro_global_static_test: ok")

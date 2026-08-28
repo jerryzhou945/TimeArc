@@ -32,6 +32,7 @@
 #include "services/tag_repository.h"
 #include "services/app_icon_image_provider.h"
 #include "services/calendar_manager.h"
+#include "services/categorization_manager.h"
 #include "services/harness_logger.h"
 #include "services/pomodoro_manager.h"
 #include "services/project_manager.h"
@@ -275,13 +276,23 @@ int main(int argc, char* argv[]) {
                             &manualProjectRepository);
   MobileUsageService mobileUsageService(&mobileUsageRepository);
   MobileUiService mobileUiService(&settingsRepository);
-  DailyCardService dailyCardService(&statsService, &frontmostRepository);
+  // 读层先建：分类规则表要按它已经采集到的应用来播种（见
+  // docs/categorization-redesign.md）。播种只读原始身份，不经过规则表，无环。
+  UsageStatManager usageStatManager;
+  CategorizationManager categorizationManager;
+  categorizationManager.setRecordedAppsProvider([&usageStatManager]() {
+    return usageStatManager.recordedAppIdentities();
+  });
+  categorizationManager.setSettingsRepository(&settingsRepository);
+  usageStatManager.setCategorizationManager(&categorizationManager);
+
+  DailyCardService dailyCardService(&statsService, &frontmostRepository,
+                                    &categorizationManager);
   TagRepository tagRepository;
   TimerManager timerManager;
   // 番茄钟引擎：只读写 SettingsRepository 的 KV，不碰服务磁盘契约。
   PomodoroManager pomodoroManager(&settingsRepository);
   ProjectManager projectManager(&manualProjectRepository);
-  UsageStatManager usageStatManager;
 
 #if defined(Q_OS_ANDROID)
   QObject::connect(&app, &QGuiApplication::applicationStateChanged,
@@ -317,6 +328,8 @@ int main(int argc, char* argv[]) {
   engine.rootContext()->setContextProperty("timerManager", &timerManager);
   engine.rootContext()->setContextProperty("pomodoroManager", &pomodoroManager);
   engine.rootContext()->setContextProperty("projectManager", &projectManager);
+  engine.rootContext()->setContextProperty("categorizationManager",
+                                           &categorizationManager);
   engine.rootContext()->setContextProperty("usageStatManager",
                                            &usageStatManager);
   engine.rootContext()->setContextProperty("mobilePreview", mobilePreview);

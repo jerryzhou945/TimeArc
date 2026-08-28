@@ -7,7 +7,7 @@ import QtCore
 import "../components"
 import "../memorylake"
 import "../components/TagPalette.js" as TagPalette
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 Item {
@@ -43,7 +43,7 @@ Item {
     property string languageMode: "zh"
 
     function tr(source) { return I18n.t(languageMode, source) }
-    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
+    function sentence(key, params) { return I18n.sentence(languageMode, key, params) }
 
     // 颜色全部走 memory-lake token（G1 单源）。夜=暗玻璃霓虹，昼=浅瓷，由 ml.night 切换。
     // 旧布局（Soft* 卡）在 F-B1 仍在，但已被 token 染成暗霓虹（可跑切片）；F-B2+ 重构结构。
@@ -69,7 +69,7 @@ Item {
     property date viewedMonth: new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)
     property string selectedDateKey: initialSelectedDateKey()
     property var calendarCells: []
-    property var fixedTags: ["学习", "工作", "运动", "娱乐", "阅读", "社交", "生活", "其他"]
+    property var fixedTags: ["Study", "Work", "Exercise", "Entertainment", "Reading", "Social", "Life", "Other"]
     // 备忘黑板覆盖层引用（Shell 在 pageLoader.onLoaded 注入）：议程上「便签待办行」的勾选/删除回写到便签。
     property var memoOverlayRef: null
     property int projectRefreshKey: 0
@@ -82,7 +82,7 @@ Item {
 
     // 安排事项表单状态（自绘下拉 + 时间选择器，避开原生 Controls 白边/白底弹窗）。
     property string todoTag: fixedTags[0]
-    property string annType: "纪念日"            // 纪念日 / 倒计时日
+    property string annType: "Anniversary"            // 纪念日 / 倒计时日
     property bool createOpen: false              // 创建弹出界面（独立浮层）开合
     property string createTime: ""               // 创建时选定的时间 HH:MM（空=未选）
     property bool timePickerOpen: false          // 时间选择浮层开合
@@ -143,18 +143,14 @@ Item {
 
     function selectedDateLabel() {
         var value = dateFromKey(selectedDateKey)
-        var weeks = I18n.langKey(languageMode) === "en"
-                    ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-                    : ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+        var weeks = I18n.weekdaysAbbr(languageMode)
         return I18n.langKey(languageMode) === "en"
-               ? (monthShortLabel(value.getMonth()) + " " + value.getDate() + ", " + weeks[value.getDay()])
-               : ((value.getMonth() + 1) + "月" + value.getDate() + "日 " + weeks[value.getDay()])
+               ? (I18n.monthDay(languageMode, value) + ", " + weeks[value.getDay()])
+               : (I18n.monthDay(languageMode, value) + " " + weeks[value.getDay()])
     }
 
     function monthTitle() {
-        return I18n.langKey(languageMode) === "en"
-               ? (monthShortLabel(viewedMonth.getMonth()) + " " + viewedMonth.getFullYear())
-               : (viewedMonth.getFullYear() + "年 " + (viewedMonth.getMonth() + 1) + "月")
+        return I18n.yearMonth(languageMode, viewedMonth)
     }
 
     function monthShortLabel(monthIndex) {
@@ -163,9 +159,7 @@ Item {
     }
 
     function monthDayLabel(dateValue) {
-        return I18n.langKey(languageMode) === "en"
-               ? (monthShortLabel(dateValue.getMonth()) + " " + dateValue.getDate())
-               : ((dateValue.getMonth() + 1) + "月" + dateValue.getDate() + "日")
+        return I18n.monthDay(languageMode, dateValue)
     }
 
     function buildCalendarCells() {
@@ -219,31 +213,53 @@ Item {
     }
 
     function manualPhotoMap() {
-        if (!calendarManager || !calendarManager.dayPhotos || calendarManager.dayPhotos === "")
+        var raw = (calendarManager && calendarManager.dayPhotos) ? calendarManager.dayPhotos : ""
+        if (raw === "")
             return {}
+        if (raw === root._photoRaw)
+            return root._photoParsed
+        var parsed = {}
         try {
-            return JSON.parse(calendarManager.dayPhotos)
+            parsed = JSON.parse(raw)
         } catch (e) {
-            return {}
+            parsed = {}
         }
+        root._photoRaw = raw
+        root._photoParsed = parsed
+        return parsed
+    }
+
+    // 聊天图片按日索引，整段 JSON 只解析一次。原先每问一天就把**整个聊天记录**读一次 KV
+    // 再整块解析一遍，只为挑出那一天的图。
+    function chatImageIndex() {
+        var raw = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
+        if (!raw || raw === "")
+            return {}
+        if (raw === root._chatRaw)
+            return root._chatByDate
+        var index = {}
+        try {
+            var chats = JSON.parse(raw)
+            for (var i = 0; i < chats.length; i++) {
+                var item = chats[i]
+                if (item.imagePath && item.imagePath !== "" && item.timeText) {
+                    var k = item.timeText.substring(0, 10)
+                    if (!index[k])
+                        index[k] = []
+                    index[k].push(item.imagePath)
+                }
+            }
+        } catch (e) {
+            index = {}
+        }
+        root._chatRaw = raw
+        root._chatByDate = index
+        return index
     }
 
     function chatImagesForDate(key) {
-        var savedChats = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
-        if (!savedChats || savedChats === "")
-            return []
-        try {
-            var chats = JSON.parse(savedChats)
-            var result = []
-            for (var i = 0; i < chats.length; i++) {
-                var item = chats[i]
-                if (item.imagePath && item.imagePath !== "" && item.timeText && item.timeText.indexOf(key) === 0)
-                    result.push(item.imagePath)
-            }
-            return result
-        } catch (e) {
-            return []
-        }
+        var hit = chatImageIndex()[key]
+        return hit ? hit : []
     }
 
     function normalizedImageSource(path) {
@@ -277,22 +293,54 @@ Item {
         if (calendarManager)
             calendarManager.setDayPhotos(JSON.stringify(map))
         refreshCalendar()
-        showCalToast("已更新照片")
+        showCalToast("Photo updated")
     }
 
+    // —— JSON 解析记忆化 ——
+    // 下面几个存储都是「一大块 JSON 字符串」，而助手函数是按天调用的：一次选中日变化就会
+    // 经 weekViewTaskCount → weekDays、model: weekDays(...)、model: dayAgenda(...) 至少把
+    // 待办整块解析 3 遍，纪念日整块 1 遍。缓存键取**原始字符串本身**——存储没变就不重解析，
+    // 变了（字符串不等）自动失效，无需任何手动作废。
+    property var _todosRaw: null
+    property var _todosParsed: ({})
+    property var _annRaw: null
+    property var _annParsed: []
+    property var _photoRaw: null
+    property var _photoParsed: ({})
+    property var _chatRaw: null
+    property var _chatByDate: ({})
+
     function allTodosMap() {
-        if (!calendarManager || !calendarManager.savedTodos || calendarManager.savedTodos === "")
+        var raw = (calendarManager && calendarManager.savedTodos) ? calendarManager.savedTodos : ""
+        if (raw === "")
             return {}
+        if (raw === root._todosRaw)
+            return root._todosParsed
+        var parsed = {}
         try {
-            return JSON.parse(calendarManager.savedTodos)
+            parsed = JSON.parse(raw)
         } catch (e) {
-            return {}
+            parsed = {}
         }
+        root._todosRaw = raw
+        root._todosParsed = parsed
+        return parsed
     }
 
     function todosForDate(key) {
         var map = allTodosMap()
         return map[key] ? map[key] : []
+    }
+
+    // 写路径专用：拿一份**可改**的浅拷贝。allTodosMap() 现在返回的是缓存里那一个对象，
+    // 就地改它会污染缓存——旧实现每次都重新解析，所以改了无所谓；加了缓存就有所谓了。
+    // 浅拷贝够用：写路径只整天替换 map[key]，不会就地改某天的数组。
+    function todosMapForEdit() {
+        var src = allTodosMap()
+        var copy = {}
+        for (var k in src)
+            copy[k] = src[k]
+        return copy
     }
 
     function todoCountForDate(key) {
@@ -310,14 +358,21 @@ Item {
     }
 
     function allAnniversaries() {
-        if (!anniversarySettings.savedAnniversaries || anniversarySettings.savedAnniversaries === "")
+        var raw = anniversarySettings.savedAnniversaries ? anniversarySettings.savedAnniversaries : ""
+        if (raw === "")
             return []
+        if (raw === root._annRaw)
+            return root._annParsed
+        var arr = []
         try {
-            var arr = JSON.parse(anniversarySettings.savedAnniversaries)
-            return arr ? arr : []
+            var parsed = JSON.parse(raw)
+            arr = parsed ? parsed : []
         } catch (e) {
-            return []
+            arr = []
         }
+        root._annRaw = raw
+        root._annParsed = arr
+        return arr
     }
 
     function saveAnniversaries(list) {
@@ -360,7 +415,7 @@ Item {
         return type === "event" ? ml.aqua : type === "focus" ? ml.violet : ml.shareGold
     }
     function typeLabel(type) {
-        return type === "event" ? tr("事件") : type === "focus" ? tr("专注") : tr("待办")
+        return type === "event" ? tr("Event") : type === "focus" ? tr("Focus") : tr("Todos")
     }
 
     // 左栏统计芯片（§2.7）：今日事项 / 完成率 / 专注块(今日 focus 数) / 本周任务(本周周一起事项总数) 均为真值。
@@ -429,20 +484,11 @@ Item {
     // 取代 buildCalendarCells 内每格重新解析整段 chat JSON（42× 解析 → 1×）。
     function buildPhotoLookup() {
         var result = {}
-        var savedChats = settingsRepository ? settingsRepository.getValue("local_memo_chat_messages", "") : ""
-        if (savedChats && savedChats !== "") {
-            try {
-                var chats = JSON.parse(savedChats)
-                for (var i = 0; i < chats.length; i++) {
-                    var item = chats[i]
-                    if (item.imagePath && item.imagePath !== "" && item.timeText) {
-                        var k = item.timeText.substring(0, 10)
-                        if (!result[k])
-                            result[k] = item.imagePath
-                    }
-                }
-            } catch (e) {}
-        }
+        // 复用按日索引（同一份缓存），不再在这里单独解析一遍整段 chat JSON。
+        var index = chatImageIndex()
+        for (var k in index)
+            if (index[k].length > 0)
+                result[k] = index[k][0]   // 同旧行为：取当天第一张
         var manual = manualPhotoMap()
         for (var key in manual)
             if (manual[key] && manual[key] !== "")
@@ -451,7 +497,7 @@ Item {
     }
 
     function anniversaryTypeFromText(text) {
-        return text.indexOf("倒计时") >= 0 ? "countdown" : "since"
+        return text.indexOf("Countdown") >= 0 ? "countdown" : "since"
     }
 
     function anniversaryKind(item) {
@@ -468,7 +514,7 @@ Item {
                 result.push(list[i])
         }
         saveAnniversaries(result)
-        showCalToast("已删除")
+        showCalToast("Deleted")
     }
 
     function normalizedDate(value) {
@@ -485,22 +531,22 @@ Item {
         if (anniversaryKind(item) === "countdown") {
             var left = daysBetween(todayDate, dateFromKey(item.dateKey))
             if (left > 0)
-                return "还有 " + left + " 天"
+                return sentence("countdownDaysLeft", {count: left})
             if (left === 0)
-                return "今天"
-            return "已过去 " + Math.abs(left) + " 天"
+                return "Today"
+            return sentence("countdownDaysPast", {count: Math.abs(left)})
         }
 
         var passed = daysBetween(dateFromKey(item.dateKey), todayDate)
         if (passed >= 0)
-            return "已经 " + passed + " 天"
-        return "还有 " + Math.abs(passed) + " 天开始"
+            return sentence("anniversaryDaysSince", {count: passed})
+        return sentence("anniversaryDaysUntil", {count: Math.abs(passed)})
     }
 
     function anniversarySubtitle(item) {
         if (anniversaryKind(item) === "countdown")
-            return "目标日 · " + item.dateKey
-        return "从 " + item.dateKey + " 开始"
+            return sentence("targetDay", {date: item.dateKey})
+        return sentence("anniversarySince", {date: item.dateKey})
     }
 
     function anniversaryColor(type) {
@@ -525,7 +571,7 @@ Item {
     }
 
     function saveTodosForSelectedDate() {
-        var map = allTodosMap()
+        var map = todosMapForEdit()   // 要改它，所以取可写副本（见 todosMapForEdit）
         var arr = []
         for (var i = 0; i < todoModel.count; i++) {
             var item = todoModel.get(i)
@@ -568,7 +614,7 @@ Item {
 
     function projectChoicesForTag(tag) {
         projectRefreshKey
-        var choices = ["不关联"]
+        var choices = ["Not linked"]
         if (!projectManager)
             return choices
 
@@ -579,7 +625,7 @@ Item {
     }
 
     function linkedProjectFromChoice(choice) {
-        return choice === "不关联" ? "" : choice
+        return choice === "Not linked" ? "" : choice
     }
 
     // 调色板与图标统一委托到 TagPalette.js（单一来源，杜绝多页色表漂移）。
@@ -603,14 +649,14 @@ Item {
             nid: ""
         })
         saveTodosForSelectedDate()
-        showCalToast(tr("已创建待办"))
+        showCalToast(tr("Todo created"))
     }
 
     function addAnniversaryFromPopup() {
         var title = createTitleInput.text.trim()
         if (title.length === 0)
             return
-        var list = allAnniversaries()
+        var list = allAnniversaries().slice()   // 要 push，先脱离缓存数组
         list.push({
             id: selectedDateKey + "-" + Date.now() + "-" + Math.floor(Math.random() * 10000),
             title: title,
@@ -619,7 +665,7 @@ Item {
             desc: createDescEdit.text.trim()
         })
         saveAnniversaries(list)
-        showCalToast(tr("已创建纪念日"))
+        showCalToast(tr("Anniversary created"))
     }
 
     function openCreate() {
@@ -664,7 +710,7 @@ Item {
             return
         todoModel.remove(idx)
         saveTodosForSelectedDate()
-        showCalToast("已删除")
+        showCalToast("Deleted")
     }
     function toggleTodoDoneAt(idx) {
         if (idx < 0 || idx >= todoModel.count)
@@ -727,9 +773,7 @@ Item {
 
     // 周计划：选中周 7 天（一→日），每天带当天待办/事件。一次性解析 savedTodos（不逐格重析）。
     function weekDays(key) {
-        var labels = I18n.langKey(languageMode) === "en"
-                     ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-                     : ["一", "二", "三", "四", "五", "六", "日"]
+        var labels = I18n.weekdaysNarrow(languageMode)
         var map = allTodosMap()
         var todayKey = dateKey(todayDate)
         var start = weekStartDate(key)
@@ -791,7 +835,7 @@ Item {
         }
         var foc = dayProjectsFor(key)
         for (var f = 0; f < foc.length; f++)
-            rows.push({ sort: 99000, time: "", label: foc[f].name ? foc[f].name : "专注",
+            rows.push({ sort: 99000, time: "", label: foc[f].name ? foc[f].name : "Focus",
                         type: "focus", tag: foc[f].tag ? foc[f].tag : "", done: false,
                         subtitle: "", seconds: foc[f].seconds ? foc[f].seconds : 0 })
         rows.sort(function (x, y) {
@@ -831,7 +875,7 @@ Item {
         var sums = {}
         var order = []
         for (var i = 0; i < list.length; i++) {
-            var tg = list[i].tag && list[i].tag !== "" ? list[i].tag : "其他"
+            var tg = list[i].tag && list[i].tag !== "" ? list[i].tag : "Other"
             if (sums[tg] === undefined) { sums[tg] = 0; order.push(tg) }
             sums[tg] += list[i].seconds ? list[i].seconds : 0
         }
@@ -911,7 +955,7 @@ Item {
 
                     Text {
                         Layout.fillWidth: true
-                        text: root.tr("按日期整理待办、照片与计时记录")
+                        text: root.tr("Organize todos, photos, and timer records by date")
                         color: textSecondary
                         font.pixelSize: 12
                         elide: Text.ElideRight
@@ -941,7 +985,7 @@ Item {
                         GradientStop { position: 0; color: ml.aqua }
                         GradientStop { position: 1; color: ml.violet }
                     }
-                    Text { anchors.centerIn: parent; text: root.tr("今天"); color: ml.calBtnInk
+                    Text { anchors.centerIn: parent; text: root.tr("Today"); color: ml.calBtnInk
                            font.pixelSize: 14; font.weight: Font.DemiBold }
                     MouseArea { anchors.fill: parent; cursorShape: Cursor.button()
                                 onClicked: {
@@ -1002,9 +1046,9 @@ Item {
                             spacing: 5
                             Text { text: "CALENDAR"; color: ml.glowCyan; font.pixelSize: 11
                                    font.weight: Font.Black; font.letterSpacing: 0.7 }
-                            Text { text: root.tr("日历"); color: ml.textPrimary; font.pixelSize: 26
+                            Text { text: root.tr("Calendar"); color: ml.textPrimary; font.pixelSize: 26
                                    font.weight: Font.Bold; font.letterSpacing: 0 }
-                            Text { text: root.tr("按日期整理时间上下文"); color: ml.textTertiary; font.pixelSize: 11 }
+                            Text { text: root.tr("Organize time context by date"); color: ml.textTertiary; font.pixelSize: 11 }
                         }
                     }
 
@@ -1014,10 +1058,10 @@ Item {
                         spacing: 8
                         Repeater {
                             model: [
-                                { key: "month", label: "月视图",   glyph: "▦" },
-                                { key: "week",  label: "周计划",   glyph: "▤" },
-                                { key: "today", label: "今日议程", glyph: "▣" },
-                                { key: "focus", label: "专注记录", glyph: "◴" }
+                                { key: "month", label: "Month",   glyph: "▦" },
+                                { key: "week",  label: "Week Plan",   glyph: "▤" },
+                                { key: "today", label: "Agenda", glyph: "▣" },
+                                { key: "focus", label: "Focus Records", glyph: "◴" }
                             ]
                             delegate: Rectangle {
                                 required property var modelData
@@ -1058,7 +1102,7 @@ Item {
                                     cursorShape: Cursor.button()
                                     onClicked: {
                                         activeView = modelData.key
-                                        showCalToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label))
+                                        showCalToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}))
                                     }
                                 }
                             }
@@ -1075,10 +1119,10 @@ Item {
                         rowSpacing: 10
                         Repeater {
                             model: [
-                                { label: "今日事项", key: "items", real: true },
-                                { label: "完成率",   key: "rate",  real: true },
-                                { label: "专注块",   key: "focus", real: true },
-                                { label: "本周任务", key: "week",  real: true }
+                                { label: "Today's Items", key: "items", real: true },
+                                { label: "Completion",   key: "rate",  real: true },
+                                { label: "Focus Blocks",   key: "focus", real: true },
+                                { label: "Week Tasks", key: "week",  real: true }
                             ]
                             delegate: Rectangle {
                                 required property var modelData
@@ -1134,9 +1178,7 @@ Item {
                         rowSpacing: 0
 
                         Repeater {
-                            model: I18n.langKey(root.languageMode) === "en"
-                                   ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-                                   : ["一", "二", "三", "四", "五", "六", "日"]
+                            model: I18n.weekdaysNarrow(root.languageMode)
 
                             delegate: Item {
                                 required property string modelData
@@ -1240,7 +1282,7 @@ Item {
                                         border.color: modelData.countdownCount > 0 ? ml.chipFocusBd : ml.chipTodoBd
                                         Text {
                                             anchors.centerIn: parent
-                            text: modelData.countdownCount > 0 ? root.tr("倒") : root.tr("纪")
+                            text: modelData.countdownCount > 0 ? root.tr("D") : root.tr("A")
                                             color: ml.chipText
                                             font.pixelSize: 9
                                             font.bold: true
@@ -1346,10 +1388,10 @@ Item {
                                 font.pixelSize: 14
                                 font.weight: Font.DemiBold
                             }
-                            Text { text: root.tr("本周计划"); color: ml.textTertiary; font.pixelSize: 10 }
+                            Text { text: root.tr("This Week"); color: ml.textTertiary; font.pixelSize: 10 }
                         }
                         Text {
-                            text: root.sentence("itemCount", {count: weekViewTaskCount(selectedDateKey)}, weekViewTaskCount(selectedDateKey) + " 项")
+                            text: root.sentence("itemCount", {count: weekViewTaskCount(selectedDateKey)})
                             color: ml.textTertiary
                             font.pixelSize: 11
                         }
@@ -1530,7 +1572,7 @@ Item {
                             font.weight: Font.Bold
                         }
                         Text {
-                            text: root.sentence("focusDuration", {time: secondsToDisplay(selectedDateTotalSeconds())}, "专注 " + secondsToDisplay(selectedDateTotalSeconds()))
+                            text: root.sentence("focusDuration", {time: secondsToDisplay(selectedDateTotalSeconds())})
                             color: ml.accentText
                             font.pixelSize: 12
                             font.bold: true
@@ -1581,9 +1623,9 @@ Item {
                                             Text {
                                                 Layout.fillWidth: true
                                                 Layout.alignment: Qt.AlignVCenter
-                                                text: modelData.type === "event" ? root.tr("全天")
+                                                text: modelData.type === "event" ? root.tr("All day")
                                                       : (modelData.time && modelData.time !== "" ? displayTime(modelData.time)
-                                                      : (modelData.type === "focus" ? root.tr("专注") : root.tr("未定")))
+                                                      : (modelData.type === "focus" ? root.tr("Focus") : root.tr("Unscheduled")))
                                                 color: (modelData.time && modelData.time !== "") ? ml.glowCyan : ml.textTertiary
                                                 font.pixelSize: (modelData.time && modelData.time !== "") ? 11 : 10
                                                 font.bold: (modelData.time && modelData.time !== "")
@@ -1652,7 +1694,7 @@ Item {
                                 visible: agendaRepeater.count === 0
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.tr("这一天还没有安排")
+                                    text: root.tr("Nothing scheduled for this day")
                                     color: ml.textTertiary
                                     font.pixelSize: 13
                                 }
@@ -1680,7 +1722,7 @@ Item {
                     anchors.margins: 16
                     spacing: 14
 
-                    Text { text: root.tr("本周专注"); color: ml.textPrimary; font.pixelSize: 13; font.bold: true }
+                    Text { text: root.tr("This Week's Focus"); color: ml.textPrimary; font.pixelSize: 13; font.bold: true }
 
                     // 本周 7 柱
                     RowLayout {
@@ -1744,7 +1786,7 @@ Item {
                         spacing: 8
                         Text { text: selectedDateLabel(); color: ml.textPrimary; font.pixelSize: 13; font.bold: true }
                         Text { text: secondsToDisplay(selectedDateTotalSeconds()); color: ml.accentText; font.pixelSize: 18; font.bold: true }
-                        Text { Layout.fillWidth: true; text: root.sentence("projectCount", {count: dayProjects().length}, "(" + dayProjects().length + " 个项目)"); color: ml.textTertiary; font.pixelSize: 11 }
+                        Text { Layout.fillWidth: true; text: root.sentence("projectCount", {count: dayProjects().length}); color: ml.textTertiary; font.pixelSize: 11 }
                     }
 
                     // 逐项目计时条 + 按标签（同一滚动列）
@@ -1815,7 +1857,7 @@ Item {
                                 visible: dayProjects().length === 0
                                 Text {
                                     anchors.centerIn: parent
-                                    text: root.tr("这一天还没有专注记录")
+                                    text: root.tr("No focus records for this day")
                                     color: ml.textTertiary
                                     font.pixelSize: 13
                                 }
@@ -1823,7 +1865,7 @@ Item {
 
                             Text {
                                 visible: dayTagSummary(selectedDateKey).length > 0
-                                text: root.tr("按标签")
+                                text: root.tr("By Tag")
                                 color: ml.textTertiary
                                 font.pixelSize: 11
                                 topPadding: 4
@@ -1980,7 +2022,7 @@ Item {
                                     border.color: ml.calGhostBorder
                                     Text {
                                         anchors.centerIn: parent
-                                        text: selDayCard.selPhoto === "" ? "+ " + root.tr("添加照片") : "+ " + root.tr("更换照片")
+                                        text: selDayCard.selPhoto === "" ? "+ " + root.tr("Add Photo") : "+ " + root.tr("Change Photo")
                                         color: ml.calGlyph
                                         font.pixelSize: 13
                                     }
@@ -2032,9 +2074,9 @@ Item {
 
                             Repeater {
                                 model: [
-                                    { key: "tasks", label: "待办" },
-                                    { key: "records", label: "记录" },
-                                    { key: "anniversaries", label: "纪念" }
+                                    { key: "tasks", label: "Todos" },
+                                    { key: "records", label: "Records" },
+                                    { key: "anniversaries", label: "Anniversaries" }
                                 ]
 
                                 delegate: Rectangle {
@@ -2198,7 +2240,7 @@ Item {
                                                         Text {
                                                             id: memoMk
                                                             anchors.centerIn: parent
-                                                            text: root.tr("便签")
+                                                            text: root.tr("Note")
                                                             color: ml.violet
                                                             font.pixelSize: 9
                                                             font.bold: true
@@ -2233,7 +2275,7 @@ Item {
                                                 color: startMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                                                 border.width: 1
                                                 border.color: ml.calGhostBorder
-                                                Text { anchors.centerIn: parent; text: root.tr("开始"); color: ml.calGlyph; font.pixelSize: 12 }
+                                                Text { anchors.centerIn: parent; text: root.tr("Start"); color: ml.calGlyph; font.pixelSize: 12 }
                                                 MouseArea {
                                                     id: startMa
                                                     anchors.fill: parent
@@ -2287,7 +2329,7 @@ Item {
                                     visible: todoModel.count === 0
                                     Text {
                                         anchors.centerIn: parent
-                                        text: root.tr("暂无日程")
+                                        text: root.tr("No agenda")
                                         color: ml.textTertiary
                                         font.pixelSize: 13
                                     }
@@ -2374,7 +2416,7 @@ Item {
                                     visible: dayProjects().length === 0
                                     Text {
                                         anchors.centerIn: parent
-                                        text: root.tr("这一天还没有计时记录")
+                                        text: root.tr("No timer records for this day")
                                         color: ml.textTertiary
                                         font.pixelSize: 13
                                     }
@@ -2438,7 +2480,7 @@ Item {
                                                 border.color: anniversaryKind(modelData) === "countdown" ? ml.chipFocusBd : ml.chipTodoBd
                                                 Text {
                                                     anchors.centerIn: parent
-                                                    text: anniversaryKind(modelData) === "countdown" ? "倒" : "纪"
+                                                    text: anniversaryKind(modelData) === "countdown" ? "D" : "A"
                                                     color: anniversaryKind(modelData) === "countdown" ? ml.violet : ml.shareGold
                                                     font.pixelSize: 13
                                                     font.bold: true
@@ -2504,7 +2546,7 @@ Item {
                                     visible: sortedAnniversaries().length === 0
                                     Text {
                                         anchors.centerIn: parent
-                                        text: root.tr("还没有纪念日或倒计时")
+                                        text: root.tr("No anniversaries or countdowns yet")
                                         color: ml.textTertiary
                                         font.pixelSize: 13
                                     }
@@ -2526,7 +2568,7 @@ Item {
                         }
                         Text {
                             anchors.centerIn: parent
-                            text: sidePanelMode === "anniversaries" ? "＋ " + root.tr("新建纪念日") : "＋ " + root.tr("新建待办")
+                            text: sidePanelMode === "anniversaries" ? "＋ " + root.tr("New Anniversary") : "＋ " + root.tr("New Todo")
                             color: ml.calBtnInk
                             font.pixelSize: 14
                             font.weight: Font.Bold
@@ -2620,9 +2662,9 @@ Item {
                         anchors.rightMargin: 8
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 2
-                        Text { text: sidePanelMode === "anniversaries" ? root.tr("新建纪念日") : root.tr("新建待办")
+                        Text { text: sidePanelMode === "anniversaries" ? root.tr("New Anniversary") : root.tr("New Todo")
                                color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.Bold }
-                        Text { text: root.sentence("thisDayLabel", {date: selectedDateLabel()}, "本日 · " + selectedDateLabel()); color: ml.textTertiary; font.pixelSize: 11 }
+                        Text { text: root.sentence("thisDayLabel", {date: selectedDateLabel()}); color: ml.textTertiary; font.pixelSize: 11 }
                     }
                     Rectangle {
                         id: createClose
@@ -2651,7 +2693,7 @@ Item {
                     }
                     Text { anchors.left: parent.left; anchors.leftMargin: 12; anchors.verticalCenter: parent.verticalCenter
                            visible: createTitleInput.text === ""
-                           text: sidePanelMode === "anniversaries" ? root.tr("纪念日名称") : root.tr("标题")
+                           text: sidePanelMode === "anniversaries" ? root.tr("Anniversary Name") : root.tr("Title")
                            color: ml.textTertiary; font.pixelSize: 14 }
                 }
 
@@ -2681,7 +2723,7 @@ Item {
                     spacing: 8
                     visible: sidePanelMode === "anniversaries"
                     Repeater {
-                        model: ["纪念日", "倒计时日"]
+                        model: ["Anniversary", "Countdown"]
                         delegate: Rectangle {
                             required property string modelData
                             width: (parent.width - 8) / 2; height: 36; radius: 12
@@ -2713,7 +2755,7 @@ Item {
                         anchors.left: createTimeGlyph.right; anchors.right: timePickChev.left
                         anchors.verticalCenter: parent.verticalCenter
                         anchors.leftMargin: 8; anchors.rightMargin: 6
-                        text: root.createTime !== "" ? displayTime(root.createTime) : root.tr("选择时间（可选）")
+                        text: root.createTime !== "" ? displayTime(root.createTime) : root.tr("Choose time (optional)")
                         color: root.createTime !== "" ? ml.textPrimary : ml.textTertiary
                         font.pixelSize: 13
                         elide: Text.ElideRight
@@ -2742,7 +2784,7 @@ Item {
                     }
                     Text { anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 11
                            visible: createDescEdit.text === ""
-                           text: root.tr("详情（可选）"); color: ml.textTertiary; font.pixelSize: 13 }
+                           text: root.tr("Details (optional)"); color: ml.textTertiary; font.pixelSize: 13 }
                 }
 
                 // 底部：取消 / 创建
@@ -2753,7 +2795,7 @@ Item {
                         width: (parent.width - 10) / 2; height: 40; radius: 12
                         color: createCancelMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                         border.width: 1; border.color: ml.calGhostBorder
-                        Text { anchors.centerIn: parent; text: root.tr("取消"); color: ml.textSecondary; font.pixelSize: 14 }
+                        Text { anchors.centerIn: parent; text: root.tr("Cancel"); color: ml.textSecondary; font.pixelSize: 14 }
                         MouseArea { id: createCancelMa; anchors.fill: parent; hoverEnabled: true
                                     cursorShape: Cursor.button(); onClicked: closeCreate() }
                     }
@@ -2762,7 +2804,7 @@ Item {
                         gradient: Gradient { orientation: Gradient.Horizontal
                                              GradientStop { position: 0; color: ml.aqua }
                                              GradientStop { position: 1; color: ml.violet } }
-                        Text { anchors.centerIn: parent; text: root.tr("创建"); color: ml.calBtnInk
+                        Text { anchors.centerIn: parent; text: root.tr("Create"); color: ml.calBtnInk
                                font.pixelSize: 14; font.weight: Font.Bold }
                         MouseArea { anchors.fill: parent; cursorShape: Cursor.button()
                                     onClicked: submitCreate() }
@@ -2802,7 +2844,7 @@ Item {
                           leftMargin: 18; rightMargin: 18; topMargin: 16 }
                 spacing: 14
 
-                Text { text: root.tr("选择时间"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.Bold }
+                Text { text: root.tr("Choose Time"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.Bold }
 
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -2873,7 +2915,7 @@ Item {
                         width: (parent.width - 10) / 2; height: 38; radius: 12
                         color: tpClearMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                         border.width: 1; border.color: ml.calGhostBorder
-                        Text { anchors.centerIn: parent; text: root.tr("清除"); color: ml.textSecondary; font.pixelSize: 13 }
+                        Text { anchors.centerIn: parent; text: root.tr("Clear"); color: ml.textSecondary; font.pixelSize: 13 }
                         MouseArea { id: tpClearMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button()
                                     onClicked: { root.createTime = ""; root.timePickerOpen = false } }
                     }
@@ -2882,7 +2924,7 @@ Item {
                         gradient: Gradient { orientation: Gradient.Horizontal
                                              GradientStop { position: 0; color: ml.aqua }
                                              GradientStop { position: 1; color: ml.violet } }
-                        Text { anchors.centerIn: parent; text: root.tr("确定"); color: ml.calBtnInk
+                        Text { anchors.centerIn: parent; text: root.tr("OK"); color: ml.calBtnInk
                                font.pixelSize: 13; font.weight: Font.DemiBold }
                         MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: commitTimePick() }
                     }
@@ -2893,7 +2935,7 @@ Item {
 
     FileDialog {
         id: dayPhotoDialog
-        title: root.tr("选择这一天的背景照片")
+        title: root.tr("Choose a background photo for this day")
         nameFilters: ["Images (*.png *.jpg *.jpeg *.bmp *.webp)"]
 
         onAccepted: {

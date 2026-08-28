@@ -1,0 +1,20 @@
+[1/31] Copying time-arc qml sources into build dir
+[2/31] Running qmlimportscanner for time-arc
+[3/31] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthProfiles_js.cpp
+[4/31] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/StatsViewModel_js.cpp
+[5/31] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.aotstats
+FAILED: [code=1] .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp .rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.aotstats /Users/jz2025/Desktop/Development/TimeArc/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp /Users/jz2025/Desktop/Development/TimeArc/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp.aotstats 
+cd /Users/jz2025/Desktop/Development/TimeArc/build && /opt/homebrew/bin/cmake -E make_directory /Users/jz2025/Desktop/Development/TimeArc/build/.rcc/qmlcache/time-arc_qml/mobile/components && /opt/homebrew/share/qt/libexec/qmlcachegen --bare --resource-path /qt/qml/time_arc/qml/mobile/components/MobileMonthlyStory.qml -I /Users/jz2025/Desktop/Development/TimeArc/build -I /opt/homebrew/share/qt/qml -i /Users/jz2025/Desktop/Development/TimeArc/build/time_arc/qmldir --resource /Users/jz2025/Desktop/Development/TimeArc/build/.qt/rcc/qmake_time_arc.qrc --resource /Users/jz2025/Desktop/Development/TimeArc/build/.qt/rcc/time-arc_raw_qml_0.qrc --resource /Users/jz2025/Desktop/Development/TimeArc/build/.qt/rcc/time-arc_raw_res_0.qrc --resource /Users/jz2025/Desktop/Development/TimeArc/build/.qt/rcc/time-arc_raw_qml_0_extra_qmldirs.qrc --dump-aot-stats "--module-id=time_arc(time-arc)" -o /Users/jz2025/Desktop/Development/TimeArc/build/.rcc/qmlcache/time-arc_qml/mobile/components/MobileMonthlyStory_qml.cpp /Users/jz2025/Desktop/Development/TimeArc/qml/mobile/components/MobileMonthlyStory.qml
+Error compiling qml file: /Users/jz2025/Desktop/Development/TimeArc/qml/mobile/components/MobileMonthlyStory.qml:144:17: error: Property value set multiple times
+/Users/jz2025/Desktop/Development/TimeArc/qml/mobile/components/MobileMonthlyStory.qml:155:17: error: Property value set multiple times
+/Users/jz2025/Desktop/Development/TimeArc/qml/mobile/components/MobileMonthlyStory.qml:166:17: error: Property value set multiple times
+[6/31] Generating .rcc/qmlcache/time-arc_qml/shared/I18n_js.cpp
+[7/31] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCoverPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyCoverPage_qml.cpp.aotstats
+[8/31] Generating .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/MobileRankingShareOverlay_qml.cpp.aotstats
+[9/31] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyOverviewPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyOverviewPage_qml.cpp.aotstats
+[10/31] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileStatsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileStatsPage_qml.cpp.aotstats
+[11/31] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileHomePage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileHomePage_qml.cpp.aotstats
+[12/31] Generating .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyHighlightPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/components/monthly/MonthlyHighlightPage_qml.cpp.aotstats
+[13/31] Generating .rcc/qmlcache/time-arc_qml/mobile/pages/MobileHistoryPage_qml.cpp, .rcc/qmlcache/time-arc_qml/mobile/pages/MobileHistoryPage_qml.cpp.aotstats
+[14/31] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.aotstats
+ninja: build stopped: subcommand failed.

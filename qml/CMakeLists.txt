@@ -19,7 +19,7 @@ set(TIME_ARC_QML_FILES
     qml/desktop/components/AchievementToast.qml
     qml/desktop/components/AppVisual.js
     qml/desktop/components/Hotkeys.js
-    qml/desktop/components/I18n.js
+    qml/shared/I18n.js
     qml/desktop/components/PlatformCursor.js
     qml/desktop/components/TagPalette.js
     qml/desktop/memorylake/GenerativeCover.qml

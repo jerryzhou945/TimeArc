@@ -21,18 +21,42 @@
 
 namespace {
 
+// Date pieces handed to QML as numbers so the reader's language decides the
+// order and separators. Month is 1-based to match the calendar keys.
+QVariantMap dateRangeParts(const QDate& from, const QDate& to) {
+  QVariantMap parts;
+  parts.insert(QStringLiteral("fromMonth"), from.month());
+  parts.insert(QStringLiteral("fromDay"), from.day());
+  parts.insert(QStringLiteral("toMonth"), to.month());
+  parts.insert(QStringLiteral("toDay"), to.day());
+  return parts;
+}
+
+QVariantMap monthParts(const QDate& date) {
+  QVariantMap parts;
+  parts.insert(QStringLiteral("month"), date.month());
+  return parts;
+}
+
+QVariantMap yearMonthParts(const QDate& date) {
+  QVariantMap parts;
+  parts.insert(QStringLiteral("year"), date.year());
+  parts.insert(QStringLiteral("month"), date.month());
+  return parts;
+}
+
 const QString kAndroidPlatform = QStringLiteral("android");
 
 QString rangeLabel(const QString& range) {
   const QString key = range.trimmed().toLower();
   if (key == QStringLiteral("week") || key == QStringLiteral("7d"))
-    return QStringLiteral("本周");
+    return QStringLiteral("This Week");
   if (key == QStringLiteral("month") || key == QStringLiteral("30d"))
-    return QStringLiteral("本月");
-  if (key == QStringLiteral("year")) return QStringLiteral("今年");
+    return QStringLiteral("This Month");
+  if (key == QStringLiteral("year")) return QStringLiteral("This year");
   if (key == QStringLiteral("all") || key == QStringLiteral("total"))
-    return QStringLiteral("总计");
-  return QStringLiteral("今天");
+    return QStringLiteral("Total");
+  return QStringLiteral("Today");
 }
 
 QPair<QString, QString> personalizedConversion(int seconds, int variant) {
@@ -40,22 +64,22 @@ QPair<QString, QString> personalizedConversion(int seconds, int variant) {
     case 0:
       return {
           QStringLiteral("songs"),
-          QStringLiteral("若每首歌四分钟，这段时间足够听完约 %1 首歌。")
+          QStringLiteral("At four minutes a song, that is about %1 songs.")
               .arg(qMax(1, qRound(seconds / 240.0)))};
     case 1:
       return {
           QStringLiteral("poem"),
-          QStringLiteral("如同安静读过约 %1 字的诗，时间也有了自己的韵脚。")
+          QStringLiteral("Like quietly reading about %1 words of poetry, the time found its own meter.")
               .arg(qMax(800, qRound(seconds / 60.0 * 320.0)))};
     case 2:
       return {
           QStringLiteral("tea"),
-          QStringLiteral("若用一盏茶的二十分钟慢下来，足够拥有约 %1 次短暂晴天。")
+          QStringLiteral("Slowed to twenty minutes a cup of tea, that is about %1 brief spells of clear sky.")
               .arg(qMax(1, qRound(seconds / 1200.0)))};
     default:
       return {
           QStringLiteral("film"),
-          QStringLiteral("像完整看过约 %1 部九十分钟的电影，片尾都有你的名字。")
+          QStringLiteral("Like watching about %1 ninety-minute films right through, your name in every credit roll.")
               .arg(qMax(1, qRound(seconds / 5400.0)))};
   }
 }
@@ -223,11 +247,11 @@ QVariantMap MobileUsageService::getUsageDashboard(
     row.insert(
         QStringLiteral("storyText"),
         recordedDays > 1
-            ? QStringLiteral("%1 在 %2 个有记录的日子里，留下了 %3。")
+            ? QStringLiteral("%1 left %3 across %2 recorded days.")
                   .arg(displayName)
                   .arg(recordedDays)
                   .arg(formatDuration(seconds))
-            : QStringLiteral("%1 在这段时间里留下了 %2。")
+            : QStringLiteral("%1 left %2 over this stretch.")
                   .arg(displayName, formatDuration(seconds)));
     const QPair<QString, QString> conversion =
         personalizedConversion(seconds, stableConversionVariant(key));
@@ -263,11 +287,9 @@ QVariantMap MobileUsageService::getDashboardForRange(const QString& range) {
                         today.toString(Qt::ISODate));
   dashboard.insert(QStringLiteral("rangeKey"), range.trimmed().toLower());
   dashboard.insert(QStringLiteral("rangeLabel"), rangeLabel(range));
-  dashboard.insert(
-      QStringLiteral("rangeText"),
-      QStringLiteral("%1 至 %2")
-          .arg(start.toString(QStringLiteral("M月d日")),
-               today.toString(QStringLiteral("M月d日"))));
+  // Dates cross as numbers, not as a formatted string: "3月13日" and "Mar 13"
+  // order their parts differently, and this service has no UI language.
+  dashboard.insert(QStringLiteral("rangeDates"), dateRangeParts(start, today));
   return dashboard;
 }
 
@@ -370,13 +392,11 @@ QVariantMap MobileUsageService::getMonthlyReport(const QString& monthKey) {
     pages.append(QVariantMap{{QStringLiteral("kind"), pageKind}});
   }
   report.insert(QStringLiteral("pages"), pages);
-  report.insert(QStringLiteral("title"),
-                QStringLiteral("%1的时间天气")
-                    .arg(monthStart.toString(QStringLiteral("M月"))));
-  report.insert(QStringLiteral("rangeText"),
-                QStringLiteral("%1 至 %2")
-                    .arg(monthStart.toString(QStringLiteral("M月d日")),
-                         monthEnd.toString(QStringLiteral("M月d日"))));
+  report.insert(QStringLiteral("titleKey"),
+                QStringLiteral("monthTimeWeather"));
+  report.insert(QStringLiteral("titleParams"), monthParts(monthStart));
+  report.insert(QStringLiteral("rangeDates"),
+                dateRangeParts(monthStart, monthEnd));
   report.insert(QStringLiteral("usageAccessGranted"), usageAccessGranted_);
   report.insert(QStringLiteral("syncStatus"), syncStatus_);
   report.insert(QStringLiteral("syncStatusText"), syncStatusText_);
@@ -429,8 +449,7 @@ QVariantMap MobileUsageService::getMemoryLakeForLatestReleasedMonth() {
       monthStart.toString(Qt::ISODate), monthEnd.toString(Qt::ISODate));
   const QVariantList apps = report.value(QStringLiteral("topApps")).toList();
 
-  report.insert(QStringLiteral("monthLabel"),
-                monthStart.toString(QStringLiteral("yyyy年M月")));
+  report.insert(QStringLiteral("monthLabelParts"), yearMonthParts(monthStart));
   report.insert(QStringLiteral("releaseId"),
                 QStringLiteral("month:%1").arg(monthKey));
   report.insert(QStringLiteral("rangeText"),
@@ -451,24 +470,23 @@ QVariantMap MobileUsageService::getMemoryLakeForLatestReleasedMonth() {
       dashboard.value(QStringLiteral("totalText")).toString();
   const QString leadName =
       apps.isEmpty()
-          ? QStringLiteral("还没有应用")
+          ? QStringLiteral("No apps yet")
           : apps.first().toMap().value(QStringLiteral("displayName")).toString();
-  report.insert(
-      QStringLiteral("title"),
-      activeDays > 0
-          ? QStringLiteral("%1，时间在 %2 个日子里留下痕迹")
-                .arg(monthStart.toString(QStringLiteral("M月")))
-                .arg(activeDays)
-          : QStringLiteral("%1，等待第一段时间被记住")
-                .arg(monthStart.toString(QStringLiteral("M月"))));
+  QVariantMap releaseTitleParams = monthParts(monthStart);
+  releaseTitleParams.insert(QStringLiteral("days"), activeDays);
+  report.insert(QStringLiteral("titleKey"),
+                activeDays > 0
+                    ? QStringLiteral("monthMarkAcrossDays")
+                    : QStringLiteral("monthWaitingFirst"));
+  report.insert(QStringLiteral("titleParams"), releaseTitleParams);
   report.insert(
       QStringLiteral("summary"),
       activeDays > 0
-          ? QStringLiteral("%1 的记录分布在 %2 个日子里，%3 最常出现在时间线上。")
+          ? QStringLiteral("%1's records span %2 days, and %3 appears most often on the timeline.")
                 .arg(totalText)
                 .arg(activeDays)
                 .arg(leadName)
-          : QStringLiteral("开启使用情况访问并同步后，本月故事会从真实记录中生成。"));
+          : QStringLiteral("Turn on usage access and sync, and this month's story will be built from real records."));
 
   QVariantList moments;
   const int momentCount = qMin(5, apps.size());
@@ -483,8 +501,8 @@ QVariantMap MobileUsageService::getMemoryLakeForLatestReleasedMonth() {
     moment.insert(
         QStringLiteral("title"),
         days > 1
-            ? QStringLiteral("%1，在 %2 个日子里反复出现").arg(name).arg(days)
-            : QStringLiteral("%1，留下了本月的一段时间").arg(name));
+            ? QStringLiteral("%1 — recurring across %2 days").arg(name).arg(days)
+            : QStringLiteral("%1 — left a stretch of this month behind").arg(name));
     moment.insert(QStringLiteral("body"),
                   app.value(QStringLiteral("storyText")));
     moment.insert(QStringLiteral("durationText"),
@@ -635,26 +653,26 @@ QString MobileUsageService::friendlyDisplayName(
   if (!labelLooksLikePackage) return label;
 
   static const QMap<QString, QString> names = {
-      {QStringLiteral("com.tencent.mm"), QStringLiteral("微信")},
+      {QStringLiteral("com.tencent.mm"), QStringLiteral("WeChat")},
       {QStringLiteral("com.tencent.mobileqq"), QStringLiteral("QQ")},
-      {QStringLiteral("com.xingin.xhs"), QStringLiteral("小红书")},
-      {QStringLiteral("tv.danmaku.bili"), QStringLiteral("哔哩哔哩")},
-      {QStringLiteral("com.netease.cloudmusic"), QStringLiteral("网易云音乐")},
-      {QStringLiteral("com.ss.android.ugc.aweme"), QStringLiteral("抖音")},
+      {QStringLiteral("com.xingin.xhs"), QStringLiteral("RED")},
+      {QStringLiteral("tv.danmaku.bili"), QStringLiteral("Bilibili")},
+      {QStringLiteral("com.netease.cloudmusic"), QStringLiteral("NetEase Cloud Music")},
+      {QStringLiteral("com.ss.android.ugc.aweme"), QStringLiteral("Douyin")},
       {QStringLiteral("com.android.chrome"), QStringLiteral("Chrome")},
       {QStringLiteral("com.microsoft.emmx"), QStringLiteral("Edge")},
       {QStringLiteral("com.spotify.music"), QStringLiteral("Spotify")},
       {QStringLiteral("com.google.android.youtube"), QStringLiteral("YouTube")},
       {QStringLiteral("com.termux"), QStringLiteral("Termux")},
       {QStringLiteral("com.huawei.android.launcher"),
-       QStringLiteral("华为桌面")},
+       QStringLiteral("Huawei Home")},
   };
   const auto it = names.constFind(package);
   if (it != names.cend()) return it.value();
 
   if (!label.isEmpty()) return label;
   const QString tail = package.section(QLatin1Char('.'), -1);
-  if (tail.isEmpty()) return QStringLiteral("未知应用");
+  if (tail.isEmpty()) return QStringLiteral("Unknown app");
   QString readable = tail;
   readable.replace(QLatin1Char('_'), QLatin1Char(' '));
   readable.replace(QLatin1Char('-'), QLatin1Char(' '));

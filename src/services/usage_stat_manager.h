@@ -1,6 +1,7 @@
 #ifndef USAGESTATMANAGER_H
 #define USAGESTATMANAGER_H
 
+#include <QDate>
 #include <QList>
 #include <QHash>
 #include <QObject>
@@ -12,7 +13,10 @@
 
 #include <functional>
 
+#include "services/categorization/matcher.h"
+
 class QSqlDatabase;
+class CategorizationManager;
 
 // 自动使用统计服务。
 //
@@ -33,6 +37,10 @@ class UsageStatManager : public QObject {
   int monthSoftwareMinutes() const;
   int yearSoftwareMinutes() const;
   int allSoftwareMinutes() const;
+
+  // 分类规则表由 CategorizationManager 持有；读层只消费它，规则变更会清缓存并
+  // 让各页重算（类别永远是读出时算的，所以编辑规则对全部历史即时生效）。
+  void setCategorizationManager(CategorizationManager* manager);
 
   Q_INVOKABLE void refresh();
   // 数据代际：m_records 真实变化（全量重读或增量追加）时自增。
@@ -109,6 +117,10 @@ class UsageStatManager : public QObject {
   // 让用户能取消隐藏。只读自身记录，不开新数据路径。
   Q_INVOKABLE QVariantList allApps() const;
 
+  // 采集到的**原始应用身份**（app_id / display_name / path），按 app_id 去重。
+  // 刻意不经过规则表：分类规则的播种要用它，若这里再去问 matcher 就成了环。
+  Q_INVOKABLE QVariantList recordedAppIdentities() const;
+
 signals:
   void usageStatsChanged();
 
@@ -122,7 +134,29 @@ signals:
     QString path;
     qint64 startUnixSec = 0;
     quint64 durationSec = 0;
+    // startUnixSec 的本地自然日，装载时算一次。此前每次 range 判定都要对每条记录做
+    // QDateTime::fromSecsSinceEpoch().toLocalTime().date()（含时区换算），而一次开页
+    // 要跑好几遍聚合。记录一经追加即不可变，故可安全预存；系统时区变了要整表重载
+    // （见 m_recordsTimeZoneId）。
+    QDate localDate;
   };
+
+  // 一个 range 对应的本地日期闭区间。每次聚合解析一次，而不是每条记录解析一次
+  // （原先 QDate::currentDate() 也在逐记录的判定里）。
+  struct DateWindow {
+    bool matchesAll = false;  // range == "all"：不看日期
+    bool valid = false;       // 无法识别的 range：一条都不匹配（同旧行为）
+    QDate from;
+    QDate to;
+
+    bool contains(const QDate& date) const {
+      if (matchesAll) return true;
+      if (!valid || !date.isValid()) return false;
+      return date >= from && date <= to;
+    }
+  };
+
+  DateWindow rangeWindow(const QString& range) const;
 
   QList<UsageRecord> m_records;
   int m_recordsGeneration = 0;
@@ -130,6 +164,17 @@ signals:
   // SQLite 增量高水位：仅装载 rowid 大于上次的新行。
   qint64 m_sqliteFrontmostMaxId = 0;
   qint64 m_sqliteMediaMaxId = 0;
+  // 预存 localDate 用的系统时区。用户在会话中途改时区会让已存的本地日失效，
+  // 故 refresh 时比对一次；变了就整表重载（重算全部 localDate）。DST 不受影响——
+  // 时区规则是按时刻历史应用的，过去某一刻的本地日不会因为进入夏令时而改变。
+  QByteArray m_recordsTimeZoneId;
+
+  // allApps() 记忆化。结果只取决于 m_records + 读层过滤 + 规则表 + UI 语言，而这四者
+  // 的任何变化都会自增 m_recordsGeneration（语言经 CategorizationManager::setLanguage
+  // → rulesChanged → 本类的 lambda），故单个整数就是完整的缓存键。
+  // 统计页 rebuild() 每次切换周/月/年或期次都会调它，但它是全历史的、与窗口无关。
+  mutable QVariantList m_allAppsCache;
+  mutable int m_allAppsGeneration = -1;
 
   // 设置页读层过滤（UI 私有；启动 + 开关变更时经 setReadFilters 推入）。默认 = 现状。
   bool m_autoClassify = true;    // 关 → 类别一律「其他」（停用自动归类）
@@ -137,7 +182,10 @@ signals:
   bool m_mergeSimilar = true;    // 关 → 多进程变体按 exe 细分（站点仍单列）
   bool m_hideTitles = false;     // 类默认不脱敏（保字节一致契约）；UI 默认开由 KV 启动推入
   QSet<QString> m_hiddenKeys;    // 逐项显隐：被排除出聚合的 group key 集
-  QHash<QString, QString> m_displayNameOverrides;  // 原始 group key -> 本地显示名称
+  QHash<QString, QString> m_displayNameOverrides;
+  CategorizationManager* m_categorization = nullptr;
+  mutable QHash<QString, TimeArc::Categorization::Resolution> m_resolutionCache;
+  mutable int m_resolutionGeneration = -1;  // 原始 group key -> 本地显示名称
   mutable int m_representativePathsGeneration = -1;
   mutable QHash<QString, QString> m_representativePaths;
 
@@ -151,6 +199,26 @@ signals:
   // 读层有效 group key：按当前过滤标志返回记录的有效分组键（合并关→exe 细键），
   // 被隐藏的 app 返回空串（调用方据此跳过）。
   QString effectiveGroupKey(const UsageRecord& record) const;
+
+  const TimeArc::Categorization::Matcher& matcher() const;
+  TimeArc::Categorization::Resolution resolveActivity(
+      const QString& appId, const QString& appName,
+      const QString& windowTitle) const;
+  QString activityGroupKey(const QString& appId, const QString& appName,
+                           const QString& path,
+                           const QString& windowTitle) const;
+  QString activityDisplayName(const QString& groupKey, const QString& appId,
+                              const QString& appName,
+                              const QString& path) const;
+  QString classifyActivity(const QString& groupKey, const QString& appId,
+                           const QString& appName, const QString& path,
+                           const QString& windowTitle) const;
+  void applyRuleMetadata(QVariantMap* item, const QString& ruleId,
+                         const QString& path) const;
+  QStringList ruleIconColors(const QString& ruleId, const QString& path) const;
+  QSet<QString> focusCategories() const;
+  bool isDeprioritizedCategory(const QString& category) const;
+  QString uiLanguage() const;
   QString representativePathForGroup(const QString& groupKey) const;
   void rebuildRepresentativePaths() const;
   QVariantList aggregateSoftwareForRange(const QString& range,

@@ -11,34 +11,56 @@ def section(start, end):
 
 def main():
     day = section("// ====== 日视图", "// ====== 周视图")
-    dial = section("component StatsApplicationClock", "component StatsDayTimeline")
+    dial = section("component StatsCategoryClock", "component StatsDayTimeline")
     summary = section("component StatsAggregateSummary", "component StatsCategoryDistribution")
 
     assert 'readonly property bool statsLayoutStacked: root.width < 900' in QML
 
-    assert "StatsApplicationClock" in day
+    assert "StatsCategoryClock" in day
     assert "DailyUsageShare" in day
-    assert "StatsViewModel.buildSmoothedCategoryClockSegments" in QML
-    assert 'root.tr("按 10 分钟聚合分类，真实时长保持不变")' in dial
-    assert 'root.sentence("clockSummary"' in dial
-    assert 'root.sentence("clockCategoryApps"' in dial
     assert "StatsDayTimeline" not in day
     assert "StatsRankingList" not in day
     assert "root.statsLayoutStacked" in day
     assert "root.sideCollapsed" not in day
+    # The clock stays a clock: 60 ticks and the 12 hour numbers survive the
+    # redesign, and so does hover-preview / click-to-pin.
     assert "for (var tick = 0; tick < 60; tick++)" in dial
     assert "model: 12" in dial
-    assert "segment.lane" in dial
-    assert "ctx.fill()" in dial
-    assert "StatsViewModel.categoryClockSectorBand" in dial
-    assert "modelData.showIcon" not in dial
-    assert 'property string lockedCategory: ""' in dial
-    assert "readonly property string activeCategory:" in dial
-    assert "segment.categoryKey === dialCard.activeCategory" in dial
-    assert "dialCard.focusedCategory.apps.slice(0, 3)" in dial
+    assert 'property string lockedId: ""' in dial
+    assert "readonly property string activeId:" in dial
     assert "acceptedButtons: Qt.LeftButton" in dial
     assert "onClicked: function (mouse)" in dial
-    assert "dialCard.lockedCategory = hitCategory === dialCard.lockedCategory ? \"\" : hitCategory" in dial
+    assert "ringCard.lockedId = hitId === ringCard.lockedId ? \"\" : hitId" in dial
+
+    # One ring, not three lanes: no lane radius, no per-app icon heuristic.
+    for retired in ("modelData.lane", "modelData.showIcon", "clockLaneRadiusScale",
+                    "StatsApplicationClock", "buildClockSegments"):
+        assert retired not in QML, retired
+
+    # Records render as filled annular sectors; hover/click expands the selected
+    # sector without mutating its time geometry.
+    assert "ctx.fill()" in dial
+    assert "trackInner" in dial and "trackOuter" in dial
+    assert "var inner = trackInner - (emphasized" in dial
+    assert "var outer = trackOuter + (emphasized" in dial
+    assert "ringRadiusScale" in dial and "ringWidthScale" in dial
+
+    # A focused category block resolves its compact summaries back to full app
+    # rows, so real app icons appear in the hub while the legend stays compact.
+    assert "root.clockArcApps(ringCard.focusedArc.apps)" in dial
+    assert "AppVisual.modelIconSource(modelData)" in dial
+    assert "ringCard.legend" in dial
+    assert "ringCard.footnote" in dial
+    assert "root.ringFootnote()" in QML
+
+    # Geometry is denoised; the numbers are not. The hub total and the legend
+    # seconds must keep coming from the unfiltered aggregate.
+    assert "totalText: root.secondsToDisplay(root.vmTotalSec)" in day
+    assert "categorySums(vmApps ? vmApps : [])" in QML
+
+    # The whole day is denoised once; an AM/PM toggle only re-projects.
+    assert "onClockHalfChanged: reprojectCategoryRing()" in QML
+    assert "buildCategoryRingRuns" in QML and "projectCategoryRing" in QML
 
     assert "// ====== 周/月/年共用聚合视图 ======" in QML
     aggregate = section("// ====== 周/月/年共用聚合视图 ======", "StatsAppLibrary {")
@@ -69,8 +91,23 @@ def main():
     assert "RowLayout {" in summary
     assert "Item { Layout.fillHeight: true }" not in summary
     library = section("component StatsAppLibrary", "component StatsAggregateSummary")
-    assert 'text: root.tr("最近记录")' in library
+    assert 'text: root.tr("Recent records")' in library
     assert "root.recentRecordText(modelData.lastUsedUnixSec)" in library
+    # The category ring is day-only. It is rendered inside a card gated on
+    # `range === "day"`, and reprojectCategoryRing only ever projects one 12h
+    # half of one day -- so building it for week/month/year was ~2.9s of work
+    # whose result was discarded. rebuildCategoryRing must bail out early, and
+    # must clear the ring view state so no stale arcs/legend survive a range
+    # switch. See journal/errors/20260826-095248-C-stats-ring-quadratic-offscreen.
+    ring = section("function rebuildCategoryRing()", "function reprojectCategoryRing()")
+    assert 'if (range !== "day") {' in ring
+    assert "_ringRuns = null" in ring
+    assert "vmRingStats = null" in ring
+    assert "vmRingLegend = []" in ring
+    assert "vmRingArcs = []" in ring
+    assert "return" in ring.split('if (range !== "day") {', 1)[1].split("}", 1)[0]
+    assert 'visible: root.range === "day" && root.hasData' in QML
+
     print("stats period layout static checks passed")
 
 

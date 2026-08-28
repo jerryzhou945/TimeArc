@@ -27,7 +27,7 @@ def main():
         ROOT / "qml/desktop/DesktopAppShell.qml"
     ).read_text(encoding="utf-8")
     i18n_js = (
-        ROOT / "qml/desktop/components/I18n.js"
+        ROOT / "qml/shared/I18n.js"
     ).read_text(encoding="utf-8")
 
     # Menu rows: open, the pomodoro trio, the two service rows, quit.

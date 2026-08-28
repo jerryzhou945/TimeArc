@@ -1,5 +1,5 @@
 import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 // 便签截止日期/时间选择器（点开的小日历 + 24h 时:分）。自绘月历网格，不依赖 labs 日历模块，
@@ -47,12 +47,10 @@ Item {
             var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
             return months[_m] + " " + _y
         }
-        return _y + " 年 " + (_m + 1) + " 月"
+        return I18n.yearMonth(languageMode, new Date(_y, _m, 1))
     }
     function _weekLabels() {
-        return I18n.langKey(languageMode) === "en"
-               ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-               : ["一", "二", "三", "四", "五", "六", "日"]
+        return I18n.weekdaysNarrow(languageMode)
     }
 
     readonly property color _ink: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.92)
@@ -206,7 +204,7 @@ Item {
             // 时间 时:分（24h）。
             Row {
                 width: parent.width; spacing: 8
-                Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(dp.languageMode, "时间"); color: dp._muted; font.pixelSize: 12 }
+                Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(dp.languageMode, "Time"); color: dp._muted; font.pixelSize: 12 }
                 TimeBox { from: 0; to: 23; value: dp._hh; onValueModified: (v) => dp._hh = v }
                 Text { anchors.verticalCenter: parent.verticalCenter; text: ":"; color: dp._ink; font.pixelSize: 16 }
                 TimeBox { from: 0; to: 59; value: dp._mm; onValueModified: (v) => dp._mm = v }
@@ -220,7 +218,7 @@ Item {
                     width: 72; height: 34; radius: 10; anchors.left: parent.left
                     color: clearMa.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                     border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
-                    Text { anchors.centerIn: parent; text: I18n.t(dp.languageMode, "清除"); color: dp._ink; font.pixelSize: 14 }
+                    Text { anchors.centerIn: parent; text: I18n.t(dp.languageMode, "Clear"); color: dp._ink; font.pixelSize: 14 }
                     MouseArea { id: clearMa; anchors.fill: parent; hoverEnabled: true
                                 cursorShape: Cursor.button(); onClicked: dp.dueCleared() }
                 }
@@ -230,7 +228,7 @@ Item {
                         GradientStop { position: 0; color: dp._aqua }
                         GradientStop { position: 1; color: dp._violet }
                     }
-                    Text { anchors.centerIn: parent; text: I18n.t(dp.languageMode, "确定")
+                    Text { anchors.centerIn: parent; text: I18n.t(dp.languageMode, "OK")
                            color: Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.94); font.pixelSize: 14; font.weight: Font.DemiBold }
                     MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: dp._commit() }
                 }

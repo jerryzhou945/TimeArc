@@ -1,5 +1,5 @@
 import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 // 备忘工具条（v88 .memo-toolbar）。居中悬浮玻璃药丸，overlay 开时从上方 10px 滑入。
@@ -38,11 +38,11 @@ Item {
     function toggleTool(t) { currentTool = (currentTool === t) ? "none" : t; }
 
     readonly property var tools: [
-        { kind: "select", label: "选择" },
-        { kind: "note",   label: "创建便签" },
-        { kind: "text",   label: "文字" },
-        { kind: "pen",    label: "画笔" },
-        { kind: "eraser", label: "橡皮擦" }
+        { kind: "select", label: "Select" },
+        { kind: "note",   label: "New Note" },
+        { kind: "text",   label: "Text" },
+        { kind: "pen",    label: "Pen" },
+        { kind: "eraser", label: "Eraser" }
     ]
 
     implicitWidth: pill.width
@@ -279,7 +279,7 @@ Item {
                 Text {
                     id: exitText
                     anchors.centerIn: parent
-                    text: I18n.t(bar.languageMode, "退出")
+                    text: I18n.t(bar.languageMode, "Exit")
                     font.pixelSize: 14
                     color: eHover.containsMouse ? "#FFD2D2" : Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.86)
                 }
@@ -325,7 +325,7 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: I18n.t(bar.languageMode, "粗细")
+                text: I18n.t(bar.languageMode, "Size")
                 color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.5)
                 font.pixelSize: 12
             }

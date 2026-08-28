@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../memorylake"
 import "../components/AppVisual.js" as AppVisual
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 import "StatsViewModel.js" as StatsViewModel
 
@@ -28,7 +28,7 @@ Item {
     property string languageMode: "zh"
 
     function tr(source) { return I18n.t(languageMode, source) }
-    function sentence(key, params, fallback) { return I18n.sentence(languageMode, key, params, fallback) }
+    function sentence(key, params) { return I18n.sentence(languageMode, key, params) }
 
     // 顶栏「返回首页」/ ESC 切页：Shell 在 onLoaded 连接（已含 stats）。
     signal requestNavigate(string pageKey)
@@ -67,8 +67,11 @@ Item {
     property var vmRanking: []
     property var vmCategories: []
     property var vmTrendBars: []
-    property string vmAggregateFact: ""
-    property var vmClockSegments: []
+    property var vmAggregateFact: null
+    property var vmRingArcs: []           // 日视图分类环：当前半天的弧
+    property var vmRingStats: null        // 降噪账目（丢弃/吸收计数），用于卡片脚注
+    property var vmRingLegend: []         // 环内类别 + **未过滤**真实秒数
+    property var _ringRuns: null          // 全天降噪结果：AM/PM 切换只重投影，不重算
     property var vmLifetimeApps: []
     property var vmLibraryRows: []
     property int vmLifetimeTotalSec: 0
@@ -90,7 +93,7 @@ Item {
     onRangeChanged: { if (periodOffset !== 0) periodOffset = 0; else rebuild() }
     onPeriodOffsetChanged: rebuild()
     onLanguageModeChanged: { _builtGen = -1; rebuild() }
-    onClockHalfChanged: rebuildClockSegments()
+    onClockHalfChanged: reprojectCategoryRing()
     onLibraryQueryChanged: rebuildLibrary()
     onLibrarySortChanged: rebuildLibrary()
     onShowInactiveAppsChanged: rebuildLibrary()
@@ -98,33 +101,26 @@ Item {
     // ============================================================
     // 工具：时间格式 / 范围文案
     // ============================================================
-    function rangeWord(r) { return r === "day" ? tr("日") : r === "week" ? tr("周") : r === "month" ? tr("月") : tr("年") }
-    function rangeLabel(r) { return r === "day" ? tr("今天") : r === "week" ? tr("本周") : r === "month" ? tr("本月") : tr("本年") }
+    function rangeWord(r) { return r === "day" ? tr("Day") : r === "week" ? tr("Week") : r === "month" ? tr("Month") : tr("Year") }
+    function rangeLabel(r) { return r === "day" ? tr("Today") : r === "week" ? tr("This Week") : r === "month" ? tr("This Month") : tr("This Year") }
     function isEnglish() { return I18n.langKey(languageMode) === "en" }
-    function clockAppsText(apps) {
-        var names = []
-        var rows = apps ? apps : []
-        for (var i = 0; i < rows.length; i++)
-            names.push(AppVisual.modelDisplayNameForLanguage(rows[i], languageMode))
-        return names.join(isEnglish() ? ", " : "、")
-    }
-    function weekdayShortLabels() { return isEnglish() ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["周一", "周二", "周三", "周四", "周五", "周六", "周日"] }
-    function heatWeekLabels() { return isEnglish() ? ["Mon", "", "Wed", "", "Fri", "", ""] : ["一", "", "三", "", "五", "", ""] }
-    function monthShortLabels() { return isEnglish() ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"] }
+    function weekdayShortLabels() { return I18n.weekdaysNarrow(languageMode) }
+    function heatWeekLabels() { return I18n.weekdaysHeat(languageMode) }
+    function monthShortLabels() { return isEnglish() ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] }
 
     function aggregateContextText() {
-        if (range === "week") return tr("本周记录")
-        return vmPeriodLabel + tr("记录")
+        if (range === "week") return tr("Recorded this week")
+        return vmPeriodLabel + tr("Records")
     }
 
     function aggregateUnitLabel() {
-        return range === "year" ? tr("活跃月") : tr("记录日")
+        return range === "year" ? tr("Active months") : tr("Recorded days")
     }
 
     function aggregateTrendSubtitle() {
-        if (range === "month") return tr("每周记录时长")
-        if (range === "year") return tr("每月记录时长")
-        return tr("每日记录时长")
+        if (range === "month") return tr("Weekly recorded time")
+        if (range === "year") return tr("Monthly recorded time")
+        return tr("Daily recorded time")
     }
 
     function recentRecordText(unixSec) {
@@ -135,9 +131,9 @@ Item {
         var startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
         var startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
         var timeText = Qt.formatTime(date, "HH:mm")
-        if (startDate === startToday) return tr("今天") + " " + timeText
-        if (startDate === startToday - 86400000) return tr("昨天") + " " + timeText
-        return isEnglish() ? Qt.formatDate(date, "MMM d") : ((date.getMonth() + 1) + "月" + date.getDate() + "日")
+        if (startDate === startToday) return tr("Today") + " " + timeText
+        if (startDate === startToday - 86400000) return tr("Yesterday") + " " + timeText
+        return I18n.monthDay(languageMode, date)
     }
 
     function secondsToDisplay(seconds) {
@@ -167,7 +163,7 @@ Item {
     function categorySums(apps) {
         var sums = {}
         for (var i = 0; i < apps.length; i++) {
-            var c = apps[i].category ? apps[i].category : "其他"
+            var c = apps[i].category ? apps[i].category : "other"
             sums[c] = (sums[c] ? sums[c] : 0) + (apps[i].seconds ? apps[i].seconds : 0)
         }
         return sums
@@ -176,26 +172,57 @@ Item {
     function topCategory(cat) {
         var best = "", bestSec = -1
         for (var k in cat) {
-            if (k === "系统" || k === "其他") continue
+            if (k === "system" || k === "other") continue
             if (cat[k] > bestSec) { bestSec = cat[k]; best = k }
         }
         return best
     }
 
-    function categoryHeatBase(category) {
-        switch (category) {
-        case "学习": return "#76B7F2"
-        case "笔记": return "#8BC6F0"
-        case "开发": return "#7ECF9A"
-        case "办公": return "#7DD6D0"
-        case "社交": return "#BBA7F2"
-        case "创作": return "#E7C86E"
-        case "游戏": return "#F2B279"
-        case "视频": return "#EE8F9A"
-        case "音乐": return "#9FDFAE"
-        case "浏览": return "#A9CBEF"
-        default: return "#8BCF9A"
+    // 类别色：从该类别里用得最多的应用的**图标色**推，再去撞色（AppVisual）。
+    // 用户在设置里选过色则直接用那个色。整表随数据刷新重算一次并缓存。
+    property var categoryColorMap: ({})
+
+    function rebuildCategoryColors(apps) {
+        var sums = categorySums(apps)
+        var seedOf = {}, secOf = {}
+        for (var i = 0; i < apps.length; i++) {
+            var c = AppVisual.modelCategory(apps[i]) || "other"
+            var sec = apps[i].seconds ? apps[i].seconds : 0
+            if (secOf[c] === undefined || sec > secOf[c]) {
+                secOf[c] = sec
+                var cols = apps[i].iconColors
+                seedOf[c] = (cols && cols.length > 0) ? cols[0] : AppVisual.modelAppColor(apps[i])
+            }
         }
+        var ids = []
+        for (var k in sums) ids.push(k)
+        ids.sort(function (a, b) { return sums[b] - sums[a] })
+        var userColors = {}
+        if (typeof categorizationManager !== "undefined" && categorizationManager) {
+            var defs = categorizationManager.categories()
+            for (var d = 0; d < defs.length; d++)
+                if (defs[d].color && defs[d].color.length > 0)
+                    userColors[defs[d].id] = defs[d].color
+        }
+        var entries = []
+        for (var j = 0; j < ids.length; j++)
+            entries.push({ id: ids[j], seed: seedOf[ids[j]], color: userColors[ids[j]] })
+        categoryColorMap = AppVisual.buildCategoryColors(entries, root.nightMode)
+        return categoryColorMap
+    }
+
+    function categoryHeatBase(category) {
+        var c = categoryColorMap[category]
+        return c ? c : (root.nightMode ? "#4A5568" : "#8BCF9A")
+    }
+
+    // 类别名：规则表是唯一来源（含用户自建类别），英语优先、其它语言回退。
+    function categoryLabel(categoryId) {
+        if (!categoryId)
+            return ""
+        if (typeof categorizationManager !== "undefined" && categorizationManager)
+            return categorizationManager.categoryLabel(categoryId)
+        return categoryId
     }
 
     function heatColor(category, level) {
@@ -225,18 +252,18 @@ Item {
             return "" + (cell.day ? cell.day : "")
         var m = Math.max(1, Math.min(12, parseInt(p[1]) || 1))
         var d = parseInt(p[2]) || cell.day
-        return isEnglish() ? (monthShortLabels()[m - 1] + " " + d) : (m + "月" + d + "日")
+        return I18n.monthDayNum(languageMode, m, d)
     }
 
     function heatTooltipText(cell) {
         var date = heatDateLabel(cell)
         if (!cell || cell.empty)
-            return date.length > 0 ? sentence("heatTooltipEmpty", {date: date}, date + " · 暂无使用") : ""
+            return date.length > 0 ? sentence("heatTooltipEmpty", {date: date}) : ""
         return sentence("heatTooltip", {
             date: date,
             time: secondsToDisplay(cell.seconds),
-            category: I18n.category(languageMode, cell.category)
-        }, date + " · " + secondsToDisplay(cell.seconds) + " · " + I18n.category(languageMode, cell.category))
+            category: root.categoryLabel(cell.category)
+        })
     }
 
     function dayCategorySums(segs, apps) {
@@ -250,7 +277,7 @@ Item {
         for (var s = 0; s < segs.length; s++) {
             var row = segs[s]
             var key = row.groupKey ? row.groupKey : row.appId
-            var cat = byGroup[key] || AppVisual.modelCategory(row) || "其他"
+            var cat = byGroup[key] || AppVisual.modelCategory(row) || "other"
             var list = row.segments ? row.segments : []
             for (var j = 0; j < list.length; j++) {
                 var start = list[j].startUnixSec ? Number(list[j].startUnixSec) : 0
@@ -271,16 +298,16 @@ Item {
     }
 
     function dominantDayCategory(daySums) {
-        var best = "其他", bestSec = -1
+        var best = "other", bestSec = -1
         for (var k in daySums) {
-            if (k === "系统" || k === "其他") continue
+            if (k === "system" || k === "other") continue
             if (daySums[k] > bestSec) { bestSec = daySums[k]; best = k }
         }
         if (bestSec >= 0)
             return best
         for (var any in daySums)
             return any
-        return "其他"
+        return "other"
     }
 
     // 期次窗口（任意周/月/年；offset：0=本期、负=过去）。end 取末秒（闭区间，
@@ -306,15 +333,15 @@ Item {
             var d1 = new Date(now.getFullYear(), now.getMonth() + off + 1, 1, 0, 0, 0, 0)
             return { start: Math.floor(d0.getTime() / 1000), end: Math.floor(d1.getTime() / 1000) - 1,
                      y: d0.getFullYear(), m: d0.getMonth() + 1,
-                     label: isEnglish() ? (monthShortLabels()[d0.getMonth()] + " " + d0.getFullYear()) : (d0.getFullYear() + "年" + (d0.getMonth() + 1) + "月"), kind: "month" }
+                     label: isEnglish() ? (monthShortLabels()[d0.getMonth()] + " " + d0.getFullYear()) : (d0.getFullYear() + "Year" + (d0.getMonth() + 1) + "Month"), kind: "month" }
         } else {
             var y = now.getFullYear() + off
             var y0 = new Date(y, 0, 1, 0, 0, 0, 0), y1 = new Date(y + 1, 0, 1, 0, 0, 0, 0)
             return { start: Math.floor(y0.getTime() / 1000), end: Math.floor(y1.getTime() / 1000) - 1,
-                     y: y, label: isEnglish() ? String(y) : (y + "年"), kind: "year" }
+                     y: y, label: isEnglish() ? String(y) : (y + "Year"), kind: "year" }
         }
     }
-    function fmtMD(d) { return isEnglish() ? (monthShortLabels()[d.getMonth()] + " " + d.getDate()) : ((d.getMonth() + 1) + "月" + d.getDate() + "日") }
+    function fmtMD(d) { return I18n.monthDay(languageMode, d) }
     // 已过天数（本期到今天为止；过去期 = 整窗），供日均。
     function periodElapsedDays(win) {
         var nowSec = Math.floor(Date.now() / 1000)
@@ -408,7 +435,7 @@ Item {
             var firstDate = new Date((daily[0].dayStartUnix ? daily[0].dayStartUnix : 0) * 1000)
             var firstDow = (firstDate.getDay() + 6) % 7
             for (var p = 0; p < firstDow; p++)
-                cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "其他" })
+                cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "other" })
         }
         for (var j = 0; j < daily.length; j++) {
             var sec = daily[j].seconds ? daily[j].seconds : 0
@@ -420,11 +447,11 @@ Item {
             var day = daily[j].day !== undefined ? daily[j].day
                       : new Date((daily[j].dayStartUnix ? daily[j].dayStartUnix : 0) * 1000).getDate()
             var dateKey = daily[j].dayStartUnix ? dateKeyFromUnix(daily[j].dayStartUnix) : ""
-            var cat = dateKey && byDayCategory[dateKey] ? dominantDayCategory(byDayCategory[dateKey]) : "其他"
+            var cat = dateKey && byDayCategory[dateKey] ? dominantDayCategory(byDayCategory[dateKey]) : "other"
             cells.push({ level: lv, day: day, dateKey: dateKey, seconds: sec, empty: false, category: cat, color: heatColor(cat, lv) })
         }
         while (cells.length > 0 && cells.length % 7 !== 0)
-            cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "其他" })
+            cells.push({ level: 0, day: "", dateKey: "", seconds: 0, empty: true, category: "other" })
         return cells
     }
 
@@ -471,7 +498,7 @@ Item {
         for (var j = 0; j < sorted.length && j < n; j++) {
             var a = sorted[j]
             var key = a.groupKey ? a.groupKey : a.appId
-            out.push({ name: AppVisual.modelDisplayName(a) || "未知应用",
+            out.push({ name: AppVisual.modelDisplayName(a) || "Unknown app",
                        groupKey: key, path: a.path ? a.path : "",
                        appId: a.appId ? a.appId : "",
                        appName: a.appName ? a.appName : "",
@@ -493,11 +520,82 @@ Item {
         return out
     }
 
-    function rebuildClockSegments() {
+    // Ring arcs intentionally carry only compact app summaries. Rehydrate them
+    // from the period model so the focused sector can show the real app icons.
+    function clockArcApps(summaries) {
+        var source = summaries ? summaries : []
+        var apps = vmApps ? vmApps : []
+        var out = []
+        for (var i = 0; i < source.length; i++) {
+            var summary = source[i]
+            var full = null
+            for (var j = 0; j < apps.length; j++) {
+                var key = apps[j].groupKey ? apps[j].groupKey : apps[j].appId
+                if (key === summary.groupKey) { full = apps[j]; break }
+            }
+            var row = {}
+            if (full)
+                for (var name in full) row[name] = full[name]
+            for (var summaryName in summary) row[summaryName] = summary[summaryName]
+            out.push(row)
+        }
+        return out
+    }
+
+    // 分类环（日视图）：整天降噪一次 → 按当前半天投影。降噪与 AM/PM 无关，
+    // 缓存后切半天只走 reprojectCategoryRing()，不重跑扫描线（性能文档口径）。
+    // 分类环只在**日视图**渲染（StatsCategoryClock 的 visible: range === "day"），而且
+    // reprojectCategoryRing 永远只投影某一天的半个 12 小时盘。此前不论哪个范围都照算，
+    // 于是周/月/年把整段窗口的会话段喂进一条二次复杂度的管线，算完再整个丢掉：
+    // 实测月/年 ~2.9s（3253 行 → 12 条弧，且那张卡根本不可见）。这里直接不算。
+    // 环所依赖的三个视图态（runs/stats/legend）一起清空，免得留着上一个范围的残值。
+    function rebuildCategoryRing() {
+        if (range !== "day") {
+            _ringRuns = null
+            vmRingStats = null
+            vmRingLegend = []
+            vmRingArcs = []
+            return
+        }
+        var built = StatsViewModel.buildCategoryRingRuns(
+                    vmSegments ? vmSegments : [], vmApps ? vmApps : [])
+        _ringRuns = built.runs
+        vmRingStats = built.stats
+        rebuildRingLegend()
+        reprojectCategoryRing()
+    }
+
+    function reprojectCategoryRing() {
+        if (!_ringRuns) { vmRingArcs = []; return }
         var win = periodWindow("day", range === "day" ? periodOffset : 0)
-        vmClockSegments = StatsViewModel.buildSmoothedCategoryClockSegments(
-                    vmSegments ? vmSegments : [], vmApps ? vmApps : [],
-                    win.start, clockHalf)
+        vmRingArcs = StatsViewModel.projectCategoryRing(_ringRuns, win.start, clockHalf)
+    }
+
+    // 环的形状被降噪过，脚注把折叠掉的量说清楚（C6：不静悄悄吃掉记录）。
+    // 「折叠」= 短记录并进相邻块（时间还在环上）；「丢弃」= 前后都是空档、
+    // 无处可并，是唯一真正离开环的时间，所以分开计。
+    function ringFootnote() {
+        if (!vmRingStats) return ""
+        var folded = vmRingStats.absorbedCount ? vmRingStats.absorbedCount : 0
+        var dropped = vmRingStats.droppedCount ? vmRingStats.droppedCount : 0
+        if (folded > 0 && dropped > 0)
+            return sentence("ringFoldedAndDropped", { folded: folded, dropped: dropped })
+        if (folded > 0) return sentence("ringFoldedOnly", { folded: folded })
+        if (dropped > 0) return sentence("ringDroppedOnly", { dropped: dropped })
+        return ""
+    }
+
+    // 图例：类别取自环（全天，不随 AM/PM 抖动），秒数取自**未过滤**的 vmApps。
+    // 环只负责形状；数字始终来自原始聚合，避免与右侧占比饼自相矛盾。
+    function rebuildRingLegend() {
+        var ids = StatsViewModel.ringCategories(_ringRuns ? _ringRuns : [])
+        var sums = categorySums(vmApps ? vmApps : [])
+        var rows = []
+        for (var i = 0; i < ids.length; i++) {
+            var seconds = sums[ids[i]] ? sums[ids[i]] : 0
+            rows.push({ id: ids[i], seconds: seconds, time: secondsToDisplay(seconds) })
+        }
+        vmRingLegend = rows
     }
 
     function rebuildLibrary() {
@@ -510,10 +608,10 @@ Item {
     function dayMetrics(total, apps, lifetimeApps, lifetimeTotal) {
         var longest = lifetimeApps && lifetimeApps.length > 0 ? lifetimeApps[0] : null
         return [
-            { title: "本期总时长", sub: "今天的有效记录", badge: "日", value: secondsToDisplay(total), change: "", changeDown: false },
-            { title: "全部软件累计", sub: "所有保留记录", badge: "总", value: hoursText(lifetimeTotal), change: "", changeDown: false },
-            { title: "本期活跃软件", sub: "今天 / 全部", badge: "日", value: apps.length + " / " + lifetimeApps.length, change: "", changeDown: false },
-            { title: "累计最长", sub: longest ? AppVisual.modelDisplayName(longest) : "—", badge: "总", value: longest ? StatsViewModel.formatCompactDuration(longest.seconds) : "—", change: "", changeDown: false }
+            { title: "Total this period", sub: "Today's effective records", badge: "Day", value: secondsToDisplay(total), change: "", changeDown: false },
+            { title: "All apps combined", sub: "All retained records", badge: "Total", value: hoursText(lifetimeTotal), change: "", changeDown: false },
+            { title: "Active apps this period", sub: "Today / All", badge: "Day", value: apps.length + " / " + lifetimeApps.length, change: "", changeDown: false },
+            { title: "Longest overall", sub: longest ? AppVisual.modelDisplayName(longest) : "—", badge: "Total", value: longest ? StatsViewModel.formatCompactDuration(longest.seconds) : "—", change: "", changeDown: false }
         ]
     }
 
@@ -524,25 +622,25 @@ Item {
         var sw = computeSwitchCount(segs)
         var chg = changeStr(total, prevSec, hasPrev)
         return [
-            { title: "本周总使用", sub: "较上周", badge: "周", value: hoursText(total),
-              change: chg.change ? (chg.change + " " + tr("较上周")) : "", changeDown: chg.down },
-            { title: "日均使用", sub: "按已过天数", badge: "周", value: hoursText(total / elapsed), change: "", changeDown: false },
-            { title: "最长连续使用", sub: lu ? (lu.appName ? lu.appName : "—") : "—", badge: "周",
+            { title: "This Week Total", sub: "vs last week", badge: "Week", value: hoursText(total),
+              change: chg.change ? (chg.change + " " + tr("vs last week")) : "", changeDown: chg.down },
+            { title: "Daily Average", sub: "By elapsed days", badge: "Week", value: hoursText(total / elapsed), change: "", changeDown: false },
+            { title: "Longest Continuous Use", sub: lu ? (lu.appName ? lu.appName : "—") : "—", badge: "Week",
               value: lu ? hoursText(lu.longestSec) : "—", change: "", changeDown: false },
-            { title: "切换次数", sub: "前台应用切换", badge: "周", value: total > 0 ? sentence("switchCount", {count: sw}, sw + " 次") : "—", change: "", changeDown: false }
+            { title: "Switches", sub: "Foreground app switches", badge: "Week", value: total > 0 ? sentence("switchCount", {count: sw}) : "—", change: "", changeDown: false }
         ]
     }
 
     function monthMetrics(total, apps, cat, focusDays, prevSec, hasPrev) {
         var chg = changeStr(total, prevSec, hasPrev)
-        var ent = total > 0 ? Math.round(100 * ((cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)) / total) : 0
-        var crt = total > 0 ? Math.round(100 * ((cat["创作"] ? cat["创作"] : 0) + (cat["笔记"] ? cat["笔记"] : 0)) / total) : 0
+        var ent = total > 0 ? Math.round(100 * ((cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)) / total) : 0
+        var crt = total > 0 ? Math.round(100 * ((cat["Creation"] ? cat["Creation"] : 0) + (cat["Notes"] ? cat["Notes"] : 0)) / total) : 0
         return [
-            { title: "本月总使用", sub: "较上月", badge: "月", value: hoursText(total),
-              change: chg.change ? (chg.change + " " + tr("较上月")) : "", changeDown: chg.down },
-            { title: "专注天数", sub: "开发/办公/笔记", badge: "月", value: sentence("dayCount", {count: focusDays}, focusDays + " 天"), change: "", changeDown: false },
-            { title: "娱乐占比", sub: "游戏 + 视频", badge: "月", value: total > 0 ? (ent + "%") : "—", change: "", changeDown: false },
-            { title: "创作占比", sub: "创作 + 笔记", badge: "月", value: total > 0 ? (crt + "%") : "—", change: "", changeDown: false }
+            { title: "This Month Total", sub: "vs last month", badge: "Month", value: hoursText(total),
+              change: chg.change ? (chg.change + " " + tr("vs last month")) : "", changeDown: chg.down },
+            { title: "Focus Days", sub: "Dev/Office/Notes", badge: "Month", value: sentence("dayCount", {count: focusDays}), change: "", changeDown: false },
+            { title: "Entertainment Share", sub: "Games + Video", badge: "Month", value: total > 0 ? (ent + "%") : "—", change: "", changeDown: false },
+            { title: "Creation Share", sub: "Creation + Notes", badge: "Month", value: total > 0 ? (crt + "%") : "—", change: "", changeDown: false }
         ]
     }
 
@@ -552,11 +650,11 @@ Item {
             if ((bars[i].seconds ? bars[i].seconds : 0) > peak) { peak = bars[i].seconds; peakIdx = i }
         var chg = changeStr(total, prevSec, hasPrev)
         return [
-            { title: "年度总使用", sub: "较上年", badge: "年", value: hoursText(total),
-              change: chg.change ? (chg.change + " " + tr("较上年")) : "", changeDown: chg.down },
-            { title: "最活跃月份", sub: "按月度时长", badge: "年", value: (peakIdx >= 0 && peak > 0) ? bars[peakIdx].label : "—", change: "", changeDown: false },
-            { title: "年度专注", sub: "开发/办公/笔记", badge: "年", value: focusSeconds > 0 ? hoursText(focusSeconds) : "—", change: "", changeDown: false },
-            { title: "打开应用", sub: "使用过的应用", badge: "年", value: apps.length > 0 ? sentence("appCount", {count: apps.length}, apps.length + " 个") : "—", change: "", changeDown: false }
+            { title: "Year Total", sub: "vs last year", badge: "Year", value: hoursText(total),
+              change: chg.change ? (chg.change + " " + tr("vs last year")) : "", changeDown: chg.down },
+            { title: "Most Active Month", sub: "By monthly time", badge: "Year", value: (peakIdx >= 0 && peak > 0) ? I18n.trendLabel(languageMode, bars[peakIdx]) : "—", change: "", changeDown: false },
+            { title: "Year Focus", sub: "Dev/Office/Notes", badge: "Year", value: focusSeconds > 0 ? hoursText(focusSeconds) : "—", change: "", changeDown: false },
+            { title: "Opened Apps", sub: "Apps used", badge: "Year", value: apps.length > 0 ? sentence("appCount", {count: apps.length}) : "—", change: "", changeDown: false }
         ]
     }
 
@@ -564,34 +662,34 @@ Item {
     function buildInsight(r, share, total, cat) {
         var label = rangeLabel(r)
         if (total <= 0)
-            return sentence("insightNoData", {range: label}, label + "记录较少，暂不下结论。")
-        var topName = (share.length > 0) ? I18n.category(languageMode, share[0].name) : tr("多个应用")
+            return sentence("insightNoData", {range: label})
+        var topName = (share.length > 0) ? root.categoryLabel(share[0].name) : tr("multiple apps")
         var topPercent = (share.length > 0) ? (share[0].percent + "%") : ""
         var s = sentence("insightMain", {
             range: label,
             app: topName,
             percent: topPercent,
             time: hoursText(total)
-        }, label + "你主要把时间花在" + (share.length > 0 ? ("「" + I18n.category(languageMode, share[0].name) + "」（" + share[0].percent + "%）") : "多个应用上") + "，共计 " + hoursText(total) + "。")
-        var ent = (cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)
-        if (total > 0 && ent / total > 0.4) s += " " + tr("其中娱乐时间占比偏高。")
+        })
+        var ent = (cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)
+        if (total > 0 && ent / total > 0.4) s += " " + tr("Entertainment time is relatively high.")
         return s
     }
 
     function buildRecs(r, share, total, cat) {
         var recs = []
-        if (total <= 0) { recs.push(sentence("rangeNoAdvice", {range: rangeWord(r)}, "本" + rangeWord(r) + "暂无足够数据生成建议。")); return recs }
+        if (total <= 0) { recs.push(sentence("rangeNoAdvice", {range: rangeWord(r)})); return recs }
         var topCat = topCategory(cat)
-        var sug = tr("继续保持当前节奏。")
-        if (topCat === "游戏") sug = tr("进入娱乐时段前，先完成一项关键任务。")
-        else if (topCat === "开发" || topCat === "创作" || topCat === "办公") sug = tr("保持专注节奏，建议每 50 分钟起身休息。")
-        else if (topCat === "笔记" || topCat === "浏览") sug = tr("把零散浏览沉淀成笔记，形成输出。")
-        else if (topCat === "视频" || topCat === "音乐") sug = tr("放松之余，预留固定的深度工作时段。")
-        else if (topCat === "社交") sug = tr("留意社交占用，集中处理消息更高效。")
+        var sug = tr("Keep the current rhythm.")
+        if (topCat === "Games") sug = tr("Before entertainment time, finish one key task.")
+        else if (topCat === "Development" || topCat === "Creation" || topCat === "Office") sug = tr("Keep the focus rhythm and stand up every 50 minutes.")
+        else if (topCat === "Notes" || topCat === "Browsing") sug = tr("Turn scattered browsing into notes and output.")
+        else if (topCat === "Video" || topCat === "Music") sug = tr("Reserve fixed deep-work blocks alongside relaxation.")
+        else if (topCat === "Social") sug = tr("Watch social time; batch messages for better efficiency.")
         recs.push(sug)
-        var ent = (cat["游戏"] ? cat["游戏"] : 0) + (cat["视频"] ? cat["视频"] : 0)
-        if (ent / total > 0.4) recs.push(sentence("entertainmentRatioAdvice", {percent: Math.round(100 * ent / total)}, "娱乐占比约 " + Math.round(100 * ent / total) + "%，可考虑设定每日上限。"))
-        else recs.push(tr("时间结构较均衡，继续保持。"))
+        var ent = (cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)
+        if (ent / total > 0.4) recs.push(sentence("entertainmentRatioAdvice", {percent: Math.round(100 * ent / total)}))
+        else recs.push(tr("Your time structure is balanced. Keep it up."))
         return recs
     }
 
@@ -621,7 +719,7 @@ Item {
             if (!lifetimeApps[li].hidden) lifetimeTotal += lifetimeApps[li].seconds ? lifetimeApps[li].seconds : 0
         vmApps = apps; vmSegments = segs; vmTotalSec = total
         vmLifetimeApps = lifetimeApps; vmLifetimeTotalSec = lifetimeTotal
-        rebuildClockSegments()
+        rebuildCategoryRing()
         rebuildLibrary()
 
         var share = []
@@ -632,6 +730,7 @@ Item {
         vmShare = share
         vmShareTotalText = hoursText(total)
 
+        rebuildCategoryColors(apps)
         var cat = categorySums(apps)
         vmRanking = buildRanking(apps, segs, 5)
 
@@ -670,7 +769,7 @@ Item {
 
         vmTrendBars = r === "day" ? [] : StatsViewModel.normalizeTrendRows(r, r === "month" ? vmLine : vmBars)
         vmCategories = r === "day" ? [] : StatsViewModel.buildCategoryDistribution(apps, 6)
-        vmAggregateFact = r === "day" ? "" : StatsViewModel.buildAggregateFact(r, vmCategories, vmTrendBars)
+        vmAggregateFact = r === "day" ? null : StatsViewModel.buildAggregateFact(r, vmCategories, vmTrendBars)
 
         vmInsight = buildInsight(r, share, total, cat)
         vmRecs = buildRecs(r, share, total, cat)
@@ -697,11 +796,11 @@ Item {
         }
     }
     function doExport() {
-        if (!usageStatManager || !usageStatManager.exportReport) { showToast("导出暂不可用"); return }
+        if (!usageStatManager || !usageStatManager.exportReport) { showToast("Export is unavailable right now"); return }
         var json = buildExportJson()
-        if (!json || json.length === 0) { showToast("导出失败：数据序列化错误"); return }
+        if (!json || json.length === 0) { showToast("Export failed: data serialization error"); return }
         var path = usageStatManager.exportReport("timearc-" + range + "-stats", json)
-        showToast(path && path.length > 0 ? sentence("exportedPath", {path: path}, "已导出：" + path) : "导出失败")
+        showToast(path && path.length > 0 ? sentence("exportedPath", {path: path}) : "Export failed")
     }
 
     Connections {
@@ -753,10 +852,10 @@ Item {
     // 范围 Tab 数据
     // ============================================================
     readonly property var rangeModel: [
-        { key: "day", label: "日", glyph: "日", glyphEn: "D", en: "Day" },
-        { key: "week", label: "周", glyph: "周", glyphEn: "W", en: "Week" },
-        { key: "month", label: "月", glyph: "月", glyphEn: "M", en: "Month" },
-        { key: "year", label: "年", glyph: "年", glyphEn: "Y", en: "Year" }
+        { key: "day", label: "Day", glyph: "Day", glyphEn: "D", en: "Day" },
+        { key: "week", label: "Week", glyph: "Week", glyphEn: "W", en: "Week" },
+        { key: "month", label: "Month", glyph: "Month", glyphEn: "M", en: "Month" },
+        { key: "year", label: "Year", glyph: "Year", glyphEn: "Y", en: "Year" }
     ]
 
     // ============================================================
@@ -803,7 +902,7 @@ Item {
                             font.capitalization: Font.AllUppercase
                         }
                         Text {
-                            text: root.tr("时间统计")
+                            text: root.tr("Time Stats")
                             color: ml.textPrimary
                             font.pixelSize: 22
                             font.weight: 800
@@ -811,7 +910,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: root.tr("软件使用 · 主题 · 趋势")
+                            text: root.tr("App Usage · Themes · Trends")
                             color: ml.textSecondary
                             font.pixelSize: 12
                             elide: Text.ElideRight
@@ -844,7 +943,7 @@ Item {
                                     color: ml.calGhostBg
                                     Text {
                                         anchors.centerIn: parent
-                                        text: root.isEnglish() ? modelData.glyphEn : modelData.glyph
+                                        text: root.isEnglish() ? modelData.glyphEn : root.tr(modelData.glyph)
                                         color: root.range === modelData.key ? ml.aqua : ml.calGlyph
                                         font.pixelSize: 14; font.weight: Font.DemiBold
                                     }
@@ -853,7 +952,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: 1
                                     Text {
-                                        text: root.sentence("rangeView", {range: root.tr(modelData.label)}, modelData.label + "视图")
+                                        text: root.sentence("rangeView", {range: root.tr(modelData.label)})
                                         color: root.range === modelData.key ? ml.textPrimary : ml.textSecondary
                                         font.pixelSize: 14
                                         font.weight: root.range === modelData.key ? Font.DemiBold : Font.Normal
@@ -871,7 +970,7 @@ Item {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Cursor.button()
-                                onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label + "视图")) }
+                                onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)})) }
                             }
                         }
                     }
@@ -888,7 +987,7 @@ Item {
                         anchors.margins: 14
                         spacing: 8
                         Text {
-                            text: root.sentence("rangeInsight", {range: root.rangeWord(root.range)}, "本" + root.rangeWord(root.range) + "洞察")
+                            text: root.sentence("rangeInsight", {range: root.rangeWord(root.range)})
                             color: ml.glowCyan
                             font.pixelSize: 11
                             font.weight: 800
@@ -906,7 +1005,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: root.tr("本地生成 · 非 AI")
+                            text: root.tr("Local template · Not AI")
                             color: ml.textTertiary
                             font.pixelSize: 10
                         }
@@ -938,15 +1037,15 @@ Item {
                         Layout.fillWidth: true
                         spacing: 2
                         Text {
-                            text: root.sentence("rangeStats", {range: root.rangeLabel(root.range)}, root.rangeLabel(root.range) + "统计")
+                            text: root.sentence("rangeStats", {range: root.rangeLabel(root.range)})
                             color: ml.textPrimary
                             font.pixelSize: 22
                             font.weight: 800
                             font.letterSpacing: 0
                         }
                         Text {
-                            text: root.hasData ? root.sentence("statsTotalApps", {time: root.hoursText(root.vmTotalSec), count: root.vmApps.length}, "共 " + root.hoursText(root.vmTotalSec) + " · " + root.vmApps.length + " 个应用")
-                                               : root.tr("暂无使用记录")
+                            text: root.hasData ? root.sentence("statsTotalApps", {time: root.hoursText(root.vmTotalSec), count: root.vmApps.length})
+                                               : root.tr("No usage records yet")
                             color: ml.textSecondary
                             font.pixelSize: 13
                         }
@@ -974,7 +1073,7 @@ Item {
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Cursor.button()
-                                    onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)}, "已切换到" + modelData.label + "视图")) }
+                                    onClicked: { root.range = modelData.key; root.showToast(root.sentence("switchedRangeView", {range: root.tr(modelData.label)})) }
                                 }
                             }
                         }
@@ -993,21 +1092,21 @@ Item {
                             Text {
                                 id: periodText
                                 anchors.centerIn: parent
-                                text: root.vmPeriodLabel + (root.periodOffset === 0 ? " · " + root.tr("本期") : "")
+                                text: root.vmPeriodLabel + (root.periodOffset === 0 ? " · " + root.tr("Current") : "")
                                 color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold
                             }
                         }
                         StatsGhostButton {
                             glyph: "›"
                             dim: root.atCurrentPeriod
-                            onTapped: { if (!root.atCurrentPeriod) root.periodOffset += 1; else root.showToast(root.tr("已是最新一期")) }
+                            onTapped: { if (!root.atCurrentPeriod) root.periodOffset += 1; else root.showToast(root.tr("Already at the latest period")) }
                         }
                     }
 
                     // 导出（真实 G-10：序列化视图模型→JSON 写文件）
-                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "导出"; onTapped: root.doExport() }
+                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "Export"; onTapped: root.doExport() }
                     // 返回首页
-                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "返回首页"; primary: true; onTapped: root.requestNavigate("memorylake") }
+                    StatsGhostButton { Layout.alignment: Qt.AlignVCenter; label: "Back Home"; primary: true; onTapped: root.requestNavigate("memorylake") }
                 }
             }
 
@@ -1040,8 +1139,8 @@ Item {
                         Column {
                             anchors.centerIn: parent
                             spacing: 8
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.sentence("rangeNoRecords", {range: root.rangeLabel(root.range)}, root.rangeLabel(root.range) + "还没有使用记录"); color: ml.textSecondary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.tr("后台服务采集到数据后，这里会自动出现统计"); color: ml.textTertiary; font.pixelSize: 13 }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.sentence("rangeNoRecords", {range: root.rangeLabel(root.range)}); color: ml.textSecondary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.tr("Stats will appear here after background collection records data."); color: ml.textTertiary; font.pixelSize: 13 }
                         }
                     }
 
@@ -1053,13 +1152,15 @@ Item {
                         rowSpacing: 14
                         visible: root.range === "day" && root.hasData
 
-                        StatsApplicationClock {
+                        StatsCategoryClock {
                             Layout.columnSpan: root.statsLayoutStacked ? 12 : 8
                             Layout.fillWidth: true
                             Layout.preferredHeight: 486
-                            segments: root.vmClockSegments
+                            arcs: root.vmRingArcs
+                            legend: root.vmRingLegend
                             half: root.clockHalf
                             totalText: root.secondsToDisplay(root.vmTotalSec)
+                            footnote: root.ringFootnote()
                             onHalfRequested: function (value) { root.clockHalf = value }
                         }
                         DailyUsageShare {
@@ -1071,7 +1172,7 @@ Item {
                             glassStrength: 0.45
                             showInsight: false
                             titleKicker: "Today"
-                            titleText: root.tr("今天的组成")
+                            titleText: root.tr("What made up today")
                             share: root.vmShare
                             total: root.vmShareTotalText
                         }
@@ -1100,7 +1201,7 @@ Item {
                                 totalText: root.hoursText(root.vmTotalSec)
                                 unitValue: root.activePeriodUnitCount()
                                 unitLabel: root.aggregateUnitLabel()
-                                factText: root.vmAggregateFact
+                                factText: I18n.aggregateFact(root.languageMode, root.vmAggregateFact)
                             }
                             StatsCategoryDistribution {
                                 Layout.fillWidth: true
@@ -1112,7 +1213,7 @@ Item {
                             Layout.columnSpan: root.statsLayoutStacked ? 12 : 8
                             Layout.fillWidth: true
                             Layout.preferredHeight: root.statsLayoutStacked ? 360 : 440
-                            title: "时间趋势"
+                            title: "Time trend"
                             sub: root.aggregateTrendSubtitle()
                             bars: root.vmTrendBars
                             barCount: root.vmTrendBars.length
@@ -1254,38 +1355,44 @@ Item {
         }
     }
 
-    component StatsApplicationClock: FrostCard {
-        id: dialCard
-        property var segments: []
+    // 分类环（日视图）：单环 = 一天的时间地图，一段弧 = 一段同类别的连续时间。
+    // 旧的三条同心轨道只是为了躲开 60s 合并造成的区间重叠（见 StatsViewModel
+    // §3.1 扫描线），半径不承载任何含义；单环把重叠**解掉**而不是藏起来。
+    // 环只负责形状：中心总时长与图例秒数仍取未过滤聚合，绝不显示降噪后的数字。
+    component StatsCategoryClock: FrostCard {
+        id: ringCard
+        property var arcs: []
+        property var legend: []
         property string half: "am"
         property string totalText: "0m"
-        property string hoveredCategory: ""
-        property string lockedCategory: ""
-        readonly property string activeCategory: lockedCategory !== "" ? lockedCategory : hoveredCategory
+        property string footnote: ""
+        property string hoveredId: ""
+        property string lockedId: ""
+        readonly property string activeId: lockedId !== "" ? lockedId : hoveredId
         signal halfRequested(string value)
-        readonly property var focusedCategory: {
-            for (var i = 0; i < segments.length; i++)
-                if (segments[i].categoryKey === activeCategory) return segments[i]
+
+        // 单环几何：中心 0.64·base、宽 0.17·base（原三轨的径向包络内），
+        // 内缘 0.555·base 仍与 0.39·base 的中心盘留有净空。
+        readonly property real ringRadiusScale: 0.64
+        readonly property real ringWidthScale: 0.17
+
+        readonly property var focusedArc: {
+            for (var i = 0; i < arcs.length; i++)
+                if (arcs[i].arcId === activeId) return arcs[i]
             return null
         }
-        readonly property int categoryCount: {
-            var seen = {}
-            var count = 0
-            for (var i = 0; i < segments.length; i++) {
-                var key = segments[i].categoryKey
-                if (!seen[key]) { seen[key] = true; count++ }
-            }
-            return count
+        function clockTime(unixSec) {
+            return Qt.formatTime(new Date(unixSec * 1000), "HH:mm")
         }
+
         style: ml
         radius: 18
-        onSegmentsChanged: {
-            lockedCategory = ""
-            hoveredCategory = ""
-            dialCanvas.requestPaint()
+        onArcsChanged: {
+            lockedId = ""
+            hoveredId = ""
+            ringCanvas.requestPaint()
         }
-        onActiveCategoryChanged: dialCanvas.requestPaint()
-        Keys.onEscapePressed: lockedCategory = ""
+        onActiveIdChanged: ringCanvas.requestPaint()
 
         ColumnLayout {
             anchors.fill: parent
@@ -1297,8 +1404,9 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 2
-                    Text { text: root.tr("应用时钟"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
-                    Text { text: root.tr("按 10 分钟聚合分类，真实时长保持不变"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("Category clock"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
+                    // 口径写在脸上：环只画前台记录，中心总时长含音频，两者本就不等。
+                    Text { text: root.tr("Grouped into readable 10-minute category blocks; exact totals stay unchanged"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
                 Row {
                     spacing: 4
@@ -1307,23 +1415,23 @@ Item {
                         delegate: Rectangle {
                             required property var modelData
                             width: 44; height: 32; radius: 10
-                            color: dialCard.half === modelData.key ? ml.accentSoft : ml.calGhostBg
+                            color: ringCard.half === modelData.key ? ml.accentSoft : ml.calGhostBg
                             border.width: 1
-                            border.color: dialCard.half === modelData.key ? ml.accentSoftBorder : ml.calGhostBorder
-                            Text { anchors.centerIn: parent; text: modelData.label; color: dialCard.half === modelData.key ? ml.aqua : ml.calGlyph; font.pixelSize: 11; font.weight: Font.DemiBold }
-                            MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: dialCard.halfRequested(modelData.key) }
+                            border.color: ringCard.half === modelData.key ? ml.accentSoftBorder : ml.calGhostBorder
+                            Text { anchors.centerIn: parent; text: modelData.label; color: ringCard.half === modelData.key ? ml.aqua : ml.calGlyph; font.pixelSize: 11; font.weight: Font.DemiBold }
+                            MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: ringCard.halfRequested(modelData.key) }
                         }
                     }
                 }
             }
 
             Item {
-                id: dialWrap
+                id: ringWrap
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
                 Canvas {
-                    id: dialCanvas
+                    id: ringCanvas
                     anchors.centerIn: parent
                     width: Math.min(parent.width, parent.height)
                     height: width
@@ -1336,40 +1444,39 @@ Item {
                         ctx.reset()
                         var cx = width / 2, cy = height / 2
                         var base = Math.min(width, height) / 2
+                        var ringRadius = base * ringCard.ringRadiusScale
+                        var trackWidth = base * ringCard.ringWidthScale
+                        var trackInner = ringRadius - trackWidth / 2
+                        var trackOuter = ringRadius + trackWidth / 2
 
-                        // The empty clock is one continuous annular face. Actual
-                        // records are filled sectors cut from this face, not
-                        // rounded strokes that collapse short records into dots.
+                        // Filled annulus: empty time remains a quiet sector of the dial.
                         ctx.beginPath()
-                        ctx.arc(cx, cy, base * 0.82, 0, Math.PI * 2, false)
-                        ctx.arc(cx, cy, base * 0.51, Math.PI * 2, 0, true)
+                        ctx.arc(cx, cy, trackOuter, 0, Math.PI * 2, false)
+                        ctx.arc(cx, cy, trackInner, Math.PI * 2, 0, true)
                         ctx.closePath()
                         ctx.fillStyle = ml.calSunkBg
                         ctx.fill()
 
-                        for (var i = 0; i < dialCard.segments.length; i++) {
-                            var segment = dialCard.segments[i]
-                            var hasFocus = dialCard.activeCategory !== ""
-                            var emphasized = segment.categoryKey === dialCard.activeCategory
-                            var spanDegrees = segment.endAngle - segment.startAngle
-                            var gapDegrees = spanDegrees < 0.4 ? 0 : Math.min(0.7, spanDegrees * 0.045)
-                            var start = (segment.startAngle + gapDegrees - 90) * Math.PI / 180
-                            var end = (segment.endAngle - gapDegrees - 90) * Math.PI / 180
-                            if (end <= start) continue
-                            var band = StatsViewModel.categoryClockSectorBand(segment.lane, emphasized)
-                            var innerRadius = base * band.inner
-                            var outerRadius = base * band.outer
-                            ctx.globalAlpha = !hasFocus || emphasized ? 1.0 : 0.20
+                        // Each category is a filled annular sector. The active
+                        // sector grows both inward and outward without changing time.
+                        for (var i = 0; i < ringCard.arcs.length; i++) {
+                            var arc = ringCard.arcs[i]
+                            var dimmed = ringCard.activeId !== "" && ringCard.activeId !== arc.arcId
+                            var emphasized = ringCard.activeId === arc.arcId
+                            var startDeg = arc.startAngle + 0.15
+                            var endDeg = arc.endAngle - 0.15
+                            if (endDeg <= startDeg) { startDeg = arc.startAngle; endDeg = arc.endAngle }
+                            var start = (startDeg - 90) * Math.PI / 180
+                            var end = (endDeg - 90) * Math.PI / 180
+                            var inner = trackInner - (emphasized ? base * 0.02 : 0)
+                            var outer = trackOuter + (emphasized ? base * 0.03 : 0)
+                            ctx.globalAlpha = dimmed ? 0.22 : 1.0
                             ctx.beginPath()
-                            ctx.arc(cx, cy, outerRadius, start, end, false)
-                            ctx.arc(cx, cy, innerRadius, end, start, true)
+                            ctx.arc(cx, cy, outer, start, end, false)
+                            ctx.arc(cx, cy, inner, end, start, true)
                             ctx.closePath()
-                            ctx.fillStyle = root.categoryHeatBase(segment.categoryKey)
+                            ctx.fillStyle = root.categoryHeatBase(arc.category)
                             ctx.fill()
-                            ctx.globalAlpha = !hasFocus || emphasized ? 0.72 : 0.12
-                            ctx.lineWidth = 1
-                            ctx.strokeStyle = ml.panelBg
-                            ctx.stroke()
                         }
                         ctx.globalAlpha = 1.0
 
@@ -1396,10 +1503,10 @@ Item {
                         id: hourNumber
                         required property int index
                         readonly property real hourAngle: ((index + 1) * 30 - 90) * Math.PI / 180
-                        readonly property real hourRadius: dialCanvas.width * 0.418
+                        readonly property real hourRadius: ringCanvas.width * 0.418
                         width: 22; height: 22
-                        x: dialCanvas.x + dialCanvas.width / 2 + Math.cos(hourAngle) * hourRadius - width / 2
-                        y: dialCanvas.y + dialCanvas.height / 2 + Math.sin(hourAngle) * hourRadius - height / 2
+                        x: ringCanvas.x + ringCanvas.width / 2 + Math.cos(hourAngle) * hourRadius - width / 2
+                        y: ringCanvas.y + ringCanvas.height / 2 + Math.sin(hourAngle) * hourRadius - height / 2
                         z: 3
                         text: index + 1
                         color: ml.textTertiary
@@ -1411,8 +1518,8 @@ Item {
                 }
 
                 Rectangle {
-                    anchors.centerIn: dialCanvas
-                    width: dialCanvas.width * 0.41; height: width; radius: width / 2
+                    anchors.centerIn: ringCanvas
+                    width: ringCanvas.width * 0.39; height: width; radius: width / 2
                     z: 5
                     color: ml.panelBg
                     border.width: 1; border.color: ml.panelBorder
@@ -1422,112 +1529,136 @@ Item {
                         spacing: 5
                         Text {
                             width: parent.width
-                            text: dialCard.focusedCategory ? I18n.category(root.languageMode, dialCard.focusedCategory.categoryKey) : root.tr("今日已记录")
-                            color: dialCard.focusedCategory ? ml.aqua : ml.textTertiary
+                            text: ringCard.focusedArc ? root.categoryLabel(ringCard.focusedArc.category) : root.tr("Recorded today")
+                            color: ringCard.focusedArc ? ml.aqua : ml.textTertiary
                             font.pixelSize: 11; font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
                         }
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: -4
+                            visible: ringCard.focusedArc !== null
+                            Repeater {
+                                model: ringCard.focusedArc ? root.clockArcApps(ringCard.focusedArc.apps).slice(0, 3) : []
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: 30; height: 30; radius: 9
+                                    color: AppVisual.modelAppColor(modelData)
+                                    border.width: 2; border.color: ml.panelBg
+                                    Image {
+                                        id: clockArcAppImage
+                                        anchors.centerIn: parent; width: 21; height: 21
+                                        source: AppVisual.modelIconSource(modelData)
+                                        sourceSize.width: 64; sourceSize.height: 64
+                                        fillMode: Image.PreserveAspectFit; asynchronous: true; smooth: true; mipmap: true
+                                        visible: source != "" && status === Image.Ready
+                                    }
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: AppVisual.modelIconSource(modelData) === "" || clockArcAppImage.status !== Image.Ready
+                                        text: AppVisual.modelIconLabel(modelData)
+                                        color: "#FFFFFF"; font.pixelSize: 10; font.weight: 900
+                                    }
+                                }
+                            }
+                        }
                         Text {
                             width: parent.width
-                            text: dialCard.focusedCategory ? StatsViewModel.formatCompactDuration(dialCard.focusedCategory.categoryTotalSeconds) : dialCard.totalText
+                            // 未聚焦时是**未过滤**的当日总时长，与右侧占比饼同源。
+                            text: ringCard.focusedArc ? StatsViewModel.formatCompactDuration(ringCard.focusedArc.seconds) : ringCard.totalText
                             color: ml.textPrimary; font.pixelSize: 29; font.weight: 900
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Text {
                             width: parent.width
-                            text: dialCard.focusedCategory
-                                  ? root.sentence("clockCategoryApps", {
-                                                      count: dialCard.focusedCategory.appCount,
-                                                      apps: root.clockAppsText(dialCard.focusedCategory.apps)
-                                                  }, dialCard.focusedCategory.appCount + " 个应用 · " + root.clockAppsText(dialCard.focusedCategory.apps))
-                                  : root.sentence("clockSummary", {
-                                                      categories: dialCard.categoryCount,
-                                                      apps: root.vmApps.length
-                                                  }, dialCard.categoryCount + " 个分类 · " + root.vmApps.length + " 个应用")
+                            text: ringCard.focusedArc
+                                  ? root.sentence("dateRange", { from: ringCard.clockTime(ringCard.focusedArc.startUnixSec),
+                                                                 to: ringCard.clockTime(ringCard.focusedArc.endUnixSec) })
+                                  : root.sentence("appCount", { count: root.vmApps.length })
                             color: ml.textTertiary; font.pixelSize: 10
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
-                        }
-                        Row {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            spacing: 5
-                            visible: dialCard.focusedCategory !== null
-                            Repeater {
-                                model: dialCard.focusedCategory ? dialCard.focusedCategory.apps.slice(0, 3) : []
-                                delegate: Rectangle {
-                                    id: categoryAppIcon
-                                    required property var modelData
-                                    width: 25; height: 25; radius: 8
-                                    color: AppVisual.modelAppColor(modelData)
-                                    border.width: 1; border.color: ml.panelBorder
-                                    Image {
-                                        id: categoryAppImage
-                                        anchors.centerIn: parent
-                                        width: 19; height: 19
-                                        source: AppVisual.modelIconSource(categoryAppIcon.modelData)
-                                        sourceSize.width: 48; sourceSize.height: 48
-                                        fillMode: Image.PreserveAspectFit
-                                        asynchronous: true; smooth: true; mipmap: true
-                                        visible: source !== "" && status === Image.Ready
-                                    }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        visible: AppVisual.modelIconSource(categoryAppIcon.modelData) === ""
-                                                 || categoryAppImage.status !== Image.Ready
-                                        text: AppVisual.modelIconLabel(categoryAppIcon.modelData)
-                                        color: ml.textPrimary
-                                        font.pixelSize: 10; font.weight: Font.Bold
-                                    }
-                                }
-                            }
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: dialCard.focusedCategory && dialCard.focusedCategory.appCount > 3
-                                text: "+" + (dialCard.focusedCategory ? dialCard.focusedCategory.appCount - 3 : 0)
-                                color: ml.textTertiary; font.pixelSize: 10; font.weight: Font.DemiBold
-                            }
                         }
                     }
                 }
 
                 MouseArea {
-                    anchors.fill: dialCanvas
+                    anchors.fill: ringCanvas
                     z: 8
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton
-                    cursorShape: dialCard.hoveredCategory !== "" ? Cursor.button() : Qt.ArrowCursor
-                    function categoryAt(x, y) {
+                    cursorShape: ringCard.hoveredId !== "" ? Cursor.button() : Qt.ArrowCursor
+                    function segmentAt(x, y) {
                         var dx = x - width / 2, dy = y - height / 2
                         var radius = Math.sqrt(dx * dx + dy * dy)
                         var base = Math.min(width, height) / 2
-                        if (radius < base * 0.47 || radius > base * 0.89) return ""
+                        var ringRadius = base * ringCard.ringRadiusScale
+                        // 命中带比可视环略宽，细弧也点得中。
+                        if (Math.abs(radius - ringRadius) > base * ringCard.ringWidthScale / 2 + base * 0.02)
+                            return ""
                         var angle = (Math.atan2(dy, dx) * 180 / Math.PI + 450) % 360
-                        var found = ""
-                        for (var i = dialCard.segments.length - 1; i >= 0; i--) {
-                            var segment = dialCard.segments[i]
-                            var emphasized = segment.categoryKey === dialCard.activeCategory
-                            var band = StatsViewModel.categoryClockSectorBand(segment.lane, emphasized)
-                            if (radius >= base * band.inner && radius <= base * band.outer
-                                    && angle >= segment.startAngle && angle <= segment.endAngle) {
-                                found = segment.categoryKey
-                                break
-                            }
+                        // 弧互不重叠；补宽后的细弧可能与邻弧贴边，取中点最近者。
+                        var found = "", bestDelta = 0
+                        for (var i = 0; i < ringCard.arcs.length; i++) {
+                            var arc = ringCard.arcs[i]
+                            if (angle < arc.startAngle || angle > arc.endAngle) continue
+                            var delta = Math.abs(angle - (arc.startAngle + arc.endAngle) / 2)
+                            if (found === "" || delta < bestDelta) { found = arc.arcId; bestDelta = delta }
                         }
                         return found
                     }
-                    onPositionChanged: function (mouse) { dialCard.hoveredCategory = categoryAt(mouse.x, mouse.y) }
-                    onExited: dialCard.hoveredCategory = ""
+                    onPositionChanged: function (mouse) { ringCard.hoveredId = segmentAt(mouse.x, mouse.y) }
+                    onExited: ringCard.hoveredId = ""
                     onClicked: function (mouse) {
-                        dialCard.forceActiveFocus()
-                        var hitCategory = categoryAt(mouse.x, mouse.y)
-                        dialCard.lockedCategory = hitCategory === dialCard.lockedCategory ? "" : hitCategory
+                        var hitId = segmentAt(mouse.x, mouse.y)
+                        ringCard.lockedId = hitId === ringCard.lockedId ? "" : hitId
                     }
                 }
             }
 
+            // 图例 / 明细：图标从环上撤掉后，这一行承担「里面是什么」。
+            // 未聚焦 = 全天类别（秒数取未过滤聚合）；聚焦 = 该块里的应用。
+            Flow {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 22
+                spacing: 14
+                Repeater {
+                    model: ringCard.focusedArc ? ringCard.focusedArc.apps : ringCard.legend
+                    delegate: Row {
+                        required property var modelData
+                        spacing: 6
+                        Rectangle {
+                            width: 9; height: 9; radius: 2
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: ringCard.focusedArc ? AppVisual.modelAppColor(modelData)
+                                                       : root.categoryHeatBase(modelData.id)
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ringCard.focusedArc
+                                  ? AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode)
+                                  : root.categoryLabel(modelData.id)
+                            color: ml.textSecondary; font.pixelSize: 11
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: ringCard.focusedArc ? StatsViewModel.formatCompactDuration(modelData.seconds)
+                                                      : modelData.time
+                            color: ml.textTertiary; font.pixelSize: 11
+                            font.weight: Font.DemiBold
+                        }
+                    }
+                }
+            }
+
+            // 诚实脚注：环的形状被降噪过，这里说明折叠掉了多少条短记录。
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: root.tr("悬停查看分类，点击扇区放大并锁定")
+                text: ringCard.footnote !== "" ? ringCard.footnote
+                                               : root.tr("Hover to preview, click a block to pin its detail")
                 color: ml.textTertiary; font.pixelSize: 11
+                elide: Text.ElideRight
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }
@@ -1546,10 +1677,10 @@ Item {
                 Layout.fillWidth: true
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 2
-                    Text { text: root.tr("24 小时时间流"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                    Text { text: root.tr("按实际顺序展开今天的前台记录"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("24-hour time flow"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                    Text { text: root.tr("Today's foreground records laid out in the order they happened"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
-                Text { text: root.tr("完整记录"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
+                Text { text: root.tr("Full record"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
             }
             Item {
                 Layout.fillWidth: true
@@ -1609,14 +1740,14 @@ Item {
                 Layout.fillWidth: true
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 2
-                    Text { text: root.tr("所有应用"); color: ml.textPrimary; font.pixelSize: 18; font.weight: Font.DemiBold }
-                    Text { text: root.tr("查看每个软件的本期记录与累计总时长，不受 Top 排行限制"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("All apps"); color: ml.textPrimary; font.pixelSize: 18; font.weight: Font.DemiBold }
+                    Text { text: root.tr("See each app's records for this period and its running total, beyond the Top ranking"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
                 ColumnLayout {
                     spacing: 1
-                    Text { Layout.alignment: Qt.AlignRight; text: root.tr("全部应用累计记录"); color: ml.textTertiary; font.pixelSize: 10 }
+                    Text { Layout.alignment: Qt.AlignRight; text: root.tr("All apps, combined records"); color: ml.textTertiary; font.pixelSize: 10 }
                     Text { Layout.alignment: Qt.AlignRight; text: libraryCard.lifetimeTotalText; color: ml.textPrimary; font.pixelSize: 26; font.weight: 900 }
-                    Text { Layout.alignment: Qt.AlignRight; text: libraryCard.rows.length + " " + root.tr("个应用"); color: ml.textTertiary; font.pixelSize: 10 }
+                    Text { Layout.alignment: Qt.AlignRight; text: libraryCard.rows.length + " " + root.tr("apps"); color: ml.textTertiary; font.pixelSize: 10 }
                 }
             }
 
@@ -1637,13 +1768,13 @@ Item {
                         font.pixelSize: 12; clip: true
                         onTextChanged: root.libraryQuery = text
                     }
-                    Text { anchors.left: librarySearch.left; anchors.verticalCenter: parent.verticalCenter; visible: librarySearch.text.length === 0 && !librarySearch.activeFocus; text: root.tr("搜索应用或类别"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { anchors.left: librarySearch.left; anchors.verticalCenter: parent.verticalCenter; visible: librarySearch.text.length === 0 && !librarySearch.activeFocus; text: root.tr("Search apps or categories"); color: ml.textTertiary; font.pixelSize: 12 }
                     MouseArea { anchors.fill: parent; cursorShape: Qt.IBeamCursor; onClicked: librarySearch.forceActiveFocus(); z: -1 }
                 }
                 Row {
                     spacing: 4
                     Repeater {
-                        model: [{ key: "period", label: "本期时长" }, { key: "lifetime", label: "累计总时长" }, { key: "name", label: "名称" }]
+                        model: [{ key: "period", label: "This period" }, { key: "lifetime", label: "Running total" }, { key: "name", label: "Name" }]
                         delegate: Rectangle {
                             required property var modelData
                             width: sortText.implicitWidth + 20; height: 40; radius: 11
@@ -1668,16 +1799,16 @@ Item {
                         }
                         MouseArea { anchors.fill: parent; cursorShape: Cursor.button(); onClicked: root.showInactiveApps = !root.showInactiveApps }
                     }
-                    Text { text: root.tr("显示本期未使用"); color: ml.textSecondary; font.pixelSize: 11 }
+                    Text { text: root.tr("Show apps unused this period"); color: ml.textSecondary; font.pixelSize: 11 }
                 }
             }
 
             RowLayout {
                 Layout.fillWidth: true; Layout.preferredHeight: 24
-                Text { Layout.fillWidth: true; text: root.tr("应用"); color: ml.textTertiary; font.pixelSize: 10 }
-                Text { Layout.preferredWidth: 170; text: root.tr("本期时长"); color: ml.textTertiary; font.pixelSize: 10 }
-                Text { Layout.preferredWidth: 130; text: root.tr("累计总时长"); color: ml.textTertiary; font.pixelSize: 10 }
-                Text { Layout.preferredWidth: 140; text: root.tr("最近记录"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.fillWidth: true; text: root.tr("App"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 170; text: root.tr("This period"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 130; text: root.tr("Running total"); color: ml.textTertiary; font.pixelSize: 10 }
+                Text { Layout.preferredWidth: 140; text: root.tr("Recent records"); color: ml.textTertiary; font.pixelSize: 10 }
             }
 
             ListView {
@@ -1714,7 +1845,7 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 2
                             Text { Layout.fillWidth: true; text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight }
-                            Text { Layout.fillWidth: true; text: root.tr(AppVisual.modelCategory(modelData) || "其他") + (modelData.periodSeconds > 0 ? " · " + root.tr("本期有记录") : " · " + root.tr("本期未使用")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
+                            Text { Layout.fillWidth: true; text: root.categoryLabel(AppVisual.modelCategory(modelData) || "other") + (modelData.periodSeconds > 0 ? " · " + root.tr("Recorded this period") : " · " + root.tr("Unused this period")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
                         }
                         ColumnLayout {
                             Layout.preferredWidth: 170; spacing: 4
@@ -1727,16 +1858,16 @@ Item {
                         ColumnLayout {
                             Layout.preferredWidth: 130; spacing: 2
                             Text { text: modelData.lifetimeTime; color: ml.textPrimary; font.pixelSize: 14; font.weight: 800 }
-                            Text { text: root.tr("累计总时长"); color: ml.textTertiary; font.pixelSize: 9 }
+                            Text { text: root.tr("Running total"); color: ml.textTertiary; font.pixelSize: 9 }
                         }
                         ColumnLayout {
                             Layout.preferredWidth: 140; spacing: 2
                             Text { text: root.recentRecordText(modelData.lastUsedUnixSec); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold }
-                            Text { text: modelData.periodSeconds > 0 ? root.tr("本期有记录") : root.tr("历史记录"); color: ml.textTertiary; font.pixelSize: 9 }
+                            Text { text: modelData.periodSeconds > 0 ? root.tr("Recorded this period") : root.tr("History"); color: ml.textTertiary; font.pixelSize: 9 }
                         }
                     }
                 }
-                Text { anchors.centerIn: parent; visible: libraryList.count === 0; text: root.tr("没有符合条件的应用"); color: ml.textTertiary; font.pixelSize: 12 }
+                Text { anchors.centerIn: parent; visible: libraryList.count === 0; text: root.tr("No apps match"); color: ml.textTertiary; font.pixelSize: 12 }
             }
         }
     }
@@ -1816,8 +1947,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 3
-                Text { text: root.tr("分类分布"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { text: root.tr("只保留这一周期最重要的结构"); color: ml.textTertiary; font.pixelSize: 12 }
+                Text { text: root.tr("Category split"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { text: root.tr("Keeps only the structure that matters most for this period"); color: ml.textTertiary; font.pixelSize: 12 }
             }
             Column {
                 Layout.fillWidth: true
@@ -1836,8 +1967,8 @@ Item {
                             Rectangle { Layout.preferredWidth: 8; Layout.preferredHeight: 8; radius: 3; color: root.categoryHeatBase(modelData.name) }
                             ColumnLayout {
                                 Layout.fillWidth: true; spacing: 1
-                                Text { Layout.fillWidth: true; text: I18n.category(root.languageMode, modelData.name); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold; elide: Text.ElideRight }
-                                Text { Layout.fillWidth: true; text: modelData.appsText; color: ml.textTertiary; font.pixelSize: 9; elide: Text.ElideRight }
+                                Text { Layout.fillWidth: true; text: root.categoryLabel(modelData.name); color: ml.textPrimary; font.pixelSize: 12; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                                Text { Layout.fillWidth: true; text: I18n.appsText(root.languageMode, modelData.apps); color: ml.textTertiary; font.pixelSize: 9; elide: Text.ElideRight }
                             }
                             ColumnLayout {
                                 Layout.preferredWidth: 96; spacing: 1
@@ -1864,8 +1995,8 @@ Item {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 3
-                Text { text: root.tr("12 个月的节奏"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { text: root.tr("每格是一个月，长度表示该月有效记录时长"); color: ml.textTertiary; font.pixelSize: 12 }
+                Text { text: root.tr("Twelve months of rhythm"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+                Text { text: root.tr("Each cell is a month; its length is that month's effective recorded time"); color: ml.textTertiary; font.pixelSize: 12 }
             }
             GridLayout {
                 Layout.fillWidth: true
@@ -1888,7 +2019,7 @@ Item {
                             spacing: 6
                             RowLayout {
                                 Layout.fillWidth: true
-                                Text { Layout.fillWidth: true; text: monthCell.bar ? monthCell.bar.label : root.monthShortLabels()[monthCell.index]; color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
+                                Text { Layout.fillWidth: true; text: monthCell.bar ? I18n.trendLabel(root.languageMode, monthCell.bar) : root.monthShortLabels()[monthCell.index]; color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
                                 Text { text: monthCell.bar ? monthCell.bar.valueText : "0m"; color: ml.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold; font.features: { "tnum": 1 } }
                             }
                             Item { Layout.fillHeight: true }
@@ -1936,7 +2067,7 @@ Item {
                 Row {
                     spacing: 7; Layout.alignment: Qt.AlignTop
                     Rectangle { width: 8; height: 8; radius: 2; color: ml.aqua }
-                    Text { text: root.tr("记录时长"); color: ml.textTertiary; font.pixelSize: 10 }
+                    Text { text: root.tr("Recorded time"); color: ml.textTertiary; font.pixelSize: 10 }
                 }
             }
             Item {
@@ -1979,7 +2110,7 @@ Item {
                             Text {
                                 anchors.bottom: parent.bottom
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: barItem.bar ? barItem.bar.label : ""
+                                text: barItem.bar ? I18n.trendLabel(root.languageMode, barItem.bar) : ""
                                 color: ml.textTertiary
                                 font.pixelSize: chart.barCount > 7 ? 9.5 : 11
                             }
@@ -2053,7 +2184,7 @@ Item {
                 Text {
                     anchors.centerIn: parent
                     visible: !lc.points || lc.points.length < 2
-                    text: root.tr("本月数据不足以绘制趋势")
+                    text: root.tr("Not enough monthly data to draw a trend")
                     color: ml.textTertiary
                     font.pixelSize: 12
                 }
@@ -2275,7 +2406,7 @@ Item {
                                     }
                                     Text {
                                         Layout.fillWidth: true
-                                        text: root.tr(AppVisual.modelCategory(modelData) !== "" ? AppVisual.modelCategory(modelData) : "应用") + " · " + root.sentence("openCount", {count: modelData.sessions}, modelData.sessions + " 次打开")
+                                        text: root.tr(AppVisual.modelCategory(modelData) !== "" ? AppVisual.modelCategory(modelData) : "App") + " · " + root.sentence("openCount", {count: modelData.sessions})
                                         color: ml.textTertiary
                                         font.pixelSize: 11
                                         elide: Text.ElideRight
@@ -2302,7 +2433,7 @@ Item {
                     }
                     Text {
                         visible: !rl.rows || rl.rows.length === 0
-                        text: root.tr("当前范围还没有应用记录")
+                        text: root.tr("No app records in this range")
                         color: ml.textTertiary
                         font.pixelSize: 12
                     }
@@ -2326,12 +2457,12 @@ Item {
             spacing: 10
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: root.tr("洞察 & 建议"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
+                Text { text: root.tr("Insights & Suggestions"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
                 Rectangle {
                     width: expLabel.implicitWidth + 24; height: 32; radius: 11
                     color: expMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
                     border.width: 1; border.color: ml.calGhostBorder
-                    Text { id: expLabel; anchors.centerIn: parent; text: root.tr("导出报告"); color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold }
+                    Text { id: expLabel; anchors.centerIn: parent; text: root.tr("Export Report"); color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold }
                     MouseArea { id: expMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button(); preventStealing: true; onClicked: ic.exportRequested() }
                 }
             }
@@ -2355,7 +2486,7 @@ Item {
                     id: insightText
                     anchors.fill: parent
                     anchors.margins: 12
-                    text: I18n.smartText(root.languageMode, ic.insight)
+                    text: I18n.t(root.languageMode, ic.insight)
                     color: ml.textSecondary
                     font.pixelSize: 13
                     lineHeight: 1.45
@@ -2377,7 +2508,7 @@ Item {
                         radius: 9
                         color: ml.accentSoft
                         border.width: 1; border.color: ml.accentSoftBorder
-                        Text { id: kwT; anchors.centerIn: parent; text: I18n.smartText(root.languageMode, modelData); color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
+                        Text { id: kwT; anchors.centerIn: parent; text: I18n.t(root.languageMode, modelData); color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
                     }
                 }
             }
@@ -2403,7 +2534,7 @@ Item {
                         }
                         Text {
                             Layout.fillWidth: true
-                            text: I18n.smartText(root.languageMode, modelData)
+                            text: I18n.t(root.languageMode, modelData)
                             color: ml.textSecondary
                             font.pixelSize: 13
                             wrapMode: Text.WordWrap
@@ -2413,7 +2544,7 @@ Item {
             }
             Text {
                 Layout.fillWidth: true
-                text: root.tr("以上为本地确定性模板生成（aiGenerated:false），非 AI、不读原始日志。")
+                text: root.tr("Generated by local deterministic templates (aiGenerated:false), not AI, without reading raw logs.")
                 color: ml.textTertiary
                 font.pixelSize: 10
                 wrapMode: Text.WordWrap

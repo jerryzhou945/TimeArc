@@ -1,9 +1,15 @@
 import QtQuick
 import "../components"
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property bool wallpaperActive: false
     property url wallpaperSource: ""
@@ -32,15 +38,15 @@ Item {
 
     function placeholderApp() {
         return {
-            "displayName": "等待第一段记录",
+            "displayName": "Waiting for the first record",
             "durationText": "0s",
             "sharePct": 0,
             "relativePct": 0,
             "recordedDays": 0,
             "spanDays": 0,
-            "initial": "时",
-            "storyText": "开启使用情况访问并同步后，应用时间卡会出现在这里。",
-            "conversionText": "所有分享文案都会从真实时长生成。",
+            "initial": "h",
+            "storyText": "Turn on usage access and sync, and app time cards will appear here.",
+            "conversionText": "Every shared phrase is generated from real durations.",
             "empty": true
         }
     }
@@ -52,7 +58,7 @@ Item {
             "activeDays": 168,
             "appCount": 6,
             "firstDateLocal": "2025.03.13",
-            "rangeText": "2025.03.13 至今",
+            "rangeText": "2025.03.13 to today",
             "empty": false,
             "topApps": [
                 {
@@ -66,8 +72,8 @@ Item {
                     "spanDays": 441,
                     "firstDateLocal": "2025.04.27",
                     "initial": "Ch",
-                    "storyText": "有 71 小时的浏览与寻找，在屏幕上安静发生。",
-                    "conversionText": "若换算成 25 分钟的阅读段，相当于约 172 段。"
+                    "storyText": "71 hours of browsing and searching, quietly happening on screen.",
+                    "conversionText": "In 25-minute reading blocks, that is about 172 of them."
                 },
                 {
                     "appIdentifier": "preview:vscode",
@@ -80,12 +86,12 @@ Item {
                     "spanDays": 386,
                     "firstDateLocal": "2025.06.21",
                     "initial": "VS",
-                    "storyText": "许多没有断开的线，在一次次专注里慢慢延伸。",
-                    "conversionText": "若换算成 25 分钟的专注段，相当于约 155 段。"
+                    "storyText": "Many unbroken lines, extending slowly through one focused stretch after another.",
+                    "conversionText": "In 25-minute focus blocks, that is about 155 of them."
                 },
                 {
                     "appIdentifier": "preview:netease",
-                    "displayName": "网易云音乐",
+                    "displayName": "NetEase Cloud Music",
                     "appIconPath": "image://appicon/C:/Program Files (x86)/NetEase/CloudMusic/cloudmusic.exe",
                     "durationText": "42h 18m",
                     "sharePct": 18,
@@ -93,9 +99,9 @@ Item {
                     "recordedDays": 29,
                     "spanDays": 322,
                     "firstDateLocal": "2025.08.24",
-                    "initial": "音",
-                    "storyText": "声音替这一段时间留住了灯光。",
-                    "conversionText": "若连续播放 4 分钟的歌曲，相当于约 634 首的时长。"
+                    "initial": "Mu",
+                    "storyText": "Sound kept the light on for this stretch of time.",
+                    "conversionText": "Played as four-minute songs, that is about 634 of them."
                 }
             ]
         }
@@ -137,6 +143,8 @@ Item {
         anchors.fill: parent
 
         MobileStatusBar {
+
+            languageMode: root.languageMode
             width: parent.width
             theme: root.theme
         }
@@ -152,7 +160,7 @@ Item {
                 width: root.wallpaperActive ? 220 : 158
                 height: parent.height
                 z: 2
-                text: "TimeArc · 时间卡"
+                text: "TimeArc · time card"
                 color: root.wallpaperActive
                        ? root.theme.wallpaperInk : root.theme.textPrimary
                 font.family: root.theme.fontFamily
@@ -177,7 +185,7 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: "添加自定义壁纸"
+                    text: "Add a custom wallpaper"
                     color: root.theme.textSecondary
                     font.family: root.theme.fontFamily
                     font.pixelSize: 11
@@ -217,6 +225,8 @@ Item {
         }
 
         MobileGlassPanel {
+
+            languageMode: root.languageMode
             id: archiveStrip
             width: parent.width - 32
             height: 78
@@ -232,8 +242,8 @@ Item {
                 ArchiveFact {
                     width: (parent.width - 2) / 3
                     height: parent.height
-                    value: root.totalDashboard.firstDateLocal || "尚未开始"
-                    label: "开始记录"
+                    value: root.totalDashboard.firstDateLocal || "Not started yet"
+                    label: "Start recording"
                 }
 
                 Rectangle {
@@ -248,7 +258,7 @@ Item {
                     width: (parent.width - 2) / 3
                     height: parent.height
                     value: root.totalDashboard.totalText || "0s"
-                    label: "累计时间"
+                    label: "Total time"
                 }
 
                 Rectangle {
@@ -262,8 +272,8 @@ Item {
                 ArchiveFact {
                     width: (parent.width - 2) / 3
                     height: parent.height
-                    value: (root.totalDashboard.activeDays || 0) + " 天"
-                    label: "记录使用天数"
+                    value: I18n.sentence(root.languageMode, "dayCount", {count: root.totalDashboard.activeDays || 0})
+                    label: "Days recorded"
                 }
             }
         }
@@ -297,6 +307,8 @@ Item {
                 height: cards.height
 
                 MobileFlipCard {
+
+                    languageMode: root.languageMode
                     id: memoryCard
                     anchors.left: parent.left
                     anchors.right: parent.right
@@ -321,7 +333,7 @@ Item {
                     onShareRequested: function(appModel) {
                         shareOverlay.openFor(
                                     appModel,
-                                    root.totalDashboard.rangeText || "全部记录")
+                                    I18n.reportRange(root.languageMode, root.totalDashboard) || root.tr("All records"))
                     }
                 }
             }
@@ -352,6 +364,8 @@ Item {
     }
 
     MobileShareOverlay {
+
+        languageMode: root.languageMode
         id: shareOverlay
         theme: root.theme
         anonymous: root.anonymousShare

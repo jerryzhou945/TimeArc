@@ -32,3 +32,36 @@
 
 <!-- record_error.py: error table not found -->
 | 2026-08-28T03:51:58Z | L1 | integration-git... | Commit was blocked because repository-local Git author id... | [report](errors/20260828-035158-B-integration-git-identity-missing.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:55:45Z | L1 | integration-she... | Guide-rail patch context did not match the remote English... | [report](errors/20260828-035545-B-integration-shell-guide-context.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:57:49Z | L1 | integration-exe... | Sandboxed unified exec runner failed to start while inspe... | [report](errors/20260828-035749-B-integration-exec-runner-start.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:59:06Z | L1 | integration-app... | Built-in apply_patch could not start the Windows sandbox ... | [report](errors/20260828-035906-B-integration-apply-patch-sandbox.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:01:05Z | L1 | stats-test-node... | stats_view_model_test failed at deepStrictEqual with iden... | [report](errors/20260828-040105-B-stats-test-node24-cross-realm.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:01:52Z | L1 | stats-test-ten-... | Stats ring test still expected the former 0.8-degree edge... | [report](errors/20260828-040152-B-stats-test-ten-minute-expectation.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:02:23Z | L1 | i18n-source-cov... | i18n source coverage test reported 2470 mojibake literals... | [report](errors/20260828-040223-B-i18n-source-coverage-encoding.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:02:34Z | L1 | integration-pow... | Inspection command passed a PowerShell range as an unpare... | [report](errors/20260828-040234-B-integration-powershell-index-range.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:03:31Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260828-040331-B-build-failure.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:05:40Z | L1 | integration-rem... | git diff --cached --check was blocked by trailing spaces ... | [report](errors/20260828-040540-B-integration-remote-journal-whitespace.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:05:55Z | L1 | integration-err... | harness_check found 1241 error journal files missing from... | [report](errors/20260828-040555-B-integration-error-registry-drift.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:06:30Z | L1 | integration-err... | Registry union reduced harness drift to one pre-merge con... | [report](errors/20260828-040630-B-integration-error-registry-orphan.md) |

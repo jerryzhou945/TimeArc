@@ -1,8 +1,14 @@
 import QtQuick
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property var app: ({})
     property bool wallpaperActive: false
@@ -111,6 +117,8 @@ Item {
                 spacing: 14
 
                 MobileAppIcon {
+
+                    languageMode: root.languageMode
                     theme: root.theme
                     app: root.app
                     iconSize: 64
@@ -124,7 +132,7 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: root.value("displayName", "等待记录")
+                        text: root.value("displayName", "Waiting for records")
                         color: root.frontInk
                         font.family: root.theme.fontFamily
                         font.pixelSize: 21
@@ -134,7 +142,7 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: "累计时间卡 · "
+                        text: root.tr("Cumulative time card · ")
                               + root.value("sharePct", 0) + "%"
                         color: root.frontMuted
                         font.family: root.theme.fontFamily
@@ -157,7 +165,7 @@ Item {
             Text {
                 width: parent.width
                 text: root.value("storyText",
-                                 "授权并同步后，这里会出现真实使用记录。")
+                                 "Grant access and sync, and your real records will appear here.")
                 color: root.frontMuted
                 font.family: root.theme.fontFamily
                 font.pixelSize: 14
@@ -194,7 +202,7 @@ Item {
                 Text {
                     width: parent.width - 48
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "轻点翻面，查看这段时间的百科"
+                    text: "Tap to flip and read about this stretch of time"
                     color: root.frontMuted
                     font.family: root.theme.fontFamily
                     font.pixelSize: 12
@@ -255,6 +263,8 @@ Item {
                 spacing: 12
 
                 MobileAppIcon {
+
+                    languageMode: root.languageMode
                     theme: root.theme
                     app: root.app
                     iconSize: 48
@@ -268,7 +278,7 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: "时间百科 · " + root.value("displayName", "应用")
+                        text: I18n.sentence(root.languageMode, "timeWikiFor", {app: root.value("displayName", "App")})
                         color: root.theme.memoryInk
                         font.family: root.theme.fontFamily
                         font.pixelSize: 17
@@ -278,7 +288,7 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: "所有表达均来自本地记录"
+                        text: "Every phrase is drawn from local records"
                         color: root.theme.memoryCopy
                         font.family: root.theme.fontFamily
                         font.pixelSize: 11
@@ -294,32 +304,32 @@ Item {
 
             FactRow {
                 width: parent.width
-                label: "初次记录"
-                value: root.value("firstDateLocal", "等待同步")
+                label: "First record"
+                value: root.value("firstDateLocal", "Waiting to sync")
             }
 
             FactRow {
                 width: parent.width
-                label: "累计记录"
+                label: "Total recorded"
                 value: root.value("durationText", "0s")
             }
 
             FactRow {
                 width: parent.width
-                label: "出现日数"
-                value: root.value("recordedDays", 0) + " 天"
+                label: "Days seen"
+                value: I18n.sentence(root.languageMode, "dayCount", {count: root.value("recordedDays", 0)})
             }
 
             FactRow {
                 width: parent.width
-                label: "日历跨度"
-                value: root.value("spanDays", 0) + " 天"
+                label: "Calendar span"
+                value: I18n.sentence(root.languageMode, "dayCount", {count: root.value("spanDays", 0)})
             }
 
             Text {
                 width: parent.width
                 text: root.value("conversionText",
-                                 "同步后会生成一条明确标注的时长换算。")
+                                 "After syncing, a clearly labelled duration comparison is generated.")
                 color: root.theme.memoryCopy
                 font.family: root.theme.fontFamily
                 font.pixelSize: 13
@@ -344,7 +354,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "返回正面"
+                        text: "Back to front"
                         color: root.theme.memoryInk
                         font.family: root.theme.fontFamily
                         font.pixelSize: 13
@@ -365,7 +375,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: "分享时间纪念卡"
+                        text: "Share time keepsake card"
                         color: "white"
                         font.family: root.theme.fontFamily
                         font.pixelSize: 13

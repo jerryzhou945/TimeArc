@@ -1,6 +1,6 @@
 import QtQuick
 import "../components/TagPalette.js" as TagPalette
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 统一「真·标签」chip：每个 tag 永远显示自己的语义色 —— 底/边/导色点/文字都由固定色 ink 派生。
 // 自包含调色板（TagPalette.js 单一来源）——任意位置 TagChip { tag: "学习" } 即可。

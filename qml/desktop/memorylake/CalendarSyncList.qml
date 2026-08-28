@@ -1,5 +1,5 @@
 import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // Calendar Sync：今日事项（与日历页同步，读 calendarManager.savedTodos 的今天 key）。
 // v88 复刻（设计稿 .today-items-compact）：玻璃底 + 左上 aqua 径向底光 + 右上**蓝色霓虹照射** +
@@ -180,14 +180,14 @@ Rectangle {
                     font.capitalization: Font.AllUppercase
                 }
                 Text {
-                    text: I18n.t(panel.languageMode, "今日事项")
+                    text: I18n.t(panel.languageMode, "Today's Items")
                     color: panel.style ? panel.style.textPrimary : "#fff"
                     font.pixelSize: 18
                     font.weight: 800
                     font.letterSpacing: -0.35
                 }
                 Text {
-                    text: I18n.t(panel.languageMode, "今天 · 与日历同步")
+                    text: I18n.t(panel.languageMode, "Today · Synced with Calendar")
                     color: panel.style ? panel.style.textTertiary : "#888"
                     font.pixelSize: 11
                 }
@@ -207,7 +207,7 @@ Rectangle {
                 Behavior on color { ColorAnimation { duration: 140 } }
                 Text {
                     anchors.centerIn: parent
-                    text: I18n.t(panel.languageMode, "日历")
+                    text: I18n.t(panel.languageMode, "Calendar")
                     color: panel.style ? panel.style.accentText : "#9ef1ff"
                     font.pixelSize: 11
                     font.weight: 800
@@ -303,7 +303,7 @@ Rectangle {
                             elide: Text.ElideRight
                         }
                         TagChip {
-                            tag: rowBg.modelData.tag ? rowBg.modelData.tag : "其他"
+                            tag: rowBg.modelData.tag ? rowBg.modelData.tag : "Other"
                             style: panel.style
                             languageMode: panel.languageMode
                         }
@@ -314,7 +314,7 @@ Rectangle {
             Text {
                 visible: panel.items.length === 0
                 width: parent.width
-                    text: I18n.t(panel.languageMode, "今天还没有事项 · 去日历添加")
+                    text: I18n.t(panel.languageMode, "No items today · Add them in Calendar")
                 color: panel.style ? panel.style.textTertiary : "#888"
                 font.pixelSize: 12
                 wrapMode: Text.WordWrap

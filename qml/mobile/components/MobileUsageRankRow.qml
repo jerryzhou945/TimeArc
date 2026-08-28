@@ -1,8 +1,14 @@
 import QtQuick
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property var app: ({})
     property int rank: 1
@@ -16,6 +22,8 @@ Item {
         spacing: 12
 
         MobileAppIcon {
+
+            languageMode: root.languageMode
             anchors.verticalCenter: parent.verticalCenter
             theme: root.theme
             app: root.app
@@ -35,7 +43,7 @@ Item {
                 Text {
                     width: parent.width - durationLabel.width - 12
                     text: (root.app && root.app.displayName)
-                          ? root.app.displayName : "未知应用"
+                          ? root.tr(root.app.displayName) : root.tr("Unknown app")
                     color: root.wallpaperActive
                            ? root.theme.wallpaperInk : root.theme.textPrimary
                     font.family: root.theme.fontFamily
@@ -90,7 +98,7 @@ Item {
 
                 Text {
                     width: parent.width / 2
-                    text: "第 " + root.rank + " 位"
+                    text: I18n.sentence(root.languageMode, "rankPosition", {rank: root.rank})
                     color: root.wallpaperActive
                            ? root.theme.wallpaperMuted : root.theme.textMuted
                     font.family: root.theme.fontFamily

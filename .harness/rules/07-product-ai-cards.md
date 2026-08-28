@@ -89,11 +89,12 @@ read-only path — `usageStatManager.activeSoftwareForRange` /
 `foregroundSegmentsForRange` + `refresh` + `onUsageStatsChanged` — so its security
 surface equals the homepage's. The view model is assembled in C++ by
 `DailyCardService::memoryLake{Day,Recap}` (local deterministic templates; the day
-headline is a cross-app focus-block task summary). Category comes from
-`UsageStatManager::classifyActivity` — keyword match on the **exe identity**, with
-window titles read locally only to split browser→视频/音乐 (never displayed/AI/
-stored); shell processes bucket to `系统` and are down-weighted. QML only renders.
-Visuals use shared `components/AppVisual.js` (color/icon + ambient/cover tone) and
-`GenerativeCover.qml` (icon-dominant-color blend, no per-app artwork). No new data
-path, no IPC, no AI over raw logs. Plan:
-`docs/memory-lake-backend-integration-plan.md`.
+headline is a cross-app focus-block task summary). Category comes from the rule
+table (`services/categorization/`, owned by `CategorizationManager`): app needles
+match `display_name` ∪ `app_id`; title needles refine **only inside a declared
+scope**, so titles split browser→video/music locally and are never displayed,
+stored, or sent to AI. Shell processes carry the `deprioritize` trait.
+Visuals use shared `components/AppVisual.js` (icon-derived color/tone, including
+category colors) and `GenerativeCover.qml`. No new data path, no IPC, no AI over
+raw logs. Plans: `docs/memory-lake-backend-integration-plan.md`,
+`docs/categorization-redesign.md`.
