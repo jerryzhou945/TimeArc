@@ -100,8 +100,8 @@ assertPlainDeepEqual(
 assert.strictEqual(overlap.stats.mergedFrom, 2);
 
 // 2. Same-category coalescing: two apps back to back become one run. Category
-// falls back to `category` when `adapterCategory` is absent, matching
-// AppVisual.modelCategory().
+// comes from `category`, with `adapterCategory` only as a fallback for segment
+// rows, which carry nothing else.
 const coalesced = Stats.buildCategoryRing([
   { groupKey: 'app:vscode', appName: 'VS Code', category: 'dev',
     segments: [{ startUnixSec: dayStart + 3600, endUnixSec: dayStart + 5400 }] },
@@ -268,6 +268,32 @@ assertPlainDeepEqual(categories, [
   { name: 'Development', seconds: 180, time: '3m', percent: 75, apps: ['Codex', 'Visual Studio Code'] },
   { name: 'Browsing', seconds: 60, time: '1m', percent: 25, apps: ['Chrome'] }
 ]);
+
+// The rule table's category id, not its English label, is what identifies a
+// category everywhere downstream, so an app with no category at all folds to
+// "other" — the real id — rather than a capitalised "Other" that
+// CategorizationManager.categoryLabel() could never resolve.
+assert.strictEqual(
+  Stats.buildCategoryDistribution([{ groupKey: 'app:x', appName: 'X', seconds: 60 }], 6)[0].name,
+  'other');
+
+// `category` outranks `adapterCategory`. They are not two spellings of one
+// value: `category` is what the C++ aggregator resolved with the read filters
+// applied, while `adapterCategory` is raw rule metadata no filter touches.
+// Turning game detection off rewrites `category` to "other", and reading the
+// rule first drew a "game" arc whose legend looked up "other" and found 0m.
+assert.strictEqual(
+  Stats.buildCategoryRing(
+    [{ groupKey: 'app:steam', appName: 'Steam', category: 'other', adapterCategory: 'game',
+       segments: [{ startUnixSec: dayStart + 3600, endUnixSec: dayStart + 9000 }] }],
+    [], dayStart, 'am'
+  ).arcs[0].category,
+  'other');
+assert.strictEqual(
+  Stats.buildCategoryDistribution(
+    [{ groupKey: 'app:steam', appName: 'Steam', category: 'other',
+       adapterCategory: 'game', seconds: 5400 }], 6)[0].name,
+  'other');
 
 const monthTrend = Stats.normalizeTrendRows('month', [
   { seconds: 3600 },

@@ -116,7 +116,7 @@ function buildCategoryDistribution(apps, limit) {
     for (var i = 0; i < source.length; i++) {
         var seconds = safeSeconds(source[i].seconds)
         if (seconds <= 0) continue
-        var category = source[i].category || "Other"
+        var category = ringRawCategory(source[i]) || "other"
         if (!grouped[category]) grouped[category] = { name: category, seconds: 0, apps: [] }
         grouped[category].seconds += seconds
         total += seconds
@@ -233,12 +233,25 @@ var RING_MIN_ARC_DEG = 5.0
 var RING_HALF_SECONDS = 12 * 3600
 var RING_MAX_APPS = 4          // apps carried per arc for the hover readout
 
-// Same precedence as AppVisual.modelCategory(), reimplemented because this
-// module is a standalone .pragma library and cannot import that one. Empty
-// stays empty here; buildCategoryRing folds it to "other" once.
+// `category` first, `adapterCategory` only as a fallback.
+//
+// These are not two spellings of one value. `category` is what the C++
+// aggregator resolved: a per-record vote weighted by duration, with the read
+// filters applied (turning game detection off rewrites it to "other").
+// `adapterCategory` is raw rule metadata that no filter touches, and
+// aggregateSoftware() deliberately lets the vote win over the rule.
+//
+// AppVisual.modelCategory() picks the opposite order, and that is what made the
+// ring disagree with everything beside it: an arc drawn as "game" while the
+// legend looked up "other" and reported 0m. Segment rows carry only
+// adapterCategory, so it stays as the fallback.
+//
+// Reimplemented rather than imported because this module is a standalone
+// .pragma library. Empty stays empty here; buildCategoryRing folds it to
+// "other" once.
 function ringRawCategory(row) {
     if (!row) return ""
-    var value = row.adapterCategory || row.category || ""
+    var value = row.category || row.adapterCategory || ""
     return String(value).trim()
 }
 

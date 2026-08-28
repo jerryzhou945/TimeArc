@@ -1,0 +1,11 @@
+[1/195] Copying time-arc qml sources into build dir
+[2/195] Running qmlimportscanner for time-arc
+[3/195] Automatic MOC and UIC for target time-arc
+[4/194] Running AUTOMOC file extraction for target time-arc
+[5/11] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp.aotstats
+[6/11] Running rcc for resource time-arc_raw_qml_0
+[7/11] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[8/11] Building CXX object CMakeFiles/time-arc.dir/src/services/app_icon_image_provider.cpp.o
+[9/11] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[10/11] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopMemoryLakePage_qml.cpp.o
+[11/11] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

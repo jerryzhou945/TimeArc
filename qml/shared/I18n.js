@@ -1093,6 +1093,7 @@ var zh = {
     "No usage records yet": "暂无使用记录",
     "Already at the latest period": "已是最新一期",
     "What made up today": "今天的组成",
+    "What made up this day": "这一天的组成",
     "Time trend": "时间趋势",
     "Category clock": "分类时钟",
     "Foreground records, merged into blocks by category": "前台记录，按类别合并成时间块",
@@ -1112,6 +1113,7 @@ var zh = {
     "Show apps unused this period": "显示本期未使用",
     "Recent records": "最近记录",
     "Recorded this period": "本期有记录",
+    "This period / All": "本期 / 全部",
     "Unused this period": "本期未使用",
     "No apps match": "没有符合条件的应用",
     "Category split": "分类分布",
@@ -1970,6 +1972,7 @@ var ja = {
     "No usage records yet": "まだ使用記録がありません",
     "Already at the latest period": "すでに最新の期間です",
     "What made up today": "今日の内訳",
+    "What made up this day": "この日の内訳",
     "Time trend": "時間の傾向",
     "Category clock": "カテゴリ時計",
     "Foreground records, merged into blocks by category": "前面アプリの記録を、カテゴリごとのまとまりに統合しています",
@@ -1989,6 +1992,7 @@ var ja = {
     "Show apps unused this period": "今期未使用のアプリを表示",
     "Recent records": "最近の記録",
     "Recorded this period": "今期に記録あり",
+    "This period / All": "今期 / 全体",
     "Unused this period": "今期は未使用",
     "No apps match": "条件に合うアプリがありません",
     "Category split": "カテゴリ構成",
@@ -2361,7 +2365,6 @@ var sentencesEn = {
     "rangeStats": "{range} Stats",
     "statsTotalApps": "{time} total · {count} apps",
     "rangeNoRecords": "No usage records for {range}",
-    "openCount": "{count} opens",
     "switchCount": "{count} switches",
     "dayCount": "{count} days",
     "insightNoData": "{range} has too little data for a conclusion.",
@@ -2377,8 +2380,6 @@ var sentencesEn = {
     "topThemeInsight": "Top theme today: {name} ({percent}%)",
     "projectCountPlain": "{count} projects",
     "timesCount": "{count} times",
-    "heatTooltip": "{date} · {time} · {category}",
-    "heatTooltipEmpty": "{date} · No usage",
     "monthlyAppAnalysis": "{app} was used about {time} this month, mostly during {period}. Longest continuous session: {longest}.",
     "todayAppAnalysis": "{app} was used about {time} today, mostly during {period}. Longest continuous session: {longest}.",
     "todayAppAnalysisWithLaunches": "{app} was used {time} today, mostly around {period}. Longest session: {longest}. Opened {launches} times.",
@@ -2474,7 +2475,6 @@ var sentencesZh = {
     "rangeStats": "{range}统计",
     "statsTotalApps": "共 {time} · {count} 个应用",
     "rangeNoRecords": "{range}暂无使用记录",
-    "openCount": "{count} 次打开",
     "switchCount": "{count} 次切换",
     "dayCount": "{count} 天",
     "insightNoData": "{range}记录较少，暂不下结论。",
@@ -2490,8 +2490,6 @@ var sentencesZh = {
     "topThemeInsight": "今日主题：{name} 占比最高（{percent}%）",
     "projectCountPlain": "{count} 个项目",
     "timesCount": "{count} 次",
-    "heatTooltip": "{date} · {time} · {category}",
-    "heatTooltipEmpty": "{date} · 暂无使用",
     "monthlyAppAnalysis": "{app} 本月使用约 {time}，多集中在{period}，最长连续 {longest}。",
     "todayAppAnalysis": "{app} 今天使用约 {time}，多集中在{period}，最长连续 {longest}。",
     "todayAppAnalysisWithLaunches": "{app} 今天使用 {time}，主要在{period}，单次最长 {longest}，共打开 {launches} 次。",
@@ -2525,8 +2523,6 @@ var sentencesJa = {
     "localUsageSize": "ローカル使用量 {size}（100MB を基準）",
     "projectCountPlain": "{count} 件のプロジェクト",
     "timesCount": "{count} 回",
-    "heatTooltip": "{date} · {time} · {category}",
-    "heatTooltipEmpty": "{date} · 使用なし",
     "monthlyAppAnalysis": "{app} を今月およそ {time} 使用し、主に{period}に集中、最長の連続は {longest} です。",
     "todayAppAnalysis": "{app} を今日およそ {time} 使用し、主に{period}に集中、最長の連続は {longest} です。",
     "todayAppAnalysisWithLaunches": "{app} を今日 {time} 使用し、主に{period}、単回の最長は {longest}、計 {launches} 回起動しました。",
@@ -2600,7 +2596,6 @@ var sentencesJa = {
     "rangeStats": "{range}の統計",
     "statsTotalApps": "合計 {time} · {count} 個のアプリ",
     "rangeNoRecords": "{range}の使用記録はありません",
-    "openCount": "{count} 回起動",
     "switchCount": "{count} 回切替",
     "dayCount": "{count} 日",
     "insightNoData": "{range}はデータが少ないため結論を出せません。",
@@ -2796,12 +2791,6 @@ function weekdaysNarrow(lang) {
     return l === "zh" ? weekdayNarrowZh : l === "ja" ? weekdayNarrowJa : weekdayNarrowEn
 }
 
-// Heatmap axis: only alternate days are labelled, so the row stays readable.
-function weekdaysHeat(lang) {
-    var w = weekdaysNarrow(lang)
-    return [w[0], "", w[2], "", w[4], "", ""]
-}
-
 // Dates are built per language instead of being assembled from translated
 // fragments. "8月25日" and "Aug 25" order month and day differently and glue
 // them with different separators, so no single template covers both; the old
@@ -2843,6 +2832,10 @@ function yearMonth(lang, date) {
     if (l === "en")
         return monthShortEn[date.getMonth()] + " " + date.getFullYear()
     return date.getFullYear() + "年 " + (date.getMonth() + 1) + "月"
+}
+
+function yearLabel(lang, year) {
+    return langKey(lang) === "en" ? String(year) : (year + "年")
 }
 
 // Returns a Qt.formatDateTime pattern rather than a finished string: the
@@ -2941,6 +2934,11 @@ function aggregateFact(lang, fact) {
         return ""
     var p = fact.params || {}
     return sentence(lang, fact.key, {
+        // Already-resolved labels pass through t() unchanged, so this stays
+        // correct whether the caller hands us a label or an English source
+        // string. It is NOT correct for a category id — the rule table owns
+        // those, and only CategorizationManager.categoryLabel() can resolve
+        // one. See DesktopStatsPage.aggregateFactText().
         category: category(lang, p.category),
         range: t(lang, p.range),
         peak: trendLabel(lang, {label: p.peakLabel,
