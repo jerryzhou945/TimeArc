@@ -5,6 +5,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "tools" / "build-windows.ps1"
+RUNNER = ROOT / "run.cmd"
+LAUNCHER = ROOT / "launch.cmd"
+PACKAGE = ROOT / "tools" / "package-release.ps1"
+LINKAGE = ROOT / "tools" / "verify-linkage.ps1"
 
 
 def require(source: str, fragment: str, purpose: str) -> None:
@@ -38,6 +42,20 @@ def main() -> None:
     require(source, "time-arc-service.exe", "service executable")
     for pack in ("backgrounds", "site-icons", "monthly-recap"):
         require(source, f'"{pack}"', f"{pack} resource pack")
+
+    # Convenience/legacy entry points must stay portable across the documented
+    # D-drive layout and the optional C-drive toolchain used by contributors.
+    runner = RUNNER.read_text(encoding="utf-8")
+    launcher = LAUNCHER.read_text(encoding="utf-8")
+    for cmd_source in (runner, launcher):
+        require(cmd_source, "TIMEARC_QT_ROOT", "explicit Qt root override")
+        require(cmd_source, "D:\\TimeArc\\QT", "documented D-drive fallback")
+        require(cmd_source, "C:\\code_env\\Qt-6.11.0-MinGW64", "C-drive fallback")
+    package = PACKAGE.read_text(encoding="utf-8")
+    linkage = LINKAGE.read_text(encoding="utf-8")
+    for ps_source in (package, linkage):
+        require(ps_source, "D:/TimeArc/QT", "documented release-tool fallback")
+        require(ps_source, "C:/code_env/Qt-6.11.0-MinGW64", "contributor release-tool fallback")
 
     require(source, "Assert-DynamicQtLinkage", "dynamic Qt linkage gate")
     require(source, "Qt6*.dll", "replaceable Qt DLL notice")

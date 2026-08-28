@@ -2,12 +2,10 @@ const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
 // Node 24 treats arrays/objects created in vm.runInNewContext as having a
-// different prototype even when their JSON structure is identical. Normalize
-// both sides so these tests keep asserting observable data, not VM identity.
-const nodeDeepStrictEqual = assert.deepStrictEqual.bind(assert);
-assert.deepStrictEqual = (actual, expected, message) =>
-  nodeDeepStrictEqual(JSON.parse(JSON.stringify(actual)),
-                      JSON.parse(JSON.stringify(expected)), message);
+// different prototype even when their data is identical. structuredClone
+// moves values into this realm without JSON's NaN/Infinity/undefined losses.
+const assertPlainDeepEqual = (actual, expected, message) =>
+  assert.deepStrictEqual(structuredClone(actual), structuredClone(expected), message);
 // '.pragma library' is not valid JavaScript, so this file cannot be require()d.
 // Loaded the same way AppVisual.js is below: strip the pragma, evaluate in a
 // fresh context, and read the top-level declarations off that context.
@@ -47,7 +45,7 @@ const lifetimeApps = [
 const library = Stats.buildAppLibrary(periodApps, lifetimeApps, {
   query: '', sort: 'period', showInactive: true
 });
-assert.deepStrictEqual(library.map((row) => row.groupKey), ['app:codex', 'app:chrome', 'app:steam']);
+assertPlainDeepEqual(library.map((row) => row.groupKey), ['app:codex', 'app:chrome', 'app:steam']);
 assert.strictEqual(library[0].periodSeconds, 120);
 assert.strictEqual(library[0].lifetimeSeconds, 3600);
 assert.strictEqual(library[0].percent, 67);
@@ -62,17 +60,17 @@ assert.strictEqual(renamedLibrary[0].name, '开发助手');
 const lifetimeSorted = Stats.buildAppLibrary(periodApps, lifetimeApps, {
   query: '', sort: 'lifetime', showInactive: true
 });
-assert.deepStrictEqual(lifetimeSorted.map((row) => row.groupKey), ['app:steam', 'app:codex', 'app:chrome']);
+assertPlainDeepEqual(lifetimeSorted.map((row) => row.groupKey), ['app:steam', 'app:codex', 'app:chrome']);
 
 const activeOnly = Stats.buildAppLibrary(periodApps, lifetimeApps, {
   query: '', sort: 'period', showInactive: false
 });
-assert.deepStrictEqual(activeOnly.map((row) => row.groupKey), ['app:codex', 'app:chrome']);
+assertPlainDeepEqual(activeOnly.map((row) => row.groupKey), ['app:codex', 'app:chrome']);
 
 const queried = Stats.buildAppLibrary(periodApps, lifetimeApps, {
   query: '游戏', sort: 'name', showInactive: true
 });
-assert.deepStrictEqual(queried.map((row) => row.groupKey), ['app:steam']);
+assertPlainDeepEqual(queried.map((row) => row.groupKey), ['app:steam']);
 
 // ---- Category ring (Stats > Day) ------------------------------------------
 // Geometry is denoised; the page's reported totals are not. See
@@ -95,7 +93,7 @@ const overlap = Stats.buildCategoryRing(
    group('app:chrome', 'Chrome', 'web', [[36300, 36360]])],
   [], dayStart, 'am', { minSeconds: 0, minArcDeg: 0 }
 );
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   overlap.arcs.map((arc) => [arc.category, arc.seconds]),
   [['dev', 300], ['web', 60], ['dev', 240]]
 );
@@ -114,7 +112,7 @@ assert.strictEqual(coalesced.arcs.length, 1);
 assert.strictEqual(coalesced.arcs[0].category, 'dev');
 assert.strictEqual(coalesced.arcs[0].seconds, 3000);
 assert.strictEqual(coalesced.arcs[0].mergedFrom, 2);
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   coalesced.arcs[0].apps.map((app) => [app.displayName, app.seconds]),
   [['VS Code', 1800], ['iTerm', 1200]]
 );
@@ -141,7 +139,7 @@ const leaning = Stats.buildCategoryRing(
    group('app:vscode', 'VS Code', 'dev', [[630, 1800]])],
   [], dayStart, 'am'
 );
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   leaning.arcs.map((arc) => [arc.category, arc.seconds]),
   [['web', 600], ['dev', 1200]]
 );
@@ -165,7 +163,7 @@ const gapped = Stats.buildCategoryRing(
   [group('app:vscode', 'VS Code', 'dev', [[0, 1800], [3000, 4800]])],
   [], dayStart, 'am'
 );
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   gapped.arcs.map((arc) => [arc.category, arc.seconds]),
   [['dev', 1800], ['dev', 1800]]
 );
@@ -178,13 +176,13 @@ const straddleAm = Stats.buildCategoryRing(straddle, [], dayStart, 'am');
 assert.strictEqual(straddleAm.arcs.length, 1);
 assert.strictEqual(straddleAm.arcs[0].seconds, 30);
 assert.strictEqual(straddleAm.arcs[0].sweepPadded, true);
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   [round2(straddleAm.arcs[0].startAngle), round2(straddleAm.arcs[0].endAngle)],
   [355, 360]
 );
 const straddlePm = Stats.buildCategoryRing(straddle, [], dayStart, 'pm');
 assert.strictEqual(straddlePm.arcs[0].seconds, 600);
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   [round2(straddlePm.arcs[0].startAngle), round2(straddlePm.arcs[0].endAngle)],
   [0, 5]
 );
@@ -195,7 +193,7 @@ const shuffled = Stats.buildCategoryRing(
    group('app:codex', 'Codex', 'dev', [[36000, 36600]])],
   [], dayStart, 'am', { minSeconds: 0, minArcDeg: 0 }
 );
-assert.deepStrictEqual(shuffled.arcs, overlap.arcs);
+assertPlainDeepEqual(shuffled.arcs, overlap.arcs);
 
 // 9. A 61s run clears the noise floor but not the legibility floor. It is
 // isolated, so the legibility pass keeps it rather than deleting real time, and
@@ -206,7 +204,7 @@ const hairline = Stats.buildCategoryRing(
 );
 assert.strictEqual(hairline.arcs[0].seconds, 61);
 assert.strictEqual(hairline.arcs[0].sweepPadded, true);
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   [round2(hairline.arcs[0].startAngle), round2(hairline.arcs[0].endAngle)],
   [0, 5]
 );
@@ -223,7 +221,7 @@ const alternatingGroups = [
 const striped = Stats.buildCategoryRing(alternatingGroups, [], dayStart, 'am', { minArcDeg: 0 });
 assert.strictEqual(striped.arcs.length, 7);
 const smoothed = Stats.buildCategoryRing(alternatingGroups, [], dayStart, 'am');
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   smoothed.arcs.map((arc) => [arc.category, arc.seconds]), [['dev', 3000]]
 );
 assert.strictEqual(smoothed.arcs[0].apps.length, 2);
@@ -235,7 +233,7 @@ const lonely = Stats.buildCategoryRing(
    group('app:mail', 'Mail', 'productivity', [[5400, 5580]])],
   [], dayStart, 'am'
 );
-assert.deepStrictEqual(
+assertPlainDeepEqual(
   lonely.arcs.map((arc) => [arc.category, arc.seconds]),
   [['dev', 1800], ['productivity', 180]]
 );
@@ -252,7 +250,7 @@ assert.strictEqual(uncategorised.arcs[0].arcId, `other:${dayStart}:${dayStart + 
 
 // An empty day yields an empty ring, not a throw.
 const empty = Stats.buildCategoryRing([], [], dayStart, 'am');
-assert.deepStrictEqual(empty.arcs, []);
+assertPlainDeepEqual(empty.arcs, []);
 assert.strictEqual(empty.stats.coveredSeconds, 0);
 
 assert.strictEqual(Stats.formatCompactDuration(0), '0m');
@@ -266,7 +264,7 @@ const categories = Stats.buildCategoryDistribution([
 ], 6);
 // apps is handed over unjoined: the separator is language-dependent ("、" for
 // CJK, ", " for English) and this module deliberately knows nothing about I18n.
-assert.deepStrictEqual(categories, [
+assertPlainDeepEqual(categories, [
   { name: 'Development', seconds: 180, time: '3m', percent: 75, apps: ['Codex', 'Visual Studio Code'] },
   { name: 'Browsing', seconds: 60, time: '1m', percent: 25, apps: ['Chrome'] }
 ]);
@@ -278,7 +276,7 @@ const monthTrend = Stats.normalizeTrendRows('month', [
 ]);
 // A generated label travels as a key plus its index; only a row that arrived
 // with its own label keeps one, so that nothing here has to pick a language.
-assert.deepStrictEqual(monthTrend, [
+assertPlainDeepEqual(monthTrend, [
   { label: '', labelKey: 'weekOfMonth', labelIndex: 0, seconds: 3600, ratio: 0.5, valueText: '1h' },
   { label: '', labelKey: 'weekOfMonth', labelIndex: 1, seconds: 7200, ratio: 1, valueText: '2h' },
   { label: '', labelKey: 'weekOfMonth', labelIndex: 2, seconds: 0, ratio: 0, valueText: '0m' }
@@ -292,7 +290,7 @@ const weekTrend = Stats.normalizeTrendRows('week', [
   { seconds: 120 },
   { seconds: 300 }
 ]);
-assert.deepStrictEqual(weekTrend.map((row) => row.labelKey),
+assertPlainDeepEqual(weekTrend.map((row) => row.labelKey),
   ['weekdayNarrow', 'weekdayNarrow']);
 
 // A supplied label is preserved verbatim rather than replaced by a key.
@@ -302,7 +300,7 @@ assert.strictEqual(labelled[0].labelKey, '');
 
 // buildAggregateFact returns the template name and its fields, never a
 // sentence: the clause order differs by language.
-assert.deepStrictEqual(Stats.buildAggregateFact('week', categories, weekTrend), {
+assertPlainDeepEqual(Stats.buildAggregateFact('week', categories, weekTrend), {
   key: 'aggregateFact',
   params: {
     category: 'Development',
@@ -356,7 +354,7 @@ const ringApps = [
 ];
 
 const ringBuilt = Stats.buildCategoryRingRuns(ringGroups, ringApps);
-assert.deepStrictEqual(ringBuilt.runs, [
+assertPlainDeepEqual(ringBuilt.runs, [
   {
     "category": "dev",
     "start": 1800000000,
@@ -411,7 +409,7 @@ assert.deepStrictEqual(ringBuilt.runs, [
     "pinned": false
   }
 ]);
-assert.deepStrictEqual(ringBuilt.stats, {
+assertPlainDeepEqual(ringBuilt.stats, {
   "droppedCount": 2,
   "droppedSeconds": 40,
   "absorbedCount": 1,
@@ -420,15 +418,15 @@ assert.deepStrictEqual(ringBuilt.stats, {
   "coveredSeconds": 3539,
   "runCount": 3
 });
-assert.deepStrictEqual(Stats.ringCategories(ringBuilt.runs), ["dev", "social"]);
+assertPlainDeepEqual(Stats.ringCategories(ringBuilt.runs), ["dev", "social"]);
 
 const ringArcs = Stats.projectCategoryRing(ringBuilt.runs, ringDay, 'am');
 assert.strictEqual(ringArcs.length, 3);
 assert.strictEqual(ringArcs[0].arcId, 'dev:1800000000:1800002000');
 assert.strictEqual(ringArcs[0].startAngle, 0);
 // Projection clips to the requested half; this fixture has nothing in the pm half.
-assert.deepStrictEqual(Stats.projectCategoryRing(ringBuilt.runs, ringDay, 'pm'), []);
+assertPlainDeepEqual(Stats.projectCategoryRing(ringBuilt.runs, ringDay, 'pm'), []);
 // An empty ring stays empty rather than throwing.
-assert.deepStrictEqual(Stats.buildCategoryRingRuns([], []).runs, []);
+assertPlainDeepEqual(Stats.buildCategoryRingRuns([], []).runs, []);
 
 console.log('stats_view_model_test: pass');

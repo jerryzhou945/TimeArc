@@ -65,3 +65,9 @@
 
 <!-- record_error.py: error table not found -->
 | 2026-08-28T04:06:30Z | L1 | integration-err... | Registry union reduced harness drift to one pre-merge con... | [report](errors/20260828-040630-B-integration-error-registry-orphan.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:13:54Z | L1 | review-test-hel... | Mechanical replacement also rewrote the assertPlainDeepEq... | [report](errors/20260828-041354-B-review-test-helper-replacement.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:14:54Z | L1 | review-test-eof... | git diff --check found an extra blank line at EOF added b... | [report](errors/20260828-041454-B-review-test-eof-whitespace.md) |
