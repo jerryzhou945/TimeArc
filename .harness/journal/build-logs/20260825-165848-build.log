@@ -1,0 +1,11 @@
+[1/199] Automatic MOC and UIC for target timearc_pomodoro_test
+[2/198] Automatic MOC and UIC for target timearc_db_smoke
+[3/197] Automatic MOC and UIC for target time-arc
+[4/196] Running AUTOMOC file extraction for target time-arc
+[5/11] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/categorization_manager.cpp.o
+[6/11] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/categorization_manager.cpp.o
+[7/11] Building CXX object CMakeFiles/time-arc.dir/src/services/categorization_manager.cpp.o
+[8/11] Linking CXX executable timearc_pomodoro_test
+[9/11] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc
+[10/11] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.o
+[11/11] Linking CXX executable timearc_db_smoke

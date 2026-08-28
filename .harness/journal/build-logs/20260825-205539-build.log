@@ -1,0 +1,5 @@
+[1/6] Automatic MOC and UIC for target timearc_db_smoke
+[2/5] Linking CXX executable timearc_pomodoro_test
+[3/5] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc
+[4/5] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.o
+[5/5] Linking CXX executable timearc_db_smoke

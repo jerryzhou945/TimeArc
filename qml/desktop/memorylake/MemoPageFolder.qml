@@ -1,5 +1,5 @@
 import QtQuick
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 // 右上「档案袋」多页切换器（v88 .memo-page-control）。前盖玻璃卡显示当前页名 + 雪佛龙；
@@ -87,7 +87,7 @@ Item {
                 width: parent.width - 28
                 Text { text: folder.currentLabel; color: Qt.rgba(245 / 255, 250 / 255, 255 / 255, 0.92)
                        font.pixelSize: 15; font.weight: Font.DemiBold; elide: Text.ElideRight; width: parent.width }
-                Text { text: I18n.sentence(folder.languageMode, "memoPageCount", {count: folder.pageCount}, folder.pageCount + " 页 · 备忘"); color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.45)
+                Text { text: I18n.sentence(folder.languageMode, "memoPageCount", {count: folder.pageCount}); color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.45)
                        font.pixelSize: 11 }
             }
             Text {
@@ -301,7 +301,7 @@ Item {
             border.width: 1
             border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
             Text { anchors.centerIn: parent
-                   text: addRow.canAdd ? ("＋ " + I18n.t(folder.languageMode, "新建页")) : I18n.sentence(folder.languageMode, "memoPageLimit", {count: folder.maxPages}, "已达 " + folder.maxPages + " 页上限")
+                   text: addRow.canAdd ? ("＋ " + I18n.t(folder.languageMode, "New Page")) : I18n.sentence(folder.languageMode, "memoPageLimit", {count: folder.maxPages})
                    color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 13 }
             MouseArea {
                 id: addH

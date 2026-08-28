@@ -3,108 +3,120 @@
 
 # TimeArc
 
-**把分散在应用、网页和设备里的时间，整理成一条只属于你的本地时间线。**
+**Turn the time scattered across apps, web pages and devices into a local timeline that belongs only to you.**
 
 Private by default · Local-first · Windows / macOS / Android
 
-[功能概览](#功能概览) · [下载安装](#下载安装) · [计时规则](#计时规则) · [开发构建](#开发构建) · [文档](#文档)
+[Features](#features) · [Download](#download) · [Timing Rules](#timing-rules) · [Building](#building) · [Docs](#docs)
+
+English · [简体中文](README.zh_CN.md)
 </div>
 
 > [!IMPORTANT]
-> TimeArc `0.1` 目前是测试版。Windows 测试包尚未签名，请只从本仓库发布页下载；
-> macOS 仍需实机签名、公证与权限回归，Android/HarmonyOS 仍需更多机型测试。
+> TimeArc `0.1` is currently a beta. The Windows test build is not signed yet, so please download it
+> only from this repository's releases page; macOS still needs on-device signing, notarization and a
+> permission regression pass, and Android/HarmonyOS still needs testing on more devices.
 
-## TimeArc 是什么
+## What TimeArc Is
 
-TimeArc 在本机采集前台应用、媒体播放和少数明确的后台活动，把原始记录整理为应用时钟、
-日/周/月/年趋势、分类分布和完整应用时长。它不做效率打分，也不会把原始窗口标题上传到云端。
+TimeArc collects foreground apps, media playback and a small set of explicitly defined background
+activity on your machine, then turns the raw records into an app clock, daily/weekly/monthly/yearly
+trends, category breakdowns and full per-app durations. It does not score your productivity, and it
+never uploads raw window titles to the cloud.
 
-| 你能看到 | TimeArc 的做法 |
-| --- | --- |
-| 今天的时间落在哪里 | 用应用时钟呈现真实时间段，悬停或点击聚焦某个应用 |
-| 周、月、年的变化 | 时间趋势与分类分布并排，减少重复卡片和无效留白 |
-| 每个软件到底用了多久 | “所有应用”展示本期时长、累计时长和最近记录，不只显示 Top App |
-| 哪些活动值得后台继续计时 | 只有媒体、语音频道和正在执行任务的 Agent 使用专用策略 |
-| 数据保存在哪里 | 记录写入本机 SQLite；UI 只读，分享默认匿名化 |
+| What you see                                                | How TimeArc does it                                                                                              |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Where today's time went                                     | An app clock that shows the real time ranges; hover or click to focus a single app                               |
+| How weeks, months and years change                          | Time trends and category breakdown side by side, with fewer duplicate cards and less dead space                  |
+| How long each program was really used                       | "All apps" shows current-period duration, cumulative duration and the most recent record — not just the top apps |
+| Which activities deserve to keep counting in the background | Only media, voice channels and agents actively running a task use dedicated policies                             |
+| Where the data lives                                        | Records are written to local SQLite; the UI is read-only and sharing is anonymized by default                    |
 
-## 功能概览
+## Features
 
-- **应用时钟**：按真实发生时间绘制应用弧段；繁忙的一天也能聚焦具体应用。
-- **完整统计**：日、周、月、年统一信息架构，包含总时长、趋势、分类和全部应用。
-- **媒体识别**：Windows 浏览器视频优先读取系统媒体状态；B 站等站点可归因到站点身份。
-- **语音频道**：Discord、KOOK、Oopz 在有效音频会话存在时记录，退出频道后停止。
-- **Agent 任务**：Codex 前台执行任务时，可用相关工作进程的 CPU/I/O 活动跨越键鼠闲置。
-- **游戏计时**：原神、崩坏：星穹铁道、绝区零、鸣潮等主进程在前台时持续记录，
-  不因手柄操作、过场或加载期间的键鼠闲置被截断。
-- **应用身份**：稳定显示名称、图标与站点身份；设置页可自定义显示名称，不修改底层 ID。
-- **本地与可撤销**：首次成功启动可启用当前用户登录自启，用户关闭后保持关闭。
+- **App clock**: draws app arcs at the times they actually happened; even a busy day can be focused down to one app.
+- **Full statistics**: one information architecture across day, week, month and year, covering total duration, trends, categories and every app.
+- **Media detection**: browser video on Windows reads the system media state first; sites such as Bilibili can be attributed to a site identity.
+- **Voice channels**: Discord, KOOK and Oopz are recorded while a valid audio session exists, and stop once you leave the channel.
+- **Agent tasks**: while Codex is in the foreground, CPU/I/O activity from its related worker processes can carry it across keyboard/mouse idle.
+- **Game timing**: main processes such as Genshin Impact, Honkai: Star Rail, Zenless Zone Zero and Wuthering Waves keep recording while in the foreground, without being cut off by keyboard/mouse idle during controller play, cutscenes or loading.
+- **App identity**: stable display names, icons and site identities; the settings page can customize the display name without changing the underlying ID.
+- **Editable categorization rules**: app and site categories come from a rule table, and the settings page can change a category, disable a rule, create a new one, or restore the factory rules wholesale. Categories are computed at read time, so changes apply to all history immediately. The rule table matches on app name and window title, across platforms and languages (see [docs/categorization-system.md](docs/categorization-system.md)).
+- **Local and reversible**: after the first successful launch you can enable login autostart for the current user, and it stays off once you turn it off.
 
-## 平台状态
+## Platform Status
 
-| 平台 | 可用程度 | 当前说明 |
-| --- | --- | --- |
-| Windows 10/11 | **主要测试平台** | 前台、idle、媒体、语音、Agent、游戏策略及登录自启已接通；公开包未签名 |
-| macOS | **代码已同步，待发布验证** | 共享 Qt/QML UI 与原生采集服务已实现；仍需 Mac 实机权限、签名、公证、DMG 与长时间回归 |
-| Android | **功能预览** | Usage Access、实时同步、应用图标、统计与分享已实现；不同 ROM 仍需验证 |
-| HarmonyOS + 卓易通 | **兼容性测试** | 已在部分华为设备运行，但并非原生 HarmonyOS 应用，不保证所有系统版本兼容 |
-| Linux | **尚未开始** | X11/Wayland 与 PipeWire 采集仍在 backlog |
+| Platform               | Readiness                                      | Current notes                                                                                                                                                             |
+| ---------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows 10/11          | **Primary test platform**                      | Foreground, idle, media, voice, agent, game policies and login autostart are all wired up; public builds are unsigned                                                     |
+| macOS                  | **Code in sync, release verification pending** | The shared Qt/QML UI and the native collector service are implemented; still needs on-device permissions, signing, notarization, DMG and long-running regression on a Mac |
+| Android                | **Feature preview**                            | Usage Access, live sync, app icons, statistics and sharing are implemented; different ROMs still need verification                                                        |
+| HarmonyOS + Zhuoyitong | **Compatibility testing**                      | Runs on some Huawei devices, but it is not a native HarmonyOS app and compatibility is not guaranteed across all system versions                                          |
+| Linux                  | **Not started**                                | X11/Wayland and PipeWire collection are still in the backlog                                                                                                              |
 
-## 下载安装
+## Download
 
-### Windows 测试包
+### Windows Test Build
 
-发布产物包含：
+The release artifacts include:
 
-| 文件 | 适合谁 | 使用方法 |
-| --- | --- | --- |
-| `TimeArc-0.1-beta-<date>-win64-setup.exe` | 普通测试者 | 运行安装程序，按提示安装 |
-| `TimeArc-0.1-beta-<date>-win64.zip` | 便携测试/排障 | 解压后运行 `TimeArc.exe`，不要只复制单个 exe |
+| File                                      | Who it is for                      | How to use it                                                        |
+| ----------------------------------------- | ---------------------------------- | -------------------------------------------------------------------- |
+| `TimeArc-0.1-beta-<date>-win64-setup.exe` | General testers                    | Run the installer and follow the prompts                             |
+| `TimeArc-0.1-beta-<date>-win64.zip`       | Portable testing / troubleshooting | Extract and run `TimeArc.exe`; do not copy the single exe on its own |
 
-安装后首次启动会尝试启用**当前 Windows 用户**的登录自启；在设置中关闭后不会被下次启动重新打开。
-未签名测试包可能触发 SmartScreen，请先核对发布页提供的 SHA-256。
+After installation, the first launch tries to enable login autostart for the **current Windows user**;
+once you turn it off in settings, the next launch will not turn it back on.
+Unsigned test builds may trigger SmartScreen — check the SHA-256 published on the releases page first.
 
 ### Android / HarmonyOS
 
-安装 ARM64 APK 后，在系统设置中授予“使用情况访问权限”，重新进入 TimeArc 会立即同步最近记录。
-HarmonyOS 通过卓易通运行属于兼容层方案；详细权限、ABI 和排障见 [Android README](android/README.md)。
+After installing the ARM64 APK, grant "Usage access" in system settings; re-entering TimeArc will sync
+recent records immediately. Running on HarmonyOS through Zhuoyitong is a compatibility-layer approach;
+see the [Android README](android/README.md) for detailed permissions, ABIs and troubleshooting.
 
 ### macOS
 
-当前仓库提供构建脚本，但公开发布前仍需要在 Mac 上完成 Accessibility 权限引导、签名、公证和
-clean-machine 验证。请勿把未经验证的本地 `.app` 当作正式发行版。
+The repository ships build scripts, but a public release still requires completing the Accessibility
+permission flow, signing, notarization and clean-machine verification on a Mac. Do not treat an
+unverified local `.app` as an official release.
 
-## 计时规则
+## Timing Rules
 
-TimeArc 计算的是**有效活动区间的并集**，同一时段同时满足“前台”和“媒体”不会重复累计。
+TimeArc computes the **union of valid activity intervals** — a period that counts as both "foreground"
+and "media" at the same time is not counted twice.
 
-| 场景 | 何时继续记录 | 何时停止 |
-| --- | --- | --- |
-| 普通桌面应用 / 普通网页 | 应用处于前台，且未超过 idle 阈值 | 切走应用或超过 idle 阈值 |
-| 浏览器视频（含 B 站） | Windows 媒体状态为 `Playing`；媒体状态不可用时才回退到音量活动 | 暂停、关闭或会话消失 |
-| 网易云音乐等播放器 | 有效媒体/音频会话处于播放状态 | 暂停或会话结束 |
-| Discord / KOOK / Oopz | 专用音频会话处于 Active 且未静音，不要求有人讲话 | 退出频道、静音或会话变为 Inactive/消失 |
-| Codex | Codex 在前台，且官方相关工作进程 CPU/I/O 有实质变化 | 任务结束后，经过短租约并达到 idle 条件 |
-| 二次元游戏 | 已识别的游戏主进程处于前台 | 切出游戏或主进程退出 |
-| 其他后台进程 | **不记录**；仅凭进程存在不能证明正在使用 | — |
+| Scenario                                 | When it keeps recording                                                                                         | When it stops                                                                 |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Regular desktop apps / regular web pages | The app is in the foreground and the idle threshold has not been exceeded                                       | You switch away, or the idle threshold is exceeded                            |
+| Browser video (including Bilibili)       | The Windows media state is `Playing`; it falls back to volume activity only when the media state is unavailable | Paused, closed, or the session disappears                                     |
+| Players such as NetEase Cloud Music      | A valid media/audio session is playing                                                                          | Paused, or the session ends                                                   |
+| Discord / KOOK / Oopz                    | The dedicated audio session is Active and not muted — nobody has to be speaking                                 | You leave the channel, mute, or the session goes Inactive/disappears          |
+| Codex                                    | Codex is in the foreground and its official related worker processes show substantial CPU/I/O change            | After the task ends, once a short lease expires and the idle condition is met |
+| Anime games                              | A recognized game's main process is in the foreground                                                           | You switch out of the game, or the main process exits                         |
+| Other background processes               | **Not recorded**; the mere existence of a process does not prove it is being used                               | —                                                                             |
 
-更完整的采集边界、配置与数据库契约见 [采集服务 README](src/service/README.md)。
+For the full collection boundaries, configuration and database contract, see the
+[collector service README](src/service/README.md).
 
-## 隐私与数据
+## Privacy and Data
 
-- 原始记录默认保存在本机，不要求账号或云服务。
-- GUI 不直接写采集历史；原生 service 是唯一写入者，双方通过 SQLite 契约协作。
-- 分享卡默认移除原始标题、联系人、网址和包名等敏感信息。
-- 测试反馈不要上传 `timearc_service.db`；它可能包含应用与窗口标题。
+- Raw records stay on your machine by default; no account or cloud service is required.
+- The GUI never writes collection history directly; the native service is the only writer, and the two sides cooperate through a SQLite contract.
+- Share cards strip sensitive information such as raw titles, contacts, URLs and package names by default.
+- Do not upload `timearc_service.db` with your test feedback — it can contain app and window titles.
+- Your profile picture is a local avatar: it is copied into the app's own storage on the device and never uploaded.
+- The monthly report is released at 08:00 on the 1st of the following month, so a month is only summarised once it is complete.
 
-常用数据目录：
+Common data directories:
 
-| 平台 | 目录 |
-| --- | --- |
-| Windows | `%APPDATA%\TimeArc\service\timearc_service.db` |
-| macOS | `~/Library/Application Support/TimeArc/service/timearc_service.db` |
-| Linux 规划 | `${XDG_DATA_HOME:-~/.local/share}/TimeArc/service/timearc_service.db` |
+| Platform        | Directory                                                             |
+| --------------- | --------------------------------------------------------------------- |
+| Windows         | `%APPDATA%\TimeArc\service\timearc_service.db`                        |
+| macOS           | `~/Library/Application Support/TimeArc/service/timearc_service.db`    |
+| Linux (planned) | `${XDG_DATA_HOME:-~/.local/share}/TimeArc/service/timearc_service.db` |
 
-## 架构
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -115,17 +127,17 @@ flowchart LR
     UI --> Cards[Clock · trends · reports · sharing]
 ```
 
-- `src/service/`：Windows C / macOS Swift / Linux 占位采集器与共享磁盘契约。
-- `src/services/`：Qt/C++ 只读统计、设置、应用身份和移动端桥接。
-- `qml/desktop/`、`qml/mobile/`：共享产品语言下的桌面与移动界面。
-- `android/`：UsageStats、WorkManager、图标与 Android 生命周期适配。
-- `resources/`：背景、站点图标、月报、许可证与发行资源。
+- `src/service/`: the Windows C / macOS Swift / Linux placeholder collectors and the shared disk contract.
+- `src/services/`: Qt/C++ read-only statistics, settings, app identity and the mobile bridge.
+- `qml/desktop/`, `qml/mobile/`: the desktop and mobile interfaces under a shared product language.
+- `android/`: UsageStats, WorkManager, icons and Android lifecycle adaptation.
+- `resources/`: backgrounds, site icons, monthly reports, licenses and release assets.
 
-## 开发构建
+## Building
 
 ### Windows
 
-要求：Qt `6.11.0` MinGW 64-bit、CMake、Python 3、Node.js（统计 JS 测试）。
+Requirements: Qt `6.11.0` MinGW 64-bit, CMake, Python 3, Node.js (for the statistics JS tests).
 
 ```powershell
 python .harness/tools/preflight.py --track B
@@ -135,23 +147,24 @@ python .harness/tools/build.py --track B
 ctest --test-dir build --output-on-failure
 ```
 
-开发运行：
+Run during development:
 
 ```powershell
 .\run.cmd
 ```
 
-发行打包：
+Package a release:
 
 ```powershell
 pwsh tools/package-release.ps1 -Version 0.1-beta-20260825
 pwsh tools/package-installer.ps1 -Version 0.1-beta-20260825
 ```
 
-第一条命令会动态验证 Qt DLL 链接、收集 GUI/service、RCC、Qt/MinGW 运行库和许可证，
-并生成便携 ZIP；第二条命令用 7-Zip 官方 LZMA SDK 的 SFX 模块把同一份已验证 ZIP
-包成当前用户安装器。安装器脚本默认从被 Git 忽略的 `.local-toolchains/7zip-26.02/`
-读取官方 `7za.exe` 与 `7zS2.sfx`，也可通过参数传入其他本地路径。
+The first command dynamically verifies the Qt DLL links, collects the GUI/service, RCC, Qt/MinGW
+runtimes and licenses, and produces the portable ZIP; the second wraps that same verified ZIP into a
+current-user installer using the SFX module from the official 7-Zip LZMA SDK. By default the installer
+script reads the official `7za.exe` and `7zS2.sfx` from the Git-ignored `.local-toolchains/7zip-26.02/`,
+but another local path can be passed as an argument.
 
 ### macOS
 
@@ -159,16 +172,17 @@ pwsh tools/package-installer.ps1 -Version 0.1-beta-20260825
 ./tools/build-macos.sh
 ```
 
-脚本负责构建 `.app` 的基础布局；签名、公证、权限和 clean-machine QA 仍是发布门槛。
+The script handles the basic `.app` layout; signing, notarization, permissions and clean-machine QA
+are still release gates.
 
 ### Android
 
-Android 由 Qt Android 工具链与 `android/` Gradle 包装共同构建。详细结构和设备要求见
-[android/README.md](android/README.md)。
+Android is built by the Qt Android toolchain together with the `android/` Gradle wrapper. See
+[android/README.md](android/README.md) for the detailed structure and device requirements.
 
-## 验证
+## Verification
 
-所有构建必须通过 harness wrapper；提交前必须执行：
+All builds must go through the harness wrapper, and the following must be run before committing:
 
 ```powershell
 python .harness/tools/build.py --track B
@@ -177,37 +191,37 @@ node tests/stats_view_model_test.js
 python .harness/tools/harness_check.py
 ```
 
-运行 Qt/QML 后还需执行 `python .harness/tools/scan_qt_log.py`。详细开发规则见
-[AGENTS.md](AGENTS.md) 与 [.harness/README.md](.harness/README.md)。
+After running Qt/QML, also run `python .harness/tools/scan_qt_log.py`. For detailed development rules,
+see [AGENTS.md](AGENTS.md) and [.harness/README.md](.harness/README.md).
 
-## 文档
+## Docs
 
-| 入口 | 内容 |
-| --- | --- |
-| [docs/README.md](docs/README.md) | 按产品、统计、计时、移动端、发布分类的文档地图 |
-| [docs/implementation-backlog.md](docs/implementation-backlog.md) | 当前可执行 backlog |
-| [docs/beta-tester-release-kit.md](docs/beta-tester-release-kit.md) | 测试招募、视频脚本与反馈模板 |
-| [src/service/README.md](src/service/README.md) | 采集服务、配置、CLI 与数据库契约 |
-| [android/README.md](android/README.md) | Android/HarmonyOS 权限、同步、构建与排障 |
-| [.harness/README.md](.harness/README.md) | Agent/human 工程质量门禁 |
+| Entry point                                                        | Contents                                                                         |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [docs/README.md](docs/README.md)                                   | A documentation map organized by product, statistics, timing, mobile and release |
+| [docs/implementation-backlog.md](docs/implementation-backlog.md)   | The currently actionable backlog                                                 |
+| [docs/beta-tester-release-kit.md](docs/beta-tester-release-kit.md) | Tester recruiting, video script and feedback templates                           |
+| [src/service/README.md](src/service/README.md)                     | The collector service, configuration, CLI and database contract                  |
+| [android/README.md](android/README.md)                             | Android/HarmonyOS permissions, sync, builds and troubleshooting                  |
+| [.harness/README.md](.harness/README.md)                           | The agent/human engineering quality gates                                        |
 
-## 参与贡献
+## Contributing
 
-1. 先阅读 [AGENTS.md](AGENTS.md) 和对应平台边界。
-2. 一次提交只解决一个可验证的问题，新增计时策略必须先写失败测试。
-3. 不改变 SQLite 磁盘契约、不把 Qt 引入原生 service、不提交机器专用启动脚本。
-4. PR 中写明实际验证命令、平台、已知限制和隐私影响。
+1. Read [AGENTS.md](AGENTS.md) and the boundaries for your platform first.
+2. Solve one verifiable problem per commit; a new timing policy must start with a failing test.
+3. Do not change the SQLite disk contract, do not pull Qt into the native service, and do not commit machine-specific launch scripts.
+4. State the verification commands you actually ran, the platform, known limitations and privacy impact in the PR.
 
-## 路线图
+## Roadmap
 
-- [x] Windows 前台、idle、媒体、语音、Agent 与游戏计时。
-- [x] 日/周/月/年统计重构与全部应用时长。
-- [x] Android UsageStats、实时同步、图标和分享预览。
-- [ ] Windows 代码签名、安装器/升级路径与 clean-machine QA。
-- [ ] macOS 实机权限、签名、公证、DMG 与长期运行验证。
-- [ ] Android/HarmonyOS 多 ROM 回归。
-- [ ] Linux X11/Wayland + PipeWire 采集。
-- [ ] 可选的端到端加密跨设备同步。
+- [x] Windows foreground, idle, media, voice, agent and game timing.
+- [x] The daily/weekly/monthly/yearly statistics rework and full per-app durations.
+- [x] Android UsageStats, live sync, icons and share previews.
+- [ ] Windows code signing, the installer/upgrade path and clean-machine QA.
+- [ ] macOS on-device permissions, signing, notarization, DMG and long-running verification.
+- [ ] Android/HarmonyOS multi-ROM regression.
+- [ ] Linux X11/Wayland + PipeWire collection.
+- [ ] Optional end-to-end encrypted cross-device sync.
 
 ## License
 

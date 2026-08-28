@@ -15,7 +15,7 @@
 namespace {
 
 const QString kConnectionName = QStringLiteral("timearc");
-const QString kDefaultTagName = QStringLiteral("其他");
+const QString kDefaultTagName = QStringLiteral("Other");
 
 QSqlDatabase database() {
   QSqlDatabase db = QSqlDatabase::database(kConnectionName);

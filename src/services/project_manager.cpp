@@ -10,15 +10,21 @@
 #include "services/manual_project_repository.h"
 
 namespace {
-// 固定标签顺序和 QML 中的标签筛选保持一致。当前文件里的中文显示受历史编码
-// 影响看起来像乱码，但值需要保持不变以兼容已有 QSettings 数据。
-const QStringList kFixedTags = {"学习", "工作", "运动", "娱乐",
-                                "阅读", "社交", "生活", "其他"};
+// 固定标签顺序和 QML 中的标签筛选保持一致。这些值随 English-first 改为英文，
+// 数据库侧由 DatabaseManager::renameLegacyChineseTags() 就地改名（tag_id 不变）。
+// 下面的 QSettings 分支只在 m_repository 为空时走到（仅测试/独立预览），
+// 生产路径始终注入 ManualProjectRepository，因此不存在遗留中文标签名。
+const QStringList kFixedTags = {"Study", "Work", "Exercise", "Entertainment",
+                                "Reading", "Social", "Life", "Other"};
 }  // namespace
 
 ProjectManager::ProjectManager(ManualProjectRepository* repository,
                                QObject* parent)
     : QObject(parent), m_repository(repository) {
+  // 按日缓存跟着自己这条「数据变了」信号作废。每个写入路径最后都会发它，所以这里
+  // 一处就够，不必在 8 个 mutator 里各写一遍清空（漏一个就是陈旧数据）。
+  connect(this, &ProjectManager::projectsChanged, this,
+          [this]() { m_timeEntriesByDate.clear(); });
   loadProjects();
   loadSessions();
 }
@@ -31,11 +37,11 @@ int ProjectManager::tagMinutes(const QString& tagName) const {
   return tagMinutesForRange(tagName, "all");
 }
 
-int ProjectManager::studyMinutes() const { return tagMinutes("学习"); }
+int ProjectManager::studyMinutes() const { return tagMinutes("Study"); }
 
-int ProjectManager::sportMinutes() const { return tagMinutes("运动"); }
+int ProjectManager::sportMinutes() const { return tagMinutes("Exercise"); }
 
-int ProjectManager::gameMinutes() const { return tagMinutes("游戏"); }
+int ProjectManager::gameMinutes() const { return tagMinutes("Games"); }
 
 int ProjectManager::totalProjectMinutes() const { return allProjectMinutes(); }
 
@@ -618,6 +624,10 @@ QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
   const QDate targetDate = QDate::fromString(dateText, "yyyy-MM-dd");
   if (!targetDate.isValid()) return result;
 
+  // 按日缓存：命中就免掉一条 SQL + 一轮分组排序。写入路径的 projectsChanged 会清空它。
+  const auto cached = m_timeEntriesByDate.constFind(dateText);
+  if (cached != m_timeEntriesByDate.constEnd()) return cached.value();
+
   if (m_repository) {
     const qint64 start =
         QDateTime(targetDate, QTime(0, 0, 0)).toSecsSinceEpoch();
@@ -637,7 +647,9 @@ QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
       const QString key =
           name + "\x1F" + tag + "\x1F" + source + "\x1F" + linkedProjectName;
 
-      QVariantMap entry = grouped.value(key);
+      // 引用就地累加：原先 value() 拷出 + [key]= 拷回，每条流水把整个 QVariantMap
+      // 深拷两次（perf 文 §2.2 明令禁止的模式，那里是 UsageStatManager 的 O(N²) 元凶）。
+      QVariantMap& entry = grouped[key];
       const int seconds =
           entry.value("seconds", 0).toInt() +
           session.value("seconds", session.value("durationSec", 0)).toInt();
@@ -651,7 +663,6 @@ QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
       entry["seconds"] = seconds;
       entry["minutes"] = seconds / 60;
       entry["time"] = secondsToTimeText(seconds);
-      grouped[key] = entry;
     }
 
     for (const QVariantMap& entry : grouped) result.append(entry);
@@ -662,6 +673,7 @@ QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
                        right.toMap().value("seconds", 0).toInt();
               });
 
+    m_timeEntriesByDate.insert(dateText, result);
     return result;
   }
 
@@ -681,7 +693,7 @@ QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
     const QString key =
         name + "\x1F" + tag + "\x1F" + source + "\x1F" + linkedProjectName;
 
-    QVariantMap entry = grouped.value(key);
+    QVariantMap& entry = grouped[key];  // 同上：引用累加，不再拷出+拷回
     const int seconds =
         entry.value("seconds", 0).toInt() + session.value("seconds", 0).toInt();
 
@@ -694,7 +706,6 @@ QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
     entry["seconds"] = seconds;
     entry["minutes"] = seconds / 60;
     entry["time"] = secondsToTimeText(seconds);
-    grouped[key] = entry;
   }
 
   for (const QVariantMap& entry : grouped) result.append(entry);
@@ -705,6 +716,7 @@ QVariantList ProjectManager::timeEntriesForDate(const QString& dateText) const {
                      right.toMap().value("seconds", 0).toInt();
             });
 
+  m_timeEntriesByDate.insert(dateText, result);
   return result;
 }
 

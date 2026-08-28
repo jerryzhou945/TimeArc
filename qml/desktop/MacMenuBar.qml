@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Window
 import Qt.labs.platform as Platform
-import "components/I18n.js" as I18n
+import "../shared/I18n.js" as I18n
 
 // macOS 应用菜单栏（屏幕顶端那条）。设计文档：docs/macos-menu-bar-design.md。
 //
@@ -125,7 +125,7 @@ Platform.MenuBar {
     }
 
     Platform.Menu {
-        title: bar.tr("文件")
+        title: bar.tr("File")
 
         // 这三行带 role：macOS 会把它们合并进左上角的 TimeArc 应用菜单（Qt 的
         // QCocoaMenuItem 接管应用菜单里现成的「关于」「设置…」「退出」三项），因此它们不会
@@ -137,7 +137,7 @@ Platform.MenuBar {
         // 下面的 text 仍是角色合并前的回退值，shortcut 与 onTriggered 始终由这里提供。
         Platform.MenuItem {
             role: Platform.MenuItem.AboutRole
-            text: bar.tr("关于 TimeArc")
+            text: bar.tr("About TimeArc")
             enabled: bar.hasShell && !bar.memoOpen && !bar.capturing
             onTriggered: {
                 if (!bar.hasWindow && bar.hostWindow)
@@ -147,14 +147,14 @@ Platform.MenuBar {
         }
         Platform.MenuItem {
             role: Platform.MenuItem.PreferencesRole
-            text: bar.tr("设置…")
+            text: bar.tr("Settings…")
             shortcut: "Ctrl+,"
             enabled: bar.canNavigate
             onTriggered: bar.hostShell.menuNavigateTo("settings")
         }
         Platform.MenuItem {
             role: Platform.MenuItem.QuitRole
-            text: bar.tr("退出 TimeArc")
+            text: bar.tr("Quit TimeArc")
             shortcut: "Ctrl+Q"
             enabled: !bar.capturing
             onTriggered: {
@@ -167,7 +167,7 @@ Platform.MenuBar {
         // quit…）猜测该不该并进应用菜单，而这里几条英文文案正好含这些词。
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("导出统计报告…")
+            text: bar.tr("Export Stats Report…")
             shortcut: "Ctrl+Shift+E"
             enabled: bar.canNavigate && bar.onStatsPage
             onTriggered: bar.hostShell.menuExportStatsReport()
@@ -175,26 +175,26 @@ Platform.MenuBar {
         Platform.MenuSeparator {}
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("导入设置…")
+            text: bar.tr("Import Settings…")
             enabled: bar.canNavigate
             onTriggered: bar.hostShell.menuRunSettingsAction("openImportDialog")
         }
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("导出设置…")
+            text: bar.tr("Export Settings…")
             enabled: bar.canNavigate
             onTriggered: bar.hostShell.menuRunSettingsAction("doExport")
         }
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("备份数据库…")
+            text: bar.tr("Back Up Database…")
             enabled: bar.canNavigate
             onTriggered: bar.hostShell.menuRunSettingsAction("doBackupDatabase")
         }
         Platform.MenuSeparator {}
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("关闭窗口")
+            text: bar.tr("Close Window")
             shortcut: "Ctrl+W"
             enabled: bar.canWindowCmd
             onTriggered: bar.hostWindow.close()
@@ -202,18 +202,18 @@ Platform.MenuBar {
     }
 
     Platform.Menu {
-        title: bar.tr("编辑")
+        title: bar.tr("Edit")
 
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("撤销")
+            text: bar.tr("Undo")
             shortcut: "Ctrl+Z"
             enabled: bar.editorCanUndo
             onTriggered: bar.editor.undo()
         }
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("重做")
+            text: bar.tr("Redo")
             shortcut: "Ctrl+Shift+Z"
             enabled: bar.editorCanRedo
             onTriggered: bar.editor.redo()
@@ -221,21 +221,21 @@ Platform.MenuBar {
         Platform.MenuSeparator {}
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("剪切")
+            text: bar.tr("Cut")
             shortcut: "Ctrl+X"
             enabled: bar.editorHasSelection && bar.editorEditable
             onTriggered: bar.editor.cut()
         }
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("复制")
+            text: bar.tr("Copy")
             shortcut: "Ctrl+C"
             enabled: bar.editorHasSelection
             onTriggered: bar.editor.copy()
         }
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("粘贴")
+            text: bar.tr("Paste")
             shortcut: "Ctrl+V"
             enabled: bar.editorCanPaste
             onTriggered: bar.editor.paste()
@@ -243,7 +243,7 @@ Platform.MenuBar {
         Platform.MenuSeparator {}
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("全选")
+            text: bar.tr("Select All")
             shortcut: "Ctrl+A"
             enabled: bar.editorCanSelectAll
             onTriggered: bar.editor.selectAll()
@@ -251,13 +251,13 @@ Platform.MenuBar {
     }
 
     Platform.Menu {
-        title: bar.tr("显示")
+        title: bar.tr("View")
         onAboutToShow: bar.syncViewChecks()
 
         Platform.MenuItem {
             id: navMemoryLakeItem
             role: Platform.MenuItem.NoRole
-            text: bar.tr("首页")
+            text: bar.tr("Home")
             shortcut: "Ctrl+1"
             checkable: true
             enabled: bar.canNavigate
@@ -266,7 +266,7 @@ Platform.MenuBar {
         Platform.MenuItem {
             id: navCalendarItem
             role: Platform.MenuItem.NoRole
-            text: bar.tr("日历")
+            text: bar.tr("Calendar")
             shortcut: "Ctrl+2"
             checkable: true
             enabled: bar.canNavigate
@@ -275,7 +275,7 @@ Platform.MenuBar {
         Platform.MenuItem {
             id: navStatsItem
             role: Platform.MenuItem.NoRole
-            text: bar.tr("统计")
+            text: bar.tr("Stats")
             shortcut: "Ctrl+3"
             checkable: true
             enabled: bar.canNavigate
@@ -284,7 +284,7 @@ Platform.MenuBar {
         Platform.MenuItem {
             id: navRecapItem
             role: Platform.MenuItem.NoRole
-            text: bar.tr("记忆湖")
+            text: bar.tr("Memory Lake")
             shortcut: "Ctrl+4"
             checkable: true
             visible: bar.hasShell && bar.hostShell.memoryRecapEnabled
@@ -299,7 +299,7 @@ Platform.MenuBar {
         Platform.MenuItem {
             id: memoItem
             role: Platform.MenuItem.NoRole
-            text: bar.tr("备忘黑板")
+            text: bar.tr("Memo Board")
             shortcut: "Ctrl+Shift+N"
             checkable: true
             enabled: bar.canToggleMemo
@@ -307,7 +307,7 @@ Platform.MenuBar {
         }
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("番茄钟")
+            text: bar.tr("Pomodoro")
             shortcut: "Ctrl+Shift+P"
             enabled: bar.canTogglePomodoro
             onTriggered: bar.hostShell.menuTogglePomodoro()
@@ -316,20 +316,22 @@ Platform.MenuBar {
         Platform.MenuItem {
             id: nightModeItem
             role: Platform.MenuItem.NoRole
-            text: bar.tr("夜间模式")
+            text: bar.tr("Night Mode")
             shortcut: "Ctrl+Shift+D"
             checkable: true
             enabled: bar.hasWindow && bar.hasShell && !bar.capturing
             onTriggered: bar.hostShell.menuToggleNightMode()
         }
         Platform.Menu {
-            title: bar.tr("界面语言")
+            title: bar.tr("Interface Language")
 
-            // 语言名一律用该语言自己的写法（macOS 惯例），不随界面语言翻译。
+            // 语言名一律用该语言自己的写法（macOS 惯例），不随界面语言翻译：
+            // 看不懂当前界面语言的人，也要能认出自己的那一项。English 本身即为
+            // 其自称，故保持不变。
             Platform.MenuItem {
                 id: langZhItem
                 role: Platform.MenuItem.NoRole
-                text: "中文"
+                text: "简体中文"
                 checkable: true
                 enabled: bar.hasWindow && bar.hasShell
                 onTriggered: bar.hostShell.menuSetLanguage("zh")
@@ -354,19 +356,19 @@ Platform.MenuBar {
     }
 
     Platform.Menu {
-        title: bar.tr("窗口")
+        title: bar.tr("Window")
         onAboutToShow: bar.syncWindowChecks()
 
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("最小化")
+            text: bar.tr("Minimize")
             shortcut: "Ctrl+M"
             enabled: bar.canWindowCmd
             onTriggered: bar.hostWindow.showMinimized()
         }
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("缩放")
+            text: bar.tr("Zoom")
             enabled: bar.canWindowCmd
             onTriggered: bar.toggleZoom()
         }
@@ -386,13 +388,13 @@ Platform.MenuBar {
     }
 
     Platform.Menu {
-        title: bar.tr("帮助")
+        title: bar.tr("Help")
 
         // 隐私可见性：TimeArc 只记录时间上下文且全部落在本地，「东西到底存在哪」
         // 应该是一次点击，而不是一句支持话术。
         Platform.MenuItem {
             role: Platform.MenuItem.NoRole
-            text: bar.tr("在 Finder 中显示数据文件夹")
+            text: bar.tr("Show Data Folder in Finder")
             enabled: databaseManager !== null
                      && typeof databaseManager.currentDatabaseLocationDir === "function"
             onTriggered: {

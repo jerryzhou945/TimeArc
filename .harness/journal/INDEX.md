@@ -1,100 +1,73 @@
-# Journal Index
+# Journal Index\n\nRolling index of recent reports. `errors.jsonl` is authoritative; older rows are\nomitted here to preserve the harness line budget.\n\n## Error entries\n\n| Date (UTC) | Lvl | Topic | Report |\n|---|---|---|---|\n| 2026-08-27T21:45:53Z | L1 | category-clock-... | Final harness check found journal/INDEX.md at 111 lines, ... | [report](errors/20260827-214553-B-category-clock-index-budget.md) |\n| 2026-08-27T21:42:58Z | L1 | category-clock-... | Expected TDD RED: selected categories did not yet render ... | [report](errors/20260827-214258-B-category-clock-selected-icons-red.md) |\n| 2026-08-27T21:42:00Z | L1 | category-clock-... | Green attempt correctly reordered top apps, but the earli... | [report](errors/20260827-214200-B-category-clock-top-apps-green.md) |\n| 2026-08-27T21:41:00Z | L1 | category-clock-... | Expected TDD RED: selected-category app summaries remaine... | [report](errors/20260827-214100-B-category-clock-top-apps-red.md) |\n| 2026-08-27T21:38:44Z | L3 | category-clock-... | Windows Computer Use kernel failed twice because the shar... | [report](errors/20260827-213844-B-category-clock-computer-use-sandbox.md) |\n| 2026-08-27T21:36:59Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260827-213659-B-build-failure.md) |\n| 2026-08-27T21:35:52Z | L3 | category-clock-... | The updated static check expected modelData.lane, but the... | [report](errors/20260827-213552-B-category-clock-static-expectation.md) |\n| 2026-08-27T21:34:21Z | L1 | category-clock-... | Expected TDD RED: the desktop dial still renders per-app ... | [report](errors/20260827-213421-B-category-clock-qml-red.md) |\n| 2026-08-27T21:32:23Z | L1 | category-clock-... | Expected TDD RED: StatsViewModel does not yet export buil... | [report](errors/20260827-213223-B-category-clock-viewmodel-red.md) |\n| 2026-08-27T21:31:42Z | L3 | category-clock-... | The dedicated apply_patch tool could not initialize the W... | [report](errors/20260827-213142-B-category-clock-apply-patch-sandbox.md) |\n| 2026-08-27T21:29:57Z | L3 | chained-state-i... | Repository inspection combined unrelated read-only comman... | [report](errors/20260827-212957-B-chained-state-inspection.md) |\n| 2026-08-27T21:28:48Z | L1 | sandbox-helper-... | Windows sandbox setup refresh failed repeatedly for read-... | [report](errors/20260827-212848-B-sandbox-helper-refresh.md) |\n| 2026-08-27T21:12:24Z | L3 | codex-timing-st... | Windows service --status reported running=yes and autosta... | [report](errors/20260827-211224-C-codex-timing-status-exit.md) |\n| 2026-08-27T21:11:21Z | L1 | codex-backgroun... | Expected RED: the Codex agent state persisted lease-only ... | [report](errors/20260827-211121-C-codex-background-overcount-red.md) |\n| 2026-08-27T21:10:18Z | L3 | codex-timing-rg... | A Windows rg diagnostic used an invalid tests\\windows* p... | [report](errors/20260827-211018-C-codex-timing-rg-wildcard.md) |\n| 2026-08-27T21:08:56Z | L3 | codex-timing-ap... | The apply_patch.bat fallback truncated the multiline patc... | [report](errors/20260827-210856-C-codex-timing-apply-patch-wrapper.md) |\n| 2026-08-27T21:05:12Z | L3 | codex-session-q... | The first read-only SQLite diagnostic had malformed Power... | [report](errors/20260827-210512-C-codex-session-query-quoting.md) |\n| 2026-08-27T21:02:57Z | L2 | codex-backgroun... | Codex continues accumulating usage while merely resident ... | [report](errors/20260827-210257-C-codex-background-overcount.md) |\n| 2026-08-27T21:02:43Z | L3 | codex-timing-in... | apply_patch failed three consecutive times with the same ... | [report](errors/20260827-210243-C-codex-timing-index-patch-repeated.md) |\n| 2026-08-27T21:01:45Z | L3 | codex-timing-in... | apply_patch could not compact the rolling journal index b... | [report](errors/20260827-210145-C-codex-timing-index-patch-sandbox.md) |\n| 2026-08-27T21:01:21Z | L3 | codex-timing-pr... | Track C preflight was blocked because the existing harnes... | [report](errors/20260827-210121-C-codex-timing-preflight-index-budget.md) |\n| 2026-08-27T20:30:31Z | L3 | migrated-copy-m... | The C drive source copy has project files but no .git met... | [report](errors/20260827-203031-A-migrated-copy-missing-git.md) |\n| 2026-08-27T20:30:31Z | L3 | exec-runtime-re... | The default command runtime failed to initialize twice wi... | [report](errors/20260827-203031-A-exec-runtime-refresh.md) |\n| 2026-08-27T00:27:34Z | L1 | apply-patch-san... | Updating existing learning index failed because the Windo... | [report](errors/20260827-002734-A-apply-patch-sandbox.md) |\n| 2026-08-26T22:04:31Z | L1 | learning-guide-... | Harness recheck still counted INDEX.md at 102 lines after... | [report](errors/20260826-220431-A-learning-guide-index-budget-recheck.md) |\n| 2026-08-26T22:03:38Z | L1 | learning-guide-... | Final harness audit found the rolling journal INDEX at 10... | [report](errors/20260826-220338-A-learning-guide-index-budget.md) |\n| 2026-08-26T22:02:28Z | L3 | apply-patch-wra... | Two retries through apply_patch.bat lost the multiline pa... | [report](errors/20260826-220228-A-apply-patch-wrapper-argument.md) |\n| 2026-08-26T21:56:11Z | L3 | apply-patch-san... | Final documentation batch patch was not applied because t... | [report](errors/20260826-215611-A-apply-patch-sandbox-refresh.md) |\n| 2026-08-26T21:45:15Z | L3 | shell-runtime-r... | Sandbox shell helper again failed setup refresh while rea... | [report](errors/20260826-214515-A-shell-runtime-refresh-repeat.md) |\n| 2026-08-26T21:44:11Z | L3 | inventory-missi... | Source inventory assumed android/CMakeLists.txt existed; ... | [report](errors/20260826-214411-A-inventory-missing-android-cmake.md) |\n| 2026-08-26T21:42:48Z | L3 | git-metadata-un... | Repository inventory could not read Git history because t... | [report](errors/20260826-214248-A-git-metadata-unavailable.md) |\n| 2026-08-26T21:41:57Z | L1 | shell-runtime-init | Codex shell helper failed setup refresh twice; escalated ... | [report](errors/20260826-214157-A-shell-runtime-init.md) |\n| 2026-08-26T21:23:02Z | L1 | d-drive-unavail... | The real desktop environment no longer has a D drive, so ... | [report](errors/20260826-212302-A-d-drive-unavailable.md) |\n| 2026-08-26T21:22:44Z | L2 | sandbox-d-drive... | Final non-escalated verification ran as CodexSandboxOffli... | [report](errors/20260826-212244-A-sandbox-d-drive-visibility.md) |\n| 2026-08-26T16:42:18Z | L2 | code-env-migrat... | PowerShell parsed a colon immediately after procName as p... | [report](errors/20260826-164218-A-code-env-migration-parser.md) |\n| 2026-08-26T16:33:48Z | L2 | sandbox-user-pa... | Non-escalated PATH verification ran as CodexSandboxOfflin... | [report](errors/20260826-163348-A-sandbox-user-path-verification.md) |\n| 2026-08-26T16:32:14Z | L2 | user-path-not-p... | Toolchain user PATH entries were missing after initial mi... | [report](errors/20260826-163214-A-user-path-not-persisted.md) |\n| 2026-08-26T16:26:50Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260826-162650-A-build-failure.md) |\n| 2026-08-26T16:22:41Z | L3 | qt6110-index-mi... | aqt could list tool packages but could not locate the Qt ... | [report](errors/20260826-162241-A-qt6110-index-missing.md) |\n| 2026-08-26T16:21:49Z | L3 | aqt-qt-checksum | Initial Qt repository query could not retrieve the Update... | [report](errors/20260826-162149-A-aqt-qt-checksum.md) |\n| 2026-08-26T16:21:10Z | L3 | aqt-appdata-san... | aqtinstall initialization needed its normal AppData cache... | [report](errors/20260826-162110-A-aqt-appdata-sandbox.md) |\n| 2026-08-26T16:18:15Z | L3 | preflight-sandb... | Initial mandatory preflight could not write current-track... | [report](errors/20260826-161815-A-preflight-sandbox-permission.md) |\n| 2026-08-26T16:18:07Z | L3 | environment-inv... | Environment inventory command used an invalid foreach pip... | [report](errors/20260826-161807-A-environment-inventory-powershell.md) |\n| 2026-08-25T05:43:02Z | L1 | post-merge-icon... | Post-merge native icon verification used a positional EXE... | [report](errors/20260825-054302-C-post-merge-icon-test-cli.md) |\n| 2026-08-25T05:35:37Z | L2 | native-icon-ind... | Windows icon debug reports expanded the rolling journal I... | [report](errors/20260825-053537-C-native-icon-index-budget.md) |\n| 2026-08-25T05:28:22Z | L1 | windows-native-... | cmake --build exited 1 | [report](errors/20260825-052822-C-windows-native-icon-build.md) |\n| 2026-08-25T05:27:41Z | L3 | build-wrapper-d... | The first wrapped build omitted --track C, so build.py au... | [report](errors/20260825-052741-C-build-wrapper-default-track.md) |\n| 2026-08-25T05:27:41Z | L1 | stale-windows-r... | CMake regeneration kept a stale F: drive windres path in ... | [report](errors/20260825-052741-C-stale-windows-rc-compiler.md) |\n| 2026-08-25T05:26:08Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260825-052608-B-build-failure.md) |\n| 2026-08-25T05:24:11Z | L3 | ico-preview-uns... | Local image viewer could not decode the generated ICO dir... | [report](errors/20260825-052411-C-ico-preview-unsupported.md) |\n| 2026-08-25T05:23:35Z | L3 | icon-check-afte... | Chained icon inspection commands ran after generation fai... | [report](errors/20260825-052335-C-icon-check-after-generate-failure.md) |\n| 2026-08-25T05:23:34Z | L1 | windows-icon-ge... | Windows icon generator passed integer sizes to Pillow ICO... | [report](errors/20260825-052334-C-windows-icon-generator-sizes.md) |\n| 2026-08-25T05:21:12Z | L3 | cairosvg-unavai... | Bundled workspace Python has Pillow but not CairoSVG, so ... | [report](errors/20260825-052112-C-cairosvg-unavailable.md) |\n| 2026-08-25T05:20:57Z | L2 | windows-icon-re... | Expected RED: built TimeArc.exe has no native RT_ICON res... | [report](errors/20260825-052057-C-windows-icon-resource-red.md) |\n| 2026-08-25T05:19:53Z | L3 | tdd-test-guide-... | TDD skill referenced writing-good-tests.md beside SKILL.m... | [report](errors/20260825-051953-C-tdd-test-guide-missing.md) |\n| ... | L1/L2/L3 | omitted | Older rows omitted from INDEX; see `errors.jsonl`. | |\n
 
-Rolling index of recent reports. `errors.jsonl` is authoritative; older rows are
-omitted here to preserve the harness line budget.
+<!-- record_error.py: error table not found -->
+| 2026-08-27T21:48:38Z | L3 | sector-clock-te... | The first multi-file test patch had an invalid empty hunk... | [report](errors/20260827-214838-B-sector-clock-test-patch.md) |
 
-## Error entries
+<!-- record_error.py: error table not found -->
+| 2026-08-27T21:49:17Z | L1 | sector-clock-ba... | Expected TDD RED: StatsViewModel did not yet expose annul... | [report](errors/20260827-214917-B-sector-clock-band-red.md) |
 
-| Date (UTC) | Lvl | Topic | Report |
-|---|---|---|---|
-| 2026-08-25T04:16:01Z | L2 | main-fetch-head... | Non-escalated git fetch could not write .git/FETCH_HEAD b... | [report](errors/20260825-041601-B-main-fetch-head-denied.md) |
-| 2026-08-25T04:14:47Z | L2 | commit-after-di... | PowerShell command sequencing allowed git commit to run a... | [report](errors/20260825-041447-B-commit-after-diff-check.md) |
-| 2026-08-25T04:13:47Z | L2 | merged-dev-inde... | Merged-dev verification errors pushed the rolling journal... | [report](errors/20260825-041347-B-merged-dev-index-budget.md) |
-| 2026-08-25T04:12:47Z | L3 | release-ui-clos... | TimeArc had no CloseMainWindow handle while locking the r... | [report](errors/20260825-041247-B-release-ui-close-window.md) |
-| 2026-08-25T04:12:20Z | L1 | merged-dev-rele... | cmake --build exited 1 | [report](errors/20260825-041220-B-merged-dev-release-gate-green.md) |
-| 2026-08-25T04:11:18Z | L1 | merged-dev-rele... | cmake --build exited 1 | [report](errors/20260825-041118-B-merged-dev-release-gate.md) |
-| 2026-08-25T04:08:50Z | L2 | release-index-b... | New installer packaging errors pushed harness journal IND... | [report](errors/20260825-040850-B-release-index-budget.md) |
-| 2026-08-25T04:06:50Z | L2 | sfx-size-assertion | The valid SFX output was smaller than the source ZIP beca... | [report](errors/20260825-040650-B-sfx-size-assertion.md) |
-| 2026-08-25T04:05:15Z | L3 | sevenzip-output... | 7zr extraction received a split -o switch for the local t... | [report](errors/20260825-040515-B-sevenzip-output-switch.md) |
-| 2026-08-25T04:04:05Z | L3 | iexpress-help-b... | IExpress help invocation opened an interactive process an... | [report](errors/20260825-040405-B-iexpress-help-blocked.md) |
-| 2026-08-25T04:03:09Z | L2 | iexpress-quoted... | IExpress still failed after quoting target/source paths; ... | [report](errors/20260825-040309-B-iexpress-quoted-path-red.md) |
-| 2026-08-25T04:02:34Z | L1 | iexpress-instal... | Initial IExpress SED exited without producing the Windows... | [report](errors/20260825-040234-B-iexpress-installer-red.md) |
-| 2026-08-25T03:57:02Z | L2 | release-git-ind... | git add could not create .git/index.lock under the manage... | [report](errors/20260825-035702-B-release-git-index-denied.md) |
-| 2026-08-25T03:56:03Z | L3 | release-process... | PowerShell could not stop the running TimeArc UI/service ... | [report](errors/20260825-035603-B-release-process-stop-denied.md) |
-| 2026-08-25T03:54:36Z | L3 | readme-trailing... | README rewrites left an extra blank line at EOF and git d... | [report](errors/20260825-035436-B-readme-trailing-blank.md) |
-| 2026-08-25T03:33:35Z | L1 | autostart-atomi... | Expected RED: repository ignored autostart decision-marke... | [report](errors/20260825-033335-B-autostart-atomic-marker-red.md) |
-| 2026-08-25T03:28:46Z | L1 | release-default... | Final harness check found INDEX at 112 lines and current-... | [report](errors/20260825-032846-B-release-defaults-harness-drift.md) |
-| 2026-08-25T03:28:00Z | L3 | rg-access-denie... | rg.exe launch was denied while locating scoped review sym... | [report](errors/20260825-032800-A-rg-access-denied-review.md) |
-| 2026-08-25T03:27:45Z | L1 | game-basename-red | Expected RED: substring game detection incorrectly accept... | [report](errors/20260825-032745-B-game-basename-red.md) |
-| 2026-08-25T03:27:22Z | L3 | harness-preflig... | preflight blocked by existing harness drift: .harness/jou... | [report](errors/20260825-032722-A-harness-preflight-drift.md) |
-| 2026-08-25T03:21:59Z | L1 | native-autostar... | cmake --build exited 1 | [report](errors/20260825-032159-B-native-autostart-registry-green.md) |
-| 2026-08-25T03:20:48Z | L1 | native-autostar... | Expected RED: production autostart code still used QSetti... | [report](errors/20260825-032048-B-native-autostart-registry-red.md) |
-| 2026-08-25T03:18:33Z | L1 | sqlite-autostar... | Read-only SQLite marker query had PowerShell quoting synt... | [report](errors/20260825-031833-B-sqlite-autostart-query-quoting.md) |
-| 2026-08-25T03:14:57Z | L1 | release-default... | cmake --build exited 1 | [report](errors/20260825-031457-B-release-defaults-game-clock-full.md) |
-| 2026-08-25T03:14:04Z | L1 | build-wrapper-t... | Focused build target arguments require a double-dash sepa... | [report](errors/20260825-031404-B-build-wrapper-target-separator.md) |
-| 2026-08-25T03:11:14Z | L1 | rg-access-denie... | Bundled rg.exe was denied while inspecting release defaul... | [report](errors/20260825-031114-B-rg-access-denied-release-defaults.md) |
-| 2026-08-25T03:09:29Z | L1 | game-clock-ui-red | Expected TDD RED: StatsViewModel lacks compact clock lane... | [report](errors/20260825-030929-B-game-clock-ui-red.md) |
-| 2026-08-25T03:09:22Z | L1 | release-default... | cmake --build exited 1 | [report](errors/20260825-030922-B-release-defaults-game-clock-red.md) |
-| 2026-08-25T03:05:58Z | L3 | tdd-test-guide-... | TDD skill referenced writing-good-tests.md beside SKILL.m... | [report](errors/20260825-030558-B-tdd-test-guide-path.md) |
-| 2026-08-25T02:57:53Z | L3 | impeccable-cont... | Impeccable context command referenced a repository-local ... | [report](errors/20260825-025753-B-impeccable-context-path.md) |
-| 2026-08-25T02:53:45Z | L1 | custom-name-ind... | Pre-commit harness check found journal INDEX.md at 105 li... | [report](errors/20260825-025345-B-custom-name-index-budget.md) |
-| 2026-08-25T02:48:29Z | L1 | rg-execution-de... | Bundled rg.exe was denied by Windows while locating build... | [report](errors/20260825-024829-B-rg-execution-denied.md) |
-| 2026-08-25T02:47:21Z | L1 | custom-name-lib... | Green attempt showed StatsViewModel.buildAppLibrary drops... | [report](errors/20260825-024721-B-custom-name-library-propagation.md) |
-| 2026-08-25T02:46:19Z | L3 | custom-name-cha... | A custom display-name inspection chained PowerShell comma... | [report](errors/20260825-024619-B-custom-name-chained-inspection.md) |
-| 2026-08-25T02:43:14Z | L1 | custom-display-... | Expected TDD failures: settings exposes only custom ID AP... | [report](errors/20260825-024314-B-custom-display-name-ui-red.md) |
-| 2026-08-25T02:43:08Z | L1 | custom-display-... | cmake --build exited 1 | [report](errors/20260825-024308-B-custom-display-name-red.md) |
-| 2026-08-25T02:41:41Z | L3 | display-name-se... | PowerShell Select-String pattern quoting split a combined... | [report](errors/20260825-024141-B-display-name-search-quoting.md) |
-| 2026-08-25T02:29:21Z | L2 | app-identity-in... | A new recorded diagnostic returned rolling INDEX.md to 10... | [report](errors/20260825-022921-B-app-identity-index-recheck.md) |
-| 2026-08-25T02:28:56Z | L3 | chained-git-dia... | Pre-commit read-only diagnostics chained three git comman... | [report](errors/20260825-022856-B-chained-git-diagnostics.md) |
-| 2026-08-25T02:28:11Z | L2 | app-identity-st... | Exact-file staging was blocked by a stale .git/index.lock... | [report](errors/20260825-022811-B-app-identity-stale-index-lock.md) |
-| 2026-08-25T02:26:15Z | L2 | app-identity-in... | Pre-commit harness audit found journal INDEX.md at 110 li... | [report](errors/20260825-022615-B-app-identity-index-budget.md) |
-| 2026-08-25T02:21:36Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260825-022136-B-qt-warning-60b8e32bf0.md) |
-| 2026-08-25T02:21:35Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260825-022135-B-qt-warning-60b8e32bf0.md) |
-| 2026-08-25T02:21:29Z | L1 | scan-qt-log-opt... | scan_qt_log.py only accepts --log/--track/--dry-run; reru... | [report](errors/20260825-022129-B-scan-qt-log-options.md) |
-| 2026-08-25T02:20:23Z | L1 | app-identity-ui... | cmake --build exited 1 | [report](errors/20260825-022023-B-app-identity-ui-build-green.md) |
-| 2026-08-25T02:18:15Z | L1 | app-identity-ui... | cmake --build exited 1 | [report](errors/20260825-021815-B-app-identity-ui-build.md) |
-| 2026-08-25T02:16:36Z | L1 | app-identity-qm... | Expected TDD failure: settings page has no persisted app ... | [report](errors/20260825-021636-B-app-identity-qml-red.md) |
-| 2026-08-25T02:16:05Z | L1 | qml-static-test... | Patch context used the wrong variable name for representa... | [report](errors/20260825-021605-B-qml-static-test-patch-context.md) |
-| 2026-08-25T02:13:55Z | L1 | app-identity-ma... | Expected TDD failure: UsageStatManager does not yet expos... | [report](errors/20260825-021355-B-app-identity-manager-red.md) |
-| 2026-08-25T02:12:01Z | L1 | app-identity-po... | cmake --build exited 1 | [report](errors/20260825-021201-B-app-identity-policy-red.md) |
-| 2026-08-25T02:11:13Z | L2 | rg-access-denie... | Bundled rg.exe was denied by Windows while inspecting db_... | [report](errors/20260825-021113-B-rg-access-denied-app-identity.md) |
-| 2026-08-25T02:11:00Z | L2 | rg-stderr-redir... | Combined PowerShell diagnostic used stderr redirection th... | [report](errors/20260825-021100-B-rg-stderr-redirection.md) |
-| 2026-08-25T02:05:33Z | L3 | settings-header... | Implementation-plan inspection used SettingsRepository.h ... | [report](errors/20260825-020533-B-settings-header-path-case.md) |
-| 2026-08-25T02:03:06Z | L3 | git-index-write... | Sandbox denied .git/index.lock while committing the appro... | [report](errors/20260825-020306-B-git-index-write-denied.md) |
-| 2026-08-25T01:55:33Z | L3 | sqlite-apps-las... | Read-only icon investigation query assumed a non-existent... | [report](errors/20260825-015533-B-sqlite-apps-last-seen-assumed.md) |
-| 2026-08-25T01:44:35Z | L3 | sqlite-agent-co... | Read-only Codex session query used obsolete title/timesta... | [report](errors/20260825-014435-C-sqlite-agent-columns-assumed.md) |
-| 2026-08-25T01:42:44Z | L3 | rg-access-denie... | Bundled rg.exe was denied while locating Codex agent leas... | [report](errors/20260825-014244-C-rg-access-denied-agent-overcount.md) |
-| 2026-08-25T01:42:25Z | L2 | codex-post-task... | Codex agent time continued increasing after the five-minu... | [report](errors/20260825-014225-C-codex-post-task-overcount.md) |
-| 2026-08-24T22:08:28Z | L1 | agent-timing-in... | Pre-commit harness audit found journal INDEX.md at 109 li... | [report](errors/20260824-220828-C-agent-timing-index-budget.md) |
-| 2026-08-24T22:07:07Z | L3 | qt-log-rotate-a... | Post-run Qt log scan found the known clipboard retry warn... | [report](errors/20260824-220707-C-qt-log-rotate-agent-timing.md) |
-| 2026-08-24T22:06:55Z | L2 | qt-warning-60b8... | [WARNING] :0 - Retrying to obtain clipboard. | [report](errors/20260824-220655-C-qt-warning-60b8e32bf0.md) |
-| 2026-08-24T22:05:23Z | L3 | verification-ui... | Normal Stop-Process could not stop the escalated TimeArc ... | [report](errors/20260824-220523-C-verification-ui-stop.md) |
-| 2026-08-24T21:57:01Z | L2 | codex-sibling-w... | Expected TDD red: official Codex worker under a sibling C... | [report](errors/20260824-215701-C-codex-sibling-worker-red.md) |
-| 2026-08-24T21:52:12Z | L2 | live-service-no... | Live rebuilt service stayed responsive but the expected s... | [report](errors/20260824-215212-C-live-service-no-db-write.md) |
-| 2026-08-24T21:48:50Z | L3 | live-agent-prob... | First live agent smoke switched away from Codex before th... | [report](errors/20260824-214850-C-live-agent-probe-order.md) |
-| 2026-08-24T21:43:03Z | L1 | codex-agent-sta... | Expected TDD red: background Codex agent-session test ref... | [report](errors/20260824-214303-C-codex-agent-state-red.md) |
-| 2026-08-24T21:42:55Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260824-214255-B-build-failure.md) |
-| 2026-08-24T21:41:10Z | L1 | bili-delay-hint... | Expected TDD red: delayed Bilibili attribution test refer... | [report](errors/20260824-214110-C-bili-delay-hint-red.md) |
-| 2026-08-24T21:40:56Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260824-214056-B-build-failure.md) |
-| 2026-08-24T21:39:55Z | L1 | voice-policy-build | Voice-app policy implementation failed to compile; focuse... | [report](errors/20260824-213955-C-voice-policy-build.md) |
-| 2026-08-24T21:39:47Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260824-213947-B-build-failure.md) |
-| 2026-08-24T21:39:22Z | L2 | voice-app-polic... | Expected TDD red: Oopz and KOOK Active unmuted silent aud... | [report](errors/20260824-213922-C-voice-app-policy-red.md) |
-| 2026-08-24T21:36:45Z | L2 | codex-media-under | Codex task runtime is undercounted when the UI loses fore... | [report](errors/20260824-213645-C-codex-media-under.md) |
-| 2026-08-24T21:36:45Z | L3 | rg-agent-timing | Bundled rg.exe was denied by WindowsApps while locating t... | [report](errors/20260824-213645-C-rg-agent-timing.md) |
-| 2026-08-24T21:36:44Z | L3 | error-topic-too... | Two record_error calls used slugs over the 40-character l... | [report](errors/20260824-213644-C-error-topic-too-long.md) |
-| 2026-08-24T21:36:44Z | L3 | system-python-r... | System Python 3.12.10 failed to start with exit -10737415... | [report](errors/20260824-213644-C-system-python-runtime.md) |
-| 2026-08-24T21:29:13Z | L3 | apps-last-seen-... | Live timing diagnostic assumed apps.last_seen_unix_sec ex... | [report](errors/20260824-212913-C-apps-last-seen-column-assumption.md) |
-| 2026-08-24T21:24:06Z | L3 | stats-service-p... | Timing-logic inspection referenced non-existent PascalCas... | [report](errors/20260824-212406-C-stats-service-path-case.md) |
-| 2026-08-24T21:20:43Z | L1 | wechat-policy-b... | Post-implementation build failed while compiling the Wind... | [report](errors/20260824-212043-C-wechat-policy-build-green-failure.md) |
-| 2026-08-24T21:20:38Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260824-212038-B-build-failure.md) |
-| 2026-08-24T21:20:05Z | L1 | expected-wechat... | Expected TDD red build: Windows foreground state test ref... | [report](errors/20260824-212005-C-expected-wechat-policy-red.md) |
-| 2026-08-24T21:19:59Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260824-211959-B-build-failure.md) |
-| 2026-08-24T21:18:26Z | L3 | system-python-r... | System python crashed with 0xC0000135 while invoking reco... | [report](errors/20260824-211826-C-system-python-runtime-missing.md) |
-| 2026-08-24T21:18:26Z | L3 | rg-access-denied | Bundled rg.exe could not start with Access Denied while s... | [report](errors/20260824-211826-C-rg-access-denied.md) |
-| 2026-08-24T21:18:26Z | L2 | wechat-autonomo... | Windows foreground tracker grants process CPU/I/O work le... | [report](errors/20260824-211826-C-wechat-autonomous-lease.md) |
-| 2026-08-24T21:15:58Z | L3 | weixin-sql-powe... | Combined PowerShell/Python SQLite diagnostic was parsed i... | [report](errors/20260824-211558-C-weixin-sql-powershell-quoting.md) |
-| 2026-08-24T20:54:44Z | L1 | harness-line-bu... | Pre-commit harness audit found INDEX.md at 110 lines and ... | [report](errors/20260824-205444-C-harness-line-budget.md) |
-| 2026-08-24T20:50:40Z | L3 | win32-enumwindo... | A diagnostic EnumWindows PowerShell one-liner had an unma... | [report](errors/20260824-205040-C-win32-enumwindows-powershell-syntax.md) |
-| 2026-08-24T20:50:05Z | L3 | tasklist-access... | tasklist /v could not inspect packaged Codex windows unde... | [report](errors/20260824-205005-C-tasklist-access-denied.md) |
-| ... | L2 | omitted | Older L2 rows omitted from INDEX; see `errors.jsonl`. | |
-| ... | L3 | omitted | Older L3 rows omitted from INDEX; see `errors.jsonl`. | |
+<!-- record_error.py: error table not found -->
+| 2026-08-27T21:49:26Z | L1 | sector-clock-fi... | Expected TDD RED: the desktop clock Canvas still stroked ... | [report](errors/20260827-214926-B-sector-clock-fill-red.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:21:20Z | L1 | page-guide-remo... | Expected RED: desktop UX test still finds pageGuideModel ... | [report](errors/20260828-032120-B-page-guide-removal-red.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:21:38Z | L1 | stats-clock-i18... | Expected RED: new application-clock strings remain Chines... | [report](errors/20260828-032138-B-stats-clock-i18n-red.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:21:53Z | L1 | sandbox-helper-... | Read-only rg command failed because the unified exec sand... | [report](errors/20260828-032153-B-sandbox-helper-read.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:23:42Z | L1 | stats-clock-smo... | Expected RED: 10-minute category clock aggregation functi... | [report](errors/20260828-032342-B-stats-clock-smoothing-red.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:49:07Z | L1 | integration-loc... | Integration audit queried local main before it existed; o... | [report](errors/20260828-034907-B-integration-local-main-missing.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:49:07Z | L1 | integration-gh-... | GitHub CLI is not installed on this host; use an availabl... | [report](errors/20260828-034907-B-integration-gh-cli-missing.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:51:19Z | L1 | integration-sta... | Pre-commit diff check found generated build logs and new ... | [report](errors/20260828-035119-B-integration-staged-whitespace.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:51:58Z | L1 | integration-git... | Commit was blocked because repository-local Git author id... | [report](errors/20260828-035158-B-integration-git-identity-missing.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:55:45Z | L1 | integration-she... | Guide-rail patch context did not match the remote English... | [report](errors/20260828-035545-B-integration-shell-guide-context.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:57:49Z | L1 | integration-exe... | Sandboxed unified exec runner failed to start while inspe... | [report](errors/20260828-035749-B-integration-exec-runner-start.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T03:59:06Z | L1 | integration-app... | Built-in apply_patch could not start the Windows sandbox ... | [report](errors/20260828-035906-B-integration-apply-patch-sandbox.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:01:05Z | L1 | stats-test-node... | stats_view_model_test failed at deepStrictEqual with iden... | [report](errors/20260828-040105-B-stats-test-node24-cross-realm.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:01:52Z | L1 | stats-test-ten-... | Stats ring test still expected the former 0.8-degree edge... | [report](errors/20260828-040152-B-stats-test-ten-minute-expectation.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:02:23Z | L1 | i18n-source-cov... | i18n source coverage test reported 2470 mojibake literals... | [report](errors/20260828-040223-B-i18n-source-coverage-encoding.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:02:34Z | L1 | integration-pow... | Inspection command passed a PowerShell range as an unpare... | [report](errors/20260828-040234-B-integration-powershell-index-range.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:03:31Z | L1 | build-failure | cmake --build exited 1 | [report](errors/20260828-040331-B-build-failure.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:05:40Z | L1 | integration-rem... | git diff --cached --check was blocked by trailing spaces ... | [report](errors/20260828-040540-B-integration-remote-journal-whitespace.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:05:55Z | L1 | integration-err... | harness_check found 1241 error journal files missing from... | [report](errors/20260828-040555-B-integration-error-registry-drift.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:06:30Z | L1 | integration-err... | Registry union reduced harness drift to one pre-merge con... | [report](errors/20260828-040630-B-integration-error-registry-orphan.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:13:54Z | L1 | review-test-hel... | Mechanical replacement also rewrote the assertPlainDeepEq... | [report](errors/20260828-041354-B-review-test-helper-replacement.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T04:14:54Z | L1 | review-test-eof... | git diff --check found an extra blank line at EOF added b... | [report](errors/20260828-041454-B-review-test-eof-whitespace.md) |

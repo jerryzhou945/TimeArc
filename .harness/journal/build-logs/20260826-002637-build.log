@@ -1,0 +1,18 @@
+[1/202] Automatic MOC and UIC for target timearc_db_smoke
+[2/201] Automatic MOC and UIC for target timearc_pomodoro_test
+[3/200] Copying time-arc qml sources into build dir
+[4/200] Running qmlimportscanner for time-arc
+[5/200] Automatic MOC and UIC for target time-arc
+[6/199] Running AUTOMOC file extraction for target time-arc
+[7/18] Generating .rcc/qmlcache/time-arc_qml/shared/I18n_js.cpp
+[8/18] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/TodayConclusionCard_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/TodayConclusionCard_qml.cpp.aotstats
+[9/18] Running rcc for resource time-arc_raw_qml_0
+[10/18] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[11/18] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/shared/I18n_js.cpp.o
+[12/18] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/TodayConclusionCard_qml.cpp.o
+[13/18] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/daily_card_service.cpp.o
+[14/18] Linking CXX executable timearc_db_smoke
+[15/18] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/daily_card_service.cpp.o
+[16/18] Linking CXX executable timearc_pomodoro_test
+[17/18] Building CXX object CMakeFiles/time-arc.dir/src/services/daily_card_service.cpp.o
+[18/18] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

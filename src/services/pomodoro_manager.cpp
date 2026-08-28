@@ -32,7 +32,7 @@ PomodoroManager::PomodoroManager(SettingsRepository* settings, QObject* parent)
       m_total(kDefaultTotalSeconds),
       m_remain(kDefaultTotalSeconds),
       m_running(false),
-      m_title(QStringLiteral("专注一会儿")),
+      m_title(QStringLiteral("Focus for a while")),
       m_loaded(false),
       m_anchorMs(0),
       m_remainAtAnchor(kDefaultTotalSeconds),

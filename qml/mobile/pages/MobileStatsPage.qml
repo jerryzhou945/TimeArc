@@ -1,9 +1,15 @@
 import QtQuick
 import "../components"
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property bool wallpaperActive: false
     property url wallpaperSource: ""
@@ -11,28 +17,28 @@ Item {
     property var rangeKeys: ["week", "month", "year", "all"]
     property var rangeMeta: ({
         "week": {
-            "label": "本周",
-            "marker": "周",
+            "label": "This Week",
+            "marker": "Week",
             "date": "MON",
-            "note": "从周一到今天"
+            "note": "Monday to today"
         },
         "month": {
-            "label": "本月",
-            "marker": "月",
+            "label": "This Month",
+            "marker": "Month",
             "date": "01",
-            "note": "从本月一日开始"
+            "note": "Since the 1st of this month"
         },
         "year": {
-            "label": "今年",
-            "marker": "年",
+            "label": "This year",
+            "marker": "Year",
             "date": "26",
-            "note": "从一月一日开始"
+            "note": "Since 1 January"
         },
         "all": {
-            "label": "总计",
-            "marker": "全",
+            "label": "Total",
+            "marker": "All",
             "date": "∞",
-            "note": "从第一条记录开始"
+            "note": "Since the first record"
         }
     })
     property var dashboards: ({})
@@ -70,18 +76,18 @@ Item {
                     "Visual Studio Code", "VS", "6h 48m", 25, 81,
                     "image://appicon/C:/Users/Lenovo/AppData/Local/Programs/Microsoft VS Code/Code.exe")
         var wechat = previewApp(
-                    "微信", "微", "4h 12m", 16, 50,
+                    "WeChat", "We", "4h 12m", 16, 50,
                     "image://appicon/C:/Program Files/Tencent/WeChat/WeChat.exe")
         var music = previewApp(
-                    "网易云音乐", "音", "3h 36m", 13, 43,
+                    "NetEase Cloud Music", "Mu", "3h 36m", 13, 43,
                     "image://appicon/C:/Program Files (x86)/NetEase/CloudMusic/cloudmusic.exe")
         var bilibili = previewApp(
-                    "哔哩哔哩", "哔", "2h 18m", 9, 27,
+                    "Bilibili", "Bi", "2h 18m", 9, 27,
                     "image://appicon/C:/Program Files/Google/Chrome/Application/chrome.exe")
         return {
             "week": {
                 "rangeKey": "week",
-                "rangeLabel": "本周",
+                "rangeLabel": "This Week",
                 "rangeText": "07.14 — 07.20",
                 "totalText": "27h 06m",
                 "activeDays": 7,
@@ -90,7 +96,7 @@ Item {
             },
             "month": {
                 "rangeKey": "month",
-                "rangeLabel": "本月",
+                "rangeLabel": "This Month",
                 "rangeText": "07.01 — 07.20",
                 "totalText": "96h 42m",
                 "activeDays": 18,
@@ -99,17 +105,17 @@ Item {
                                code.appIconPath),
                     previewApp("Microsoft Edge", "E", "21h 18m", 22, 86,
                                edge.appIconPath),
-                    previewApp("微信", "微", "14h 05m", 15, 57,
+                    previewApp("WeChat", "We", "14h 05m", 15, 57,
                                wechat.appIconPath),
-                    previewApp("网易云音乐", "音", "9h 48m", 10, 40,
+                    previewApp("NetEase Cloud Music", "Mu", "9h 48m", 10, 40,
                                music.appIconPath)
                 ],
                 "empty": false
             },
             "year": {
                 "rangeKey": "year",
-                "rangeLabel": "今年",
-                "rangeText": "2026.01.01 — 今天",
+                "rangeLabel": "This year",
+                "rangeText": "2026.01.01 — today",
                 "totalText": "568h",
                 "activeDays": 142,
                 "topApps": [code, edge, wechat, music],
@@ -117,8 +123,8 @@ Item {
             },
             "all": {
                 "rangeKey": "all",
-                "rangeLabel": "总计",
-                "rangeText": "2025.03.13 — 今天",
+                "rangeLabel": "Total",
+                "rangeText": "2025.03.13 — today",
                 "totalText": "812h",
                 "activeDays": 168,
                 "topApps": [code, edge, wechat, music, bilibili],
@@ -175,6 +181,8 @@ Item {
         anchors.fill: parent
 
         MobileStatusBar {
+
+            languageMode: root.languageMode
             width: parent.width
             theme: root.theme
         }
@@ -232,7 +240,7 @@ Item {
                             width: parent.width
                             text: root.detailOpen
                                   ? root.rangeMeta[root.selectedRange].label
-                                  : "时间统计"
+                                  : "Time Stats"
                             color: root.wallpaperActive
                                    ? root.theme.wallpaperInk
                                    : root.theme.textPrimary
@@ -247,9 +255,9 @@ Item {
                         Text {
                             width: parent.width
                             text: root.detailOpen
-                                  ? root.dashboardFor(
-                                        root.selectedRange).rangeText
-                                  : "每一段时长，都有来处"
+                                  ? I18n.reportRange(root.languageMode,
+                                        root.dashboardFor(root.selectedRange))
+                                  : root.tr("Every stretch of time comes from somewhere")
                             color: root.wallpaperActive
                                    ? root.theme.wallpaperMuted
                                    : root.theme.textSecondary
@@ -328,9 +336,8 @@ Item {
                                         Text {
                                             width: parent.width
                                                    - rangeDuration.width - 10
-                                            text: root.rangeMeta[
-                                                      rangeBlock.modelData].label
-                                                  + "，时间停在这些应用里"
+                                            text: I18n.sentence(root.languageMode, "rangeAppsHeading",
+                                                                {range: root.tr(root.rangeMeta[rangeBlock.modelData].label)})
                                             color: root.wallpaperActive
                                                    ? root.theme.wallpaperInk
                                                    : root.theme.textPrimary
@@ -356,12 +363,10 @@ Item {
                                     Text {
                                         width: parent.width
                                         text: rangeBlock.dashboard.empty
-                                              ? "还没有记录，完成同步后再回来看看。"
-                                              : (root.rangeMeta[
-                                                     rangeBlock.modelData].note
-                                                 + "，共记录 "
-                                                 + rangeBlock.dashboard.activeDays
-                                                 + " 天。")
+                                              ? "No records yet. Come back once syncing is done."
+                                              : I18n.sentence(root.languageMode, "rangeRecordedDays",
+                                                              {note: root.tr(root.rangeMeta[rangeBlock.modelData].note),
+                                                               days: rangeBlock.dashboard.activeDays})
                                         color: root.wallpaperActive
                                                ? root.theme.wallpaperMuted
                                                : root.theme.textSecondary
@@ -376,6 +381,8 @@ Item {
                                         spacing: 8
 
                                         MobileAppIcon {
+
+                                            languageMode: root.languageMode
                                             anchors.verticalCenter:
                                                 parent.verticalCenter
                                             theme: root.theme
@@ -389,10 +396,9 @@ Item {
                                             anchors.verticalCenter:
                                                 parent.verticalCenter
                                             text: rangeBlock.dashboard.empty
-                                                  ? "暂无应用"
-                                                  : ((rangeBlock.leadApp.displayName
-                                                      || "未知应用")
-                                                     + " 留下的时间最多")
+                                                  ? "No apps yet"
+                                                  : I18n.sentence(root.languageMode, "leadAppMostTime",
+                                                                  {app: rangeBlock.leadApp.displayName || root.tr("Unknown app")})
                                             color: root.wallpaperActive
                                                    ? root.theme.wallpaperMuted
                                                    : root.theme.textMuted
@@ -464,13 +470,9 @@ Item {
 
                             Text {
                                 width: parent.width
-                                text: "记录 "
-                                      + (root.dashboardFor(
-                                             root.selectedRange).activeDays || 0)
-                                      + " 天 · "
-                                      + ((root.dashboardFor(
-                                              root.selectedRange).topApps || []).length)
-                                      + " 个应用"
+                                text: I18n.sentence(root.languageMode, "recordedDaysApps",
+                                                    {days: root.dashboardFor(root.selectedRange).activeDays || 0,
+                                                     count: (root.dashboardFor(root.selectedRange).topApps || []).length})
                                 color: root.wallpaperActive
                                        ? root.theme.wallpaperMuted
                                        : root.theme.textSecondary
@@ -491,7 +493,7 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: "应用使用排行"
+                        text: "App usage ranking"
                         color: root.wallpaperActive
                                ? root.theme.wallpaperInk
                                : root.theme.textPrimary
@@ -514,7 +516,7 @@ Item {
 
                         Text {
                             anchors.centerIn: parent
-                            text: "分享这份排行"
+                            text: "Share this ranking"
                             color: root.wallpaperActive
                                    ? root.theme.wallpaperInk
                                    : root.theme.accentBright
@@ -534,7 +536,7 @@ Item {
                         width: parent.width
                         visible: (root.dashboardFor(
                                       root.selectedRange).topApps || []).length === 0
-                        text: "这个时间范围还没有记录。开启使用情况访问并同步后，再回来看看。"
+                        text: "Nothing recorded in this range yet. Turn on usage access, sync, and come back."
                         color: root.wallpaperActive
                                ? root.theme.wallpaperMuted
                                : root.theme.textSecondary
@@ -549,6 +551,8 @@ Item {
                                    root.selectedRange).topApps || []
 
                         MobileUsageRankRow {
+
+                            languageMode: root.languageMode
                             required property var modelData
                             required property int index
                             width: parent.width
@@ -564,6 +568,8 @@ Item {
     }
 
     MobileRankingShareOverlay {
+
+        languageMode: root.languageMode
         id: rankingShare
         theme: root.theme
         wallpaperSource: root.wallpaperSource

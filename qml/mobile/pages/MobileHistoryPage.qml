@@ -1,10 +1,16 @@
 import QtQuick
 import "../components"
 import "../components/MobileMonthProfiles.js" as MonthProfiles
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property bool wallpaperActive: false
     readonly property int dateRailWidth: 52
@@ -42,37 +48,37 @@ Item {
                     "Google Chrome", "Ch",
                     "image://appicon/C:/Program Files/Google/Chrome/Application/chrome.exe")
         var music = previewApp(
-                    "网易云音乐", "音",
+                    "NetEase Cloud Music", "Mu",
                     "image://appicon/C:/Program Files (x86)/NetEase/CloudMusic/cloudmusic.exe")
         var wechat = previewApp(
-                    "微信", "微",
+                    "WeChat", "We",
                     "image://appicon/C:/Program Files/Tencent/WeChat/WeChat.exe")
         return {
             "report": {
-                "monthLabel": "六月时间报告",
-                "title": "时间像夏夜的风，经过了 24 个被记住的日子",
-                "summary": "168 小时 24 分散在不同的应用之间，最常出现的是 Visual Studio Code。"
+                "monthLabel": "June time report",
+                "title": "Time moved like a summer night breeze across 24 remembered days",
+                "summary": "168h 24m spread across different apps, most often Visual Studio Code."
             },
             "topApps": [code, chrome, music, wechat],
             "moments": [
                 {
                     "dateLabel": "2026-06-28",
-                    "title": "午后的四小时，像一条没有断开的线",
-                    "body": "Visual Studio Code 与浏览器连续出现 4h 36m，周五的创作从午后延伸到天色变暗。",
+                    "title": "Four afternoon hours, like a line that never broke",
+                    "body": "Visual Studio Code and the browser ran together for 4h 36m; Friday's work stretched from afternoon into dusk.",
                     "durationText": "4h 36m",
                     "apps": [code, chrome]
                 },
                 {
                     "dateLabel": "2026-06-22",
-                    "title": "夜深以后，声音替这一天留了一盏灯",
-                    "body": "音乐从 23:42 停留到次日，共 2h 18m。这是六月最长的一段深夜声音记录。",
+                    "title": "After midnight, sound kept a light on for the day",
+                    "body": "Music carried from 23:42 into the next day, 2h 18m in all — June's longest late-night stretch of sound.",
                     "durationText": "2h 18m",
                     "apps": [music]
                 },
                 {
                     "dateLabel": "2026-06-11",
-                    "title": "午后有 42 分钟，生活从两个窗口经过",
-                    "body": "两个应用短暂交替 9 次。这里只保存聚合后的时间，不保留你看见的具体内容。",
+                    "title": "For 42 afternoon minutes, life passed through two windows",
+                    "body": "Two apps alternated briefly 9 times. Only aggregated time is kept here, never what you saw.",
                     "durationText": "42m",
                     "apps": [wechat, chrome]
                 }
@@ -84,30 +90,30 @@ Item {
     function monthText(dateLabel) {
         var raw = (dateLabel || "").toString()
         if (raw.length < 7)
-            return "本月"
-        var names = ["一月", "二月", "三月", "四月", "五月", "六月",
-                     "七月", "八月", "九月", "十月", "十一月", "十二月"]
+            return "This Month"
+        var names = ["January", "February", "March", "April", "May", "June",
+                     "July", "August", "September", "October", "November", "December"]
         var month = parseInt(raw.slice(5, 7), 10)
-        return month >= 1 && month <= 12 ? names[month - 1] : "本月"
+        return month >= 1 && month <= 12 ? names[month - 1] : "This Month"
     }
 
     function archiveModels() {
         if (!root.isPreviewMode()) {
             return [{
-                "code": root.report.monthLabel || "本月",
-                "title": root.report.monthLabel || "本月时间报告",
+                "code": root.report.monthLabel || "This Month",
+                "title": root.report.monthLabel || "This month's time report",
                 "meta": (root.report.totalText || "")
                         + ((root.report.activeDays || 0) > 0
-                           ? " · " + root.report.activeDays + " 个记录日" : "")
+                           ? I18n.sentence(root.languageMode, "historyRecordDays", {count: root.report.activeDays}) : "")
             }]
         }
         return [
-            { "code": "06", "title": "六月时间报告",
-              "meta": "168h 24m · 24 个记录日" },
-            { "code": "05", "title": "五月时间报告",
-              "meta": "152h 08m · 22 个记录日" },
-            { "code": "04", "title": "四月时间报告",
-              "meta": "139h 46m · 20 个记录日" }
+            { "code": "06", "title": "June time report",
+              "meta": "168h 24m · 24 recorded days" },
+            { "code": "05", "title": "May time report",
+              "meta": "152h 08m · 22 recorded days" },
+            { "code": "04", "title": "April time report",
+              "meta": "139h 46m · 20 recorded days" }
         ]
     }
 
@@ -140,6 +146,8 @@ Item {
         anchors.fill: parent
 
         MobileStatusBar {
+
+            languageMode: root.languageMode
             width: parent.width
             theme: root.theme
         }
@@ -168,7 +176,7 @@ Item {
                         spacing: 2
 
                         Text {
-                            text: "记忆湖"
+                            text: "Memory Lake"
                             color: root.theme.textPrimary
                             font.family: root.theme.fontFamily
                             font.pixelSize: 27
@@ -176,7 +184,7 @@ Item {
                         }
 
                         Text {
-                            text: "回看被时间留下的真实片段"
+                            text: "Look back at the real fragments time left behind"
                             color: root.theme.textSecondary
                             font.family: root.theme.fontFamily
                             font.pixelSize: 12
@@ -184,6 +192,8 @@ Item {
                     }
 
                     MobileGlassPanel {
+
+                        languageMode: root.languageMode
                         width: 110
                         height: 40
                         anchors.verticalCenter: parent.verticalCenter
@@ -193,7 +203,7 @@ Item {
 
                         Text {
                             anchors.centerIn: parent
-                            text: root.report.monthLabel || "本月"
+                            text: I18n.reportMonthLabel(root.languageMode, root.report) || root.tr("This Month")
                             color: root.theme.textPrimary
                             font.family: root.theme.numberFontFamily
                             font.pixelSize: 12
@@ -236,7 +246,7 @@ Item {
                         spacing: 9
 
                         Text {
-                            text: root.report.monthLabel || "本月时间报告"
+                            text: I18n.reportMonthLabel(root.languageMode, root.report) || root.tr("This month's time report")
                             color: "white"
                             font.family: root.theme.fontFamily
                             font.pixelSize: 12
@@ -245,7 +255,7 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: root.report.title || "等待第一段时间被记住"
+                            text: I18n.reportTitle(root.languageMode, root.report) || root.tr("Waiting for the first stretch to be remembered")
                             color: "white"
                             font.family: root.theme.fontFamily
                             font.pixelSize: 26
@@ -259,7 +269,7 @@ Item {
                         Text {
                             width: parent.width
                             text: root.report.summary
-                                  || "同步后，这里会从真实记录生成月度故事。"
+                                  || "After syncing, the monthly story is built here from real records."
                             color: "#E7F0E5"
                             font.family: root.theme.fontFamily
                             font.pixelSize: 13
@@ -301,7 +311,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "打开完整月报"
+                                text: "Open the full monthly report"
                                 color: root.coverProfile.accentInk || "#17352C"
                                 font.family: root.theme.fontFamily
                                 font.pixelSize: 13
@@ -322,7 +332,7 @@ Item {
 
                     Text {
                         width: parent.width - 120
-                        text: "最近被记住"
+                        text: "Recently remembered"
                         color: root.theme.textPrimary
                         font.family: root.theme.fontFamily
                         font.pixelSize: 19
@@ -332,7 +342,7 @@ Item {
 
                     Text {
                         width: 120
-                        text: "让每次回望都有来处"
+                        text: "Give every look back somewhere to come from"
                         color: root.theme.textMuted
                         font.family: root.theme.fontFamily
                         font.pixelSize: 10
@@ -344,7 +354,7 @@ Item {
                 Text {
                     width: parent.width
                     visible: root.moments.length === 0
-                    text: "还没有被记住的片段。完成授权并同步后，应用和时间会在这里形成可回看的句子。"
+                    text: "Nothing remembered yet. Once access is granted and synced, apps and time will form sentences you can look back on."
                     color: root.theme.textSecondary
                     font.family: root.theme.fontFamily
                     font.pixelSize: 14
@@ -442,6 +452,8 @@ Item {
                                         model: modelData.apps || []
 
                                         MobileAppIcon {
+
+                                            languageMode: root.languageMode
                                             required property var modelData
                                             theme: root.theme
                                             app: modelData
@@ -469,7 +481,7 @@ Item {
 
                     Text {
                         width: parent.width - 100
-                        text: "月报归档"
+                        text: "Monthly archive"
                         color: root.wallpaperActive
                                ? root.theme.wallpaperInk
                                : root.theme.textPrimary
@@ -481,7 +493,7 @@ Item {
 
                     Text {
                         width: 100
-                        text: "本地保存"
+                        text: "Stored locally"
                         color: root.wallpaperActive
                                ? root.theme.wallpaperMuted
                                : root.theme.textMuted
@@ -583,6 +595,8 @@ Item {
     }
 
     MobileMonthlyStory {
+
+        languageMode: root.languageMode
         id: monthlyStory
         theme: root.theme
         model: root.lakeModel

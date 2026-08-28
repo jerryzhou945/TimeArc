@@ -1,9 +1,15 @@
 import QtQuick
 import QtQuick.Window
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     required property var theme
     property var app: ({})
     property string dateRange: ""
@@ -38,40 +44,41 @@ Item {
     function storyForShare() {
         if (!anonymous)
             return app.storyText
-                    || "这段时间被安静地收进了本地档案。"
-        var duration = app.durationText || "一段时间"
+                    || "This stretch of time was quietly filed away on this device."
+        var duration = app.durationText || "a stretch of time"
         var days = Number(app.recordedDays || 0)
         if (days > 1)
-            return "在 " + days + " 个被记录的日子里，"
-                    + duration + " 汇成了一段只属于自己的时间。"
-        return duration + " 被安静地收进了时间档案，没有留下身份线索。"
+            return I18n.sentence(root.languageMode, "shareStoryDays",
+                                 {days: days, duration: duration})
+        return I18n.sentence(root.languageMode, "shareStoryAnon",
+                             {duration: duration})
     }
 
     function exportAndShare(channel) {
         errorText = ""
-        feedbackText = "正在生成图片…"
+        feedbackText = "Building the image…"
         poster.grabToImage(function(result) {
             if (typeof mobileUiService === "undefined" || !mobileUiService) {
-                errorText = "当前预览环境无法保存图片。"
+                errorText = "Images cannot be saved in this preview environment."
                 feedbackText = ""
                 return
             }
             var stem = anonymous ? "memory" : (app.displayName || "memory")
             var path = mobileUiService.createShareImagePath(stem)
             if (!path || !result.saveToFile(path)) {
-                errorText = "图片没有保存成功，请重试。"
+                errorText = "The image was not saved. Try again."
                 feedbackText = ""
                 return
             }
             if (!mobileUiService.shareImageToChannel(
-                        path, channel || "system", "分享时间纪念卡")) {
+                        path, channel || "system", "Share time keepsake card")) {
                 errorText = mobileUiService.lastError
                 feedbackText = ""
                 return
             }
             feedbackText = Qt.platform.os === "android"
-                    ? "已打开系统分享面板"
-                    : "图片已保存到 " + path
+                    ? root.tr("System share sheet opened")
+                    : I18n.sentence(root.languageMode, "imageSavedTo", {path: path})
         }, Qt.size(1080, 1920))
     }
 
@@ -113,7 +120,7 @@ Item {
                     spacing: 2
 
                     Text {
-                        text: "分享预览"
+                        text: "Share preview"
                         color: root.theme.textPrimary
                         font.family: root.theme.fontFamily
                         font.pixelSize: 20
@@ -121,7 +128,7 @@ Item {
                     }
 
                     Text {
-                        text: "原始标题、联系人、网址和包名不会进入图片"
+                        text: "Original titles, contacts, URLs and package names never enter the image"
                         color: root.theme.textMuted
                         font.family: root.theme.fontFamily
                         font.pixelSize: 11
@@ -135,6 +142,8 @@ Item {
                     color: root.theme.surfaceRaised
 
                     MobileSymbolIcon {
+
+                        languageMode: root.languageMode
                         anchors.centerIn: parent
                         name: "close"
                         color: root.theme.textPrimary
@@ -212,7 +221,7 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: "TimeArc · 时间纪念卡"
+                            text: "TimeArc · time keepsake"
                             color: root.theme.memoryCopy
                             font.family: root.theme.fontFamily
                             font.pixelSize: 11
@@ -224,6 +233,8 @@ Item {
                             spacing: 10
 
                             MobileAppIcon {
+
+                                languageMode: root.languageMode
                                 visible: !root.anonymous
                                 theme: root.theme
                                 app: root.app
@@ -236,8 +247,8 @@ Item {
                                        - (root.anonymous ? 0 : 56)
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.anonymous
-                                      ? "一段被记住的时间"
-                                      : (root.app.displayName || "应用")
+                                      ? "A stretch of time remembered"
+                                      : (root.app.displayName || "App")
                                 color: root.theme.memoryInk
                                 font.family: root.theme.fontFamily
                                 font.pixelSize: 19
@@ -287,9 +298,9 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: "记录 " + (root.app.recordedDays || 0)
-                                  + " 天 · 占这段时间 "
-                                  + (root.app.sharePct || 0) + "%"
+                            text: I18n.sentence(root.languageMode, "recordedDaysShare",
+                                                {days: root.app.recordedDays || 0,
+                                                 percent: root.app.sharePct || 0})
                             color: root.theme.memoryCopy
                             font.family: root.theme.fontFamily
                             font.pixelSize: 12
@@ -323,7 +334,7 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: root.anonymous ? "已匿名" : "显示应用"
+                        text: root.anonymous ? "Anonymised" : "Show app"
                         color: root.theme.textPrimary
                         font.family: root.theme.fontFamily
                         font.pixelSize: 13
@@ -337,6 +348,8 @@ Item {
                 }
 
                 MobileShareActionBar {
+
+                    languageMode: root.languageMode
                     width: parent.width
                     theme: root.theme
                     compact: true

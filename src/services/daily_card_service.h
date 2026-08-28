@@ -10,6 +10,7 @@
 #include <QVariantMap>
 
 class StatsService;
+class CategorizationManager;
 class FrontmostSessionRepository;
 
 // 生活时间线的卡片生成器。本地确定性卡片（今日主线 / App 使用 / 专注块），
@@ -20,8 +21,10 @@ class DailyCardService : public QObject {
   Q_OBJECT
 
  public:
+  // categorization 可空：为空时按出厂规则表分类，测试因此不必搭一整套管理器。
   explicit DailyCardService(StatsService* statsService,
                             FrontmostSessionRepository* frontmostRepository,
+                            CategorizationManager* categorization = nullptr,
                             QObject* parent = nullptr);
 
   // 返回今天的卡片列表（QVariantMap 列表）。无任何记录时返回空列表，

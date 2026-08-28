@@ -1,0 +1,10 @@
+[1/11] Copying time-arc qml sources into build dir
+[2/11] Automatic MOC and UIC for target timearc_db_smoke
+[3/10] Running qmlimportscanner for time-arc
+[4/10] Generating .rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.aotstats
+[5/10] Running rcc for resource time-arc_raw_qml_0
+[6/10] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[7/10] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/DesktopAppShell_qml.cpp.o
+[8/10] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc
+[9/10] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.o
+[10/10] Linking CXX executable timearc_db_smoke

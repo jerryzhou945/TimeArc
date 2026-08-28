@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../components/AppVisual.js" as AppVisual
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 
 // 单张记忆卡牌：3D 翻面（Flipable + Y 轴旋转，自带透视），选中放大，悬停预览。
 // 1:1 对应设计稿 .card / .face / 翻面 rotateY。
@@ -217,7 +217,7 @@ Item {
                         }
                         Text {
                             visible: card.selected
-                            text: I18n.t(card.languageMode, "点击翻面后锁定选择")
+                            text: I18n.t(card.languageMode, "Flip to lock selection")
                             color: card.style ? card.style.textTertiary : "#888"
                             font.pixelSize: 11
                         }
@@ -302,7 +302,7 @@ Item {
                     spacing: 14
                     Text {
                         width: parent.width
-                        text: card.app ? I18n.smartText(card.languageMode, card.app.mood) : ""
+                        text: card.app ? I18n.t(card.languageMode, card.app.mood) : ""
                         color: card.style ? card.style.textPrimary : "#fff"
                         font.pixelSize: card.selected ? 30 : 20
                         font.bold: true
@@ -310,7 +310,7 @@ Item {
                     }
                     Text {
                         width: parent.width
-                        text: card.app ? I18n.smartText(card.languageMode, card.app.analysis) : ""
+                        text: card.app ? I18n.fromModel(card.languageMode, card.app.analysisKey, card.app.analysisParams) : ""
                         color: card.style ? card.style.textSecondary : "#bbb"
                         font.pixelSize: 14
                         lineHeight: 1.4
@@ -332,14 +332,14 @@ Item {
                                 spacing: 3
                                 Text {
                                     width: parent.width
-                                    text: I18n.t(card.languageMode, "总使用")
+                                    text: I18n.t(card.languageMode, "Total use")
                                     color: card.style ? card.style.textSecondary : "#ccc"
                                     font.pixelSize: 11
                                     elide: Text.ElideRight
                                 }
                                 Text {
                                     width: parent.width
-                                    text: card.app ? I18n.smartText(card.languageMode, card.app.totalTime || card.app.time) : "0m"
+                                    text: card.app ? I18n.t(card.languageMode, card.app.totalTime || card.app.time) : "0m"
                                     color: card.style ? card.style.accentText : "#9FE7EE"
                                     font.pixelSize: 22
                                     font.weight: Font.Bold
@@ -352,9 +352,9 @@ Item {
                             spacing: 8
                             Repeater {
                                 model: card.app ? [
-                                    { k: "本年", v: card.app.yearTime },
-                                    { k: "本月", v: card.app.monthTime },
-                                    { k: "今日", v: card.app.dayTime }
+                                    { k: "This Year", v: card.app.yearTime },
+                                    { k: "This Month", v: card.app.monthTime },
+                                    { k: "Today", v: card.app.dayTime }
                                 ] : []
                                 delegate: Rectangle {
                                     required property var modelData
@@ -378,7 +378,7 @@ Item {
                                         }
                                         Text {
                                             width: parent.width
-                                            text: I18n.smartText(card.languageMode, modelData.v || "0m")
+                                            text: I18n.t(card.languageMode, modelData.v || "0m")
                                             color: card.style ? card.style.textPrimary : "#fff"
                                             font.pixelSize: 13
                                             font.weight: Font.Bold
@@ -394,8 +394,8 @@ Item {
                             spacing: 10
                             Repeater {
                                 model: card.app ? [
-                                    { k: "启动", v: card.app.launches },
-                                    { k: "最长", v: card.app.longest }
+                                    { k: "Launches", v: card.app.launches },
+                                    { k: "Longest", v: card.app.longest }
                                 ] : []
                                 delegate: Rectangle {
                                     required property var modelData
@@ -407,7 +407,7 @@ Item {
                                     border.color: card.style ? card.style.cardBorder : "#ffffff16"
                                     Text {
                                         anchors.centerIn: parent
-                                        text: I18n.t(card.languageMode, modelData.k) + "  " + I18n.smartText(card.languageMode, modelData.v)
+                                        text: I18n.t(card.languageMode, modelData.k) + "  " + I18n.t(card.languageMode, modelData.v)
                                         color: card.style ? card.style.textSecondary : "#ccc"
                                         font.pixelSize: 12
                                         font.bold: true

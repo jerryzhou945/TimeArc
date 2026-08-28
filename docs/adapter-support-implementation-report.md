@@ -1,5 +1,8 @@
 # Adapter 支持系统实施报告
 
+> **历史文档。** 这里描述的 adapter 系统已被分类规则表取代，相关源码与文档已删除。
+> 现状见 [`categorization-system.md`](categorization-system.md)。
+
 日期：2026-06-08
 
 分支：`feature/adapter-support-system`

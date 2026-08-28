@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Builds an unsigned per-user TimeArc test installer with the 7-Zip LZMA SDK SFX.
+  Builds an unsigned per-user TimeArc test installer with the configurable 7-Zip LZMA SDK SFX.
 
 .DESCRIPTION
   Embeds the verified portable ZIP plus a PowerShell installer. The payload is
@@ -8,13 +8,13 @@
   are created, and TimeArc is launched. No elevation is required.
 
   The default local tool directory is intentionally ignored by Git. Populate it
-  with official 7-Zip 26.02 7za.exe and LZMA SDK 7zS2.sfx, or pass explicit paths.
+  with official 7-Zip 26.02 7za.exe and LZMA SDK 7zSD.sfx, or pass explicit paths.
 #>
 param(
   [string]$Version = "0.1",
   [string]$OutRoot = "dist",
   [string]$SevenZip = ".local-toolchains/7zip-26.02/extra/x64/7za.exe",
-  [string]$SfxModule = ".local-toolchains/7zip-26.02/lzma/bin/7zS2.sfx"
+  [string]$SfxModule = ".local-toolchains/7zip-26.02/lzma/bin/7zSD.sfx"
 )
 $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -33,7 +33,7 @@ if (-not (Test-Path $sevenZipPath -PathType Leaf)) {
   exit 1
 }
 if (-not (Test-Path $sfxPath -PathType Leaf)) {
-  Write-Error "7zS2.sfx not found: $sfxPath (download the official LZMA SDK or pass -SfxModule)"
+  Write-Error "7zSD.sfx not found: $sfxPath (download the official LZMA SDK or pass -SfxModule)"
   exit 1
 }
 
@@ -83,6 +83,7 @@ Start-Process -FilePath (Join-Path $installRoot "TimeArc.exe") -WorkingDirectory
 ;!@Install@!UTF-8!
 Title="TimeArc $Version Test Installer"
 BeginPrompt="Install TimeArc $Version for the current Windows user?"
+Directory=""
 RunProgram="powershell.exe -NoProfile -ExecutionPolicy Bypass -File install.ps1"
 ;!@InstallEnd@!
 "@

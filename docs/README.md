@@ -10,6 +10,7 @@
 
 | 主题 | 首选文档 |
 | --- | --- |
+| 从零学习架构与面试准备 | [learning/00-README.md](learning/00-README.md) |
 | 当前 backlog | [implementation-backlog.md](implementation-backlog.md) |
 | 测试发布/视频 | [beta-tester-release-kit.md](beta-tester-release-kit.md) |
 | Windows/macOS 差异 | [platform-parity-packaging-gap.md](platform-parity-packaging-gap.md) |
@@ -25,7 +26,6 @@
 
 - [life-timeline-product-direction.md](life-timeline-product-direction.md) — 私有生命时间线方向。
 - [card-ai-development-spec.md](card-ai-development-spec.md) — 时间卡与 AI 文案边界。
-- [desktop-mobile-next-plan.md](desktop-mobile-next-plan.md) — 桌面/移动后续计划。
 - [DESIGN.md](../DESIGN.md) — 移动端设计系统。
 - [PRODUCT.md](../PRODUCT.md) — 产品语气、用户和反例。
 
@@ -37,19 +37,16 @@
 - [stats-backend-performance.md](stats-backend-performance.md) — 聚合性能约束。
 - [memory-lake-implementation-plan.md](memory-lake-implementation-plan.md) — 记忆湖总计划。
 - [memory-lake-backend-integration-plan.md](memory-lake-backend-integration-plan.md) — 真数据接入。
-- [monthly-report-social-share-plan.md](monthly-report-social-share-plan.md) — 月报与分享。
 
 桌面测试发布暂时隐藏记忆湖入口；代码和历史数据保留。相关文档不是当前公开功能承诺。
 
 ## 采集、身份与图标
 
-- [adapter-system.md](adapter-system.md) — 应用/站点适配系统。
-- [adding-app-support.md](adding-app-support.md) — 新增桌面应用支持。
-- [adding-website-support.md](adding-website-support.md) — 新增网站支持。
+- [categorization-system.md](categorization-system.md) — 分类规则表（应用/站点识别 + 类别），含「如何新增一个应用或站点」。
+- [categorization-redesign.md](categorization-redesign.md) — 该系统的设计与取舍。
 - [mainland-site-tracking.md](mainland-site-tracking.md) — 国内站点拆分。
 - [media-real-title-capture-status.md](media-real-title-capture-status.md) — 媒体标题状态。
 - [site-icon-assets.md](site-icon-assets.md) — 图标来源登记。
-- [windows-foreground-tracking-fix.md](windows-foreground-tracking-fix.md) — Windows 前台计时基线。
 - [windows-bilibili-site-attribution-fix-2026-08-25.md](windows-bilibili-site-attribution-fix-2026-08-25.md) — 浏览器媒体归因。
 
 ## 桌面 UI
@@ -64,16 +61,12 @@
 
 - [mobile/android-usage-time-collection-plan.md](mobile/android-usage-time-collection-plan.md)
 - [mobile/android-usage-backend-implementation-report.md](mobile/android-usage-backend-implementation-report.md)
-- [mobile-share-privacy-implementation-report.md](mobile-share-privacy-implementation-report.md)
-- [mobile-global-background-implementation-report.md](mobile-global-background-implementation-report.md)
 
 ## 工程与发布
 
 - [a1-sqlite-storage-migration-kickoff.md](a1-sqlite-storage-migration-kickoff.md)
 - [b1-windows-service-scm-kickoff.md](b1-windows-service-scm-kickoff.md)
-- [windows-release-packaging-kickoff.md](windows-release-packaging-kickoff.md)
-- [macos-app-bundle-packaging.md](macos-app-bundle-packaging.md)
-- [third-party-license-page.md](third-party-license-page.md)
+- [f2-in-app-licenses-page-kickoff.md](f2-in-app-licenses-page-kickoff.md)
 - [future-coding-harness.md](future-coding-harness.md)
 - [agent-harness-vs-superpowers.md](agent-harness-vs-superpowers.md)
 

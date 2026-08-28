@@ -13,8 +13,17 @@ class SettingsRepository : public QObject {
  public:
   explicit SettingsRepository(QObject* parent = nullptr);
 
+  // 读缓存：首次读取时把整张 settings 表（几十行）一次性装进内存，之后 getValue/getBool
+  // 纯内存命中。此前每次调用都 prepare+exec 一条 SELECT，而调用点包括**委托内的 text:
+  // 绑定**（日历 displayTime / TimeRiver / StickyNote 每条目读一次 time_format），
+  // 一次列表重排就是几十次 SQL。本进程是 GUI 库 settings 表的唯一写者（只经 setValue），
+  // 故缓存即权威。整库被替换时必须 invalidateCache()。
   Q_INVOKABLE QString getValue(const QString& key,
                                const QString& defaultValue = QString());
+
+  // 丢弃读缓存，下次读取重新装载。整库被换掉时调用（DatabaseManager::restoreDatabase
+  // 会 emit databaseRestored；由 QML 转接，见 rules/04 §6：管理器之间不直连）。
+  Q_INVOKABLE void invalidateCache();
 
   // The effective UI language: the stored `language_mode` when it names a
   // language TimeArc ships (en | zh | ja), otherwise the closest match to the
@@ -97,6 +106,15 @@ class SettingsRepository : public QObject {
   // 就什么都不做——绝不擅自装登录项。返回自检后是否在采集。
   // 其他平台恒 false（Windows 行为不变）。守 I1：纯 UI→子进程命令。
   Q_INVOKABLE bool verifyBackgroundCollection();
+
+ private:
+  // 整张 settings 表的内存镜像。缓存是**进程级**的，不是每实例一份：所有实例都走同一个
+  // 具名连接（"timearc"）、同一张表，而代码里确实会同时存在多个 SettingsRepository
+  // （tests/db_smoke.cpp 就用第二个实例模拟「重启后重读」）。做成每实例一份的话，A 写入
+  // 之后 B 仍拿着自己那份陈旧快照——db_smoke 正是这样抓到的。实现见 .cpp 的匿名命名空间。
+  // 装不上（库未开 / 查询失败）时不置 loaded，getValue 退回 defaultValue，与加缓存前
+  // 逐字节一致。
+  void ensureCacheLoaded();
 };
 
 #endif

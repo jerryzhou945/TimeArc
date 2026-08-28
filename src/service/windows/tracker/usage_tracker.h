@@ -6,6 +6,7 @@
 #define TIMEARC_USAGE_POLL_INTERVAL_MS 1000
 #define TIMEARC_USAGE_IDLE_THRESHOLD_MS 60000
 #define TIMEARC_USAGE_WORK_LEASE_MS 90000
+#define TIMEARC_USAGE_AGENT_WORK_LEASE_MS 10000
 #define TIMEARC_USAGE_CHECKPOINT_SEC 60
 
 // Per-session Local\ kernel object names shared by the tracker and lifecycle verbs.

@@ -27,6 +27,7 @@ if (-not (Test-Path $Exe)) { Fail "exe not found: $Exe (build Release first via 
 # Resolve objdump: explicit path/PATH, then common project toolchain locations.
 $od = Get-Command $Objdump -ErrorAction SilentlyContinue
 if (-not $od) { $od = Get-Command "D:/TimeArc/QT/Tools/mingw1310_64/bin/objdump.exe" -ErrorAction SilentlyContinue }
+if (-not $od) { $od = Get-Command "C:/code_env/Qt-6.11.0-MinGW64/Tools/mingw1310_64/bin/objdump.exe" -ErrorAction SilentlyContinue }
 if (-not $od) { $od = Get-Command "C:/Qt/Tools/mingw1310_64/bin/objdump.exe" -ErrorAction SilentlyContinue }
 if (-not $od) { Fail "objdump not found; pass -Objdump with the MinGW toolchain path" }
 

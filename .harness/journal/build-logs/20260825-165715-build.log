@@ -1,0 +1,20 @@
+[1/204] Automatic MOC and UIC for target time-arc
+[2/204] Automatic MOC and UIC for target timearc_db_smoke
+[3/204] Automatic MOC and UIC for target timearc_pomodoro_test
+[4/204] Running AUTOMOC file extraction for target time-arc
+[5/204] Running moc --collect-json for target time-arc
+[6/20] Building CXX object CMakeFiles/timearc_db_smoke.dir/timearc_db_smoke_autogen/mocs_compilation.cpp.o
+[7/20] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/timearc_pomodoro_test_autogen/mocs_compilation.cpp.o
+[8/20] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+[9/20] Building CXX object CMakeFiles/time-arc.dir/time-arc_autogen/mocs_compilation.cpp.o
+[10/20] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/categorization_manager.cpp.o
+[11/20] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/categorization_manager.cpp.o
+[12/20] Building CXX object CMakeFiles/time-arc.dir/src/services/categorization_manager.cpp.o
+[13/20] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/daily_card_service.cpp.o
+[14/20] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/daily_card_service.cpp.o
+[15/20] Building CXX object CMakeFiles/time-arc.dir/src/services/daily_card_service.cpp.o
+[16/20] Linking CXX executable timearc_pomodoro_test
+[17/20] Building CXX object CMakeFiles/time-arc.dir/src/services/usage_stat_manager.cpp.o
+[18/20] Building CXX object CMakeFiles/timearc_db_smoke.dir/tests/db_smoke.cpp.o
+[19/20] Linking CXX executable timearc_db_smoke
+[20/20] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

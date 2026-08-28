@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import "../components/I18n.js" as I18n
+import "../../shared/I18n.js" as I18n
 import "../components/PlatformCursor.js" as Cursor
 
 // 番茄钟浮窗（v88 .pomodoro-widget）。**纯视图**：状态机、持久化、完成判定都在 C++ 的
@@ -210,7 +210,7 @@ Item {
                 background: null
                 padding: 0
                 color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.62)
-                placeholderText: I18n.t(pomo.languageMode, "专注什么？")
+                placeholderText: I18n.t(pomo.languageMode, "What to focus on?")
                 placeholderTextColor: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.30)
                 font.pixelSize: 12
                 maximumLength: 30
@@ -247,7 +247,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 Row {
                     spacing: 4
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(pomo.languageMode, "分")
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(pomo.languageMode, "min")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12 }
                     NumberField {
                         id: minBox
@@ -258,7 +258,7 @@ Item {
                 }
                 Row {
                     spacing: 4
-                    Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(pomo.languageMode, "秒")
+                    Text { anchors.verticalCenter: parent.verticalCenter; text: I18n.t(pomo.languageMode, "sec")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.55); font.pixelSize: 12 }
                     NumberField {
                         id: secBox
@@ -282,7 +282,7 @@ Item {
                         GradientStop { position: 0; color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.94) }
                         GradientStop { position: 1; color: Qt.rgba(155 / 255, 139 / 255, 255 / 255, 0.92) }
                     }
-                    Text { anchors.centerIn: parent; text: pomo.running ? I18n.t(pomo.languageMode, "进行中") : I18n.t(pomo.languageMode, "开始")
+                    Text { anchors.centerIn: parent; text: pomo.running ? I18n.t(pomo.languageMode, "Running") : I18n.t(pomo.languageMode, "Start")
                            color: Qt.rgba(4 / 255, 8 / 255, 14 / 255, 0.94); font.pixelSize: 14; font.weight: Font.DemiBold }
                     MouseArea {
                         anchors.fill: parent
@@ -295,7 +295,7 @@ Item {
                     width: 72; height: 34; radius: 10
                     color: resetH.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : Qt.rgba(1, 1, 1, 0.05)
                     border.width: 1; border.color: Qt.rgba(142 / 255, 223 / 255, 255 / 255, 0.16)
-                    Text { anchors.centerIn: parent; text: I18n.t(pomo.languageMode, "重置")
+                    Text { anchors.centerIn: parent; text: I18n.t(pomo.languageMode, "Reset")
                            color: Qt.rgba(235 / 255, 245 / 255, 255 / 255, 0.82); font.pixelSize: 14 }
                     MouseArea { id: resetH; anchors.fill: parent; hoverEnabled: true
                         cursorShape: Cursor.button(); onClicked: pomo.resetTimer() }

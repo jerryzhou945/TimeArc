@@ -2,10 +2,17 @@ import QtQuick
 import QtQuick.Window
 import "components"
 import "pages"
+import "../shared/I18n.js" as I18n
 
 Rectangle {
     id: root
 
+
+    // One resolver owns the UI language (SettingsRepository::languageMode),
+    // so a fresh install adopts the system language and every surface agrees.
+    property string languageMode: (typeof settingsRepository !== "undefined" && settingsRepository)
+                                  ? settingsRepository.languageMode() : "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     color: mobileTheme.bg
 
     property string currentTab: "home"
@@ -198,6 +205,7 @@ Rectangle {
 
         MobileHomePage {
             anchors.fill: parent
+            languageMode: root.languageMode
             visible: root.currentTab === "home"
             enabled: visible
             theme: mobileTheme
@@ -209,6 +217,7 @@ Rectangle {
 
         MobileStatsPage {
             anchors.fill: parent
+            languageMode: root.languageMode
             visible: root.currentTab === "stats"
             enabled: visible
             theme: mobileTheme
@@ -218,6 +227,7 @@ Rectangle {
 
         MobileHistoryPage {
             anchors.fill: parent
+            languageMode: root.languageMode
             visible: root.currentTab === "history"
             enabled: visible
             theme: mobileTheme
@@ -227,10 +237,12 @@ Rectangle {
         MobileSettingsPage {
             id: settingsPage
             anchors.fill: parent
+            languageMode: root.languageMode
             visible: root.currentTab === "settings"
             enabled: visible
             theme: mobileTheme
             wallpaperActive: root.wallpaperActive
+            onLanguageChanged: function(mode) { root.languageMode = mode }
             onDarkModeChanged: function(enabled) {
                 root.setDarkMode(enabled)
             }
@@ -267,13 +279,15 @@ Rectangle {
 
             Repeater {
                 model: [
-                    { "key": "home", "label": "首页", "icon": "home" },
-                    { "key": "stats", "label": "统计", "icon": "stats" },
-                    { "key": "history", "label": "记忆湖", "icon": "history" },
-                    { "key": "settings", "label": "我的", "icon": "settings" }
+                    { "key": "home", "label": "Home", "icon": "home" },
+                    { "key": "stats", "label": "Stats", "icon": "stats" },
+                    { "key": "history", "label": "Memory Lake", "icon": "history" },
+                    { "key": "settings", "label": "Me", "icon": "settings" }
                 ]
 
                 MobileTabButton {
+
+                    languageMode: root.languageMode
                     required property var modelData
                     width: tabBar.width / 4
                     theme: mobileTheme
@@ -294,6 +308,8 @@ Rectangle {
     }
 
     MobileLaunchOverlay {
+
+        languageMode: root.languageMode
         id: launchOverlay
         anchors.fill: parent
         theme: mobileTheme

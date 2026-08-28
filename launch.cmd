@@ -11,9 +11,17 @@ REM  Any arguments are forwarded to TimeArc.exe.
 REM ============================================================
 setlocal
 
-set "QT=D:\TimeArc\QT\6.11.0\mingw_64"
-set "MINGW=D:\TimeArc\QT\Tools\mingw1310_64\bin"
-set "NINJA=D:\TimeArc\QT\Tools\Ninja"
+set "ENV_ROOT=%TIMEARC_QT_ROOT%"
+if not defined ENV_ROOT if exist "D:\TimeArc\QT\6.11.0\mingw_64\bin" set "ENV_ROOT=D:\TimeArc\QT"
+if not defined ENV_ROOT if exist "C:\code_env\Qt-6.11.0-MinGW64\6.11.0\mingw_64\bin" set "ENV_ROOT=C:\code_env\Qt-6.11.0-MinGW64"
+if not defined ENV_ROOT if exist "C:\Qt\6.11.0\mingw_64\bin" set "ENV_ROOT=C:\Qt"
+if not defined ENV_ROOT (
+    echo [launch] Qt 6.11.0 toolchain not found. Set TIMEARC_QT_ROOT to its root directory.
+    exit /b 1
+)
+set "QT=%ENV_ROOT%\6.11.0\mingw_64"
+set "MINGW=%ENV_ROOT%\Tools\mingw1310_64\bin"
+set "NINJA=%ENV_ROOT%\Tools\Ninja"
 set "PATH=%QT%\bin;%MINGW%;%NINJA%;%PATH%"
 
 set "ROOT=%~dp0"

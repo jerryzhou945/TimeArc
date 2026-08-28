@@ -255,11 +255,11 @@ QString MobileUiService::qqAppId() const {
 bool MobileUiService::importWallpaper(const QUrl& source) {
   setLastError(QString());
   if (!source.isValid() || source.isEmpty()) {
-    setLastError(QStringLiteral("没有选择可用的图片。"));
+    setLastError(QStringLiteral("No usable image was selected."));
     return false;
   }
   if (!QDir().mkpath(wallpaperDirectory())) {
-    setLastError(QStringLiteral("无法创建壁纸存储目录。"));
+    setLastError(QStringLiteral("Could not create the wallpaper folder."));
     return false;
   }
 
@@ -280,20 +280,20 @@ bool MobileUiService::importWallpaper(const QUrl& source) {
   if (!copySourceToFile(source, temporary) ||
       QFileInfo(temporary).size() <= 0) {
     QFile::remove(temporary);
-    setLastError(QStringLiteral("这张图片无法读取，请重新选择本地图片。"));
+    setLastError(QStringLiteral("This image could not be read. Please pick another local image."));
     return false;
   }
 
   if (!QFile::rename(temporary, finalPath)) {
     QFile::remove(temporary);
-    setLastError(QStringLiteral("壁纸保存失败，请检查设备存储空间。"));
+    setLastError(QStringLiteral("Could not save the wallpaper. Check your device storage."));
     return false;
   }
 
   if (settingsRepository_ &&
       !settingsRepository_->setValue(kWallpaperSetting, finalPath)) {
     QFile::remove(finalPath);
-    setLastError(QStringLiteral("壁纸设置未能保存。"));
+    setLastError(QStringLiteral("The wallpaper setting could not be saved."));
     return false;
   }
 
@@ -308,7 +308,7 @@ bool MobileUiService::clearWallpaper() {
   setLastError(QString());
   if (settingsRepository_ &&
       !settingsRepository_->setValue(kWallpaperSetting, QStringLiteral(""))) {
-    setLastError(QStringLiteral("恢复默认背景失败，请稍后重试。"));
+    setLastError(QStringLiteral("Could not restore the default background. Try again later."));
     return false;
   }
   const QString previous = wallpaperPath_;
@@ -321,11 +321,11 @@ bool MobileUiService::clearWallpaper() {
 bool MobileUiService::importAvatar(const QUrl& source) {
   setLastError(QString());
   if (!source.isValid() || source.isEmpty()) {
-    setLastError(QStringLiteral("没有选择可用的头像图片。"));
+    setLastError(QStringLiteral("No usable profile picture was selected."));
     return false;
   }
   if (!QDir().mkpath(profileDirectory())) {
-    setLastError(QStringLiteral("无法创建头像存储目录。"));
+    setLastError(QStringLiteral("Could not create the profile picture folder."));
     return false;
   }
 
@@ -346,18 +346,18 @@ bool MobileUiService::importAvatar(const QUrl& source) {
   if (!copySourceToFile(source, temporary) ||
       QFileInfo(temporary).size() <= 0) {
     QFile::remove(temporary);
-    setLastError(QStringLiteral("这张头像无法读取，请重新选择本地图片。"));
+    setLastError(QStringLiteral("This picture could not be read. Please pick another local image."));
     return false;
   }
   if (!QFile::rename(temporary, finalPath)) {
     QFile::remove(temporary);
-    setLastError(QStringLiteral("头像保存失败，请检查设备存储空间。"));
+    setLastError(QStringLiteral("Could not save the profile picture. Check your device storage."));
     return false;
   }
   if (settingsRepository_ &&
       !settingsRepository_->setValue(kAvatarSetting, finalPath)) {
     QFile::remove(finalPath);
-    setLastError(QStringLiteral("头像设置未能保存。"));
+    setLastError(QStringLiteral("The profile picture setting could not be saved."));
     return false;
   }
 
@@ -372,7 +372,7 @@ bool MobileUiService::clearAvatar() {
   setLastError(QString());
   if (settingsRepository_ &&
       !settingsRepository_->setValue(kAvatarSetting, QStringLiteral(""))) {
-    setLastError(QStringLiteral("移除头像失败，请稍后重试。"));
+    setLastError(QStringLiteral("Could not remove the profile picture. Try again later."));
     return false;
   }
   const QString previous = avatarPath_;
@@ -396,13 +396,13 @@ bool MobileUiService::saveImageToGallery(const QUrl& source,
   setLastError(QString());
   const QString path = localPathFor(source);
   if (path.isEmpty() || !QFileInfo::exists(path)) {
-    setLastError(QStringLiteral("分享图片尚未生成，请重新保存。"));
+    setLastError(QStringLiteral("The share image is not ready yet. Save it again."));
     return false;
   }
 #ifdef Q_OS_ANDROID
   const QString savedUri = androidSaveImageToGallery(path, albumName);
   if (savedUri.isEmpty()) {
-    setLastError(QStringLiteral("无法保存到系统图库，请检查存储空间。"));
+    setLastError(QStringLiteral("Could not save to the system gallery. Check your storage."));
     return false;
   }
   setLastSavedImagePath(savedUri);
@@ -418,13 +418,13 @@ bool MobileUiService::shareImage(const QUrl& source,
   setLastError(QString());
   const QString path = localPathFor(source);
   if (path.isEmpty() || !QFileInfo::exists(path)) {
-    setLastError(QStringLiteral("分享图片尚未生成，请重新保存。"));
+    setLastError(QStringLiteral("The share image is not ready yet. Save it again."));
     return false;
   }
   setLastSavedImagePath(path);
 #ifdef Q_OS_ANDROID
   if (!androidShareImage(path, chooserTitle)) {
-    setLastError(QStringLiteral("没有找到可接收图片的分享应用。"));
+    setLastError(QStringLiteral("No app was found that can receive the image."));
     return false;
   }
 #else
@@ -441,7 +441,7 @@ bool MobileUiService::shareImageToChannel(const QUrl& source,
       QStringLiteral("qzone"), QStringLiteral("system")};
   const QString key = channel.trimmed().toLower();
   if (!channels.contains(key)) {
-    setLastError(QStringLiteral("不支持这个分享目标。"));
+    setLastError(QStringLiteral("This share target is not supported."));
     return false;
   }
   const QString path = localPathFor(source);
@@ -453,19 +453,19 @@ bool MobileUiService::shareImageToChannel(const QUrl& source,
       path, key, chooserTitle, socialAppId(key));
   if (result == QStringLiteral("launched")) return true;
   if (result == QStringLiteral("waiting_authorization")) {
-    setLastError(QStringLiteral("已保存到图库 · 等待平台授权"));
+    setLastError(QStringLiteral("Saved to gallery · waiting for platform approval"));
   } else if (result == QStringLiteral("client_missing")) {
-    setLastError(QStringLiteral("已保存到图库 · 未安装目标应用"));
+    setLastError(QStringLiteral("Saved to gallery · target app not installed"));
   } else if (result == QStringLiteral("sdk_missing")) {
-    setLastError(QStringLiteral("已保存到图库 · 分享组件尚未启用"));
+    setLastError(QStringLiteral("Saved to gallery · sharing component not enabled"));
   } else {
-    setLastError(QStringLiteral("已保存到图库 · 无法打开分享目标"));
+    setLastError(QStringLiteral("Saved to gallery · could not open the share target"));
   }
   return false;
 #else
   Q_UNUSED(path);
   Q_UNUSED(chooserTitle);
-  setLastError(QStringLiteral("已保存本地图片 · 当前平台不支持此分享目标"));
+  setLastError(QStringLiteral("Saved locally · this platform does not support that share target"));
   return false;
 #endif
 }
@@ -488,14 +488,14 @@ QVariantMap MobileUiService::socialShareStatus(
   } else {
     code = QStringLiteral("launch_failed");
   }
-  QString label = QStringLiteral("不可用");
-  if (code == QStringLiteral("ready")) label = QStringLiteral("已就绪");
+  QString label = QStringLiteral("Unavailable");
+  if (code == QStringLiteral("ready")) label = QStringLiteral("Ready");
   if (code == QStringLiteral("waiting_authorization"))
-    label = QStringLiteral("等待平台授权");
+    label = QStringLiteral("Waiting for platform approval");
   if (code == QStringLiteral("client_missing"))
-    label = QStringLiteral("未安装客户端");
+    label = QStringLiteral("App not installed");
   if (code == QStringLiteral("sdk_missing"))
-    label = QStringLiteral("分享组件未启用");
+    label = QStringLiteral("Sharing component not enabled");
   return QVariantMap{{QStringLiteral("channel"), key},
                      {QStringLiteral("code"), code},
                      {QStringLiteral("label"), label},
@@ -507,7 +507,7 @@ bool MobileUiService::setSocialAppId(const QString& channel,
                                      const QString& value) {
   setLastError(QString());
   if (!settingsRepository_) {
-    setLastError(QStringLiteral("当前环境无法保存平台授权信息。"));
+    setLastError(QStringLiteral("Platform credentials cannot be saved in this environment."));
     return false;
   }
   const QString key = channel.trimmed().toLower();
@@ -516,14 +516,14 @@ bool MobileUiService::setSocialAppId(const QString& channel,
        key != QStringLiteral("qzone")) ||
       normalized.size() > 128 ||
       normalized.contains(QRegularExpression(QStringLiteral("\\s")))) {
-    setLastError(QStringLiteral("AppID 格式不正确，请检查后重试。"));
+    setLastError(QStringLiteral("That AppID is not formatted correctly. Check it and try again."));
     return false;
   }
   const QString settingKey =
       key == QStringLiteral("moments") ? kWechatAppIdSetting
                                        : kQqAppIdSetting;
   if (!settingsRepository_->setValue(settingKey, normalized)) {
-    setLastError(QStringLiteral("AppID 未能保存到本机。"));
+    setLastError(QStringLiteral("The AppID could not be saved on this device."));
     return false;
   }
   emit socialAppIdsChanged();

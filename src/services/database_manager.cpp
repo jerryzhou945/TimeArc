@@ -280,6 +280,7 @@ bool DatabaseManager::initialize() {
   if (!configureGuiDatabase()) return false;
   if (!createTables()) return false;
   if (!ensureDeviceUsageSessionConfidenceColumn()) return false;
+  if (!renameLegacyChineseTags()) return false;
   if (!insertDefaultTags()) return false;
   if (!insertDefaultSettings()) return false;
   if (!createIndexes()) return false;
@@ -538,6 +539,63 @@ CREATE TABLE IF NOT EXISTS manual_sessions (
 )SQL"));
 }
 
+// The eight shipped tags were stored under their Chinese names until the
+// English-first change. `manual_projects` references them by integer tag_id,
+// so renaming the rows in place keeps every existing project attached to the
+// tag it already had; only the display name moves. Runs before the default
+// insert so an upgraded database matches on name instead of gaining a second
+// set of tags.
+bool DatabaseManager::renameLegacyChineseTags() {
+  struct Rename {
+    const char* from;
+    const char* to;
+  };
+
+  const Rename renames[] = {
+      {"\xe5\xad\xa6\xe4\xb9\xa0", "Study"},
+      {"\xe5\xb7\xa5\xe4\xbd\x9c", "Work"},
+      {"\xe8\xbf\x90\xe5\x8a\xa8", "Exercise"},
+      {"\xe5\xa8\xb1\xe4\xb9\x90", "Entertainment"},
+      {"\xe9\x98\x85\xe8\xaf\xbb", "Reading"},
+      {"\xe7\xa4\xbe\xe4\xba\xa4", "Social"},
+      {"\xe7\x94\x9f\xe6\xb4\xbb", "Life"},
+      {"\xe5\x85\xb6\xe4\xbb\x96", "Other"},
+  };
+
+  QSqlDatabase db = database();
+  if (!db.isValid() || !db.isOpen()) {
+    qWarning() << "Database is not open.";
+    return false;
+  }
+
+  QSqlQuery query(db);
+  // Guarded on the English name not already existing, so a database that has
+  // both (a user who hand-made an "Other" tag) is left alone rather than
+  // hitting the UNIQUE constraint on tags.name.
+  if (!query.prepare(QStringLiteral(R"SQL(
+UPDATE OR IGNORE tags
+SET name = :to
+WHERE name = :from
+  AND NOT EXISTS (SELECT 1 FROM tags AS existing WHERE existing.name = :to);
+)SQL"))) {
+    qWarning() << "Failed to prepare legacy tag rename:"
+               << query.lastError().text();
+    return false;
+  }
+
+  for (const Rename& rename : renames) {
+    query.bindValue(QStringLiteral(":from"), QString::fromUtf8(rename.from));
+    query.bindValue(QStringLiteral(":to"), QString::fromUtf8(rename.to));
+    if (!query.exec()) {
+      qWarning() << "Failed to rename legacy tag:" << rename.to
+                 << query.lastError().text();
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool DatabaseManager::insertDefaultTags() {
   struct DefaultTag {
     const char* name;
@@ -545,10 +603,10 @@ bool DatabaseManager::insertDefaultTags() {
   };
 
   const DefaultTag defaultTags[] = {
-      {"学习", "#B7A6F0"}, {"工作", "#D7B79A"},
-      {"运动", "#B4C986"}, {"娱乐", "#DFA65F"},
-      {"阅读", "#A9BFE6"}, {"社交", "#C7ADD9"},
-      {"生活", "#E2B6C3"}, {"其他", "#B7AEA6"},
+      {"Study", "#B7A6F0"}, {"Work", "#D7B79A"},
+      {"Exercise", "#B4C986"}, {"Entertainment", "#DFA65F"},
+      {"Reading", "#A9BFE6"}, {"Social", "#C7ADD9"},
+      {"Life", "#E2B6C3"}, {"Other", "#B7AEA6"},
   };
 
   QSqlDatabase db = database();
@@ -784,12 +842,12 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
 
   const QString local = toLocalPath(path);
   if (local.isEmpty()) {
-    result[QStringLiteral("error")] = QStringLiteral("空路径");
+    result[QStringLiteral("error")] = QStringLiteral("Empty path");
     return result;
   }
   const QFileInfo info(local);
   if (!info.exists() || info.size() <= 0) {
-    result[QStringLiteral("error")] = QStringLiteral("文件不存在或为空");
+    result[QStringLiteral("error")] = QStringLiteral("File is missing or empty");
     return result;
   }
   result[QStringLiteral("sizeBytes")] = static_cast<qlonglong>(info.size());
@@ -813,14 +871,14 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
     db.setDatabaseName(local);
     db.setConnectOptions(QStringLiteral("QSQLITE_OPEN_READONLY"));
     if (!db.open()) {
-      errorText = QStringLiteral("无法打开数据库：") + db.lastError().text();
+      errorText = QStringLiteral("Could not open the database: ") + db.lastError().text();
     } else {
       // 1. integrity_check — first row must be exactly "ok".
       QSqlQuery iq(db);
       if (iq.exec(QStringLiteral("PRAGMA integrity_check;")) && iq.next()) {
         integrity = iq.value(0).toString();
       } else {
-        integrity = QStringLiteral("(检查失败)");
+        integrity = QStringLiteral("(check failed)");
       }
 
       // 2. Assert the GUI-owned tables exist (reject random / foreign .db).
@@ -842,9 +900,9 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
       }
 
       if (integrity != QStringLiteral("ok")) {
-        errorText = QStringLiteral("完整性检查未通过：") + integrity;
+        errorText = QStringLiteral("Integrity check failed: ") + integrity;
       } else if (!hasAll) {
-        errorText = QStringLiteral("不是 TimeArc GUI 数据库（缺少契约表）");
+        errorText = QStringLiteral("Not a TimeArc GUI database (contract tables missing)");
       } else {
         // 3. Row counts for the GUI-owned tables.
         QSqlQuery cq(db);
@@ -872,7 +930,7 @@ QVariantMap DatabaseManager::inspectBackup(const QString& path) const {
   result[QStringLiteral("settingsRows")] = settingsRows;
   result[QStringLiteral("manualProjectRows")] = manualProjectRows;
   result[QStringLiteral("manualSessionRows")] = manualSessionRows;
-  if (!ok && errorText.isEmpty()) errorText = QStringLiteral("未知错误");
+  if (!ok && errorText.isEmpty()) errorText = QStringLiteral("Unknown error");
   result[QStringLiteral("error")] = errorText;
   return result;
 }
@@ -1014,23 +1072,23 @@ QVariantMap DatabaseManager::relocateDatabaseTo(const QString& targetDirOrUrl) {
 
   const QString targetDir = toLocalPath(targetDirOrUrl);
   if (targetDir.trimmed().isEmpty()) {
-    r[QStringLiteral("error")] = QStringLiteral("目标目录为空");
+    r[QStringLiteral("error")] = QStringLiteral("Target folder is empty");
     return r;
   }
 
   // 1. Target must be a usable directory.
   QDir td(targetDir);
   if (!td.exists() && !td.mkpath(QStringLiteral("."))) {
-    r[QStringLiteral("error")] = QStringLiteral("目标目录不存在且无法创建");
+    r[QStringLiteral("error")] = QStringLiteral("Target folder does not exist and cannot be created");
     return r;
   }
   if (!dirIsUsable(targetDir)) {
-    r[QStringLiteral("error")] = QStringLiteral("目标目录不可写");
+    r[QStringLiteral("error")] = QStringLiteral("Target folder is not writable");
     return r;
   }
 
   if (!writeDbDirPointer(targetDir)) {
-    r[QStringLiteral("error")] = QStringLiteral("写入数据库位置指针失败");
+    r[QStringLiteral("error")] = QStringLiteral("Could not write the database location pointer");
     return r;
   }
 
@@ -1050,7 +1108,7 @@ QVariantMap DatabaseManager::restoreDefaultDatabaseLocation() {
   if (def.isEmpty()) {
     QVariantMap r;
     r[QStringLiteral("ok")] = false;
-    r[QStringLiteral("error")] = QStringLiteral("无法解析默认位置");
+    r[QStringLiteral("error")] = QStringLiteral("Could not resolve the default location");
     r[QStringLiteral("newPath")] = QString();
     return r;
   }
@@ -1059,7 +1117,7 @@ QVariantMap DatabaseManager::restoreDefaultDatabaseLocation() {
   r[QStringLiteral("error")] = QString();
   r[QStringLiteral("newPath")] = QString();
   if (!writeDbDirPointer(QString())) {
-    r[QStringLiteral("error")] = QStringLiteral("清除数据库位置指针失败");
+    r[QStringLiteral("error")] = QStringLiteral("Could not clear the database location pointer");
     return r;
   }
   openServiceDatabaseReadOnly();

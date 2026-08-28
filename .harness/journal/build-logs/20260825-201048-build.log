@@ -1,0 +1,15 @@
+[1/199] Automatic MOC and UIC for target timearc_db_smoke
+[2/198] Automatic MOC and UIC for target timearc_pomodoro_test
+[3/197] Automatic MOC and UIC for target time-arc
+[4/196] Running AUTOMOC file extraction for target time-arc
+[5/11] Building CXX object CMakeFiles/time-arc.dir/src/main.cpp.o
+FAILED: [code=1] CMakeFiles/time-arc.dir/src/main.cpp.o 
+/usr/bin/c++ -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_DEBUG -DQT_OPENGL_LIB -DQT_QMLINTEGRATION_LIB -DQT_QML_LIB -DQT_QUICK_LIB -DQT_SQL_LIB -DQT_SVG_LIB -DQT_WIDGETS_LIB -I/Users/jz2025/Desktop/Development/TimeArc/build/time-arc_autogen/include -I/Users/jz2025/Desktop/Development/TimeArc/src -I/Users/jz2025/Desktop/Development/TimeArc/src/services -I/Users/jz2025/Desktop/Development/TimeArc -I/Users/jz2025/Desktop/Development/TimeArc/thirdparty/sqlite3 -I/Users/jz2025/Desktop/Development/TimeArc/thirdparty/parson -isystem /opt/homebrew/lib/QtQml.framework/Headers -iframework /opt/homebrew/lib -isystem /opt/homebrew/lib/QtCore.framework/Headers -isystem /opt/homebrew/share/qt/mkspecs/macx-clang -isystem /opt/homebrew/include -isystem /opt/homebrew/include/QtQmlIntegration -isystem /opt/homebrew/lib/QtNetwork.framework/Headers -isystem /opt/homebrew/lib/QtQuick.framework/Headers -isystem /opt/homebrew/lib/QtGui.framework/Headers -isystem /opt/homebrew/lib/QtOpenGL.framework/Headers -isystem /opt/homebrew/lib/QtSvg.framework/Headers -isystem /opt/homebrew/lib/QtSql.framework/Headers -isystem /opt/homebrew/lib/QtWidgets.framework/Headers -O3 -DNDEBUG -std=gnu++17 -arch arm64 -MD -MT CMakeFiles/time-arc.dir/src/main.cpp.o -MF CMakeFiles/time-arc.dir/src/main.cpp.o.d -o CMakeFiles/time-arc.dir/src/main.cpp.o -c /Users/jz2025/Desktop/Development/TimeArc/src/main.cpp
+/Users/jz2025/Desktop/Development/TimeArc/src/main.cpp:280:38: error: use of undeclared identifier 'categorizationManager'
+  280 |                                     &categorizationManager);
+      |                                      ^
+1 error generated.
+[6/11] Building CXX object CMakeFiles/timearc_pomodoro_test.dir/src/services/categorization_manager.cpp.o
+[7/11] Building CXX object CMakeFiles/time-arc.dir/src/services/categorization_manager.cpp.o
+[8/11] Building CXX object CMakeFiles/timearc_db_smoke.dir/src/services/categorization_manager.cpp.o
+ninja: build stopped: subcommand failed.

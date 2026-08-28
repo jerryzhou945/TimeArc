@@ -1,7 +1,10 @@
 import QtQuick
+import "../../../shared/I18n.js" as I18n
 
 Item {
     property var theme
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     property var report: ({})
     property var profile: ({})
     readonly property var insights: report.insights || []
@@ -18,7 +21,7 @@ Item {
         spacing: 15
 
         Text {
-            text: "最值得记住的一刻"
+            text: "The moment most worth remembering"
             color: profile.accent || "#FFFFFF"
             font.family: theme.fontFamily
             font.pixelSize: 13
@@ -27,7 +30,7 @@ Item {
 
         Text {
             width: parent.width
-            text: highlight.headline || longest.durationText || "时间仍在积累"
+            text: highlight.headline || longest.durationText || "Time is still gathering"
             color: "white"
             font.family: theme.numberFontFamily
             font.pixelSize: 38
@@ -37,8 +40,8 @@ Item {
 
         Text {
             width: parent.width
-            text: highlight.body || profile.opening
-                  || "当记录足够完整，这里会出现这个月最特别的一段时间。"
+            text: highlight.body ? tr(highlight.body) : tr(profile.opening)
+                  || "Once there are enough records, this month's most distinctive stretch appears here."
             color: "#E5FFFFFF"
             font.family: theme.fontFamily
             font.pixelSize: 16
@@ -55,8 +58,8 @@ Item {
         Text {
             width: parent.width
             text: longest.startLocal
-                  ? "发生于 " + longest.startLocal
-                  : "只依据本地聚合记录生成"
+                  ? I18n.sentence(root.languageMode, "occurredAt", {time: longest.startLocal})
+                  : "Built only from locally aggregated records"
             color: "#BFFFFFFF"
             font.family: theme.fontFamily
             font.pixelSize: 11

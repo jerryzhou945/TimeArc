@@ -1,10 +1,16 @@
 import QtQuick
 import QtQuick.Window
 import ".."
+import "../../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
     property var theme
     property var report: ({})
     property var profile: ({})
@@ -33,7 +39,7 @@ Item {
                     spacing: 2
 
                     Text {
-                        text: "分享预览"
+                        text: "Share preview"
                         color: root.theme.textPrimary
                         font.family: root.theme.fontFamily
                         font.pixelSize: 20
@@ -41,7 +47,7 @@ Item {
                     }
 
                     Text {
-                        text: "图片只呈现聚合后的月度时间"
+                        text: "The image shows only aggregated monthly time"
                         color: root.theme.textMuted
                         font.family: root.theme.fontFamily
                         font.pixelSize: 10
@@ -51,7 +57,7 @@ Item {
                 Text {
                     width: 80
                     height: parent.height
-                    text: root.report.monthLabel || "本月"
+                    text: I18n.reportMonthLabel(root.languageMode, root.report) || root.tr("This Month")
                     color: root.theme.accentBright
                     font.family: root.theme.fontFamily
                     font.pixelSize: 10
@@ -119,7 +125,7 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: root.profile.eyebrow
+                            text: root.tr(root.profile.eyebrow)
                                   || (root.report.monthLabel
                                       + " · MONTHLY STORY")
                             color: root.profile.accent || "#EFFFFFFF"
@@ -132,8 +138,8 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: root.report.title
-                                  || "这个月的时间，被收进了一张卡片"
+                            text: I18n.reportTitle(root.languageMode, root.report)
+                                  || "This month's time, gathered into a single card"
                             color: "white"
                             font.family: root.theme.fontFamily
                             font.pixelSize: 24
@@ -159,7 +165,7 @@ Item {
                             spacing: 6
 
                             Text {
-                                text: root.report.totalText || "0 分钟"
+                                text: root.report.totalText || "0 minutes"
                                 color: "white"
                                 font.family: root.theme.numberFontFamily
                                 font.pixelSize: 31
@@ -170,7 +176,7 @@ Item {
                                 width: parent.width
                                 text: root.report.summary
                                       || root.profile.opening
-                                      || "真实记录会在这里组成这个月的故事。"
+                                      || "Real records will make up this month's story here."
                                 color: "#E7FFFFFF"
                                 font.family: root.theme.fontFamily
                                 font.pixelSize: 11
@@ -183,7 +189,7 @@ Item {
 
                         Text {
                             width: parent.width
-                            text: "TimeArc · 仅呈现聚合后的时间"
+                            text: "TimeArc · aggregated time only"
                             color: "#AFFFFFFF"
                             font.family: root.theme.fontFamily
                             font.pixelSize: 8
@@ -194,6 +200,8 @@ Item {
             }
 
             MobileShareActionBar {
+
+                languageMode: root.languageMode
                 width: parent.width
                 theme: root.theme
                 compact: true

@@ -49,11 +49,13 @@ $mingwFromCommand = Get-Command objdump.exe -ErrorAction SilentlyContinue
 $QtBin = Resolve-ExistingDirectory $QtBin @(
   $(if ($qtFromCommand) { Split-Path $qtFromCommand.Source -Parent }),
   "D:/TimeArc/QT/6.11.0/mingw_64/bin",
+  "C:/code_env/Qt-6.11.0-MinGW64/6.11.0/mingw_64/bin",
   "C:/Qt/6.11.0/mingw_64/bin"
 ) "QtBin"
 $MingwBin = Resolve-ExistingDirectory $MingwBin @(
   $(if ($mingwFromCommand) { Split-Path $mingwFromCommand.Source -Parent }),
   "D:/TimeArc/QT/Tools/mingw1310_64/bin",
+  "C:/code_env/Qt-6.11.0-MinGW64/Tools/mingw1310_64/bin",
   "C:/Qt/Tools/mingw1310_64/bin"
 ) "MingwBin"
 $qmake = Join-Path $QtBin "qmake.exe"

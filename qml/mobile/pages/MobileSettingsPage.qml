@@ -1,10 +1,18 @@
 import QtQuick
 import QtQuick.Dialogs
 import "../components"
+import "../../shared/I18n.js" as I18n
 
 Item {
     id: root
 
+
+    // Pushed down by MobileAppShell; the default keeps standalone
+    // previews of this component legible.
+    property string languageMode: "en"
+    function tr(source) { return I18n.t(languageMode, source) }
+
+    signal languageChanged(string mode)
     required property var theme
     property bool wallpaperActive: false
     property bool autoSync: true
@@ -87,20 +95,20 @@ Item {
 
     function usageStatusText() {
         if (!hasUsageService())
-            return "桌面预览模式"
+            return "Desktop preview mode"
         return mobileUsageService.syncStatusText
     }
 
     function usageAccessText() {
         if (!hasUsageService())
-            return "仅 Android 可授权"
-        return mobileUsageService.usageAccessGranted ? "已开启" : "待开启"
+            return "Android only"
+        return mobileUsageService.usageAccessGranted ? "On" : "Off"
     }
 
     function wallpaperStateText() {
         if (!hasUiService())
-            return "预览不可用"
-        return wallpaperActive ? "正在使用自定义壁纸" : "跟随纯色主题"
+            return "Preview unavailable"
+        return wallpaperActive ? "Using a custom wallpaper" : "Follow the solid colour theme"
     }
 
     function openWallpaperDialog() {
@@ -109,13 +117,13 @@ Item {
 
     function socialStatusText(channel) {
         if (!hasUiService())
-            return "等待平台授权"
+            return "Waiting for platform approval"
         var configuredId = channel === "moments"
                 ? mobileUiService.wechatAppId : mobileUiService.qqAppId
         if (configuredId.length === 0)
-            return "等待平台授权"
+            return "Waiting for platform approval"
         var status = mobileUiService.socialShareStatus(channel)
-        return status.label || "等待平台授权"
+        return status.label || "Waiting for platform approval"
     }
 
     function checkedFor(key) {
@@ -166,7 +174,25 @@ Item {
             wallpaperDialog.open()
         } else if (action === "clearWallpaper" && hasUiService()) {
             mobileUiService.clearWallpaper()
+        } else if (action === "cycleLanguage") {
+            cycleLanguage()
         }
+    }
+
+    // Mobile has no room for a dropdown in this row layout, so the row cycles
+    // through the three shipped languages and shows the current one in its own
+    // script — a user who cannot read the current UI language can still tell
+    // which is selected and step to theirs.
+    readonly property var languageOrder: ["zh", "en", "ja"]
+    readonly property var languageNames: ({"zh": "简体中文", "en": "English", "ja": "日本語"})
+
+    function cycleLanguage() {
+        var i = languageOrder.indexOf(root.languageMode)
+        var next = languageOrder[(i + 1) % languageOrder.length]
+        root.languageMode = next
+        if (typeof settingsRepository !== "undefined" && settingsRepository)
+            settingsRepository.setValue("language_mode", next)
+        root.languageChanged(next)
     }
 
     Component.onCompleted: {
@@ -190,8 +216,8 @@ Item {
 
     FileDialog {
         id: wallpaperDialog
-        title: "选择一张壁纸"
-        nameFilters: ["图片文件 (*.png *.jpg *.jpeg *.webp)"]
+        title: "Choose a wallpaper"
+        nameFilters: ["Image files (*.png *.jpg *.jpeg *.webp)"]
 
         onAccepted: {
             if (root.hasUiService())
@@ -201,16 +227,16 @@ Item {
 
     FileDialog {
         id: avatarDialog
-        title: "选择本地头像"
-        nameFilters: ["图片文件 (*.png *.jpg *.jpeg *.webp)"]
+        title: "Choose a local picture"
+        nameFilters: ["Image files (*.png *.jpg *.jpeg *.webp)"]
 
         onAccepted: {
             if (!root.hasUiService()) {
-                root.avatarMessage = "当前环境无法保存头像"
+                root.avatarMessage = "Profile pictures cannot be saved in this environment"
                 return
             }
             if (mobileUiService.importAvatar(selectedFile)) {
-                root.avatarMessage = "头像已更新"
+                root.avatarMessage = "Profile picture updated"
                 root.refreshAvatarSource()
             } else {
                 root.avatarMessage = mobileUiService.lastError
@@ -222,6 +248,8 @@ Item {
         anchors.fill: parent
 
         MobileStatusBar {
+
+            languageMode: root.languageMode
             width: parent.width
             theme: root.theme
         }
@@ -250,7 +278,7 @@ Item {
                         spacing: 3
 
                         Text {
-                            text: "我的"
+                            text: "Me"
                             color: root.theme.textPrimary
                             font.family: root.theme.fontFamily
                             font.pixelSize: 27
@@ -258,7 +286,7 @@ Item {
                         }
 
                         Text {
-                            text: "让记录方式更像你自己"
+                            text: "Make the way you record feel more like you"
                             color: root.theme.textSecondary
                             font.family: root.theme.fontFamily
                             font.pixelSize: 12
@@ -267,6 +295,8 @@ Item {
                 }
 
                 MobileGlassPanel {
+
+                    languageMode: root.languageMode
                     id: profileArchive
                     width: parent.width
                     height: 214
@@ -364,7 +394,7 @@ Item {
 
                                 Text {
                                     width: parent.width
-                                    text: "我的时间档案"
+                                    text: "My time archive"
                                     color: root.theme.textPrimary
                                     font.family: root.theme.fontFamily
                                     font.pixelSize: 20
@@ -373,7 +403,7 @@ Item {
 
                                 Text {
                                     width: parent.width
-                                    text: "点击头像选择照片"
+                                    text: "Tap the picture to choose a photo"
                                     color: root.theme.accentBright
                                     font.family: root.theme.fontFamily
                                     font.pixelSize: 12
@@ -382,7 +412,7 @@ Item {
 
                                 Text {
                                     width: parent.width
-                                    text: "头像与记录只保存在这台设备上"
+                                    text: "Your picture and records stay on this device only"
                                     color: root.theme.textMuted
                                     font.family: root.theme.fontFamily
                                     font.pixelSize: 10
@@ -394,7 +424,7 @@ Item {
                                     width: parent.width
                                     visible: root.avatarMessage.length > 0
                                     text: root.avatarMessage
-                                    color: root.avatarMessage === "头像已更新"
+                                    color: root.avatarMessage === "Profile picture updated"
                                            ? root.theme.success
                                            : root.theme.error
                                     font.family: root.theme.fontFamily
@@ -417,18 +447,18 @@ Item {
                             Repeater {
                                 model: [
                                     {
-                                        "label": "开始记录",
+                                        "label": "Start recording",
                                         "value": root.profileDashboard.firstDateLocal
-                                                 || "尚未开始"
+                                                 || "Not started yet"
                                     },
                                     {
-                                        "label": "已陪伴",
-                                        "value": root.companionshipDays() + " 天"
+                                        "label": "Together for",
+                                        "value": I18n.sentence(root.languageMode, "dayCount", {count: root.companionshipDays()})
                                     },
                                     {
-                                        "label": "实际记录",
-                                        "value": (root.profileDashboard.activeDays
-                                                  || 0) + " 天"
+                                        "label": "Actually recorded",
+                                        "value": I18n.sentence(root.languageMode, "dayCount",
+                                                               {count: root.profileDashboard.activeDays || 0})
                                     }
                                 ]
 
@@ -485,26 +515,26 @@ Item {
 
                 SettingsGroup {
                     width: parent.width
-                    title: "记录与同步"
+                    title: "Recording and sync"
                     rows: [
                         {
                             "icon": "shield",
-                            "label": "使用记录权限",
-                            "desc": "只读取应用级时长，不读取聊天与浏览内容",
+                            "label": "Usage access",
+                            "desc": "Reads app-level durations only, never chat or browsing content",
                             "value": root.usageAccessText(),
                             "action": "usageAccess"
                         },
                         {
                             "icon": "sync",
-                            "label": "立即同步",
+                            "label": "Sync now",
                             "desc": root.usageStatusText(),
-                            "value": "同步",
+                            "value": "Sync",
                             "action": "syncNow"
                         },
                         {
                             "icon": "clock",
-                            "label": "打开时自动同步",
-                            "desc": "每次回到 TimeArc 时补齐最近记录",
+                            "label": "Sync automatically on open",
+                            "desc": "Fills in recent records each time you return to TimeArc",
                             "toggleKey": "autoSync"
                         }
                     ]
@@ -512,33 +542,41 @@ Item {
 
                 SettingsGroup {
                     width: parent.width
-                    title: "外观"
+                    title: "Appearance"
                     rows: [
                         {
+                            "icon": "sun",
+                            "label": "Interface language",
+                            "desc": "Applies to every screen straight away.",
+                            "value": root.languageNames[root.languageMode]
+                                     || "English",
+                            "action": "cycleLanguage"
+                        },
+                        {
                             "icon": "image",
-                            "label": "自定义壁纸",
+                            "label": "Custom wallpaper",
                             "desc": root.wallpaperStateText(),
-                            "value": root.wallpaperActive ? "更换" : "选择",
+                            "value": root.wallpaperActive ? "Change" : "Select",
                             "action": "wallpaper"
                         },
                         {
                             "icon": "clear",
-                            "label": "恢复纯色背景",
-                            "desc": "保留数据，只移除当前壁纸",
-                            "value": root.wallpaperActive ? "恢复" : "未使用",
+                            "label": "Restore solid background",
+                            "desc": "Keeps your data, removes only the current wallpaper",
+                            "value": root.wallpaperActive ? "Restore" : "Not in use",
                             "action": root.wallpaperActive
                                       ? "clearWallpaper" : ""
                         },
                         {
                             "icon": "sun",
-                            "label": "浅色模式",
-                            "desc": "壁纸与透明模块会同步调整可读性",
+                            "label": "Light mode",
+                            "desc": "Wallpaper and translucent panels adjust for readability",
                             "toggleKey": "lightMode"
                         },
                         {
                             "icon": "motion",
-                            "label": "减少动态效果",
-                            "desc": "关闭翻转和页面过渡动画",
+                            "label": "Reduce motion",
+                            "desc": "Turns off flip and page transition animations",
                             "toggleKey": "reducedMotion"
                         }
                     ]
@@ -546,19 +584,19 @@ Item {
 
                 SettingsGroup {
                     width: parent.width
-                    title: "分享与隐私"
+                    title: "Sharing and privacy"
                     rows: [
                         {
                             "icon": "mask",
-                            "label": "默认匿名分享",
-                            "desc": "分享图不显示昵称，只保留应用与时间故事",
+                            "label": "Share anonymously by default",
+                            "desc": "Shared images omit your name, keeping only apps and the time story",
                             "toggleKey": "anonymousShare"
                         },
                         {
                             "icon": "lock",
-                            "label": "数据留在本机",
-                            "desc": "壁纸、时长与分享图默认保存在设备内",
-                            "value": "本地优先"
+                            "label": "Data stays on this device",
+                            "desc": "Wallpapers, durations and share images are kept on the device by default",
+                            "value": "Local first"
                         }
                     ]
                 }
@@ -570,7 +608,7 @@ Item {
                     Text {
                         width: parent.width
                         leftPadding: 2
-                        text: "社交平台授权"
+                        text: "Social platform access"
                         color: root.theme.textPrimary
                         font.family: root.theme.fontFamily
                         font.pixelSize: 17
@@ -578,6 +616,8 @@ Item {
                     }
 
                     MobileGlassPanel {
+
+                        languageMode: root.languageMode
                         width: parent.width
                         height: socialFields.implicitHeight + 28
                         theme: root.theme
@@ -595,7 +635,7 @@ Item {
 
                             SocialAppIdField {
                                 width: parent.width
-                                label: "微信 AppID"
+                                label: "WeChat AppID"
                                 channel: "moments"
                                 value: root.hasUiService()
                                        ? mobileUiService.wechatAppId : ""
@@ -620,7 +660,7 @@ Item {
 
                             Text {
                                 width: parent.width
-                                text: "还需在对应开放平台登记 com.timearc.app 与正式签名。未授权时，分享图片会先保存到图库。"
+                                text: "You must still register com.timearc.app and the release signature with the platform. Until then, shared images are saved to your gallery instead."
                                 color: root.theme.textMuted
                                 font.family: root.theme.fontFamily
                                 font.pixelSize: 10
@@ -636,7 +676,7 @@ Item {
                     topPadding: 2
                     text: root.hasUiService() && mobileUiService.lastError.length > 0
                           ? mobileUiService.lastError
-                          : "TimeArc · 认真保存每一段时间"
+                          : "TimeArc · keeping every stretch of time with care"
                     color: root.hasUiService()
                            && mobileUiService.lastError.length > 0
                            ? root.theme.error : root.theme.textMuted
@@ -668,6 +708,8 @@ Item {
         }
 
         MobileGlassPanel {
+
+            languageMode: root.languageMode
             width: parent.width
             height: rowsColumn.implicitHeight
             theme: root.theme
@@ -705,7 +747,7 @@ Item {
         property string label: ""
         property string channel: ""
         property string value: ""
-        property string status: "等待平台授权"
+        property string status: "Waiting for platform approval"
 
         spacing: 7
 
@@ -725,7 +767,7 @@ Item {
             Text {
                 width: 110
                 text: socialField.status
-                color: socialField.status === "已就绪"
+                color: socialField.status === "Ready"
                        ? root.theme.success : root.theme.textMuted
                 font.family: root.theme.fontFamily
                 font.pixelSize: 10
@@ -785,6 +827,8 @@ Item {
             color: root.theme.withAlpha(root.theme.accent, 0.18)
 
             MobileSymbolIcon {
+
+                languageMode: root.languageMode
                 anchors.centerIn: parent
                 name: settingRow.iconName.length > 0
                       ? settingRow.iconName : "lock"
@@ -829,6 +873,8 @@ Item {
             anchors.rightMargin: 12
 
             MobileSwitch {
+
+                languageMode: root.languageMode
                 anchors.centerIn: parent
                 visible: settingRow.toggleKey.length > 0
                 theme: root.theme
