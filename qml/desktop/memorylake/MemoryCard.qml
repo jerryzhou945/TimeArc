@@ -216,7 +216,10 @@ Item {
                             }
                         }
                         Text {
-                            visible: card.selected
+                            // 同 GenerativeCover：本行在「visible:false + layer.enabled」的 faceContent
+                            // 合成层里，visible 由 false 翻到 true 不会打脏标记（Qt 只在隐藏方向强制
+                            // dirty），选中别的卡后这行就再也建不出节点。用 opacity 门控。
+                            opacity: card.selected ? 1 : 0
                             text: I18n.t(card.languageMode, "Flip to lock selection")
                             color: card.style ? card.style.textTertiary : "#888"
                             font.pixelSize: 11

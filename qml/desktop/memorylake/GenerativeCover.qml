@@ -76,13 +76,20 @@ Item {
         asynchronous: true
         smooth: true
         mipmap: true
-        visible: genCover.iconSrc !== "" && status === Image.Ready
+        // 用 opacity 而不是 visible 做显隐：本组件常被放进「visible:false + layer.enabled」的
+        // 合成层里（MemoryCard 卡面就是这样把内容 + 边缘光合成后再统一圆角裁切）。Qt 里被隐藏
+        // 父项遮住的子项，其 effectiveVisible 恒为 false，visible 由 false 翻到 true 时既不改
+        // effectiveVisible 也不打脏标记（QQuickItem::setVisible 只在**隐藏**方向强制 dirty），
+        // 于是图标异步加载完成后才翻 visible 的这一支永远建不出绘制节点——卡面封面空到组件下次
+        // 重建（切页/切 App 回来）为止。opacity 变化不受这条限制，照常刷新。
+        opacity: (genCover.iconSrc !== "" && status === Image.Ready) ? 1 : 0
     }
 
     // 缺图标兜底：显示名首字（仍坐在 appColor 底上，不破版）。
     Text {
         anchors.centerIn: parent
-        visible: genCover.iconSrc === "" || coverIcon.status !== Image.Ready
+        // 同上：合成层里只能用 opacity 做显隐（图标加载失败/换 APP 时本行要能重新亮起来）。
+        opacity: (genCover.iconSrc === "" || coverIcon.status !== Image.Ready) ? 1 : 0
         text: genCover.iconLabel
         color: Qt.rgba(1, 1, 1, genCover.night ? 0.9 : 0.78)
         font.pixelSize: Math.max(18, genCover.side * 0.6)
