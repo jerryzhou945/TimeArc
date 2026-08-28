@@ -67,14 +67,14 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   doc §A #1–#10 now all done). Still deferred (§A #11–#14): pomodoro sound + work-rest cycle +
   progress-ring, keyboard tool-switch, conic-aura shader. Specs `docs/memory-lake-memo-*`.
 
-- ~~**Stats totals double-count audio under a different foreground app.**~~
-  **Fixed:** stats is frontmost-only (`foreground*` paths). The cross-app sum
-  still stands for the `active*` pages (home / memory lake / monthly recap).
-- **The read layer never reads `active_sec`**, so locked/idle time counts as
-  usage (08-26: 10.9h vs 4.5h active). Coverage-or-activity is a product call.
-- **`rules/04` lacks two read-layer invariants**: select by intersection and clip
-  to the window (one local day <= 24h), and a read path's name declares its
-  source caliber. See `journal/errors/20260828-{094718,101917}-C-stats-*.md`.
+- ~~**Stats double-counts audio under another foreground app.**~~ **Fixed:** stats is frontmost-only; the cross-app sum still stands for the `active*` pages.
+- ~~**Wall-clock counting; hiding and renames stopped applying.**~~ **Fixed:** desktop
+  counts `active_sec`; both persisted key maps match by alias and canonicalize.
+- **Mobile has no per-app hiding.** Track B: needs a settings surface + a
+  package-name key scheme. `active_sec` has no mobile analogue (Android's
+  `totalTimeInForeground` carries no idle part).
+- **`rules/04` lacks three read-layer invariants**: clip by intersection (day <=
+  24h), name declares caliber, persisted derived keys need migration.
 
 ## Build / distribution
 

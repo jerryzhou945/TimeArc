@@ -78,3 +78,12 @@
 
 <!-- record_error.py: error table not found -->
 | 2026-08-28T10:19:17Z | L2 | stats-media-sou... | Stats page mixed media_sessions into its app aggregation.... | [report](errors/20260828-101917-C-stats-media-source-mixing.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T11:49:58Z | L2 | ui-counts-wall-... | The whole desktop read layer counted duration_sec (wall c... | [report](errors/20260828-114958-C-ui-counts-wall-clock-not-active.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T11:49:58Z | L2 | hidden-apps-key... | Per-app hiding silently stopped working. hidden_apps stor... | [report](errors/20260828-114958-C-hidden-apps-key-scheme-drift.md) |
+
+<!-- record_error.py: error table not found -->
+| 2026-08-28T12:57:49Z | L2 | display-name-ov... | app_display_name_overrides has the same key-drift exposur... | [report](errors/20260828-125749-C-display-name-override-key-drift.md) |

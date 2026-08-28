@@ -1,6 +1,7 @@
 #include "usage_stat_manager.h"
 
 #include "services/app_identity_policy.h"
+#include "services/categorization/normalize.h"
 
 #include <QColor>
 #include <QDate>
@@ -281,13 +282,19 @@ const QString kTimearcConnection = QStringLiteral("timearc_service");
 const QString kForegroundSource = QStringLiteral("foreground");
 
 // The service writes app_id as the stable identity, display_name as the short
-// app name, and executable_path as path. Keep the seven-column normalized read
+// app name, and executable_path as path. Keep the eight-column normalized read
 // shape consumed below while using SQLite rowid as the incremental watermark.
+//
+// Column 7 is the **counted** length. For a foreground session that is
+// active_sec, not duration_sec: a session stays open across idle (CHARTER
+// v0.11), so duration_sec is wall clock and includes the locked screen and
+// every coffee break. The UI counts time the user was actually there.
 const QString kSqlFrontmostSince = QStringLiteral(R"SQL(
 SELECT fs.app_id,
        COALESCE(NULLIF(a.display_name, ''), fs.app_id),
        COALESCE(NULLIF(a.executable_path, ''), fs.app_id),
-       fs.window_title, fs.start_unix_sec, fs.duration_sec, fs.rowid
+       fs.window_title, fs.start_unix_sec, fs.duration_sec, fs.rowid,
+       fs.active_sec
 FROM frontmost_sessions fs
 LEFT JOIN apps a ON a.app_id = fs.app_id
 WHERE fs.rowid > :sinceId
@@ -300,7 +307,8 @@ const QString kSqlMediaSince = QStringLiteral(R"SQL(
 SELECT ms.app_id,
        COALESCE(NULLIF(a.display_name, ''), ms.app_id),
        COALESCE(NULLIF(a.executable_path, ''), ms.app_id),
-       ms.media_title, ms.start_unix_sec, ms.duration_sec, ms.rowid
+       ms.media_title, ms.start_unix_sec, ms.duration_sec, ms.rowid,
+       ms.duration_sec
 FROM media_sessions ms
 LEFT JOIN apps a ON a.app_id = ms.app_id
 WHERE ms.rowid > :sinceId
@@ -387,6 +395,13 @@ int UsageStatManager::appendSqliteSessionsSince(QList<UsageRecord>* out,
     record.startUnixSec = query.value(4).toLongLong();
     const qlonglong dur = query.value(5).toLongLong();
     record.durationSec = dur > 0 ? static_cast<quint64>(dur) : 0;
+    // 计时长度：前台取 active_sec（媒体表没有这一列，SQL 里回填 duration_sec）。
+    // 服务侧 CHECK 保证 0 <= active_sec <= duration_sec，这里再夹一次，别让一条
+    // 坏行把某个 app 的时长撑爆。
+    const qlonglong act = query.value(7).toLongLong();
+    record.activeSec = act > 0 ? std::min(static_cast<quint64>(act),
+                                          record.durationSec)
+                               : 0;
     record.source = source;
     // Reject invalid or empty session rows before aggregation.
     if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
@@ -515,7 +530,7 @@ QVariantList UsageStatManager::aggregateSoftware(
     // 落在窗口里的那一段，跨午夜的会话两天各拿自己的一半。
     qint64 startUnixSec = 0;
     qint64 endUnixSec = 0;
-    if (!window.clip(record.startUnixSec, record.durationSec, &startUnixSec,
+    if (!window.clip(record.startUnixSec, record.activeSec, &startUnixSec,
                      &endUnixSec))
       return;
 
@@ -543,8 +558,10 @@ QVariantList UsageStatManager::aggregateSoftware(
     }
     const UsageInterval interval{startUnixSec, endUnixSec};
     aggregate.intervals.append(interval);
-    aggregate.lastUsedUnixSec =
-        std::max(aggregate.lastUsedUnixSec, endUnixSec);
+    // 「最近使用」问的是墙钟时刻，不是计入了多少秒，所以用会话真实结束时间。
+    aggregate.lastUsedUnixSec = std::max(
+        aggregate.lastUsedUnixSec,
+        record.startUnixSec + static_cast<qint64>(record.durationSec));
     // 保留 foreground/audio 分项，UI 可以同时显示总时长和来源拆分。
     if (record.source == "audio") {
       aggregate.audioIntervals.append(interval);
@@ -575,7 +592,8 @@ QVariantList UsageStatManager::aggregateSoftware(
         aggregate.groupKey, aggregate.appId, aggregate.appName, aggregate.path);
     const auto displayIdentity = TimeArc::AppIdentityPolicy::applyDisplayName(
         aggregate.groupKey, defaultDisplayName,
-        m_displayNameOverrides.value(aggregate.groupKey));
+        displayNameOverrideFor(aggregate.appId, aggregate.appName,
+                               aggregate.path));
     const QString displayName = displayIdentity.displayName;
     QVariantMap item;
     item["groupKey"] = aggregate.groupKey;
@@ -586,7 +604,8 @@ QVariantList UsageStatManager::aggregateSoftware(
     item["name"] = displayName;
     item["displayName"] = displayName;
     item["defaultDisplayName"] = defaultDisplayName;
-    item["customDisplayName"] = m_displayNameOverrides.value(aggregate.groupKey);
+    item["customDisplayName"] = displayNameOverrideFor(
+        aggregate.appId, aggregate.appName, aggregate.path);
     item["path"] = aggregate.path;
     // 逐记录分类按时长加权，占比最高的类别代表这个 app。规则不再覆盖这个投票：
     // 规则的特异性已经体现在每条记录的打分里（见 categorization/matcher.h）。
@@ -712,7 +731,7 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
     // 同 aggregateSoftware：相交入选 + 截断，环上的会话段不会伸出当天之外。
     qint64 startUnixSec = 0;
     qint64 endUnixSec = 0;
-    if (!window.clip(record.startUnixSec, record.durationSec, &startUnixSec,
+    if (!window.clip(record.startUnixSec, record.activeSec, &startUnixSec,
                      &endUnixSec))
       return;
 
@@ -796,11 +815,12 @@ QVariantList UsageStatManager::foregroundSegmentsImpl(
         app.groupKey, app.appId, app.appName, app.path);
     const auto displayIdentity = TimeArc::AppIdentityPolicy::applyDisplayName(
         app.groupKey, defaultDisplayName,
-        m_displayNameOverrides.value(app.groupKey));
+        displayNameOverrideFor(app.appId, app.appName, app.path));
     item["name"] = displayIdentity.displayName;
     item["displayName"] = displayIdentity.displayName;
     item["defaultDisplayName"] = defaultDisplayName;
-    item["customDisplayName"] = m_displayNameOverrides.value(app.groupKey);
+    item["customDisplayName"] =
+        displayNameOverrideFor(app.appId, app.appName, app.path);
     result.append(item);
   }
 
@@ -854,13 +874,16 @@ QVariantList UsageStatManager::dailySecondsForMonth(int year, int month) const {
   // 再相加，与 softwareSecondsForRange("month") 同口径（避免与月总值自相矛盾）。
   QMap<int, QMap<QString, QVector<UsageInterval>>> byDay;
   const auto add = [&](const UsageRecord& record) {
-    if (record.durationSec == 0 || record.startUnixSec <= 0) return;
+    if (record.activeSec == 0 || record.startUnixSec <= 0) return;
     const qint64 end =
-        record.startUnixSec + static_cast<qint64>(record.durationSec);
+        record.startUnixSec + static_cast<qint64>(record.activeSec);
     if (end <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
-    if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
+    // 2B 隐藏 app 不计入趋势（按别名判定）
+    if (isHiddenActivity(record.appId, record.appName, record.path,
+                         record.windowTitle))
+      return;
     // 跨午夜的会话按天切开，每天只拿自己的那一段。
     forEachLocalDaySlice(record.startUnixSec, end,
                          [&](const QDate& d, qint64 from, qint64 to) {
@@ -912,13 +935,16 @@ QVariantList UsageStatManager::foregroundDailySecondsForRange(
   const auto add = [&](const UsageRecord& record) {
     // 统计页只看前台：media_sessions 与前台并发，混进来同一秒会被两个 app 各算一次。
     if (!matchesSource(record, kForegroundSource)) return;
-    if (record.durationSec == 0 || record.startUnixSec <= 0) return;
+    if (record.activeSec == 0 || record.startUnixSec <= 0) return;
     const qint64 recEnd =
-        record.startUnixSec + static_cast<qint64>(record.durationSec);
+        record.startUnixSec + static_cast<qint64>(record.activeSec);
     if (recEnd <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
-    if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
+    // 2B 隐藏 app 不计入趋势（按别名判定）
+    if (isHiddenActivity(record.appId, record.appName, record.path,
+                         record.windowTitle))
+      return;
     // 跨午夜的会话按天切开，每天只拿自己的那一段。
     forEachLocalDaySlice(record.startUnixSec, recEnd,
                          [&](const QDate& d, qint64 from, qint64 to) {
@@ -954,13 +980,16 @@ QVariantList UsageStatManager::foregroundMonthlySecondsForYear(int year) const {
   const auto add = [&](const UsageRecord& record) {
     // 统计页只看前台：media_sessions 与前台并发，混进来同一秒会被两个 app 各算一次。
     if (!matchesSource(record, kForegroundSource)) return;
-    if (record.durationSec == 0 || record.startUnixSec <= 0) return;
+    if (record.activeSec == 0 || record.startUnixSec <= 0) return;
     const qint64 end =
-        record.startUnixSec + static_cast<qint64>(record.durationSec);
+        record.startUnixSec + static_cast<qint64>(record.activeSec);
     if (end <= record.startUnixSec) return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
-    if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入趋势
+    // 2B 隐藏 app 不计入趋势（按别名判定）
+    if (isHiddenActivity(record.appId, record.appName, record.path,
+                         record.windowTitle))
+      return;
     // 按天切片再入月桶：跨年末/月末的会话不会整段落到起始月。
     forEachLocalDaySlice(record.startUnixSec, end,
                          [&](const QDate& d, qint64 from, qint64 to) {
@@ -1015,11 +1044,14 @@ QVariantMap UsageStatManager::foregroundFocusStatsForWindow(
     // 同聚合路径：相交入选 + 截断，专注块不会伸出期次之外。
     qint64 from = 0;
     qint64 to = 0;
-    if (!window.clip(record.startUnixSec, record.durationSec, &from, &to))
+    if (!window.clip(record.startUnixSec, record.activeSec, &from, &to))
       return;
     const QString key = activityGroupKey(record.appId, record.appName,
                                          record.path, record.windowTitle);
-    if (m_hiddenKeys.contains(key)) return;  // 2B 隐藏 app 不计入专注
+    // 2B 隐藏 app 不计入专注（按别名判定）
+    if (isHiddenActivity(record.appId, record.appName, record.path,
+                         record.windowTitle))
+      return;
     const QString cat = classifyActivity(key, record.appId, record.appName,
                                          record.path, record.windowTitle);
     if (!kFocusCats.contains(cat)) return;
@@ -1117,11 +1149,107 @@ int UsageStatManager::recordCount() const {
   return static_cast<int>(m_records.size());
 }
 
+QStringList UsageStatManager::activityAliases(const QString& appId,
+                                              const QString& appName,
+                                              const QString& path,
+                                              const QString& windowTitle) const {
+  QStringList aliases;
+  const auto add = [&aliases](const QString& key) {
+    if (!key.trimmed().isEmpty() && !aliases.contains(key)) aliases.append(key);
+  };
+  // 1) 当前规则表下的细化键（含窗口标题，可能是 site:*）。
+  add(activityGroupKey(appId, appName, path, windowTitle));
+  // 2) 应用级键（忽略窗口标题）——设置页的清单就是按这个去重的，所以隐藏一个
+  //    浏览器会连它下面的 site:* 一起隐藏，这正是「停用这个应用」的意思。
+  add(activityGroupKey(appId, appName, path, QString()));
+  // 3) 规则命中前的旧回退键：存量 hidden_apps 里存的往往是它。
+  add(TimeArc::Categorization::fallbackIdentity(
+      TimeArc::Categorization::normalize(appName),
+      TimeArc::Categorization::normalize(appId)));
+  // 4) 关「合并相似应用」时 effectiveGroupKey 产出的 exe: 键。
+  const QString exe = normalizedExeName(appName, path);
+  if (!exe.isEmpty()) add(QStringLiteral("exe:") + exe);
+  return aliases;
+}
+
+bool UsageStatManager::isHiddenActivity(const QString& appId,
+                                        const QString& appName,
+                                        const QString& path,
+                                        const QString& windowTitle) const {
+  if (m_hiddenKeys.isEmpty()) return false;
+  for (const QString& alias :
+       activityAliases(appId, appName, path, windowTitle)) {
+    if (m_hiddenKeys.contains(alias)) return true;
+  }
+  return false;
+}
+
+QString UsageStatManager::displayNameOverrideFor(const QString& appId,
+                                                 const QString& appName,
+                                                 const QString& path) const {
+  if (m_displayNameOverrides.isEmpty()) return QString();
+  // 别名按「当前键 → 旧回退键」的顺序排列，所以先命中的一定是最新方案的那个。
+  for (const QString& alias :
+       activityAliases(appId, appName, path, QString())) {
+    const auto it = m_displayNameOverrides.constFind(alias);
+    if (it != m_displayNameOverrides.constEnd()) return it.value();
+  }
+  return QString();
+}
+
+QHash<QString, QString> UsageStatManager::legacyKeyMap() const {
+  QHash<QString, QString> legacyToCurrent;
+  for (const UsageRecord& record : m_records) {
+    const QString current = activityGroupKey(record.appId, record.appName,
+                                             record.path, QString());
+    if (current.isEmpty()) continue;
+    for (const QString& alias : activityAliases(record.appId, record.appName,
+                                                record.path, QString())) {
+      if (alias == current) continue;
+      if (alias.startsWith(QLatin1String("exe:")) ||
+          alias.startsWith(QLatin1String("path:")))
+        legacyToCurrent.insert(alias, current);
+    }
+  }
+  return legacyToCurrent;
+}
+
+QStringList UsageStatManager::canonicalHiddenKeys(
+    const QStringList& stored) const {
+  const QHash<QString, QString> legacyToCurrent = legacyKeyMap();
+  QStringList out;
+  for (const QString& key : stored) {
+    const QString trimmed = key.trimmed();
+    if (trimmed.isEmpty()) continue;
+    const QString mapped = legacyToCurrent.value(trimmed, trimmed);
+    if (!out.contains(mapped)) out.append(mapped);
+  }
+  return out;
+}
+
+QVariantMap UsageStatManager::canonicalDisplayNameKeys(
+    const QVariantMap& stored) const {
+  const QHash<QString, QString> legacyToCurrent = legacyKeyMap();
+  QVariantMap out;
+  for (auto it = stored.constBegin(); it != stored.constEnd(); ++it) {
+    const QString key = it.key().trimmed();
+    if (key.isEmpty()) continue;
+    const QString mapped = legacyToCurrent.value(key, key);
+    // 旧键和新键同时存在时，当前方案的那个说了算——它是用户最近一次改名写下的。
+    if (mapped != key && stored.contains(mapped)) continue;
+    out.insert(mapped, it.value());
+  }
+  return out;
+}
+
 QString UsageStatManager::effectiveGroupKey(const UsageRecord& record) const {
   // 站点组（site:*）始终保持独立身份（合并开关不影响“看了哪个站点”）。
   const QString mergedKey = activityGroupKey(record.appId, record.appName,
                                              record.path, record.windowTitle);
-  if (m_hiddenKeys.contains(mergedKey)) return QString();  // 2B 逐项显隐：排除
+  // 2B 逐项显隐：按别名排除（见 activityAliases）
+  if (isHiddenActivity(record.appId, record.appName, record.path,
+                       record.windowTitle))
+    return QString();
   if (m_mergeSimilar || mergedKey.startsWith(QLatin1String("site:")))
     return mergedKey;
   // 2A 关「合并相似应用」：不并多进程变体，按 exe 名细分；无 exe 时退回合并键。
@@ -1237,7 +1365,7 @@ QVariantList UsageStatManager::allAppsImpl(const QString& sourceFilter,
                                          record.path, QString());
     if (key.isEmpty()) return;
     const qint64 endUnixSec =
-        record.startUnixSec + static_cast<qint64>(record.durationSec);
+        record.startUnixSec + static_cast<qint64>(record.activeSec);
     if (record.startUnixSec <= 0 || endUnixSec <= record.startUnixSec) return;
 
     const QString appName = !record.appName.trimmed().isEmpty()
@@ -1253,7 +1381,9 @@ QVariantList UsageStatManager::allAppsImpl(const QString& sourceFilter,
       entry.path = record.path;
     }
     entry.intervals.append({record.startUnixSec, endUnixSec});
-    entry.lastUsedUnixSec = std::max(entry.lastUsedUnixSec, endUnixSec);
+    entry.lastUsedUnixSec = std::max(
+        entry.lastUsedUnixSec,
+        record.startUnixSec + static_cast<qint64>(record.durationSec));
   };
   for (const UsageRecord& record : m_records) addApp(record);
 
@@ -1270,7 +1400,7 @@ QVariantList UsageStatManager::allAppsImpl(const QString& sourceFilter,
         entry.groupKey, entry.appId, entry.appName, entry.path);
     const auto displayIdentity = TimeArc::AppIdentityPolicy::applyDisplayName(
         entry.groupKey, defaultDisplayName,
-        m_displayNameOverrides.value(entry.groupKey));
+        displayNameOverrideFor(entry.appId, entry.appName, entry.path));
     const QString displayName = displayIdentity.displayName;
     QString category =
         classifyActivity(entry.groupKey, entry.appId, entry.appName, entry.path,
@@ -1283,7 +1413,8 @@ QVariantList UsageStatManager::allAppsImpl(const QString& sourceFilter,
     item["groupKey"] = entry.groupKey;
     item["originalGroupKey"] = entry.groupKey;
     item["defaultDisplayName"] = defaultDisplayName;
-    item["customDisplayName"] = m_displayNameOverrides.value(entry.groupKey);
+    item["customDisplayName"] =
+        displayNameOverrideFor(entry.appId, entry.appName, entry.path);
     item["appId"] = entry.appId;
     item["appName"] = entry.appName;
     item["name"] = displayName;
@@ -1295,7 +1426,9 @@ QVariantList UsageStatManager::allAppsImpl(const QString& sourceFilter,
     item["settingsVisible"] = isSettingsListVisibleActivity(
         entry.groupKey, entry.appId, entry.appName, entry.path, displayName,
         isDeprioritizedCategory(category), seconds);
-    item["hidden"] = m_hiddenKeys.contains(entry.groupKey);  // 含被隐藏项，供取消隐藏
+    // 含被隐藏项，供取消隐藏；按别名判定，陈旧键也要让复选框显示为已隐藏
+    item["hidden"] =
+        isHiddenActivity(entry.appId, entry.appName, entry.path, QString());
     applyRuleMetadata(&item, entry.groupKey, entry.path);
     result.append(item);
   }
@@ -1608,7 +1741,7 @@ QVariantList UsageStatManager::recordedAppIdentities() const {
   };
   QMap<QString, Identity> seen;
   for (const UsageRecord& record : m_records) {
-    if (record.startUnixSec <= 0 || record.durationSec == 0) continue;
+    if (record.startUnixSec <= 0 || record.activeSec == 0) continue;
     const QString key = record.appId.trimmed().isEmpty()
                             ? record.appName.trimmed().toLower()
                             : record.appId;
@@ -1621,7 +1754,7 @@ QVariantList UsageStatManager::recordedAppIdentities() const {
                                  : QFileInfo(record.path).fileName();
       identity.path = record.path;
     }
-    identity.seconds += record.durationSec;
+    identity.seconds += record.activeSec;
     identity.lastUsedUnixSec =
         std::max(identity.lastUsedUnixSec,
                  record.startUnixSec + static_cast<qint64>(record.durationSec));

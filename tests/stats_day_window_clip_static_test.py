@@ -12,7 +12,17 @@
    the same second countable twice under two different apps -- which put
    2026-08-04/05 at 24.06h even after the clip was in place.
 
-Both fixes: journal/errors/20260828-094718-C-stats-day-window-no-clip.md.
+3. Counted length. Every interval is [start, start + active_sec). A foreground
+   session stays open across idle (CHARTER v0.11), so duration_sec is wall clock
+   and includes the locked screen -- loginwindow was 74.9h wall against 9.1h
+   active. Wall clock survives only where the question is "when", not "how long".
+
+4. Per-app hiding. An app resolves to more than one group key across rule-table
+   versions (rule hit -> app:macos-shell; no hit -> legacy exe:loginwindow), so
+   hidden-ness is matched against every alias, and stored keys are canonicalized
+   by the settings layer so unhiding can remove them.
+
+Reports: journal/errors/20260828-{094718,101917,1049xx,1051xx}-C-*.md
 """
 
 import re
@@ -115,13 +125,66 @@ def main():
     # whichever caller asked first.
     require(header, "m_foregroundAppsGeneration", "separate foregroundApps cache")
 
+    # --- 3. Counted length is active_sec, not wall clock. ---
+    require(cpp, "fs.active_sec", "active_sec in the frontmost read query")
+    # media_sessions has no active column; the loader reads one shape, so the
+    # media query backfills duration into the same slot.
+    require(cpp, "ms.duration_sec, ms.rowid,\n       ms.duration_sec",
+            "media active-length backfill")
+    require(header, "quint64 activeSec = 0;", "UsageRecord::activeSec")
+    # Nothing may build a counted interval out of the wall-clock span.
+    reject(cpp, "window.clip(record.startUnixSec, record.durationSec",
+           "wall-clock span fed to the window clip")
+    for signature in (
+        "QVariantList UsageStatManager::dailySecondsForMonth(",
+        "QVariantList UsageStatManager::foregroundDailySecondsForRange(",
+        "QVariantList UsageStatManager::foregroundMonthlySecondsForYear(",
+        "QVariantList UsageStatManager::allAppsImpl(",
+        "QVariantList UsageStatManager::recordedAppIdentities(",
+    ):
+        body = body_of(cpp, signature)
+        require(body, "record.activeSec", f"active length in {signature}")
+
+    # --- 4. Hiding matches every alias an app can resolve to. ---
+    require(cpp, "QStringList UsageStatManager::activityAliases(",
+            "alias enumeration")
+    require(cpp, "fallbackIdentity(", "legacy identity among the aliases")
+    require(header, "canonicalHiddenKeys", "stored-key canonicalization")
+    # No read path may test the hidden set against a single key again.
+    reject(cpp, "m_hiddenKeys.contains(key)", "single-key hidden test")
+    reject(cpp, "m_hiddenKeys.contains(mergedKey)", "single-key hidden test")
+    reject(cpp, "m_hiddenKeys.contains(entry.groupKey)", "single-key hidden test")
+    # The settings layer writes the canonical list back, or unhiding cannot
+    # remove a stale key that only the alias match still sees.
+    for qml_path in ("qml/desktop/DesktopAppShell.qml",
+                     "qml/desktop/pages/DesktopProfilePage.qml"):
+        require(read(qml_path), "canonicalHiddenKeys",
+                f"hidden-key canonicalization in {qml_path}")
+
+    # --- 5. app_display_name_overrides keys the same way, so it drifts too. ---
+    require(cpp, "QString UsageStatManager::displayNameOverrideFor(",
+            "alias-aware override lookup")
+    require(header, "canonicalDisplayNameKeys", "override-key canonicalization")
+    # No read site may look the override map up by a single key again.
+    for needle in ("m_displayNameOverrides.value(aggregate.groupKey)",
+                   "m_displayNameOverrides.value(app.groupKey)",
+                   "m_displayNameOverrides.value(entry.groupKey)"):
+        reject(cpp, needle, "single-key override lookup")
+    # Overrides must be pushed at startup, not only while the settings page
+    # happens to be the instantiated one -- pageLoader builds one page at a time.
+    shell = read("qml/desktop/DesktopAppShell.qml")
+    require(shell, "setAppDisplayNameOverrides",
+            "startup push of display-name overrides")
+    require(shell, "canonicalDisplayNameKeys",
+            "override canonicalization in the shell")
+
     # Aggregation cores clip before they accumulate.
     for signature in (
         "QVariantList UsageStatManager::aggregateSoftware(",
         "QVariantList UsageStatManager::foregroundSegmentsImpl(",
     ):
         body = body_of(cpp, signature)
-        require(body, "window.clip(record.startUnixSec, record.durationSec",
+        require(body, "window.clip(record.startUnixSec, record.activeSec",
                 f"clip call in {signature}")
         reject(body, "{record.startUnixSec, endUnixSec}",
                f"unclipped interval in {signature}")

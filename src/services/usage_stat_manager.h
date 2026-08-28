@@ -119,6 +119,16 @@ class UsageStatManager : public QObject {
   // 把 UI 私有偏好推入读出聚合层。只影响 UI 读出，不写/不删 usage，不动磁盘契约/服务。
   // 默认无过滤（不脱敏/不隐藏/全分类/合并）= 与历史逐字节一致。变更后发
   // usageStatsChanged 并自增 recordsGeneration，令各消费页重算。
+  // 逐项显隐自愈（G-HIDEAPP）：把设置页存下的 hidden_apps 归一到**当前**身份方案。
+  // 规则表升级会改变一个 app 的 group key（loginwindow 从旧回退键 exe:loginwindow
+  // 变成规则键 app:macos-shell），存量键于是失配、隐藏静默失效。读侧认全部别名，
+  // 但「取消隐藏」只会删掉当前键、留下陈旧键，所以设置层启动时用这个写回一次。
+  // 只改写旧回退键（exe:/path:）；app:/site: 是当前方案产出的，原样保留。
+  Q_INVOKABLE QStringList canonicalHiddenKeys(const QStringList& stored) const;
+  // 同上，作用于 app_display_name_overrides。这张表也按 group key 存，所以规则表
+  // 一升级同样会失配——只是失败得更安静：自定义名字不再生效，没有任何提示。
+  Q_INVOKABLE QVariantMap canonicalDisplayNameKeys(
+      const QVariantMap& stored) const;
   Q_INVOKABLE void setReadFilters(bool autoClassify, bool gameClassify,
                                   bool mergeSimilar, bool hideTitles,
                                   const QStringList& hiddenKeys);
@@ -144,7 +154,12 @@ signals:
     QString windowTitle;
     QString path;
     qint64 startUnixSec = 0;
-    quint64 durationSec = 0;
+    quint64 durationSec = 0;  // 墙钟跨度 end - start（只用于「最近使用」时刻）
+    // 计入统计的长度。前台 = active_sec（会话跨 idle 保持打开，CHARTER v0.11，
+    // 所以墙钟跨度里含锁屏和离座）；媒体 = duration_sec（在播就是在播）。
+    // 所有区间都构造成 [start, start + activeSec)：长度精确，落点误差上界是服务
+    // 侧的 maxSessionSec（当前 300s）。
+    quint64 activeSec = 0;
     // startUnixSec 的本地自然日，装载时算一次。此前每次 range 判定都要对每条记录做
     // QDateTime::fromSecsSinceEpoch().toLocalTime().date()（含时区换算），而一次开页
     // 要跑好几遍聚合。记录一经追加即不可变，故可安全预存；系统时区变了要整表重载
@@ -270,6 +285,19 @@ signals:
                                        const QString& sourceFilter) const;
   bool matchesSource(const UsageRecord& record,
                      const QString& sourceFilter) const;
+  // 一个 app 在不同规则表版本 / 不同合并开关下会产生不止一个 group key。
+  // 显隐判定必须认全部别名，否则设置页里勾掉的 app 会在规则更新后回到统计里。
+  QStringList activityAliases(const QString& appId, const QString& appName,
+                              const QString& path,
+                              const QString& windowTitle) const;
+  bool isHiddenActivity(const QString& appId, const QString& appName,
+                        const QString& path,
+                        const QString& windowTitle) const;
+  // 自定义显示名同样按别名查找：设置页存的键可能来自旧身份方案。
+  QString displayNameOverrideFor(const QString& appId, const QString& appName,
+                                 const QString& path) const;
+  // 旧回退键（exe:/path:）→ 当前身份键。两个归一函数共用。
+  QHash<QString, QString> legacyKeyMap() const;
   QString secondsToTimeText(quint64 totalSeconds) const;
 };
 
