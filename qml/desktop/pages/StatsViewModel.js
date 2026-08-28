@@ -221,14 +221,15 @@ function buildAggregateFact(range, categories, trendRows) {
 
 var RING_MIN_SECONDS = 60      // "too short" — matches the backend's kMergeGapSec
 var RING_BRIDGE_SECONDS = 60   // sub-threshold hole a same-category run may span
-var RING_MIN_SWEEP_DEG = 0.8   // a surviving arc stays visible and clickable
+var RING_MIN_SWEEP_DEG = 5.0   // 10-minute display floor on a 12-hour dial
 // Legibility floor. Removing sub-minute records is not enough on real data: a
 // day of alt-tabbing produces stretches of 90-200s that clear the noise floor
 // and still render as 1-degree hairlines, so the ring comes out a barcode
 // (measured on a real day: 47 arcs, 35 of them under 2deg). A block thinner
 // than this cannot be read or clicked, so it merges into the block it
-// interrupts. On the 12-hour dial 1deg = 2 minutes, so 2deg = 4 minutes.
-var RING_MIN_ARC_DEG = 2.0
+// interrupts. On the 12-hour dial 1deg = 2 minutes, so 5deg = 10 minutes.
+// Only the ring geometry is simplified; every reported duration stays exact.
+var RING_MIN_ARC_DEG = 5.0
 var RING_HALF_SECONDS = 12 * 3600
 var RING_MAX_APPS = 4          // apps carried per arc for the hover readout
 

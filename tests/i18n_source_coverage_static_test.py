@@ -91,7 +91,7 @@ def source_files():
     for pattern in ("qml/**/*.qml", "qml/**/*.js",
                     "src/**/*.cpp", "src/**/*.h", "src/**/*.mm"):
         for p in sorted(ROOT.glob(pattern)):
-            if str(p.relative_to(ROOT)) in ALLOW_CJK_FILES:
+            if p.relative_to(ROOT).as_posix() in ALLOW_CJK_FILES:
                 continue
             yield p
 

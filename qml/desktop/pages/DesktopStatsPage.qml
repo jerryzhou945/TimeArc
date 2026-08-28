@@ -520,6 +520,28 @@ Item {
         return out
     }
 
+    // Ring arcs intentionally carry only compact app summaries. Rehydrate them
+    // from the period model so the focused sector can show the real app icons.
+    function clockArcApps(summaries) {
+        var source = summaries ? summaries : []
+        var apps = vmApps ? vmApps : []
+        var out = []
+        for (var i = 0; i < source.length; i++) {
+            var summary = source[i]
+            var full = null
+            for (var j = 0; j < apps.length; j++) {
+                var key = apps[j].groupKey ? apps[j].groupKey : apps[j].appId
+                if (key === summary.groupKey) { full = apps[j]; break }
+            }
+            var row = {}
+            if (full)
+                for (var name in full) row[name] = full[name]
+            for (var summaryName in summary) row[summaryName] = summary[summaryName]
+            out.push(row)
+        }
+        return out
+    }
+
     // 分类环（日视图）：整天降噪一次 → 按当前半天投影。降噪与 AM/PM 无关，
     // 缓存后切半天只走 reprojectCategoryRing()，不重跑扫描线（性能文档口径）。
     // 分类环只在**日视图**渲染（StatsCategoryClock 的 visible: range === "day"），而且
@@ -1384,7 +1406,7 @@ Item {
                     spacing: 2
                     Text { text: root.tr("Category clock"); color: ml.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
                     // 口径写在脸上：环只画前台记录，中心总时长含音频，两者本就不等。
-                    Text { text: root.tr("Foreground records, merged into blocks by category"); color: ml.textTertiary; font.pixelSize: 12 }
+                    Text { text: root.tr("Grouped into readable 10-minute category blocks; exact totals stay unchanged"); color: ml.textTertiary; font.pixelSize: 12 }
                 }
                 Row {
                     spacing: 4
@@ -1424,17 +1446,19 @@ Item {
                         var base = Math.min(width, height) / 2
                         var ringRadius = base * ringCard.ringRadiusScale
                         var trackWidth = base * ringCard.ringWidthScale
+                        var trackInner = ringRadius - trackWidth / 2
+                        var trackOuter = ringRadius + trackWidth / 2
 
-                        // 一条底轨：没有记录的时段留白，环不会假装铺满一天。
-                        ctx.lineWidth = trackWidth
-                        ctx.strokeStyle = ml.calSunkBg
+                        // Filled annulus: empty time remains a quiet sector of the dial.
                         ctx.beginPath()
-                        ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2)
-                        ctx.stroke()
+                        ctx.arc(cx, cy, trackOuter, 0, Math.PI * 2, false)
+                        ctx.arc(cx, cy, trackInner, Math.PI * 2, 0, true)
+                        ctx.closePath()
+                        ctx.fillStyle = ml.calSunkBg
+                        ctx.fill()
 
-                        // 平铺的类别弧用 butt 端点：round 会让相邻弧鼓起来互相压盖。
-                        // 类别之间留 0.15° 发丝缝，保证边界看得见。
-                        ctx.lineCap = "butt"
+                        // Each category is a filled annular sector. The active
+                        // sector grows both inward and outward without changing time.
                         for (var i = 0; i < ringCard.arcs.length; i++) {
                             var arc = ringCard.arcs[i]
                             var dimmed = ringCard.activeId !== "" && ringCard.activeId !== arc.arcId
@@ -1444,12 +1468,15 @@ Item {
                             if (endDeg <= startDeg) { startDeg = arc.startAngle; endDeg = arc.endAngle }
                             var start = (startDeg - 90) * Math.PI / 180
                             var end = (endDeg - 90) * Math.PI / 180
+                            var inner = trackInner - (emphasized ? base * 0.02 : 0)
+                            var outer = trackOuter + (emphasized ? base * 0.03 : 0)
                             ctx.globalAlpha = dimmed ? 0.22 : 1.0
-                            ctx.lineWidth = trackWidth * (emphasized ? 1.16 : 1.0)
                             ctx.beginPath()
-                            ctx.arc(cx, cy, ringRadius, start, end, false)
-                            ctx.strokeStyle = root.categoryHeatBase(arc.category)
-                            ctx.stroke()
+                            ctx.arc(cx, cy, outer, start, end, false)
+                            ctx.arc(cx, cy, inner, end, start, true)
+                            ctx.closePath()
+                            ctx.fillStyle = root.categoryHeatBase(arc.category)
+                            ctx.fill()
                         }
                         ctx.globalAlpha = 1.0
 
@@ -1506,6 +1533,34 @@ Item {
                             color: ringCard.focusedArc ? ml.aqua : ml.textTertiary
                             font.pixelSize: 11; font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
+                        }
+                        Row {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: -4
+                            visible: ringCard.focusedArc !== null
+                            Repeater {
+                                model: ringCard.focusedArc ? root.clockArcApps(ringCard.focusedArc.apps).slice(0, 3) : []
+                                delegate: Rectangle {
+                                    required property var modelData
+                                    width: 30; height: 30; radius: 9
+                                    color: AppVisual.modelAppColor(modelData)
+                                    border.width: 2; border.color: ml.panelBg
+                                    Image {
+                                        id: clockArcAppImage
+                                        anchors.centerIn: parent; width: 21; height: 21
+                                        source: AppVisual.modelIconSource(modelData)
+                                        sourceSize.width: 64; sourceSize.height: 64
+                                        fillMode: Image.PreserveAspectFit; asynchronous: true; smooth: true; mipmap: true
+                                        visible: source != "" && status === Image.Ready
+                                    }
+                                    Text {
+                                        anchors.centerIn: parent
+                                        visible: AppVisual.modelIconSource(modelData) === "" || clockArcAppImage.status !== Image.Ready
+                                        text: AppVisual.modelIconLabel(modelData)
+                                        color: "#FFFFFF"; font.pixelSize: 10; font.weight: 900
+                                    }
+                                }
+                            }
                         }
                         Text {
                             width: parent.width

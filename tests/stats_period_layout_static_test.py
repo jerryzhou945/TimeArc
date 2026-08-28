@@ -37,12 +37,18 @@ def main():
                     "StatsApplicationClock", "buildClockSegments"):
         assert retired not in QML, retired
 
-    # Arcs tile, so round caps would bulge into each other.
-    assert 'ctx.lineCap = "butt"' in dial
+    # Records render as filled annular sectors; hover/click expands the selected
+    # sector without mutating its time geometry.
+    assert "ctx.fill()" in dial
+    assert "trackInner" in dial and "trackOuter" in dial
+    assert "var inner = trackInner - (emphasized" in dial
+    assert "var outer = trackOuter + (emphasized" in dial
     assert "ringRadiusScale" in dial and "ringWidthScale" in dial
 
-    # Icons left the ring, so the legend/detail row and the honest footnote
-    # about folded-away short records are what replaces them.
+    # A focused category block resolves its compact summaries back to full app
+    # rows, so real app icons appear in the hub while the legend stays compact.
+    assert "root.clockArcApps(ringCard.focusedArc.apps)" in dial
+    assert "AppVisual.modelIconSource(modelData)" in dial
     assert "ringCard.legend" in dial
     assert "ringCard.footnote" in dial
     assert "root.ringFootnote()" in QML

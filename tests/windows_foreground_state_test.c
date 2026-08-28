@@ -427,7 +427,7 @@ static void test_current_codex_worker_topology_is_aggregated(void) {
   assert(timearc_process_activity_delta(&probe, roots[0], &total));
 }
 
-static void test_codex_agent_activity_survives_foreground_loss(void) {
+static void test_codex_agent_activity_stops_at_last_work_sample(void) {
   TimeArcAgentActivityState state;
   TimeArcAgentActivityClosedSession closed;
   AppInfo codex = app(
@@ -440,8 +440,8 @@ static void test_codex_agent_activity_survives_foreground_loss(void) {
                                       &closed));
   assert(state.active);
 
-  // Another app may now be foreground; cached official Codex worker evidence
-  // keeps this independent agent session alive.
+  // Lease-only samples may keep the state open for continuity, but they must
+  // never move the persisted end past the final real worker signal.
   assert(!timearc_agent_activity_step(&state, &codex, 0, 1030, 30000,
                                       &closed));
   assert(state.active);
@@ -455,11 +455,11 @@ static void test_codex_agent_activity_survives_foreground_loss(void) {
                                      &closed));
   assert(!state.active);
   assert(closed.start_wall_sec == 1000);
-  assert(closed.end_wall_sec == 1122);
+  assert(closed.end_wall_sec == 1031);
   assert(strcmp(closed.app.exec_path, codex.exec_path) == 0);
 }
 
-static void test_codex_agent_activity_checkpoints_without_closing(void) {
+static void test_codex_agent_checkpoint_does_not_count_lease_only_time(void) {
   TimeArcAgentActivityState state;
   TimeArcAgentActivityClosedSession closed;
   AppInfo codex = app("ChatGPT.exe", 11, "Codex");
@@ -467,11 +467,15 @@ static void test_codex_agent_activity_checkpoints_without_closing(void) {
   timearc_agent_activity_init(&state, 90000);
   assert(!timearc_agent_activity_step(&state, &codex, 1, 2000, 0,
                                       &closed));
+  assert(!timearc_agent_activity_step(&state, &codex, 1, 2005, 5000,
+                                      &closed));
+  assert(!timearc_agent_activity_step(&state, &codex, 0, 2050, 50000,
+                                      &closed));
   assert(timearc_agent_activity_checkpoint(&state, 2060, &closed));
   assert(closed.start_wall_sec == 2000);
-  assert(closed.end_wall_sec == 2060);
+  assert(closed.end_wall_sec == 2005);
   assert(state.active);
-  assert(state.start_wall_sec == 2060);
+  assert(state.start_wall_sec == 2005);
 }
 
 int main(void) {
@@ -495,8 +499,8 @@ int main(void) {
   test_foreground_game_identity_is_specific_to_main_game();
   test_autonomous_roots_include_only_codex_workers();
   test_current_codex_worker_topology_is_aggregated();
-  test_codex_agent_activity_survives_foreground_loss();
-  test_codex_agent_activity_checkpoints_without_closing();
+  test_codex_agent_activity_stops_at_last_work_sample();
+  test_codex_agent_checkpoint_does_not_count_lease_only_time();
   puts("Windows foreground state tests passed");
   return 0;
 }

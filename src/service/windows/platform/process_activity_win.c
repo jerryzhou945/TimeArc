@@ -159,7 +159,6 @@ int timearc_agent_activity_step(
     return 0;
   }
 
-  state->last_wall_sec = wall_sec;
   if (work_active && codex_app != NULL &&
       (state->app.process_id != codex_app->process_id ||
        strcmp(state->app.exec_path, codex_app->exec_path) != 0)) {
@@ -167,7 +166,8 @@ int timearc_agent_activity_step(
     start_agent_activity(state, codex_app, wall_sec, monotonic_ms);
     return 1;
   }
-  if (work_active) {
+  if (work_active && codex_app != NULL) {
+    state->last_wall_sec = wall_sec;
     state->lease_until_ms = monotonic_ms + state->lease_duration_ms;
   }
   if (monotonic_ms <= state->lease_until_ms) return 0;
@@ -182,12 +182,13 @@ int timearc_agent_activity_step(
 int timearc_agent_activity_checkpoint(
     TimeArcAgentActivityState* state, int64_t wall_sec,
     TimeArcAgentActivityClosedSession* out_closed) {
-  if (state == NULL || !state->active || wall_sec <= state->start_wall_sec) {
+  (void)wall_sec;
+  if (state == NULL || !state->active ||
+      state->last_wall_sec <= state->start_wall_sec) {
     return 0;
   }
-  state->last_wall_sec = wall_sec;
   export_agent_activity(state, out_closed);
-  state->start_wall_sec = wall_sec;
+  state->start_wall_sec = state->last_wall_sec;
   return 1;
 }
 

@@ -204,31 +204,6 @@ Item {
 
     // 当前选中项的路由键。
     readonly property string selectedPage: (selectedIndex >= 0 && selectedIndex < navItems.length) ? navItems[selectedIndex].page : "memorylake"
-    readonly property var pageGuideModel: ({
-            "calendar": {
-                eyebrow: "Visual path",
-                title: "Check today's schedule first, then work through the todos",
-                next: "Next: scan the agenda top to bottom and handle the timed items first."
-            },
-            "stats": {
-                eyebrow: "Visual path",
-                title: "Look at the trend first, then the per-app detail",
-                next: "Next: confirm how time is distributed, then drill into individual apps."
-            },
-            "settings": {
-                eyebrow: "Visual path",
-                title: "Pick a section on the left, then edit the cards on the right",
-                next: "Next: launch, tray and start-at-login live under General and Tracking."
-            },
-            "recap": {
-                eyebrow: "Visual path",
-                title: "Read the monthly conclusion first, then flip through the cards",
-                next: "Next: follow the timeline for peaks, categories and standout apps."
-            }
-        })
-    readonly property var currentPageGuide: pageGuideModel[selectedPage] || null
-    readonly property bool showPageGuide: !showingTimerPage && selectedPage !== "memorylake" && currentPageGuide !== null
-
     function indexOfPage(key) {
         if (key === "recap" && !memoryRecapEnabled)
             return -1;
@@ -1160,50 +1135,6 @@ Item {
                         z: -1
                     }
 
-                    Rectangle {
-                        id: guideRail
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        anchors.top: parent.top
-                        anchors.leftMargin: fullBleedPage ? 8 : 22
-                        anchors.rightMargin: fullBleedPage ? 8 : 22
-                        anchors.topMargin: fullBleedPage ? 8 : 22
-                        height: 44
-                        radius: 14
-                        visible: root.showPageGuide
-                        color: fullBleedPage ? Qt.rgba(1, 1, 1, 0.06) : Qt.rgba(1, 1, 1, nightMode ? 0.08 : 0.56)
-                        border.width: 1
-                        border.color: fullBleedPage ? mlStyle.panelBorder : appPanelBorder
-                        Row {
-                            anchors.fill: parent
-                            anchors.leftMargin: 14
-                            anchors.rightMargin: 14
-                            spacing: 12
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: root.currentPageGuide ? root.tr(root.currentPageGuide.eyebrow) : ""
-                                color: fullBleedPage ? mlStyle.aqua : appAccentWarm
-                                font.pixelSize: 11
-                                font.weight: 900
-                            }
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: root.currentPageGuide ? root.tr(root.currentPageGuide.title) : ""
-                                color: appTextPrimary
-                                font.pixelSize: 14
-                                font.weight: Font.DemiBold
-                            }
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: Math.max(120, parent.width - 360)
-                                text: root.currentPageGuide ? root.tr(root.currentPageGuide.next) : ""
-                                color: appTextSecondary
-                                font.pixelSize: 12
-                                elide: Text.ElideRight
-                            }
-                        }
-                    }
-
                     Loader {
                         id: pageLoader
                         anchors.fill: parent
@@ -1211,7 +1142,7 @@ Item {
                         anchors.leftMargin: fullBleedPage ? 8 : 22
                         anchors.rightMargin: fullBleedPage ? 8 : 22
                         anchors.bottomMargin: fullBleedPage ? 8 : 22
-                        anchors.topMargin: root.showPageGuide ? (fullBleedPage ? 60 : 74) : (fullBleedPage ? 8 : 22)
+                        anchors.topMargin: fullBleedPage ? 8 : 22
                         source: currentPageSource
 
                         onLoaded: {
