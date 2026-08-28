@@ -1468,7 +1468,15 @@ void UsageStatManager::applyRuleMetadata(QVariantMap* item,
     item->insert(QStringLiteral("adapterDisplayName"), label);
     item->insert(QStringLiteral("iconLabel"), label.left(1).toUpper());
   }
-  item->insert(QStringLiteral("adapterCategory"), rule->category);
+  // 「游戏识别」关 -> 规则元数据里的游戏类同样降级。这里原样写入 rule->category，
+  // 而 aggregateSoftware()/allApps() 早在几行前就把 item["category"] 从 game 降到
+  // other，于是同一行数据带着两个互相矛盾的类别出门；任何优先读 adapterCategory 的
+  // UI（AppVisual.modelCategory）都会绕过这个读层开关。降级是读层的事，不写盘。
+  QString adapterCategory = rule->category;
+  if (!m_gameClassify && adapterCategory == QStringLiteral("game")) {
+    adapterCategory = QStringLiteral("other");
+  }
+  item->insert(QStringLiteral("adapterCategory"), adapterCategory);
 
   const QString icon = rule->icon.trimmed();
   if (!icon.isEmpty()) {

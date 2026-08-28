@@ -2,9 +2,26 @@
 
 #include "macos_traffic_lights.h"
 
+#include <QGuiApplication>
 #include <QWindow>
 
 #import <AppKit/AppKit.h>
+
+namespace {
+
+// QWindow::winId() returns an opaque WId whose type belongs to whichever QPA
+// plugin is loaded: it is a real NSView* only under "cocoa". Under offscreen /
+// minimal it is a small fabricated counter, so reinterpret_cast-ing it and
+// sending an Objective-C message dereferences a non-pointer -- objc_msgSend
+// faults reading the isa word from address 0x1. Checking the plugin is the only
+// way to know the cast is legal; a null-check on the *result* runs too late,
+// because the fault happens while computing it.
+// See journal/errors/20260828-071233-C-offscreen-teardown-segfault.md.
+bool windowsAreNativeCocoa() {
+  return QGuiApplication::platformName() == QLatin1String("cocoa");
+}
+
+}  // namespace
 
 MacTrafficLightsController::MacTrafficLightsController(QObject* parent)
     : QObject(parent) {}
@@ -82,6 +99,9 @@ void MacTrafficLightsController::performTitlebarDoubleClickAction() {
 
 void MacTrafficLightsController::createNativeViews() {
   if (!window_) return;
+  // Without this the app could not start headless at all -- the crash was in
+  // main(), before the event loop, on every non-cocoa plugin.
+  if (!windowsAreNativeCocoa()) return;
 
   @autoreleasepool {
     NSView* qtView = reinterpret_cast<NSView*>(window_->winId());

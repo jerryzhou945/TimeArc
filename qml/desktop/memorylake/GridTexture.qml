@@ -36,14 +36,26 @@ Item {
             ctx.moveTo(0, 0.5); ctx.lineTo(width, 0.5);
             ctx.stroke();
         }
-        // 重入守卫：toDataURL() 会同步逼出一次绘制，那次绘制又发 painted —— 不挡住就是
-        // 无限递归（实测 "RangeError: Maximum call stack size exceeded"）。
+        // 快照必须**离开绘制周期**再取。toDataURL() 内部会 flush 并 delete 掉
+        // QQuickContext2DCommandBuffer；在 onPainted 里同步调用，就是在
+        // QQuickCanvasItem::updatePolish() 正在跑的这一轮里把它删掉，等这一轮自己再
+        // flush 一次就是对同一块内存第二次 delete —— ASan 明确报 double-free，实测
+        // 启动约四成概率崩溃（尤其当 AppKit 正开着嵌套模态循环时）。
+        // Qt.callLater 把取快照推到本轮 polish/render 之后，两次 flush 不再交叠。
+        // 见 journal/errors/20260828-073721-C-quick-canvas-double-free.md。
+        //
+        // 重入守卫仍然需要、且必须留在 onPainted 里（同步判断）：toDataURL() 会同步逼出
+        // 一次绘制，那次绘制又发 painted。若把判断挪进 exportTile()，等它被调用时标志
+        // 已经复位，就又成了无限递归（实测 "RangeError: Maximum call stack size exceeded"）。
         property bool exporting: false
-        onPainted: {
-            if (tile.exporting) return;
+        function exportTile() {
             tile.exporting = true;
             tiled.source = tile.toDataURL();
             tile.exporting = false;
+        }
+        onPainted: {
+            if (tile.exporting) return;
+            Qt.callLater(tile.exportTile);
         }
 
         Component.onCompleted: requestPaint()

@@ -11,15 +11,17 @@ def section(start, end):
 
 def main():
     day = section("// ====== 日视图", "// ====== 周视图")
-    dial = section("component StatsCategoryClock", "component StatsDayTimeline")
+    dial = section("component StatsCategoryClock", "component StatsAppLibrary")
     summary = section("component StatsAggregateSummary", "component StatsCategoryDistribution")
 
     assert 'readonly property bool statsLayoutStacked: root.width < 900' in QML
 
     assert "StatsCategoryClock" in day
     assert "DailyUsageShare" in day
-    assert "StatsDayTimeline" not in day
-    assert "StatsRankingList" not in day
+    # Retired with the aggregate-parity rework and now deleted outright, so the
+    # guard is against the whole file rather than just the day section.
+    assert "StatsDayTimeline" not in QML
+    assert "StatsRankingList" not in QML
     assert "root.statsLayoutStacked" in day
     assert "root.sideCollapsed" not in day
     # The clock stays a clock: 60 ticks and the 12 hour numbers survive the
@@ -81,8 +83,11 @@ def main():
     assert "Layout.preferredHeight: 132" in aggregate
     assert 'barCount: root.vmTrendBars.length' in aggregate
     assert 'rows: root.vmCategories' in aggregate
+    # These four were retired from the aggregate view by the parity rework and
+    # their declarations have since been deleted, so pin the whole file: a
+    # re-introduced declaration is what let them rot here unnoticed.
     for old_component in ("StatsHeatmap", "StatsLineChart", "StatsYearRhythm", "StatsInsightCard"):
-        assert old_component not in aggregate
+        assert old_component not in QML, old_component
 
     assert "component StatsAggregateSummary" in QML
     assert "component StatsCategoryDistribution" in QML
