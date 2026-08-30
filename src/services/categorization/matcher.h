@@ -124,7 +124,12 @@ class Matcher {
 
       best.matched = true;
       best.ruleId = rule.id;
-      best.identity = rule.id;
+      // `ref` normally means "restore from this shipped rule" and broad
+      // defaults can materialize several unrelated applications (for example
+      // Opera and Brave). Only explicitly approved multi-process aliases may
+      // use it as a shared statistics/icon identity.
+      const QString ref = rule.ref.trimmed();
+      best.identity = ref == QStringLiteral("app:wechat") ? ref : rule.id;
       best.category = rule.category;
       best.needle = needle;
       best.score = score;
