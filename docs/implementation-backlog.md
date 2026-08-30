@@ -181,6 +181,8 @@ G2/G3 打磨 ───────────(随手)
   2026-08-25 收紧每日应用时钟三轨间距，并完成 Windows 首次登录自启默认项和
   原神/星铁/绝区零/鸣潮主进程前台游戏计时；见
   [`windows-release-defaults-game-clock-2026-08-25.md`](windows-release-defaults-game-clock-2026-08-25.md)。
+  2026-08-30 恢复固定十分钟分类整块、相邻标签同色和同分类联动高亮；见
+  [`stats-clock-category-blocks-fix-2026-08-30.md`](stats-clock-category-blocks-fix-2026-08-30.md)。
 - [x] **G6 Android Edge-to-Edge 与分享视觉打磨** — 2026-08-02 完成：保留鸿蒙可启动默认 QtActivity Theme；运行时透明系统栏、安全区导航、Material Symbols SVG、全局应用图标圆角、华为桌面元数据，以及单应用/排行/月报分享预览重构。Pura 90 Pro 最终视觉 QA 待安装包验收。
 - [x] **G0 Windows QSettings smoke 测试隔离** — 命名 legacy 设置显式采用 `defaultFormat()` + `UserScope`，生产仍读 NativeFormat，测试可靠落入 IniFormat 隔离目录；见 [`qsettings-smoke-test-isolation-fix.md`](qsettings-smoke-test-isolation-fix.md)。
 - [x] **G1 用户偏好外置为可编辑配置 + 接 Parson（alpha 口径收束）** — 2026-06-14 决策：alpha 不引入第二套人类可编辑 JSON 偏好文件；约 30 项用户偏好继续以 SQLite `settings` 表（`SettingsRepository`）为唯一 UI 偏好源，避免与 H5/D2 的 `usage_config.json` 控制文件形成双写。设置页移除可见「导出设置 JSON」入口，仅保留导入设置与复制配置摘要；`doExport()` 功能函数暂保留为内部/诊断能力。后续若要真正 Parson 外置配置，应另开提案并定义与 SQLite KV 的同步边界。

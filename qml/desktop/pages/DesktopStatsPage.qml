@@ -547,8 +547,8 @@ Item {
         return out
     }
 
-    // 分类环（日视图）：整天降噪一次 → 按当前半天投影。降噪与 AM/PM 无关，
-    // 缓存后切半天只走 reprojectCategoryRing()，不重跑扫描线（性能文档口径）。
+    // 分类时钟（日视图）：整天只解析一次重叠，当前半天按历史规则投影成
+    // 固定 10 分钟分类块。切换 AM/PM 只重做轻量分桶，不重跑扫描线。
     // 分类环只在**日视图**渲染（StatsCategoryClock 的 visible: range === "day"），而且
     // reprojectCategoryRing 永远只投影某一天的半个 12 小时盘。此前不论哪个范围都照算，
     // 于是周/月/年把整段窗口的会话段喂进一条二次复杂度的管线，算完再整个丢掉：
@@ -562,7 +562,7 @@ Item {
             vmRingArcs = []
             return
         }
-        var built = StatsViewModel.buildCategoryRingRuns(
+        var built = StatsViewModel.buildCategoryClockRuns(
                     vmSegments ? vmSegments : [], vmApps ? vmApps : [])
         _ringRuns = built.runs
         vmRingStats = built.stats
@@ -573,12 +573,11 @@ Item {
     function reprojectCategoryRing() {
         if (!_ringRuns) { vmRingArcs = []; return }
         var win = periodWindow("day", range === "day" ? periodOffset : 0)
-        vmRingArcs = StatsViewModel.projectCategoryRing(_ringRuns, win.start, clockHalf)
+        vmRingArcs = StatsViewModel.projectCategoryClockBlocks(
+                    _ringRuns, win.start, clockHalf)
     }
 
-    // 环的形状被降噪过，脚注把折叠掉的量说清楚（C6：不静悄悄吃掉记录）。
-    // 「折叠」= 短记录并进相邻块（时间还在环上）；「丢弃」= 前后都是空档、
-    // 无处可并，是唯一真正离开环的时间，所以分开计。
+    // 10 分钟分桶只改变时钟几何，真实总时长与右侧占比保持原始精度。
     function ringFootnote() {
         if (!vmRingStats) return ""
         var folded = vmRingStats.absorbedCount ? vmRingStats.absorbedCount : 0
@@ -1192,12 +1191,14 @@ Item {
                             Layout.preferredHeight: 486
                             arcs: root.vmRingArcs
                             legend: root.vmRingLegend
+                            colors: dailyUsageShare.categoryColorMap
                             half: root.clockHalf
                             totalText: root.secondsToDisplay(root.vmTotalSec)
                             footnote: root.ringFootnote()
                             onHalfRequested: function (value) { root.clockHalf = value }
                         }
                         DailyUsageShare {
+                            id: dailyUsageShare
                             Layout.columnSpan: root.statsLayoutStacked ? 12 : 4
                             Layout.fillWidth: true
                             Layout.preferredHeight: 486
@@ -1397,6 +1398,7 @@ Item {
         id: ringCard
         property var arcs: []
         property var legend: []
+        property var colors: ({})
         property string half: "am"
         property string totalText: "0m"
         property string footnote: ""
@@ -1417,6 +1419,10 @@ Item {
         }
         function clockTime(unixSec) {
             return Qt.formatTime(new Date(unixSec * 1000), "HH:mm")
+        }
+        function categoryColor(category) {
+            return AppVisual.resolveClockCategoryColor(
+                        colors, category, root.categoryHeatBase(category))
         }
 
         style: ml
@@ -1491,12 +1497,13 @@ Item {
                         ctx.fillStyle = ml.calSunkBg
                         ctx.fill()
 
-                        // Each category is a filled annular sector. The active
-                        // sector grows both inward and outward without changing time.
+                        // Each category is a filled annular sector. Every block
+                        // in the active category grows without changing time.
                         for (var i = 0; i < ringCard.arcs.length; i++) {
                             var arc = ringCard.arcs[i]
-                            var dimmed = ringCard.activeId !== "" && ringCard.activeId !== arc.arcId
-                            var emphasized = ringCard.activeId === arc.arcId
+                            var emphasized = StatsViewModel.ringArcMatchesActiveCategory(
+                                                ringCard.arcs, ringCard.activeId, arc)
+                            var dimmed = ringCard.activeId !== "" && !emphasized
                             var startDeg = arc.startAngle + 0.15
                             var endDeg = arc.endAngle - 0.15
                             if (endDeg <= startDeg) { startDeg = arc.startAngle; endDeg = arc.endAngle }
@@ -1509,7 +1516,7 @@ Item {
                             ctx.arc(cx, cy, outer, start, end, false)
                             ctx.arc(cx, cy, inner, end, start, true)
                             ctx.closePath()
-                            ctx.fillStyle = root.categoryHeatBase(arc.category)
+                            ctx.fillStyle = ringCard.categoryColor(arc.category)
                             ctx.fill()
                         }
                         ctx.globalAlpha = 1.0
@@ -1565,7 +1572,8 @@ Item {
                             width: parent.width
                             text: ringCard.focusedArc ? root.categoryLabel(ringCard.focusedArc.category)
                                                      : (root.periodOffset === 0 ? root.tr("Recorded today") : root.tr("Recorded this period"))
-                            color: ringCard.focusedArc ? ml.aqua : ml.textTertiary
+                            color: ringCard.focusedArc ? ringCard.categoryColor(ringCard.focusedArc.category)
+                                                       : ml.textTertiary
                             font.pixelSize: 11; font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
                         }
@@ -1665,7 +1673,7 @@ Item {
                             width: 9; height: 9; radius: 2
                             anchors.verticalCenter: parent.verticalCenter
                             color: ringCard.focusedArc ? AppVisual.modelAppColor(modelData)
-                                                       : root.categoryHeatBase(modelData.id)
+                                                       : ringCard.categoryColor(modelData.id)
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter

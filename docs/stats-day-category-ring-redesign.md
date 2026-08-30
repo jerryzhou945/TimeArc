@@ -220,7 +220,23 @@ Each arc carries:
 `apps[]` is what compensates for dropping icons (D4): the ring stays clean,
 and hovering still answers "what was I actually in?".
 
-### 3.5 Accounting
+### 3.5 Shipped category-clock projection
+
+The Day page restores the earlier `9432032` display contract on top of the
+single-timeline overlap resolver:
+
+1. Split the selected AM/PM half into 72 fixed ten-minute buckets.
+2. Give each bucket to the category with the greatest measured overlap, provided
+   that category has at least 60 seconds in the bucket.
+3. Absorb a single A-B-A bucket into A.
+4. Coalesce consecutive equal buckets into one solid block.
+
+This projection changes geometry only. Total time, category percentages, and
+legend durations still come from the exact unfiltered summaries. The clock also
+uses `DailyUsageShare.categoryColorMap`, so each solid block keeps the same
+color as its label in the adjacent category panel.
+
+### 3.6 Accounting
 
 `stats` travels as numbers only — the sentence is assembled in QML through
 `I18n.sentence()` with a template key, per rule 04 §3 and the precedent set by

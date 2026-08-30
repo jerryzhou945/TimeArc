@@ -155,6 +155,14 @@ def main():
     reject(settings_qml, "后续阶段开放", "accent no longer deferred")
     require(stats_qml, "accentSeed: root.themeAccentColor", "stats uses injected accent")
     reject(stats_qml, "Cursor.text()", "undefined platform text cursor helper")
+    require(stats_qml, "StatsViewModel.buildCategoryClockRuns(",
+            "stats clock caches exact resolved timeline")
+    require(stats_qml, "StatsViewModel.projectCategoryClockBlocks(",
+            "stats clock uses historical ten-minute blocks")
+    require(stats_qml, "colors: dailyUsageShare.categoryColorMap",
+            "stats clock preserves adjacent category label colors")
+    require(stats_qml, "AppVisual.resolveClockCategoryColor(",
+            "unranked clock categories use the adjacent other-label color")
     require(memory_page_qml, "accentSeed: root.themeAccentColor", "home uses injected accent")
     require(calendar_qml, "accentSeed: root.themeAccentColor", "calendar uses injected accent")
 
