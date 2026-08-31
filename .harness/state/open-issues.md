@@ -68,8 +68,8 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   progress-ring, keyboard tool-switch, conic-aura shader. Specs `docs/memory-lake-memo-*`.
 
 - ~~**Stats double-counts audio under another foreground app.**~~ **Fixed:** stats is frontmost-only; the cross-app sum still stands for the `active*` pages.
-- ~~**Wall-clock counting; hiding and renames stopped applying.**~~ **Fixed:** desktop
-  counts `active_sec`; both persisted key maps match by alias and canonicalize.
+- ~~**Wall-clock counting; hiding and renames stopped applying.**~~ **Fixed:** desktop counts `active_sec`; both persisted key maps match by alias and canonicalize.
+- ~~**Canonical app variants appeared as duplicate rows with helper icons.**~~ **Fixed:** persisted variants retain their editable rule id; an explicit alias policy groups approved helpers without collapsing broad defaults.
 - **Mobile has no per-app hiding.** Track B: needs a settings surface + a
   package-name key scheme. `active_sec` has no mobile analogue (Android's
   `totalTimeInForeground` carries no idle part).

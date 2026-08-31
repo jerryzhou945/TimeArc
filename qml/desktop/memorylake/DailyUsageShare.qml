@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import "../../shared/I18n.js" as I18n
+import "../components/AppVisual.js" as AppVisual
 
 // Daily Theme Share：今日主题使用占比（霓虹甜甜圈 + 图例 + 洞察）。
 // v88 复刻（设计稿 .daily-pie-panel）：玻璃底 + aqua/violet 双角径向辉光 + 26px 方格底纹；
@@ -39,14 +40,19 @@ Rectangle {
     // 扇区分类色（R2 / Cookbook §4.3）：按位次取 aqua/violet/gold/pink，其它取 slate；图例点与扇区共用同 color。
     readonly property var sharePalette: style ? [style.aqua, style.violet, style.shareGold, style.sharePink]
                                               : ["#9FE7EE", "#9B8BFF", "#FFE6A3", "#FF7A9A"]
+    readonly property var categoryColorMap: AppVisual.buildShareCategoryColorMap(
+                                                share,
+                                                sharePalette,
+                                                style ? style.shareOther : "#6F7C91")
     readonly property var slices: {
         var out = [];
         for (var i = 0; i < share.length; i++) {
             var s = share[i];
-            // 主题分类切片按位次取调色板色（开发/社交/游戏/视频→aqua/violet/gold/pink，其它取 slate）。
             // 上游为「按 app 切片」补的 brandColor/iconColors 取色对分类切片无意义（分类无品牌色），此处不取。
-            var col = s.isOther ? (style ? style.shareOther : "#6F7C91")
-                                : sharePalette[Math.min(i, sharePalette.length - 1)];
+            // categoryColorMap 同时公开给相邻图表，确保同一类别只有一个可见颜色。
+            var col = AppVisual.resolveShareCategoryColor(
+                        categoryColorMap, s, i, sharePalette,
+                        style ? style.shareOther : "#6F7C91");
             out.push({ name: panel.categoryLabel(s.name), percent: s.percent, color: col });
         }
         return out;

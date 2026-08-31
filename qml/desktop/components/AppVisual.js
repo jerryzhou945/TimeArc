@@ -337,6 +337,53 @@ function modelIconLabel(row) {
     return appIconLabel(modelIdentity(row), modelDisplayName(row));
 }
 
+// Build the category-id -> rendered-color contract used by ranked share
+// visualizations. Keeping this mapping outside either chart lets adjacent
+// views reuse the exact colors the user sees instead of re-deriving them.
+function buildShareCategoryColorMap(share, palette, otherColor) {
+    var rows = share || []
+    var colors = palette || []
+    var out = {}
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i]
+        if (!row || row.name === undefined || row.name === null)
+            continue
+        var id = String(row.name).trim()
+        if (id.length === 0)
+            continue
+        var color = row.isOther
+                ? otherColor
+                : (colors.length > 0 ? colors[Math.min(i, colors.length - 1)] : undefined)
+        if (color !== undefined && color !== null)
+            out[id] = color
+    }
+    return out
+}
+
+function resolveShareCategoryColor(colorMap, row, index, palette, otherColor) {
+    var id = row && row.name !== undefined && row.name !== null
+            ? String(row.name).trim() : ""
+    var mapped = colorMap && id.length > 0 ? colorMap[id] : undefined
+    if (mapped !== undefined && mapped !== null)
+        return mapped
+    if (row && row.isOther)
+        return otherColor
+    var colors = palette || []
+    if (colors.length > 0)
+        return colors[Math.min(Math.max(0, index), colors.length - 1)]
+    return otherColor
+}
+
+function resolveClockCategoryColor(colorMap, category, fallbackColor) {
+    var direct = colorMap ? colorMap[category] : undefined
+    if (direct !== undefined && direct !== null)
+        return direct
+    var other = colorMap ? colorMap.other : undefined
+    if (other !== undefined && other !== null)
+        return other
+    return fallbackColor
+}
+
 // ---------------------------------------------------------------------------
 // 类别配色：默认从**图标**推，不再查表。
 // 图标色忠实但不保证可分辨，而图例最起码要能一眼区分；所以先按代表应用的图标
