@@ -292,7 +292,43 @@ Item {
             if (Array.isArray(a))
                 hidden = a;
         } catch (e) {}
+        // 存量 hidden_apps 里可能是旧身份方案的键（规则表升级前 loginwindow 存的是
+        // exe:loginwindow，现在同一个 app 解析成 app:macos-shell）。读侧认别名，但
+        // 「取消隐藏」只删得掉当前键，陈旧键会永远粘着，所以启动时归一并写回一次。
+        if (usageStatManager.canonicalHiddenKeys) {
+            var canonical = usageStatManager.canonicalHiddenKeys(hidden);
+            if (JSON.stringify(canonical) !== JSON.stringify(hidden)) {
+                settingsRepository.setValue("hidden_apps", JSON.stringify(canonical));
+                hidden = canonical;
+            }
+        }
         usageStatManager.setReadFilters(settingsRepository.getBool("auto_classify", true), settingsRepository.getBool("game_mode", true), settingsRepository.getBool("merge_windows", true), settingsRepository.getBool("hide_titles", true), hidden);
+        applyDisplayNameOverridesFromSettings();
+    }
+
+    // 自定义应用名（G-RENAME）：过去只有设置页在 onCompleted 里推一次，而页面是
+    // pageLoader 按需实例化的，所以一次会话里不打开设置页，改过的名字在首页 /
+    // 统计页 / 记忆湖上就都不生效。启动时推一次，和读层过滤同一处。
+    // 同时做键归一：这张表和 hidden_apps 一样按 group key 存，规则表升级后旧键
+    // 会失配，自定义名字静默失效（没有任何提示，比隐藏失效更难发现）。
+    function applyDisplayNameOverridesFromSettings() {
+        if (!usageStatManager || !usageStatManager.setAppDisplayNameOverrides
+                || !settingsRepository)
+            return;
+        var overrides = {};
+        try {
+            var o = JSON.parse(settingsRepository.getValue("app_display_name_overrides", "{}"));
+            if (o && typeof o === "object" && !Array.isArray(o))
+                overrides = o;
+        } catch (e) {}
+        if (usageStatManager.canonicalDisplayNameKeys) {
+            var canonical = usageStatManager.canonicalDisplayNameKeys(overrides);
+            if (JSON.stringify(canonical) !== JSON.stringify(overrides)) {
+                settingsRepository.setValue("app_display_name_overrides", JSON.stringify(canonical));
+                overrides = canonical;
+            }
+        }
+        usageStatManager.setAppDisplayNameOverrides(overrides);
     }
 
     // 备忘 / 番茄全局快捷键（#3 自定义）：设置 KV 无变更信号，故设置页改键后发 hotkeysChanged，

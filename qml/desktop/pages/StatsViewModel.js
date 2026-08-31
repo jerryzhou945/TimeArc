@@ -116,7 +116,7 @@ function buildCategoryDistribution(apps, limit) {
     for (var i = 0; i < source.length; i++) {
         var seconds = safeSeconds(source[i].seconds)
         if (seconds <= 0) continue
-        var category = source[i].category || "Other"
+        var category = ringRawCategory(source[i]) || "other"
         if (!grouped[category]) grouped[category] = { name: category, seconds: 0, apps: [] }
         grouped[category].seconds += seconds
         total += seconds
@@ -232,13 +232,28 @@ var RING_MIN_SWEEP_DEG = 5.0   // 10-minute display floor on a 12-hour dial
 var RING_MIN_ARC_DEG = 5.0
 var RING_HALF_SECONDS = 12 * 3600
 var RING_MAX_APPS = 4          // apps carried per arc for the hover readout
+var CLOCK_BUCKET_SECONDS = 10 * 60
+var CLOCK_BUCKET_COUNT = 12 * 60 / 10
 
-// Same precedence as AppVisual.modelCategory(), reimplemented because this
-// module is a standalone .pragma library and cannot import that one. Empty
-// stays empty here; buildCategoryRing folds it to "other" once.
+// `category` first, `adapterCategory` only as a fallback.
+//
+// These are not two spellings of one value. `category` is what the C++
+// aggregator resolved: a per-record vote weighted by duration, with the read
+// filters applied (turning game detection off rewrites it to "other").
+// `adapterCategory` is raw rule metadata that no filter touches, and
+// aggregateSoftware() deliberately lets the vote win over the rule.
+//
+// AppVisual.modelCategory() picks the opposite order, and that is what made the
+// ring disagree with everything beside it: an arc drawn as "game" while the
+// legend looked up "other" and reported 0m. Segment rows carry only
+// adapterCategory, so it stays as the fallback.
+//
+// Reimplemented rather than imported because this module is a standalone
+// .pragma library. Empty stays empty here; buildCategoryRing folds it to
+// "other" once.
 function ringRawCategory(row) {
     if (!row) return ""
-    var value = row.adapterCategory || row.category || ""
+    var value = row.category || row.adapterCategory || ""
     return String(value).trim()
 }
 
@@ -651,6 +666,181 @@ function buildCategoryRingRuns(segmentGroups, periodApps, options) {
 function projectCategoryRing(runs, dayStartUnix, half, options) {
     return ringProject(runs || [], dayStartUnix, half,
                        ringOption(options, "minSweepDeg", RING_MIN_SWEEP_DEG))
+}
+
+// Hover/click still targets one concrete arc for the centre readout, but the
+// visual emphasis belongs to its category so every matching block responds.
+function ringArcMatchesActiveCategory(arcs, activeId, candidateArc) {
+    if (!activeId || !candidateArc) return false
+    var source = arcs || []
+    var activeCategory = ""
+    for (var i = 0; i < source.length; i++) {
+        if (source[i].arcId === activeId) {
+            activeCategory = source[i].category || ""
+            break
+        }
+    }
+    return activeCategory !== "" && candidateArc.category === activeCategory
+}
+
+// Cache the exact non-overlapping day timeline. The clock projection below is
+// deliberately visual-only: totals and the adjacent share panel keep using the
+// unfiltered app summaries.
+function buildCategoryClockRuns(segmentGroups, periodApps) {
+    var flat = ringFlatten(segmentGroups, periodApps)
+    var runs = ringResolveOverlap(flat)
+    var covered = 0
+    for (var i = 0; i < runs.length; i++) covered += runs[i].seconds
+    return {
+        runs: runs,
+        stats: { droppedCount: 0, droppedSeconds: 0,
+                 absorbedCount: 0, absorbedSeconds: 0,
+                 mergedFrom: flat.length, coveredSeconds: covered,
+                 runCount: runs.length }
+    }
+}
+
+function clockMergeApps(target, source, overlap, sourceSeconds) {
+    if (sourceSeconds <= 0) return
+    for (var i = 0; i < source.length; i++) {
+        var seconds = source[i].seconds * overlap / sourceSeconds
+        var found = null
+        for (var j = 0; j < target.length; j++) {
+            if (target[j].groupKey === source[i].groupKey) {
+                found = target[j]
+                break
+            }
+        }
+        if (found) found.seconds += seconds
+        else target.push({ groupKey: source[i].groupKey,
+                           displayName: source[i].displayName,
+                           seconds: seconds })
+    }
+}
+
+// Restore the historical clock contract from 9432032:
+//  1. divide a half-day into 72 fixed ten-minute buckets;
+//  2. assign each bucket to the category with the most covered seconds;
+//  3. absorb one A-B-A bucket; and
+//  4. coalesce equal neighbours into solid category blocks.
+// A category needs at least 60 measured seconds to own a bucket. Geometry is
+// bucketed, while all reported totals remain exact and unmodified.
+function projectCategoryClockBlocks(runs, dayStartUnix, half) {
+    var source = runs || []
+    var halfStart = Number(dayStartUnix) + (half === "pm" ? RING_HALF_SECONDS : 0)
+    var halfEnd = halfStart + RING_HALF_SECONDS
+    var bins = []
+    var i
+    for (i = 0; i < CLOCK_BUCKET_COUNT; i++)
+        bins.push({ scores: {}, order: [] })
+
+    for (i = 0; i < source.length; i++) {
+        var run = source[i]
+        var clippedStart = Math.max(run.start, halfStart)
+        var clippedEnd = Math.min(run.end, halfEnd)
+        if (clippedEnd <= clippedStart) continue
+        var first = Math.max(0, Math.floor((clippedStart - halfStart)
+                                           / CLOCK_BUCKET_SECONDS))
+        var last = Math.min(CLOCK_BUCKET_COUNT - 1,
+                            Math.floor((clippedEnd - 1 - halfStart)
+                                       / CLOCK_BUCKET_SECONDS))
+        for (var bucket = first; bucket <= last; bucket++) {
+            var bucketStart = halfStart + bucket * CLOCK_BUCKET_SECONDS
+            var bucketEnd = bucketStart + CLOCK_BUCKET_SECONDS
+            var overlap = Math.max(0, Math.min(clippedEnd, bucketEnd)
+                                      - Math.max(clippedStart, bucketStart))
+            if (overlap <= 0) continue
+            var bin = bins[bucket]
+            if (bin.scores[run.category] === undefined) {
+                bin.scores[run.category] = 0
+                bin.order.push(run.category)
+            }
+            bin.scores[run.category] += overlap
+        }
+    }
+
+    var categories = []
+    for (i = 0; i < bins.length; i++) {
+        var bestCategory = ""
+        var bestSeconds = 59
+        for (var orderIndex = 0; orderIndex < bins[i].order.length; orderIndex++) {
+            var candidate = bins[i].order[orderIndex]
+            var candidateSeconds = bins[i].scores[candidate]
+            if (candidateSeconds > bestSeconds) {
+                bestCategory = candidate
+                bestSeconds = candidateSeconds
+            }
+        }
+        categories.push(bestCategory)
+    }
+
+    var smoothed = categories.slice()
+    for (i = 1; i + 1 < categories.length; i++) {
+        if (categories[i - 1]
+                && categories[i - 1] === categories[i + 1]
+                && categories[i] !== categories[i - 1])
+            smoothed[i] = categories[i - 1]
+    }
+
+    var out = []
+    var runStart = 0
+    while (runStart < smoothed.length) {
+        var runCategory = smoothed[runStart]
+        var runEnd = runStart + 1
+        while (runEnd < smoothed.length && smoothed[runEnd] === runCategory)
+            runEnd++
+        if (runCategory) {
+            var start = halfStart + runStart * CLOCK_BUCKET_SECONDS
+            var end = halfStart + runEnd * CLOCK_BUCKET_SECONDS
+            var apps = []
+            var mergedFrom = 0
+            var measuredSeconds = 0
+            for (i = 0; i < source.length; i++) {
+                var appRun = source[i]
+                if (appRun.category !== runCategory) continue
+                var appOverlap = Math.max(0, Math.min(appRun.end, end)
+                                             - Math.max(appRun.start, start))
+                if (appOverlap <= 0) continue
+                measuredSeconds += appOverlap
+                mergedFrom += appRun.mergedFrom || 1
+                clockMergeApps(apps, appRun.apps || [], appOverlap,
+                               appRun.end - appRun.start)
+            }
+            apps.sort(function (a, b) {
+                if (b.seconds !== a.seconds) return b.seconds - a.seconds
+                return String(a.displayName).localeCompare(String(b.displayName))
+            })
+            for (i = 0; i < apps.length; i++) apps[i].seconds = Math.round(apps[i].seconds)
+
+            var absorbedCount = 0
+            for (i = runStart; i < runEnd; i++)
+                if (categories[i] !== smoothed[i]) absorbedCount++
+            out.push({
+                arcId: runCategory + ":bucket:" + runStart + ":" + runEnd,
+                category: runCategory,
+                startUnixSec: start,
+                endUnixSec: end,
+                // Geometry covers complete ten-minute buckets, but the centre
+                // readout retains the exact measured category duration.
+                seconds: Math.round(measuredSeconds),
+                startAngle: runStart * 360 / CLOCK_BUCKET_COUNT,
+                endAngle: runEnd * 360 / CLOCK_BUCKET_COUNT,
+                sweepPadded: false,
+                apps: apps.slice(0, RING_MAX_APPS),
+                appCount: apps.length,
+                absorbedCount: absorbedCount,
+                mergedFrom: mergedFrom
+            })
+        }
+        runStart = runEnd
+    }
+    return out
+}
+
+function buildSmoothedCategoryClockSegments(segmentGroups, periodApps,
+                                            dayStartUnix, half) {
+    var built = buildCategoryClockRuns(segmentGroups, periodApps)
+    return projectCategoryClockBlocks(built.runs, dayStartUnix, half)
 }
 
 // Whole pipeline in one call: denoise the day, then project the chosen half.

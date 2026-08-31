@@ -2308,6 +2308,59 @@ int main(int argc, char* argv[]) {
       return fail(QStringLiteral("English-first label fallback failed."));
     }
 
+    // Automatically materialized executable variants keep their concrete rule
+    // id for editing, but `ref` is the canonical application identity. Without
+    // this, Weixin.exe and WeChatAppEx.exe render as two rows with the same
+    // localized label and the helper row supplies the wrong icon.
+    {
+      RuleSet variants = defaults;
+      Rule helper;
+      helper.id = QStringLiteral("app:wechat@wechatappex");
+      helper.ref = QStringLiteral("app:wechat");
+      helper.category = QStringLiteral("social");
+      helper.app = {QStringLiteral("=WeChatAppEx.exe")};
+      variants.rules.append(helper);
+
+      const Matcher variantMatcher(variants);
+      const Resolution primary = variantMatcher.resolve(
+          QStringLiteral("C:/Program Files/Tencent/Weixin/Weixin.exe"),
+          QStringLiteral("Weixin.exe"), QString());
+      const Resolution plugin = variantMatcher.resolve(
+          QStringLiteral("C:/Tencent/XPlugin/WeChatAppEx.exe"),
+          QStringLiteral("WeChatAppEx.exe"), QString());
+      if (primary.identity != QStringLiteral("app:wechat") ||
+          plugin.ruleId != QStringLiteral("app:wechat@wechatappex") ||
+          plugin.identity != QStringLiteral("app:wechat")) {
+        return fail(QStringLiteral("canonical rule ref did not merge WeChat "
+                                   "variants: %1 / %2 (%3)")
+                        .arg(primary.identity, plugin.identity, plugin.ruleId));
+      }
+
+      Rule opera;
+      opera.id = QStringLiteral("app:other-browsers");
+      opera.ref = QStringLiteral("app:other-browsers");
+      opera.category = QStringLiteral("browse");
+      opera.app = {QStringLiteral("=Opera.exe")};
+      Rule brave = opera;
+      brave.id = QStringLiteral("app:other-browsers@brave");
+      brave.app = {QStringLiteral("=Brave.exe")};
+      variants.rules = {opera, brave};
+      const Matcher browserMatcher(variants);
+      const Resolution operaResult = browserMatcher.resolve(
+          QStringLiteral("C:/Apps/Opera.exe"), QStringLiteral("Opera.exe"),
+          QString());
+      const Resolution braveResult = browserMatcher.resolve(
+          QStringLiteral("C:/Apps/Brave.exe"), QStringLiteral("Brave.exe"),
+          QString());
+      if (operaResult.identity == braveResult.identity ||
+          operaResult.identity != QStringLiteral("app:other-browsers") ||
+          braveResult.identity != QStringLiteral("app:other-browsers@brave")) {
+        return fail(QStringLiteral("broad default ref collapsed distinct "
+                                   "browsers: %1 / %2")
+                        .arg(operaResult.identity, braveResult.identity));
+      }
+    }
+
     // --- store and reload -------------------------------------------------
     // A stored set is the shipped table with every entry carrying a `ref`;
     // built here rather than in production code, because seeding derives its

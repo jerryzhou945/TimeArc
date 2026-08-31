@@ -1,0 +1,27 @@
+[1/27] Copying time-arc qml sources into build dir
+[2/27] Running qmlimportscanner for time-arc
+[3/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlowCircle_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GlowCircle_qml.cpp.aotstats
+[4/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolGlyph_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolGlyph_qml.cpp.aotstats
+[5/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/PixelTomato_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/PixelTomato_qml.cpp.aotstats
+[6/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroCompleteOverlay_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroCompleteOverlay_qml.cpp.aotstats
+[7/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/GridTexture_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/GridTexture_qml.cpp.aotstats
+[8/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDotTexture_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDotTexture_qml.cpp.aotstats
+[9/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/DailyUsageShare_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/DailyUsageShare_qml.cpp.aotstats
+[10/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/StickyNote_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/StickyNote_qml.cpp.aotstats
+[11/27] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp.aotstats
+[12/27] Generating .rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapSlide_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapSlide_qml.cpp.aotstats
+[13/27] Generating .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp, .rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.aotstats
+[14/27] Running rcc for resource time-arc_raw_qml_0
+[15/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/PixelTomato_qml.cpp.o
+[16/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GlowCircle_qml.cpp.o
+[17/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoToolGlyph_qml.cpp.o
+[18/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/GridTexture_qml.cpp.o
+[19/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/MemoDotTexture_qml.cpp.o
+[20/27] Building CXX object CMakeFiles/time-arc.dir/build/.qt/rcc/qrc_time-arc_raw_qml_0.cpp.o
+[21/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/PomodoroCompleteOverlay_qml.cpp.o
+[22/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/StickyNote_qml.cpp.o
+[23/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopHomePage_qml.cpp.o
+[24/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/DailyUsageShare_qml.cpp.o
+[25/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/memorylake/RecapSlide_qml.cpp.o
+[26/27] Building CXX object CMakeFiles/time-arc.dir/build/.rcc/qmlcache/time-arc_qml/desktop/pages/DesktopStatsPage_qml.cpp.o
+[27/27] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

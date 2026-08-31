@@ -181,6 +181,8 @@ G2/G3 打磨 ───────────(随手)
   2026-08-25 收紧每日应用时钟三轨间距，并完成 Windows 首次登录自启默认项和
   原神/星铁/绝区零/鸣潮主进程前台游戏计时；见
   [`windows-release-defaults-game-clock-2026-08-25.md`](windows-release-defaults-game-clock-2026-08-25.md)。
+  2026-08-30 恢复固定十分钟分类整块、相邻标签同色和同分类联动高亮；见
+  [`stats-clock-category-blocks-fix-2026-08-30.md`](stats-clock-category-blocks-fix-2026-08-30.md)。
 - [x] **G6 Android Edge-to-Edge 与分享视觉打磨** — 2026-08-02 完成：保留鸿蒙可启动默认 QtActivity Theme；运行时透明系统栏、安全区导航、Material Symbols SVG、全局应用图标圆角、华为桌面元数据，以及单应用/排行/月报分享预览重构。Pura 90 Pro 最终视觉 QA 待安装包验收。
 - [x] **G0 Windows QSettings smoke 测试隔离** — 命名 legacy 设置显式采用 `defaultFormat()` + `UserScope`，生产仍读 NativeFormat，测试可靠落入 IniFormat 隔离目录；见 [`qsettings-smoke-test-isolation-fix.md`](qsettings-smoke-test-isolation-fix.md)。
 - [x] **G1 用户偏好外置为可编辑配置 + 接 Parson（alpha 口径收束）** — 2026-06-14 决策：alpha 不引入第二套人类可编辑 JSON 偏好文件；约 30 项用户偏好继续以 SQLite `settings` 表（`SettingsRepository`）为唯一 UI 偏好源，避免与 H5/D2 的 `usage_config.json` 控制文件形成双写。设置页移除可见「导出设置 JSON」入口，仅保留导入设置与复制配置摘要；`doExport()` 功能函数暂保留为内部/诊断能力。后续若要真正 Parson 外置配置，应另开提案并定义与 SQLite KV 的同步边界。
@@ -197,6 +199,9 @@ G2/G3 打磨 ───────────(随手)
   见 `docs/macos-memo-traffic-lights-report.md`。遗留：按钮带遮挡黑板左上角约「逻辑
   16–107 × 5–37」的可点区域，黑板顶部仍不支持拖窗/双击缩放。
 - [~] **G4 分类器长尾关键词覆盖**（冷门 app 仍落「其他」，open-issues A4）— Track B/A · 小-中 · 提案：否。
+  2026-08-30 修复同一规范应用的可执行文件变体被拆成重复条目：具体规则 ID 继续用于编辑，
+  `ref` 用于聚合与主程序原生图标选择；见
+  [`canonical-app-identity-fix-2026-08-30.md`](canonical-app-identity-fix-2026-08-30.md)。
   2026-06-13 alpha 修复已覆盖截图中的 `r5apex_dx12` → Apex Legends、`nvcontainer` → NVIDIA Container、`svchost` → Service Host，并补入 Apex/NVIDIA/Windows 系统进程的 group key 与分类；2026-06-14 继续补 QQ/TIM/QQ 截图助手显示名与 group key，聚合项新增 `homeRankVisible`，记忆湖首页排行过滤 QQ 截图、Windows/NVIDIA helper 等低信号项，但设置页应用管理保留全量列表。更广泛长尾仍保留为后续渐进覆盖。
   2026-06-14 本轮曾继续收窄设置页应用管理：`allApps()` 输出聚合 `seconds` 与 `settingsVisible`，默认按高频到低频展示大众化应用/站点，并收起 `pid:*`、`.dll`、Windows helper、QQ 截图、NVIDIA helper 等低信号项；搜索仍覆盖全量记录，便于需要时找回并调整显隐。
 

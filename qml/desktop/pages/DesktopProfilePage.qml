@@ -301,13 +301,34 @@ Item {
                                             hideTitles, hiddenApps)
     }
     function parseHiddenApps() {
-        try { var a = JSON.parse(_getStr("hidden_apps", "[]")); return Array.isArray(a) ? a : [] }
-        catch (e) { return [] }
+        // 与 Shell 同一处理：旧身份方案的键先归一，否则复选框取消不掉（读侧认别名，
+        // 但删除只删得掉当前键）。canonicalHiddenKeys 幂等，重复调用无副作用。
+        var a = []
+        try { a = JSON.parse(_getStr("hidden_apps", "[]")); if (!Array.isArray(a)) a = [] }
+        catch (e) { a = [] }
+        if (usageStatManager && usageStatManager.canonicalHiddenKeys) {
+            var canonical = usageStatManager.canonicalHiddenKeys(a)
+            if (JSON.stringify(canonical) !== JSON.stringify(a)) {
+                _setStr("hidden_apps", JSON.stringify(canonical))
+                a = canonical
+            }
+        }
+        return a
     }
     function parseAppDisplayNameOverrides() {
+        // 与 parseHiddenApps 同一处理：旧身份方案的键先归一，否则改过的名字不生效
+        // 而且改不回来（读侧认别名，但写入只写得进当前键）。归一是幂等的。
         try {
             var o = JSON.parse(_getStr("app_display_name_overrides", "{}"))
-            return o && typeof o === "object" && !Array.isArray(o) ? o : ({})
+            if (!o || typeof o !== "object" || Array.isArray(o)) return ({})
+            if (usageStatManager && usageStatManager.canonicalDisplayNameKeys) {
+                var canonical = usageStatManager.canonicalDisplayNameKeys(o)
+                if (JSON.stringify(canonical) !== JSON.stringify(o)) {
+                    _setStr("app_display_name_overrides", JSON.stringify(canonical))
+                    o = canonical
+                }
+            }
+            return o
         } catch (e) { return ({}) }
     }
     function copyAppDisplayNameOverrides() {

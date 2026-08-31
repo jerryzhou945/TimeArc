@@ -18,29 +18,25 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 
 ## Storage
 
-- **SQLite usage migration (A1) — DONE** (`CHARTER` v0.9). `timearc_service.db`
-  is the sole history store; UI is read-only. [`kickoff`](../../docs/a1-sqlite-storage-migration-kickoff.md).
-- **Whole-DB backup/restore (D1) — DONE (S1+S2, PR #40).** `DatabaseManager`
-  `backupDatabase`/`inspectBackup`/`restoreDatabase` + Settings UI; S3 retention deferred.
+- **SQLite usage migration (A1) — DONE** (`CHARTER` v0.9); UI read-only.
+- **Whole-DB backup/restore (D1) — DONE (S1+S2, PR #40).** S3 retention deferred.
 - **Cross-device sync E1-E9 is not implemented.** Approved design and live
   checklist: `docs/superpowers/specs/2026-07-24-cross-device-sync-design.md`
   and `docs/cross-device-sync-progress.md`.
 
 ## UI
 
-- ~~**Memory Lake is a placeholder page.**~~ **Replaced** by a 1:1 port of the
-  `MemoryLakeDesign/` prototype (`qml/desktop/memorylake/`). Renders **demo data**.
+- ~~**Memory Lake placeholder page.**~~ **Replaced** by a 1:1 prototype port
+  (`qml/desktop/memorylake/`).
 - **Memory Lake real-data wiring (phase E).** Desktop **done** (Phase 1 daily view +
   Phase 2 monthly recap): `MemoryLakeMock.js` replaced by read-only `UsageStatManager`
   data + `DailyCardService::memoryLake{Day,Recap}` local templates; C++ aggregation added
   (no schema change): per-day month series, last-month compare, category share, time-of-day
   peak, per-app sessions; cross-app focus-block task summary; window-title-aware category
   classifier (`系统` bucket); icon-dominant-color blended background + covers. 2026-06-13
-  alpha pass covered Apex Legends / NVIDIA Container / common Windows system process naming
-  and grouping. 2026-06-14 C pass added WeChat/剪映专业版 naming, app icon
-  fallback hardening, Memory Lake card-tip fadeout, day-mode sidebar icon selection,
-  and GitHub-style monthly stats heatmap/layout fixes. **Mobile equivalent is
-  implemented** with real usage, four ranges, Memory Lake, wallpaper and sharing.
+  alpha + 2026-06-14 C passes covered process naming/grouping, icon fallback, and
+  monthly heatmap fixes. **Mobile equivalent is implemented** (real usage, four
+  ranges, Memory Lake, wallpaper, sharing).
   Adaptive/round/legacy launcher icons and the native-to-QML launch experience are also implemented. The Qt default theme remains, while a lifecycle Activity reapplies edge-to-edge and immediate sync. Real app icons now use a GPU rounded mask; UsageStats are replaced per local day and notify QML only after persistence. Pura 90 Pro visual/data QA and Android/HarmonyOS multi-ROM validation remain. **Still open:** broader classifier long-tail keyword
   coverage (`A4` — uncommon apps can still fall to 其他). Implementation issues + resolutions (A1–A7, B1–B11):
   `docs/memory-lake-integration-issues.md`; per-surface plan:
@@ -71,6 +67,15 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   doc §A #1–#10 now all done). Still deferred (§A #11–#14): pomodoro sound + work-rest cycle +
   progress-ring, keyboard tool-switch, conic-aura shader. Specs `docs/memory-lake-memo-*`.
 
+- ~~**Stats double-counts audio under another foreground app.**~~ **Fixed:** stats is frontmost-only; the cross-app sum still stands for the `active*` pages.
+- ~~**Wall-clock counting; hiding and renames stopped applying.**~~ **Fixed:** desktop counts `active_sec`; both persisted key maps match by alias and canonicalize.
+- ~~**Canonical app variants appeared as duplicate rows with helper icons.**~~ **Fixed:** persisted variants retain their editable rule id; an explicit alias policy groups approved helpers without collapsing broad defaults.
+- **Mobile has no per-app hiding.** Track B: needs a settings surface + a
+  package-name key scheme. `active_sec` has no mobile analogue (Android's
+  `totalTimeInForeground` carries no idle part).
+- **`rules/04` lacks three read-layer invariants**: clip by intersection (day <=
+  24h), name declares caliber, persisted derived keys need migration.
+
 ## Build / distribution
 
 - **Qt dynamic link + release packaging — shipped (F1).** Windows has `build-windows.ps1`.
@@ -83,18 +88,13 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
 
 ## Harness itself
 
-- ~~Windows DB smoke named QSettings escaped the test IniFormat path.~~ **Fixed:** named legacy settings now use `defaultFormat()` with an isolated UserScope fixture.
-- ~~`record_error.py` is a stub.~~ **Implemented.** Writes report, appends
-  JSONL, updates INDEX.md atomically. Exit 0/1/2.
-- ~~`harness_check.py` is a stub.~~ **Implemented.** 7 passes (line-budget,
-  frozen hashes, CMake structure, platform isolation, journal hygiene,
-  slug shape, track discipline). `--bootstrap` populates hashes.
+- ~~Windows DB smoke named QSettings escaped the test IniFormat path.~~ **Fixed:** `defaultFormat()` + isolated UserScope fixture.
+- ~~`record_error.py` / `harness_check.py` stubs.~~ **Implemented.** Reports +
+  JSONL + INDEX.md atomically; 7 check passes, `--bootstrap` seeds hashes.
 - `preflight.py` — **new.** Session-start one-stop; wraps `--fast` audit.
-- ~~`HarnessHooks.cmake` is still a stub.~~ **Implemented.** Defines
-  `timearc_harness_enable` + `harness-check` target. Build-failure L1
-  capture goes through `tools/build.py` (wraps `cmake --build`).
-- ~~No runtime L2 capture.~~ **Wired.** `src/services/harnesslogger.cpp`
-  tees Qt Warning/Critical/Fatal to `<DataLocation>/TimeArc/logs/
-  harness-qt.log`; `tools/scan_qt_log.py` drains it into L2 reports.
-  Still needs a Qt build to smoke-test.
+- ~~`HarnessHooks.cmake` stub.~~ **Implemented.** `timearc_harness_enable` +
+  `harness-check`; L1 capture via `tools/build.py`.
+- ~~No runtime L2 capture.~~ **Wired.** `harnesslogger.cpp` tees Qt
+  Warning/Critical/Fatal to `logs/harness-qt.log`; `scan_qt_log.py` drains it
+  into L2 reports. Still needs a Qt build to smoke-test.
 - ~~No track enforcement in slugs.~~ **Done.** Pass 6 enforces `YYYYMMDD-HHMM(SS)-[ABC]-kebab.md`.

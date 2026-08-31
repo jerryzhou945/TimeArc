@@ -2,6 +2,7 @@
 
 #include "macos_app_lifecycle.h"
 
+#include <QGuiApplication>
 #include <QWindow>
 
 #import <AppKit/AppKit.h>
@@ -148,6 +149,10 @@ namespace {
 
 NSWindow* nativeWindowFor(QWindow* window) {
   if (!window || !window->handle()) return nil;
+  // handle() is non-null under every QPA plugin, so it does not establish that
+  // winId() is an NSView*. Same unchecked cast, same fault, as
+  // journal/errors/20260828-071233-C-offscreen-teardown-segfault.md.
+  if (QGuiApplication::platformName() != QLatin1String("cocoa")) return nil;
   NSView* view = reinterpret_cast<NSView*>(window->winId());
   return view.window;
 }

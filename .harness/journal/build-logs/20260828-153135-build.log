@@ -1,0 +1,5 @@
+[1/191] Automatic MOC and UIC for target time-arc
+[2/190] Running AUTOMOC file extraction for target time-arc
+[3/5] Building OBJCXX object CMakeFiles/time-arc.dir/src/services/macos/macos_app_lifecycle.mm.o
+[4/5] Building OBJCXX object CMakeFiles/time-arc.dir/src/services/macos/macos_traffic_lights.mm.o
+[5/5] Linking CXX executable TimeArc.app/Contents/MacOS/TimeArc

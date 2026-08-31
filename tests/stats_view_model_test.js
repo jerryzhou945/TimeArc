@@ -31,6 +31,38 @@ assert.strictEqual(
   '谷歌浏览器'
 );
 
+assert.strictEqual(
+  typeof appVisualContext.buildShareCategoryColorMap,
+  'function',
+  'the stats clock and adjacent share panel need one shared category-color map'
+);
+const shareCategoryColors = appVisualContext.buildShareCategoryColorMap([
+  { name: 'browsing', percent: 56 },
+  { name: 'video', percent: 29 },
+  { name: 'social', percent: 10 },
+  { name: 'games', percent: 1 },
+  { name: 'other', percent: 4, isOther: true }
+], ['aqua', 'violet', 'gold', 'pink'], 'slate');
+assertPlainDeepEqual(shareCategoryColors, {
+  browsing: 'aqua',
+  video: 'violet',
+  social: 'gold',
+  games: 'pink',
+  other: 'slate'
+});
+assert.strictEqual(
+  typeof appVisualContext.resolveShareCategoryColor,
+  'function',
+  'share colors need a deterministic fallback while QML bindings update'
+);
+assert.strictEqual(
+  appVisualContext.resolveShareCategoryColor(
+    {}, { name: 'video', percent: 29 }, 1,
+    ['aqua', 'violet', 'gold', 'pink'], 'slate'
+  ),
+  'violet'
+);
+
 const dayStart = 1_800_000_000;
 const periodApps = [
   { groupKey: 'app:codex', appId: 'codex.exe', appName: 'Codex', category: '开发', seconds: 120, path: 'C:/Codex.exe' },
@@ -100,8 +132,8 @@ assertPlainDeepEqual(
 assert.strictEqual(overlap.stats.mergedFrom, 2);
 
 // 2. Same-category coalescing: two apps back to back become one run. Category
-// falls back to `category` when `adapterCategory` is absent, matching
-// AppVisual.modelCategory().
+// comes from `category`, with `adapterCategory` only as a fallback for segment
+// rows, which carry nothing else.
 const coalesced = Stats.buildCategoryRing([
   { groupKey: 'app:vscode', appName: 'VS Code', category: 'dev',
     segments: [{ startUnixSec: dayStart + 3600, endUnixSec: dayStart + 5400 }] },
@@ -226,8 +258,108 @@ assertPlainDeepEqual(
 );
 assert.strictEqual(smoothed.arcs[0].apps.length, 2);
 
-// An isolated run under the legibility floor is real time, not noise, so the
-// second pass keeps it — only the sub-minute pass may delete a run outright.
+// The shipped clock deliberately uses the historical ten-minute view: each
+// bucket belongs to its dominant category, then consecutive buckets of the
+// same category become one solid block. Exact totals remain outside this view.
+assert.strictEqual(
+  typeof Stats.buildSmoothedCategoryClockSegments,
+  'function',
+  'the category clock needs the historical ten-minute block projection'
+);
+const tenMinuteBlocks = Stats.buildSmoothedCategoryClockSegments([
+  group('app:vscode', 'VS Code', 'dev', [[0, 240], [420, 1200]]),
+  group('app:chat', 'Chat', 'social', [[240, 420]])
+], [], dayStart, 'am');
+assertPlainDeepEqual(
+  tenMinuteBlocks.map((arc) => [arc.category, arc.seconds, arc.startAngle, arc.endAngle]),
+  [['dev', 1020, 0, 10]]
+);
+
+// One ten-minute A-B-A island is absorbed into the surrounding category, as in
+// the former implementation. Two B buckets are meaningful and remain a block.
+const oneBucketIsland = Stats.buildSmoothedCategoryClockSegments([
+  group('app:vscode', 'VS Code', 'dev', [[0, 600], [1200, 1800]]),
+  group('app:meeting', 'Meeting', 'social', [[600, 1200]])
+], [], dayStart, 'am');
+assertPlainDeepEqual(
+  oneBucketIsland.map((arc) => [arc.category, arc.seconds]),
+  [['dev', 1200]]
+);
+const twoBucketSwitch = Stats.buildSmoothedCategoryClockSegments([
+  group('app:vscode', 'VS Code', 'dev', [[0, 600], [1800, 2400]]),
+  group('app:meeting', 'Meeting', 'social', [[600, 1800]])
+], [], dayStart, 'am');
+assertPlainDeepEqual(
+  twoBucketSwitch.map((arc) => [arc.category, arc.seconds]),
+  [['dev', 600], ['social', 1200], ['dev', 600]]
+);
+
+// The historical threshold is exact: 59 seconds does not paint a full bucket,
+// while 60 seconds does. PM uses the same 72-bucket coordinate system.
+assertPlainDeepEqual(
+  Stats.buildSmoothedCategoryClockSegments([
+    group('app:brief', 'Brief', 'dev', [[0, 59]])
+  ], [], dayStart, 'am'),
+  []
+);
+const sixtySecondBucketPm = Stats.buildSmoothedCategoryClockSegments([
+  group('app:brief', 'Brief', 'dev', [[43200, 43260]])
+], [], dayStart, 'pm');
+assertPlainDeepEqual(
+  sixtySecondBucketPm.map((arc) => [arc.category, arc.seconds, arc.startAngle, arc.endAngle]),
+  [['dev', 60, 0, 5]]
+);
+
+assert.strictEqual(
+  appVisualContext.resolveClockCategoryColor(
+    shareCategoryColors, 'unranked-system', 'heat-fallback'
+  ),
+  'slate',
+  'clock categories outside the ranked legend must use the visible other color'
+);
+assert.strictEqual(
+  appVisualContext.resolveClockCategoryColor(
+    { other: 'only-other' }, 'system', 'heat-fallback'
+  ),
+  'only-other',
+  'an other-only share still provides the clock fallback color'
+);
+
+// Activating one clock block highlights every block in the same category, not
+// just the exact arc id. A missing selection highlights nothing.
+assert.strictEqual(
+  typeof Stats.ringArcMatchesActiveCategory,
+  'function',
+  'the clock needs one shared category-level highlight predicate'
+);
+const categoryHighlightArcs = [
+  { arcId: 'dev:morning', category: 'dev' },
+  { arcId: 'social:noon', category: 'social' },
+  { arcId: 'dev:evening', category: 'dev' }
+];
+assert.strictEqual(
+  Stats.ringArcMatchesActiveCategory(
+    categoryHighlightArcs, 'dev:morning', categoryHighlightArcs[0]),
+  true
+);
+assert.strictEqual(
+  Stats.ringArcMatchesActiveCategory(
+    categoryHighlightArcs, 'dev:morning', categoryHighlightArcs[2]),
+  true
+);
+assert.strictEqual(
+  Stats.ringArcMatchesActiveCategory(
+    categoryHighlightArcs, 'dev:morning', categoryHighlightArcs[1]),
+  false
+);
+assert.strictEqual(
+  Stats.ringArcMatchesActiveCategory(
+    categoryHighlightArcs, '', categoryHighlightArcs[0]),
+  false
+);
+
+// An isolated short run is real time, not an interior switch, so the overall
+// pass keeps it — only the sub-minute pass may delete a run outright.
 const lonely = Stats.buildCategoryRing(
   [group('app:vscode', 'VS Code', 'dev', [[0, 1800]]),
    group('app:mail', 'Mail', 'productivity', [[5400, 5580]])],
@@ -268,6 +400,32 @@ assertPlainDeepEqual(categories, [
   { name: 'Development', seconds: 180, time: '3m', percent: 75, apps: ['Codex', 'Visual Studio Code'] },
   { name: 'Browsing', seconds: 60, time: '1m', percent: 25, apps: ['Chrome'] }
 ]);
+
+// The rule table's category id, not its English label, is what identifies a
+// category everywhere downstream, so an app with no category at all folds to
+// "other" — the real id — rather than a capitalised "Other" that
+// CategorizationManager.categoryLabel() could never resolve.
+assert.strictEqual(
+  Stats.buildCategoryDistribution([{ groupKey: 'app:x', appName: 'X', seconds: 60 }], 6)[0].name,
+  'other');
+
+// `category` outranks `adapterCategory`. They are not two spellings of one
+// value: `category` is what the C++ aggregator resolved with the read filters
+// applied, while `adapterCategory` is raw rule metadata no filter touches.
+// Turning game detection off rewrites `category` to "other", and reading the
+// rule first drew a "game" arc whose legend looked up "other" and found 0m.
+assert.strictEqual(
+  Stats.buildCategoryRing(
+    [{ groupKey: 'app:steam', appName: 'Steam', category: 'other', adapterCategory: 'game',
+       segments: [{ startUnixSec: dayStart + 3600, endUnixSec: dayStart + 9000 }] }],
+    [], dayStart, 'am'
+  ).arcs[0].category,
+  'other');
+assert.strictEqual(
+  Stats.buildCategoryDistribution(
+    [{ groupKey: 'app:steam', appName: 'Steam', category: 'other',
+       adapterCategory: 'game', seconds: 5400 }], 6)[0].name,
+  'other');
 
 const monthTrend = Stats.normalizeTrendRows('month', [
   { seconds: 3600 },

@@ -93,6 +93,11 @@ Item {
     onRangeChanged: { if (periodOffset !== 0) periodOffset = 0; else rebuild() }
     onPeriodOffsetChanged: rebuild()
     onLanguageModeChanged: { _builtGen = -1; rebuild() }
+    // 类别色 / 热力色都是按主题派生的（AppVisual.buildCategoryColors 吃 night），
+    // 而 Canvas 不会跟踪它绘制时读到的 token。夜间模式可以在本页上被 macOS 菜单栏
+    // 切换，去重守卫会把「只有主题变了」当成无事发生，于是环、刻度和每个类别色点
+    // 都留在上一个主题里。和 onLanguageModeChanged 同一处理：让守卫失效、重算一次。
+    onNightModeChanged: { _builtGen = -1; rebuild() }
     onClockHalfChanged: reprojectCategoryRing()
     onLibraryQueryChanged: rebuildLibrary()
     onLibrarySortChanged: rebuildLibrary()
@@ -102,10 +107,14 @@ Item {
     // 工具：时间格式 / 范围文案
     // ============================================================
     function rangeWord(r) { return r === "day" ? tr("Day") : r === "week" ? tr("Week") : r === "month" ? tr("Month") : tr("Year") }
-    function rangeLabel(r) { return r === "day" ? tr("Today") : r === "week" ? tr("This Week") : r === "month" ? tr("This Month") : tr("This Year") }
+    // 日视图可以用期次导航翻到过去某天，那时「今天」是错的；vmPeriodLabel 已经是
+    // 本地化的日期（8月28日 / Aug 28）。周/月/年的期次标签自带日期，标题保持不变。
+    function rangeLabel(r) {
+        if (r === "day") return periodOffset === 0 ? tr("Today") : vmPeriodLabel
+        return r === "week" ? tr("This Week") : r === "month" ? tr("This Month") : tr("This Year")
+    }
     function isEnglish() { return I18n.langKey(languageMode) === "en" }
     function weekdayShortLabels() { return I18n.weekdaysNarrow(languageMode) }
-    function heatWeekLabels() { return I18n.weekdaysHeat(languageMode) }
     function monthShortLabels() { return isEnglish() ? ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] }
 
     function aggregateContextText() {
@@ -160,10 +169,25 @@ Item {
     // ============================================================
     // 派生算法（全部基于真实只读返回值，QML 端派生；不造假）
     // ============================================================
+    // 本页唯一的分类口径。`category` 是 C++ 聚合后的结果：逐记录按时长加权投票，
+    // 且吃过读层过滤（关「游戏识别」会把它改写成 other）；`adapterCategory` 只是规则
+    // 元数据，任何过滤都不碰它，而 aggregateSoftware() 明确规定「规则不再覆盖这个
+    // 投票」。AppVisual.modelCategory() 的优先级正好相反，两套口径混用就是环、图例
+    // 和占比饼互相打架的原因（见 StatsViewModel.ringRawCategory 的同一处说明）。
+    // 与 StatsViewModel.ringRawCategory 同一优先级：段行（foregroundSegments*）只带
+    // adapterCategory，所以它留作兜底，而不是首选。
+    function rowCategory(row) {
+        if (!row) return "other"
+        var value = row.category ? String(row.category).trim() : ""
+        if (value.length === 0 && row.adapterCategory)
+            value = String(row.adapterCategory).trim()
+        return value.length > 0 ? value : "other"
+    }
+
     function categorySums(apps) {
         var sums = {}
         for (var i = 0; i < apps.length; i++) {
-            var c = apps[i].category ? apps[i].category : "other"
+            var c = rowCategory(apps[i])
             sums[c] = (sums[c] ? sums[c] : 0) + (apps[i].seconds ? apps[i].seconds : 0)
         }
         return sums
@@ -186,7 +210,7 @@ Item {
         var sums = categorySums(apps)
         var seedOf = {}, secOf = {}
         for (var i = 0; i < apps.length; i++) {
-            var c = AppVisual.modelCategory(apps[i]) || "other"
+            var c = rowCategory(apps[i])
             var sec = apps[i].seconds ? apps[i].seconds : 0
             if (secOf[c] === undefined || sec > secOf[c]) {
                 secOf[c] = sec
@@ -244,40 +268,18 @@ Item {
         return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0")
     }
 
-    function heatDateLabel(cell) {
-        if (!cell || !cell.dateKey)
-            return ""
-        var p = cell.dateKey.split("-")
-        if (p.length < 3)
-            return "" + (cell.day ? cell.day : "")
-        var m = Math.max(1, Math.min(12, parseInt(p[1]) || 1))
-        var d = parseInt(p[2]) || cell.day
-        return I18n.monthDayNum(languageMode, m, d)
-    }
-
-    function heatTooltipText(cell) {
-        var date = heatDateLabel(cell)
-        if (!cell || cell.empty)
-            return date.length > 0 ? sentence("heatTooltipEmpty", {date: date}) : ""
-        return sentence("heatTooltip", {
-            date: date,
-            time: secondsToDisplay(cell.seconds),
-            category: root.categoryLabel(cell.category)
-        })
-    }
-
     function dayCategorySums(segs, apps) {
         var byGroup = {}
         for (var i = 0; i < apps.length; i++) {
             var k = apps[i].groupKey ? apps[i].groupKey : apps[i].appId
             if (k)
-                byGroup[k] = AppVisual.modelCategory(apps[i])
+                byGroup[k] = rowCategory(apps[i])
         }
         var out = {}
         for (var s = 0; s < segs.length; s++) {
             var row = segs[s]
             var key = row.groupKey ? row.groupKey : row.appId
-            var cat = byGroup[key] || AppVisual.modelCategory(row) || "other"
+            var cat = byGroup[key] || rowCategory(row)
             var list = row.segments ? row.segments : []
             for (var j = 0; j < list.length; j++) {
                 var start = list[j].startUnixSec ? Number(list[j].startUnixSec) : 0
@@ -333,12 +335,15 @@ Item {
             var d1 = new Date(now.getFullYear(), now.getMonth() + off + 1, 1, 0, 0, 0, 0)
             return { start: Math.floor(d0.getTime() / 1000), end: Math.floor(d1.getTime() / 1000) - 1,
                      y: d0.getFullYear(), m: d0.getMonth() + 1,
-                     label: isEnglish() ? (monthShortLabels()[d0.getMonth()] + " " + d0.getFullYear()) : (d0.getFullYear() + "Year" + (d0.getMonth() + 1) + "Month"), kind: "month" }
+                     // 期次标签一律走 I18n：这里曾手写 year + "年" + month + "月"，
+                     // 被一次机械的 "年"->"Year" 替换改成了 "2026Year8Month"（该分支
+                     // 只在非英文时才走到）。yearMonth() 是同一段文案的唯一实现。
+                     label: I18n.yearMonth(languageMode, d0), kind: "month" }
         } else {
             var y = now.getFullYear() + off
             var y0 = new Date(y, 0, 1, 0, 0, 0, 0), y1 = new Date(y + 1, 0, 1, 0, 0, 0, 0)
             return { start: Math.floor(y0.getTime() / 1000), end: Math.floor(y1.getTime() / 1000) - 1,
-                     y: y, label: isEnglish() ? String(y) : (y + "Year"), kind: "year" }
+                     y: y, label: I18n.yearLabel(languageMode, y), kind: "year" }
         }
     }
     function fmtMD(d) { return I18n.monthDay(languageMode, d) }
@@ -389,10 +394,10 @@ Item {
         return best
     }
 
-    // 周 7 柱：dailySecondsForRange(窗口) 真实逐日 active（周一→周日；任意周）。
+    // 周 7 柱：foregroundDailySecondsForRange(窗口) 真实逐日前台（周一→周日；任意周）。
     function computeWindowDailyBars(win) {
-        if (!usageStatManager || !usageStatManager.dailySecondsForRange) return []
-        var series = usageStatManager.dailySecondsForRange(win.start, win.end)
+        if (!usageStatManager || !usageStatManager.foregroundDailySecondsForRange) return []
+        var series = usageStatManager.foregroundDailySecondsForRange(win.start, win.end)
         if (!series) series = []
         var labels = weekdayShortLabels()
         var maxSec = 1
@@ -406,10 +411,10 @@ Item {
         return bars
     }
 
-    // 年 12 柱（G-7）：monthlySecondsForYear 单遍聚合（替代 12 次 activeSoftwareForMonth）。
+    // 年 12 柱（G-7）：foregroundMonthlySecondsForYear 单遍聚合（替代 12 次逐月聚合）。
     function computeYearBars(year) {
-        if (!usageStatManager || !usageStatManager.monthlySecondsForYear) return []
-        var series = usageStatManager.monthlySecondsForYear(year)
+        if (!usageStatManager || !usageStatManager.foregroundMonthlySecondsForYear) return []
+        var series = usageStatManager.foregroundMonthlySecondsForYear(year)
         if (!series) series = []
         var labels = monthShortLabels()
         var maxSec = 1
@@ -424,7 +429,7 @@ Item {
     }
 
     // 月热力（A-2：按当月最大单日秒数分 5 级 0/≤25/≤50/≤75/>75）。
-    // daily 来自 dailySecondsForRange（dayStartUnix）；兼容旧 .day 字段。
+    // daily 来自 foregroundDailySecondsForRange（dayStartUnix）；兼容旧 .day 字段。
     function computeHeat(daily, segs, apps) {
         var maxSec = 0
         for (var i = 0; i < daily.length; i++)
@@ -511,7 +516,7 @@ Item {
                        iconPath: a.iconPath ? a.iconPath : "",
                        iconUrl: a.iconUrl ? a.iconUrl : "",
                        iconLabel: a.iconLabel ? a.iconLabel : "",
-                       category: AppVisual.modelCategory(a),
+                       category: rowCategory(a),
                        seconds: a.seconds ? a.seconds : 0,
                        time: a.time ? a.time : secondsToDisplay(a.seconds ? a.seconds : 0),
                        sessions: byKey[key] !== undefined ? byKey[key] : 0,
@@ -542,8 +547,8 @@ Item {
         return out
     }
 
-    // 分类环（日视图）：整天降噪一次 → 按当前半天投影。降噪与 AM/PM 无关，
-    // 缓存后切半天只走 reprojectCategoryRing()，不重跑扫描线（性能文档口径）。
+    // 分类时钟（日视图）：整天只解析一次重叠，当前半天按历史规则投影成
+    // 固定 10 分钟分类块。切换 AM/PM 只重做轻量分桶，不重跑扫描线。
     // 分类环只在**日视图**渲染（StatsCategoryClock 的 visible: range === "day"），而且
     // reprojectCategoryRing 永远只投影某一天的半个 12 小时盘。此前不论哪个范围都照算，
     // 于是周/月/年把整段窗口的会话段喂进一条二次复杂度的管线，算完再整个丢掉：
@@ -557,7 +562,7 @@ Item {
             vmRingArcs = []
             return
         }
-        var built = StatsViewModel.buildCategoryRingRuns(
+        var built = StatsViewModel.buildCategoryClockRuns(
                     vmSegments ? vmSegments : [], vmApps ? vmApps : [])
         _ringRuns = built.runs
         vmRingStats = built.stats
@@ -568,12 +573,11 @@ Item {
     function reprojectCategoryRing() {
         if (!_ringRuns) { vmRingArcs = []; return }
         var win = periodWindow("day", range === "day" ? periodOffset : 0)
-        vmRingArcs = StatsViewModel.projectCategoryRing(_ringRuns, win.start, clockHalf)
+        vmRingArcs = StatsViewModel.projectCategoryClockBlocks(
+                    _ringRuns, win.start, clockHalf)
     }
 
-    // 环的形状被降噪过，脚注把折叠掉的量说清楚（C6：不静悄悄吃掉记录）。
-    // 「折叠」= 短记录并进相邻块（时间还在环上）；「丢弃」= 前后都是空档、
-    // 无处可并，是唯一真正离开环的时间，所以分开计。
+    // 10 分钟分桶只改变时钟几何，真实总时长与右侧占比保持原始精度。
     function ringFootnote() {
         if (!vmRingStats) return ""
         var folded = vmRingStats.absorbedCount ? vmRingStats.absorbedCount : 0
@@ -598,6 +602,17 @@ Item {
         vmRingLegend = rows
     }
 
+    // vmAggregateFact 的 category 是类别 id；I18n 的词表按英文源串索引，直接丢进去
+    // 会把 "dev" 原样印在句子里（三种语言都一样）。规则表是标签的唯一来源，所以在
+    // 这里解析好再交给 I18n 组句——和右边「分类构成」卡走同一条路。
+    function aggregateFactText() {
+        if (!vmAggregateFact) return ""
+        var fact = { key: vmAggregateFact.key, params: {} }
+        for (var k in vmAggregateFact.params) fact.params[k] = vmAggregateFact.params[k]
+        fact.params.category = categoryLabel(fact.params.category)
+        return I18n.aggregateFact(languageMode, fact)
+    }
+
     function rebuildLibrary() {
         vmLibraryRows = StatsViewModel.buildAppLibrary(
                     vmApps ? vmApps : [], vmLifetimeApps ? vmLifetimeApps : [],
@@ -608,9 +623,9 @@ Item {
     function dayMetrics(total, apps, lifetimeApps, lifetimeTotal) {
         var longest = lifetimeApps && lifetimeApps.length > 0 ? lifetimeApps[0] : null
         return [
-            { title: "Total this period", sub: "Today's effective records", badge: "Day", value: secondsToDisplay(total), change: "", changeDown: false },
+            { title: "Total this period", sub: "Recorded this period", badge: "Day", value: secondsToDisplay(total), change: "", changeDown: false },
             { title: "All apps combined", sub: "All retained records", badge: "Total", value: hoursText(lifetimeTotal), change: "", changeDown: false },
-            { title: "Active apps this period", sub: "Today / All", badge: "Day", value: apps.length + " / " + lifetimeApps.length, change: "", changeDown: false },
+            { title: "Active apps this period", sub: "This period / All", badge: "Day", value: apps.length + " / " + lifetimeApps.length, change: "", changeDown: false },
             { title: "Longest overall", sub: longest ? AppVisual.modelDisplayName(longest) : "—", badge: "Total", value: longest ? StatsViewModel.formatCompactDuration(longest.seconds) : "—", change: "", changeDown: false }
         ]
     }
@@ -625,7 +640,9 @@ Item {
             { title: "This Week Total", sub: "vs last week", badge: "Week", value: hoursText(total),
               change: chg.change ? (chg.change + " " + tr("vs last week")) : "", changeDown: chg.down },
             { title: "Daily Average", sub: "By elapsed days", badge: "Week", value: hoursText(total / elapsed), change: "", changeDown: false },
-            { title: "Longest Continuous Use", sub: lu ? (lu.appName ? lu.appName : "—") : "—", badge: "Week",
+            // 段行同样带 displayName / customDisplayName；直接印 appName 会露出
+            // 进程名（Code.exe），并且无视用户改过的显示名。
+            { title: "Longest Continuous Use", sub: lu ? (AppVisual.modelDisplayName(lu) || "—") : "—", badge: "Week",
               value: lu ? hoursText(lu.longestSec) : "—", change: "", changeDown: false },
             { title: "Switches", sub: "Foreground app switches", badge: "Week", value: total > 0 ? sentence("switchCount", {count: sw}) : "—", change: "", changeDown: false }
         ]
@@ -633,8 +650,12 @@ Item {
 
     function monthMetrics(total, apps, cat, focusDays, prevSec, hasPrev) {
         var chg = changeStr(total, prevSec, hasPrev)
-        var ent = total > 0 ? Math.round(100 * ((cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)) / total) : 0
-        var crt = total > 0 ? Math.round(100 * ((cat["Creation"] ? cat["Creation"] : 0) + (cat["Notes"] ? cat["Notes"] : 0)) / total) : 0
+        // categorySums() 的键是规则表的**类别 id**（dev/office/notes/create/game/
+        // video…），不是它们的英文标签——标签只在 categoryLabel() 里为显示而生成。
+        // 这里原本查的是 cat["Games"] / cat["Creation"]，永远查不到，于是这两张卡
+        // 的百分比恒为 0%。
+        var ent = total > 0 ? Math.round(100 * ((cat["game"] ? cat["game"] : 0) + (cat["video"] ? cat["video"] : 0)) / total) : 0
+        var crt = total > 0 ? Math.round(100 * ((cat["create"] ? cat["create"] : 0) + (cat["notes"] ? cat["notes"] : 0)) / total) : 0
         return [
             { title: "This Month Total", sub: "vs last month", badge: "Month", value: hoursText(total),
               change: chg.change ? (chg.change + " " + tr("vs last month")) : "", changeDown: chg.down },
@@ -671,7 +692,7 @@ Item {
             percent: topPercent,
             time: hoursText(total)
         })
-        var ent = (cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)
+        var ent = (cat["game"] ? cat["game"] : 0) + (cat["video"] ? cat["video"] : 0)
         if (total > 0 && ent / total > 0.4) s += " " + tr("Entertainment time is relatively high.")
         return s
     }
@@ -681,13 +702,14 @@ Item {
         if (total <= 0) { recs.push(sentence("rangeNoAdvice", {range: rangeWord(r)})); return recs }
         var topCat = topCategory(cat)
         var sug = tr("Keep the current rhythm.")
-        if (topCat === "Games") sug = tr("Before entertainment time, finish one key task.")
-        else if (topCat === "Development" || topCat === "Creation" || topCat === "Office") sug = tr("Keep the focus rhythm and stand up every 50 minutes.")
-        else if (topCat === "Notes" || topCat === "Browsing") sug = tr("Turn scattered browsing into notes and output.")
-        else if (topCat === "Video" || topCat === "Music") sug = tr("Reserve fixed deep-work blocks alongside relaxation.")
-        else if (topCat === "Social") sug = tr("Watch social time; batch messages for better efficiency.")
+        // 同上：topCategory() 返回类别 id，不是英文标签。
+        if (topCat === "game") sug = tr("Before entertainment time, finish one key task.")
+        else if (topCat === "dev" || topCat === "create" || topCat === "office") sug = tr("Keep the focus rhythm and stand up every 50 minutes.")
+        else if (topCat === "notes" || topCat === "browse") sug = tr("Turn scattered browsing into notes and output.")
+        else if (topCat === "video" || topCat === "music") sug = tr("Reserve fixed deep-work blocks alongside relaxation.")
+        else if (topCat === "social") sug = tr("Watch social time; batch messages for better efficiency.")
         recs.push(sug)
-        var ent = (cat["Games"] ? cat["Games"] : 0) + (cat["Video"] ? cat["Video"] : 0)
+        var ent = (cat["game"] ? cat["game"] : 0) + (cat["video"] ? cat["video"] : 0)
         if (ent / total > 0.4) recs.push(sentence("entertainmentRatioAdvice", {percent: Math.round(100 * ent / total)}))
         else recs.push(tr("Your time structure is balanced. Keep it up."))
         return recs
@@ -705,20 +727,30 @@ Item {
         var r = range
         var win = periodWindow(r, periodOffset)
         vmPeriodLabel = win.label
-        var apps = usageStatManager.activeSoftwareForWindow(win.start, win.end)
+        // 本页只读 frontmost_sessions：media_sessions 与前台并发（放视频的同时你在读
+        // PDF），两条记录同时为真，混进同一份 app 列表后同一秒会被两个 app 各算一次，
+        // 一天于是能超过 24h。整页统一走 foreground* 读路径，别改回 active*。
+        var apps = usageStatManager.foregroundSoftwareForWindow(win.start, win.end)
         var segs = usageStatManager.foregroundSegmentsForWindow(win.start, win.end)
-        var lifetimeApps = usageStatManager.allApps ? usageStatManager.allApps() : []
+        var lifetimeApps = usageStatManager.foregroundApps ? usageStatManager.foregroundApps() : []
         if (!apps) apps = []
         if (!segs) segs = []
         if (!lifetimeApps) lifetimeApps = []
-        // 总秒由已取 apps 求和（口径同 activeSoftwareSecondsForWindow，省一次全量重聚合 / 5s）。
+        // 总秒由已取 apps 求和（口径同 foregroundSoftwareSecondsForWindow，省一次全量重聚合 / 5s）。
         var total = 0
         for (var ti = 0; ti < apps.length; ti++) total += apps[ti].seconds ? apps[ti].seconds : 0
+        // foregroundApps() 特意保留被隐藏的 app（设置页要靠 allApps() 取消隐藏），而其它每条读路径
+        // 都过滤 m_hiddenKeys。本页在计数/取最长之前必须自己滤掉，否则「历史最长」
+        // 会点名一个用户明确隐藏的 app，「本期活跃应用」的分母也和下方应用库对不上。
+        var visibleLifetime = []
         var lifetimeTotal = 0
-        for (var li = 0; li < lifetimeApps.length; li++)
-            if (!lifetimeApps[li].hidden) lifetimeTotal += lifetimeApps[li].seconds ? lifetimeApps[li].seconds : 0
+        for (var li = 0; li < lifetimeApps.length; li++) {
+            if (lifetimeApps[li].hidden) continue
+            visibleLifetime.push(lifetimeApps[li])
+            lifetimeTotal += lifetimeApps[li].seconds ? lifetimeApps[li].seconds : 0
+        }
         vmApps = apps; vmSegments = segs; vmTotalSec = total
-        vmLifetimeApps = lifetimeApps; vmLifetimeTotalSec = lifetimeTotal
+        vmLifetimeApps = visibleLifetime; vmLifetimeTotalSec = lifetimeTotal
         rebuildCategoryRing()
         rebuildLibrary()
 
@@ -736,19 +768,20 @@ Item {
 
         // 上一周期环比（WoW/MoM/YoY）+ 专注聚合（焦点类目连续块）。
         var prevWin = periodWindow(r, periodOffset - 1)
-        var prevApps = usageStatManager.activeSoftwareForWindow(prevWin.start, prevWin.end)
+        var prevApps = usageStatManager.foregroundSoftwareForWindow(prevWin.start, prevWin.end)
         if (!prevApps) prevApps = []
         var prevSec = 0
         for (var pi = 0; pi < prevApps.length; pi++) prevSec += prevApps[pi].seconds ? prevApps[pi].seconds : 0
         var hasPrev = prevApps.length > 0 && prevSec > 0
-        var focus = usageStatManager.focusStatsForWindow ? usageStatManager.focusStatsForWindow(win.start, win.end) : {}
+        var focus = usageStatManager.foregroundFocusStatsForWindow
+                    ? usageStatManager.foregroundFocusStatsForWindow(win.start, win.end) : {}
         if (!focus) focus = {}
         var focusSeconds = focus.focusSeconds ? focus.focusSeconds : 0
         var focusDays = focus.focusDays ? focus.focusDays : 0
 
         if (r === "day") {
             vmBars = []; vmHeat = []; vmLine = []; vmKeywords = []
-            vmMetrics = dayMetrics(total, apps, lifetimeApps, lifetimeTotal)
+            vmMetrics = dayMetrics(total, apps, visibleLifetime, lifetimeTotal)
         } else if (r === "week") {
             vmBars = computeWindowDailyBars(win)
             vmHeat = []; vmLine = []; vmKeywords = []
@@ -758,7 +791,7 @@ Item {
             vmHeat = []; vmLine = []; vmKeywords = []
             vmMetrics = yearMetrics(total, apps, vmBars, focusSeconds, prevSec, hasPrev)
         } else {
-            var daily = usageStatManager.dailySecondsForRange(win.start, win.end)
+            var daily = usageStatManager.foregroundDailySecondsForRange(win.start, win.end)
             if (!daily) daily = []
             vmBars = []
             vmHeat = computeHeat(daily, segs, apps)
@@ -1158,12 +1191,14 @@ Item {
                             Layout.preferredHeight: 486
                             arcs: root.vmRingArcs
                             legend: root.vmRingLegend
+                            colors: dailyUsageShare.categoryColorMap
                             half: root.clockHalf
                             totalText: root.secondsToDisplay(root.vmTotalSec)
                             footnote: root.ringFootnote()
                             onHalfRequested: function (value) { root.clockHalf = value }
                         }
                         DailyUsageShare {
+                            id: dailyUsageShare
                             Layout.columnSpan: root.statsLayoutStacked ? 12 : 4
                             Layout.fillWidth: true
                             Layout.preferredHeight: 486
@@ -1171,8 +1206,8 @@ Item {
                             languageMode: root.languageMode
                             glassStrength: 0.45
                             showInsight: false
-                            titleKicker: "Today"
-                            titleText: root.tr("What made up today")
+                            titleKicker: root.periodOffset === 0 ? "Today" : root.vmPeriodLabel
+                            titleText: root.periodOffset === 0 ? "What made up today" : "What made up this day"
                             share: root.vmShare
                             total: root.vmShareTotalText
                         }
@@ -1201,7 +1236,7 @@ Item {
                                 totalText: root.hoursText(root.vmTotalSec)
                                 unitValue: root.activePeriodUnitCount()
                                 unitLabel: root.aggregateUnitLabel()
-                                factText: I18n.aggregateFact(root.languageMode, root.vmAggregateFact)
+                                factText: root.aggregateFactText()
                             }
                             StatsCategoryDistribution {
                                 Layout.fillWidth: true
@@ -1363,6 +1398,7 @@ Item {
         id: ringCard
         property var arcs: []
         property var legend: []
+        property var colors: ({})
         property string half: "am"
         property string totalText: "0m"
         property string footnote: ""
@@ -1383,6 +1419,10 @@ Item {
         }
         function clockTime(unixSec) {
             return Qt.formatTime(new Date(unixSec * 1000), "HH:mm")
+        }
+        function categoryColor(category) {
+            return AppVisual.resolveClockCategoryColor(
+                        colors, category, root.categoryHeatBase(category))
         }
 
         style: ml
@@ -1457,12 +1497,13 @@ Item {
                         ctx.fillStyle = ml.calSunkBg
                         ctx.fill()
 
-                        // Each category is a filled annular sector. The active
-                        // sector grows both inward and outward without changing time.
+                        // Each category is a filled annular sector. Every block
+                        // in the active category grows without changing time.
                         for (var i = 0; i < ringCard.arcs.length; i++) {
                             var arc = ringCard.arcs[i]
-                            var dimmed = ringCard.activeId !== "" && ringCard.activeId !== arc.arcId
-                            var emphasized = ringCard.activeId === arc.arcId
+                            var emphasized = StatsViewModel.ringArcMatchesActiveCategory(
+                                                ringCard.arcs, ringCard.activeId, arc)
+                            var dimmed = ringCard.activeId !== "" && !emphasized
                             var startDeg = arc.startAngle + 0.15
                             var endDeg = arc.endAngle - 0.15
                             if (endDeg <= startDeg) { startDeg = arc.startAngle; endDeg = arc.endAngle }
@@ -1475,7 +1516,7 @@ Item {
                             ctx.arc(cx, cy, outer, start, end, false)
                             ctx.arc(cx, cy, inner, end, start, true)
                             ctx.closePath()
-                            ctx.fillStyle = root.categoryHeatBase(arc.category)
+                            ctx.fillStyle = ringCard.categoryColor(arc.category)
                             ctx.fill()
                         }
                         ctx.globalAlpha = 1.0
@@ -1529,8 +1570,10 @@ Item {
                         spacing: 5
                         Text {
                             width: parent.width
-                            text: ringCard.focusedArc ? root.categoryLabel(ringCard.focusedArc.category) : root.tr("Recorded today")
-                            color: ringCard.focusedArc ? ml.aqua : ml.textTertiary
+                            text: ringCard.focusedArc ? root.categoryLabel(ringCard.focusedArc.category)
+                                                     : (root.periodOffset === 0 ? root.tr("Recorded today") : root.tr("Recorded this period"))
+                            color: ringCard.focusedArc ? ringCard.categoryColor(ringCard.focusedArc.category)
+                                                       : ml.textTertiary
                             font.pixelSize: 11; font.weight: Font.DemiBold
                             horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
                         }
@@ -1630,7 +1673,7 @@ Item {
                             width: 9; height: 9; radius: 2
                             anchors.verticalCenter: parent.verticalCenter
                             color: ringCard.focusedArc ? AppVisual.modelAppColor(modelData)
-                                                       : root.categoryHeatBase(modelData.id)
+                                                       : ringCard.categoryColor(modelData.id)
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
@@ -1659,68 +1702,6 @@ Item {
                 elide: Text.ElideRight
                 Layout.fillWidth: true
                 horizontalAlignment: Text.AlignHCenter
-            }
-        }
-    }
-
-    component StatsDayTimeline: FrostCard {
-        id: timelineCard
-        property var groups: []
-        style: ml
-        radius: 18
-        onGroupsChanged: timelineCanvas.requestPaint()
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 16
-            spacing: 10
-            RowLayout {
-                Layout.fillWidth: true
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: 2
-                    Text { text: root.tr("24-hour time flow"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                    Text { text: root.tr("Today's foreground records laid out in the order they happened"); color: ml.textTertiary; font.pixelSize: 12 }
-                }
-                Text { text: root.tr("Full record"); color: ml.aqua; font.pixelSize: 11; font.weight: Font.DemiBold }
-            }
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Canvas {
-                    id: timelineCanvas
-                    anchors.fill: parent
-                    onWidthChanged: requestPaint()
-                    onHeightChanged: requestPaint()
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.reset()
-                        var left = 8, right = width - 8, y = height * 0.52, trackH = 42
-                        ctx.fillStyle = ml.calSunkBg
-                        ctx.roundedRect(left, y - trackH / 2, right - left, trackH, 10, 10)
-                        ctx.fill()
-                        var win = root.periodWindow("day", root.periodOffset)
-                        for (var g = 0; g < timelineCard.groups.length; g++) {
-                            var group = timelineCard.groups[g]
-                            var segments = group.segments || []
-                            ctx.fillStyle = AppVisual.modelAppColor(group)
-                            for (var s = 0; s < segments.length; s++) {
-                                var start = Math.max(win.start, Number(segments[s].startUnixSec))
-                                var end = Math.min(win.end + 1, Number(segments[s].endUnixSec))
-                                if (end <= start) continue
-                                var x = left + (start - win.start) / 86400 * (right - left)
-                                var w = Math.max(2, (end - start) / 86400 * (right - left))
-                                ctx.roundedRect(x, y - trackH / 2 + 5, w, trackH - 10, 6, 6)
-                                ctx.fill()
-                            }
-                        }
-                        ctx.fillStyle = ml.textTertiary
-                        ctx.font = "10px sans-serif"
-                        ctx.textAlign = "center"
-                        for (var hour = 0; hour <= 24; hour += 6) {
-                            var tx = left + hour / 24 * (right - left)
-                            ctx.fillText((hour < 10 ? "0" : "") + hour + ":00", tx, 14)
-                        }
-                    }
-                }
             }
         }
     }
@@ -1845,7 +1826,7 @@ Item {
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 2
                             Text { Layout.fillWidth: true; text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode); color: ml.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold; elide: Text.ElideRight }
-                            Text { Layout.fillWidth: true; text: root.categoryLabel(AppVisual.modelCategory(modelData) || "other") + (modelData.periodSeconds > 0 ? " · " + root.tr("Recorded this period") : " · " + root.tr("Unused this period")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
+                            Text { Layout.fillWidth: true; text: root.categoryLabel(root.rowCategory(modelData)) + (modelData.periodSeconds > 0 ? " · " + root.tr("Recorded this period") : " · " + root.tr("Unused this period")); color: ml.textTertiary; font.pixelSize: 10; elide: Text.ElideRight }
                         }
                         ColumnLayout {
                             Layout.preferredWidth: 170; spacing: 4
@@ -1982,68 +1963,6 @@ Item {
         }
     }
 
-    component StatsYearRhythm: FrostCard {
-        id: yearRhythm
-        property var bars: []
-        style: ml
-        radius: 18
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 18
-            spacing: 16
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 3
-                Text { text: root.tr("Twelve months of rhythm"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { text: root.tr("Each cell is a month; its length is that month's effective recorded time"); color: ml.textTertiary; font.pixelSize: 12 }
-            }
-            GridLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                columns: 6
-                columnSpacing: 16
-                rowSpacing: 14
-                Repeater {
-                    model: 12
-                    delegate: Item {
-                        id: monthCell
-                        required property int index
-                        readonly property var bar: yearRhythm.bars && index < yearRhythm.bars.length ? yearRhythm.bars[index] : null
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        Layout.minimumHeight: 68
-
-                        ColumnLayout {
-                            anchors.fill: parent
-                            spacing: 6
-                            RowLayout {
-                                Layout.fillWidth: true
-                                Text { Layout.fillWidth: true; text: monthCell.bar ? I18n.trendLabel(root.languageMode, monthCell.bar) : root.monthShortLabels()[monthCell.index]; color: ml.textSecondary; font.pixelSize: 11; font.weight: Font.DemiBold }
-                                Text { text: monthCell.bar ? monthCell.bar.valueText : "0m"; color: ml.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold; font.features: { "tnum": 1 } }
-                            }
-                            Item { Layout.fillHeight: true }
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 5
-                                radius: 3
-                                color: ml.calSunkBg
-                                Rectangle {
-                                    width: parent.width * (monthCell.bar ? Number(monthCell.bar.ratio || 0) : 0)
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: ml.aqua
-                                    Behavior on width { NumberAnimation { duration: 360; easing.type: Easing.OutCubic } }
-                                }
-                            }
-                            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: ml.cardBorder }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     // 柱状图卡（周 7 / 年 12）。柱高用 Behavior 平滑跟随数据（避免每 5s 重建重播入场）。
     component StatsBarChart: FrostCard {
         id: chart
@@ -2122,433 +2041,4 @@ Item {
         }
     }
 
-    // 折线/面积图卡（月周趋势）
-    component StatsLineChart: FrostCard {
-        id: lc
-        property string title: ""
-        property string sub: ""
-        property var points: []
-        style: ml
-        radius: 18
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 16
-            spacing: 10
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-                Text { text: root.tr(lc.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { visible: lc.sub !== ""; text: root.tr(lc.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
-            }
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Canvas {
-                    id: lineCanvas
-                    anchors.fill: parent
-                    property var pts: lc.points
-                    property bool nm: root.nightMode
-                    onPtsChanged: requestPaint()
-                    onNmChanged: requestPaint()
-                    onWidthChanged: requestPaint()
-                    onHeightChanged: requestPaint()
-                    onPaint: {
-                        var ctx = getContext("2d"); ctx.reset()
-                        var n = pts ? pts.length : 0
-                        var w = width, h = height, padT = 10, padB = 8
-                        ctx.strokeStyle = Qt.rgba(1, 1, 1, root.nightMode ? 0.06 : 0.10)
-                        ctx.lineWidth = 1
-                        for (var g = 0; g < 3; g++) {
-                            var gy = padT + (h - padT - padB) * g / 2
-                            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke()
-                        }
-                        if (n < 2) return
-                        function X(i) { return (i / (n - 1)) * w }
-                        function Y(v) { return padT + (1 - v) * (h - padT - padB) }
-                        ctx.beginPath(); ctx.moveTo(X(0), h)
-                        ctx.lineTo(X(0), Y(pts[0].y))
-                        for (var i = 1; i < n; i++) ctx.lineTo(X(i), Y(pts[i].y))
-                        ctx.lineTo(X(n - 1), h); ctx.closePath()
-                        var grad = ctx.createLinearGradient(0, 0, 0, h)
-                        grad.addColorStop(0, Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.36))
-                        grad.addColorStop(1, Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0))
-                        ctx.fillStyle = grad; ctx.fill()
-                        ctx.beginPath(); ctx.moveTo(X(0), Y(pts[0].y))
-                        for (var j = 1; j < n; j++) ctx.lineTo(X(j), Y(pts[j].y))
-                        ctx.lineWidth = 3; ctx.lineJoin = "round"
-                        ctx.strokeStyle = ml.aqua; ctx.stroke()
-                        ctx.fillStyle = ml.aqua
-                        for (var k = 0; k < n; k++) { ctx.beginPath(); ctx.arc(X(k), Y(pts[k].y), 3, 0, 2 * Math.PI); ctx.fill() }
-                    }
-                }
-                Text {
-                    anchors.centerIn: parent
-                    visible: !lc.points || lc.points.length < 2
-                    text: root.tr("Not enough monthly data to draw a trend")
-                    color: ml.textTertiary
-                    font.pixelSize: 12
-                }
-            }
-        }
-    }
-
-    // 热力图卡（按天，7 列周对齐；色级 token 派生）
-    component StatsHeatmap: FrostCard {
-        id: heat
-        property string title: ""
-        property string sub: ""
-        property var cells: []
-        property var hoveredCell: null
-        readonly property int weekCount: Math.max(1, Math.ceil((cells ? cells.length : 0) / 7))
-        readonly property real gridGap: 7
-        readonly property real labelWidth: 36
-        readonly property real labelGap: 14
-        readonly property real gridAvailableWidth: Math.max(1, heatBody.width - labelWidth - labelGap)
-        readonly property real availableCellByWidth: (gridAvailableWidth - Math.max(0, weekCount - 1) * gridGap) / weekCount
-        readonly property real availableCellByHeight: (heatBody.height - 6 * gridGap) / 7
-        readonly property real cellSide: Math.max(20, Math.min(42, Math.floor(Math.min(availableCellByWidth, availableCellByHeight))))
-        readonly property real columnGap: weekCount > 1
-            ? Math.max(gridGap, Math.floor((gridAvailableWidth - weekCount * cellSide) / Math.max(1, weekCount - 1)))
-            : gridGap
-        readonly property real cellRadius: Math.max(5, Math.min(9, cellSide * 0.22))
-        style: ml
-        radius: 18
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 16
-            spacing: 10
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-                Text { text: root.tr(heat.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { visible: heat.sub !== ""; text: root.tr(heat.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
-            }
-            Item {
-                id: heatBody
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                Row {
-                    id: heatGridWrap
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    height: 7 * heat.cellSide + 6 * heat.gridGap
-                    spacing: heat.labelGap
-                    Column {
-                        width: heat.labelWidth
-                        spacing: heat.gridGap
-                        anchors.verticalCenter: parent.verticalCenter
-                        Repeater {
-                            model: root.heatWeekLabels()
-                            delegate: Text {
-                                required property var modelData
-                                width: heat.labelWidth
-                                height: heat.cellSide
-                                text: root.tr(modelData)
-                                color: ml.textTertiary
-                                font.pixelSize: 11
-                                horizontalAlignment: Text.AlignRight
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
-                    }
-                    Grid {
-                        rows: 7
-                        flow: Grid.TopToBottom
-                        rowSpacing: heat.gridGap
-                        columnSpacing: heat.columnGap
-                        anchors.verticalCenter: parent.verticalCenter
-                        Repeater {
-                            model: heat.cells
-                            delegate: Rectangle {
-                                id: heatCell
-                                required property var modelData
-                                width: heat.cellSide
-                                height: heat.cellSide
-                                radius: heat.cellRadius
-                                opacity: modelData.empty ? 0 : 1
-                                color: modelData.color ? modelData.color : root.heatColor(modelData.category, modelData.level)
-                                border.width: 1
-                                border.color: cellMa.containsMouse
-                                    ? Qt.rgba(ml.aqua.r, ml.aqua.g, ml.aqua.b, 0.65)
-                                    : (modelData.level === 0 ? (root.nightMode ? "#2E3947" : "#D7DEE5") : Qt.rgba(1, 1, 1, root.nightMode ? 0.08 : 0.34))
-                                scale: cellMa.containsMouse ? 1.08 : 1
-                                Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
-                                Text {
-                                    anchors.centerIn: parent
-                                    visible: !modelData.empty && heat.cellSide >= 28
-                                    text: modelData.day
-                                    color: modelData.level > 2 ? Qt.rgba(1, 1, 1, 0.82) : ml.textTertiary
-                                    font.pixelSize: Math.min(11, heat.cellSide * 0.38)
-                                    font.weight: Font.DemiBold
-                                }
-                                MouseArea {
-                                    id: cellMa
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onEntered: heat.hoveredCell = modelData
-                                    onExited: if (heat.hoveredCell === modelData) heat.hoveredCell = null
-                                }
-                            }
-                        }
-                    }
-                }
-                Rectangle {
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.margins: 8
-                    width: Math.min(parent.width - 16, tipText.implicitWidth + 22)
-                    height: 30
-                    radius: 15
-                    visible: heat.hoveredCell !== null && !heat.hoveredCell.empty
-                    color: ml.calToastBg
-                    border.width: 1
-                    border.color: ml.chipEventBd
-                    Text {
-                        id: tipText
-                        anchors.centerIn: parent
-                        text: heat.hoveredCell ? root.heatTooltipText(heat.hoveredCell) : ""
-                        color: ml.textPrimary
-                        font.pixelSize: 12
-                        font.weight: Font.DemiBold
-                        elide: Text.ElideRight
-                        width: parent.width - 16
-                        horizontalAlignment: Text.AlignHCenter
-                    }
-                }
-            }
-        }
-    }
-
-    // 高频应用排行卡
-    component StatsRankingList: FrostCard {
-        id: rl
-        property string title: ""
-        property string sub: ""
-        property var rows: []
-        style: ml
-        radius: 18
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 16
-            spacing: 10
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-                Text { text: root.tr(rl.title); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
-                Text { visible: rl.sub !== ""; text: root.tr(rl.sub); color: ml.textTertiary; font.pixelSize: 12; elide: Text.ElideRight; Layout.fillWidth: true }
-            }
-            Item {
-                id: rlBody
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                Column {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    spacing: 0
-                    Repeater {
-                        model: rl.rows ? rl.rows.slice(0, 5) : []
-                        delegate: Rectangle {
-                            required property var modelData
-                            required property int index
-                            width: rlBody.width
-                            height: 48
-                            radius: 0
-                            color: "transparent"
-                            border.width: 0
-                            Rectangle { anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 1; color: ml.cardBorder }
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 10
-                                anchors.rightMargin: 12
-                                spacing: 10
-                                Text {
-                                    Layout.preferredWidth: 20
-                                    text: String(index + 1).padStart(2, "0")
-                                    color: ml.textTertiary
-                                    font.pixelSize: 10
-                                    font.features: { "tnum": 1 }
-                                }
-                                Rectangle {
-                                    Layout.preferredWidth: 34; Layout.preferredHeight: 34
-                                    radius: 11
-                                    color: AppVisual.modelAppColor(modelData)
-                                    Image {
-                                        id: statsAppIconImage
-                                        anchors.centerIn: parent
-                                        width: 22; height: 22
-                                        source: AppVisual.modelIconSource(modelData)
-                                        sourceSize.width: 64; sourceSize.height: 64
-                                        fillMode: Image.PreserveAspectFit
-                                        asynchronous: true; smooth: true; mipmap: true
-                                        visible: source != "" && status === Image.Ready
-                                    }
-                                    Text {
-                                        anchors.centerIn: parent
-                                        visible: AppVisual.modelIconSource(modelData) === "" || statsAppIconImage.status !== Image.Ready
-                                        text: AppVisual.modelIconLabel(modelData)
-                                        color: nightMode ? "#FFFFFF" : "#2D2724"
-                                        font.pixelSize: 14; font.weight: 900
-                                    }
-                                }
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 2
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: AppVisual.modelDisplayNameForLanguage(modelData, root.languageMode)
-                                        color: ml.textPrimary
-                                        font.pixelSize: 13; font.weight: Font.DemiBold
-                                        elide: Text.ElideRight
-                                    }
-                                    Text {
-                                        Layout.fillWidth: true
-                                        text: root.tr(AppVisual.modelCategory(modelData) !== "" ? AppVisual.modelCategory(modelData) : "App") + " · " + root.sentence("openCount", {count: modelData.sessions})
-                                        color: ml.textTertiary
-                                        font.pixelSize: 11
-                                        elide: Text.ElideRight
-                                    }
-                                }
-                                ColumnLayout {
-                                    Layout.preferredWidth: 96; spacing: 1
-                                    Text {
-                                        Layout.alignment: Qt.AlignRight
-                                        text: modelData.time
-                                        color: ml.textPrimary
-                                        font.pixelSize: 13; font.weight: Font.DemiBold
-                                        font.features: { "tnum": 1 }
-                                    }
-                                    Text {
-                                        Layout.alignment: Qt.AlignRight
-                                        text: modelData.percent + "%"
-                                        color: ml.textTertiary
-                                        font.pixelSize: 9
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Text {
-                        visible: !rl.rows || rl.rows.length === 0
-                        text: root.tr("No app records in this range")
-                        color: ml.textTertiary
-                        font.pixelSize: 12
-                    }
-                }
-            }
-        }
-    }
-
-    // 洞察 + 行动建议 + (可选)关键词
-    component StatsInsightCard: FrostCard {
-        id: ic
-        property string insight: ""
-        property var recs: []
-        property var keywords: []
-        signal exportRequested()
-        style: ml
-        radius: 18
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 16
-            spacing: 10
-            RowLayout {
-                Layout.fillWidth: true
-                Text { text: root.tr("Insights & Suggestions"); color: ml.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold; Layout.fillWidth: true }
-                Rectangle {
-                    width: expLabel.implicitWidth + 24; height: 32; radius: 11
-                    color: expMa.containsMouse ? ml.calGhostHover : ml.calGhostBg
-                    border.width: 1; border.color: ml.calGhostBorder
-                    Text { id: expLabel; anchors.centerIn: parent; text: root.tr("Export Report"); color: ml.calGlyph; font.pixelSize: 12; font.weight: Font.DemiBold }
-                    MouseArea { id: expMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Cursor.button(); preventStealing: true; onClicked: ic.exportRequested() }
-                }
-            }
-            // 洞察段落（135° aqua/violet 浅染）
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: insightText.implicitHeight + 24
-                radius: 14
-                color: Qt.rgba(0, 0, 0, root.nightMode ? 0.13 : 0.04)
-                border.width: 1
-                border.color: Qt.rgba(ml.glowCyan.r, ml.glowCyan.g, ml.glowCyan.b, 0.11)
-                Rectangle {
-                    anchors.fill: parent
-                    radius: parent.radius
-                    gradient: Gradient {
-                        GradientStop { position: 0; color: Qt.rgba(ml.glowCyan.r, ml.glowCyan.g, ml.glowCyan.b, 0.09 * ml.glowStrength) }
-                        GradientStop { position: 1; color: Qt.rgba(ml.violet.r, ml.violet.g, ml.violet.b, 0.06 * ml.glowStrength) }
-                    }
-                }
-                Text {
-                    id: insightText
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    text: I18n.t(root.languageMode, ic.insight)
-                    color: ml.textSecondary
-                    font.pixelSize: 13
-                    lineHeight: 1.45
-                    wrapMode: Text.WordWrap
-                    verticalAlignment: Text.AlignVCenter
-                }
-            }
-            // 关键词 chips（月视图）
-            Flow {
-                Layout.fillWidth: true
-                visible: ic.keywords && ic.keywords.length > 0
-                spacing: 6
-                Repeater {
-                    model: ic.keywords
-                    delegate: Rectangle {
-                        required property var modelData
-                        height: 26
-                        width: kwT.implicitWidth + 20
-                        radius: 9
-                        color: ml.accentSoft
-                        border.width: 1; border.color: ml.accentSoftBorder
-                        Text { id: kwT; anchors.centerIn: parent; text: I18n.t(root.languageMode, modelData); color: ml.accentText; font.pixelSize: 11; font.weight: Font.DemiBold }
-                    }
-                }
-            }
-            // 行动建议（编号）
-            ColumnLayout {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                spacing: 8
-                Repeater {
-                    model: ic.recs
-                    delegate: RowLayout {
-                        id: recRow
-                        required property var modelData
-                        required property int index
-                        Layout.fillWidth: true
-                        spacing: 10
-                        Rectangle {
-                            Layout.preferredWidth: 24; Layout.preferredHeight: 24
-                            radius: 8
-                            color: ml.accentSoft
-                            border.width: 1; border.color: ml.accentSoftBorder
-                            Text { anchors.centerIn: parent; text: (recRow.index + 1); color: ml.aqua; font.pixelSize: 12; font.weight: Font.DemiBold }
-                        }
-                        Text {
-                            Layout.fillWidth: true
-                            text: I18n.t(root.languageMode, modelData)
-                            color: ml.textSecondary
-                            font.pixelSize: 13
-                            wrapMode: Text.WordWrap
-                        }
-                    }
-                }
-            }
-            Text {
-                Layout.fillWidth: true
-                text: root.tr("Generated by local deterministic templates (aiGenerated:false), not AI, without reading raw logs.")
-                color: ml.textTertiary
-                font.pixelSize: 10
-                wrapMode: Text.WordWrap
-            }
-        }
-    }
 }
