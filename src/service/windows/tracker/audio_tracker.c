@@ -6,6 +6,10 @@
 
 #include <string.h>
 
+// Codex can leave a WASAPI session looking active across sleep. Polling is
+// nominally once per second, so a longer gap is not valid Codex evidence.
+#define TIMEARC_AUDIO_MAX_OBSERVATION_GAP_SEC 5
+
 // Deduplicate WASAPI sessions by executable path.
 static int same_audio_app(const AppInfo* a, const AppInfo* b) {
   if (a == NULL || b == NULL) {
@@ -74,6 +78,41 @@ static TimeArcAudioSession* find_free_session(TimeArcAudioTrackerState* state) {
   return NULL;
 }
 
+static int has_observation_gap(const TimeArcAudioTrackerState* state,
+                               int64_t now_sec) {
+  return state->last_poll_sec > 0 &&
+         (now_sec < state->last_poll_sec ||
+          now_sec - state->last_poll_sec >
+              TIMEARC_AUDIO_MAX_OBSERVATION_GAP_SEC);
+}
+
+static int is_codex_audio_app(const AppInfo* app) {
+  static const char marker[] = "\\WindowsApps\\OpenAI.Codex_";
+  if (app == NULL) return 0;
+
+  const size_t marker_len = sizeof(marker) - 1;
+  for (const char* cursor = app->exec_path; *cursor != '\0'; ++cursor) {
+    if (_strnicmp(cursor, marker, marker_len) == 0) return 1;
+  }
+  return 0;
+}
+
+static void close_all_sessions(TimeArcAudioTrackerState* state,
+                               int64_t end_sec) {
+  for (int i = 0; i < TIMEARC_AUDIO_MAX_TRACKED_APPS; ++i) {
+    close_audio_session(&state->sessions[i], end_sec);
+  }
+}
+
+static void close_codex_sessions(TimeArcAudioTrackerState* state,
+                                 int64_t end_sec) {
+  for (int i = 0; i < TIMEARC_AUDIO_MAX_TRACKED_APPS; ++i) {
+    if (is_codex_audio_app(&state->sessions[i].app)) {
+      close_audio_session(&state->sessions[i], end_sec);
+    }
+  }
+}
+
 static void start_or_update_session(TimeArcAudioTrackerState* state,
                                     const AppInfo* app,
                                     int64_t now_sec) {
@@ -108,6 +147,11 @@ void timearc_audio_tracker_poll(TimeArcAudioTrackerState* state,
   if (state == NULL) {
     return;
   }
+
+  if (has_observation_gap(state, now_sec)) {
+    close_codex_sessions(state, state->last_poll_sec);
+  }
+  state->last_poll_sec = now_sec;
 
   for (int i = 0; i < TIMEARC_AUDIO_MAX_TRACKED_APPS; ++i) {
     state->sessions[i].seen_this_poll = 0;
@@ -173,9 +217,11 @@ void timearc_audio_tracker_flush(TimeArcAudioTrackerState* state,
     return;
   }
 
-  for (int i = 0; i < TIMEARC_AUDIO_MAX_TRACKED_APPS; ++i) {
-    close_audio_session(&state->sessions[i], now_sec);
+  if (has_observation_gap(state, now_sec)) {
+    close_codex_sessions(state, state->last_poll_sec);
   }
+  close_all_sessions(state, now_sec);
+  state->last_poll_sec = now_sec;
 }
 
 void timearc_audio_tracker_shutdown(void) {

@@ -118,6 +118,10 @@ G2/G3 打磨 ───────────(随手)
   B 站页面进入无站点后缀视频页时保留短期站点身份，使媒体时长继续归入 B 站；
   Discord 策略和磁盘契约不变。见
   [`windows-bilibili-site-attribution-fix-2026-08-25.md`](windows-bilibili-site-attribution-fix-2026-08-25.md)。
+- [x] **B6 Windows Codex 休眠间隔不再计入媒体播放** — 2026-08-31 官方
+  `OpenAI.Codex_` 音频会话在轮询或退出 flush 遇到超过 5 秒的观测空洞时，于最后一次
+  实际采样点截断并从当前采样重新开始；其他媒体应用保持原行为，不改 SQLite 契约。见
+  [`windows-audio-suspend-gap-fix-2026-08-31.md`](windows-audio-suspend-gap-fix-2026-08-31.md)。
 
 ### C. 跨平台服务（**非 Windows**）
 - [~] **C1 macOS tracker 主循环接线**

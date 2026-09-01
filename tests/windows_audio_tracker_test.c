@@ -15,14 +15,25 @@ static int g_media_writes = 0;
 static int64_t g_media_start[4];
 static int64_t g_media_end[4];
 
-static AppInfo audio_app(const char* title) {
+static AppInfo audio_app_at_path(const char* path, const char* title) {
   AppInfo value;
   memset(&value, 0, sizeof(value));
   value.process_id = 80;
-  snprintf(value.exec_path, sizeof(value.exec_path), "%s", "chrome.exe");
-  snprintf(value.app_name, sizeof(value.app_name), "%s", "chrome.exe");
+  snprintf(value.exec_path, sizeof(value.exec_path), "%s", path);
+  snprintf(value.app_name, sizeof(value.app_name), "%s", path);
   snprintf(value.window_title, sizeof(value.window_title), "%s", title);
   return value;
+}
+
+static AppInfo audio_app(const char* title) {
+  return audio_app_at_path("chrome.exe", title);
+}
+
+static AppInfo codex_audio_app(const char* title) {
+  return audio_app_at_path(
+      "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.825.6671.0_x64__"
+      "2p2nqsd0c76g0\\app\\ChatGPT.exe",
+      title);
 }
 
 int timearc_win_get_audio_apps(AppInfo* out_apps, size_t max_apps,
@@ -67,6 +78,9 @@ static void test_open_audio_checkpoints_and_continues_from_boundary(void) {
 
   timearc_audio_tracker_init(&state, 60);
   timearc_audio_tracker_poll(&state, 1000);
+  for (int64_t now_sec = 1005; now_sec <= 1055; now_sec += 5) {
+    timearc_audio_tracker_poll(&state, now_sec);
+  }
   timearc_audio_tracker_poll(&state, 1059);
   assert(g_media_writes == 0);
   timearc_audio_tracker_poll(&state, 1060);
@@ -76,6 +90,7 @@ static void test_open_audio_checkpoints_and_continues_from_boundary(void) {
   assert(state.sessions[0].active);
   assert(state.sessions[0].start_sec == 1060);
 
+  timearc_audio_tracker_poll(&state, 1065);
   g_observed_count = 0;
   timearc_audio_tracker_poll(&state, 1070);
   assert(g_media_writes == 2);
@@ -83,8 +98,68 @@ static void test_open_audio_checkpoints_and_continues_from_boundary(void) {
   assert(g_media_end[1] == 1070);
 }
 
+static void test_observation_gap_closes_at_last_sample_and_restarts(void) {
+  TimeArcAudioTrackerState state;
+  g_observed[0] = codex_audio_app("Codex task");
+  g_observed_count = 1;
+  g_media_writes = 0;
+
+  timearc_audio_tracker_init(&state, 60);
+  timearc_audio_tracker_poll(&state, 1000);
+  timearc_audio_tracker_poll(&state, 1001);
+  timearc_audio_tracker_poll(&state, 2000);
+
+  assert(g_media_writes == 1);
+  assert(g_media_start[0] == 1000);
+  assert(g_media_end[0] == 1001);
+  assert(state.sessions[0].active);
+  assert(state.sessions[0].start_sec == 2000);
+
+  g_observed_count = 0;
+  timearc_audio_tracker_poll(&state, 2001);
+  assert(g_media_writes == 2);
+  assert(g_media_start[1] == 2000);
+  assert(g_media_end[1] == 2001);
+}
+
+static void test_flush_after_observation_gap_uses_last_sample(void) {
+  TimeArcAudioTrackerState state;
+  g_observed[0] = codex_audio_app("Codex task");
+  g_observed_count = 1;
+  g_media_writes = 0;
+
+  timearc_audio_tracker_init(&state, 60);
+  timearc_audio_tracker_poll(&state, 1000);
+  timearc_audio_tracker_poll(&state, 1001);
+  timearc_audio_tracker_flush(&state, 2000);
+
+  assert(g_media_writes == 1);
+  assert(g_media_start[0] == 1000);
+  assert(g_media_end[0] == 1001);
+  assert(!state.sessions[0].active);
+}
+
+static void test_non_codex_audio_keeps_original_gap_behavior(void) {
+  TimeArcAudioTrackerState state;
+  g_observed[0] = audio_app("Music");
+  g_observed_count = 1;
+  g_media_writes = 0;
+
+  timearc_audio_tracker_init(&state, 60);
+  timearc_audio_tracker_poll(&state, 1000);
+  timearc_audio_tracker_poll(&state, 1001);
+  timearc_audio_tracker_poll(&state, 2000);
+
+  assert(g_media_writes == 1);
+  assert(g_media_start[0] == 1000);
+  assert(g_media_end[0] == 2000);
+}
+
 int main(void) {
   test_open_audio_checkpoints_and_continues_from_boundary();
+  test_observation_gap_closes_at_last_sample_and_restarts();
+  test_flush_after_observation_gap_uses_last_sample();
+  test_non_codex_audio_keeps_original_gap_behavior();
   puts("Windows audio tracker tests passed");
   return 0;
 }
