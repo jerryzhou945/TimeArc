@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <wctype.h>
 
 // Some MinGW/SDK combinations omit the C IAudioMeterInformation definition.
 // This minimal vtable exposes the peak meter needed to detect audible output.
@@ -67,55 +68,6 @@ interface IAudioMeterInformation {
 #define TIMEARC_BROWSER_MEDIA_CACHE_SEC 30
 #define TIMEARC_BROWSER_MEDIA_CACHE_SIZE 4
 #define TIMEARC_BROWSER_SITE_HINT_SEC 600
-
-static const char* kGsmtcTitleOnlyQueryCommand =
-    "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass "
-    "-EncodedCommand "
-    "WwBDAG8AbgBzAG8AbABlAF0AOgA6AE8AdQB0AHAAdQB0AEUAbgBjAG8AZABpAG4AZwA9AFsAUwB5AHMAdABlAG0ALgBUAGUAeAB0AC4AVQBUAEYAOABFAG4AYwBvAGQAaQBuAGcAXQA6ADoAbgBlAHcAKAAkAGYAYQBsAHMAZQApAAoAJABuAHUAbABsACAAPQAgAFsAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALgBHAGwAbwBiAGEAbABTAHkAcwB0AGUAbQBNAGUAZABpAGEAVAByAGEAbgBzAHAAbwByAHQAQwBvAG4AdAByAG8AbABzAFMAZQBzAHMAaQBvAG4ATQBhAG4AYQBnAGUAcgAsACAAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALAAgAEMAbwBuAHQAZQBuAHQAVAB5AHAAZQA9AFcAaQBuAGQAbwB3AHMAUgB1AG4AdABpAG0AZQBdAAoAJABuAHUAbABsACAAPQAgAFsAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALgBHAGwAbwBiAGEAbABTAHkAcwB0AGUAbQBNAGUAZABpAGEAVAByAGEAbgBzAHAAbwByAHQAQwBvAG4AdAByAG8AbABzAFMAZQBzAHMAaQBvAG4ATQBlAGQAaQBhAFAAcgBvAHAAZQByAHQAaQBlAHMALAAgAFcAaQBuAGQAbwB3AHMALgBNAGUAZABpAGEALgBDAG8AbgB0AHIAbwBsACwAIABDAG8AbgB0AGUAbgB0AFQAeQBwAGUAPQBXAGkAbgBkAG8AdwBzAFIAdQBuAHQAaQBtAGUAXQAKAEEAZABkAC0AVAB5AHAAZQAgAC0AQQBzAHMAZQBtAGIAbAB5AE4AYQBtAGUAIABTAHkAcwB0AGUAbQAuAFIAdQBuAHQAaQBtAGUALgBXAGkAbgBkAG8AdwBzAFIAdQBuAHQAaQBtAGUACgBmAHUAbgBjAHQAaQBvAG4AIABBAHcAYQBpAHQAKAAkAG8AcAAsACAAWwBUAHkAcABlAF0AJAByAGUAcwB1AGwAdABUAHkAcABlACkAIAB7AAoAIAAgACQAbQBlAHQAaABvAGQAcwAgAD0AIABbAFMAeQBzAHQAZQBtAC4AVwBpAG4AZABvAHcAcwBSAHUAbgB0AGkAbQBlAFMAeQBzAHQAZQBtAEUAeAB0AGUAbgBzAGkAbwBuAHMAXQAuAEcAZQB0AE0AZQB0AGgAbwBkAHMAKAApACAAfAAgAFcAaABlAHIAZQAtAE8AYgBqAGUAYwB0ACAAewAgACQAXwAuAE4AYQBtAGUAIAAtAGUAcQAgACcAQQBzAFQAYQBzAGsAJwAgAC0AYQBuAGQAIAAkAF8ALgBJAHMARwBlAG4AZQByAGkAYwBNAGUAdABoAG8AZABEAGUAZgBpAG4AaQB0AGkAbwBuACAALQBhAG4AZAAgACQAXwAuAEcAZQB0AFAAYQByAGEAbQBlAHQAZQByAHMAKAApAC4AQwBvAHUAbgB0ACAALQBlAHEAIAAxACAAfQAKACAAIAAkAG0AZQB0AGgAbwBkACAAPQAgACQAbQBlAHQAaABvAGQAcwBbADAAXQAuAE0AYQBrAGUARwBlAG4AZQByAGkAYwBNAGUAdABoAG8AZAAoACQAcgBlAHMAdQBsAHQAVAB5AHAAZQApAAoAIAAgACQAdABhAHMAawAgAD0AIAAkAG0AZQB0AGgAbwBkAC4ASQBuAHYAbwBrAGUAKAAkAG4AdQBsAGwALAAgAEAAKAAkAG8AcAApACkACgAgACAAJAB0AGEAcwBrAC4AVwBhAGkAdAAoADEAMgAwADAAKQAgAHwAIABPAHUAdAAtAE4AdQBsAGwACgAgACAAaQBmACAAKAAtAG4AbwB0ACAAJAB0AGEAcwBrAC4ASQBzAEMAbwBtAHAAbABlAHQAZQBkACkAIAB7ACAAcgBlAHQAdQByAG4AIAAkAG4AdQBsAGwAIAB9AAoAIAAgACQAdABhAHMAawAuAFIAZQBzAHUAbAB0AAoAfQAKACQAbQBhAG4AYQBnAGUAcgAgAD0AIABBAHcAYQBpAHQAIAAoAFsAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALgBHAGwAbwBiAGEAbABTAHkAcwB0AGUAbQBNAGUAZABpAGEAVAByAGEAbgBzAHAAbwByAHQAQwBvAG4AdAByAG8AbABzAFMAZQBzAHMAaQBvAG4ATQBhAG4AYQBnAGUAcgBdADoAOgBSAGUAcQB1AGUAcwB0AEEAcwB5AG4AYwAoACkAKQAgACgAWwBXAGkAbgBkAG8AdwBzAC4ATQBlAGQAaQBhAC4AQwBvAG4AdAByAG8AbAAuAEcAbABvAGIAYQBsAFMAeQBzAHQAZQBtAE0AZQBkAGkAYQBUAHIAYQBuAHMAcABvAHIAdABDAG8AbgB0AHIAbwBsAHMAUwBlAHMAcwBpAG8AbgBNAGEAbgBhAGcAZQByAF0AKQAKAGkAZgAgACgAJABuAHUAbABsACAALQBlAHEAIAAkAG0AYQBuAGEAZwBlAHIAKQAgAHsAIABlAHgAaQB0ACAAMAAgAH0ACgBmAG8AcgBlAGEAYwBoACAAKAAkAHMAZQBzAHMAaQBvAG4AIABpAG4AIAAkAG0AYQBuAGEAZwBlAHIALgBHAGUAdABTAGUAcwBzAGkAbwBuAHMAKAApACkAIAB7AAoAIAAgACQAcAByAG8AcABzACAAPQAgAEEAdwBhAGkAdAAgACgAJABzAGUAcwBzAGkAbwBuAC4AVAByAHkARwBlAHQATQBlAGQAaQBhAFAAcgBvAHAAZQByAHQAaQBlAHMAQQBzAHkAbgBjACgAKQApACAAKABbAFcAaQBuAGQAbwB3AHMALgBNAGUAZABpAGEALgBDAG8AbgB0AHIAbwBsAC4ARwBsAG8AYgBhAGwAUwB5AHMAdABlAG0ATQBlAGQAaQBhAFQAcgBhAG4AcwBwAG8AcgB0AEMAbwBuAHQAcgBvAGwAcwBTAGUAcwBzAGkAbwBuAE0AZQBkAGkAYQBQAHIAbwBwAGUAcgB0AGkAZQBzAF0AKQAKACAAIABpAGYAIAAoACQAbgB1AGwAbAAgAC0AZQBxACAAJABwAHIAbwBwAHMAKQAgAHsAIABjAG8AbgB0AGkAbgB1AGUAIAB9AAoAIAAgACQAcwBvAHUAcgBjAGUAIAA9ACAAJABzAGUAcwBzAGkAbwBuAC4AUwBvAHUAcgBjAGUAQQBwAHAAVQBzAGUAcgBNAG8AZABlAGwASQBkAAoAIAAgACQAdABpAHQAbABlACAAPQAgACQAcAByAG8AcABzAC4AVABpAHQAbABlAAoAIAAgACQAYQByAHQAaQBzAHQAIAA9ACAAJABwAHIAbwBwAHMALgBBAHIAdABpAHMAdAAKACAAIABpAGYAIAAoAC0AbgBvAHQAIABbAHMAdAByAGkAbgBnAF0AOgA6AEkAcwBOAHUAbABsAE8AcgBXAGgAaQB0AGUAUwBwAGEAYwBlACgAJAB0AGkAdABsAGUAKQApACAAewAKACAAIAAgACAAIgAkAHMAbwB1AHIAYwBlAGAAdAAkAHQAaQB0AGwAZQBgAHQAJABhAHIAdABpAHMAdAAiAAoAIAAgAH0ACgB9AAoA";
-
-static const char* kGsmtcQueryCommand =
-    "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass "
-    "-EncodedCommand "
-    "WwBDAG8AbgBzAG8AbABlAF0AOgA6AE8AdQB0AHAAdQB0AEUAbgBjAG8AZABpAG4AZwA9AFsAUwB5AHMAdABlAG0ALgBUAGUA"
-    "eAB0AC4AVQBUAEYAOABFAG4AYwBvAGQAaQBuAGcAXQA6ADoAbgBlAHcAKAAkAGYAYQBsAHMAZQApAAoAJABuAHUAbABsAD0A"
-    "WwBXAGkAbgBkAG8AdwBzAC4ATQBlAGQAaQBhAC4AQwBvAG4AdAByAG8AbAAuAEcAbABvAGIAYQBsAFMAeQBzAHQAZQBtAE0A"
-    "ZQBkAGkAYQBUAHIAYQBuAHMAcABvAHIAdABDAG8AbgB0AHIAbwBsAHMAUwBlAHMAcwBpAG8AbgBNAGEAbgBhAGcAZQByACwA"
-    "VwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMAbwBuAHQAcgBvAGwALABDAG8AbgB0AGUAbgB0AFQAeQBwAGUAPQBXAGkA"
-    "bgBkAG8AdwBzAFIAdQBuAHQAaQBtAGUAXQAKACQAbgB1AGwAbAA9AFsAVwBpAG4AZABvAHcAcwAuAE0AZQBkAGkAYQAuAEMA"
-    "bwBuAHQAcgBvAGwALgBHAGwAbwBiAGEAbABTAHkAcwB0AGUAbQBNAGUAZABpAGEAVAByAGEAbgBzAHAAbwByAHQAQwBvAG4A"
-    "dAByAG8AbABzAFMAZQBzAHMAaQBvAG4ATQBlAGQAaQBhAFAAcgBvAHAAZQByAHQAaQBlAHMALABXAGkAbgBkAG8AdwBzAC4A"
-    "TQBlAGQAaQBhAC4AQwBvAG4AdAByAG8AbAAsAEMAbwBuAHQAZQBuAHQAVAB5AHAAZQA9AFcAaQBuAGQAbwB3AHMAUgB1AG4A"
-    "dABpAG0AZQBdAAoAQQBkAGQALQBUAHkAcABlACAALQBBAHMAcwBlAG0AYgBsAHkATgBhAG0AZQAgAFMAeQBzAHQAZQBtAC4A"
-    "UgB1AG4AdABpAG0AZQAuAFcAaQBuAGQAbwB3AHMAUgB1AG4AdABpAG0AZQAKAGYAdQBuAGMAdABpAG8AbgAgAEEAdwBhAGkA"
-    "dAAoACQAbwBwACwAWwBUAHkAcABlAF0AJAByAGUAcwB1AGwAdABUAHkAcABlACkAewAkAG0AZQB0AGgAbwBkAHMAPQBbAFMA"
-    "eQBzAHQAZQBtAC4AVwBpAG4AZABvAHcAcwBSAHUAbgB0AGkAbQBlAFMAeQBzAHQAZQBtAEUAeAB0AGUAbgBzAGkAbwBuAHMA"
-    "XQAuAEcAZQB0AE0AZQB0AGgAbwBkAHMAKAApAHwAVwBoAGUAcgBlAC0ATwBiAGoAZQBjAHQAewAkAF8ALgBOAGEAbQBlACAA"
-    "LQBlAHEAIAAnAEEAcwBUAGEAcwBrACcAIAAtAGEAbgBkACAAJABfAC4ASQBzAEcAZQBuAGUAcgBpAGMATQBlAHQAaABvAGQA"
-    "RABlAGYAaQBuAGkAdABpAG8AbgAgAC0AYQBuAGQAIAAkAF8ALgBHAGUAdABQAGEAcgBhAG0AZQB0AGUAcgBzACgAKQAuAEMA"
-    "bwB1AG4AdAAgAC0AZQBxACAAMQB9ADsAJABtAGUAdABoAG8AZAA9ACQAbQBlAHQAaABvAGQAcwBbADAAXQAuAE0AYQBrAGUA"
-    "RwBlAG4AZQByAGkAYwBNAGUAdABoAG8AZAAoACQAcgBlAHMAdQBsAHQAVAB5AHAAZQApADsAJAB0AGEAcwBrAD0AJABtAGUA"
-    "dABoAG8AZAAuAEkAbgB2AG8AawBlACgAJABuAHUAbABsACwAQAAoACQAbwBwACkAKQA7ACQAdABhAHMAawAuAFcAYQBpAHQA"
-    "KAAxADIAMAAwACkAfABPAHUAdAAtAE4AdQBsAGwAOwBpAGYAKAAtAG4AbwB0ACAAJAB0AGEAcwBrAC4ASQBzAEMAbwBtAHAA"
-    "bABlAHQAZQBkACkAewByAGUAdAB1AHIAbgAgACQAbgB1AGwAbAB9ADsAJAB0AGEAcwBrAC4AUgBlAHMAdQBsAHQAfQAKACQA"
-    "bQBhAG4AYQBnAGUAcgA9AEEAdwBhAGkAdAAgACgAWwBXAGkAbgBkAG8AdwBzAC4ATQBlAGQAaQBhAC4AQwBvAG4AdAByAG8A"
-    "bAAuAEcAbABvAGIAYQBsAFMAeQBzAHQAZQBtAE0AZQBkAGkAYQBUAHIAYQBuAHMAcABvAHIAdABDAG8AbgB0AHIAbwBsAHMA"
-    "UwBlAHMAcwBpAG8AbgBNAGEAbgBhAGcAZQByAF0AOgA6AFIAZQBxAHUAZQBzAHQAQQBzAHkAbgBjACgAKQApACAAKABbAFcA"
-    "aQBuAGQAbwB3AHMALgBNAGUAZABpAGEALgBDAG8AbgB0AHIAbwBsAC4ARwBsAG8AYgBhAGwAUwB5AHMAdABlAG0ATQBlAGQA"
-    "aQBhAFQAcgBhAG4AcwBwAG8AcgB0AEMAbwBuAHQAcgBvAGwAcwBTAGUAcwBzAGkAbwBuAE0AYQBuAGEAZwBlAHIAXQApAAoA"
-    "aQBmACgAJABuAHUAbABsACAALQBlAHEAIAAkAG0AYQBuAGEAZwBlAHIAKQB7AGUAeABpAHQAIAAwAH0ACgBmAG8AcgBlAGEA"
-    "YwBoACgAJABzAGUAcwBzAGkAbwBuACAAaQBuACAAJABtAGEAbgBhAGcAZQByAC4ARwBlAHQAUwBlAHMAcwBpAG8AbgBzACgA"
-    "KQApAHsAJABwAHIAbwBwAHMAPQBBAHcAYQBpAHQAIAAoACQAcwBlAHMAcwBpAG8AbgAuAFQAcgB5AEcAZQB0AE0AZQBkAGkA"
-    "YQBQAHIAbwBwAGUAcgB0AGkAZQBzAEEAcwB5AG4AYwAoACkAKQAgACgAWwBXAGkAbgBkAG8AdwBzAC4ATQBlAGQAaQBhAC4A"
-    "QwBvAG4AdAByAG8AbAAuAEcAbABvAGIAYQBsAFMAeQBzAHQAZQBtAE0AZQBkAGkAYQBUAHIAYQBuAHMAcABvAHIAdABDAG8A"
-    "bgB0AHIAbwBsAHMAUwBlAHMAcwBpAG8AbgBNAGUAZABpAGEAUAByAG8AcABlAHIAdABpAGUAcwBdACkAOwBpAGYAKAAkAG4A"
-    "dQBsAGwAIAAtAGUAcQAgACQAcAByAG8AcABzACkAewBjAG8AbgB0AGkAbgB1AGUAfQA7ACQAcwBvAHUAcgBjAGUAPQAkAHMA"
-    "ZQBzAHMAaQBvAG4ALgBTAG8AdQByAGMAZQBBAHAAcABVAHMAZQByAE0AbwBkAGUAbABJAGQAOwAkAHQAaQB0AGwAZQA9ACQA"
-    "cAByAG8AcABzAC4AVABpAHQAbABlADsAJABhAHIAdABpAHMAdAA9ACQAcAByAG8AcABzAC4AQQByAHQAaQBzAHQAOwAkAHMA"
-    "dABhAHQAdQBzAD0AJwAnADsAdAByAHkAewAkAHMAdABhAHQAdQBzAD0AJABzAGUAcwBzAGkAbwBuAC4ARwBlAHQAUABsAGEA"
-    "eQBiAGEAYwBrAEkAbgBmAG8AKAApAC4AUABsAGEAeQBiAGEAYwBrAFMAdABhAHQAdQBzAC4AVABvAFMAdAByAGkAbgBnACgA"
-    "KQB9AGMAYQB0AGMAaAB7AH0AOwBpAGYAKAAtAG4AbwB0ACAAWwBzAHQAcgBpAG4AZwBdADoAOgBJAHMATgB1AGwAbABPAHIA"
-    "VwBoAGkAdABlAFMAcABhAGMAZQAoACQAdABpAHQAbABlACkAKQB7ACIAJABzAG8AdQByAGMAZQBgAHQAJAB0AGkAdABsAGUA"
-    "YAB0ACQAYQByAHQAaQBzAHQAYAB0ACQAcwB0AGEAdAB1AHMAIgB9AH0A";
 
 static char g_gsmtc_cache_app[TA_MAX_NAME_BYTES];
 static char g_gsmtc_cache_title[TA_MAX_TITLE_BYTES];
@@ -378,33 +330,373 @@ static int gsmtc_source_matches_app(const char* source, const char* app_name) {
   return stem[0] != '\0' && contains_ascii_case_insensitive(source, stem);
 }
 
-static void trim_line_end(char* value) {
-  if (value == NULL) {
-    return;
+// --- Windows.Media.Control (GSMTC) through the WinRT ABI ---------------------
+//
+// System media metadata used to come from a powershell.exe child per query.
+// Each spawn cost ~0.5 s CPU and ~90 MB, and ran about once per sampling second
+// while a browser held an audio session. The same WinRT API is now called
+// in-process. MinGW ships no projection header for this namespace, so only the
+// vtable prefixes TimeArc calls are declared; the IIDs and slot order come
+// from the system Windows.Media.Control metadata. combase.dll is resolved at
+// runtime, which keeps the service link line unchanged.
+
+#define TIMEARC_GSMTC_ASYNC_TIMEOUT_MS 1200
+// Re-request the session manager periodically so a restarted media broker
+// cannot leave a stale manager in place for the life of the service.
+#define TIMEARC_GSMTC_MANAGER_REFRESH_MS 30000
+#define TIMEARC_GSMTC_FIELD_BYTES 1024
+
+typedef struct TaHStringOpaque* TaHString;
+
+typedef HRESULT(WINAPI* TaRoGetActivationFactoryFn)(TaHString class_id,
+                                                    REFIID iid,
+                                                    void** factory);
+typedef HRESULT(WINAPI* TaWindowsCreateStringFn)(const wchar_t* source,
+                                                 UINT32 length,
+                                                 TaHString* out);
+typedef HRESULT(WINAPI* TaWindowsDeleteStringFn)(TaHString value);
+typedef const wchar_t*(WINAPI* TaWindowsGetStringRawBufferFn)(TaHString value,
+                                                             UINT32* length);
+
+#define TA_WINRT_DECLARE(Name)        \
+  typedef struct Name##Vtbl Name##Vtbl; \
+  typedef struct Name {               \
+    const Name##Vtbl* lpVtbl;         \
+  } Name;
+
+// IUnknown + IInspectable prefix shared by every WinRT interface.
+#define TA_WINRT_INSPECTABLE_SLOTS(Name)                                  \
+  HRESULT(STDMETHODCALLTYPE* QueryInterface)(Name* self, REFIID riid,     \
+                                             void** out);                 \
+  ULONG(STDMETHODCALLTYPE* AddRef)(Name* self);                           \
+  ULONG(STDMETHODCALLTYPE* Release)(Name* self);                          \
+  void (*GetIids)(void);                                                  \
+  void (*GetRuntimeClassName)(void);                                      \
+  void (*GetTrustLevel)(void);
+
+TA_WINRT_DECLARE(TaAsyncInfo)
+TA_WINRT_DECLARE(TaAsyncOperation)
+TA_WINRT_DECLARE(TaVectorView)
+TA_WINRT_DECLARE(TaGsmtcManagerStatics)
+TA_WINRT_DECLARE(TaGsmtcManager)
+TA_WINRT_DECLARE(TaGsmtcSession)
+TA_WINRT_DECLARE(TaGsmtcMediaProperties)
+TA_WINRT_DECLARE(TaGsmtcPlaybackInfo)
+
+// Windows.Foundation.IAsyncInfo
+struct TaAsyncInfoVtbl {
+  TA_WINRT_INSPECTABLE_SLOTS(TaAsyncInfo)
+  HRESULT(STDMETHODCALLTYPE* get_Id)(TaAsyncInfo* self, UINT32* id);
+  HRESULT(STDMETHODCALLTYPE* get_Status)(TaAsyncInfo* self, int* status);
+  HRESULT(STDMETHODCALLTYPE* get_ErrorCode)(TaAsyncInfo* self, HRESULT* code);
+  HRESULT(STDMETHODCALLTYPE* Cancel)(TaAsyncInfo* self);
+  HRESULT(STDMETHODCALLTYPE* Close)(TaAsyncInfo* self);
+};
+
+// Windows.Foundation.IAsyncOperation<T>; T is always a runtime-class pointer.
+struct TaAsyncOperationVtbl {
+  TA_WINRT_INSPECTABLE_SLOTS(TaAsyncOperation)
+  void (*put_Completed)(void);
+  void (*get_Completed)(void);
+  HRESULT(STDMETHODCALLTYPE* GetResults)(TaAsyncOperation* self,
+                                         void** results);
+};
+
+// Windows.Foundation.Collections.IVectorView<T>
+struct TaVectorViewVtbl {
+  TA_WINRT_INSPECTABLE_SLOTS(TaVectorView)
+  HRESULT(STDMETHODCALLTYPE* GetAt)(TaVectorView* self, UINT32 index,
+                                    void** item);
+  HRESULT(STDMETHODCALLTYPE* get_Size)(TaVectorView* self, UINT32* size);
+};
+
+// IGlobalSystemMediaTransportControlsSessionManagerStatics
+struct TaGsmtcManagerStaticsVtbl {
+  TA_WINRT_INSPECTABLE_SLOTS(TaGsmtcManagerStatics)
+  HRESULT(STDMETHODCALLTYPE* RequestAsync)(TaGsmtcManagerStatics* self,
+                                           TaAsyncOperation** operation);
+};
+
+// IGlobalSystemMediaTransportControlsSessionManager
+struct TaGsmtcManagerVtbl {
+  TA_WINRT_INSPECTABLE_SLOTS(TaGsmtcManager)
+  void (*GetCurrentSession)(void);
+  HRESULT(STDMETHODCALLTYPE* GetSessions)(TaGsmtcManager* self,
+                                          TaVectorView** sessions);
+};
+
+// IGlobalSystemMediaTransportControlsSession
+struct TaGsmtcSessionVtbl {
+  TA_WINRT_INSPECTABLE_SLOTS(TaGsmtcSession)
+  HRESULT(STDMETHODCALLTYPE* get_SourceAppUserModelId)(TaGsmtcSession* self,
+                                                       TaHString* value);
+  HRESULT(STDMETHODCALLTYPE* TryGetMediaPropertiesAsync)(
+      TaGsmtcSession* self, TaAsyncOperation** operation);
+  void (*GetTimelineProperties)(void);
+  HRESULT(STDMETHODCALLTYPE* GetPlaybackInfo)(TaGsmtcSession* self,
+                                              TaGsmtcPlaybackInfo** info);
+};
+
+// IGlobalSystemMediaTransportControlsSessionMediaProperties
+struct TaGsmtcMediaPropertiesVtbl {
+  TA_WINRT_INSPECTABLE_SLOTS(TaGsmtcMediaProperties)
+  HRESULT(STDMETHODCALLTYPE* get_Title)(TaGsmtcMediaProperties* self,
+                                        TaHString* value);
+  void (*get_Subtitle)(void);
+  void (*get_AlbumArtist)(void);
+  HRESULT(STDMETHODCALLTYPE* get_Artist)(TaGsmtcMediaProperties* self,
+                                         TaHString* value);
+};
+
+// IGlobalSystemMediaTransportControlsSessionPlaybackInfo
+struct TaGsmtcPlaybackInfoVtbl {
+  TA_WINRT_INSPECTABLE_SLOTS(TaGsmtcPlaybackInfo)
+  void (*get_Controls)(void);
+  HRESULT(STDMETHODCALLTYPE* get_PlaybackStatus)(TaGsmtcPlaybackInfo* self,
+                                                 int* status);
+};
+
+// Windows.Foundation.IAsyncInfo
+DEFINE_GUID(TA_IID_IAsyncInfo, 0x00000036, 0x0000, 0x0000, 0xc0, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x46);
+// IGlobalSystemMediaTransportControlsSessionManagerStatics
+DEFINE_GUID(TA_IID_GsmtcManagerStatics, 0x2050c4ee, 0x11a0, 0x57de, 0xae,
+            0xd7, 0xc9, 0x7c, 0x70, 0x33, 0x82, 0x45);
+
+enum {
+  TA_ASYNC_STARTED = 0,
+  TA_ASYNC_COMPLETED = 1,
+};
+
+typedef struct TaWinrtApi {
+  int load_attempted;
+  int available;
+  TaRoGetActivationFactoryFn get_activation_factory;
+  TaWindowsCreateStringFn create_string;
+  TaWindowsDeleteStringFn delete_string;
+  TaWindowsGetStringRawBufferFn get_raw_buffer;
+} TaWinrtApi;
+
+static TaWinrtApi g_winrt;
+static TaGsmtcManagerStatics* g_gsmtc_statics = NULL;
+static TaGsmtcManager* g_gsmtc_manager = NULL;
+static ULONGLONG g_gsmtc_manager_tick = 0;
+
+static int gsmtc_load_winrt(void) {
+  if (g_winrt.load_attempted) {
+    return g_winrt.available ? 0 : -1;
+  }
+  g_winrt.load_attempted = 1;
+
+  HMODULE combase =
+      LoadLibraryExW(L"combase.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  if (combase == NULL) {
+    return -1;
+  }
+  // Cast through void (*)(void) so GCC accepts the FARPROC conversion.
+  g_winrt.get_activation_factory = (TaRoGetActivationFactoryFn)(void (*)(void))
+      GetProcAddress(combase, "RoGetActivationFactory");
+  g_winrt.create_string = (TaWindowsCreateStringFn)(void (*)(void))
+      GetProcAddress(combase, "WindowsCreateString");
+  g_winrt.delete_string = (TaWindowsDeleteStringFn)(void (*)(void))
+      GetProcAddress(combase, "WindowsDeleteString");
+  g_winrt.get_raw_buffer = (TaWindowsGetStringRawBufferFn)(void (*)(void))
+      GetProcAddress(combase, "WindowsGetStringRawBuffer");
+  g_winrt.available = g_winrt.get_activation_factory != NULL &&
+                      g_winrt.create_string != NULL &&
+                      g_winrt.delete_string != NULL &&
+                      g_winrt.get_raw_buffer != NULL;
+  return g_winrt.available ? 0 : -1;
+}
+
+// Block until an async operation settles, bounded like the retired script's
+// Task.Wait(1200). Return 0 only when it completed successfully.
+static int gsmtc_wait_async(TaAsyncOperation* operation) {
+  TaAsyncInfo* info = NULL;
+  if (FAILED(operation->lpVtbl->QueryInterface(operation, &TA_IID_IAsyncInfo,
+                                               (void**)&info)) ||
+      info == NULL) {
+    return -1;
   }
 
-  size_t len = strlen(value);
-  while (len > 0 && (value[len - 1] == '\r' || value[len - 1] == '\n' ||
-                     value[len - 1] == ' ' || value[len - 1] == '\t')) {
-    value[len - 1] = '\0';
-    --len;
+  const ULONGLONG deadline = GetTickCount64() + TIMEARC_GSMTC_ASYNC_TIMEOUT_MS;
+  int status = TA_ASYNC_STARTED;
+  for (;;) {
+    if (FAILED(info->lpVtbl->get_Status(info, &status))) {
+      status = -1;
+      break;
+    }
+    if (status != TA_ASYNC_STARTED) {
+      break;
+    }
+    if (GetTickCount64() >= deadline) {
+      info->lpVtbl->Cancel(info);
+      break;
+    }
+    Sleep(1);
+  }
+  info->lpVtbl->Release(info);
+  return status == TA_ASYNC_COMPLETED ? 0 : -1;
+}
+
+// Await an operation and take its runtime-class result. Releases operation.
+static void* gsmtc_await_result(TaAsyncOperation* operation) {
+  if (operation == NULL) {
+    return NULL;
+  }
+  void* result = NULL;
+  if (gsmtc_wait_async(operation) != 0 ||
+      FAILED(operation->lpVtbl->GetResults(operation, &result))) {
+    result = NULL;
+  }
+  operation->lpVtbl->Release(operation);
+  return result;
+}
+
+static void gsmtc_release_manager(void) {
+  if (g_gsmtc_manager != NULL) {
+    g_gsmtc_manager->lpVtbl->Release(g_gsmtc_manager);
+    g_gsmtc_manager = NULL;
   }
 }
 
-static char* next_tsv_field(char** cursor) {
-  if (cursor == NULL || *cursor == NULL) {
+static TaGsmtcManager* gsmtc_manager(void) {
+  const ULONGLONG now = GetTickCount64();
+  if (g_gsmtc_manager != NULL &&
+      now - g_gsmtc_manager_tick < TIMEARC_GSMTC_MANAGER_REFRESH_MS) {
+    return g_gsmtc_manager;
+  }
+  gsmtc_release_manager();
+  if (gsmtc_load_winrt() != 0) {
     return NULL;
   }
 
-  char* field = *cursor;
-  char* separator = strchr(field, '\t');
-  if (separator == NULL) {
-    *cursor = NULL;
-  } else {
-    *separator = '\0';
-    *cursor = separator + 1;
+  if (g_gsmtc_statics == NULL) {
+    static const wchar_t kClassName[] =
+        L"Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager";
+    TaHString class_id = NULL;
+    if (FAILED(g_winrt.create_string(
+            kClassName, (UINT32)(sizeof(kClassName) / sizeof(kClassName[0]) - 1),
+            &class_id))) {
+      return NULL;
+    }
+    const HRESULT hr = g_winrt.get_activation_factory(
+        class_id, &TA_IID_GsmtcManagerStatics, (void**)&g_gsmtc_statics);
+    g_winrt.delete_string(class_id);
+    if (FAILED(hr)) {
+      g_gsmtc_statics = NULL;
+      return NULL;
+    }
   }
-  return field;
+
+  TaAsyncOperation* operation = NULL;
+  if (FAILED(g_gsmtc_statics->lpVtbl->RequestAsync(g_gsmtc_statics,
+                                                   &operation))) {
+    return NULL;
+  }
+  g_gsmtc_manager = (TaGsmtcManager*)gsmtc_await_result(operation);
+  g_gsmtc_manager_tick = now;
+  return g_gsmtc_manager;
+}
+
+// Convert and free an HSTRING. Returns 1 when it held a non-whitespace
+// character, matching the retired script's IsNullOrWhiteSpace check.
+static int gsmtc_take_hstring(TaHString value, char* dst, size_t dst_size) {
+  dst[0] = '\0';
+  if (value == NULL) {
+    return 0;
+  }
+  int has_text = 0;
+  const wchar_t* raw = g_winrt.get_raw_buffer(value, NULL);
+  if (raw != NULL) {
+    for (const wchar_t* c = raw; *c != L'\0'; ++c) {
+      if (!iswspace(*c)) {
+        has_text = 1;
+        break;
+      }
+    }
+    wide_to_utf8(raw, dst, dst_size);
+  }
+  g_winrt.delete_string(value);
+  return has_text;
+}
+
+// PlaybackStatus enum names, as the retired script printed them via ToString().
+static const char* gsmtc_playback_status_name(int status) {
+  static const char* const kNames[] = {"Closed",  "Opened",  "Changing",
+                                       "Stopped", "Playing", "Paused"};
+  if (status < 0 || status >= (int)(sizeof(kNames) / sizeof(kNames[0]))) {
+    return "";
+  }
+  return kNames[status];
+}
+
+typedef struct GsmtcSessionInfo {
+  char source[TA_MAX_NAME_BYTES];
+  char title[TIMEARC_GSMTC_FIELD_BYTES];
+  char artist[TIMEARC_GSMTC_FIELD_BYTES];
+  const char* status;
+} GsmtcSessionInfo;
+
+// Read one session if it belongs to app_name and reports a non-blank title.
+// Return 0 when out holds a usable entry.
+static int gsmtc_read_session(TaGsmtcSession* session,
+                              const char* app_name,
+                              GsmtcSessionInfo* out) {
+  memset(out, 0, sizeof(*out));
+  out->status = "";
+
+  TaHString source = NULL;
+  if (FAILED(session->lpVtbl->get_SourceAppUserModelId(session, &source))) {
+    return -1;
+  }
+  gsmtc_take_hstring(source, out->source, sizeof(out->source));
+  if (!gsmtc_source_matches_app(out->source, app_name)) {
+    return -1;
+  }
+
+  TaAsyncOperation* operation = NULL;
+  if (FAILED(session->lpVtbl->TryGetMediaPropertiesAsync(session,
+                                                         &operation))) {
+    return -1;
+  }
+  TaGsmtcMediaProperties* props =
+      (TaGsmtcMediaProperties*)gsmtc_await_result(operation);
+  if (props == NULL) {
+    return -1;
+  }
+  TaHString title = NULL;
+  TaHString artist = NULL;
+  const int has_title =
+      SUCCEEDED(props->lpVtbl->get_Title(props, &title)) &&
+      gsmtc_take_hstring(title, out->title, sizeof(out->title));
+  if (SUCCEEDED(props->lpVtbl->get_Artist(props, &artist))) {
+    gsmtc_take_hstring(artist, out->artist, sizeof(out->artist));
+  }
+  props->lpVtbl->Release(props);
+  if (!has_title) {
+    return -1;
+  }
+
+  // Older builds may not report playback status; keep it empty (UNKNOWN).
+  TaGsmtcPlaybackInfo* info = NULL;
+  if (SUCCEEDED(session->lpVtbl->GetPlaybackInfo(session, &info)) &&
+      info != NULL) {
+    int status = -1;
+    if (SUCCEEDED(info->lpVtbl->get_PlaybackStatus(info, &status))) {
+      out->status = gsmtc_playback_status_name(status);
+    }
+    info->lpVtbl->Release(info);
+  }
+  return 0;
+}
+
+static void gsmtc_shutdown(void) {
+  gsmtc_release_manager();
+  if (g_gsmtc_statics != NULL) {
+    g_gsmtc_statics->lpVtbl->Release(g_gsmtc_statics);
+    g_gsmtc_statics = NULL;
+  }
 }
 
 static void format_gsmtc_title(const char* title,
@@ -430,52 +722,62 @@ static void format_gsmtc_title(const char* title,
   copy_string(out_title, out_title_size, title);
 }
 
-static int query_gsmtc_command(const char* command,
-                               int includes_playback_status,
-                               const char* app_name,
-                               char* out_title,
-                               size_t out_title_size,
-                               TimeArcWinPlaybackState* out_playback_state) {
-  FILE* pipe = _popen(command, "r");
-  if (pipe == NULL) {
+static int query_gsmtc_sessions(const char* app_name,
+                                char* out_title,
+                                size_t out_title_size,
+                                TimeArcWinPlaybackState* out_playback_state) {
+  TaGsmtcManager* manager = gsmtc_manager();
+  if (manager == NULL) {
     return -1;
   }
+  TaVectorView* sessions = NULL;
+  if (FAILED(manager->lpVtbl->GetSessions(manager, &sessions)) ||
+      sessions == NULL) {
+    // Drop a manager whose broker connection went away; retry next poll.
+    gsmtc_release_manager();
+    return -1;
+  }
+  UINT32 count = 0;
+  if (FAILED(sessions->lpVtbl->get_Size(sessions, &count))) {
+    count = 0;
+  }
 
-  char line[1024];
   char selected_source[TA_MAX_NAME_BYTES] = {0};
   int matched = 0;
-  while (fgets(line, sizeof(line), pipe) != NULL) {
-    trim_line_end(line);
-    char* cursor = line;
-    char* source = next_tsv_field(&cursor);
-    char* title = next_tsv_field(&cursor);
-    char* artist = next_tsv_field(&cursor);
-    char* status = includes_playback_status ? next_tsv_field(&cursor) : NULL;
-    if (source == NULL || title == NULL ||
-        !gsmtc_source_matches_app(source, app_name)) {
+  for (UINT32 i = 0; i < count; ++i) {
+    TaGsmtcSession* session = NULL;
+    if (FAILED(sessions->lpVtbl->GetAt(sessions, i, (void**)&session)) ||
+        session == NULL) {
+      continue;
+    }
+    GsmtcSessionInfo info;
+    const int readable = gsmtc_read_session(session, app_name, &info) == 0;
+    session->lpVtbl->Release(session);
+    if (!readable) {
       continue;
     }
 
     char candidate_title[TA_MAX_TITLE_BYTES];
-    format_gsmtc_title(title, artist, candidate_title, sizeof(candidate_title));
+    format_gsmtc_title(info.title, info.artist, candidate_title,
+                       sizeof(candidate_title));
     if (candidate_title[0] != '\0') {
       const TimeArcWinPlaybackState candidate_state =
-          timearc_win_parse_playback_status(status);
+          timearc_win_parse_playback_status(info.status);
       const TimeArcWinPlaybackState merged_state =
           timearc_win_merge_playback_state(*out_playback_state,
                                            candidate_state);
       if (!matched || merged_state != *out_playback_state) {
-        copy_string(selected_source, sizeof(selected_source), source);
+        copy_string(selected_source, sizeof(selected_source), info.source);
         copy_string(out_title, out_title_size, candidate_title);
         *out_playback_state = merged_state;
       }
       matched = 1;
-      if (!includes_playback_status ||
-          *out_playback_state == TIMEARC_WIN_PLAYBACK_PLAYING) {
+      if (*out_playback_state == TIMEARC_WIN_PLAYBACK_PLAYING) {
         break;
       }
     }
   }
+  sessions->lpVtbl->Release(sessions);
 
   if (matched) {
     copy_string(g_gsmtc_cache_app, sizeof(g_gsmtc_cache_app), selected_source);
@@ -483,8 +785,6 @@ static int query_gsmtc_command(const char* command,
     g_gsmtc_cache_playback_state = *out_playback_state;
     g_gsmtc_cache_time = time(NULL);
   }
-
-  _pclose(pipe);
   return matched ? 0 : -1;
 }
 
@@ -512,16 +812,10 @@ static int query_gsmtc_media_info(const char* app_name,
     return 0;
   }
 
-  if (query_gsmtc_command(kGsmtcQueryCommand, 1, app_name, out_title,
-                          out_title_size, out_playback_state) == 0) {
-    return 0;
-  }
-
-  // Older Windows builds may expose metadata but not playback status. Keep the
-  // previous title-only query as a compatibility fallback; activity then uses
-  // the WASAPI peak path because the status remains UNKNOWN.
-  return query_gsmtc_command(kGsmtcTitleOnlyQueryCommand, 0, app_name,
-                             out_title, out_title_size, out_playback_state);
+  // Builds that expose metadata without playback status leave the status
+  // UNKNOWN, so activity then falls back to the WASAPI peak path.
+  return query_gsmtc_sessions(app_name, out_title, out_title_size,
+                              out_playback_state);
 }
 
 static int should_ignore_audio_process(const char* path) {
@@ -1103,6 +1397,8 @@ int timearc_win_get_audio_apps(AppInfo* out_apps,
 }
 
 void timearc_win_audio_shutdown(void) {
+  // WinRT objects must be released while COM is still initialized.
+  gsmtc_shutdown();
   if (g_com_initialized && g_should_uninitialize_com) {
     CoUninitialize();
   }

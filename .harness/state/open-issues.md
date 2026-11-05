@@ -12,8 +12,8 @@ Known-broken or incomplete; keep entries short and move fixed items to a session
   packaging; remaining work is credentialed signing/notarization, runtime/Accessibility
   smoke, launchd/login verification, and clean-machine QA.
 - **Windows background startup restored (2026-08-20).** UI start, v1 enabled/idle and JSON
-  status work. Codex counts changing related-worker CPU/I/O, never mere process presence;
-  advanced leaves and SCM Session-0 remain deferred.
+  status work. Codex counts worker CPU/I/O, never mere presence. Media metadata is in-process
+  WinRT + EcoQoS since 2026-11-04 (no PowerShell); advanced leaves and SCM Session-0 deferred.
 - **Bilibili marker-free video attribution fixed (2026-08-25).** Recent explicit browser-site identity now survives title-only navigation; direct deep links without any marker remain limited.
 
 ## Storage
