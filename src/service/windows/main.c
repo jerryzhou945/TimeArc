@@ -27,6 +27,32 @@ static BOOL WINAPI console_handler(DWORD event_type) {
   }
 }
 
+// Run the resident collector as a background-class process: EcoQoS power
+// throttling (Windows 11 "Efficiency mode") plus below-normal priority. The
+// tracker timestamps by wall clock, so slower scheduling never changes
+// recorded durations. Resolved at runtime because SetProcessInformation is
+// absent before Windows 8; failure leaves default scheduling in place.
+static void enter_efficiency_mode(void) {
+  typedef BOOL(WINAPI * SetProcessInformationFn)(HANDLE, PROCESS_INFORMATION_CLASS,
+                                                 LPVOID, DWORD);
+  HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
+  SetProcessInformationFn set_process_information =
+      kernel32 == NULL
+          ? NULL
+          : (SetProcessInformationFn)(void (*)(void))GetProcAddress(
+                kernel32, "SetProcessInformation");
+  if (set_process_information != NULL) {
+    PROCESS_POWER_THROTTLING_STATE throttling;
+    ZeroMemory(&throttling, sizeof(throttling));
+    throttling.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    throttling.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED;
+    throttling.StateMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED;
+    set_process_information(GetCurrentProcess(), ProcessPowerThrottling,
+                            &throttling, sizeof(throttling));
+  }
+  SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+}
+
 // Dispatch lifecycle verbs. No arguments runs the tracker for compatibility;
 // verbs manage autostart and the tracker in the current user session.
 static int dispatch_verb(int argc, char** argv) {
@@ -68,6 +94,8 @@ int main(int argc, char** argv) {
     CloseHandle(instance_mutex);
     return 0;
   }
+
+  enter_efficiency_mode();
 
   // Start with compatible defaults, then apply valid service_config.json values.
   // Explicitly initialize track_enabled because omitted fields become zero.

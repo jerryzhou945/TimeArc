@@ -118,6 +118,13 @@ G2/G3 打磨 ───────────(随手)
   B 站页面进入无站点后缀视频页时保留短期站点身份，使媒体时长继续归入 B 站；
   Discord 策略和磁盘契约不变。见
   [`windows-bilibili-site-attribution-fix-2026-08-25.md`](windows-bilibili-site-attribution-fix-2026-08-25.md)。
+- [x] **B7 系统媒体信息改为进程内 WinRT 查询** — 2026-11-04 服务不再每秒派生
+  `powershell.exe` 读取 GSMTC 媒体标题/播放状态（原约 0.7 核持续占用），改为进程内
+  调用同一 API；常驻采集进程进入 EcoQoS 效率模式 + 低于正常优先级。标题匹配与磁盘
+  契约不变。见
+  [`windows-service-native-media-query-fix-2026-11-04.md`](windows-service-native-media-query-fix-2026-11-04.md)。
+- [ ] **B8 采样循环事件驱动化** — 剩余自身 CPU 约 1.4 s/分钟，主要来自每秒 WASAPI
+  会话枚举（约 8 ms/次）与最多每秒两次的全系统进程快照（约 10 ms/次）。
 
 ### C. 跨平台服务（**非 Windows**）
 - [~] **C1 macOS tracker 主循环接线**
